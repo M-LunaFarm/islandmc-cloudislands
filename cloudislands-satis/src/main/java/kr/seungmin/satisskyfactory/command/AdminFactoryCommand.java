@@ -190,8 +190,9 @@ public final class AdminFactoryCommand {
                 if (!requireFeature(sender, "research")) {
                     return;
                 }
-                research.addResearch(island, parseLong(args, 3, 0));
-                islands.save(island);
+                if (research.addResearch(island, parseLong(args, 3, 0))) {
+                    islands.save(island);
+                }
                 messages.send(sender, "admin-research-updated");
             });
             case "setdebt" -> withPlayerContext(sender, args, 2, (target, island) -> {
@@ -1422,6 +1423,7 @@ public final class AdminFactoryCommand {
                         "runtime-research-status",
                         "runtime-research-policy",
                         "runtime-research-unlock-save-policy",
+                        "runtime-admin-research-save-policy",
                         "runtime-machines-gate",
                         "runtime-machines-status",
                         "runtime-machines-policy",

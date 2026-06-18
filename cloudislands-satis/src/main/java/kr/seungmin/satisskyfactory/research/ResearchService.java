@@ -82,14 +82,18 @@ public final class ResearchService {
         blockTierUpgradesWhenLimited = false;
     }
 
-    public void addResearch(FactoryIsland island, long amount) {
+    public boolean addResearch(FactoryIsland island, long amount) {
         if (!active) {
-            return;
+            return false;
         }
         if (!writesEnabled()) {
-            return;
+            return false;
+        }
+        if (amount <= 0) {
+            return false;
         }
         island.researchPoints(Math.max(0, island.researchPoints() + amount));
+        return true;
     }
 
     public UnlockResult unlock(FactoryIsland island, String unlockId) {
