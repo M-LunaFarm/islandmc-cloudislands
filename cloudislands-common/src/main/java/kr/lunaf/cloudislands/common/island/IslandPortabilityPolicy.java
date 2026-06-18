@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.common.island;
 import java.util.List;
 
 public final class IslandPortabilityPolicy {
+    public static final int MIN_READY_CANDIDATES_FOR_NEW_ACTIVATION = 1;
+    public static final int RECOMMENDED_READY_CANDIDATES = 2;
     public static final String RESOURCE_MODEL = "global-resource-not-server-pinned";
     public static final String BUNDLE_MODEL = "portable-bundle-with-node-independent-manifest";
     public static final String NODE_MODEL = "island-nodes-run-islands-they-do-not-own-islands";
@@ -12,6 +14,7 @@ public final class IslandPortabilityPolicy {
     public static final String SCALE_READINESS_POLICY = "node-pool-readiness-is-live-heartbeat-driven-and-degraded-when-route-candidates-drop-below-recommended-minimum";
     public static final String SOFT_FULL_POLICY = "new-and-inactive-islands-avoid-soft-full-nodes-active-member-reserve-slots-visitors-queue-or-limit";
     public static final String ONE_LINE_DEFINITION = "CloudIslands manages islands as global portable resources on a Velocity network and dynamically activates them on an Island node pool.";
+    public static final String SCALE_OUT_GUARD_POLICY = "new-nodes-must-use-unique-node-id-unique-velocity-server-name-shared-storage-and-ready-heartbeat-before-routing";
 
     private static final List<String> DESIGN_EFFECTS = List.of(
         "lobby-can-query-island-info",
@@ -25,6 +28,8 @@ public final class IslandPortabilityPolicy {
         "route-candidate-shortfall-is-reported-before-new-activations-fail"
     );
 
+    private static final List<Integer> SCALE_OUT_EXAMPLE_COUNTS = List.of(3, 4, 5, 6, 8);
+
     private IslandPortabilityPolicy() {}
 
     public static List<String> designEffects() {
@@ -37,5 +42,35 @@ public final class IslandPortabilityPolicy {
 
     public static String scaleReadinessSummary() {
         return SCALE_POLICY + "," + FIVE_SIX_NODE_POLICY + "," + SCALE_READINESS_POLICY;
+    }
+
+    public static List<Integer> scaleOutExampleCounts() {
+        return SCALE_OUT_EXAMPLE_COUNTS;
+    }
+
+    public static boolean supportsIslandNodeCount(int islandNodeCount) {
+        return islandNodeCount >= 1;
+    }
+
+    public static boolean documentedScaleOutCount(int islandNodeCount) {
+        return SCALE_OUT_EXAMPLE_COUNTS.contains(islandNodeCount);
+    }
+
+    public static boolean readyCandidateCountAllowsNewActivation(long readyCandidates) {
+        return readyCandidates >= MIN_READY_CANDIDATES_FOR_NEW_ACTIVATION;
+    }
+
+    public static boolean readyCandidateCountDegraded(long readyCandidates) {
+        return readyCandidates < RECOMMENDED_READY_CANDIDATES;
+    }
+
+    public static String readinessState(long readyCandidates) {
+        if (!readyCandidateCountAllowsNewActivation(readyCandidates)) {
+            return "blocked-no-ready-route-candidates";
+        }
+        if (readyCandidateCountDegraded(readyCandidates)) {
+            return "degraded-below-recommended-ready-route-candidates";
+        }
+        return "healthy-ready-route-candidates";
     }
 }
