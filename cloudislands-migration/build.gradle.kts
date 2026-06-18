@@ -34,6 +34,7 @@ tasks.jar {
             "CloudIslands-Migration-Rollback-Policy" to "rollback-plan-removes-only-cloudislands-imported-state",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false",
+            "SuperiorSkyblock2-CompileOnly-Dependency" to "false",
             "SuperiorSkyblock2-Live-Provider-Hooks" to "false"
         )
     }

@@ -11,6 +11,7 @@ public final class MigrationSafetyPolicy {
     public static final boolean MIGRATION_INPUT_ONLY = true;
     public static final boolean RUNTIME_DEPENDENCY_ALLOWED = false;
     public static final String RUNTIME_POLICY = "migration-input-only-no-runtime-hooks";
+    public static final String LEGACY_CLASSPATH_POLICY = "no-superiorskyblock2-compileonly-runtimeonly-or-service-binding";
     public static final Set<String> READ_ONLY_ACTIONS = Set.of("scan", "dryrun", "dry-run", "verify", "status");
     public static final Set<String> WRITE_ACTIONS = Set.of("extract", "import", "rollback");
     public static final String OPERATIONS = "scan,dryrun,extract,import,verify,rollback,status";
@@ -120,6 +121,7 @@ public final class MigrationSafetyPolicy {
         fields.put("runtimeDependency", Boolean.toString(RUNTIME_DEPENDENCY_ALLOWED));
         fields.put("targetRuntime", TARGET_RUNTIME);
         fields.put("runtimePolicy", RUNTIME_POLICY);
+        fields.put("legacyClasspathPolicy", LEGACY_CLASSPATH_POLICY);
         fields.put("forbiddenRuntimeProviders", forbiddenRuntimeProvidersCsv());
         fields.put("forbiddenRuntimeAction", FORBIDDEN_RUNTIME_ACTION);
         fields.put("importPreflightPolicy", IMPORT_PREFLIGHT_POLICY);

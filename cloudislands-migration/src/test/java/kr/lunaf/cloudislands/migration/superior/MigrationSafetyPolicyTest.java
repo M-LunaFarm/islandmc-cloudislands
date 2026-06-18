@@ -17,6 +17,7 @@ class MigrationSafetyPolicyTest {
         assertTrue(MigrationSafetyPolicy.MIGRATION_INPUT_ONLY);
         assertFalse(MigrationSafetyPolicy.RUNTIME_DEPENDENCY_ALLOWED);
         assertEquals("migration-input-only-no-runtime-hooks", MigrationSafetyPolicy.RUNTIME_POLICY);
+        assertEquals("no-superiorskyblock2-compileonly-runtimeonly-or-service-binding", MigrationSafetyPolicy.LEGACY_CLASSPATH_POLICY);
     }
 
     @Test
@@ -139,6 +140,7 @@ class MigrationSafetyPolicyTest {
         assertEquals("false", metadata.get("runtimeDependency"));
         assertEquals("CloudIslands", metadata.get("targetRuntime"));
         assertEquals("migration-input-only-no-runtime-hooks", metadata.get("runtimePolicy"));
+        assertEquals("no-superiorskyblock2-compileonly-runtimeonly-or-service-binding", metadata.get("legacyClasspathPolicy"));
         assertEquals("SuperiorSkyblock2,BentoBox,ASkyBlock,uSkyBlock,IridiumSkyblock", metadata.get("forbiddenRuntimeProviders"));
         assertEquals("warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes", metadata.get("forbiddenRuntimeAction"));
         assertEquals("import-runs-only-after-clean-dryrun-admin-approval-and-unchanged-source-fingerprint", metadata.get("importPreflightPolicy"));
