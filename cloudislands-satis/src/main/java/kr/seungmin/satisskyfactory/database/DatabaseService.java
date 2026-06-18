@@ -107,8 +107,10 @@ public final class DatabaseService {
     private List<StorageBackend> attemptedBackends = List.of();
     private Consumer<CoreRowWrite> coreStateWriter;
     private Consumer<CoreTableWrite> coreTableWriter;
+    private Consumer<CoreBulkWrite> coreBulkWriter;
     private Consumer<CoreGlobalRowWrite> coreGlobalStateWriter;
     private Consumer<CoreGlobalTableWrite> coreGlobalTableWriter;
+    private Consumer<CoreGlobalBulkWrite> coreGlobalBulkWriter;
     private boolean coreStatePublishingSuspended;
 
     public record CoreRowWrite(UUID islandUuid, String key, String value) {
@@ -117,10 +119,16 @@ public final class DatabaseService {
     public record CoreTableWrite(UUID islandUuid, String table, java.util.Map<String, String> values) {
     }
 
+    public record CoreBulkWrite(UUID islandUuid, java.util.Map<String, String> values, java.util.Map<String, java.util.Map<String, String>> tables) {
+    }
+
     public record CoreGlobalRowWrite(String key, String value) {
     }
 
     public record CoreGlobalTableWrite(String table, java.util.Map<String, String> values) {
+    }
+
+    public record CoreGlobalBulkWrite(java.util.Map<String, String> values, java.util.Map<String, java.util.Map<String, String>> tables) {
     }
 
     public DatabaseService(JavaPlugin plugin) {
@@ -410,12 +418,20 @@ public final class DatabaseService {
         this.coreTableWriter = coreTableWriter;
     }
 
+    public void coreBulkWriter(Consumer<CoreBulkWrite> coreBulkWriter) {
+        this.coreBulkWriter = coreBulkWriter;
+    }
+
     public void coreGlobalStateWriter(Consumer<CoreGlobalRowWrite> coreGlobalStateWriter) {
         this.coreGlobalStateWriter = coreGlobalStateWriter;
     }
 
     public void coreGlobalTableWriter(Consumer<CoreGlobalTableWrite> coreGlobalTableWriter) {
         this.coreGlobalTableWriter = coreGlobalTableWriter;
+    }
+
+    public void coreGlobalBulkWriter(Consumer<CoreGlobalBulkWrite> coreGlobalBulkWriter) {
+        this.coreGlobalBulkWriter = coreGlobalBulkWriter;
     }
 
     public void withCoreStatePublishingSuspended(Runnable action) {
@@ -611,8 +627,10 @@ public final class DatabaseService {
     private boolean coreStateWritersAvailable() {
         return coreStateWriter != null
                 && coreTableWriter != null
+                && coreBulkWriter != null
                 && coreGlobalStateWriter != null
-                && coreGlobalTableWriter != null;
+                && coreGlobalTableWriter != null
+                && coreGlobalBulkWriter != null;
     }
 
     private File legacySourceDatabase(File sourceDatabase) {
@@ -2378,6 +2396,10 @@ public final class DatabaseService {
         if (coreStatePublishingSuspended || islandUuid == null || table == null || table.isBlank() || values == null) {
             return;
         }
+        if (coreBulkWriter != null && !values.isEmpty()) {
+            coreBulkWriter.accept(new CoreBulkWrite(islandUuid, java.util.Map.of(), java.util.Map.of(table, java.util.Map.copyOf(values))));
+            return;
+        }
         if (coreTableWriter != null) {
             coreTableWriter.accept(new CoreTableWrite(islandUuid, table, java.util.Map.copyOf(values)));
             return;
@@ -2463,6 +2485,10 @@ public final class DatabaseService {
 
     private void publishCoreGlobalTable(String table, java.util.Map<String, String> values) {
         if (coreStatePublishingSuspended || table == null || table.isBlank() || values == null) {
+            return;
+        }
+        if (coreGlobalBulkWriter != null && !values.isEmpty()) {
+            coreGlobalBulkWriter.accept(new CoreGlobalBulkWrite(java.util.Map.of(), java.util.Map.of(table, java.util.Map.copyOf(values))));
             return;
         }
         if (coreGlobalTableWriter != null) {

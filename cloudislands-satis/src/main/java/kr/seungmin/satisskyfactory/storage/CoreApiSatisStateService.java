@@ -349,6 +349,13 @@ public final class CoreApiSatisStateService {
                 });
     }
 
+    public void publishBulk(DatabaseService.CoreBulkWrite bulk) {
+        if (cloudIslandsApi == null || bulk == null || bulk.islandUuid() == null || !stateFeatureEnabled("addon-state")) {
+            return;
+        }
+        publishIslandTableKeyValueBulk(bulk.islandUuid(), bulk.values(), bulk.tables(), "Satis core-api island table/key-value bulk save");
+    }
+
     private void publishTableStatus(DatabaseService.CoreTableWrite table, String status, String error) {
         if (cloudIslandsApi == null || table == null || !stateFeatureEnabled("addon-state")) {
             return;
@@ -920,6 +927,13 @@ public final class CoreApiSatisStateService {
                     publishGlobalTableStatus(table, "failed", error.getMessage());
                     return Map.of();
                 });
+    }
+
+    public void publishGlobalBulk(DatabaseService.CoreGlobalBulkWrite bulk) {
+        if (cloudIslandsApi == null || bulk == null || !stateFeatureEnabled("addon-state")) {
+            return;
+        }
+        publishGlobalTableKeyValueBulk(bulk.values(), bulk.tables(), "Satis core-api global table/key-value bulk save");
     }
 
     private void publishGlobalTableStatus(DatabaseService.CoreGlobalTableWrite table, String status, String error) {

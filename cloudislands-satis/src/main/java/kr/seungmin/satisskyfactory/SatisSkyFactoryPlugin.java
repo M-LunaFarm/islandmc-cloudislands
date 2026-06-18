@@ -643,12 +643,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-fencing-token-policy", SatisStatePortabilityPolicy.FENCING_TOKEN_POLICY);
         state.put("runtime-stale-write-policy", SatisStatePortabilityPolicy.STALE_WRITE_POLICY);
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
+        state.put("runtime-core-api-state-bulk-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-core-api-state-writer-gate", "addonRuntimeEnabled&&features.addon-state&&databaseBackend=CORE_API&&cloudislands-addon-state-api");
         state.put("runtime-core-api-state-writer-block-reason", coreApiStateWriterBlockReason());
         state.put("runtime-core-api-state-readiness", coreApiState == null ? "not-configured" : coreApiState.writerReadiness());
         state.put("runtime-core-api-state-transport", coreApiState == null ? "none" : coreApiState.writerTransportMode());
         state.put("runtime-core-api-state-reader-transport", coreApiState == null ? "none" : coreApiState.readerTransportMode());
         state.put("runtime-core-api-state-bulk-request-models", "AddonStateBulkSaveRequest,AddonStateBulkLoadRequest");
+        state.put("runtime-core-api-state-bulk-save-api", "database-service-core-bulk-writer-routes-table-payloads-to-table-key-value-bulk-save");
         state.put("runtime-core-api-state-bulk-load-policy", "typed-request-core-api-first-local-cache-fallback");
         state.put("runtime-core-api-state-fallback-policy", coreApiState == null ? "none" : coreApiState.writerFallbackPolicy());
         state.put("runtime-core-api-state-flattened-fallback-enabled", Boolean.toString(coreApiState != null && coreApiState.flattenedFallbackEnabled()));
@@ -1384,8 +1386,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database != null) {
             database.coreStateWriter(null);
             database.coreTableWriter(null);
+            database.coreBulkWriter(null);
             database.coreGlobalStateWriter(null);
             database.coreGlobalTableWriter(null);
+            database.coreGlobalBulkWriter(null);
             database.close();
         }
         databaseSettingsFingerprint = nextFingerprint;
@@ -1493,8 +1497,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         database.coreStateWriter(null);
         database.coreTableWriter(null);
+            database.coreBulkWriter(null);
         database.coreGlobalStateWriter(null);
         database.coreGlobalTableWriter(null);
+            database.coreGlobalBulkWriter(null);
         dirtySaves.coreStatePublisher(null);
         dirtySaves.coreStateDeletePublisher(null);
         coreApiState = null;
@@ -1507,8 +1513,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         coreApiState = new CoreApiSatisStateService(getLogger(), cloudIslandsApi, ADDON_ID, coreApiFlattenedFallbackEnabled(), this::operationalFeatureEnabled);
         database.coreStateWriter(coreApiState::publishRow);
         database.coreTableWriter(coreApiState::publishTable);
+        database.coreBulkWriter(coreApiState::publishBulk);
         database.coreGlobalStateWriter(coreApiState::publishGlobalRow);
         database.coreGlobalTableWriter(coreApiState::publishGlobalTable);
+        database.coreGlobalBulkWriter(coreApiState::publishGlobalBulk);
         coreApiState.hydrateGlobal(database);
         dirtySaves.coreStatePublisher(coreApiState::publishDirtyBatch);
         dirtySaves.coreStateDeletePublisher(delete -> coreApiState.removeRow(delete.islandUuid(), delete.key()));
@@ -1815,6 +1823,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         putDataWriteGateState(metadata);
         putAddonStateSyncState(metadata);
         metadata.put("addon-state-bulk-save-api", "true");
+        metadata.put("addon-state-database-service-bulk-writer-api", "CoreBulkWrite,CoreGlobalBulkWrite");
         metadata.put("addon-state-bulk-save-global-endpoint", "/v1/addons/state/table-key-value/bulk-save");
         metadata.put("addon-state-bulk-save-island-endpoint", "/v1/addons/islands/state/table-key-value/bulk-save");
         metadata.put("addon-state-table-key-value-bulk-save-global-endpoint", "/v1/addons/state/table/key-value/bulk-save");
@@ -3930,8 +3939,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database != null) {
             database.coreStateWriter(null);
             database.coreTableWriter(null);
+            database.coreBulkWriter(null);
             database.coreGlobalStateWriter(null);
             database.coreGlobalTableWriter(null);
+            database.coreGlobalBulkWriter(null);
         }
         coreApiState = null;
         coreHydratedIslandActivations.clear();
