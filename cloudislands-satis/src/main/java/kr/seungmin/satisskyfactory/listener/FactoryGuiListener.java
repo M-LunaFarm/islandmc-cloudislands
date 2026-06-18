@@ -418,8 +418,12 @@ public final class FactoryGuiListener implements Listener {
             messages.send(player, "machine-input-full");
             return;
         }
+        if (!storage.saveIfAllowed(inventory)) {
+            inventory.remove(itemId, amount);
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            return;
+        }
         hand.setAmount(0);
-        storage.save(inventory);
         machines.reactivate(machine);
         messages.send(player, "deposited", Map.of("item", itemId, "amount", String.valueOf(amount)));
         gui.openMachine(player, machine);
