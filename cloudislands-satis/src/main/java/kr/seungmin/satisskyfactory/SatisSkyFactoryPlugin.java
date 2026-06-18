@@ -535,6 +535,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-maintenance-gate", "addonRuntimeEnabled&&features.maintenance");
         state.put("runtime-maintenance-status", operationalFeatureEnabled("maintenance") ? "enabled" : "maintenance-feature-disabled");
         state.put("runtime-maintenance-policy", "disabled-feature-blocks-maintenance-ticker-commands-gui-and-writes-preserve-data");
+        state.put("runtime-admin-maintenance-save-policy", "admin-setdebt-saves-island-only-after-service-accepted-write");
         state.put("runtime-factories-gate", "addonRuntimeEnabled&&features.factories->features.machines");
         state.put("runtime-factories-status", operationalFeatureEnabled("factories") ? "enabled" : "factories-or-machines-feature-disabled");
         state.put("runtime-generators-gate", "addonRuntimeEnabled&&features.generators->features.resource-nodes&&features.factories");

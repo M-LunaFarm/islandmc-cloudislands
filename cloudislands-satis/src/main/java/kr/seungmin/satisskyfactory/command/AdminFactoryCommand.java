@@ -199,8 +199,9 @@ public final class AdminFactoryCommand {
                 if (!requireFeature(sender, "maintenance")) {
                     return;
                 }
-                maintenance.setDebt(island, parseLong(args, 3, 0));
-                islands.save(island);
+                if (maintenance.setDebt(island, parseLong(args, 3, 0))) {
+                    islands.save(island);
+                }
                 messages.send(sender, "admin-debt-updated");
             });
             case "charge" -> withPlayerContext(sender, args, 2, (target, island) -> {
@@ -1451,6 +1452,7 @@ public final class AdminFactoryCommand {
                         "runtime-maintenance-gate",
                         "runtime-maintenance-status",
                         "runtime-maintenance-policy",
+                        "runtime-admin-maintenance-save-policy",
                         "runtime-factories-gate",
                         "runtime-factories-status",
                         "runtime-generators-gate",

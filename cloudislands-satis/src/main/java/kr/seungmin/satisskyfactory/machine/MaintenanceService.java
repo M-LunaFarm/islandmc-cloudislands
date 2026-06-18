@@ -148,13 +148,14 @@ public final class MaintenanceService {
         return due;
     }
 
-    public void setDebt(FactoryIsland island, long debt) {
+    public boolean setDebt(FactoryIsland island, long debt) {
         if (!writesEnabled()) {
-            return;
+            return false;
         }
         factoryScores.refreshFactoryScore(island);
         island.maintenanceDebt(Math.max(0, Math.min(debtLimit(maintenanceFee(island)), debt)));
         updateStatus(island);
+        return true;
     }
 
     private boolean writesEnabled() {
