@@ -1,5 +1,7 @@
 package kr.seungmin.satisskyfactory.config;
 
+import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
@@ -84,6 +86,11 @@ class DefaultConfigIntegrityTest {
                 addon.getStringList("database.fallback.recommended-order"));
         assertEquals("keep-a-shared-backend-before-sqlite-for-multi-island-node-pools",
                 addon.getString("database.fallback.split-brain-warning"));
+        List<String> coreApiBulkEndpoints = addon.getStringList("database.core-api.bulk-endpoints");
+        assertTrue(coreApiBulkEndpoints.containsAll(AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS));
+        assertTrue(coreApiBulkEndpoints.containsAll(AddonStateBulkSaveRequest.ISLAND_ENDPOINTS));
+        assertTrue(coreApiBulkEndpoints.containsAll(AddonStateBulkLoadRequest.GLOBAL_ENDPOINTS));
+        assertTrue(coreApiBulkEndpoints.containsAll(AddonStateBulkLoadRequest.ISLAND_ENDPOINTS));
         assertEquals("../CloudIslands/satis-state", config.getString("database.shared-directory"));
         assertEquals("data.db", config.getString("database.sqlite-file"));
         assertEquals(60, config.getInt("database.save-interval-seconds"));
