@@ -239,7 +239,6 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 if (args.length > 1 && args[1].equalsIgnoreCase("complete")) {
                     if (contracts.completeEmergency(island, player)) {
                         refreshMaintenanceStatus(island);
-                        islands.save(island);
                         messages.send(player, "emergency-contract-completed");
                     } else {
                         messages.send(player, "emergency-contract-unavailable");

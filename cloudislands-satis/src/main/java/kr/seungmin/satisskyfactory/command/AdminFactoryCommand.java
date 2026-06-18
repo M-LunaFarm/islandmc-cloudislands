@@ -1541,6 +1541,7 @@ public final class AdminFactoryCommand {
                         "runtime-contract-island-reward-save-policy",
                         "runtime-market-debt-save-policy",
                         "runtime-island-create-save-policy",
+                        "runtime-emergency-contract-command-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
