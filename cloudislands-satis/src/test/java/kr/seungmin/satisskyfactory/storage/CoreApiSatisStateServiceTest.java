@@ -1,6 +1,7 @@
 package kr.seungmin.satisskyfactory.storage;
 
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.service.IslandAddonService;
@@ -71,6 +72,9 @@ class CoreApiSatisStateServiceTest {
         assertEquals(Map.of("iron_ingot/2026-06-17", "{\"soldAmount\":42}"), values);
         assertEquals("market_daily", addons.lastGlobalLoadTable);
         assertEquals("cloudislands-satis", addons.lastGlobalAddonId);
+        assertEquals("cloudislands-satis", addons.lastGlobalLoadRequest.addonId());
+        assertEquals("market_daily", addons.lastGlobalLoadRequest.table());
+        assertEquals("global", addons.lastGlobalLoadRequest.scopeName());
         assertEquals(1L, service.globalTableLoadSuccesses());
         assertEquals(0L, service.globalTableLoadFailures());
         assertEquals("table-key-value-bulk-load-primary-with-flattened-state-fallback", service.readerTransportMode());
@@ -93,6 +97,10 @@ class CoreApiSatisStateServiceTest {
         assertEquals("machines", addons.lastIslandLoadTable);
         assertEquals(islandId, addons.lastIslandId);
         assertEquals("cloudislands-satis", addons.lastIslandAddonId);
+        assertEquals("cloudislands-satis", addons.lastIslandLoadRequest.addonId());
+        assertEquals(islandId, addons.lastIslandLoadRequest.islandId());
+        assertEquals("machines", addons.lastIslandLoadRequest.table());
+        assertEquals("island", addons.lastIslandLoadRequest.scopeName());
         assertEquals(1L, service.islandTableLoadSuccesses());
         assertEquals(0L, service.islandTableLoadFailures());
     }
@@ -222,6 +230,8 @@ class CoreApiSatisStateServiceTest {
         private String lastIslandAddonId;
         private UUID lastIslandId;
         private String lastIslandLoadTable;
+        private AddonStateBulkLoadRequest lastGlobalLoadRequest;
+        private AddonStateBulkLoadRequest lastIslandLoadRequest;
         private AddonStateBulkSaveRequest lastGlobalSaveRequest;
         private AddonStateBulkSaveRequest lastIslandSaveRequest;
 
@@ -258,11 +268,23 @@ class CoreApiSatisStateServiceTest {
         }
 
         @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadState(AddonStateBulkLoadRequest request) {
+            lastGlobalLoadRequest = request;
+            return tableKeyValueBulkLoadState(request.addonId(), request.table());
+        }
+
+        @Override
         public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadIslandState(String id, UUID islandId, String table) {
             lastIslandAddonId = id;
             lastIslandId = islandId;
             lastIslandLoadTable = table;
             return CompletableFuture.completedFuture(islandTables.getOrDefault(table, Map.of()));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadIslandState(AddonStateBulkLoadRequest request) {
+            lastIslandLoadRequest = request;
+            return tableKeyValueBulkLoadIslandState(request.addonId(), request.islandId(), request.table());
         }
 
         @Override
