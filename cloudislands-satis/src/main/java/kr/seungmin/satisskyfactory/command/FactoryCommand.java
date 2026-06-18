@@ -660,7 +660,11 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 messages.send(player, "repair-requires", Map.of("cost", repairCostText(machine)));
                 return;
             }
-            repair(machine);
+            if (!repair(machine)) {
+                refundRepairParts(island, machine);
+                messages.send(player, "feature-disabled", Map.of("feature", "machines"));
+                return;
+            }
             messages.send(player, "machine-repaired");
         }, () -> messages.send(player, "no-machine-here"));
     }
@@ -679,6 +683,12 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private void refundRepairParts(FactoryIsland island, MachineInstance machine) {
+        var inventory = storage.islandStorage(island.islandUuid());
+        maintenance.repairCost(machine.status() == MachineStatus.BROKEN).forEach(inventory::add);
+        storage.saveIfAllowed(inventory);
+    }
+
     private String repairCostText(MachineInstance machine) {
         Map<String, Long> cost = maintenance.repairCost(machine.status() == MachineStatus.BROKEN);
         if (cost.isEmpty()) {
@@ -691,10 +701,17 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 .orElse(messages.raw("no-materials"));
     }
 
-    private void repair(MachineInstance machine) {
+    private boolean repair(MachineInstance machine) {
+        double previousWear = machine.wear();
+        MachineStatus previousStatus = machine.status();
         machine.wear(0.0);
         machine.status(MachineStatus.SLEEPING);
-        machines.save(machine);
+        if (!machines.save(machine)) {
+            machine.wear(previousWear);
+            machine.status(previousStatus);
+            return false;
+        }
+        return true;
     }
 
     private long parseLong(String[] args, int index, long fallback) {

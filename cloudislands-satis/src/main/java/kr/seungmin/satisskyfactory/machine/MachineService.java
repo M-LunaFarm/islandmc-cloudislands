@@ -96,21 +96,26 @@ public final class MachineService {
         VirtualInventory output = outputInventory.get();
         machine.inputInventoryId(input.inventoryId());
         machine.outputInventoryId(output.inventoryId());
-        save(machine);
+        if (!save(machine)) {
+            storage.delete(input.inventoryId());
+            storage.delete(output.inventoryId());
+            return Optional.empty();
+        }
         revision.incrementAndGet();
         return Optional.of(machine);
     }
 
-    public void save(MachineInstance machine) {
+    public boolean save(MachineInstance machine) {
         if (!loaded) {
-            return;
+            return false;
+        }
+        if (!writesEnabled()) {
+            return false;
         }
         machines.put(machine.machineId(), machine);
         byLocation.put(LocationKey.from(machine.location()), machine.machineId());
-        if (!writesEnabled()) {
-            return;
-        }
         database.saveMachine(machine);
+        return true;
     }
 
     public void saveLater(MachineInstance machine) {

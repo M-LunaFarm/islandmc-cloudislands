@@ -530,8 +530,14 @@ public final class FactoryGuiListener implements Listener {
             gui.openMachine(player, machine);
             return;
         }
+        String previousRecipeId = machine.selectedRecipeId();
         machine.selectedRecipeId(recipeId == null || recipeId.isBlank() ? null : recipeId);
-        machines.save(machine);
+        if (!machines.save(machine)) {
+            machine.selectedRecipeId(previousRecipeId);
+            messages.send(player, "feature-disabled", Map.of("feature", "machines"));
+            gui.openMachine(player, machine);
+            return;
+        }
         machines.reactivate(machine);
         if (machine.selectedRecipeId() == null) {
             messages.send(player, "recipe-selection-cleared");

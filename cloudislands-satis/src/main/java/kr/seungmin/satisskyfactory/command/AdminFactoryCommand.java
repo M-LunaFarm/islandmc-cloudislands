@@ -588,15 +588,25 @@ public final class AdminFactoryCommand {
             return;
         }
         machines.at(block.getLocation()).ifPresentOrElse(machine -> {
-            repair(machine);
+            if (!repair(machine)) {
+                messages.send(sender, "feature-disabled", Map.of("feature", "machines"));
+                return;
+            }
             messages.send(sender, "machine-repaired");
         }, () -> messages.send(sender, "no-machine-here"));
     }
 
-    private void repair(MachineInstance machine) {
+    private boolean repair(MachineInstance machine) {
+        double previousWear = machine.wear();
+        MachineStatus previousStatus = machine.status();
         machine.wear(0.0);
         machine.status(MachineStatus.SLEEPING);
-        machines.save(machine);
+        if (!machines.save(machine)) {
+            machine.wear(previousWear);
+            machine.status(previousStatus);
+            return false;
+        }
+        return true;
     }
 
     private boolean requireFeature(CommandSender sender, String feature) {
@@ -1524,6 +1534,7 @@ public final class AdminFactoryCommand {
                         "runtime-admin-island-save-policy",
                         "runtime-player-maintenance-status-save-policy",
                         "runtime-gui-maintenance-status-save-policy",
+                        "runtime-machine-save-result-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
