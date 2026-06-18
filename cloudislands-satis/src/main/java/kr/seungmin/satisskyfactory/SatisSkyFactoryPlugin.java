@@ -513,6 +513,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-machines-policy", "disabled-feature-blocks-machine-listener-ticker-commands-gui-service-and-writes-preserve-data");
         state.put("runtime-machine-gui-service-policy", "openMachine-rejects-when-machines-feature-disabled");
         state.put("runtime-machine-gui-storage-action-policy", "machine-inventory-and-reclaim-gui-actions-reject-when-storage-feature-disabled");
+        state.put("runtime-admin-machine-helper-policy", "admin-remove-and-repair-helpers-reject-when-machines-feature-disabled");
         state.put("runtime-machine-break-storage-gate", "machines&&storage");
         state.put("runtime-machine-break-policy", "machine-break-rejects-when-storage-feature-disabled-to-avoid-buffer-write-paths");
         state.put("runtime-admin-virtual-item-storage-gate", "giveVirtualOnlyItem-rejects-when-storage-feature-disabled");

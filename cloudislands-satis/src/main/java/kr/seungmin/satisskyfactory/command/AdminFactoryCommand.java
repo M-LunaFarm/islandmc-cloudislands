@@ -533,6 +533,9 @@ public final class AdminFactoryCommand {
     }
 
     private void removeHere(CommandSender sender) {
+        if (!requireFeature(sender, "machines")) {
+            return;
+        }
         if (!(sender instanceof Player player)) {
             messages.send(sender, "no-player");
             return;
@@ -550,6 +553,9 @@ public final class AdminFactoryCommand {
     }
 
     private void repairHere(CommandSender sender) {
+        if (!requireFeature(sender, "machines")) {
+            return;
+        }
         if (!(sender instanceof Player player)) {
             messages.send(sender, "no-player");
             return;
@@ -1433,6 +1439,7 @@ public final class AdminFactoryCommand {
                         "runtime-machines-policy",
                         "runtime-machine-gui-service-policy",
                         "runtime-machine-gui-storage-action-policy",
+                        "runtime-admin-machine-helper-policy",
                         "runtime-machine-break-storage-gate",
                         "runtime-machine-break-policy",
                         "runtime-admin-virtual-item-storage-gate",
