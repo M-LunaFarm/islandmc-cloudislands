@@ -18,6 +18,8 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("portable-across-island-nodes", state.get("core-api-sync-portability"));
         assertEquals("CloudIslands IslandRuntime", state.get("core-api-sync-runtime-source"));
         assertEquals("island-uuid-stable-active-world-and-center-volatile", state.get("core-api-sync-remap-policy"));
+        assertEquals("islandUuid", state.get("core-api-sync-state-owner-key"));
+        assertEquals("islandUuid+activeWorld+activeCenter", state.get("core-api-sync-remap-audit-key"));
         assertEquals("islandUuid+activeWorld+activeCenter", state.get("core-api-sync-remap-key"));
         assertEquals("last-confirmed-state-wins", state.get("core-api-sync-write-policy"));
         assertEquals("active-island-runtime-owner-only", state.get("core-api-sync-write-fence"));

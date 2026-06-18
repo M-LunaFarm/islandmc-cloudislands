@@ -11,7 +11,8 @@ public final class SatisStatePortabilityPolicy {
     public static final String PORTABILITY = "portable-across-island-nodes";
     public static final String RUNTIME_SOURCE = "CloudIslands IslandRuntime";
     public static final String REMAP_POLICY = "island-uuid-stable-active-world-and-center-volatile";
-    public static final String REMAP_KEY = "islandUuid+activeWorld+activeCenter";
+    public static final String STATE_OWNER_KEY = "islandUuid";
+    public static final String REMAP_AUDIT_KEY = "islandUuid+activeWorld+activeCenter";
     public static final String WRITE_POLICY = "last-confirmed-state-wins";
     public static final String WRITE_FENCE = "active-island-runtime-owner-only";
     public static final String DUPLICATE_TICK_POLICY = "single-active-runtime-owner";
@@ -56,7 +57,9 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-portability", PORTABILITY);
         values.put("core-api-sync-runtime-source", RUNTIME_SOURCE);
         values.put("core-api-sync-remap-policy", REMAP_POLICY);
-        values.put("core-api-sync-remap-key", REMAP_KEY);
+        values.put("core-api-sync-state-owner-key", STATE_OWNER_KEY);
+        values.put("core-api-sync-remap-audit-key", REMAP_AUDIT_KEY);
+        values.put("core-api-sync-remap-key", REMAP_AUDIT_KEY);
         values.put("core-api-sync-write-policy", WRITE_POLICY);
         values.put("core-api-sync-write-fence", WRITE_FENCE);
         values.put("core-api-sync-duplicate-tick-policy", DUPLICATE_TICK_POLICY);
@@ -89,6 +92,7 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-target-tick-start-policy", TARGET_TICK_START_POLICY);
         values.put("core-api-sync-crash-replay-policy", CRASH_REPLAY_POLICY);
         values.put("core-api-sync-state-owner-policy", STATE_OWNER_POLICY);
+        values.put("core-api-sync-state-owner-key", STATE_OWNER_KEY);
         values.put("core-api-sync-object-storage-active-island-policy", OBJECT_STORAGE_ACTIVE_ISLAND_POLICY);
         values.put("core-api-sync-object-storage-save-failure-policy", OBJECT_STORAGE_SAVE_FAILURE_POLICY);
         values.put("core-api-sync-object-storage-retry-policy", OBJECT_STORAGE_RETRY_POLICY);
