@@ -117,6 +117,14 @@ public final class SatisIntegrationPolicy {
         "failure-boundary", "satis-failure-or-removal-must-not-stop-core-island-create-route-save-restore"
     );
 
+    private static final Map<String, String> CORE_API_ADDON_STATE_BOUNDARIES = Map.of(
+        "metadata-contract", "core-api-stores-addon-id-version-feature-gates-schema-version-and-capability-metadata",
+        "state-contract", "core-api-stores-opaque-table-key-value-addon-state-scoped-by-island-uuid-and-addon-id",
+        "forbidden-content-knowledge", "core-api-does-not-interpret-machines-factories-generators-contracts-research-or-market-rules",
+        "query-contract", "satis-queries-cloudislands-public-api-for-island-member-permission-location-upgrade-and-route-data",
+        "fallback-contract", "when-core-api-state-is-unavailable-satis-falls-back-to-configured-shared-backend-without-core-business-coupling"
+    );
+
     private static final List<String> NODE_MOVE_REMAP_STEPS = List.of(
         "source-node-save-addon-state-by-island-uuid",
         "cloudislands-deactivate-and-store-portable-island-bundle",
@@ -167,6 +175,7 @@ public final class SatisIntegrationPolicy {
         "state-survives-a-node-to-b-node-island-move",
         "state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed",
         "config-reload-reenable-restores-satis-runtime-after-disabled-registration",
+        "core-api-stores-satis-metadata-and-opaque-state-without-satis-business-rules",
         "base-cloudislands-functions-survive-satis-disable-or-addon-removal"
     );
 
@@ -242,6 +251,14 @@ public final class SatisIntegrationPolicy {
 
     public static String officialFeaturePackBoundarySummary() {
         return summary(OFFICIAL_FEATURE_PACK_BOUNDARIES);
+    }
+
+    public static Map<String, String> coreApiAddonStateBoundaries() {
+        return CORE_API_ADDON_STATE_BOUNDARIES;
+    }
+
+    public static String coreApiAddonStateBoundarySummary() {
+        return summary(CORE_API_ADDON_STATE_BOUNDARIES);
     }
 
     public static List<String> nodeMoveRemapSteps() {

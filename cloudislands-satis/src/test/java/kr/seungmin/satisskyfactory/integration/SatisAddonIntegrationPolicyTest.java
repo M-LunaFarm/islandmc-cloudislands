@@ -261,6 +261,32 @@ class SatisAddonIntegrationPolicyTest {
     }
 
     @Test
+    void keepsCoreApiAsOpaqueAddonMetadataAndStateStore() {
+        assertEquals(
+                "core-api-stores-addon-metadata-and-opaque-state-without-satis-business-rules",
+                SatisAddonIntegrationPolicy.CORE_API_METADATA_STATE_POLICY
+        );
+        assertEquals(
+                "core-api-does-not-interpret-machines-factories-generators-contracts-research-or-market-rules",
+                SatisAddonIntegrationPolicy.CORE_API_FORBIDDEN_CONTENT_POLICY
+        );
+        assertEquals(
+                "core-api-stores-addon-id-version-feature-gates-schema-version-and-capability-metadata",
+                SatisAddonIntegrationPolicy.coreApiAddonStateBoundaries().get("metadata-contract")
+        );
+        assertEquals(
+                "core-api-stores-opaque-table-key-value-addon-state-scoped-by-island-uuid-and-addon-id",
+                SatisAddonIntegrationPolicy.coreApiAddonStateBoundaries().get("state-contract")
+        );
+        assertEquals(
+                "core-api-does-not-interpret-machines-factories-generators-contracts-research-or-market-rules",
+                SatisAddonIntegrationPolicy.coreApiAddonStateBoundaries().get("forbidden-content-knowledge")
+        );
+        assertTrue(SatisAddonIntegrationPolicy.coreApiAddonStateBoundarySummary().contains("fallback-contract=when-core-api-state-is-unavailable-satis-falls-back-to-configured-shared-backend-without-core-business-coupling"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("core-api-stores-satis-metadata-and-opaque-state-without-satis-business-rules"));
+    }
+
+    @Test
     void mapsEveryHostLevelRuntimeGateToConcreteRuntimeBlocks() {
         assertEquals(
                 "satis-state-write-paths-dirty-save-and-storage-backed-gui-actions",

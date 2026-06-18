@@ -55,6 +55,8 @@ public final class SatisAddonIntegrationPolicy {
     public static final String ADDON_SPI_POLICY = "same-cloudislands-addon-spi-for-external-plugin-and-built-in-feature-pack";
     public static final String CONTENT_LAYER_POLICY = "cloudislands-satis-owns-optional-machines-resource-nodes-contracts-research-market-and-placeholders";
     public static final String CORE_BOUNDARY_POLICY = "cloudislands-core-owns-island-lifecycle-routing-storage-protection-and-public-api";
+    public static final String CORE_API_METADATA_STATE_POLICY = "core-api-stores-addon-metadata-and-opaque-state-without-satis-business-rules";
+    public static final String CORE_API_FORBIDDEN_CONTENT_POLICY = "core-api-does-not-interpret-machines-factories-generators-contracts-research-or-market-rules";
 
     private static final List<String> SUPPORTED_MODES = List.of(
             RECOMMENDED_MODE,
@@ -256,6 +258,14 @@ public final class SatisAddonIntegrationPolicy {
 
     public static String officialFeaturePackBoundarySummary() {
         return SatisIntegrationPolicy.officialFeaturePackBoundarySummary();
+    }
+
+    public static Map<String, String> coreApiAddonStateBoundaries() {
+        return SatisIntegrationPolicy.coreApiAddonStateBoundaries();
+    }
+
+    public static String coreApiAddonStateBoundarySummary() {
+        return SatisIntegrationPolicy.coreApiAddonStateBoundarySummary();
     }
 
     public static List<String> logicalPlayerSurfaces() {
