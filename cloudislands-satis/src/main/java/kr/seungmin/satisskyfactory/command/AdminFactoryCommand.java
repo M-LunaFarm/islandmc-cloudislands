@@ -468,7 +468,11 @@ public final class AdminFactoryCommand {
                 messages.send(sender, "storage-full");
                 return false;
             }
-            storage.save(inventory);
+            if (!storage.saveIfAllowed(inventory)) {
+                inventory.remove(itemId, amount);
+                messages.send(sender, "feature-disabled", Map.of("feature", "storage"));
+                return false;
+            }
             return true;
         }).orElseGet(() -> {
             messages.send(sender, "no-island");
@@ -1444,6 +1448,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-break-storage-gate",
                         "runtime-machine-break-policy",
                         "runtime-admin-virtual-item-storage-gate",
+                        "runtime-admin-virtual-item-save-policy",
                         "runtime-player-storage-command-service-gate",
                         "runtime-player-market-command-service-gate",
                         "runtime-gui-market-save-policy",

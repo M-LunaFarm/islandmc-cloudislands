@@ -518,6 +518,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-machine-break-storage-gate", "machines&&storage");
         state.put("runtime-machine-break-policy", "machine-break-rejects-when-storage-feature-disabled-to-avoid-buffer-write-paths");
         state.put("runtime-admin-virtual-item-storage-gate", "giveVirtualOnlyItem-rejects-when-storage-feature-disabled");
+        state.put("runtime-admin-virtual-item-save-policy", "admin-giveitem-virtual-only-succeeds-only-after-storage-save-accepted");
         state.put("runtime-player-storage-command-service-gate", "depositHand-and-withdraw-reject-when-storage-feature-disabled");
         state.put("runtime-player-market-command-service-gate", "sell-rejects-when-market-or-storage-feature-disabled");
         state.put("runtime-gui-market-save-policy", "market-gui-does-not-save-island-after-rejected-or-empty-sell");
