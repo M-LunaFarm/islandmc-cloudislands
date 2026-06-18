@@ -64,6 +64,7 @@ tasks.jar {
             "CloudIslands-Paper-GUI-Coverage" to "main,member,permission,flag,ranking,node-admin,bank,warp,invite,ban,log,role,danger,snapshot,upgrade,biome,limit",
             "CloudIslands-Paper-Degraded-Mode-Policy" to "core-down-active-island-local-protection-and-limited-teleport-object-storage-down-active-local-play",
             "CloudIslands-Paper-Storage-Outage-Policy" to "StorageOutagePolicy-active-islands-stay-local-periodic-and-empty-save-failures-queued-for-retry",
+            "CloudIslands-Paper-Storage-Backend-Policy" to "S3-or-MINIO-shared-object-storage-LOCAL_FILESYSTEM-fallback",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )

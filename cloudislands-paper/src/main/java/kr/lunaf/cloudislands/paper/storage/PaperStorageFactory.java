@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.storage;
 import java.net.URI;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.LocalIslandStorage;
+import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
 import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -28,7 +29,7 @@ public final class PaperStorageFactory {
         String backend = fallback ? fallbackBackendName(config) : backendName(config);
         String prefix = fallback ? "storage.fallback." : "storage.";
         String setupPrefix = fallback ? "setup.storage.fallback." : "setup.storage.";
-        if ("S3".equals(backend)) {
+        if (StorageBackendPolicy.sharedBackend(backend)) {
             return new S3IslandStorage(
                 URI.create(configString(config, setupPrefix + "endpoint", prefix + "endpoint", "http://minio.internal:9000")),
                 configString(config, setupPrefix + "bucket", prefix + "bucket", "cloudislands"),
@@ -42,11 +43,11 @@ public final class PaperStorageFactory {
     }
 
     public static String backendName(FileConfiguration config) {
-        return normalizeBackend(configString(config, "setup.storage.type", "storage.type", "LOCAL"));
+        return normalizeBackend(configString(config, "setup.storage.type", "storage.type", "S3"));
     }
 
     private static String fallbackBackendName(FileConfiguration config) {
-        return normalizeBackend(configString(config, "setup.storage.fallback.type", "storage.fallback.type", "LOCAL"));
+        return normalizeBackend(configString(config, "setup.storage.fallback.type", "storage.fallback.type", "LOCAL_FILESYSTEM"));
     }
 
     private static boolean fallbackEnabled(FileConfiguration config) {
@@ -56,11 +57,14 @@ public final class PaperStorageFactory {
         if (config.contains("storage.fallback.enabled")) {
             return config.getBoolean("storage.fallback.enabled");
         }
-        return "S3".equals(backendName(config));
+        return StorageBackendPolicy.sharedBackend(backendName(config));
     }
 
     private static String normalizeBackend(String type) {
-        return "S3".equalsIgnoreCase(type == null ? "" : type.trim()) ? "S3" : "LOCAL";
+        String normalized = StorageBackendPolicy.normalizeBackend(type);
+        return StorageBackendPolicy.supportedBackend(normalized)
+            ? normalized
+            : StorageBackendPolicy.fallbackTarget(normalized);
     }
 
     private static String configString(FileConfiguration config, String setupPath, String legacyPath, String fallback) {

@@ -1138,7 +1138,7 @@ setup:
     fallback:
       # When S3 is selected, local fallback keeps island saves/loads available during object storage outages.
       enabled: true
-      type: "LOCAL"
+      type: "LOCAL_FILESYSTEM"
       local-path: "islands-storage-fallback"
 
 core-api:
@@ -1172,7 +1172,7 @@ storage:
   auth-token: "${S3_BEARER_TOKEN}"
   fallback:
     enabled: true
-    type: "LOCAL"
+    type: "LOCAL_FILESYSTEM"
     local-path: "islands-storage-fallback"
 
 generators:
