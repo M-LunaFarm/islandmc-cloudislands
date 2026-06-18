@@ -12,6 +12,10 @@ class PortableIslandDesignPolicyTest {
                 "CloudIslands manages islands as global resources on a Velocity network and dynamically activates them in an Island node pool",
                 PortableIslandDesignPolicy.ONE_LINE_DEFINITION
         );
+        assertEquals(
+                "CloudIslands is a SuperiorSkyblock2 replacement distributed Skyblock platform that manages islands as global resources instead of server-bound worlds",
+                PortableIslandDesignPolicy.DISTRIBUTED_SKYBLOCK_DEFINITION
+        );
         assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("islands-are-global-resources-not-fixed-to-servers"));
         assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("islands-are-saved-as-portable-bundles"));
         assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("island-nodes-are-execution-hosts-not-island-owners"));
@@ -39,6 +43,19 @@ class PortableIslandDesignPolicyTest {
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("island-3-and-island-4-can-be-added-later"));
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("island-5-and-island-6-can-be-added-later"));
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("island-7-and-beyond-can-be-added-later"));
+    }
+
+    @Test
+    void recordsGlobalIslandInfoQuerySurfaces() {
+        assertEquals(
+                java.util.List.of("lobby", "island-1", "island-2", "island-3-plus"),
+                PortableIslandDesignPolicy.globalQuerySurfaces()
+        );
+        assertTrue(PortableIslandDesignPolicy.globalQuerySurface("lobby"));
+        assertTrue(PortableIslandDesignPolicy.globalQuerySurface("island-1"));
+        assertTrue(PortableIslandDesignPolicy.globalQuerySurface("island-2"));
+        assertTrue(PortableIslandDesignPolicy.globalQuerySurface("island-3-plus"));
+        assertEquals("lobby,island-1,island-2,island-3-plus", PortableIslandDesignPolicy.globalQuerySurfaceSummary());
     }
 
     @Test

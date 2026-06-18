@@ -10,6 +10,7 @@ import java.util.Map;
  */
 public final class PortableIslandDesignPolicy {
     public static final String ONE_LINE_DEFINITION = "CloudIslands manages islands as global resources on a Velocity network and dynamically activates them in an Island node pool";
+    public static final String DISTRIBUTED_SKYBLOCK_DEFINITION = "CloudIslands is a SuperiorSkyblock2 replacement distributed Skyblock platform that manages islands as global resources instead of server-bound worlds";
     public static final String GLOBAL_RESOURCE_POLICY = "islands-are-global-resources-not-fixed-to-servers";
     public static final String PORTABLE_BUNDLE_POLICY = "islands-are-saved-as-portable-bundles";
     public static final String NODE_ROLE_POLICY = "island-nodes-are-execution-hosts-not-island-owners";
@@ -44,6 +45,13 @@ public final class PortableIslandDesignPolicy {
             "island-7-and-beyond-can-be-added-later"
     );
 
+    private static final List<String> GLOBAL_QUERY_SURFACES = List.of(
+            "lobby",
+            "island-1",
+            "island-2",
+            "island-3-plus"
+    );
+
     private static final Map<String, List<String>> EXPECTED_SCENARIOS = buildExpectedScenarios();
 
     private PortableIslandDesignPolicy() {
@@ -59,6 +67,18 @@ public final class PortableIslandDesignPolicy {
 
     public static boolean requiredOutcome(String outcome) {
         return REQUIRED_OUTCOMES.contains(outcome);
+    }
+
+    public static List<String> globalQuerySurfaces() {
+        return GLOBAL_QUERY_SURFACES;
+    }
+
+    public static boolean globalQuerySurface(String surface) {
+        return surface != null && GLOBAL_QUERY_SURFACES.contains(surface);
+    }
+
+    public static String globalQuerySurfaceSummary() {
+        return String.join(",", GLOBAL_QUERY_SURFACES);
     }
 
     public static Map<String, List<String>> expectedScenarios() {
