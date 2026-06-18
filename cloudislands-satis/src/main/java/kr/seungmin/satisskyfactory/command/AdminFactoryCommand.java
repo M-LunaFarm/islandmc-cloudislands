@@ -1914,14 +1914,8 @@ public final class AdminFactoryCommand {
         List<String> commands = visibleHelpCommands(label);
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, adminNavigationCommand(label), commandListPageSize);
         sender.sendMessage(messages.raw("admin-command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX);
-        for (String command : commandPage.entries()) {
+        for (String command : CommandListPolicy.commandLines(commandPage)) {
             sender.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
-        }
-        if (commandPage.previousCommand() != null) {
-            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", commandPage.previousCommand())));
-        }
-        if (commandPage.nextCommand() != null) {
-            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", commandPage.nextCommand())));
         }
     }
 

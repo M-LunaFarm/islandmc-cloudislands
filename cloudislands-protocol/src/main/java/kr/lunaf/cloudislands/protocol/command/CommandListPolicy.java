@@ -60,14 +60,23 @@ public final class CommandListPolicy {
     public static List<String> displayLines(Page page) {
         Objects.requireNonNull(page, "page");
         List<String> lines = new ArrayList<>();
-        for (String command : page.entries()) {
+        for (String command : commandLines(page)) {
             lines.add(ENTRY_PREFIX + oneLine(command));
         }
+        return List.copyOf(lines);
+    }
+
+    public static List<String> commandLines(Page page) {
+        Objects.requireNonNull(page, "page");
+        List<String> lines = new ArrayList<>();
+        for (String command : page.entries()) {
+            lines.add(oneLine(command));
+        }
         if (page.previousCommand() != null && !page.previousCommand().isBlank()) {
-            lines.add(ENTRY_PREFIX + oneLine(page.previousCommand()));
+            lines.add(oneLine(page.previousCommand()));
         }
         if (page.nextCommand() != null && !page.nextCommand().isBlank()) {
-            lines.add(ENTRY_PREFIX + oneLine(page.nextCommand()));
+            lines.add(oneLine(page.nextCommand()));
         }
         return List.copyOf(lines);
     }
