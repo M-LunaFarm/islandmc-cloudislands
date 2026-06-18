@@ -597,6 +597,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-player-maintenance-charge-save-policy", "player-command-auto-maintenance-rolls-back-island-cache-fields-when-save-is-not-accepted");
         state.put("runtime-core-lifecycle-save-policy", "core-lifecycle-state-is-published-only-after-island-save-is-accepted");
         state.put("runtime-machine-save-later-policy", "save-later-reports-write-gate-result-and-chunk-reactivation-status-rolls-back-on-failure");
+        state.put("runtime-power-network-machine-save-policy", "power-network-membership-rolls-back-machine-network-id-when-save-later-is-not-accepted");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));

@@ -14,6 +14,7 @@ import kr.seungmin.satisskyfactory.storage.VirtualInventory;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -94,18 +95,29 @@ public final class PowerNetworkService {
                 .sorted(Comparator.comparing(machine -> machine.location().databaseKey()))
                 .toList();
         if (connected.isEmpty()) {
-            clearIslandPowerIds(islandUuid);
+            if (!clearIslandPowerIds(islandUuid)) {
+                return load(islandUuid);
+            }
             database.replacePowerNetworks(islandUuid, List.of());
             return List.of();
         }
         UUID networkId = networkId(islandUuid);
+        List<MachineInstance> persistedConnected = new ArrayList<>();
         for (MachineInstance machine : connected) {
             if (!networkId.equals(machine.powerNetworkId())) {
+                UUID previousPowerNetworkId = machine.powerNetworkId();
                 machine.powerNetworkId(networkId);
-                machines.saveLater(machine);
+                if (!machines.saveLater(machine)) {
+                    machine.powerNetworkId(previousPowerNetworkId);
+                    continue;
+                }
             }
+            persistedConnected.add(machine);
         }
-        Set<UUID> connectedMachineIds = connected.stream()
+        if (persistedConnected.isEmpty()) {
+            return load(islandUuid);
+        }
+        Set<UUID> connectedMachineIds = persistedConnected.stream()
                 .map(MachineInstance::machineId)
                 .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
         NetworkState state = state(islandUuid);
@@ -136,13 +148,19 @@ public final class PowerNetworkService {
         return new NetworkState(cycleId, 1.0, 0.0, 0.0, 0L, 0.0);
     }
 
-    private void clearIslandPowerIds(UUID islandUuid) {
+    private boolean clearIslandPowerIds(UUID islandUuid) {
+        boolean accepted = true;
         for (MachineInstance machine : machines.byIsland(islandUuid)) {
             if (machine.powerNetworkId() != null) {
+                UUID previousPowerNetworkId = machine.powerNetworkId();
                 machine.powerNetworkId(null);
-                machines.saveLater(machine);
+                if (!machines.saveLater(machine)) {
+                    machine.powerNetworkId(previousPowerNetworkId);
+                    accepted = false;
+                }
             }
         }
+        return accepted;
     }
 
     private boolean hasPowerRole(MachineInstance machine) {
