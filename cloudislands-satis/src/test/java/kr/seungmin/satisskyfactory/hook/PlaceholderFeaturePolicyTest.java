@@ -42,4 +42,15 @@ class PlaceholderFeaturePolicyTest {
         assertTrue(PlaceholderFeaturePolicy.canResolve("island_uuid", features));
         assertTrue(PlaceholderFeaturePolicy.canResolve("storage_capacity", features));
     }
+
+    @Test
+    void levelValueFeatureBlocksBoostPlaceholders() {
+        Predicate<String> features = feature -> !"level-values".equals(feature);
+
+        assertFalse(PlaceholderFeaturePolicy.canResolve("agriculture_boost", features));
+        assertFalse(PlaceholderFeaturePolicy.canResolve("machine_limit_bonus", features));
+        assertFalse(PlaceholderFeaturePolicy.canResolve("contract_slot_bonus", features));
+        assertTrue(PlaceholderFeaturePolicy.canResolve("machines", features));
+        assertTrue(PlaceholderFeaturePolicy.canResolve("contracts_active", features));
+    }
 }

@@ -15,7 +15,11 @@ public final class PlaceholderFeaturePolicy {
             "maintenance_score"
     );
     private static final Set<String> CONTRACT_KEYS = Set.of(
-            "contracts_active",
+            "contracts_active"
+    );
+    private static final Set<String> LEVEL_VALUE_KEYS = Set.of(
+            "agriculture_boost",
+            "machine_limit_bonus",
             "contract_slot_bonus"
     );
     private static final Set<String> STORAGE_KEYS = Set.of(
@@ -36,9 +40,7 @@ public final class PlaceholderFeaturePolicy {
             "power_consumption",
             "battery_stored",
             "battery_capacity",
-            "battery_percent",
-            "agriculture_boost",
-            "machine_limit_bonus"
+            "battery_percent"
     );
 
     private PlaceholderFeaturePolicy() {
@@ -59,6 +61,12 @@ public final class PlaceholderFeaturePolicy {
         }
         if (CONTRACT_KEYS.contains(key)) {
             return enabled(featureEnabled, "contracts") && enabled(featureEnabled, "storage");
+        }
+        if (LEVEL_VALUE_KEYS.contains(key)) {
+            if (key.equals("contract_slot_bonus")) {
+                return enabled(featureEnabled, "contracts") && enabled(featureEnabled, "storage") && enabled(featureEnabled, "level-values");
+            }
+            return enabled(featureEnabled, "machines") && enabled(featureEnabled, "level-values");
         }
         if (STORAGE_KEYS.contains(key)) {
             return enabled(featureEnabled, "storage");
