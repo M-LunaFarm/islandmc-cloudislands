@@ -69,6 +69,49 @@ class FinalRequestFlowPolicyTest {
     }
 
     @Test
+    void recordsWarpRankingAndSettingsPlayerFlows() {
+        assertEquals(
+            List.of(
+                "player",
+                "velocity-command-warp",
+                "logical-warp-target-no-node-name",
+                "core-api-create-warp-route",
+                "member-or-public-warp-permission-check",
+                "active-or-activate",
+                "warp-ticket-ready",
+                "velocity-connect",
+                "player-message-hides-physical-node",
+                "paper-teleport-warp"
+            ),
+            FinalRequestFlowPolicy.flow("island-warp")
+        );
+        assertEquals(
+            List.of(
+                "player",
+                "logical-ranking-command-no-node-name",
+                "core-api-ranking-query",
+                "level-and-worth-rankings",
+                "ranking-menu-shows-logical-islands",
+                "ranking-click-uses-visit-route-ticket",
+                "player-message-hides-physical-node"
+            ),
+            FinalRequestFlowPolicy.flow("island-ranking")
+        );
+        assertEquals(
+            List.of(
+                "player",
+                "logical-settings-command-no-node-name",
+                "member-permission-check",
+                "core-api-flags-members-warps-limits",
+                "settings-menu-opens",
+                "writes-go-through-core-api",
+                "player-message-hides-physical-node"
+            ),
+            FinalRequestFlowPolicy.flow("island-settings")
+        );
+    }
+
+    @Test
     void recordsSoftFullRoutingBehavior() {
         assertEquals(
             List.of(
@@ -123,6 +166,9 @@ class FinalRequestFlowPolicyTest {
     @Test
     void rejectsUnknownFlowKeys() {
         assertTrue(FinalRequestFlowPolicy.knownFlow("island-create"));
+        assertTrue(FinalRequestFlowPolicy.knownFlow("island-warp"));
+        assertTrue(FinalRequestFlowPolicy.knownFlow("island-ranking"));
+        assertTrue(FinalRequestFlowPolicy.knownFlow("island-settings"));
         assertTrue(FinalRequestFlowPolicy.knownFlow("island-1-soft-full-create-on-island-2"));
         assertTrue(FinalRequestFlowPolicy.knownFlow("scale-to-five-or-six-island-nodes"));
         assertFalse(FinalRequestFlowPolicy.knownFlow("legacy-bungee-flow"));

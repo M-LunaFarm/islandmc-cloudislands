@@ -79,6 +79,36 @@ public final class FinalRequestFlowPolicy {
             "player-message-hides-physical-node",
             "visitor-spawn-teleport"
         ));
+        flows.put("island-warp", List.of(
+            "player",
+            "velocity-command-warp",
+            "logical-warp-target-no-node-name",
+            "core-api-create-warp-route",
+            "member-or-public-warp-permission-check",
+            "active-or-activate",
+            "warp-ticket-ready",
+            "velocity-connect",
+            "player-message-hides-physical-node",
+            "paper-teleport-warp"
+        ));
+        flows.put("island-ranking", List.of(
+            "player",
+            "logical-ranking-command-no-node-name",
+            "core-api-ranking-query",
+            "level-and-worth-rankings",
+            "ranking-menu-shows-logical-islands",
+            "ranking-click-uses-visit-route-ticket",
+            "player-message-hides-physical-node"
+        ));
+        flows.put("island-settings", List.of(
+            "player",
+            "logical-settings-command-no-node-name",
+            "member-permission-check",
+            "core-api-flags-members-warps-limits",
+            "settings-menu-opens",
+            "writes-go-through-core-api",
+            "player-message-hides-physical-node"
+        ));
         flows.put("soft-full-routing", List.of(
             "soft-full-node-avoided-for-new-islands",
             "allocator-block-reason-state-soft-full",
