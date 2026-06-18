@@ -5,7 +5,7 @@ fun embeddedOutput(projectName: String) =
         .named("main").get().output
 
 val embeddedProjects = listOf(":cloudislands-protocol")
-val jarDependencyProjects = embeddedProjects + listOf(":cloudislands-api")
+val jarDependencyProjects = embeddedProjects
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
