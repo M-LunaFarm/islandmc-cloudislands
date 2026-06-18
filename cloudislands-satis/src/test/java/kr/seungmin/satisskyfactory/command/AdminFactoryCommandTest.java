@@ -76,6 +76,9 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"database-node-local-cache-active\""));
         assertTrue(source.contains("\"runtime-standalone-island-runtime-policy\""));
         assertTrue(source.contains("\"runtime-island-runtime-authority\""));
+        assertTrue(source.contains("\"runtime-tick-authority-policy\""));
+        assertTrue(source.contains("\"runtime-tick-authority-local-fallback-policy\""));
+        assertTrue(source.contains("\"runtime-tick-authority-core-hydrated-islands\""));
     }
 
     @SuppressWarnings("unchecked")

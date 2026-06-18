@@ -656,6 +656,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-heartbeat-expiry-policy", SatisStatePortabilityPolicy.HEARTBEAT_EXPIRY_POLICY);
         state.put("runtime-fencing-token-policy", SatisStatePortabilityPolicy.FENCING_TOKEN_POLICY);
         state.put("runtime-stale-write-policy", SatisStatePortabilityPolicy.STALE_WRITE_POLICY);
+        state.put("runtime-tick-authority-policy", SatisRuntimeTickAuthorityPolicy.tickPolicy(database == null ? null : database.activeBackend()));
+        state.put("runtime-tick-authority-core-api-policy", SatisRuntimeTickAuthorityPolicy.CORE_API_TICK_POLICY);
+        state.put("runtime-tick-authority-shared-sql-policy", SatisRuntimeTickAuthorityPolicy.SHARED_SQL_TICK_POLICY);
+        state.put("runtime-tick-authority-local-fallback-policy", SatisRuntimeTickAuthorityPolicy.LOCAL_FALLBACK_TICK_POLICY);
+        state.put("runtime-tick-authority-core-hydrated-islands", Integer.toString(coreHydratedIslandActivations.size()));
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-core-api-state-bulk-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-core-api-state-writer-gate", "addonRuntimeEnabled&&features.addon-state&&databaseBackend=CORE_API&&cloudislands-addon-state-api");
