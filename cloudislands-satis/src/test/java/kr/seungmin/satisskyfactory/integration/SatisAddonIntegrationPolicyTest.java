@@ -55,6 +55,18 @@ class SatisAddonIntegrationPolicyTest {
                 SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY
         );
         assertEquals(
+                "my-island-other-island-ranking-visit-settings-warps-use-logical-core-api-backed-flows",
+                SatisAddonIntegrationPolicy.PLAYER_SURFACE_POLICY
+        );
+        assertEquals(
+                "player-facing-satis-ui-hides-island-node-server-world-cell-and-route-ticket",
+                SatisAddonIntegrationPolicy.PLAYER_SURFACE_HIDE_POLICY
+        );
+        assertEquals(
+                "velocity-owns-global-island-routing-commands-paper-satis-handles-local-addon-ui-only",
+                SatisAddonIntegrationPolicy.PLAYER_SURFACE_COMMAND_OWNER_POLICY
+        );
+        assertEquals(
                 "velocity-modern-forwarding-with-shared-secret-required-for-paper-node-identity-trust",
                 SatisAddonIntegrationPolicy.VELOCITY_FORWARDING_POLICY
         );
@@ -178,6 +190,10 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals(
                 "server-world-and-center-are-remapped-runtime-placement-not-persistent-identity",
                 SatisAddonIntegrationPolicy.requiredScenarios().get("volatile-placement")
+        );
+        assertEquals(
+                "my-island-other-island-ranking-visit-settings-warps-stay-logical-while-core-api-selects-node",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("player-logical-surface")
         );
         assertEquals(
                 "island-member-permission-location-upgrade-data-come-from-cloudislands-api-or-addon-spi",

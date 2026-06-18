@@ -85,6 +85,9 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"runtime-route-events-last-block-reason\""));
         assertTrue(source.contains("\"runtime-route-authority-policy\""));
         assertTrue(source.contains("\"runtime-route-ticket-privacy-policy\""));
+        assertTrue(source.contains("\"runtime-player-surface-policy\""));
+        assertTrue(source.contains("\"runtime-player-surface-hide-policy\""));
+        assertTrue(source.contains("\"runtime-player-surface-command-owner-policy\""));
         assertTrue(source.contains("\"runtime-velocity-forwarding-policy\""));
         assertTrue(source.contains("\"runtime-paper-backend-access-policy\""));
         assertTrue(source.contains("\"runtime-plugin-message-security-policy\""));
@@ -112,6 +115,9 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"route-event-last-block-reason\""));
         assertTrue(source.contains("\"last-route-player-visible-topology\""));
         assertTrue(source.contains("\"last-route-ticket-player-visible\""));
+        assertTrue(source.contains("\"player-surface-policy\""));
+        assertTrue(source.contains("\"player-surface-hide-policy\""));
+        assertTrue(source.contains("\"player-surface-command-owner-policy\""));
         assertTrue(source.contains("\"velocity-forwarding-policy\""));
         assertTrue(source.contains("\"paper-backend-access-policy\""));
         assertTrue(source.contains("\"plugin-message-security-policy\""));

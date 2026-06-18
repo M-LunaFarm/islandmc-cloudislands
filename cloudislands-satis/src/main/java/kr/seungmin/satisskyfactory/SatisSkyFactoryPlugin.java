@@ -472,6 +472,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
         state.put("runtime-route-authority-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
         state.put("runtime-route-ticket-privacy-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
+        state.put("runtime-player-surface-policy", SatisAddonIntegrationPolicy.PLAYER_SURFACE_POLICY);
+        state.put("runtime-player-surface-hide-policy", SatisAddonIntegrationPolicy.PLAYER_SURFACE_HIDE_POLICY);
+        state.put("runtime-player-surface-command-owner-policy", SatisAddonIntegrationPolicy.PLAYER_SURFACE_COMMAND_OWNER_POLICY);
         state.put("runtime-velocity-forwarding-policy", SatisAddonIntegrationPolicy.VELOCITY_FORWARDING_POLICY);
         state.put("runtime-paper-backend-access-policy", SatisAddonIntegrationPolicy.PAPER_BACKEND_ACCESS_POLICY);
         state.put("runtime-plugin-message-security-policy", SatisAddonIntegrationPolicy.PLUGIN_MESSAGE_SECURITY_POLICY);
@@ -2009,6 +2012,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
         metadata.put("route-authority-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
         metadata.put("route-ticket-privacy-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
+        metadata.put("player-surface-policy", SatisAddonIntegrationPolicy.PLAYER_SURFACE_POLICY);
+        metadata.put("player-surface-hide-policy", SatisAddonIntegrationPolicy.PLAYER_SURFACE_HIDE_POLICY);
+        metadata.put("player-surface-command-owner-policy", SatisAddonIntegrationPolicy.PLAYER_SURFACE_COMMAND_OWNER_POLICY);
         metadata.put("velocity-forwarding-policy", SatisAddonIntegrationPolicy.VELOCITY_FORWARDING_POLICY);
         metadata.put("paper-backend-access-policy", SatisAddonIntegrationPolicy.PAPER_BACKEND_ACCESS_POLICY);
         metadata.put("plugin-message-security-policy", SatisAddonIntegrationPolicy.PLUGIN_MESSAGE_SECURITY_POLICY);

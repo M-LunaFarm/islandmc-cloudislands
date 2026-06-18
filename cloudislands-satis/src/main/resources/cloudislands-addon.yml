@@ -200,6 +200,9 @@ state:
   node-count-policy: island-node-count-does-not-change-satis-state-identity-or-storage-authority
   topology-privacy-policy: player-facing-satis-output-hides-physical-node-server-world-cell-and-route-identifiers
   player-visible-topology-policy: show-logical-island-only-never-island-node-or-shard-placement
+  player-surface-policy: my-island-other-island-ranking-visit-settings-warps-use-logical-core-api-backed-flows
+  player-surface-hide-policy: player-facing-satis-ui-hides-island-node-server-world-cell-and-route-ticket
+  player-surface-command-owner-policy: velocity-owns-global-island-routing-commands-paper-satis-handles-local-addon-ui-only
   internal-topology-fields: active-node,source-node,target-node,server-name,world-name,cell,route-ticket,backend-storage-key
   route-authority-policy: core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only
   route-ticket-privacy-policy: player-facing-satis-output-never-includes-route-ticket-node-server-world-cell

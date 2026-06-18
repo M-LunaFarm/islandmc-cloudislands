@@ -42,6 +42,9 @@ public final class SatisAddonIntegrationPolicy {
     public static final String VOLATILE_PLACEMENT_POLICY = "active-node-world-center-are-remap-targets-not-state-owners";
     public static final String TOPOLOGY_PRIVACY_POLICY = "player-facing-satis-output-hides-physical-node-server-world-cell-and-route-identifiers";
     public static final String PLAYER_VISIBLE_TOPOLOGY_POLICY = "show-logical-island-only-never-island-node-or-shard-placement";
+    public static final String PLAYER_SURFACE_POLICY = "my-island-other-island-ranking-visit-settings-warps-use-logical-core-api-backed-flows";
+    public static final String PLAYER_SURFACE_HIDE_POLICY = "player-facing-satis-ui-hides-island-node-server-world-cell-and-route-ticket";
+    public static final String PLAYER_SURFACE_COMMAND_OWNER_POLICY = "velocity-owns-global-island-routing-commands-paper-satis-handles-local-addon-ui-only";
     public static final String INTERNAL_TOPOLOGY_FIELDS = "active-node,source-node,target-node,server-name,world-name,cell,route-ticket,backend-storage-key";
     public static final String ROUTE_AUTHORITY_POLICY = "core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only";
     public static final String ROUTE_TICKET_PRIVACY_POLICY = "player-facing-satis-output-never-includes-route-ticket-node-server-world-cell";
@@ -178,6 +181,7 @@ public final class SatisAddonIntegrationPolicy {
             Map.entry("addon-reenable", "previous-addon-state-is-reloaded-from-shared-storage-by-island-uuid"),
             Map.entry("island-id-storage", "satis-state-uses-cloudislands-island-uuid-as-persistent-owner-key"),
             Map.entry("volatile-placement", "server-world-and-center-are-remapped-runtime-placement-not-persistent-identity"),
+            Map.entry("player-logical-surface", "my-island-other-island-ranking-visit-settings-warps-stay-logical-while-core-api-selects-node"),
             Map.entry("api-surface", "island-member-permission-location-upgrade-data-come-from-cloudislands-api-or-addon-spi"),
             Map.entry("no-direct-internals", "satis-does-not-read-cloudislands-storage-runtime-internals-or-node-ownership-directly"),
             Map.entry("external-addon", "cloudislands-boots-without-satis-jar-and-discovers-satis-through-addon-api-when-installed"),
