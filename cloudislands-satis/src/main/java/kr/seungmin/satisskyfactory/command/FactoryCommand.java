@@ -441,12 +441,17 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             messages.send(player, "not-enough-storage");
             return;
         }
+        if (!storage.saveIfAllowed(inventory)) {
+            inventory.add(itemId, amount);
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            return;
+        }
         long returned = giveVirtualItem(player, itemId, amount);
         if (returned > 0) {
             inventory.add(itemId, returned);
             messages.send(player, "inventory-full");
         }
-        storage.save(inventory);
+        storage.saveIfAllowed(inventory);
         messages.send(player, "withdrew", Map.of("item", itemId, "amount", String.valueOf(amount - returned)));
     }
 

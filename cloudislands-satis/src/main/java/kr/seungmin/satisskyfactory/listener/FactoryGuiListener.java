@@ -332,12 +332,18 @@ public final class FactoryGuiListener implements Listener {
             gui.openStorage(player, island, page);
             return;
         }
+        if (!storage.saveIfAllowed(inventory)) {
+            inventory.add(itemId, amount);
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            gui.openStorage(player, island, page);
+            return;
+        }
         long returned = giveVirtualItem(player, itemId, amount);
         if (returned > 0) {
             inventory.add(itemId, returned);
             messages.send(player, "inventory-full");
         }
-        storage.save(inventory);
+        storage.saveIfAllowed(inventory);
         messages.send(player, "withdrew", Map.of("item", itemId, "amount", String.valueOf(amount - returned)));
         gui.openStorage(player, island, page);
     }
@@ -450,6 +456,12 @@ public final class FactoryGuiListener implements Listener {
             gui.openMachine(player, machine);
             return;
         }
+        if (!storage.saveIfAllowed(inventory)) {
+            inventory.add(itemId, amount);
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            gui.openMachine(player, machine);
+            return;
+        }
         ItemStack stack = items.get(itemId)
                 .map(item -> itemFactory.factoryItem(item, (int) amount))
                 .orElseGet(() -> new ItemStack(material(itemId), (int) amount));
@@ -459,7 +471,7 @@ public final class FactoryGuiListener implements Listener {
             inventory.add(itemId, returned);
             messages.send(player, "inventory-full");
         }
-        storage.save(inventory);
+        storage.saveIfAllowed(inventory);
         machines.reactivate(machine);
         messages.send(player, "withdrew", Map.of("item", itemId, "amount", String.valueOf(amount - returned)));
         gui.openMachine(player, machine);
