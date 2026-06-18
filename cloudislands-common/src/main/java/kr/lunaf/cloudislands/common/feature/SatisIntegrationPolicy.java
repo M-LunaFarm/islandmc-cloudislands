@@ -28,16 +28,21 @@ public final class SatisIntegrationPolicy {
         "core-api-service", "stores-addon-metadata-and-state-without-knowing-satis-business-logic"
     );
 
-    private static final Map<String, String> FEATURE_OFF_RUNTIME_BLOCKS = Map.of(
-        "machines", "machine-place-machine-tick-machine-gui-machine-placeholder",
-        "resource-nodes", "resource-node-spawn-resource-node-tick-resource-node-gui",
-        "contracts", "contract-command-contract-gui-contract-event-writes",
-        "market", "market-command-market-gui-market-storage-writes",
-        "missions", "mission-command-mission-gui-mission-event-handlers",
-        "placeholders", "placeholder-registration-placeholder-refresh",
-        "gui", "satis-menu-registration-and-open-handlers",
-        "lifecycle", "satis-lifecycle-event-consumers",
-        "storage", "satis-state-write-paths"
+    private static final Map<String, String> FEATURE_OFF_RUNTIME_BLOCKS = Map.ofEntries(
+        Map.entry("machines", "machine-place-machine-tick-machine-gui-machine-placeholder"),
+        Map.entry("factories", "factory-command-factory-gui-factory-tick-factory-storage-writes"),
+        Map.entry("generators", "generator-command-generator-upgrade-listeners-generator-drop-modifiers"),
+        Map.entry("upgrades", "upgrade-command-upgrade-gui-upgrade-cost-writes-upgrade-effects"),
+        Map.entry("resource-nodes", "resource-node-spawn-resource-node-tick-resource-node-gui"),
+        Map.entry("contracts", "contract-command-contract-gui-contract-event-writes"),
+        Map.entry("market", "market-command-market-gui-market-storage-writes"),
+        Map.entry("missions", "mission-command-mission-gui-mission-event-handlers"),
+        Map.entry("menus", "satis-menu-registration-and-open-handlers"),
+        Map.entry("commands", "satis-command-registration-and-tab-completion"),
+        Map.entry("placeholders", "placeholder-registration-placeholder-refresh"),
+        Map.entry("gui", "satis-menu-registration-and-open-handlers"),
+        Map.entry("lifecycle", "satis-lifecycle-event-consumers"),
+        Map.entry("storage", "satis-state-write-paths")
     );
 
     private static final List<String> NODE_MOVE_REMAP_STEPS = List.of(
