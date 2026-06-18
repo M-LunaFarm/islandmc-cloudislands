@@ -2179,6 +2179,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + adminText("admin-command-core-config-snapshot-retention-prefix", " snapshotRetention=") + longValue(body, "snapshotKeepHourly") + "/" + longValue(body, "snapshotKeepDaily") + "/" + longValue(body, "snapshotKeepWeekly") + "/" + longValue(body, "snapshotKeepManual")
             + adminText("admin-command-core-config-snapshot-compress-prefix", " snapshotCompress=") + boolValue(body, "snapshotCompress")
             + adminText("admin-command-core-config-snapshot-checksum-prefix", " snapshotChecksum=") + textValue(body, "snapshotChecksumAlgorithm")
+            + adminText("admin-command-core-config-snapshot-triggers-prefix", " snapshotTriggers=") + textValue(body, "snapshotRequiredTriggerReasons")
+            + adminText("admin-command-core-config-snapshot-trigger-policy-prefix", " snapshotTriggerPolicy=") + textValue(body, "snapshotAutomaticTriggerPolicy")
             + adminText("admin-command-core-config-snapshot-restore-prefix", " snapshotRestore=") + textValue(body, "snapshotRestorePipeline")
             + " rankingPolicy=" + textValue(body, "rankingUpdatePolicy")
             + " blockValuePolicy=" + textValue(body, "blockValuePolicy")

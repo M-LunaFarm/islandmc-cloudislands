@@ -10,6 +10,16 @@ public final class SnapshotOperationPolicy {
     public static final String CHECKSUM_POLICY = "sha256-required-before-promote";
     public static final String PORTABILITY_POLICY = "portable-bundle-required-before-promote";
 
+    private static final List<String> AUTOMATIC_TRIGGER_REASONS = List.of(
+        "CREATED",
+        "DEACTIVATION",
+        "PERIODIC",
+        "BEFORE_DELETE",
+        "BEFORE_RESET",
+        "BEFORE_MIGRATION",
+        "MANUAL"
+    );
+
     private static final List<String> ROLLBACK_STEPS = List.of(
         "LOCK_RESTORING",
         "EVACUATE_ACTIVE_PLAYERS_TO_LOBBY",
@@ -21,6 +31,14 @@ public final class SnapshotOperationPolicy {
     );
 
     private SnapshotOperationPolicy() {}
+
+    public static List<String> automaticTriggerReasons() {
+        return AUTOMATIC_TRIGGER_REASONS;
+    }
+
+    public static String automaticTriggerReasonSummary() {
+        return String.join(",", AUTOMATIC_TRIGGER_REASONS);
+    }
 
     public static List<String> rollbackSteps() {
         return ROLLBACK_STEPS;
