@@ -93,6 +93,10 @@ runtime:
 database:
   setup-path: setup.database
   setup-source-policy: env-type-explicit-type-core-api-marker-jdbc-url-single-backend-section-legacy-database
+  setup-source-precedence: env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type
+  core-api-readiness-fields: setup.database.core-api.enabled,cloudislands-api,addon-state,table-key-value-bulk-save-or-flattened-fallback
+  jdbc-readiness-policy: jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials
+  core-api-local-cache-write-policy: core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only
   default-mode: CORE_API
   supported:
     - CORE_API

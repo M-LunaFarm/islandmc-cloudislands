@@ -151,6 +151,10 @@ class DefaultConfigIntegrityTest {
         assertEquals("data.db", config.getString("database.sqlite-file"));
         assertEquals(60, config.getInt("database.save-interval-seconds"));
         assertEquals(1200, config.getInt("settings.dirty-save-period-ticks"));
+        assertEquals("env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type", addon.getString("database.setup-source-precedence"));
+        assertTrue(addon.getString("database.core-api-readiness-fields").contains("table-key-value-bulk-save-or-flattened-fallback"));
+        assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", addon.getString("database.jdbc-readiness-policy"));
+        assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", addon.getString("database.core-api-local-cache-write-policy"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-reload-runtime-restart-policy"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-core-refresh-reapply-policy"));
         assertTrue(addon.getString("state.core-refresh-reapply-state-keys").contains("last-core-refresh-policy"));
