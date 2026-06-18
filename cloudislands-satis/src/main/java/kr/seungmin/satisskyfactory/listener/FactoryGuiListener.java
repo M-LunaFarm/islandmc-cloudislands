@@ -338,9 +338,11 @@ public final class FactoryGuiListener implements Listener {
         long returned = giveVirtualItem(player, itemId, amount);
         if (returned > 0) {
             inventory.add(itemId, returned);
+            if (!storage.saveIfAllowed(inventory)) {
+                inventory.remove(itemId, returned);
+            }
             messages.send(player, "inventory-full");
         }
-        storage.saveIfAllowed(inventory);
         messages.send(player, "withdrew", Map.of("item", itemId, "amount", String.valueOf(amount - returned)));
         gui.openStorage(player, island, page);
     }
@@ -469,9 +471,11 @@ public final class FactoryGuiListener implements Listener {
         long returned = overflow.values().stream().mapToLong(ItemStack::getAmount).sum();
         if (returned > 0) {
             inventory.add(itemId, returned);
+            if (!storage.saveIfAllowed(inventory)) {
+                inventory.remove(itemId, returned);
+            }
             messages.send(player, "inventory-full");
         }
-        storage.saveIfAllowed(inventory);
         machines.reactivate(machine);
         messages.send(player, "withdrew", Map.of("item", itemId, "amount", String.valueOf(amount - returned)));
         gui.openMachine(player, machine);

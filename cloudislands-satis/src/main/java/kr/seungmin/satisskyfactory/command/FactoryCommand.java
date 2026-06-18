@@ -461,9 +461,11 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         long returned = giveVirtualItem(player, itemId, amount);
         if (returned > 0) {
             inventory.add(itemId, returned);
+            if (!storage.saveIfAllowed(inventory)) {
+                inventory.remove(itemId, returned);
+            }
             messages.send(player, "inventory-full");
         }
-        storage.saveIfAllowed(inventory);
         messages.send(player, "withdrew", Map.of("item", itemId, "amount", String.valueOf(amount - returned)));
     }
 
@@ -690,8 +692,11 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
 
     private void refundRepairParts(FactoryIsland island, MachineInstance machine) {
         var inventory = storage.islandStorage(island.islandUuid());
-        maintenance.repairCost(machine.status() == MachineStatus.BROKEN).forEach(inventory::add);
-        storage.saveIfAllowed(inventory);
+        Map<String, Long> cost = maintenance.repairCost(machine.status() == MachineStatus.BROKEN);
+        cost.forEach(inventory::add);
+        if (!storage.saveIfAllowed(inventory)) {
+            cost.forEach(inventory::remove);
+        }
     }
 
     private String repairCostText(MachineInstance machine) {

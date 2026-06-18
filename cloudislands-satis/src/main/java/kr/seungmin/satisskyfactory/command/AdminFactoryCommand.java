@@ -1568,6 +1568,7 @@ public final class AdminFactoryCommand {
                         "runtime-generator-fuel-save-policy",
                         "runtime-contract-inventory-rollback-policy",
                         "runtime-market-inventory-rollback-policy",
+                        "runtime-player-return-inventory-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
