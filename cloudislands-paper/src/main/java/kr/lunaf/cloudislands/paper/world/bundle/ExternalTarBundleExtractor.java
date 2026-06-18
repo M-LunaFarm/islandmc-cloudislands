@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import kr.lunaf.cloudislands.common.storage.BundleIntegrityPolicy;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 
 public final class ExternalTarBundleExtractor implements BundleExtractor {
@@ -19,23 +20,23 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
         recreateDirectory(targetDirectory);
         runTar(List.of("tar", "--zstd", "-xf", bundleFile.toAbsolutePath().toString(), "-C", targetDirectory.toAbsolutePath().toString()), "bundle extraction");
         validateExtractedTree(targetDirectory);
-        Path manifest = targetDirectory.resolve("manifest.json");
-        Path chunks = targetDirectory.resolve("chunks");
-        Path checksums = targetDirectory.resolve("checksums.sha256");
+        Path manifest = targetDirectory.resolve(BundleIntegrityPolicy.MANIFEST_FILE);
+        Path chunks = targetDirectory.resolve(BundleIntegrityPolicy.CHUNKS_DIRECTORY);
+        Path checksums = targetDirectory.resolve(BundleIntegrityPolicy.CHECKSUM_FILE);
         if (!Files.isRegularFile(manifest)) {
-            throw new IOException("extracted bundle is missing manifest.json");
+            throw new IOException("extracted bundle is missing " + BundleIntegrityPolicy.MANIFEST_FILE);
         }
         if (!Files.isDirectory(chunks, LinkOption.NOFOLLOW_LINKS)) {
-            throw new IOException("extracted bundle is missing chunks directory");
+            throw new IOException("extracted bundle is missing " + BundleIntegrityPolicy.CHUNKS_DIRECTORY + " directory");
         }
-        if (!Files.isDirectory(targetDirectory.resolve("entities"), LinkOption.NOFOLLOW_LINKS)) {
-            throw new IOException("extracted bundle is missing entities directory");
+        if (!Files.isDirectory(targetDirectory.resolve(BundleIntegrityPolicy.ENTITIES_DIRECTORY), LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("extracted bundle is missing " + BundleIntegrityPolicy.ENTITIES_DIRECTORY + " directory");
         }
-        if (!Files.isDirectory(targetDirectory.resolve("block-entities"), LinkOption.NOFOLLOW_LINKS)) {
-            throw new IOException("extracted bundle is missing block-entities directory");
+        if (!Files.isDirectory(targetDirectory.resolve(BundleIntegrityPolicy.BLOCK_ENTITIES_DIRECTORY), LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("extracted bundle is missing " + BundleIntegrityPolicy.BLOCK_ENTITIES_DIRECTORY + " directory");
         }
         if (!Files.isRegularFile(checksums)) {
-            throw new IOException("extracted bundle is missing checksums.sha256");
+            throw new IOException("extracted bundle is missing " + BundleIntegrityPolicy.CHECKSUM_FILE);
         }
         verifyChecksums(targetDirectory, checksums);
         return new ExtractedBundle(targetDirectory, manifest, chunks);
@@ -139,7 +140,7 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
                     throw new IOException("symbolic links are not allowed in island bundles: " + root.relativize(path));
                 }
                 String relativeName = root.relativize(path).toString().replace('\\', '/');
-                if (!relativeName.equals("checksums.sha256") && !listed.contains(relativeName)) {
+                if (BundleIntegrityPolicy.checksumProtectedFile(relativeName) && !listed.contains(relativeName)) {
                     unlisted.add(relativeName);
                 }
             }
