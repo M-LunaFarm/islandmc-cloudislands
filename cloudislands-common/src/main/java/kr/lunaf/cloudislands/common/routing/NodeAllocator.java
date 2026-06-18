@@ -55,7 +55,7 @@ public final class NodeAllocator {
             .filter(node -> !duplicateVelocityServerName(node, velocityServerCounts))
             .filter(node -> node.eligible(now, heartbeatTimeout))
             .filter(node -> node.supportsTemplate(templateId))
-            .filter(node -> node.satisfiesMinVersion(minNodeVersion))
+            .filter(node -> node.satisfiesTemplateVersion(templateId, minNodeVersion))
             .toList();
         Optional<NodeLoad> ready = eligible.stream()
             .filter(node -> node.state() == NodeState.READY)
@@ -80,7 +80,7 @@ public final class NodeAllocator {
             .filter(node -> !duplicateVelocityServerName(node, velocityServerCounts))
             .filter(node -> newActivationBlockReason(node, now).isBlank())
             .filter(node -> node.supportsTemplate(templateId))
-            .filter(node -> node.satisfiesMinVersion(minNodeVersion))
+            .filter(node -> node.satisfiesTemplateVersion(templateId, minNodeVersion))
             .toList();
     }
 
@@ -131,7 +131,7 @@ public final class NodeAllocator {
                 continue;
             }
             anyTemplateNode = true;
-            if (!node.satisfiesMinVersion(minNodeVersion)) {
+            if (!node.satisfiesTemplateVersion(templateId, minNodeVersion)) {
                 continue;
             }
             anyVersionNode = true;
@@ -263,7 +263,7 @@ public final class NodeAllocator {
         if (!node.supportsTemplate(templateId)) {
             return "TEMPLATE_UNSUPPORTED";
         }
-        if (!node.satisfiesMinVersion(minNodeVersion)) {
+        if (!node.satisfiesTemplateVersion(templateId, minNodeVersion)) {
             return "NODE_VERSION_TOO_OLD";
         }
         return node.allocationBlockReason(now, heartbeatTimeout);

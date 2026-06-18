@@ -102,7 +102,7 @@ public record NodeLoad(
         if (!supportsTemplate(templateId)) {
             return "TEMPLATE_UNSUPPORTED";
         }
-        if (!satisfiesMinVersion(minVersion)) {
+        if (!satisfiesTemplateVersion(templateId, minVersion)) {
             return "NODE_VERSION_TOO_OLD";
         }
         return "";
@@ -167,6 +167,68 @@ public record NodeLoad(
             return false;
         }
         return compareVersions(nodeVersion, minVersion) >= 0;
+    }
+
+    public boolean satisfiesTemplateVersion(String templateId, String minVersion) {
+        if (minVersion == null || minVersion.isBlank()) {
+            return true;
+        }
+        String templateVersion = templateNodeVersion(templateId);
+        if (templateVersion.isBlank()) {
+            return satisfiesMinVersion(minVersion);
+        }
+        return compareVersions(templateVersion, minVersion) >= 0;
+    }
+
+    public String templateNodeVersion(String templateId) {
+        Map<String, String> metadata = heartbeatMetadata();
+        if (metadata.isEmpty()) {
+            return "";
+        }
+        String requested = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
+        String direct = metadataValueIgnoreCase(metadata, "templateVersion." + requested);
+        if (!direct.isBlank()) {
+            return direct;
+        }
+        String versions = metadataValueIgnoreCase(metadata, "templateVersions");
+        if (versions.isBlank()) {
+            return "";
+        }
+        String fallback = "";
+        for (String entry : versions.split(",")) {
+            String value = entry.trim();
+            if (value.isBlank()) {
+                continue;
+            }
+            int separator = value.indexOf(':');
+            if (separator < 0) {
+                separator = value.indexOf('=');
+            }
+            if (separator <= 0) {
+                continue;
+            }
+            String key = value.substring(0, separator).trim();
+            String version = value.substring(separator + 1).trim();
+            if (version.isBlank()) {
+                continue;
+            }
+            if (key.equalsIgnoreCase(requested)) {
+                return version;
+            }
+            if (key.equals("*") || key.equalsIgnoreCase("default")) {
+                fallback = version;
+            }
+        }
+        return fallback;
+    }
+
+    private String metadataValueIgnoreCase(Map<String, String> metadata, String key) {
+        for (Map.Entry<String, String> entry : metadata.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(key)) {
+                return entry.getValue() == null ? "" : entry.getValue().trim();
+            }
+        }
+        return "";
     }
 
     public double score() {
