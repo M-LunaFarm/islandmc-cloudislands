@@ -48,6 +48,8 @@ public final class SatisFeatureGateResolver {
     );
     private static final Map<String, List<String>> DEPENDENCIES = Map.ofEntries(
             Map.entry("resource-nodes", List.of("machines")),
+            Map.entry("gui", List.of("machines")),
+            Map.entry("placeholders", List.of("machines")),
             Map.entry("market", List.of("storage")),
             Map.entry("contracts", List.of("storage")),
             Map.entry("missions", List.of("contracts", "storage")),
