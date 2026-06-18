@@ -74,6 +74,28 @@ class FactoryCommandTest {
     }
 
     @Test
+    void hidesMachineEntrypointsWhenMachineFeatureIsDisabled() throws Exception {
+        FactoryCommand command = command(feature -> !"machines".equals(feature));
+
+        List<String> commands = visibleHelpCommands(command, "factory", null);
+
+        assertFalse(commands.contains("factory machines"));
+        assertTrue(commands.contains("factory main"));
+        assertTrue(commands.contains("factory storage"));
+    }
+
+    @Test
+    void hidesResourceNodeEntrypointsWhenResourceNodeFeatureIsDisabled() throws Exception {
+        FactoryCommand command = command(feature -> !"resource-nodes".equals(feature));
+
+        List<String> commands = visibleHelpCommands(command, "factory", null);
+
+        assertFalse(commands.contains("factory node scan"));
+        assertTrue(commands.contains("factory machines"));
+        assertTrue(commands.contains("factory storage"));
+    }
+
+    @Test
     void tabCompleteHidesGuiOnlyEntrypointsWhenGuiFeatureIsDisabled() {
         FactoryCommand command = command(feature -> !"gui".equals(feature));
 
@@ -102,6 +124,18 @@ class FactoryCommandTest {
         assertFalse(suggestions.contains("emergency"));
         assertTrue(suggestions.contains("main"));
         assertTrue(suggestions.contains("machines"));
+    }
+
+    @Test
+    void tabCompleteHidesMachineAndResourceNodeEntrypointsWhenFeaturesAreDisabled() {
+        FactoryCommand command = command(feature -> !"machines".equals(feature) && !"resource-nodes".equals(feature));
+
+        List<String> suggestions = command.onTabComplete(null, null, "factory", new String[]{""});
+
+        assertFalse(suggestions.contains("machines"));
+        assertFalse(suggestions.contains("node"));
+        assertTrue(suggestions.contains("main"));
+        assertTrue(suggestions.contains("storage"));
     }
 
     @SuppressWarnings("unchecked")
