@@ -17,6 +17,7 @@ class PortableIslandDesignPolicyTest {
         assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("island-nodes-are-execution-hosts-not-island-owners"));
         assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("players-see-logical-islands-never-island-node-names"));
         assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("adding-island-5-or-island-6-requires-registration-only-not-player-command-changes"));
+        assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("adding-island-7-and-beyond-uses-same-registration-heartbeat-and-shared-storage-rules"));
     }
 
     @Test
@@ -37,6 +38,7 @@ class PortableIslandDesignPolicyTest {
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("admins-can-drain-or-migrate-by-node"));
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("island-3-and-island-4-can-be-added-later"));
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("island-5-and-island-6-can-be-added-later"));
+        assertTrue(PortableIslandDesignPolicy.requiredOutcome("island-7-and-beyond-can-be-added-later"));
     }
 
     @Test
@@ -60,6 +62,8 @@ class PortableIslandDesignPolicyTest {
         assertTrue(PortableIslandDesignPolicy.expectedScenario("island-1-soft-full-create-on-island-2").contains("player-output-still-says-logical-island"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("add-island-5-and-6").contains("players-do-not-change-commands"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("add-island-5-and-6").contains("players-never-see-island-5-or-island-6-as-destination"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("add-island-7-and-beyond").contains("route-candidate-recommendation-remains-alerting-only"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("add-island-7-and-beyond").contains("players-never-see-physical-island-node-as-destination"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("addon-disabled-or-removed").contains("core-island-create-home-visit-still-work"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("addon-disabled-or-removed").contains("reenable-restores-addon-state-by-island-uuid"));
         assertTrue(PortableIslandDesignPolicy.knownScenario("a-server-to-b-server-move-with-addon-disabled"));
