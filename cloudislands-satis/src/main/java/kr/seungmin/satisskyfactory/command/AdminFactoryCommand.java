@@ -1383,6 +1383,7 @@ public final class AdminFactoryCommand {
                         "database-setup-postgresql-readiness-fields",
                         "database-setup-mysql-readiness-fields",
                         "database-setup-mariadb-readiness-fields",
+                        "database-setup-sqlite-readiness-fields",
                         "database-setup-jdbc-readiness-policy",
                         "database-setup-core-api-local-cache-write-policy",
                         "database-setup-source-policy",

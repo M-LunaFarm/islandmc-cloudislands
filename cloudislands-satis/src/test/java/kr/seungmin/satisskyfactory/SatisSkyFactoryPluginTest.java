@@ -92,6 +92,7 @@ class SatisSkyFactoryPluginTest {
         assertTrue(metadata.get("database-setup-postgresql-readiness-fields").contains("setup.database.postgresql.jdbc-url"));
         assertTrue(metadata.get("database-setup-mysql-readiness-fields").contains("setup.database.mysql.database"));
         assertTrue(metadata.get("database-setup-mariadb-readiness-fields").contains("setup.database.mariadb.password"));
+        assertTrue(metadata.get("database-setup-sqlite-readiness-fields").contains("single-node-or-shared-directory-only"));
         assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", metadata.get("database-setup-jdbc-readiness-policy"));
         assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", metadata.get("database-setup-core-api-local-cache-write-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
@@ -184,6 +185,7 @@ class SatisSkyFactoryPluginTest {
         assertTrue(adminSource.contains("database-setup-postgresql-readiness-fields"));
         assertTrue(adminSource.contains("database-setup-mysql-readiness-fields"));
         assertTrue(adminSource.contains("database-setup-mariadb-readiness-fields"));
+        assertTrue(adminSource.contains("database-setup-sqlite-readiness-fields"));
         assertTrue(adminSource.contains("database-setup-core-api-local-cache-write-policy"));
     }
 

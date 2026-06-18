@@ -1824,6 +1824,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-postgresql-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("POSTGRESQL")));
         metadata.put("database-setup-mysql-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("MYSQL")));
         metadata.put("database-setup-mariadb-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("MARIADB")));
+        metadata.put("database-setup-sqlite-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("SQLITE")));
         metadata.put("database-setup-jdbc-readiness-policy", SetupBackendFallbackPolicy.JDBC_READY_POLICY);
         metadata.put("database-setup-core-api-local-cache-write-policy", SetupBackendFallbackPolicy.LOCAL_CACHE_WRITE_POLICY);
         metadata.put("database-setup-fallback-precedence", SatisDatabaseConfigPolicy.FALLBACK_PRECEDENCE);
@@ -2557,6 +2558,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-postgresql-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("POSTGRESQL")));
         state.put("database-setup-mysql-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("MYSQL")));
         state.put("database-setup-mariadb-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("MARIADB")));
+        state.put("database-setup-sqlite-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("SQLITE")));
         state.put("database-setup-jdbc-readiness-policy", SetupBackendFallbackPolicy.JDBC_READY_POLICY);
         state.put("database-setup-core-api-local-cache-write-policy", SetupBackendFallbackPolicy.LOCAL_CACHE_WRITE_POLICY);
         state.put("database-setup-fallback-precedence", SatisDatabaseConfigPolicy.FALLBACK_PRECEDENCE);

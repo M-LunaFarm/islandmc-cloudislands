@@ -156,6 +156,7 @@ class DefaultConfigIntegrityTest {
         assertTrue(addon.getString("database.postgresql-readiness-fields").contains("setup.database.postgresql.jdbc-url"));
         assertTrue(addon.getString("database.mysql-readiness-fields").contains("setup.database.mysql.database"));
         assertTrue(addon.getString("database.mariadb-readiness-fields").contains("setup.database.mariadb.password"));
+        assertTrue(addon.getString("database.sqlite-readiness-fields").contains("single-node-or-shared-directory-only"));
         assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", addon.getString("database.jdbc-readiness-policy"));
         assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", addon.getString("database.core-api-local-cache-write-policy"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-reload-runtime-restart-policy"));
