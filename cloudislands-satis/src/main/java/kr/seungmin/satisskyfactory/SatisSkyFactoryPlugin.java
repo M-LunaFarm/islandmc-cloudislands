@@ -1749,7 +1749,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("integration-mode-policy", "external-addon-and-built-in-compatible-modes-share-the-same-cloudislands-addon-feature-gates");
         metadata.put("feature-pack-activation-policy", SatisAddonIntegrationPolicy.FEATURE_PACK_ACTIVATION_POLICY);
         metadata.put("feature-pack-activation-supported-modes", String.join(",", SatisAddonIntegrationPolicy.activationSupportedModes()));
-        metadata.put("activation-state-keys", "runtime-feature-pack-activation-policy,runtime-feature-pack-activation-mode,runtime-feature-pack-runtime-enabled,runtime-feature-pack-runtime-shape,runtime-feature-pack-block-reason");
+        metadata.put("activation-state-keys", "runtime-feature-pack-activation-policy,runtime-feature-pack-activation-mode,runtime-feature-pack-runtime-enabled,runtime-feature-pack-runtime-shape,runtime-feature-pack-block-reason,runtime-disable-activation-block-reason,last-preflush-activation-block-reason,preflush-activation-block-reason");
         metadata.put("feature-pack-runtime-shape", SatisAddonIntegrationPolicy.activationRuntimeShape(integrationMode));
         metadata.put("integration-mode-runtime-boundary", SatisAddonIntegrationPolicy.modeRuntimeBoundary(integrationMode));
         metadata.put("external-addon-boundary", SatisAddonIntegrationPolicy.EXTERNAL_ADDON_BOUNDARY);
