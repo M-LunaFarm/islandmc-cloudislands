@@ -81,8 +81,8 @@ public final class StorageService {
         return loaded;
     }
 
-    public void save(VirtualInventory inventory) {
-        saveIfAllowed(inventory);
+    public boolean save(VirtualInventory inventory) {
+        return saveIfAllowed(inventory);
     }
 
     public boolean saveIfAllowed(VirtualInventory inventory) {
