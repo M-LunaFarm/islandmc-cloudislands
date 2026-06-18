@@ -85,6 +85,9 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"runtime-route-events-last-block-reason\""));
         assertTrue(source.contains("\"runtime-route-authority-policy\""));
         assertTrue(source.contains("\"runtime-route-ticket-privacy-policy\""));
+        assertTrue(source.contains("\"runtime-velocity-forwarding-policy\""));
+        assertTrue(source.contains("\"runtime-paper-backend-access-policy\""));
+        assertTrue(source.contains("\"runtime-plugin-message-security-policy\""));
         assertTrue(source.contains("\"runtime-authoritative-store-policy\""));
         assertTrue(source.contains("\"runtime-redis-advisory-policy\""));
         assertTrue(source.contains("\"runtime-redis-failure-policy\""));
@@ -105,6 +108,9 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"route-event-last-block-reason\""));
         assertTrue(source.contains("\"last-route-player-visible-topology\""));
         assertTrue(source.contains("\"last-route-ticket-player-visible\""));
+        assertTrue(source.contains("\"velocity-forwarding-policy\""));
+        assertTrue(source.contains("\"paper-backend-access-policy\""));
+        assertTrue(source.contains("\"plugin-message-security-policy\""));
         assertTrue(source.contains("\"object-storage-access-policy\""));
         assertTrue(source.contains("\"island-state-redis-advisory-policy\""));
         assertTrue(source.contains("\"island-state-five-six-node-policy\""));

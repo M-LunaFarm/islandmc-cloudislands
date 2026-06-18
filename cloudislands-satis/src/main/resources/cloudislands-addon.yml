@@ -203,6 +203,9 @@ state:
   internal-topology-fields: active-node,source-node,target-node,server-name,world-name,cell,route-ticket,backend-storage-key
   route-authority-policy: core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only
   route-ticket-privacy-policy: player-facing-satis-output-never-includes-route-ticket-node-server-world-cell
+  velocity-forwarding-policy: velocity-modern-forwarding-with-shared-secret-required-for-paper-node-identity-trust
+  paper-backend-access-policy: paper-island-nodes-run-online-mode-false-only-behind-velocity-and-block-direct-backend-access
+  plugin-message-security-policy: proxy-plugin-messages-are-handled-not-forwarded-to-prevent-backend-spoofing
   recovery-scenario: heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write
   recovery-state-keys: last-lifecycle-heartbeat-expiry-policy,last-lifecycle-fencing-token-policy,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy,runtime-authoritative-store-policy,runtime-redis-advisory-policy,runtime-redis-failure-policy
   authoritative-store-policy: postgresql-or-core-api-shared-state-is-authoritative-for-satis-state

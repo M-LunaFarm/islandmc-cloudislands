@@ -94,6 +94,9 @@ class SatisSkyFactoryPluginTest {
         assertEquals("config-reload-after-satis-disable-restarts-runtime-when-database-is-not-initialized", metadata.get("island-state-reload-reenable-scenario"));
         assertEquals("core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only", metadata.get("route-authority-policy"));
         assertEquals("player-facing-satis-output-never-includes-route-ticket-node-server-world-cell", metadata.get("route-ticket-privacy-policy"));
+        assertEquals("velocity-modern-forwarding-with-shared-secret-required-for-paper-node-identity-trust", metadata.get("velocity-forwarding-policy"));
+        assertEquals("paper-island-nodes-run-online-mode-false-only-behind-velocity-and-block-direct-backend-access", metadata.get("paper-backend-access-policy"));
+        assertEquals("proxy-plugin-messages-are-handled-not-forwarded-to-prevent-backend-spoofing", metadata.get("plugin-message-security-policy"));
         assertEquals("postgresql-or-core-api-shared-state-is-authoritative-for-satis-state", metadata.get("runtime-authoritative-store-policy"));
         assertEquals("redis-cache-stream-locks-are-advisory-never-satis-state-authority", metadata.get("runtime-redis-advisory-policy"));
         assertEquals("redis-outage-keeps-last-confirmed-shared-state-authoritative-and-disables-cache-only-assumptions", metadata.get("runtime-redis-failure-policy"));

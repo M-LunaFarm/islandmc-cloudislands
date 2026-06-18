@@ -45,6 +45,9 @@ class DefaultConfigIntegrityTest {
         assertEquals("CloudIslands", addon.getString("runtime.core-admin-root-owner"));
         assertEquals("core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only", addon.getString("state.route-authority-policy"));
         assertEquals("player-facing-satis-output-never-includes-route-ticket-node-server-world-cell", addon.getString("state.route-ticket-privacy-policy"));
+        assertEquals("velocity-modern-forwarding-with-shared-secret-required-for-paper-node-identity-trust", addon.getString("state.velocity-forwarding-policy"));
+        assertEquals("paper-island-nodes-run-online-mode-false-only-behind-velocity-and-block-direct-backend-access", addon.getString("state.paper-backend-access-policy"));
+        assertEquals("proxy-plugin-messages-are-handled-not-forwarded-to-prevent-backend-spoofing", addon.getString("state.plugin-message-security-policy"));
         assertEquals("postgresql-or-core-api-shared-state-is-authoritative-for-satis-state", addon.getString("state.authoritative-store-policy"));
         assertEquals("redis-cache-stream-locks-are-advisory-never-satis-state-authority", addon.getString("state.redis-advisory-policy"));
         assertEquals("redis-outage-keeps-last-confirmed-shared-state-authoritative-and-disables-cache-only-assumptions", addon.getString("state.redis-failure-policy"));

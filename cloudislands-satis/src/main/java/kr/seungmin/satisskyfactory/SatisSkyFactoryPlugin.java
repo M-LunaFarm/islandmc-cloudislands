@@ -472,6 +472,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
         state.put("runtime-route-authority-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
         state.put("runtime-route-ticket-privacy-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
+        state.put("runtime-velocity-forwarding-policy", SatisAddonIntegrationPolicy.VELOCITY_FORWARDING_POLICY);
+        state.put("runtime-paper-backend-access-policy", SatisAddonIntegrationPolicy.PAPER_BACKEND_ACCESS_POLICY);
+        state.put("runtime-plugin-message-security-policy", SatisAddonIntegrationPolicy.PLUGIN_MESSAGE_SECURITY_POLICY);
         state.put("runtime-superior-migration-input-only", "true");
         state.put("runtime-superior-runtime-dependency", "false");
         state.put("runtime-superior-runtime-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
@@ -1990,6 +1993,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
         metadata.put("route-authority-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
         metadata.put("route-ticket-privacy-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
+        metadata.put("velocity-forwarding-policy", SatisAddonIntegrationPolicy.VELOCITY_FORWARDING_POLICY);
+        metadata.put("paper-backend-access-policy", SatisAddonIntegrationPolicy.PAPER_BACKEND_ACCESS_POLICY);
+        metadata.put("plugin-message-security-policy", SatisAddonIntegrationPolicy.PLUGIN_MESSAGE_SECURITY_POLICY);
         metadata.put("placeholder-exposure-policy", PlaceholderFeaturePolicy.exposurePolicy());
         metadata.put("placeholder-exposed-keys", PlaceholderFeaturePolicy.exposedKeys());
         metadata.put("placeholder-denied-internal-fields", PlaceholderFeaturePolicy.deniedInternalFields());

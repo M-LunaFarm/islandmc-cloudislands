@@ -55,6 +55,18 @@ class SatisAddonIntegrationPolicyTest {
                 SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY
         );
         assertEquals(
+                "velocity-modern-forwarding-with-shared-secret-required-for-paper-node-identity-trust",
+                SatisAddonIntegrationPolicy.VELOCITY_FORWARDING_POLICY
+        );
+        assertEquals(
+                "paper-island-nodes-run-online-mode-false-only-behind-velocity-and-block-direct-backend-access",
+                SatisAddonIntegrationPolicy.PAPER_BACKEND_ACCESS_POLICY
+        );
+        assertEquals(
+                "proxy-plugin-messages-are-handled-not-forwarded-to-prevent-backend-spoofing",
+                SatisAddonIntegrationPolicy.PLUGIN_MESSAGE_SECURITY_POLICY
+        );
+        assertEquals(
                 "core-refresh-reapplies-satis-runtime-state-after-refresh-success-or-fallback",
                 SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY
         );
