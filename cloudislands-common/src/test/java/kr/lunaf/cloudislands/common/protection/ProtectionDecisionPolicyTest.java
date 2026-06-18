@@ -39,6 +39,12 @@ class ProtectionDecisionPolicyTest {
         assertTrue(ProtectionDecisionPolicy.PROTECTED_EVENT_SURFACE.contains("inventory"));
         assertTrue(ProtectionDecisionPolicy.PROTECTED_EVENT_SURFACE.contains("explosion"));
         assertTrue(ProtectionDecisionPolicy.PROTECTED_EVENT_SURFACE.contains("fluid"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("BlockBreakEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("PlayerInteractEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("EntityExplodeEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("FluidLevelChangeEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvent("block_break_event"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvent("BlockFromToEvent"));
     }
 
     @Test
@@ -59,5 +65,19 @@ class ProtectionDecisionPolicyTest {
         assertEquals("DENY_SYNC_IO", ProtectionDecisionPolicy.syncSourceDecision("postgresql"));
         assertEquals("DENY_SYNC_IO", ProtectionDecisionPolicy.syncSourceDecision("redis"));
         assertEquals("DENY_UNKNOWN_SOURCE", ProtectionDecisionPolicy.syncSourceDecision("external-cache"));
+    }
+
+    @Test
+    void pinsBorderHandlingByPlayerRole() {
+        assertEquals(
+                "visitor-returns-to-visitor-spawn-member-returns-to-island-spawn-admin-may-bypass",
+                ProtectionDecisionPolicy.BORDER_POLICY
+        );
+        assertEquals("TELEPORT_VISITOR_SPAWN", ProtectionDecisionPolicy.borderAction("VISITOR"));
+        assertEquals("TELEPORT_VISITOR_SPAWN", ProtectionDecisionPolicy.borderAction("BANNED"));
+        assertEquals("TELEPORT_ISLAND_SPAWN", ProtectionDecisionPolicy.borderAction("MEMBER"));
+        assertEquals("TELEPORT_ISLAND_SPAWN", ProtectionDecisionPolicy.borderAction("TRUSTED"));
+        assertEquals("ALLOW_BYPASS", ProtectionDecisionPolicy.borderAction("ADMIN"));
+        assertEquals("BLOCK_OR_RETURN_TO_SAFE_SPAWN", ProtectionDecisionPolicy.borderAction("unknown"));
     }
 }

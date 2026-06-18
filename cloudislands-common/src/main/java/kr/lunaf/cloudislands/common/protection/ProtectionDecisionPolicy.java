@@ -13,6 +13,7 @@ public final class ProtectionDecisionPolicy {
     public static final String PROTECTED_EVENT_SURFACE = "block-place-break-interact-bucket-inventory-combat-explosion-hanging-item-armorstand-entity-vehicle-fire-fluid";
     public static final String SYNC_EVENT_SOURCE_POLICY = "synchronous-paper-events-may-read-region-index-permission-cache-and-runtime-cache-only";
     public static final String ASYNC_REFRESH_SOURCE_POLICY = "core-api-http-database-and-redis-refresh-local-cache-outside-event-thread";
+    public static final String BORDER_POLICY = "visitor-returns-to-visitor-spawn-member-returns-to-island-spawn-admin-may-bypass";
 
     private static final List<String> SYNC_ALLOWED_SOURCES = List.of(
             "region-index",
@@ -32,6 +33,35 @@ public final class ProtectionDecisionPolicy {
             "object-storage",
             "web-request",
             "grpc"
+    );
+
+    private static final List<String> PROTECTED_EVENTS = List.of(
+            "BlockBreakEvent",
+            "BlockPlaceEvent",
+            "BlockMultiPlaceEvent",
+            "PlayerInteractEvent",
+            "PlayerBucketEmptyEvent",
+            "PlayerBucketFillEvent",
+            "InventoryOpenEvent",
+            "InventoryClickEvent",
+            "EntityDamageByEntityEvent",
+            "EntityExplodeEvent",
+            "BlockExplodeEvent",
+            "HangingBreakByEntityEvent",
+            "HangingPlaceEvent",
+            "PlayerDropItemEvent",
+            "EntityPickupItemEvent",
+            "PlayerArmorStandManipulateEvent",
+            "PlayerShearEntityEvent",
+            "PlayerLeashEntityEvent",
+            "PlayerUnleashEntityEvent",
+            "VehicleDestroyEvent",
+            "BlockIgniteEvent",
+            "BlockBurnEvent",
+            "BlockSpreadEvent",
+            "LeavesDecayEvent",
+            "FluidLevelChangeEvent",
+            "BlockFromToEvent"
     );
 
     private ProtectionDecisionPolicy() {
@@ -63,6 +93,33 @@ public final class ProtectionDecisionPolicy {
             return "DENY_SYNC_IO";
         }
         return "DENY_UNKNOWN_SOURCE";
+    }
+
+    public static List<String> protectedEvents() {
+        return PROTECTED_EVENTS;
+    }
+
+    public static boolean protectedEvent(String eventName) {
+        String normalized = normalize(eventName);
+        return PROTECTED_EVENTS.stream().anyMatch(event -> normalize(event).equals(normalized));
+    }
+
+    public static String borderAction(String role) {
+        String normalized = normalize(role);
+        if (normalized.equals("admin") || normalized.equals("operator") || normalized.equals("bypass")) {
+            return "ALLOW_BYPASS";
+        }
+        if (normalized.equals("visitor") || normalized.equals("banned")) {
+            return "TELEPORT_VISITOR_SPAWN";
+        }
+        if (normalized.equals("owner")
+                || normalized.equals("co-owner")
+                || normalized.equals("moderator")
+                || normalized.equals("member")
+                || normalized.equals("trusted")) {
+            return "TELEPORT_ISLAND_SPAWN";
+        }
+        return "BLOCK_OR_RETURN_TO_SAFE_SPAWN";
     }
 
     private static String normalize(String source) {
