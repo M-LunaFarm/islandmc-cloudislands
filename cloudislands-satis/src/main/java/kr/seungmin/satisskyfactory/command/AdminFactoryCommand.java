@@ -1589,6 +1589,8 @@ public final class AdminFactoryCommand {
                         "runtime-machine-ticker-running",
                         "runtime-maintenance-ticker-running",
                         "dirty-save-state-keys",
+                        "addon-removal-dirty-save-detach-policy",
+                        "addon-removal-dirty-save-reattach-policy",
                         "runtime-dirty-save-running",
                         "runtime-dirty-save-pending-writes",
                         "runtime-dirty-save-pending-machines",

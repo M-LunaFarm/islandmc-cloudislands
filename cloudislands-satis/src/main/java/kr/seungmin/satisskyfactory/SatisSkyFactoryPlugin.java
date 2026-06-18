@@ -1962,6 +1962,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-removal-core-impact", "none");
         metadata.put("addon-removal-runtime-action", "unregister-satis-commands-listeners-tickers-placeholders-and-state-writers-only");
         metadata.put("addon-removal-dirty-save-detach-policy", "stop-dirty-save-loop-clear-publishers-detach-service-references");
+        metadata.put("addon-removal-dirty-save-reattach-policy", "recreate-dirty-save-service-and-reattach-service-references-before-restart");
         metadata.put("cloudislands-lifecycle-depends-on-satis", "false");
         metadata.put("cloudislands-api-surface-policy", SatisAddonIntegrationPolicy.API_SURFACE_POLICY);
         metadata.put("cloudislands-direct-access-policy", SatisAddonIntegrationPolicy.FORBIDDEN_DIRECT_ACCESS_POLICY);
@@ -2006,6 +2007,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("addon-removal-core-impact", "none"),
                 Map.entry("addon-removal-runtime-action", "unregister-satis-runtime-only"),
                 Map.entry("addon-removal-dirty-save-detach-policy", "stop-dirty-save-loop-clear-publishers-detach-service-references"),
+                Map.entry("addon-removal-dirty-save-reattach-policy", "recreate-dirty-save-service-and-reattach-service-references-before-restart"),
                 Map.entry("cloudislands-lifecycle-depends-on-satis", "false"),
                 Map.entry("addon-data-retention", "preserve-addon-state-by-island-uuid"),
                 Map.entry("addon-runtime-owns-islands", "false"),
@@ -2536,6 +2538,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("unregister-preserve-core-state", "true");
         state.put("unregister-preserve-local-cache", "true");
         state.put("addon-removal-dirty-save-detach-policy", "stop-dirty-save-loop-clear-publishers-detach-service-references");
+        state.put("addon-removal-dirty-save-reattach-policy", "recreate-dirty-save-service-and-reattach-service-references-before-restart");
         state.put("reinstall-reconnect-policy", "reuse-existing-addon-state-by-island-uuid");
         state.put("reinstall-reconnect-requires", "matching-cloudislands-island-uuid-and-compatible-satis-state-schema");
     }

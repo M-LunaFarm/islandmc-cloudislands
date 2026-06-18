@@ -48,6 +48,7 @@ class SatisAddonRemovalPolicyTest {
         assertTrue(source.contains("state.put(\"unregister-preserve-core-state\", \"true\");"));
         assertTrue(source.contains("state.put(\"unregister-preserve-local-cache\", \"true\");"));
         assertTrue(source.contains("state.put(\"addon-removal-dirty-save-detach-policy\", \"stop-dirty-save-loop-clear-publishers-detach-service-references\");"));
+        assertTrue(source.contains("state.put(\"addon-removal-dirty-save-reattach-policy\", \"recreate-dirty-save-service-and-reattach-service-references-before-restart\");"));
         assertTrue(source.contains("state.put(\"reinstall-reconnect-policy\", \"reuse-existing-addon-state-by-island-uuid\");"));
     }
 }

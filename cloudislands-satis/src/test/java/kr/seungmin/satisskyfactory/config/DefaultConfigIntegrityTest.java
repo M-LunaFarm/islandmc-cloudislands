@@ -36,6 +36,7 @@ class DefaultConfigIntegrityTest {
         assertEquals("reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid", addon.getString("removal.reconnect-policy"));
         assertEquals("matching-cloudislands-island-uuid-and-compatible-satis-state-schema", addon.getString("removal.reconnect-requires"));
         assertEquals("stop-dirty-save-loop-clear-publishers-detach-service-references", addon.getString("removal.dirty-save-detach-policy"));
+        assertEquals("recreate-dirty-save-service-and-reattach-service-references-before-restart", addon.getString("removal.dirty-save-reattach-policy"));
         assertFalse(addon.getBoolean("runtime.owns-islands"));
         assertEquals("cloudislands-island-uuid", addon.getString("runtime.storage-key"));
         assertEquals("CloudIslands", addon.getString("runtime.core-admin-root-owner"));
