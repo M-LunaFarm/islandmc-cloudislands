@@ -96,20 +96,21 @@ public final class ResourceNodeService {
                 .min(Comparator.comparingInt(node -> distanceSquared(node.location(), location)));
     }
 
-    public void save(ResourceNode node) {
+    public boolean save(ResourceNode node) {
         if (!enabled) {
-            return;
+            return false;
         }
         node.updatedAt(System.currentTimeMillis());
         cache(node);
         if (!writesEnabled()) {
-            return;
+            return false;
         }
         if (dirtySaves != null) {
             dirtySaves.markNode(node);
-            return;
+            return true;
         }
         database.saveNode(node);
+        return true;
     }
 
     public void dirtySaves(DirtySaveService dirtySaves) {

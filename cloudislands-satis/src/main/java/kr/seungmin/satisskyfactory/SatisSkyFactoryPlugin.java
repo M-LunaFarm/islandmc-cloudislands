@@ -574,6 +574,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-machine-tick-planter-save-policy", "planter-seed-consumption-and-crop-placement-run-only-after-storage-save-accepted");
         state.put("runtime-machine-tick-fertilizer-save-policy", "fertilizer-consumption-and-crop-growth-run-only-after-storage-save-accepted");
         state.put("runtime-machine-tick-quality-bonus-save-policy", "quality-bonus-output-rolls-back-when-storage-save-is-not-accepted");
+        state.put("runtime-machine-tick-node-producer-save-policy", "node-producer-output-and-node-depletion-roll-back-when-storage-or-node-save-is-not-accepted");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));
