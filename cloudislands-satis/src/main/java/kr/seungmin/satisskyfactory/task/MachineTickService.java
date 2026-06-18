@@ -573,6 +573,7 @@ public final class MachineTickService {
         int range = Math.max(1, definition.range());
         int limit = Math.max(1, definition.amountPerCycle());
         int boosted = 0;
+        Map<Block, Ageable> boostedBlocks = new java.util.LinkedHashMap<>();
         for (int x = -range; x <= range && boosted < limit; x++) {
             for (int z = -range; z <= range && boosted < limit; z++) {
                 Block block = location.clone().add(x, 0, z).getBlock();
@@ -580,7 +581,7 @@ public final class MachineTickService {
                     continue;
                 }
                 ageable.setAge(Math.min(ageable.getMaximumAge(), ageable.getAge() + Math.max(1, definition.growthPerCycle())));
-                block.setBlockData(ageable);
+                boostedBlocks.put(block, ageable);
                 boosted++;
             }
         }
@@ -592,7 +593,11 @@ public final class MachineTickService {
             setStatus(machine, MachineStatus.NO_INPUT);
             return false;
         }
-        storage.save(input);
+        if (!storage.saveIfAllowed(input)) {
+            input.add(fertilizerItem, 1);
+            return false;
+        }
+        boostedBlocks.forEach((block, ageable) -> block.setBlockData(ageable));
         if (definition.qualityChance() > 0.0 && definition.qualityItem() != null && !definition.qualityItem().isBlank()) {
             grantQualityBonus(machine, definition, boosted);
         }
