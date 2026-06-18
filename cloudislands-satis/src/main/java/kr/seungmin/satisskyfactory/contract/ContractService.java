@@ -324,16 +324,27 @@ public final class ContractService {
             template.required().forEach(inventory::add);
             return false;
         }
-        if (template.money() > 0) {
-            economy.deposit(owner, template.money());
-            database.addLedger(island.islandUuid(), "CONTRACT_REWARD", template.money(), template.id());
-        }
+        long previousResearch = island.researchPoints();
+        long previousReputation = island.reputation();
+        long previousDebt = island.maintenanceDebt();
         island.researchPoints(island.researchPoints() + template.research());
         island.reputation(island.reputation() + template.reputation());
         if (template.debtRelief() > 0 && maintenanceEnabled()) {
             island.maintenanceDebt(Math.max(0, island.maintenanceDebt() - template.debtRelief()));
         }
-        database.saveIsland(island);
+        if (!islandSaver.test(island)) {
+            island.researchPoints(previousResearch);
+            island.reputation(previousReputation);
+            island.maintenanceDebt(previousDebt);
+            template.itemRewards().forEach((item, amount) -> inventory.remove(item, amount));
+            template.required().forEach(inventory::add);
+            storage.saveIfAllowed(inventory);
+            return false;
+        }
+        if (template.money() > 0) {
+            economy.deposit(owner, template.money());
+            database.addLedger(island.islandUuid(), "CONTRACT_REWARD", template.money(), template.id());
+        }
         database.saveContract(storedContract(active.contract().completed(template.required())));
         return true;
     }
