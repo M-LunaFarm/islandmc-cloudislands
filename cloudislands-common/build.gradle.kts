@@ -28,6 +28,8 @@ tasks.jar {
             "CloudIslands-Setup-Backend-Fallback-Policy" to "SetupBackendFallbackPolicy-shared-db-or-core-api-before-unsupported-local-fallback",
             "CloudIslands-Cache-Invalidation-Targets" to "player,island-summary,runtime,members,permissions,flags,warps,node-heartbeat",
             "CloudIslands-Cache-Invalidation-Redis-Key-Mapper" to "CacheInvalidationPlan.redisKeysFor-event-to-RedisKeys",
+            "CloudIslands-Cache-Three-Level-Policy" to "L1-paper-velocity-local-memory,L2-redis,L3-postgresql",
+            "CloudIslands-Cache-Global-Event-Fanout" to "core-api-write-event-to-island-nodes-lobby-and-velocity-route-cache",
             "CloudIslands-Package-Modules" to "api,common,protocol,core-client,core-service,velocity,paper,satis,storage,migration,testkit,bom",
             "CloudIslands-Package-External-Addon" to "cloudislands-satis",
             "CloudIslands-Package-Primary-Services" to "velocity-router,paper-agent,core-api,storage,migration",
