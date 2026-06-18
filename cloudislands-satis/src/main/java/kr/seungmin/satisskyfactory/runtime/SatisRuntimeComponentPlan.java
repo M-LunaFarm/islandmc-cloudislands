@@ -85,30 +85,51 @@ public record SatisRuntimeComponentPlan(
         List<String> skipped = new ArrayList<>();
         if (!commandsEnabled) {
             skipped.add("commands");
+        } else if (!commandsRegistered) {
+            skipped.add("commands:not-registered");
         }
         if (!machinesEnabled) {
             skipped.add("machine-listener");
             skipped.add("machine-ticker");
+        } else {
+            if (!machineListenerRegistered) {
+                skipped.add("machine-listener:not-registered");
+            }
+            if (!machineTickerRunning) {
+                skipped.add("machine-ticker:not-running");
+            }
         }
         if (!guiEnabled) {
             skipped.add("gui-listener");
+        } else if (!guiListenerRegistered) {
+            skipped.add("gui-listener:not-registered");
         }
         if (!lifecycleListenerNeeded) {
             skipped.add("lifecycle-listener");
+        } else if (!lifecycleListenerRegistered) {
+            skipped.add("lifecycle-listener:not-registered");
         }
         if (!maintenanceEnabled) {
             skipped.add("maintenance-ticker");
+        } else if (!maintenanceTickerRunning) {
+            skipped.add("maintenance-ticker:not-running");
         }
         if (!placeholdersEnabled) {
             skipped.add("placeholder-expansion");
         } else if (!placeholderApiInstalled) {
             skipped.add("placeholder-expansion:placeholderapi-not-installed");
+        } else if (!placeholderRegistered) {
+            skipped.add("placeholder-expansion:not-registered");
         }
         if (!dataWritesEnabled) {
             skipped.add("dirty-save");
+        } else if (!dirtySaveRunning) {
+            skipped.add("dirty-save:not-running");
         }
         if (!addonStateEnabled || !coreApiAvailable) {
             skipped.add("core-api-state-writer");
+        } else if (!coreApiStateWriterActive) {
+            skipped.add("core-api-state-writer:not-active");
         }
         return skipped.isEmpty() ? "none" : String.join(",", skipped);
     }
