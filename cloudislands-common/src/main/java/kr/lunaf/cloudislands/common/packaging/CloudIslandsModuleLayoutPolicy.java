@@ -27,6 +27,7 @@ public final class CloudIslandsModuleLayoutPolicy {
     private static final Map<String, List<String>> MODULE_RESPONSIBILITIES = responsibilities();
     private static final Map<String, List<String>> MODULE_RUNTIME_SURFACES = runtimeSurfaces();
     private static final Map<String, List<String>> DISTRIBUTION_ARTIFACTS = distributionArtifacts();
+    private static final Map<String, List<String>> DISTRIBUTION_TASKS = distributionTasks();
 
     private CloudIslandsModuleLayoutPolicy() {
     }
@@ -45,6 +46,10 @@ public final class CloudIslandsModuleLayoutPolicy {
 
     public static Map<String, List<String>> distributionArtifacts() {
         return DISTRIBUTION_ARTIFACTS;
+    }
+
+    public static Map<String, List<String>> distributionTasks() {
+        return DISTRIBUTION_TASKS;
     }
 
     public static Map<String, List<String>> moduleRuntimeSurfaces() {
@@ -69,6 +74,10 @@ public final class CloudIslandsModuleLayoutPolicy {
 
     public static String distributionArtifactSummary() {
         return summarize(DISTRIBUTION_ARTIFACTS);
+    }
+
+    public static String distributionTaskSummary() {
+        return summarize(DISTRIBUTION_TASKS);
     }
 
     public static boolean requiredModule(String moduleName) {
@@ -108,6 +117,18 @@ public final class CloudIslandsModuleLayoutPolicy {
         artifacts.put("libraries", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration"));
         artifacts.put("platform", List.of("cloudislands-bom", "cloudislands-testkit"));
         return Collections.unmodifiableMap(artifacts);
+    }
+
+    private static Map<String, List<String>> distributionTasks() {
+        LinkedHashMap<String, List<String>> tasks = new LinkedHashMap<>();
+        tasks.put("distPlugins", List.of("cloudislands-paper", "cloudislands-velocity"));
+        tasks.put("distAddons", List.of("cloudislands-satis"));
+        tasks.put("distServices", List.of("cloudislands-core-service"));
+        tasks.put("distTools", List.of("cloudislands-migration"));
+        tasks.put("distDeveloperKit", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration", "cloudislands-testkit", "cloudislands-bom"));
+        tasks.put("distBundle", List.of("plugins", "addons", "services", "tools", "devkit"));
+        tasks.put("distAddonBundle", List.of("addons"));
+        return Collections.unmodifiableMap(tasks);
     }
 
     private static Map<String, List<String>> runtimeSurfaces() {

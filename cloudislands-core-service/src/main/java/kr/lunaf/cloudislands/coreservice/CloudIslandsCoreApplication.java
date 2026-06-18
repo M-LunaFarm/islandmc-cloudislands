@@ -3049,6 +3049,8 @@ public final class CloudIslandsCoreApplication {
             + "\"moduleResponsibilityLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.moduleResponsibilitySummary()) + "\","
             + "\"moduleRuntimeSurfaceLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.moduleRuntimeSurfaceSummary()) + "\","
             + "\"distributionLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.distributionArtifactSummary()) + "\","
+            + "\"distributionTaskLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.distributionTaskSummary()) + "\","
+            + "\"distributionNoMarkdownGuard\":\"verifyNoMarkdownDocs-before-build-and-distBundle\","
             + "\"addonRegistryPolicy\":\"paper-addon-registers-core-stores-snapshot-only\","
             + "\"addonStateOwnershipPolicy\":\"core-persists-addon-key-value-state-without-addon-business-logic\","
             + "\"addonRemovalSafetyPolicy\":\"missing-addon-metadata-or-state-must-not-block-island-lifecycle\","

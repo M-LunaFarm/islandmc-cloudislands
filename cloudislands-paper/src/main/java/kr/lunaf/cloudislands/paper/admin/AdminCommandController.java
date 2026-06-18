@@ -1974,6 +1974,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " softFullRoute=" + textValue(body, "softFullRoutingPolicy")
             + " modules=" + textValue(body, "moduleLayout")
             + " dist=" + textValue(body, "distributionLayout")
+            + " distTasks=" + textValue(body, "distributionTaskLayout")
+            + " distGuard=" + textValue(body, "distributionNoMarkdownGuard")
             + " addonRegistry=" + textValue(body, "addonRegistryPolicy")
             + " addonStateOwner=" + textValue(body, "addonStateOwnershipPolicy")
             + " addonRemovalSafe=" + textValue(body, "addonRemovalSafetyPolicy")
