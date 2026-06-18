@@ -767,6 +767,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-duplicate-tick-policy", "single-active-runtime-owner");
         state.put("island-state-reconnect-policy", "reload-by-island-uuid-and-remap-active-world");
         state.put("island-state-node-handoff-policy", "A-node-save-B-node-restore-by-island-uuid");
+        state.put("island-state-object-storage-active-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACTIVE_ISLAND_POLICY);
+        state.put("island-state-object-storage-save-failure-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_SAVE_FAILURE_POLICY);
+        state.put("island-state-object-storage-retry-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_RETRY_POLICY);
+        state.put("island-state-object-storage-queue-key", SatisStatePortabilityPolicy.OBJECT_STORAGE_QUEUE_KEY);
     }
 
     private String disabledRuntimeFeatures() {
@@ -1846,6 +1850,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("lifecycle-event-coverage", "pre-create,create,pre-activate,activate,deactivation-request,deactivated,migration-request,migrated,delete,delete-backup-failed,restore,reset,recovery,repair,runtime,pre-visit,visit,rename,invite,member-join,member-left,member-role,member,role,ownership,access,visitor-ban,visitor-kick,flag,permission-check,permission,chat,blocks,block-value,mission-progress,mission-complete,bank,biome,home,warp-create,warp-delete,warp,level,worth,upgrade,limit,snapshot,template");
         metadata.put("lifecycle-event-actions", "pre-create=diagnostic,migration-request=preflush,activate-and-migration=synchronize,deactivate-and-snapshot=flush,delete=purge,delete-backup-failed=flush-and-mark-failed,reset=purge,recovery=suspend,member-role-ownership-permission-bank-biome-home-warp-level-worth=synchronize,permission-check-and-pre-visit=diagnostic");
         metadata.put("lifecycle-event-storage-policy", "cloudislands-island-uuid-stable-state-remap-active-world");
+        metadata.put("object-storage-active-island-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACTIVE_ISLAND_POLICY);
+        metadata.put("object-storage-save-failure-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_SAVE_FAILURE_POLICY);
+        metadata.put("object-storage-retry-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_RETRY_POLICY);
+        metadata.put("object-storage-queue-key", SatisStatePortabilityPolicy.OBJECT_STORAGE_QUEUE_KEY);
         metadata.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
         metadata.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
         metadata.put("relocation-state-keys", "last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-state-authority,last-relocation-write-fence,last-relocation-duplicate-tick-policy,last-relocation-confirmed-state-policy,last-relocation-at");

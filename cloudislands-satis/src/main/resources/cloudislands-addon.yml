@@ -190,6 +190,10 @@ state:
   migration-preflush-policy: flush-dirty-state-before-source-node-deactivation-then-remap-on-target-activation
   fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
   fallback-safety-policy: production-safe-when-shared-backend-precedes-local-sqlite
+  object-storage-active-island-policy: active-island-remains-on-node-local-staging-when-object-storage-is-unavailable
+  object-storage-save-failure-policy: queue-save-retry-and-keep-last-confirmed-core-state-authoritative
+  object-storage-retry-policy: retry-world-bundle-upload-before-deactivation-complete-or-delete-finalize
+  object-storage-queue-key: islandUuid+snapshotNo+fencingToken+bundleGeneration
   bulk-request-models: AddonStateBulkSaveRequest,AddonStateBulkLoadRequest
   bulk-load-policy: table-key-value-load-uses-typed-request-and-core-api-before-local-cache
   placement-source-policy: record-core-payload-or-paper-allocator-on-activate-and-migrate

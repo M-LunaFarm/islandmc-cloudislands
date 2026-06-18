@@ -37,6 +37,10 @@ public final class SatisStatePortabilityPolicy {
     public static final String FALLBACK_READY_CHAIN_POLICY = "report-ready-fallback-targets-before-using-local-sqlite";
     public static final String CORE_API_WRITE_FALLBACK_POLICY = "retry-table-key-value-bulk-save-as-flattened-addon-state";
     public static final String PRODUCTION_SAFE_FALLBACK_POLICY = "POSTGRESQL,MYSQL,MARIADB,CORE_API-before-SQLITE";
+    public static final String OBJECT_STORAGE_ACTIVE_ISLAND_POLICY = "active-island-remains-on-node-local-staging-when-object-storage-is-unavailable";
+    public static final String OBJECT_STORAGE_SAVE_FAILURE_POLICY = "queue-save-retry-and-keep-last-confirmed-core-state-authoritative";
+    public static final String OBJECT_STORAGE_RETRY_POLICY = "retry-world-bundle-upload-before-deactivation-complete-or-delete-finalize";
+    public static final String OBJECT_STORAGE_QUEUE_KEY = "islandUuid+snapshotNo+fencingToken+bundleGeneration";
 
     private static final Set<String> SHARED_BACKENDS = Set.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API");
     private static final Set<String> LOCAL_BACKENDS = Set.of("SQLITE");
@@ -85,6 +89,10 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-target-tick-start-policy", TARGET_TICK_START_POLICY);
         values.put("core-api-sync-crash-replay-policy", CRASH_REPLAY_POLICY);
         values.put("core-api-sync-state-owner-policy", STATE_OWNER_POLICY);
+        values.put("core-api-sync-object-storage-active-island-policy", OBJECT_STORAGE_ACTIVE_ISLAND_POLICY);
+        values.put("core-api-sync-object-storage-save-failure-policy", OBJECT_STORAGE_SAVE_FAILURE_POLICY);
+        values.put("core-api-sync-object-storage-retry-policy", OBJECT_STORAGE_RETRY_POLICY);
+        values.put("core-api-sync-object-storage-queue-key", OBJECT_STORAGE_QUEUE_KEY);
         return Map.copyOf(values);
     }
 

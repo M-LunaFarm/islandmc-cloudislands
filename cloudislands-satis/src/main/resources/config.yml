@@ -213,7 +213,13 @@ integration:
   # Must match the Paper island-node.cell-size value so Satis can remap state from event cellX/cellZ.
   # A/B node move rule: state is keyed by CloudIslands island UUID, then remapped to the target active world/cell after activation.
   cloudislands-cell-size: 1024
-setup:
+  object-storage:
+    # CloudIslands Core owns world bundles. Satis only records/flushes addon state by island UUID.
+    active-island-policy: active-island-remains-on-node-local-staging-when-object-storage-is-unavailable
+    save-failure-policy: queue-save-retry-and-keep-last-confirmed-core-state-authoritative
+    retry-policy: retry-world-bundle-upload-before-deactivation-complete-or-delete-finalize
+    retry-queue-key: islandUuid+snapshotNo+fencingToken+bundleGeneration
+  setup:
   database:
     # Empty values inherit from database.* below. Use this block for first-install setup.
     # type: SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API
