@@ -1573,6 +1573,7 @@ public final class AdminFactoryCommand {
                         "runtime-recipe-inventory-rollback-policy",
                         "runtime-node-producer-rollback-policy",
                         "runtime-power-battery-inventory-rollback-policy",
+                        "runtime-generator-fuel-rollback-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
