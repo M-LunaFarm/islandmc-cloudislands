@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api.model;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -17,6 +18,16 @@ public record AddonStateBulkSaveRequest(
     public static final String TABLE_FIELD = "table";
     public static final String ISLAND_SCOPE_FIELD = "islandId";
     public static final String WIRE_SHAPE = "addonId,islandId?,values?,tables.{table}.{key}=value";
+    public static final String GLOBAL_LEGACY_ENDPOINT = "/v1/addons/state/table-key-value/bulk-save";
+    public static final String ISLAND_LEGACY_ENDPOINT = "/v1/addons/islands/state/table-key-value/bulk-save";
+    public static final String GLOBAL_ENDPOINT = "/v1/addons/state/table/key-value/bulk-save";
+    public static final String ISLAND_ENDPOINT = "/v1/addons/islands/state/table/key-value/bulk-save";
+    public static final String GLOBAL_BULK_SAVE_ALIAS = "/v1/addons/state/table/key-value/bulk/save";
+    public static final String ISLAND_BULK_SAVE_ALIAS = "/v1/addons/islands/state/table/key-value/bulk/save";
+    public static final String GLOBAL_BULK_ALIAS = "/v1/addons/state/table/key-value/bulk";
+    public static final String ISLAND_BULK_ALIAS = "/v1/addons/islands/state/table/key-value/bulk";
+    public static final List<String> GLOBAL_ENDPOINTS = List.of(GLOBAL_LEGACY_ENDPOINT, GLOBAL_ENDPOINT, GLOBAL_BULK_SAVE_ALIAS, GLOBAL_BULK_ALIAS);
+    public static final List<String> ISLAND_ENDPOINTS = List.of(ISLAND_LEGACY_ENDPOINT, ISLAND_ENDPOINT, ISLAND_BULK_SAVE_ALIAS, ISLAND_BULK_ALIAS);
     private static final String TABLE_STATE_KEY_PREFIX = "table/";
     private static final int MAX_KEY_LENGTH = 128;
     private static final int MAX_VALUE_LENGTH = 65535;

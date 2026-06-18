@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.api.model;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -115,6 +116,20 @@ class AddonStateBulkSaveRequestTest {
 
         assertEquals("table-key-value-bulk-save", AddonStateBulkSaveRequest.API_NAME);
         assertEquals("addonId,islandId?,values?,tables.{table}.{key}=value", AddonStateBulkSaveRequest.WIRE_SHAPE);
+        assertEquals("/v1/addons/state/table/key-value/bulk-save", AddonStateBulkSaveRequest.GLOBAL_ENDPOINT);
+        assertEquals("/v1/addons/islands/state/table/key-value/bulk-save", AddonStateBulkSaveRequest.ISLAND_ENDPOINT);
+        assertEquals(List.of(
+                "/v1/addons/state/table-key-value/bulk-save",
+                "/v1/addons/state/table/key-value/bulk-save",
+                "/v1/addons/state/table/key-value/bulk/save",
+                "/v1/addons/state/table/key-value/bulk"
+        ), AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS);
+        assertEquals(List.of(
+                "/v1/addons/islands/state/table-key-value/bulk-save",
+                "/v1/addons/islands/state/table/key-value/bulk-save",
+                "/v1/addons/islands/state/table/key-value/bulk/save",
+                "/v1/addons/islands/state/table/key-value/bulk"
+        ), AddonStateBulkSaveRequest.ISLAND_ENDPOINTS);
         assertEquals("table-key-value-bulk-save", global.apiName());
         assertEquals("global", global.scopeName());
         assertEquals("island", island.scopeName());

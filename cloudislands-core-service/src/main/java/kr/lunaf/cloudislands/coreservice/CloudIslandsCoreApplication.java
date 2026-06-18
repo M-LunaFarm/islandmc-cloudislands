@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -2958,14 +2959,16 @@ public final class CloudIslandsCoreApplication {
             + "\"coreJdbcFallbackActive\":" + coreJdbcFallbackActive(config) + ","
             + "\"coreJdbcFallbackStatus\":\"" + escape(coreJdbcFallbackStatus(config)) + "\","
             + "\"addonStateBulkSaveApi\":true,"
-            + "\"addonStateBulkSaveGlobalEndpoint\":\"/v1/addons/state/table-key-value/bulk-save\","
-            + "\"addonStateBulkSaveIslandEndpoint\":\"/v1/addons/islands/state/table-key-value/bulk-save\","
-            + "\"addonStateTableKeyValueBulkSaveGlobalEndpoint\":\"/v1/addons/state/table/key-value/bulk-save\","
-            + "\"addonStateTableKeyValueBulkSaveIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk-save\","
-            + "\"addonStateTableKeyValueBulkSaveGlobalAlias\":\"/v1/addons/state/table/key-value/bulk/save\","
-            + "\"addonStateTableKeyValueBulkSaveIslandAlias\":\"/v1/addons/islands/state/table/key-value/bulk/save\","
-            + "\"addonStateTableKeyValueBulkGlobalEndpoint\":\"/v1/addons/state/table/key-value/bulk\","
-            + "\"addonStateTableKeyValueBulkIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk\","
+            + "\"addonStateBulkSaveGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_LEGACY_ENDPOINT + "\","
+            + "\"addonStateBulkSaveIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_LEGACY_ENDPOINT + "\","
+            + "\"addonStateTableKeyValueBulkSaveGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_ENDPOINT + "\","
+            + "\"addonStateTableKeyValueBulkSaveIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_ENDPOINT + "\","
+            + "\"addonStateTableKeyValueBulkSaveGlobalAlias\":\"" + AddonStateBulkSaveRequest.GLOBAL_BULK_SAVE_ALIAS + "\","
+            + "\"addonStateTableKeyValueBulkSaveIslandAlias\":\"" + AddonStateBulkSaveRequest.ISLAND_BULK_SAVE_ALIAS + "\","
+            + "\"addonStateTableKeyValueBulkGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS + "\","
+            + "\"addonStateTableKeyValueBulkIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_BULK_ALIAS + "\","
+            + "\"addonStateTableKeyValueBulkSaveGlobalAliases\":\"" + String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS) + "\","
+            + "\"addonStateTableKeyValueBulkSaveIslandAliases\":\"" + String.join(",", AddonStateBulkSaveRequest.ISLAND_ENDPOINTS) + "\","
             + "\"addonStateTableKeyValueBulkLoadGlobalEndpoint\":\"/v1/addons/state/table/key-value/bulk-load\","
             + "\"addonStateTableKeyValueBulkLoadIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk-load\","
             + "\"addonStateTableLoadGlobalEndpoint\":\"/v1/addons/state/table/load\","
