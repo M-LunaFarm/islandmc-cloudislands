@@ -1123,7 +1123,7 @@ setup:
       enabled: true
       require-shared-before-local: true
       local-fallback-last: true
-      production-safe-order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
+      production-safe-order: "POSTGRESQL,MYSQL,MARIADB,CORE_API"
       order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC"
   storage:
     # Optional first-install island bundle storage block. Empty values fall back to storage below.

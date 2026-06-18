@@ -87,7 +87,7 @@ setup:
       enabled: true
       require-shared-before-local: true
       local-fallback-last: true
-      production-safe-order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,IN_MEMORY"
+      production-safe-order: "POSTGRESQL,MYSQL,MARIADB,CORE_API"
       order:
         - POSTGRESQL
         - MYSQL

@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.config;
 
+import kr.lunaf.cloudislands.common.failure.SetupBackendFallbackPolicy;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -660,7 +662,7 @@ public record CoreServiceConfig(
         if (!configured.isBlank()) {
             return configured;
         }
-        return "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC";
+        return SetupBackendFallbackPolicy.PRODUCTION_SAFE_ORDER;
     }
 
     private static String normalizeSetupDatabaseFallbackOrder(Map<String, String> config, String order) {
