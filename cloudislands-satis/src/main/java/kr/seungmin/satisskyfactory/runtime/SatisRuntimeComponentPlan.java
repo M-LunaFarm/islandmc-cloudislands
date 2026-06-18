@@ -30,9 +30,14 @@ public record SatisRuntimeComponentPlan(
         boolean addonStateEnabled,
         boolean coreApiAvailable
 ) {
+    public static final String STANDALONE_ISLAND_RUNTIME_POLICY = "cloudislands-api-required-no-standalone-island-runtime";
+
     public String commandBlockReason() {
         if (!addonRuntimeEnabled) {
             return "addon-disabled";
+        }
+        if (!coreApiAvailable) {
+            return "cloudislands-api-unavailable-no-standalone-island-management";
         }
         if (commandsRegistered) {
             return "none";
@@ -44,7 +49,7 @@ public record SatisRuntimeComponentPlan(
     }
 
     public String activeComponentsMetadata() {
-        if (!addonRuntimeEnabled) {
+        if (!addonRuntimeEnabled || !coreApiAvailable) {
             return "none";
         }
         List<String> active = new ArrayList<>();
@@ -80,6 +85,9 @@ public record SatisRuntimeComponentPlan(
 
     public String skippedComponentsMetadata() {
         if (!addonRuntimeEnabled) {
+            return "commands,machine-listener,machine-ticker,gui-listener,lifecycle-listener,maintenance-ticker,placeholder-expansion,dirty-save,core-api-state-writer";
+        }
+        if (!coreApiAvailable) {
             return "commands,machine-listener,machine-ticker,gui-listener,lifecycle-listener,maintenance-ticker,placeholder-expansion,dirty-save,core-api-state-writer";
         }
         List<String> skipped = new ArrayList<>();
@@ -138,6 +146,9 @@ public record SatisRuntimeComponentPlan(
         if (!addonRuntimeEnabled) {
             return "commands:addon-disabled,machine-listener:addon-disabled,gui-listener:addon-disabled,lifecycle-listener:addon-disabled,placeholders:addon-disabled,machine-ticker:addon-disabled,maintenance-ticker:addon-disabled,dirty-save:addon-disabled,core-api-state-writer:addon-disabled";
         }
+        if (!coreApiAvailable) {
+            return "commands:cloudislands-api-unavailable,machine-listener:cloudislands-api-unavailable,gui-listener:cloudislands-api-unavailable,lifecycle-listener:cloudislands-api-unavailable,placeholders:cloudislands-api-unavailable,machine-ticker:cloudislands-api-unavailable,maintenance-ticker:cloudislands-api-unavailable,dirty-save:cloudislands-api-unavailable,core-api-state-writer:cloudislands-api-unavailable";
+        }
         List<String> blocked = new ArrayList<>();
         if (!commandsRegistered) {
             blocked.add("commands:" + commandBlockReason());
@@ -172,6 +183,9 @@ public record SatisRuntimeComponentPlan(
     public String featureBlockReasonsMetadata() {
         if (!addonRuntimeEnabled) {
             return "all:addon-disabled";
+        }
+        if (!coreApiAvailable) {
+            return "all:cloudislands-api-unavailable-no-standalone-island-management";
         }
         List<String> reasons = new ArrayList<>();
         if (!commandsEnabled) {
@@ -218,6 +232,16 @@ public record SatisRuntimeComponentPlan(
             reasons.add("addon-state:cloudislands-api-unavailable");
         }
         return reasons.isEmpty() ? "none" : String.join(",", reasons);
+    }
+
+    public String islandRuntimeAuthorityMetadata() {
+        if (!addonRuntimeEnabled) {
+            return "disabled-no-standalone-island-management";
+        }
+        if (!coreApiAvailable) {
+            return "blocked-cloudislands-api-unavailable-no-standalone-island-management";
+        }
+        return "cloudislands-api";
     }
 
     private String placeholderBlockReason() {
