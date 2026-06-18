@@ -614,8 +614,8 @@ public final class MachineTickService {
                 bonus++;
             }
         }
-        if (bonus > 0 && output.add(definition.qualityItem(), bonus)) {
-            storage.save(output);
+        if (bonus > 0 && output.add(definition.qualityItem(), bonus) && !storage.saveIfAllowed(output)) {
+            output.remove(definition.qualityItem(), bonus);
         }
     }
 
