@@ -14,6 +14,9 @@ class CacheStrategyPolicyTest {
         assertEquals("L1-paper-velocity-local-memory>L2-redis>L3-postgresql", CacheStrategyPolicy.CACHE_LAYER_ORDER);
         assertEquals("postgresql", CacheStrategyPolicy.SOURCE_OF_TRUTH);
         assertEquals("cache-heartbeat-lock-stream-and-queue-helper-not-authoritative-storage", CacheStrategyPolicy.REDIS_ROLE);
+        assertEquals("heartbeat,state,metrics,player-island,route-ticket,session,island-summary,runtime,members,flags,permissions,warps,locks,streams", CacheStrategyPolicy.REDIS_KEY_SCOPE);
+        assertEquals("heartbeat=5s,route-ticket=30s,player-island=5m,island-summary=1m,permissions=30s,lock=10s-60s", CacheStrategyPolicy.REDIS_TTL_SUMMARY);
+        assertEquals("redis-locks-are-advisory-postgresql-row-lock-and-fencing-token-authorize-final-writes", CacheStrategyPolicy.CONSISTENCY_GUARD);
     }
 
     @Test
