@@ -92,6 +92,8 @@ class SatisSkyFactoryPluginTest {
         assertEquals("server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command", metadata.get("island-state-ab-server-new-island-scenario"));
         assertEquals("existing-island-deactivates-on-server-a-saves-satis-state-by-island-uuid-activates-on-server-b-and-remaps-volatile-placement", metadata.get("island-state-ab-server-existing-island-scenario"));
         assertEquals("config-reload-after-satis-disable-restarts-runtime-when-database-is-not-initialized", metadata.get("island-state-reload-reenable-scenario"));
+        assertEquals("core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only", metadata.get("route-authority-policy"));
+        assertEquals("player-facing-satis-output-never-includes-route-ticket-node-server-world-cell", metadata.get("route-ticket-privacy-policy"));
         assertTrue(metadata.get("satis-operation-scenarios").contains("a-b-server-new-island-mode=server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command"));
         assertTrue(metadata.get("satis-completion-criteria").contains("a-server-b-server-new-and-existing-island-flows-are-pinned"));
         assertEquals("node-count-does-not-change-satis-state-keys-or-storage-authority", metadata.get("island-state-scale-policy"));

@@ -43,6 +43,8 @@ public final class SatisAddonIntegrationPolicy {
     public static final String TOPOLOGY_PRIVACY_POLICY = "player-facing-satis-output-hides-physical-node-server-world-cell-and-route-identifiers";
     public static final String PLAYER_VISIBLE_TOPOLOGY_POLICY = "show-logical-island-only-never-island-node-or-shard-placement";
     public static final String INTERNAL_TOPOLOGY_FIELDS = "active-node,source-node,target-node,server-name,world-name,cell,route-ticket,backend-storage-key";
+    public static final String ROUTE_AUTHORITY_POLICY = "core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only";
+    public static final String ROUTE_TICKET_PRIVACY_POLICY = "player-facing-satis-output-never-includes-route-ticket-node-server-world-cell";
     public static final String OFFICIAL_FEATURE_PACK_POLICY = "optional-content-layer-not-cloudislands-core-lifecycle-owner";
     public static final String ADDON_SPI_POLICY = "same-cloudislands-addon-spi-for-external-plugin-and-built-in-feature-pack";
     public static final String CONTENT_LAYER_POLICY = "cloudislands-satis-owns-optional-machines-resource-nodes-contracts-research-market-and-placeholders";

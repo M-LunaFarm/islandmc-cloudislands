@@ -201,6 +201,8 @@ state:
   topology-privacy-policy: player-facing-satis-output-hides-physical-node-server-world-cell-and-route-identifiers
   player-visible-topology-policy: show-logical-island-only-never-island-node-or-shard-placement
   internal-topology-fields: active-node,source-node,target-node,server-name,world-name,cell,route-ticket,backend-storage-key
+  route-authority-policy: core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only
+  route-ticket-privacy-policy: player-facing-satis-output-never-includes-route-ticket-node-server-world-cell
   recovery-scenario: heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write
   recovery-state-keys: last-lifecycle-heartbeat-expiry-policy,last-lifecycle-fencing-token-policy,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy
   addon-removal-scenario: missing-addon-state-never-blocks-cloudislands-base-island-load
@@ -221,8 +223,9 @@ state:
   node-move-state-keys: source-node,target-node,node-move,node-move-policy
   relocation-audit-policy: publish-global-and-island-addon-state-for-active-placement-remaps
   relocation-state-keys: last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-state-authority,last-relocation-write-fence,last-relocation-duplicate-tick-policy,last-relocation-confirmed-state-policy,last-relocation-handoff-audit-key,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy,last-relocation-at
-  route-event-player-visible-policy: logical-island-and-action-only-hide-node-server-world-cell-route-ticket
-  route-event-player-visible-state-keys: last-route-player-visible-destination,last-route-player-visible-action,last-route-player-visible-status,last-route-player-visible-topology
+  route-event-policy: core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only
+  route-event-player-visible-policy: player-facing-satis-output-never-includes-route-ticket-node-server-world-cell
+  route-event-player-visible-state-keys: last-route-player-visible-destination,last-route-player-visible-action,last-route-player-visible-status,last-route-player-visible-topology,last-route-ticket-player-visible
   dirty-save-state-keys: runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,runtime-dirty-save-stop-policy,addon-removal-dirty-save-detach-policy,addon-removal-dirty-save-reattach-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy,last-preflush-status,last-preflush-writes,last-preflush-failures,last-preflush-at
   dirty-save-stop-policy: runtime-stop-preflushes-queued-dirty-state-before-task-cancel-and-addon-unregister
   preflush-audit-policy: publish-global-and-island-addon-state-for-migration-deactivation-and-disable-flushes

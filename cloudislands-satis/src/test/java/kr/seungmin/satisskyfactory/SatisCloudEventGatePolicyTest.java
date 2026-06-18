@@ -40,7 +40,9 @@ class SatisCloudEventGatePolicyTest {
         assertTrue(source.contains("private boolean routeEventStateEnabled()"));
         assertTrue(source.contains("return cloudIslandsApi != null && operationalFeatureEnabled(\"addon-state\") && operationalFeatureEnabled(\"route-events\");"));
         assertTrue(source.contains("if (!routeEventStateEnabled()) {\n            recordRouteEventBlocked();\n            return;\n        }"));
-        assertTrue(source.contains("last-route-policy\", \"diagnostic-state-only-no-routing-authority"));
+        assertTrue(source.contains("last-route-policy\", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY"));
         assertTrue(source.contains("last-route-player-visible-topology\", \"hidden"));
+        assertTrue(source.contains("last-route-ticket-player-visible\", \"hidden"));
+        assertTrue(source.contains("last-route-player-visible-policy\", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY"));
     }
 }

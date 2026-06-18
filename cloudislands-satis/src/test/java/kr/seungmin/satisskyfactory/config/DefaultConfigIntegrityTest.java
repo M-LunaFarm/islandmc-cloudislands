@@ -43,6 +43,8 @@ class DefaultConfigIntegrityTest {
         assertFalse(addon.getBoolean("runtime.owns-islands"));
         assertEquals("cloudislands-island-uuid", addon.getString("runtime.storage-key"));
         assertEquals("CloudIslands", addon.getString("runtime.core-admin-root-owner"));
+        assertEquals("core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only", addon.getString("state.route-authority-policy"));
+        assertEquals("player-facing-satis-output-never-includes-route-ticket-node-server-world-cell", addon.getString("state.route-ticket-privacy-policy"));
         assertEquals("not-owned-by-satis-addon", addon.getString("runtime.ciadmin-policy"));
         assertEquals("CORE_API", addon.getString("runtime.default-database-mode"));
         assertEquals("core-api-requires-cloudislands-api-addon-state-and-hydrated-island", addon.getString("runtime.tick-authority-policy"));
@@ -135,6 +137,7 @@ class DefaultConfigIntegrityTest {
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-core-refresh-reapply-policy"));
         assertTrue(addon.getString("state.core-refresh-reapply-state-keys").contains("last-core-refresh-policy"));
         assertTrue(addon.getString("state.core-refresh-reapply-state-keys").contains("last-core-refresh-result"));
+        assertTrue(addon.getString("state.route-event-player-visible-state-keys").contains("last-route-ticket-player-visible"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));

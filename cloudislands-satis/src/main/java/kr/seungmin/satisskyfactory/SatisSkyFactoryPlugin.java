@@ -470,6 +470,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);
         state.put("runtime-player-visible-topology-policy", SatisAddonIntegrationPolicy.PLAYER_VISIBLE_TOPOLOGY_POLICY);
         state.put("runtime-internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
+        state.put("runtime-route-authority-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
+        state.put("runtime-route-ticket-privacy-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
         state.put("runtime-superior-migration-input-only", "true");
         state.put("runtime-superior-runtime-dependency", "false");
         state.put("runtime-superior-runtime-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
@@ -1941,11 +1943,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
         metadata.put("relocation-state-keys", "last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-state-authority,last-relocation-write-fence,last-relocation-duplicate-tick-policy,last-relocation-confirmed-state-policy,last-relocation-at");
         metadata.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
-        metadata.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
+        metadata.put("route-event-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
         metadata.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
         metadata.put("route-event-state-scope", "global-addon-state-and-island-addon-state-when-islandId-present");
-        metadata.put("route-event-player-visible-policy", "logical-island-and-action-only-hide-node-server-world-cell-route-ticket");
-        metadata.put("route-event-player-visible-state-keys", "last-route-player-visible-destination,last-route-player-visible-action,last-route-player-visible-status,last-route-player-visible-topology");
+        metadata.put("route-event-player-visible-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
+        metadata.put("route-event-player-visible-state-keys", "last-route-player-visible-destination,last-route-player-visible-action,last-route-player-visible-status,last-route-player-visible-topology,last-route-ticket-player-visible");
         metadata.put("route-event-state-keys", "last-route-event,last-route-ticket,last-route-player,last-route-action,last-route-target-node,last-route-target-server,last-route-island,last-route-requested-node,last-route-reason,last-route-detail,last-route-at,last-route-policy,last-node-state,last-node-operation,last-node-cleared-sessions,last-node-cleared-tickets");
         metadata.put("feature-aliases", featureAliasesMetadata());
         metadata.put("feature-alias-disabled", disabledFeatureAliases());
@@ -1978,6 +1980,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);
         metadata.put("player-visible-topology-policy", SatisAddonIntegrationPolicy.PLAYER_VISIBLE_TOPOLOGY_POLICY);
         metadata.put("internal-topology-fields", SatisAddonIntegrationPolicy.INTERNAL_TOPOLOGY_FIELDS);
+        metadata.put("route-authority-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
+        metadata.put("route-ticket-privacy-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
         metadata.put("placeholder-exposure-policy", PlaceholderFeaturePolicy.exposurePolicy());
         metadata.put("placeholder-exposed-keys", PlaceholderFeaturePolicy.exposedKeys());
         metadata.put("placeholder-denied-internal-fields", PlaceholderFeaturePolicy.deniedInternalFields());
@@ -2399,11 +2403,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
         state.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
         state.put("route-event-source", "CloudIslandsAddon.route-ticket-events");
-        state.put("route-event-policy", "diagnostic-state-only-no-routing-authority");
+        state.put("route-event-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
         state.put("route-event-feature-gate", "features.route-events&&features.addon-state&&CloudIslandsApi");
         state.put("route-event-state-scope", "global-addon-state-and-island-addon-state-when-islandId-present");
-        state.put("route-event-player-visible-policy", "logical-island-and-action-only-hide-node-server-world-cell-route-ticket");
-        state.put("route-event-player-visible-state-keys", "last-route-player-visible-destination,last-route-player-visible-action,last-route-player-visible-status,last-route-player-visible-topology");
+        state.put("route-event-player-visible-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
+        state.put("route-event-player-visible-state-keys", "last-route-player-visible-destination,last-route-player-visible-action,last-route-player-visible-status,last-route-player-visible-topology,last-route-ticket-player-visible");
         state.put("route-event-state-keys", "last-route-event,last-route-ticket,last-route-player,last-route-action,last-route-target-node,last-route-target-server,last-route-island,last-route-requested-node,last-route-reason,last-route-detail,last-route-at,last-route-policy,last-node-state,last-node-operation,last-node-cleared-sessions,last-node-cleared-tickets");
         state.put("configured-features", featureState(snapshot.configuredFeatures()));
         state.put("effective-features", featureState(snapshot.features()));
@@ -3340,12 +3344,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             state.put("last-route-detail", detail);
         }
         state.put("last-route-at", occurredAt == null ? Instant.now().toString() : occurredAt.toString());
-        state.put("last-route-policy", "diagnostic-state-only-no-routing-authority");
+        state.put("last-route-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
         state.put("last-route-player-visible-destination", islandId == null ? "logical-island" : "island:" + islandId);
         state.put("last-route-player-visible-action", safeRouteValue(action).isBlank() ? safeRouteValue(eventName) : safeRouteValue(action));
         state.put("last-route-player-visible-status", safeRouteValue(eventName));
         state.put("last-route-player-visible-topology", "hidden");
-        state.put("last-route-player-visible-policy", "hide-node-server-world-cell-route-ticket");
+        state.put("last-route-ticket-player-visible", "hidden");
+        state.put("last-route-player-visible-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
         putRouteEventCounters(state);
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis route event state: " + error.getMessage());

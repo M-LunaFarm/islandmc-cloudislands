@@ -47,6 +47,14 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals("false", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
         assertEquals("addons.cloudislands-satis.enabled&&satis.enabled", SatisAddonIntegrationPolicy.ROOT_GATE_POLICY);
         assertEquals(
+                "core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only",
+                SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY
+        );
+        assertEquals(
+                "player-facing-satis-output-never-includes-route-ticket-node-server-world-cell",
+                SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY
+        );
+        assertEquals(
                 "core-refresh-reapplies-satis-runtime-state-after-refresh-success-or-fallback",
                 SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY
         );
