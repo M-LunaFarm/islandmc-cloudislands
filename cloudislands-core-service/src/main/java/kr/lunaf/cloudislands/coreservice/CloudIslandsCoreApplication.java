@@ -465,7 +465,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/state/table-key-value/bulk-save", exchange -> {
+        route(AddonStateBulkSaveRequest.GLOBAL_LEGACY_ENDPOINT, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -780,7 +780,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/islands/state/table-key-value/bulk-save", exchange -> {
+        route(AddonStateBulkSaveRequest.ISLAND_LEGACY_ENDPOINT, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
