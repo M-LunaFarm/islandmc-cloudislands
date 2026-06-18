@@ -1826,6 +1826,8 @@ public final class AdminFactoryCommand {
                         "island-state-multi-node-scenario",
                         "island-state-node-count-policy",
                         "island-state-node-identity-policy",
+                        "island-state-five-six-node-policy",
+                        "island-state-seven-plus-node-policy",
                         "island-state-scale-policy",
                         "island-state-scale-risk",
                         "island-state-storage-authority",

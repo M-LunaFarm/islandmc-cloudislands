@@ -784,6 +784,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-multi-node-scenario", "registered-node-pool-preserves-addon-state-by-island-uuid");
         state.put("island-state-node-count-policy", "no-hardcoded-island-node-count");
         state.put("island-state-node-identity-policy", "node-id-is-routing-context-not-addon-state-key");
+        state.put("island-state-five-six-node-policy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.FIVE_SIX_NODE_POLICY);
+        state.put("island-state-seven-plus-node-policy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.ABOVE_SIX_NODE_POLICY);
         state.put("island-state-failure-recovery-steps", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.failureRecoveryStepSummary());
         state.put("island-state-addon-reconnect-steps", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.addonReconnectStepSummary());
         state.put("island-state-scale-policy", "node-count-does-not-change-satis-state-keys-or-storage-authority");
@@ -1999,6 +2001,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("missing-cloudislands-behavior", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR),
                 Map.entry("island-state-node-count-policy", "no-hardcoded-island-node-count"),
                 Map.entry("island-state-node-identity-policy", "node-id-is-routing-context-not-addon-state-key"),
+                Map.entry("island-state-five-six-node-policy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.FIVE_SIX_NODE_POLICY),
+                Map.entry("island-state-seven-plus-node-policy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.ABOVE_SIX_NODE_POLICY),
                 Map.entry("island-state-scale-policy", "node-count-does-not-change-satis-state-keys-or-storage-authority"),
                 Map.entry("island-state-node-handoff-policy", "A-node-save-B-node-restore-by-island-uuid"),
                 Map.entry("feature-gate-scope", "global-and-per-feature"),

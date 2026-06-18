@@ -87,6 +87,8 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"lifecycle-event-source\""));
         assertTrue(source.contains("\"route-event-last-block-reason\""));
         assertTrue(source.contains("\"last-route-player-visible-topology\""));
+        assertTrue(source.contains("\"island-state-five-six-node-policy\""));
+        assertTrue(source.contains("\"island-state-seven-plus-node-policy\""));
     }
 
     @SuppressWarnings("unchecked")
