@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import org.junit.jupiter.api.Test;
 
@@ -29,5 +33,52 @@ class UpgradePolicyContractTest {
         assertEquals(UpgradeType.BANK_LIMIT, policy.rule("bank").type());
         assertNotNull(policy.rule("fly"));
         assertEquals(UpgradeType.GENERATOR_LEVEL, UpgradePolicy.typeFor("generator:default"));
+    }
+
+    @Test
+    void bundledConfigKeepsGoalUpgradeLevelExamples() {
+        UpgradePolicy policy = ConfigUpgradePolicy.load("");
+
+        assertEquals(UpgradeType.ISLAND_SIZE, policy.rule("size").type());
+        assertEquals(3, policy.rule("size").maxLevel());
+        assertEquals(new BigDecimal("0"), policy.rule("size").costForNextLevel(0));
+        assertEquals(new BigDecimal("10000"), policy.rule("size").costForNextLevel(1));
+        assertEquals(new BigDecimal("50000"), policy.rule("size").costForNextLevel(2));
+        assertEquals(100L, policy.rule("size").limitValueForLevel(1).orElseThrow());
+        assertEquals(150L, policy.rule("size").limitValueForLevel(2).orElseThrow());
+        assertEquals(200L, policy.rule("size").limitValueForLevel(3).orElseThrow());
+
+        assertEquals(UpgradeType.MAX_MEMBERS, policy.rule("members").type());
+        assertEquals(new BigDecimal("25000"), policy.rule("members").costForNextLevel(1));
+        assertEquals(new BigDecimal("75000"), policy.rule("members").costForNextLevel(2));
+        assertEquals(3L, policy.rule("members").limitValueForLevel(1).orElseThrow());
+        assertEquals(5L, policy.rule("members").limitValueForLevel(2).orElseThrow());
+        assertEquals(8L, policy.rule("members").limitValueForLevel(3).orElseThrow());
+
+        assertEquals(UpgradeType.HOPPER_LIMIT, policy.rule("hoppers").type());
+        assertEquals(new BigDecimal("30000"), policy.rule("hoppers").costForNextLevel(1));
+        assertEquals(50L, policy.rule("hoppers").limitValueForLevel(1).orElseThrow());
+        assertEquals(100L, policy.rule("hoppers").limitValueForLevel(2).orElseThrow());
+    }
+
+    @Test
+    void exposesGoalUpgradeTypesAndEconomyBridgeShape() throws Exception {
+        for (UpgradeType type : UpgradeSystemPolicy.goalUpgradeTypes()) {
+            assertTrue(UpgradePolicy.SUPPORTED_TYPE_POLICY.contains(type.name()), type.name());
+        }
+        assertEquals("upgrades-are-loaded-from-rules-upgrades-yaml-or-configured-override-file", UpgradeSystemPolicy.CONFIG_SOURCE_POLICY);
+        assertEquals("economy-integration-is-async-withdraw-deposit-balance-abstraction", UpgradeSystemPolicy.ECONOMY_BRIDGE_POLICY);
+        assertEquals(
+            CompletableFuture.class,
+            EconomyBridge.class.getMethod("withdraw", UUID.class, BigDecimal.class, String.class).getReturnType()
+        );
+        assertEquals(
+            CompletableFuture.class,
+            EconomyBridge.class.getMethod("deposit", UUID.class, BigDecimal.class, String.class).getReturnType()
+        );
+        assertEquals(
+            CompletableFuture.class,
+            EconomyBridge.class.getMethod("balance", UUID.class).getReturnType()
+        );
     }
 }
