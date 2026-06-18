@@ -54,6 +54,9 @@ import kr.lunaf.cloudislands.migration.world.MigrationWorldExtractor;
 
 public final class MigrationAdminService {
     static final String MIGRATION_SNAPSHOT_REASON = "BEFORE_MIGRATION:SUPERIORSKYBLOCK2_IMPORT";
+    static final String MIGRATION_TARGET_FIELDS = "island-id,owner-uuid,members,roles,permissions,island-location,island-size,homes,warps,banned-visitors,level,worth,upgrades,flags,block-values";
+    static final String MIGRATION_PIPELINE_STEPS = "read-only-scan,manifest-generate,dry-run,conflict-report,admin-approval,db-import,world-cell-extract,island-bundle-create,checksum-verify,cloudislands-activation-test";
+    static final String MIGRATION_COMMAND_SET = "scan,dryrun,import,verify,rollback";
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
     private final PlayerProfileRepository playerProfiles;
@@ -128,7 +131,7 @@ public final class MigrationAdminService {
         }
         lastScan = new SuperiorSkyblock2MigrationScanner.ScanResult(lastScan.manifests(), List.copyOf(issues));
         lastPlan = new MigrationImportPlan(lastScan.manifests(), lastScan.issues());
-        return "{\"state\":\"" + MigrationRunState.SCANNED + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(sourcePath) + "\",\"sourceFingerprint\":\"" + escape(lastScanFingerprint) + "\",\"manifestPath\":\"" + escape(manifestPath.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
+        return "{\"state\":\"" + MigrationRunState.SCANNED + "\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"path\":\"" + escape(sourcePath) + "\",\"sourceFingerprint\":\"" + escape(lastScanFingerprint) + "\",\"manifestPath\":\"" + escape(manifestPath.toString()) + "\",\"manifests\":" + lastScan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastScan.issues()) + "}";
     }
 
     public synchronized String dryRun() {
@@ -151,13 +154,14 @@ public final class MigrationAdminService {
             lastApprovalToken = "";
             lastDryRunFingerprint = "";
         }
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"sourceFingerprint\":\"" + escape(lastDryRunFingerprint) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + ",\"approvalRequired\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"sourceFingerprint\":\"" + escape(lastDryRunFingerprint) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + ",\"approvalRequired\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
     }
 
     public synchronized String status() {
         boolean rollbackPlanAvailable = lastRollbackPlan != null;
         return "{\"state\":\"STATUS\""
             + migrationBoundaryFields()
+            + migrationCoverageFields()
             + rollbackSafetyFields(rollbackPlanAvailable)
             + migrationSafetyStatusFields()
             + ",\"scanManifests\":" + lastScan.manifests().size()
@@ -590,12 +594,12 @@ public final class MigrationAdminService {
             passed = false;
             state = MigrationRunState.VERIFYING;
         }
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"verifiedManifests\":" + verifiedManifests + ",\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + ",\"activationTestMode\":\"" + activationTestMode + "\",\"activationLifecycleTesterAvailable\":" + (activationTester != null) + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"path\":\"" + escape(verifyBundleRoot.toString()) + "\",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"passed\":" + passed + ",\"expected\":" + lastScan.manifests().size() + ",\"imported\":" + imported.size() + ",\"extractedBundles\":" + extractedBundles + ",\"verifiedManifests\":" + verifiedManifests + ",\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":" + extractedFiles + ",\"extractedBytes\":" + extractedBytes + ",\"activationTested\":" + activationTested + ",\"activationTestPassed\":" + activationTestPassed + ",\"activationTestMode\":\"" + activationTestMode + "\",\"activationLifecycleTesterAvailable\":" + (activationTester != null) + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
     }
 
     public synchronized String rollbackLastImport() {
         if (lastRollbackPlan == null) {
-            return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + rollbackSafetyFields(false) + ",\"rollbackPlanAvailable\":false,\"rolledBack\":false,\"removedIslands\":0,\"issues\":" + issuesJson(List.of(new MigrationIssue("ROLLBACK_PLAN_NOT_FOUND", "no import rollback plan is available", true))) + "}";
+            return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + migrationCoverageFields() + rollbackSafetyFields(false) + ",\"rollbackPlanAvailable\":false,\"rolledBack\":false,\"removedIslands\":0,\"issues\":" + issuesJson(List.of(new MigrationIssue("ROLLBACK_PLAN_NOT_FOUND", "no import rollback plan is available", true))) + "}";
         }
         MigrationRollbackPlan plan = lastRollbackPlan;
         MigrationRollbackService.RollbackResult result = rollback.rollback(plan, islandId -> {
@@ -614,7 +618,13 @@ public final class MigrationAdminService {
             lastRollbackPlan = null;
             lastApprovalToken = "";
         }
-        return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + rollbackSafetyFields(true) + ",\"rollbackPlanAvailable\":true,\"rollbackPlan\":" + rollbackPlanJson(plan) + ",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"rollbackPlanConsumed\":" + result.rolledBack() + ",\"issues\":" + issuesJson(result.issues()) + "}";
+        return "{\"state\":\"" + MigrationRunState.ROLLED_BACK + "\"" + migrationBoundaryFields() + migrationCoverageFields() + rollbackSafetyFields(true) + ",\"rollbackPlanAvailable\":true,\"rollbackPlan\":" + rollbackPlanJson(plan) + ",\"rolledBack\":" + result.rolledBack() + ",\"removedIslands\":" + result.removedIslands() + ",\"rollbackPlanConsumed\":" + result.rolledBack() + ",\"issues\":" + issuesJson(result.issues()) + "}";
+    }
+
+    private String migrationCoverageFields() {
+        return ",\"migrationTargetFields\":\"" + MIGRATION_TARGET_FIELDS + "\""
+            + ",\"migrationPipelineSteps\":\"" + MIGRATION_PIPELINE_STEPS + "\""
+            + ",\"migrationCommandSet\":\"" + MIGRATION_COMMAND_SET + "\"";
     }
 
     private String rollbackSafetyFields(boolean planAvailable) {

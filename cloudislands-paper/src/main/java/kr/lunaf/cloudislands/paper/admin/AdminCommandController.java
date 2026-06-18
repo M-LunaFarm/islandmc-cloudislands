@@ -1048,6 +1048,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
                 .append(adminText("admin-command-migration-conflict-status-prefix", " conflictStatus=")).append(textValue(body, "conflictStatus"))
                 .append(adminText("admin-command-migration-conflicts-prefix", " conflicts=")).append(longValue(body, "conflictIssues"));
         }
+        if (body.contains("\"migrationTargetFields\"")) {
+            builder.append(adminText("admin-command-migration-target-fields-prefix", " targets=")).append(textValue(body, "migrationTargetFields"))
+                .append(adminText("admin-command-migration-pipeline-prefix", " pipeline=")).append(textValue(body, "migrationPipelineSteps"))
+                .append(adminText("admin-command-migration-commands-prefix", " commands=")).append(textValue(body, "migrationCommandSet"));
+        }
         if (body.contains("\"imported\"")) {
             builder.append(adminText("admin-command-migration-imported-prefix", " imported=")).append(boolValue(body, "imported"))
                 .append(adminText("admin-command-migration-islands-prefix", " islands="))
