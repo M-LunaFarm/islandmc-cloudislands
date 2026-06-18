@@ -42,11 +42,16 @@ public final class RouteFailureMessagePolicy {
             case "WARP_PRIVATE" -> "해당 워프는 공개 상태가 아닙니다.";
             case "WARP_LIMIT" -> "섬 워프 한도에 도달했습니다.";
             case "ISLAND_MIGRATING" -> "섬 서버를 최적화하는 중입니다. 잠시 후 자동으로 이동됩니다.";
+            case "ISLAND_PREPARING" -> "섬을 준비하는 중입니다. 잠시 후 다시 시도해주세요.";
+            case "ISLAND_RESTORING" -> "섬 스냅샷을 복원하는 중입니다. 잠시 후 다시 시도해주세요.";
+            case "ISLAND_SAVING" -> "섬을 저장하는 중입니다. 잠시 후 다시 시도해주세요.";
             case "ISLAND_LOADING_FAILED" -> "섬을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.";
             case "JOB_QUEUE_UNAVAILABLE", "RECOVERY_UNAVAILABLE" -> MAINTENANCE_MESSAGE;
             case "ROUTE_TICKET_NOT_FOUND", "ROUTE_ROUTE_NOT_FOUND" -> "섬 이동 세션이 만료되었습니다. 다시 시도해주세요.";
+            case "RECOVERY_REQUIRED" -> "섬 복구가 필요한 상태입니다. 관리자에게 문의해주세요.";
             case "ISLAND_PERMISSION_DENIED" -> "섬 권한이 없습니다.";
             case "MEMBER_LIMIT" -> "섬 멤버 한도에 도달했습니다.";
+            case "ALREADY_MEMBER" -> "이미 섬 멤버입니다.";
             case "BANK_LIMIT" -> "섬 은행 한도에 도달했습니다.";
             case "INVALID_AMOUNT" -> "올바른 금액을 입력해주세요.";
             case "INSUFFICIENT_FUNDS" -> "잔액이 부족합니다.";
@@ -84,8 +89,10 @@ public final class RouteFailureMessagePolicy {
                 "WARP_NOT_FOUND",
                 "WARP_PRIVATE",
                 "WARP_LIMIT",
+                "RECOVERY_REQUIRED",
                 "ISLAND_PERMISSION_DENIED",
                 "MEMBER_LIMIT",
+                "ALREADY_MEMBER",
                 "BANK_LIMIT",
                 "INVALID_AMOUNT",
                 "INSUFFICIENT_FUNDS",
@@ -95,6 +102,9 @@ public final class RouteFailureMessagePolicy {
                 "OWNERSHIP_TRANSFER_DENIED" -> DOMAIN_CATEGORY;
             case "ACTIVATION_LOCKED",
                 "ISLAND_MIGRATING",
+                "ISLAND_PREPARING",
+                "ISLAND_RESTORING",
+                "ISLAND_SAVING",
                 "ISLAND_LOADING_FAILED",
                 "ROUTE_TICKET_NOT_FOUND",
                 "ROUTE_ROUTE_NOT_FOUND",
