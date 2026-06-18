@@ -30,6 +30,8 @@ class DefaultConfigIntegrityTest {
         assertEquals("preserve-addon-state-by-island-uuid", addon.getString("removal.data-retention"));
         assertFalse(addon.getBoolean("runtime.owns-islands"));
         assertEquals("cloudislands-island-uuid", addon.getString("runtime.storage-key"));
+        assertEquals("CloudIslands", addon.getString("runtime.core-admin-root-owner"));
+        assertEquals("not-owned-by-satis-addon", addon.getString("runtime.ciadmin-policy"));
         assertEquals("CORE_API", addon.getString("runtime.default-database-mode"));
         assertTrue(addon.getBoolean("superiorskyblock2.migration-input-only"));
         assertFalse(addon.getBoolean("superiorskyblock2.runtime-dependency"));
@@ -40,7 +42,7 @@ class DefaultConfigIntegrityTest {
         assertFalse(plugin.getStringList("softdepend").stream().anyMatch(dependency -> dependency.contains("Superior")));
         assertTrue(plugin.isConfigurationSection("commands.factory"));
         assertTrue(plugin.isConfigurationSection("commands.sfactory"));
-        assertTrue(plugin.isConfigurationSection("commands.ciadmin"));
+        assertFalse(plugin.isConfigurationSection("commands.ciadmin"));
         assertTrue(config.getBoolean("satis.enabled"));
         assertEquals("EXTERNAL_ADDON", config.getString("integration.mode"));
         assertEquals("CLOUDISLANDS", config.getString("integration.skyblock-provider"));
