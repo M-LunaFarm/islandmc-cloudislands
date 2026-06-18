@@ -2,6 +2,7 @@ package kr.seungmin.satisskyfactory.integration;
 
 import java.util.List;
 import java.util.Map;
+import kr.lunaf.cloudislands.common.feature.SatisFeaturePackActivationPolicy;
 import kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy;
 
 public final class SatisAddonIntegrationPolicy {
@@ -57,6 +58,9 @@ public final class SatisAddonIntegrationPolicy {
     public static final String CORE_BOUNDARY_POLICY = "cloudislands-core-owns-island-lifecycle-routing-storage-protection-and-public-api";
     public static final String CORE_API_METADATA_STATE_POLICY = "core-api-stores-addon-metadata-and-opaque-state-without-satis-business-rules";
     public static final String CORE_API_FORBIDDEN_CONTENT_POLICY = "core-api-does-not-interpret-machines-factories-generators-contracts-research-or-market-rules";
+    public static final String FEATURE_PACK_ACTIVATION_POLICY = SatisFeaturePackActivationPolicy.ACTIVATION_POLICY;
+    public static final String EXTERNAL_DESCRIPTOR_POLICY = SatisFeaturePackActivationPolicy.EXTERNAL_DESCRIPTOR_POLICY;
+    public static final String BUILT_IN_DESCRIPTOR_POLICY = SatisFeaturePackActivationPolicy.BUILT_IN_DESCRIPTOR_POLICY;
 
     private static final List<String> SUPPORTED_MODES = List.of(
             RECOMMENDED_MODE,
@@ -198,6 +202,30 @@ public final class SatisAddonIntegrationPolicy {
 
     public static List<String> supportedModes() {
         return SUPPORTED_MODES;
+    }
+
+    public static List<String> activationSupportedModes() {
+        return SatisFeaturePackActivationPolicy.supportedModes();
+    }
+
+    public static SatisFeaturePackActivationPolicy.ActivationDecision activationDecision(
+            String mode,
+            boolean rootEnabled,
+            boolean featureEnabled,
+            boolean cloudIslandsApiAvailable,
+            boolean externalAddonDescriptorPresent
+    ) {
+        return SatisFeaturePackActivationPolicy.decide(
+                mode,
+                rootEnabled,
+                featureEnabled,
+                cloudIslandsApiAvailable,
+                externalAddonDescriptorPresent
+        );
+    }
+
+    public static String activationRuntimeShape(String mode) {
+        return SatisFeaturePackActivationPolicy.runtimeShape(mode);
     }
 
     public static List<String> featureGates() {

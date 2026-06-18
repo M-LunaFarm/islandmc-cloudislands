@@ -34,6 +34,37 @@ class SatisAddonIntegrationPolicyTest {
     }
 
     @Test
+    void reusesCommonActivationPolicyForExternalAndBuiltInFeaturePackModes() {
+        assertEquals(
+                "external-addon-and-built-in-compatible-use-same-root-gate-feature-gate-and-cloudislands-api-checks",
+                SatisAddonIntegrationPolicy.FEATURE_PACK_ACTIVATION_POLICY
+        );
+        assertEquals(
+                List.of("EXTERNAL_ADDON", "BUILT_IN_COMPATIBLE", "DISABLED"),
+                SatisAddonIntegrationPolicy.activationSupportedModes()
+        );
+        assertEquals(
+                "external-addon-runtime",
+                SatisAddonIntegrationPolicy.activationRuntimeShape("external-addon")
+        );
+        assertEquals(
+                "built-in-compatible-runtime",
+                SatisAddonIntegrationPolicy.activationRuntimeShape("built-in-feature-pack")
+        );
+        assertEquals(
+                "external-addon-descriptor-missing",
+                SatisAddonIntegrationPolicy.activationDecision("external-addon", true, true, true, false).blockReason()
+        );
+        assertTrue(
+                SatisAddonIntegrationPolicy.activationDecision("built-in-compatible", true, true, true, false).runtimeEnabled()
+        );
+        assertEquals(
+                "cloudislands-api-missing",
+                SatisAddonIntegrationPolicy.activationDecision("built-in-compatible", true, true, false, false).blockReason()
+        );
+    }
+
+    @Test
     void requiresCloudIslandsApiOnlyAndRootFeatureGates() {
         assertEquals("cloudislands-api-only-no-superiorskyblock2-runtime", SatisAddonIntegrationPolicy.API_POLICY);
         assertEquals("island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi", SatisAddonIntegrationPolicy.API_SURFACE_POLICY);

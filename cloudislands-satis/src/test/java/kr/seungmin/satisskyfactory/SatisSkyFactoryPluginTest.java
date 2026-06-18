@@ -69,6 +69,9 @@ class SatisSkyFactoryPluginTest {
         assertEquals("true", metadata.get("cloudislands-api-only"));
         assertEquals("true", metadata.get("config-gated"));
         assertEquals("setup.satis.mode,addons.cloudislands-satis.integration.mode,integration.mode", metadata.get("integration-mode-config-paths"));
+        assertEquals("external-addon-and-built-in-compatible-use-same-root-gate-feature-gate-and-cloudislands-api-checks", metadata.get("feature-pack-activation-policy"));
+        assertEquals("EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED", metadata.get("feature-pack-activation-supported-modes"));
+        assertEquals("external-addon-runtime", metadata.get("feature-pack-runtime-shape"));
         assertEquals("cloudislands-api-required-no-standalone-island-runtime", metadata.get("integration-mode-runtime-boundary"));
         assertEquals("cloudislands-api-required-no-standalone-island-runtime", metadata.get("cloudislands-required-policy"));
         assertEquals("bootstrap-or-services-manager", metadata.get("cloudislands-api-resolution"));
