@@ -617,6 +617,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-machine-delete-inventory-policy", "machine-delete-checks-inventory-delete-gates-before-removing-machine-state");
         state.put("runtime-machine-delete-inventory-rollback-policy", "machine-delete-restores-already-deleted-inventories-when-a-later-inventory-delete-fails");
         state.put("runtime-machine-create-cleanup-policy", "machine-create-cleanup-routes-temporary-inventory-deletes-through-result-returning-delete-api");
+        state.put("runtime-inventory-delete-gate-policy", "inventory-delete-loads-missing-metadata-before-applying-holder-specific-write-gates");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));

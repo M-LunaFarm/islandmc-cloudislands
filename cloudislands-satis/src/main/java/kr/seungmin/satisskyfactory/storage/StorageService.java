@@ -109,6 +109,12 @@ public final class StorageService {
             return false;
         }
         VirtualInventory existing = cache.get(inventoryId);
+        if (existing == null) {
+            existing = database.loadInventory(inventoryId).orElse(null);
+            if (existing != null) {
+                cache.put(existing.inventoryId(), existing);
+            }
+        }
         return deleteWritesEnabled(existing);
     }
 
