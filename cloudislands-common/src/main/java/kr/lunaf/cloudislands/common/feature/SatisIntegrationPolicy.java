@@ -15,6 +15,8 @@ public final class SatisIntegrationPolicy {
         Map.entry("setup-database-mode", "operator-selects-core-api-postgresql-mysql-mariadb-or-safe-fallback-through-setup-database-config"),
         Map.entry("bulk-table-state-mode", "satis-uses-table-key-value-bulk-save-and-load-before-flattened-addon-state-fallback"),
         Map.entry("command-list-mode", "factory-and-admin-command-list-render-one-command-per-line-with-page-navigation"),
+        Map.entry("velocity-forwarding-mode", "paper-island-nodes-trust-player-identity-only-through-velocity-modern-forwarding-and-shared-secret"),
+        Map.entry("topology-private-mode", "players-use-logical-island-commands-and-never-see-island-node-server-world-cell-or-route-ticket-identifiers"),
         Map.entry("soft-full-create-mode", "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change")
     );
 
@@ -124,6 +126,8 @@ public final class SatisIntegrationPolicy {
         "setup-database-supports-core-api-postgresql-mysql-mariadb-and-safe-fallback",
         "table-key-value-bulk-save-api-covers-global-and-island-addon-state",
         "command-list-renders-one-line-per-command-with-paging",
+        "velocity-modern-forwarding-and-forwarding-secret-are-required-for-paper-island-node-trust",
+        "player-facing-output-hides-physical-island-node-server-world-cell-and-route-identifiers",
         "island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned",
         "state-survives-a-node-to-b-node-island-move",
         "state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed",
