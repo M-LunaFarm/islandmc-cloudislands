@@ -1570,6 +1570,7 @@ public final class AdminFactoryCommand {
                         "runtime-market-inventory-rollback-policy",
                         "runtime-player-return-inventory-save-policy",
                         "runtime-logistics-inventory-rollback-policy",
+                        "runtime-recipe-inventory-rollback-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

@@ -708,24 +708,23 @@ public final class MachineTickService {
                 inputReady = true;
             }
             if (hasInput && canAddAll(output, produced)) {
+                Map<String, Long> inputBefore = input.items();
+                Map<String, Long> outputBefore = output.items();
                 recipe.input().forEach(input::remove);
                 produced.forEach(output::add);
+                Map<String, Long> inputAfter = input.items();
+                Map<String, Long> outputAfter = output.items();
                 if (!storage.saveIfAllowed(input)) {
-                    recipe.input().forEach(input::add);
-                    produced.forEach(output::remove);
+                    restoreInventory(input, inputBefore);
+                    restoreInventory(output, outputBefore);
                     return false;
                 }
                 if (!storage.saveIfAllowed(output)) {
-                    produced.forEach(output::remove);
-                    recipe.input().forEach(input::add);
-                    storage.saveIfAllowed(input);
+                    restoreRecipeInventories(input, inputBefore, inputAfter, output, outputBefore, outputAfter, true, false);
                     return false;
                 }
                 if (recipeNode.isPresent() && !consumeRecipeNode(machine, definition, recipeNode.get())) {
-                    produced.forEach(output::remove);
-                    recipe.input().forEach(input::add);
-                    storage.saveIfAllowed(input);
-                    storage.saveIfAllowed(output);
+                    restoreRecipeInventories(input, inputBefore, inputAfter, output, outputBefore, outputAfter, true, true);
                     return false;
                 }
                 setStatus(machine, MachineStatus.ACTIVE);
@@ -751,6 +750,7 @@ public final class MachineTickService {
     }
 
     private boolean consumeRecipeNode(MachineInstance machine, MachineDefinition definition, ResourceNode node) {
+        UUID previousLinkedResourceNodeId = machine.linkedResourceNodeId();
         machine.linkedResourceNodeId(node.nodeId());
         long required = Math.max(0, definition.recipeNodeUse());
         if (required <= 0) {
@@ -759,10 +759,24 @@ public final class MachineTickService {
         long previousRemaining = node.remaining();
         node.remaining(Math.max(0, node.remaining() - required));
         if (!nodes.save(node)) {
+            machine.linkedResourceNodeId(previousLinkedResourceNodeId);
             node.remaining(previousRemaining);
             return false;
         }
         return true;
+    }
+
+    private void restoreRecipeInventories(VirtualInventory input, Map<String, Long> inputBefore, Map<String, Long> inputAfter,
+                                          VirtualInventory output, Map<String, Long> outputBefore, Map<String, Long> outputAfter,
+                                          boolean inputPersisted, boolean outputPersisted) {
+        restoreInventory(input, inputBefore);
+        restoreInventory(output, outputBefore);
+        if (inputPersisted && !storage.saveIfAllowed(input)) {
+            restoreInventory(input, inputAfter);
+        }
+        if (outputPersisted && !storage.saveIfAllowed(output)) {
+            restoreInventory(output, outputAfter);
+        }
     }
 
     private boolean canAddAll(VirtualInventory inventory, Map<String, Long> items) {
