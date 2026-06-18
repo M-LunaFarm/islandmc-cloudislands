@@ -254,6 +254,7 @@ class SatisAddonIntegrationPolicyTest {
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("portable-island-bundles-require-manifest-checksums-safe-restore-and-quarantine-fallback"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("island-lifecycle-state-machine-covers-create-activate-save-delete-error-quarantine-and-recovery"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("a-server-b-server-new-and-existing-island-flows-are-pinned"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed"));
         assertEquals(
                 "operator-selects-core-api-postgresql-mysql-mariadb-or-safe-fallback-through-setup-database-config",
@@ -290,6 +291,14 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals(
                 "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change",
                 SatisAddonIntegrationPolicy.operationScenarios().get("soft-full-create-mode")
+        );
+        assertEquals(
+                "server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command",
+                SatisAddonIntegrationPolicy.operationScenarios().get("a-b-server-new-island-mode")
+        );
+        assertEquals(
+                "existing-island-deactivates-on-server-a-saves-satis-state-by-island-uuid-activates-on-server-b-and-remaps-volatile-placement",
+                SatisAddonIntegrationPolicy.operationScenarios().get("a-b-server-existing-island-mode")
         );
         assertEquals(
                 "cloudislands-moves-island-from-node-a-to-node-b-even-when-satis-runtime-is-disabled-or-addon-jar-is-absent-and-reconnects-state-after-reenable",
