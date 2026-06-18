@@ -20,6 +20,8 @@ class SatisLegacyMigrationPolicyTest {
         assertEquals("legacy-provider-present-is-warning-only-migration-input-never-runtime-authority", SatisLegacyMigrationPolicy.LIVE_PROVIDER_PRESENT_POLICY);
         assertEquals("no-bukkit-service-lookup-no-event-hooks-no-data-writes", SatisLegacyMigrationPolicy.PROVIDER_LOOKUP_POLICY);
         assertEquals("verify-imported-satis-state-through-cloudislands-addon-state", SatisLegacyMigrationPolicy.ADDON_STATE_VERIFY_POLICY);
+        assertEquals("legacy-satis-rows-import-to-cloudislands-addon-state-scoped-by-island-uuid", SatisLegacyMigrationPolicy.SATIS_STATE_SCOPE_POLICY);
+        assertEquals("migration-never-writes-back-to-satismc-or-superiorskyblock2-source", SatisLegacyMigrationPolicy.LEGACY_MUTATION_POLICY);
         assertEquals("admin-confirmation-required-before-import", SatisLegacyMigrationPolicy.APPROVAL_POLICY);
         assertEquals("CONFIRM_IMPORT", SatisLegacyMigrationPolicy.APPROVAL_TOKEN);
         assertEquals("CONFIRM_IMPORT:<dryrun-sha256>", SatisLegacyMigrationPolicy.FINGERPRINT_APPROVAL_TOKEN);
@@ -38,6 +40,41 @@ class SatisLegacyMigrationPolicyTest {
         assertFalse(SatisLegacyMigrationPolicy.legacyProviderMayBecomeRuntimeAuthority());
         assertEquals("continue-cloudislands-api-only", SatisLegacyMigrationPolicy.runtimeProviderAction(false));
         assertEquals("warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes", SatisLegacyMigrationPolicy.runtimeProviderAction(true));
+    }
+
+    @Test
+    void pinsLegacySatisTablesAndAddonStateVerificationTables() {
+        assertEquals(
+                java.util.List.of(
+                        "machines",
+                        "machine_inventories",
+                        "resource_nodes",
+                        "factory_storage",
+                        "research_progress",
+                        "market_orders",
+                        "contracts",
+                        "contract_progress"
+                ),
+                SatisLegacyMigrationPolicy.legacySatisTables()
+        );
+        assertEquals(
+                java.util.List.of(
+                        "machines",
+                        "machine_inventories",
+                        "resource_nodes",
+                        "storage",
+                        "research",
+                        "market",
+                        "contracts"
+                ),
+                SatisLegacyMigrationPolicy.addonStateVerifyTables()
+        );
+        assertTrue(SatisLegacyMigrationPolicy.legacySatisTableRequired("machines"));
+        assertTrue(SatisLegacyMigrationPolicy.legacySatisTableRequired("contract_progress"));
+        assertTrue(SatisLegacyMigrationPolicy.addonStateVerifyTableRequired("resource_nodes"));
+        assertTrue(SatisLegacyMigrationPolicy.addonStateVerifyTableRequired("storage"));
+        assertFalse(SatisLegacyMigrationPolicy.legacySatisTableRequired("superiorskyblock_live_api"));
+        assertFalse(SatisLegacyMigrationPolicy.addonStateVerifyTableRequired("paper_world_name"));
     }
 
     @Test
@@ -68,6 +105,7 @@ class SatisLegacyMigrationPolicyTest {
     @Test
     void pinsMigrationPipelineAndAdminCommands() {
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("read-only-scan"));
+        assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("read-satismc-sqlite-readonly"));
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("create-migration-manifest"));
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("dry-run-validate"));
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("print-conflicts"));
@@ -78,6 +116,7 @@ class SatisLegacyMigrationPolicyTest {
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("verify-checksum"));
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("cloudislands-activate-test"));
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("verify-addon-state-roundtrip"));
+        assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("verify-satis-table-key-value-bulk-state"));
         assertTrue(SatisLegacyMigrationPolicy.pipelineStepRequired("verify-no-legacy-provider-hook"));
 
         assertTrue(SatisLegacyMigrationPolicy.adminCommands().contains("factory admin migration scan <sqlitePath>"));
@@ -96,5 +135,7 @@ class SatisLegacyMigrationPolicyTest {
         assertThrows(UnsupportedOperationException.class, () -> SatisLegacyMigrationPolicy.targetFields().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisLegacyMigrationPolicy.pipelineSteps().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisLegacyMigrationPolicy.adminCommands().add("legacy"));
+        assertThrows(UnsupportedOperationException.class, () -> SatisLegacyMigrationPolicy.legacySatisTables().add("legacy"));
+        assertThrows(UnsupportedOperationException.class, () -> SatisLegacyMigrationPolicy.addonStateVerifyTables().add("legacy"));
     }
 }

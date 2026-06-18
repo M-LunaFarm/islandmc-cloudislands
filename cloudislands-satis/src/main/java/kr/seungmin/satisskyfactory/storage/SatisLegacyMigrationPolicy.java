@@ -15,6 +15,8 @@ public final class SatisLegacyMigrationPolicy {
     public static final String PROVIDER_ABSENT_ACTION = "continue-cloudislands-api-only";
     public static final String PROVIDER_PRESENT_ACTION = "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes";
     public static final String ADDON_STATE_VERIFY_POLICY = "verify-imported-satis-state-through-cloudislands-addon-state";
+    public static final String SATIS_STATE_SCOPE_POLICY = "legacy-satis-rows-import-to-cloudislands-addon-state-scoped-by-island-uuid";
+    public static final String LEGACY_MUTATION_POLICY = "migration-never-writes-back-to-satismc-or-superiorskyblock2-source";
     public static final String APPROVAL_POLICY = "admin-confirmation-required-before-import";
     public static final String APPROVAL_TOKEN = "CONFIRM_IMPORT";
     public static final String FINGERPRINT_APPROVAL_TOKEN = "CONFIRM_IMPORT:<dryrun-sha256>";
@@ -57,8 +59,30 @@ public final class SatisLegacyMigrationPolicy {
             "satis-contracts"
     );
 
+    private static final List<String> LEGACY_SATIS_TABLES = List.of(
+            "machines",
+            "machine_inventories",
+            "resource_nodes",
+            "factory_storage",
+            "research_progress",
+            "market_orders",
+            "contracts",
+            "contract_progress"
+    );
+
+    private static final List<String> ADDON_STATE_VERIFY_TABLES = List.of(
+            "machines",
+            "machine_inventories",
+            "resource_nodes",
+            "storage",
+            "research",
+            "market",
+            "contracts"
+    );
+
     private static final List<String> PIPELINE_STEPS = List.of(
             "read-only-scan",
+            "read-satismc-sqlite-readonly",
             "create-migration-manifest",
             "dry-run-validate",
             "print-conflicts",
@@ -69,6 +93,7 @@ public final class SatisLegacyMigrationPolicy {
             "verify-checksum",
             "cloudislands-activate-test",
             "verify-addon-state-roundtrip",
+            "verify-satis-table-key-value-bulk-state",
             "verify-no-legacy-provider-hook"
     );
 
@@ -101,6 +126,14 @@ public final class SatisLegacyMigrationPolicy {
         return PIPELINE_STEPS;
     }
 
+    public static List<String> legacySatisTables() {
+        return LEGACY_SATIS_TABLES;
+    }
+
+    public static List<String> addonStateVerifyTables() {
+        return ADDON_STATE_VERIFY_TABLES;
+    }
+
     public static List<String> adminCommands() {
         return ADMIN_COMMANDS;
     }
@@ -119,6 +152,14 @@ public final class SatisLegacyMigrationPolicy {
 
     public static boolean pipelineStepRequired(String step) {
         return PIPELINE_STEPS.contains(step);
+    }
+
+    public static boolean legacySatisTableRequired(String table) {
+        return LEGACY_SATIS_TABLES.contains(table);
+    }
+
+    public static boolean addonStateVerifyTableRequired(String table) {
+        return ADDON_STATE_VERIFY_TABLES.contains(table);
     }
 
     public static boolean runtimeRequiresLegacyProvider() {
