@@ -1,3 +1,4 @@
+import org.gradle.api.file.FileTreeElement
 import org.gradle.jvm.tasks.Jar
 import org.gradle.api.tasks.bundling.Zip
 
@@ -19,6 +20,14 @@ val markdownDocPatterns = listOf(
     "**/*.mkd",
     "**/*.MKD"
 )
+
+val markdownDocExtensions = listOf(".md", ".mdx", ".mdown", ".mkdn", ".markdown", ".mkd")
+
+fun isMarkdownDocPath(path: String): Boolean =
+    markdownDocExtensions.any { path.lowercase().endsWith(it) }
+
+fun isMarkdownDocElement(element: FileTreeElement): Boolean =
+    isMarkdownDocPath(element.path)
 
 allprojects {
     group = "kr.lunaf.cloudislands"
@@ -48,9 +57,10 @@ tasks.register("verifyNoMarkdownDocs") {
     description = "Fails when markdown documents are present in this deliverable repository."
     doLast {
         val markdownFiles = fileTree(projectDir) {
-            include(markdownDocPatterns)
             exclude(".git/**", ".gradle/**", "**/build/**", "**/.gradle/**")
-        }.files.sortedBy { it.relativeTo(projectDir).path }
+        }.files
+            .filter { isMarkdownDocPath(it.relativeTo(projectDir).path) }
+            .sortedBy { it.relativeTo(projectDir).path }
         check(markdownFiles.isEmpty()) {
             "Markdown documents are not allowed in result/: " + markdownFiles.joinToString(", ") { it.relativeTo(projectDir).path }
         }
@@ -65,6 +75,7 @@ tasks.register<Copy>("distPlugins") {
     group = "distribution"
     description = "Collects required CloudIslands plugin jars."
     exclude(markdownDocPatterns)
+    exclude(::isMarkdownDocElement)
 
     val pluginProjects = listOf(
         "cloudislands-paper",
@@ -82,6 +93,7 @@ tasks.register<Copy>("distAddons") {
     group = "distribution"
     description = "Collects optional CloudIslands addon jars."
     exclude(markdownDocPatterns)
+    exclude(::isMarkdownDocElement)
 
     val addonProjects = listOf(
         "cloudislands-satis"
@@ -103,6 +115,7 @@ tasks.register<Copy>("distServices") {
     group = "distribution"
     description = "Collects CloudIslands service runtime images."
     exclude(markdownDocPatterns)
+    exclude(::isMarkdownDocElement)
 
     val coreService = project(":cloudislands-core-service")
     val installTask = coreService.tasks.named("installDist")
@@ -115,6 +128,7 @@ tasks.register<Copy>("distTools") {
     group = "distribution"
     description = "Collects CloudIslands migration support jars used by the Core admin API."
     exclude(markdownDocPatterns)
+    exclude(::isMarkdownDocElement)
 
     val migrationJar = project(":cloudislands-migration").tasks.named<Jar>("jar")
     dependsOn(migrationJar)
@@ -126,6 +140,7 @@ tasks.register<Copy>("distDeveloperKit") {
     group = "distribution"
     description = "Collects API, client, protocol, testkit, and BOM artifacts for addon/plugin developers."
     exclude(markdownDocPatterns)
+    exclude(::isMarkdownDocElement)
 
     val developerProjects = listOf(
         "cloudislands-api",
@@ -171,6 +186,7 @@ tasks.register<Zip>("distBundle") {
     archiveBaseName.set("cloudislands")
     archiveVersion.set(project.version.toString())
     exclude(markdownDocPatterns)
+    exclude(::isMarkdownDocElement)
     from(layout.buildDirectory.dir("dist/plugins")) {
         into("plugins")
     }
@@ -197,6 +213,7 @@ tasks.register<Zip>("distAddonBundle") {
     archiveBaseName.set("cloudislands-addons")
     archiveVersion.set(project.version.toString())
     exclude(markdownDocPatterns)
+    exclude(::isMarkdownDocElement)
     from(layout.buildDirectory.dir("dist/addons")) {
         into("addons")
     }
