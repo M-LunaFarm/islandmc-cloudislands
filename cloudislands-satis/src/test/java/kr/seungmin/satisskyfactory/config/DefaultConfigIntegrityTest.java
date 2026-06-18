@@ -162,6 +162,8 @@ class DefaultConfigIntegrityTest {
         assertEquals("contracts", addon.getString("features.aliases.missions"));
         assertEquals("gui", addon.getString("features.aliases.menus"));
         assertEquals("machines", addon.getString("features.dependencies.resource-nodes"));
+        assertEquals("machines", addon.getString("features.dependencies.gui"));
+        assertEquals("machines", addon.getString("features.dependencies.placeholders"));
         assertEquals("storage", addon.getString("features.dependencies.market"));
         assertEquals("storage", addon.getString("features.dependencies.contracts"));
         assertEquals("addon-state", addon.getString("features.dependencies.route-events"));

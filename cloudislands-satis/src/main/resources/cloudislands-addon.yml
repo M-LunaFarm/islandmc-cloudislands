@@ -305,11 +305,13 @@ features:
     upgrades: research
     missions: contracts
     menus: gui
-  dependencies:
-    resource-nodes: machines
-    generators: factories
-    market: storage
-    contracts: storage
+	dependencies:
+	  resource-nodes: machines
+	  generators: factories
+	  gui: machines
+	  placeholders: machines
+	  market: storage
+	  contracts: storage
     missions: contracts+storage
     upgrades: research
     menus: gui
