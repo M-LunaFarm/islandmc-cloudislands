@@ -997,19 +997,22 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 this::addonIslandStateSnapshot,
                 this::reloadPluginConfig
         );
+        boolean registered = false;
         PluginCommand factory = getCommand("factory");
         if (factory != null) {
             ensureCommandRegistered(factory);
             factory.setExecutor(command);
             factory.setTabCompleter(command);
+            registered = factory.isRegistered();
         }
         PluginCommand sfactory = getCommand("sfactory");
         if (sfactory != null) {
             ensureCommandRegistered(sfactory);
             sfactory.setExecutor(command);
             sfactory.setTabCompleter(command);
+            registered = registered || sfactory.isRegistered();
         }
-        commandsRegistered = true;
+        commandsRegistered = registered;
     }
 
     private void ensureCommandRegistered(PluginCommand command) {
