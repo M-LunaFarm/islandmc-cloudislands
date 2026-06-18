@@ -5,6 +5,9 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 
 public final class IslandDeactivationHandler {
+    private static final String DEACTIVATION_SNAPSHOT_REASON = "DEACTIVATION";
+    private static final String BEFORE_DELETE_SNAPSHOT_REASON = "BEFORE_DELETE";
+
     private final ActiveIslandRegistry activeIslands;
     private final ShardWorldManager shardWorldManager;
     private final ProtectionController protectionController;
@@ -26,7 +29,7 @@ public final class IslandDeactivationHandler {
     }
 
     public DeactivationResult deactivate(UUID islandId, boolean deleteBackup) {
-        return deactivate(islandId, deleteBackup, deleteBackup ? "BEFORE_DELETE" : "DEACTIVATE_ISLAND");
+        return deactivate(islandId, deleteBackup, deleteBackup ? BEFORE_DELETE_SNAPSHOT_REASON : DEACTIVATION_SNAPSHOT_REASON);
     }
 
     public DeactivationResult deactivate(UUID islandId, boolean deleteBackup, String reason) {

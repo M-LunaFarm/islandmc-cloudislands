@@ -145,13 +145,14 @@ public final class PaperIslandJobWorker {
             jobSource.fail(nodeId, job.jobId(), "DEACTIVATION_UNAVAILABLE");
             return;
         }
-        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId(), job.type() == IslandJobType.DELETE_ISLAND, job.payload().getOrDefault("reason", job.type().name()));
+        String reason = job.payload().getOrDefault("reason", defaultSnapshotReason(job.type()));
+        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId(), job.type() == IslandJobType.DELETE_ISLAND, reason);
         if (result.success()) {
             Bukkit.getPluginManager().callEvent(new IslandDeactivateEvent(result.islandId(), nodeId, result.snapshotNo()));
             if (job.type() == IslandJobType.DELETE_ISLAND) {
                 Bukkit.getPluginManager().callEvent(new IslandDeleteEvent(result.islandId(), job.jobId(), nodeId, result.snapshotNo()));
             }
-            IslandJobCompletionPayload payload = IslandJobCompletionPayload.snapshot(result.snapshotNo(), job.payload().getOrDefault("reason", job.type().name()), result.checksum(), result.sizeBytes());
+            IslandJobCompletionPayload payload = IslandJobCompletionPayload.snapshot(result.snapshotNo(), reason, result.checksum(), result.sizeBytes());
             if (job.type() == IslandJobType.DELETE_ISLAND && job.payload().containsKey("ownerUuid")) {
                 payload = payload.with("ownerUuid", job.payload().get("ownerUuid"));
             }
@@ -166,12 +167,26 @@ public final class PaperIslandJobWorker {
             jobSource.fail(nodeId, job.jobId(), "SAVE_UNAVAILABLE");
             return;
         }
-        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.saveOnly(job.islandId(), job.payload().getOrDefault("reason", job.type().name()));
+        String reason = job.payload().getOrDefault("reason", defaultSnapshotReason(job.type()));
+        IslandDeactivationHandler.DeactivationResult result = deactivationHandler.saveOnly(job.islandId(), reason);
         if (result.success()) {
-            jobSource.complete(nodeId, job.jobId(), completePayload(job, IslandJobCompletionPayload.snapshot(result.snapshotNo(), job.payload().getOrDefault("reason", job.type().name()), result.checksum(), result.sizeBytes())));
+            jobSource.complete(nodeId, job.jobId(), completePayload(job, IslandJobCompletionPayload.snapshot(result.snapshotNo(), reason, result.checksum(), result.sizeBytes())));
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
         }
+    }
+
+    private String defaultSnapshotReason(IslandJobType type) {
+        if (type == IslandJobType.DEACTIVATE_ISLAND) {
+            return "DEACTIVATION";
+        }
+        if (type == IslandJobType.DELETE_ISLAND) {
+            return "BEFORE_DELETE";
+        }
+        if (type == IslandJobType.SNAPSHOT_ISLAND) {
+            return "MANUAL";
+        }
+        return type == null ? "" : type.name();
     }
 
     public interface LocalJobSource {
