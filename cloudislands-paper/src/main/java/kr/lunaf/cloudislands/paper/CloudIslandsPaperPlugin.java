@@ -207,6 +207,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (supportedTemplates.isBlank()) {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
         }
+        String templateVersions = templateVersionsMetadata();
         int maxActivationQueue = Math.max(1, getConfig().getInt("node.max-activation-queue", getConfig().getInt("island-node.activation.max-concurrent", 4)));
         int hardPlayerCap = Math.max(1, getConfig().getInt("node.hard-player-cap", 110));
         int reservedSlots = Math.max(0, getConfig().getInt("node.reserved-slots", 15));
@@ -215,7 +216,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             ? Math.max(1, Math.min(reservedSoftCap, getConfig().getInt("node.soft-player-cap", reservedSoftCap)))
             : reservedSoftCap;
         int maxActiveIslands = Math.max(1, getConfig().getInt("node.max-active-islands", 600));
-        String heartbeatSupportedTemplates = supportedTemplates;
+        String heartbeatSupportedTemplates = templateVersions.isBlank() ? supportedTemplates : supportedTemplates + ";templateVersions=" + templateVersions;
         this.heartbeatService = new PaperHeartbeatService(
             this,
             client,
@@ -725,6 +726,22 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";lastLevelScanStartedAt=" + scanner.lastScanStartedAt()
             + ";lastLevelScanFinishedAt=" + scanner.lastScanFinishedAt()
             + ";lastLevelScanFailedAt=" + scanner.lastScanFailedAt();
+    }
+
+    private String templateVersionsMetadata() {
+        org.bukkit.configuration.ConfigurationSection section = getConfig().getConfigurationSection("node.template-versions");
+        if (section == null) {
+            return "";
+        }
+        java.util.List<String> values = new java.util.ArrayList<>();
+        for (String key : section.getKeys(false)) {
+            String version = section.getString(key, "");
+            if (key == null || key.isBlank() || version == null || version.isBlank()) {
+                continue;
+            }
+            values.add(key.trim().replace(',', '_').replace(';', '_').replace(':', '_').replace('=', '_') + ":" + version.trim().replace(',', '_').replace(';', '_'));
+        }
+        return String.join(",", values);
     }
 
     private String heartbeatMetadata(String supportedTemplates, MeteredIslandStorage storage) {

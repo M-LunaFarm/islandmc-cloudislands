@@ -1048,6 +1048,10 @@ node:
   max-activation-queue: 20
   supported-templates:
     - "*"
+  # Optional template-specific runtime versions reported in heartbeat metadata.
+  # Core uses these before node.version when a template has minNodeVersion.
+  template-versions:
+    default: ""
 
 paper-gui:
   enabled: true
