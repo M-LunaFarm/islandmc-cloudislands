@@ -170,6 +170,31 @@ class SatisAddonIntegrationPolicyTest {
     }
 
     @Test
+    void mapsEveryHostLevelRuntimeGateToConcreteRuntimeBlocks() {
+        assertEquals(
+                "satis-state-write-paths-dirty-save-and-storage-backed-gui-actions",
+                SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("storage")
+        );
+        assertEquals(
+                "core-api-state-writer-table-key-value-bulk-save-and-load",
+                SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("addon-state")
+        );
+        assertEquals(
+                "route-session-and-node-move-event-consumers",
+                SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("route-events")
+        );
+        assertEquals(
+                "permission-query-dependent-actions-and-gui-controls",
+                SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("permissions")
+        );
+        assertEquals(
+                "warp-command-gui-and-location-write-paths",
+                SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("warps")
+        );
+        assertTrue(SatisAddonIntegrationPolicy.featureOffRuntimeBlockSummary().contains("addon-state=core-api-state-writer-table-key-value-bulk-save-and-load"));
+    }
+
+    @Test
     void exposesGoalCompletionCriteriaForRecentIntegrationRequirements() {
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("addon-jar-and-cloudislands-addon-descriptor-ship-as-separate-addon-bundle-artifacts"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("setup-database-supports-core-api-postgresql-mysql-mariadb-and-safe-fallback"));
@@ -207,5 +232,6 @@ class SatisAddonIntegrationPolicyTest {
         assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.forbiddenDirectAccessTargets().add("legacy"));
         assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.lifecycleEvents().add("legacy-event"));
         assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.requiredScenarios().put("legacy", "disabled"));
+        assertThrows(UnsupportedOperationException.class, () -> SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().put("legacy", "disabled"));
     }
 }

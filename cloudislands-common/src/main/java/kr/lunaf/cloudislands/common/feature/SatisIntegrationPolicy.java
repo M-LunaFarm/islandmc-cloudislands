@@ -47,7 +47,16 @@ public final class SatisIntegrationPolicy {
         Map.entry("placeholders", "placeholder-registration-placeholder-refresh"),
         Map.entry("gui", "satis-menu-registration-and-open-handlers"),
         Map.entry("lifecycle", "satis-lifecycle-event-consumers"),
-        Map.entry("storage", "satis-state-write-paths")
+        Map.entry("storage", "satis-state-write-paths-dirty-save-and-storage-backed-gui-actions"),
+        Map.entry("addon-state", "core-api-state-writer-table-key-value-bulk-save-and-load"),
+        Map.entry("route-events", "route-session-and-node-move-event-consumers"),
+        Map.entry("members", "member-query-dependent-commands-gui-actions-and-placeholders"),
+        Map.entry("permissions", "permission-query-dependent-actions-and-gui-controls"),
+        Map.entry("level-values", "level-worth-placeholders-gui-values-and-recalculation-hooks"),
+        Map.entry("warps", "warp-command-gui-and-location-write-paths"),
+        Map.entry("biomes", "biome-command-gui-and-biome-change-writes"),
+        Map.entry("chat", "island-chat-routing-formatting-and-event-handlers"),
+        Map.entry("templates", "template-command-gui-and-template-selection-writes")
     );
 
     private static final Map<String, String> STATE_STORAGE_CONFIG = Map.of(
