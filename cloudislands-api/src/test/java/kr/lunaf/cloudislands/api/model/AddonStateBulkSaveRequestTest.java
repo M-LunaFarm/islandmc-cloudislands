@@ -89,4 +89,38 @@ class AddonStateBulkSaveRequestTest {
         assertEquals(2, request.tableKeyCount());
         assertEquals(1, request.tableCount());
     }
+
+    @Test
+    void exposesShortTableKeyValueBulkSaveAliasesAndContractShape() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000703");
+
+        AddonStateBulkSaveRequest global = AddonStateBulkSaveRequest.tableKeyValueBulkSave(
+                "cloudislands-satis",
+                Map.of("runtime-status", "ok"),
+                Map.of("machines", Map.of("machine/1", "active")));
+        AddonStateBulkSaveRequest globalTable = AddonStateBulkSaveRequest.tableKeyValueBulkSave(
+                "cloudislands-satis",
+                "machines",
+                Map.of("machine/2", "idle"));
+        AddonStateBulkSaveRequest island = AddonStateBulkSaveRequest.tableKeyValueBulkSave(
+                "cloudislands-satis",
+                islandId,
+                Map.of("active-node", "island-2"),
+                Map.of("resource_nodes", Map.of("node/ore/0/0", "12000")));
+        AddonStateBulkSaveRequest islandTable = AddonStateBulkSaveRequest.tableKeyValueBulkSave(
+                "cloudislands-satis",
+                islandId,
+                "resource_nodes",
+                Map.of("node/oil/1/0", "8000"));
+
+        assertEquals("table-key-value-bulk-save", AddonStateBulkSaveRequest.API_NAME);
+        assertEquals("addonId,islandId?,values?,tables.{table}.{key}=value", AddonStateBulkSaveRequest.WIRE_SHAPE);
+        assertEquals("table-key-value-bulk-save", global.apiName());
+        assertEquals("global", global.scopeName());
+        assertEquals("island", island.scopeName());
+        assertEquals(Map.of("machine/1", "active"), global.tables().get("machines"));
+        assertEquals(Map.of("machine/2", "idle"), globalTable.tablesWithScopedTable().get("machines"));
+        assertEquals(Map.of("node/ore/0/0", "12000"), island.tables().get("resource_nodes"));
+        assertEquals(Map.of("node/oil/1/0", "8000"), islandTable.tablesWithScopedTable().get("resource_nodes"));
+    }
 }
