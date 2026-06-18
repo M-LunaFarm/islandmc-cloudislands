@@ -111,6 +111,15 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         "ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]",
         "ciadmin templates enable <id>",
         "ciadmin templates disable <id>",
+        "ciadmin migrate-superiorskyblock2 scan [path]",
+        "ciadmin migrate-superiorskyblock2 status",
+        "ciadmin migrate-superiorskyblock2 dryrun [path]",
+        "ciadmin migrate-superiorskyblock2 dry-run [path]",
+        "ciadmin migrate-superiorskyblock2 extract [outputPath]",
+        "ciadmin migrate-superiorskyblock2 import <approvalToken>",
+        "ciadmin migrate-superiorskyblock2 verify [path]",
+        "ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
+        "ciadmin migrate-superiorskyblock2 rollback",
         "ciadmin reload"
     );
     private static final List<String> MIGRATION_HELP_COMMANDS = List.of(
