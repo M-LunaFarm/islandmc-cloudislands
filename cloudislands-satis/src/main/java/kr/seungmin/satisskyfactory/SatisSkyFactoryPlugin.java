@@ -511,6 +511,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-research-policy", "disabled-feature-blocks-research-commands-gui-and-writes-preserve-data");
         state.put("runtime-research-unlock-save-policy", "research-unlock-uses-island-save-gate-before-writing-unlock-records");
         state.put("runtime-admin-research-save-policy", "admin-addresearch-saves-island-only-after-service-accepted-write");
+        state.put("runtime-level-values-gate", "addonRuntimeEnabled&&features.level-values&&features.lifecycle");
+        state.put("runtime-level-values-status", operationalFeatureEnabled("level-values") ? "enabled" : "level-values-feature-disabled-or-lifecycle-disabled");
+        state.put("runtime-level-values-policy", "disabled-feature-hides-level-value-derived-boosts-and-skips-level-worth-lifecycle-state");
+        state.put("runtime-level-values-command-policy", "status-and-placeholder-boost-values-are-hidden-when-level-values-is-disabled");
         state.put("runtime-machines-gate", "addonRuntimeEnabled&&features.machines");
         state.put("runtime-machines-status", operationalFeatureEnabled("machines") ? "enabled" : "machines-feature-disabled");
         state.put("runtime-machines-policy", "disabled-feature-blocks-machine-listener-ticker-commands-gui-service-and-writes-preserve-data");
