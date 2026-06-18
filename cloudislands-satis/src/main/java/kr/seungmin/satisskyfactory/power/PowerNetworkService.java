@@ -198,11 +198,11 @@ public final class PowerNetworkService {
                 consumption += consumptionFor(machine, definition);
             }
         }
-        VirtualInventory islandStorage = storage.islandStorage(islandUuid);
-        long stored = islandStorage.amount(POWER_CHARGE_ITEM);
+        VirtualInventory islandStorage = storage.islandStorageIfAllowed(islandUuid).orElse(null);
+        long stored = islandStorage == null ? 0L : islandStorage.amount(POWER_CHARGE_ITEM);
         long maxStored = Math.max(0, Math.round(batteryCapacity));
         if (stored > maxStored) {
-            if (writeBattery) {
+            if (writeBattery && islandStorage != null) {
                 long excess = stored - maxStored;
                 Map<String, Long> before = islandStorage.items();
                 long previousStored = stored;
@@ -222,8 +222,8 @@ public final class PowerNetworkService {
         if (generation >= consumption) {
             long charge = Math.max(0, Math.round(Math.min(generation - consumption, maxStored - stored)));
             if (charge > 0) {
-                Map<String, Long> before = islandStorage.items();
-                if (writeBattery && islandStorage.add(POWER_CHARGE_ITEM, charge)) {
+                Map<String, Long> before = islandStorage == null ? Map.of() : islandStorage.items();
+                if (writeBattery && islandStorage != null && islandStorage.add(POWER_CHARGE_ITEM, charge)) {
                     if (storage.saveIfAllowed(islandStorage)) {
                         stored += charge;
                     } else {
@@ -236,8 +236,8 @@ public final class PowerNetworkService {
         } else {
             long discharge = maxStored <= 0 ? 0 : Math.max(0, Math.round(Math.min(stored, consumption - generation)));
             if (discharge > 0) {
-                Map<String, Long> before = islandStorage.items();
-                if (writeBattery && islandStorage.remove(POWER_CHARGE_ITEM, discharge)) {
+                Map<String, Long> before = islandStorage == null ? Map.of() : islandStorage.items();
+                if (writeBattery && islandStorage != null && islandStorage.remove(POWER_CHARGE_ITEM, discharge)) {
                     if (storage.saveIfAllowed(islandStorage)) {
                         stored -= discharge;
                         available += discharge;
@@ -298,9 +298,9 @@ public final class PowerNetworkService {
 
     private boolean hasGeneratorFuel(MachineInstance machine, MachineDefinition definition) {
         VirtualInventory input = storage.get(machine.inputInventoryId()).orElse(null);
-        VirtualInventory islandStorage = storage.islandStorage(machine.islandUuid());
+        VirtualInventory islandStorage = storage.islandStorageIfAllowed(machine.islandUuid()).orElse(null);
         return generatorFuel(machine, definition).entrySet().stream()
-                .allMatch(entry -> amount(input, entry.getKey()) + islandStorage.amount(entry.getKey()) >= entry.getValue());
+                .allMatch(entry -> amount(input, entry.getKey()) + amount(islandStorage, entry.getKey()) >= entry.getValue());
     }
 
     private Map<String, Long> generatorFuel(MachineInstance machine, MachineDefinition definition) {
