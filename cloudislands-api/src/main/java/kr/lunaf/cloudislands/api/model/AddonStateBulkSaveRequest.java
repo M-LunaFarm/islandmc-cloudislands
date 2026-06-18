@@ -26,8 +26,26 @@ public record AddonStateBulkSaveRequest(
     public static final String ISLAND_BULK_SAVE_ALIAS = "/v1/addons/islands/state/table/key-value/bulk/save";
     public static final String GLOBAL_BULK_ALIAS = "/v1/addons/state/table/key-value/bulk";
     public static final String ISLAND_BULK_ALIAS = "/v1/addons/islands/state/table/key-value/bulk";
-    public static final List<String> GLOBAL_ENDPOINTS = List.of(GLOBAL_LEGACY_ENDPOINT, GLOBAL_ENDPOINT, GLOBAL_BULK_SAVE_ALIAS, GLOBAL_BULK_ALIAS);
-    public static final List<String> ISLAND_ENDPOINTS = List.of(ISLAND_LEGACY_ENDPOINT, ISLAND_ENDPOINT, ISLAND_BULK_SAVE_ALIAS, ISLAND_BULK_ALIAS);
+    public static final String GLOBAL_TABLE_BULK_ENDPOINT = "/v1/addons/state/table/bulk";
+    public static final String ISLAND_TABLE_BULK_ENDPOINT = "/v1/addons/islands/state/table/bulk";
+    public static final String GLOBAL_TABLE_BULK_SET_ENDPOINT = "/v1/addons/state/table/bulk-set";
+    public static final String ISLAND_TABLE_BULK_SET_ENDPOINT = "/v1/addons/islands/state/table/bulk-set";
+    public static final List<String> GLOBAL_ENDPOINTS = List.of(
+        GLOBAL_LEGACY_ENDPOINT,
+        GLOBAL_ENDPOINT,
+        GLOBAL_BULK_SAVE_ALIAS,
+        GLOBAL_BULK_ALIAS,
+        GLOBAL_TABLE_BULK_ENDPOINT,
+        GLOBAL_TABLE_BULK_SET_ENDPOINT
+    );
+    public static final List<String> ISLAND_ENDPOINTS = List.of(
+        ISLAND_LEGACY_ENDPOINT,
+        ISLAND_ENDPOINT,
+        ISLAND_BULK_SAVE_ALIAS,
+        ISLAND_BULK_ALIAS,
+        ISLAND_TABLE_BULK_ENDPOINT,
+        ISLAND_TABLE_BULK_SET_ENDPOINT
+    );
     private static final String TABLE_STATE_KEY_PREFIX = "table/";
     private static final int MAX_KEY_LENGTH = 128;
     private static final int MAX_VALUE_LENGTH = 65535;

@@ -122,13 +122,17 @@ class AddonStateBulkSaveRequestTest {
                 "/v1/addons/state/table-key-value/bulk-save",
                 "/v1/addons/state/table/key-value/bulk-save",
                 "/v1/addons/state/table/key-value/bulk/save",
-                "/v1/addons/state/table/key-value/bulk"
+                "/v1/addons/state/table/key-value/bulk",
+                "/v1/addons/state/table/bulk",
+                "/v1/addons/state/table/bulk-set"
         ), AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS);
         assertEquals(List.of(
                 "/v1/addons/islands/state/table-key-value/bulk-save",
                 "/v1/addons/islands/state/table/key-value/bulk-save",
                 "/v1/addons/islands/state/table/key-value/bulk/save",
-                "/v1/addons/islands/state/table/key-value/bulk"
+                "/v1/addons/islands/state/table/key-value/bulk",
+                "/v1/addons/islands/state/table/bulk",
+                "/v1/addons/islands/state/table/bulk-set"
         ), AddonStateBulkSaveRequest.ISLAND_ENDPOINTS);
         assertEquals("table-key-value-bulk-save", global.apiName());
         assertEquals("global", global.scopeName());
