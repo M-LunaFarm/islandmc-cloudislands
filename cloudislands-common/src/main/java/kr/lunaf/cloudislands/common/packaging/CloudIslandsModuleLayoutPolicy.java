@@ -105,7 +105,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         modules.put("cloudislands-migration", List.of("superiorskyblock2-importer", "dry-run-validator", "world-extractor", "report-generator"));
         modules.put("cloudislands-testkit", List.of("fixtures", "fake-repositories", "integration-test-helpers"));
         modules.put("cloudislands-bom", List.of("dependency-alignment", "published-version-coordinates"));
-        modules.put("cloudislands-satis", List.of("satismc-feature-bridge", "config-gated-addon-runtime", "legacy-feature-migration"));
+        modules.put("cloudislands-satis", List.of("satismc-feature-bridge", "config-gated-addon-runtime", "legacy-feature-migration", "addon-descriptor-sidecar"));
         return Collections.unmodifiableMap(modules);
     }
 
@@ -122,12 +122,12 @@ public final class CloudIslandsModuleLayoutPolicy {
     private static Map<String, List<String>> distributionTasks() {
         LinkedHashMap<String, List<String>> tasks = new LinkedHashMap<>();
         tasks.put("distPlugins", List.of("cloudislands-paper", "cloudislands-velocity"));
-        tasks.put("distAddons", List.of("cloudislands-satis"));
+        tasks.put("distAddons", List.of("cloudislands-satis", "cloudislands-satis-descriptor"));
         tasks.put("distServices", List.of("cloudislands-core-service"));
         tasks.put("distTools", List.of("cloudislands-migration"));
         tasks.put("distDeveloperKit", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration", "cloudislands-testkit", "cloudislands-bom"));
         tasks.put("distBundle", List.of("plugins", "addons", "services", "tools", "devkit"));
-        tasks.put("distAddonBundle", List.of("addons"));
+        tasks.put("distAddonBundle", List.of("addons", "addon-descriptors"));
         return Collections.unmodifiableMap(tasks);
     }
 

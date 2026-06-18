@@ -83,9 +83,14 @@ tasks.register<Copy>("distAddons") {
         "cloudislands-satis"
     )
     addonProjects.forEach { projectName ->
-        val jarTask = project(":$projectName").tasks.named<Jar>("jar")
+        val addonProject = project(":$projectName")
+        val jarTask = addonProject.tasks.named<Jar>("jar")
         dependsOn(jarTask)
         from(jarTask.flatMap { it.archiveFile })
+        from(addonProject.layout.projectDirectory.file("src/main/resources/cloudislands-addon.yml")) {
+            rename { "$projectName.yml" }
+            into("descriptors")
+        }
     }
     into(layout.buildDirectory.dir("dist/addons"))
 }

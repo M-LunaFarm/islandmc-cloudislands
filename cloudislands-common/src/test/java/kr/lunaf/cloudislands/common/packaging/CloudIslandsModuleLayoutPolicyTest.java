@@ -54,6 +54,22 @@ class CloudIslandsModuleLayoutPolicyTest {
             List.of("superiorskyblock2-importer", "dry-run-validator", "world-extractor", "report-generator"),
             CloudIslandsModuleLayoutPolicy.moduleResponsibilities().get("cloudislands-migration")
         );
+        assertEquals(
+            List.of("satismc-feature-bridge", "config-gated-addon-runtime", "legacy-feature-migration", "addon-descriptor-sidecar"),
+            CloudIslandsModuleLayoutPolicy.moduleResponsibilities().get("cloudislands-satis")
+        );
+    }
+
+    @Test
+    void recordsAddonDistributionAsJarAndDescriptorSidecar() {
+        assertEquals(
+            List.of("cloudislands-satis", "cloudislands-satis-descriptor"),
+            CloudIslandsModuleLayoutPolicy.distributionTasks().get("distAddons")
+        );
+        assertEquals(
+            List.of("addons", "addon-descriptors"),
+            CloudIslandsModuleLayoutPolicy.distributionTasks().get("distAddonBundle")
+        );
     }
 
     @Test
