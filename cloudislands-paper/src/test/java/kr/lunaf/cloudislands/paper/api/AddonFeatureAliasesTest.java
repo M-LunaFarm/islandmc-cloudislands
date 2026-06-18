@@ -40,6 +40,24 @@ class AddonFeatureAliasesTest {
     }
 
     @Test
+    void resolvesCombinedFeatureDependencies() {
+        Map<String, String> metadata = Map.of(
+                "feature-dependencies", "missions:contracts+storage,contracts:storage"
+        );
+
+        assertEquals(false, AddonFeatureAliases.featureEnabled(metadata, Map.of(
+                "storage", false,
+                "contracts", true,
+                "missions", true
+        ), "missions"));
+        assertEquals(true, AddonFeatureAliases.featureEnabled(metadata, Map.of(
+                "storage", true,
+                "contracts", true,
+                "missions", true
+        ), "missions"));
+    }
+
+    @Test
     void aliasFalseStillDisablesCanonicalFeature() {
         Map<String, String> metadata = Map.of("feature-aliases", "generators:resource-nodes");
         Map<String, Boolean> features = Map.of("resource-nodes", true, "generators", false);
