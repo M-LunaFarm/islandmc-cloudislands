@@ -15,6 +15,8 @@ class PortableIslandDesignPolicyTest {
         assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("islands-are-global-resources-not-fixed-to-servers"));
         assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("islands-are-saved-as-portable-bundles"));
         assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("island-nodes-are-execution-hosts-not-island-owners"));
+        assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("players-see-logical-islands-never-island-node-names"));
+        assertTrue(PortableIslandDesignPolicy.coreDecisions().contains("adding-island-5-or-island-6-requires-registration-only-not-player-command-changes"));
     }
 
     @Test
@@ -31,8 +33,10 @@ class PortableIslandDesignPolicyTest {
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("full-island-1-does-not-block-create-on-island-2"));
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("inactive-island-can-open-on-island-2"));
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("players-do-not-need-channel-or-node-knowledge"));
+        assertTrue(PortableIslandDesignPolicy.requiredOutcome("player-facing-output-hides-island-node-names"));
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("admins-can-drain-or-migrate-by-node"));
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("island-3-and-island-4-can-be-added-later"));
+        assertTrue(PortableIslandDesignPolicy.requiredOutcome("island-5-and-island-6-can-be-added-later"));
     }
 
     @Test
@@ -53,7 +57,9 @@ class PortableIslandDesignPolicyTest {
     void recordsSoftFullScaleOutAndAddonRemovalScenarios() {
         assertTrue(PortableIslandDesignPolicy.expectedScenario("island-1-soft-full-create-on-island-2").contains("new-island-create-skips-island-1"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("island-1-soft-full-create-on-island-2").contains("allocator-selects-island-2"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("island-1-soft-full-create-on-island-2").contains("player-output-still-says-logical-island"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("add-island-5-and-6").contains("players-do-not-change-commands"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("add-island-5-and-6").contains("players-never-see-island-5-or-island-6-as-destination"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("addon-disabled-or-removed").contains("core-island-create-home-visit-still-work"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("addon-disabled-or-removed").contains("reenable-restores-addon-state-by-island-uuid"));
         assertTrue(PortableIslandDesignPolicy.knownScenario("a-server-to-b-server-move-with-addon-disabled"));

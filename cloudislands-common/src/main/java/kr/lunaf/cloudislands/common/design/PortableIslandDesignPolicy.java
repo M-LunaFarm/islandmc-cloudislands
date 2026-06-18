@@ -15,13 +15,17 @@ public final class PortableIslandDesignPolicy {
     public static final String NODE_ROLE_POLICY = "island-nodes-are-execution-hosts-not-island-owners";
     public static final String PLACEMENT_POLICY = "node-agnostic-shard-cell-remap";
     public static final String RESTORE_POLICY = "verify-checksum-then-restore-to-current-active-node";
+    public static final String PLAYER_NODE_PRIVACY_POLICY = "players-see-logical-islands-never-island-node-names";
+    public static final String NODE_POOL_SCALE_POLICY = "adding-island-5-or-island-6-requires-registration-only-not-player-command-changes";
 
     private static final List<String> CORE_DECISIONS = List.of(
             GLOBAL_RESOURCE_POLICY,
             PORTABLE_BUNDLE_POLICY,
             NODE_ROLE_POLICY,
             PLACEMENT_POLICY,
-            RESTORE_POLICY
+            RESTORE_POLICY,
+            PLAYER_NODE_PRIVACY_POLICY,
+            NODE_POOL_SCALE_POLICY
     );
 
     private static final List<String> REQUIRED_OUTCOMES = List.of(
@@ -31,8 +35,10 @@ public final class PortableIslandDesignPolicy {
             "full-island-1-does-not-block-create-on-island-2",
             "inactive-island-can-open-on-island-2",
             "players-do-not-need-channel-or-node-knowledge",
+            "player-facing-output-hides-island-node-names",
             "admins-can-drain-or-migrate-by-node",
-            "island-3-and-island-4-can-be-added-later"
+            "island-3-and-island-4-can-be-added-later",
+            "island-5-and-island-6-can-be-added-later"
     );
 
     private static final Map<String, List<String>> EXPECTED_SCENARIOS = buildExpectedScenarios();
@@ -85,14 +91,16 @@ public final class PortableIslandDesignPolicy {
                 "new-island-create-skips-island-1",
                 "allocator-selects-island-2",
                 "db-keeps-global-island-record",
-                "velocity-connects-player-to-island-2"
+                "velocity-connects-player-to-island-2",
+                "player-output-still-says-logical-island"
         ));
         scenarios.put("add-island-5-and-6", List.of(
                 "new-nodes-register-heartbeat",
                 "allocator-includes-ready-nodes",
                 "existing-islands-remain-global-resources",
                 "new-or-inactive-islands-can-open-on-new-nodes",
-                "players-do-not-change-commands"
+                "players-do-not-change-commands",
+                "players-never-see-island-5-or-island-6-as-destination"
         ));
         scenarios.put("addon-disabled-or-removed", List.of(
                 "core-island-create-home-visit-still-work",
