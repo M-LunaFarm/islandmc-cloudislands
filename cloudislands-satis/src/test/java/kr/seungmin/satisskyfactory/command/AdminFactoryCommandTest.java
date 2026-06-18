@@ -6,6 +6,8 @@ import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,6 +63,17 @@ class AdminFactoryCommandTest {
 
         assertFalse(commands.stream().anyMatch(command -> command.contains(" migration")));
         assertTrue(commands.contains("factory admin state"));
+    }
+
+    @Test
+    void exposesCoreApiSetupAndIslandEndpointStateKeys() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminFactoryCommand.java"));
+
+        assertTrue(source.contains("\"database-core-api-island-endpoint\""));
+        assertTrue(source.contains("\"addon-state-sync-island-endpoint\""));
+        assertTrue(source.contains("\"database-recommended-fallback-order\""));
+        assertTrue(source.contains("\"database-multi-node-warning\""));
+        assertTrue(source.contains("\"database-node-local-cache-active\""));
     }
 
     @SuppressWarnings("unchecked")
