@@ -176,6 +176,7 @@ state:
   multi-node-safe: true
   node-count-policy: island-node-count-does-not-change-satis-state-identity-or-storage-authority
   recovery-scenario: heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write
+  recovery-state-keys: last-lifecycle-heartbeat-expiry-policy,last-lifecycle-fencing-token-policy,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy
   addon-removal-scenario: missing-addon-state-never-blocks-cloudislands-base-island-load
   addon-removal-runtime-action: stop-satis-runtime-preserve-addon-state-leave-cloudislands-islands-loadable
   migration-preflush-policy: flush-dirty-state-before-source-node-deactivation-then-remap-on-target-activation
@@ -187,7 +188,7 @@ state:
   placement-source-state-key: last-lifecycle-operation
   node-move-state-keys: source-node,target-node,node-move,node-move-policy
   relocation-audit-policy: publish-global-and-island-addon-state-for-active-placement-remaps
-  relocation-state-keys: last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-state-authority,last-relocation-write-fence,last-relocation-duplicate-tick-policy,last-relocation-confirmed-state-policy,last-relocation-at
+  relocation-state-keys: last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-state-authority,last-relocation-write-fence,last-relocation-duplicate-tick-policy,last-relocation-confirmed-state-policy,last-relocation-handoff-audit-key,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy,last-relocation-at
   dirty-save-state-keys: runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,runtime-dirty-save-stop-policy,last-preflush-status,last-preflush-writes,last-preflush-failures,last-preflush-at
   dirty-save-stop-policy: runtime-stop-preflushes-queued-dirty-state-before-task-cancel-and-addon-unregister
   preflush-audit-policy: publish-global-and-island-addon-state-for-migration-deactivation-and-disable-flushes

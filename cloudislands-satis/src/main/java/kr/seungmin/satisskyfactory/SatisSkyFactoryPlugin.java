@@ -539,6 +539,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-dirty-save-gate", "addonRuntimeEnabled&&storage-write-authority&&any-runtime-write-feature-enabled");
         state.put("runtime-dirty-save-stop-policy", "runtime-stop-preflushes-queued-dirty-state-before-task-cancel-and-addon-unregister");
         state.put("runtime-duplicate-tick-guard", "ticker-stops-when-addon-or-machine-feature-disabled");
+        state.put("runtime-heartbeat-expiry-policy", SatisStatePortabilityPolicy.HEARTBEAT_EXPIRY_POLICY);
+        state.put("runtime-fencing-token-policy", SatisStatePortabilityPolicy.FENCING_TOKEN_POLICY);
+        state.put("runtime-stale-write-policy", SatisStatePortabilityPolicy.STALE_WRITE_POLICY);
         state.put("runtime-core-api-state-writer", Boolean.toString(coreApiState != null));
         state.put("runtime-core-api-state-writer-gate", "addonRuntimeEnabled&&features.addon-state&&databaseBackend=CORE_API&&cloudislands-addon-state-api");
         state.put("runtime-core-api-state-writer-block-reason", coreApiStateWriterBlockReason());
@@ -3427,6 +3430,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-relocation-write-fence", "cloudislands-runtime-fencing-single-active-owner");
         state.put("last-relocation-duplicate-tick-policy", "source-preflush-target-rehydrate-no-local-cache-replay");
         state.put("last-relocation-confirmed-state-policy", "use-last-confirmed-shared-state-only-after-node-failure");
+        state.put("last-relocation-handoff-audit-key", SatisStatePortabilityPolicy.NODE_HANDOFF_AUDIT_KEY);
+        state.put("last-relocation-heartbeat-expiry-policy", SatisStatePortabilityPolicy.HEARTBEAT_EXPIRY_POLICY);
+        state.put("last-relocation-fencing-token-policy", SatisStatePortabilityPolicy.FENCING_TOKEN_POLICY);
+        state.put("last-relocation-stale-write-policy", SatisStatePortabilityPolicy.STALE_WRITE_POLICY);
         state.put("last-relocation-at", Instant.now().toString());
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis relocation audit state: " + error.getMessage());
@@ -3453,6 +3460,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         islandState.put("relocation-write-fence", "cloudislands-runtime-fencing-single-active-owner");
         islandState.put("relocation-duplicate-tick-policy", "source-preflush-target-rehydrate-no-local-cache-replay");
         islandState.put("relocation-confirmed-state-policy", "use-last-confirmed-shared-state-only-after-node-failure");
+        islandState.put("relocation-handoff-audit-key", SatisStatePortabilityPolicy.NODE_HANDOFF_AUDIT_KEY);
+        islandState.put("relocation-heartbeat-expiry-policy", SatisStatePortabilityPolicy.HEARTBEAT_EXPIRY_POLICY);
+        islandState.put("relocation-fencing-token-policy", SatisStatePortabilityPolicy.FENCING_TOKEN_POLICY);
+        islandState.put("relocation-stale-write-policy", SatisStatePortabilityPolicy.STALE_WRITE_POLICY);
         islandState.put("relocation-at", Instant.now().toString());
         cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, islandState).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis island relocation audit state: " + error.getMessage());
@@ -3739,6 +3750,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-lifecycle-resume-source", "core-api-confirmed-state");
         state.put("last-lifecycle-state-authority", "last-core-confirmed-state-only");
         state.put("last-lifecycle-stale-write-policy", "discard-local-dirty-state");
+        state.put("last-lifecycle-heartbeat-expiry-policy", SatisStatePortabilityPolicy.HEARTBEAT_EXPIRY_POLICY);
+        state.put("last-lifecycle-fencing-token-policy", SatisStatePortabilityPolicy.FENCING_TOKEN_POLICY);
         if (!eventNode.isBlank()) {
             state.put("last-lifecycle-node", eventNode);
         }

@@ -19,6 +19,9 @@ public final class SatisStatePortabilityPolicy {
     public static final String NODE_HANDOFF_PREFLUSH_POLICY = "flush-dirty-satis-state-before-deactivate-disable-or-node-drain";
     public static final String NODE_HANDOFF_RESTORE_POLICY = "target-node-loads-core-api-table-state-before-first-satis-runtime-tick";
     public static final String NODE_HANDOFF_AUDIT_KEY = "islandUuid+sourceNode+targetNode+fencingToken+lastConfirmedStateAt";
+    public static final String HEARTBEAT_EXPIRY_POLICY = "expired-cloudislands-node-heartbeat-marks-local-satis-state-non-authoritative";
+    public static final String FENCING_TOKEN_POLICY = "newer-cloudislands-fencing-token-invalidates-stale-source-node-writes";
+    public static final String STALE_WRITE_POLICY = "drop-local-dirty-state-after-recovery-required-or-fencing-mismatch";
     public static final String ADDON_REMOVAL_POLICY = "preserve-cloudislands-island-and-addon-state-by-island-uuid";
     public static final String ADDON_DISABLE_POLICY = "preflush-satis-state-stop-runtime-keep-cloudislands-lifecycle";
     public static final String DEFERRED_REMAP_POLICY = "when-feature-disabled-store-original-center-and-apply-remap-when-reenabled";
@@ -76,6 +79,9 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-node-handoff-preflush-policy", NODE_HANDOFF_PREFLUSH_POLICY);
         values.put("core-api-sync-node-handoff-restore-policy", NODE_HANDOFF_RESTORE_POLICY);
         values.put("core-api-sync-node-handoff-audit-key", NODE_HANDOFF_AUDIT_KEY);
+        values.put("core-api-sync-heartbeat-expiry-policy", HEARTBEAT_EXPIRY_POLICY);
+        values.put("core-api-sync-fencing-token-policy", FENCING_TOKEN_POLICY);
+        values.put("core-api-sync-stale-write-policy", STALE_WRITE_POLICY);
         values.put("core-api-sync-target-tick-start-policy", TARGET_TICK_START_POLICY);
         values.put("core-api-sync-crash-replay-policy", CRASH_REPLAY_POLICY);
         values.put("core-api-sync-state-owner-policy", STATE_OWNER_POLICY);
