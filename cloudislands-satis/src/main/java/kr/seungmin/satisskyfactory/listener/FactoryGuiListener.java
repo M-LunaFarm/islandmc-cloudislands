@@ -381,7 +381,6 @@ public final class FactoryGuiListener implements Listener {
                 messages.send(player, "debt-repaid", Map.of("amount", String.valueOf(result.debtRepaid())));
             }
         }, () -> messages.send(player, "cannot-sell"));
-        islands.save(island);
         gui.openMarket(player, island, market, page);
     }
 

@@ -1431,6 +1431,7 @@ public final class AdminFactoryCommand {
                         "runtime-admin-virtual-item-storage-gate",
                         "runtime-player-storage-command-service-gate",
                         "runtime-player-market-command-service-gate",
+                        "runtime-gui-market-save-policy",
                         "runtime-player-repair-command-service-gate",
                         "runtime-resource-nodes-gate",
                         "runtime-resource-nodes-status",
