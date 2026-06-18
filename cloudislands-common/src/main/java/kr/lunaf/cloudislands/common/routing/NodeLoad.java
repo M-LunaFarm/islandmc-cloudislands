@@ -151,12 +151,7 @@ public record NodeLoad(
     }
 
     public boolean defaultNodeIdentityRisk() {
-        if ("true".equalsIgnoreCase(heartbeatMetadata().getOrDefault("defaultNodeIdentityRisk", "false"))) {
-            return true;
-        }
-        String safeNodeId = nodeId == null ? "" : nodeId.trim();
-        String safeVelocityServerName = velocityServerName == null ? "" : velocityServerName.trim();
-        return safeNodeId.equalsIgnoreCase("island-1") || safeVelocityServerName.equalsIgnoreCase("Island-1");
+        return "true".equalsIgnoreCase(heartbeatMetadata().getOrDefault("defaultNodeIdentityRisk", "false"));
     }
 
     public boolean satisfiesMinVersion(String minVersion) {

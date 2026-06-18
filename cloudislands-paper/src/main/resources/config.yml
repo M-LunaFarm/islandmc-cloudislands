@@ -1025,12 +1025,12 @@ node:
   # matching unique Velocity server name. Five or six Island nodes are valid as
   # long as each node is a distinct route candidate and island bundle storage is shared.
   # Example 6-node pool:
-  # - server 1: node.id=island-1, node.velocity-server-name=Island-1
-  # - server 2: node.id=island-2, node.velocity-server-name=Island-2
-  # - server 3: node.id=island-3, node.velocity-server-name=Island-3
-  # - server 4: node.id=island-4, node.velocity-server-name=Island-4
-  # - server 5: node.id=island-5, node.velocity-server-name=Island-5
-  # - server 6: node.id=island-6, node.velocity-server-name=Island-6
+  # - server 1: node.id=island-a, node.velocity-server-name=Island-A
+  # - server 2: node.id=island-b, node.velocity-server-name=Island-B
+  # - server 3: node.id=island-c, node.velocity-server-name=Island-C
+  # - server 4: node.id=island-d, node.velocity-server-name=Island-D
+  # - server 5: node.id=island-e, node.velocity-server-name=Island-E
+  # - server 6: node.id=island-f, node.velocity-server-name=Island-F
   # Keep node.pool the same on every Island node in the pool, but never reuse node.id
   # or node.velocity-server-name. Shared S3/object storage is required so inactive islands
   # and Satis addon state can move safely between nodes.
