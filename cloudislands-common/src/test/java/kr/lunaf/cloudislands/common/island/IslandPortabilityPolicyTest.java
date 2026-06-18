@@ -66,6 +66,13 @@ class IslandPortabilityPolicyTest {
         assertEquals(6L, IslandPortabilityPolicy.recommendedRouteCandidateMinimum(8));
         assertEquals(6L, IslandPortabilityPolicy.recommendedRouteCandidateMinimum(12));
         assertEquals(6, IslandPortabilityPolicy.MAX_RECOMMENDED_ROUTE_CANDIDATES);
+        assertFalse(IslandPortabilityPolicy.routeCandidateRecommendationCapsNodeCount());
+        assertFalse(IslandPortabilityPolicy.nodeCountExceedsRecommendedCandidateCap(6));
+        assertTrue(IslandPortabilityPolicy.nodeCountExceedsRecommendedCandidateCap(12));
+        assertTrue(IslandPortabilityPolicy.supportsIslandNodeCount(64));
+        assertEquals("no-island-nodes-registered", IslandPortabilityPolicy.routeCandidateCapMeaning(0));
+        assertEquals("recommended-ready-candidate-count-tracks-node-count", IslandPortabilityPolicy.routeCandidateCapMeaning(6));
+        assertEquals("alerting-cap-only-node-count-still-supported", IslandPortabilityPolicy.routeCandidateCapMeaning(12));
         assertEquals(
             "recommended-route-candidates-are-capped-for-alerting-not-for-node-count-limiting",
             IslandPortabilityPolicy.ROUTE_CANDIDATE_MINIMUM_POLICY

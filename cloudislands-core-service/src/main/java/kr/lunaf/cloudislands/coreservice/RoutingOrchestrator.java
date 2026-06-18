@@ -488,6 +488,8 @@ public final class RoutingOrchestrator {
         details.put("elasticLimitPolicy", IslandPortabilityPolicy.NO_FIXED_NODE_COUNT_LIMIT_POLICY);
         details.put("eightPlusNodePolicy", IslandPortabilityPolicy.EIGHT_PLUS_NODE_POLICY);
         details.put("routeCandidateMinimumPolicy", IslandPortabilityPolicy.ROUTE_CANDIDATE_MINIMUM_POLICY);
+        details.put("routeCandidateCapLimitsNodeCount", Boolean.toString(IslandPortabilityPolicy.routeCandidateRecommendationCapsNodeCount()));
+        details.put("routeCandidateCapMeaning", IslandPortabilityPolicy.routeCandidateCapMeaning(poolNodes));
         details.put("blockReason", publicBlockReason(debugReason));
         details.put("physicalNodeNamesExposed", "false");
         return Map.copyOf(details);

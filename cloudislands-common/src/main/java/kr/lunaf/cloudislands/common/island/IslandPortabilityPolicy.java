@@ -61,6 +61,24 @@ public final class IslandPortabilityPolicy {
         return SCALE_OUT_EXAMPLE_COUNTS.contains(islandNodeCount);
     }
 
+    public static boolean routeCandidateRecommendationCapsNodeCount() {
+        return false;
+    }
+
+    public static boolean nodeCountExceedsRecommendedCandidateCap(long islandNodeCount) {
+        return islandNodeCount > MAX_RECOMMENDED_ROUTE_CANDIDATES;
+    }
+
+    public static String routeCandidateCapMeaning(long islandNodeCount) {
+        if (islandNodeCount <= 0L) {
+            return "no-island-nodes-registered";
+        }
+        if (nodeCountExceedsRecommendedCandidateCap(islandNodeCount)) {
+            return "alerting-cap-only-node-count-still-supported";
+        }
+        return "recommended-ready-candidate-count-tracks-node-count";
+    }
+
     public static long recommendedRouteCandidateMinimum(long islandNodeCount) {
         if (islandNodeCount <= 0L) {
             return 0L;
