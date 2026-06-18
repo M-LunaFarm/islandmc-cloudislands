@@ -163,8 +163,17 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             ensureResourceNodes(player, factoryContext);
         }
         if (!readOnly && enabled("maintenance")) {
+            long previousDebt = island.maintenanceDebt();
+            MaintenanceStatus previousStatus = island.maintenanceStatus();
+            long previousScore = island.factoryScore();
+            long previousLastMaintenanceAt = island.lastMaintenanceAt();
             maintenance.chargeIfDue(island, player, factoryContext.islandRef().raw());
-            islands.save(island);
+            if (!islands.save(island)) {
+                island.maintenanceDebt(previousDebt);
+                island.maintenanceStatus(previousStatus);
+                island.factoryScore(previousScore);
+                island.lastMaintenanceAt(previousLastMaintenanceAt);
+            }
         }
         switch (sub) {
             case "help", "list", "commands", "command", "command-list", "명령어", "명령어목록" -> help(player, label, helpPage(args));
