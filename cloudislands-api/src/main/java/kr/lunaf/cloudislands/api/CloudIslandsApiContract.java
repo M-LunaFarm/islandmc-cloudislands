@@ -14,6 +14,8 @@ public final class CloudIslandsApiContract {
     public static final String ADDON_SUPPORTED_PACKAGING = "external-plugin,built-in-feature-pack,built-in-compatible";
     public static final String ADDON_DESCRIPTOR_POLICY = "addon-descriptor-may-be-embedded-in-jar-or-distributed-as-sidecar-cloudislands-addon-yml";
     public static final String ADDON_DISTRIBUTION_POLICY = "distAddons-and-distAddonBundle-package-addon-jars-and-descriptor-sidecars-separately-from-required-core";
+    public static final String ADDON_REMOVAL_POLICY = "missing-disabled-or-removed-addon-must-not-block-core-island-create-route-save-restore";
+    public static final String ADDON_RECONNECT_POLICY = "reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid";
     public static final String JAVA_PLUGIN_API_POLICY = "paper-plugins-use-cloudislands-api-services-and-never-core-internals";
     public static final String INTERNAL_API_POLICY = "http-admin-and-runtime-endpoints-are-token-or-mtls-protected-core-boundaries";
     public static final String EVENT_API_POLICY = "global-events-are-append-only-cache-invalidation-and-addon-lifecycle-contract";
@@ -40,6 +42,8 @@ public final class CloudIslandsApiContract {
             "addon-supported-packaging",
             "addon-descriptor-policy",
             "addon-distribution-policy",
+            "addon-removal-policy",
+            "addon-reconnect-policy",
             "java-plugin-api-policy",
             "internal-api-policy",
             "event-api-policy",
@@ -106,6 +110,8 @@ public final class CloudIslandsApiContract {
             Map.entry("addon-supported-packaging", ADDON_SUPPORTED_PACKAGING),
             Map.entry("addon-descriptor-policy", ADDON_DESCRIPTOR_POLICY),
             Map.entry("addon-distribution-policy", ADDON_DISTRIBUTION_POLICY),
+            Map.entry("addon-removal-policy", ADDON_REMOVAL_POLICY),
+            Map.entry("addon-reconnect-policy", ADDON_RECONNECT_POLICY),
             Map.entry("java-plugin-api-policy", JAVA_PLUGIN_API_POLICY),
             Map.entry("internal-api-policy", INTERNAL_API_POLICY),
             Map.entry("event-api-policy", EVENT_API_POLICY),

@@ -113,6 +113,14 @@ public interface CloudIslandsAddon {
         return "preserve-addon-state-by-addon-id-and-island-uuid";
     }
 
+    default String addonRemovalPolicy() {
+        return "missing-disabled-or-removed-addon-must-not-block-core-island-create-route-save-restore";
+    }
+
+    default String addonReconnectPolicy() {
+        return "reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid";
+    }
+
     default String addonConfigGatePolicy() {
         return "addon-enabled-and-feature-switches-control-runtime-components";
     }
@@ -196,6 +204,8 @@ public interface CloudIslandsAddon {
         metadata.put("addon-core-lifecycle-owner", "false");
         metadata.put("addon-removal-safe", Boolean.toString(addonRemovalSafe()));
         metadata.put("addon-data-retention", safeMetadataValue(addonDataRetentionPolicy(), "preserve-addon-state-by-addon-id-and-island-uuid"));
+        metadata.put("addon-removal-policy", safeMetadataValue(addonRemovalPolicy(), "missing-disabled-or-removed-addon-must-not-block-core-island-create-route-save-restore"));
+        metadata.put("addon-reconnect-policy", safeMetadataValue(addonReconnectPolicy(), "reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid"));
         metadata.put("addon-config-gate-policy", safeMetadataValue(addonConfigGatePolicy(), "addon-enabled-and-feature-switches-control-runtime-components"));
         metadata.put("addon-event-source", "cloudislands-global-event-stream");
         metadata.put("addon-event-delivery", "typed-cloud-event-callbacks-through-cloudislands-api");

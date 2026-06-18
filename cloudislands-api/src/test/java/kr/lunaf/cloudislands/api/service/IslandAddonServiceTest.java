@@ -31,6 +31,8 @@ class IslandAddonServiceTest {
         assertEquals("IllegalStateException", snapshot.metadata().get("metadata-error"));
         assertEquals("external-plugin", snapshot.metadata().get("addon-packaging"));
         assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", snapshot.metadata().get("addon-supported-packaging"));
+        assertEquals("missing-disabled-or-removed-addon-must-not-block-core-island-create-route-save-restore", snapshot.metadata().get("addon-removal-policy"));
+        assertEquals("reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid", snapshot.metadata().get("addon-reconnect-policy"));
     }
 
     @Test
@@ -45,6 +47,8 @@ class IslandAddonServiceTest {
         assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", snapshot.metadata().get("addon-supported-packaging"));
         assertEquals("false", snapshot.metadata().get("addon-core-lifecycle-owner"));
         assertEquals("addon-enabled-and-feature-switches-control-runtime-components", snapshot.metadata().get("addon-config-gate-policy"));
+        assertEquals("missing-disabled-or-removed-addon-must-not-block-core-island-create-route-save-restore", snapshot.metadata().get("addon-removal-policy"));
+        assertEquals("reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid", snapshot.metadata().get("addon-reconnect-policy"));
     }
 
     @Test
