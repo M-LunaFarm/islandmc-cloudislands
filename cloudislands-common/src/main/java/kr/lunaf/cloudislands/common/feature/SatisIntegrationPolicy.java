@@ -18,6 +18,7 @@ public final class SatisIntegrationPolicy {
         Map.entry("velocity-forwarding-mode", "paper-island-nodes-trust-player-identity-only-through-velocity-modern-forwarding-and-shared-secret"),
         Map.entry("topology-private-mode", "players-use-logical-island-commands-and-never-see-island-node-server-world-cell-or-route-ticket-identifiers"),
         Map.entry("player-island-surface-mode", "my-island-other-island-ranking-visit-settings-and-warps-stay-logical-and-route-through-core-api"),
+        Map.entry("infrastructure-authority-mode", "postgresql-is-authoritative-redis-is-cache-lock-stream-queue-helper-object-storage-holds-portable-bundles"),
         Map.entry("soft-full-create-mode", "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change")
     );
 
@@ -130,6 +131,8 @@ public final class SatisIntegrationPolicy {
         "velocity-modern-forwarding-and-forwarding-secret-are-required-for-paper-island-node-trust",
         "player-facing-output-hides-physical-island-node-server-world-cell-and-route-identifiers",
         "my-island-other-island-ranking-visit-settings-and-warps-use-logical-core-api-backed-flows",
+        "postgresql-redis-and-object-storage-authority-boundaries-are-explicit-and-tested",
+        "portable-island-bundles-require-manifest-checksums-safe-restore-and-quarantine-fallback",
         "island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned",
         "state-survives-a-node-to-b-node-island-move",
         "state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed",

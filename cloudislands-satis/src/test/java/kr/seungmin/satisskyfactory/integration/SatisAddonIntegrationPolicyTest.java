@@ -237,6 +237,8 @@ class SatisAddonIntegrationPolicyTest {
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("velocity-modern-forwarding-and-forwarding-secret-are-required-for-paper-island-node-trust"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("player-facing-output-hides-physical-island-node-server-world-cell-and-route-identifiers"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("my-island-other-island-ranking-visit-settings-and-warps-use-logical-core-api-backed-flows"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("postgresql-redis-and-object-storage-authority-boundaries-are-explicit-and-tested"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("portable-island-bundles-require-manifest-checksums-safe-restore-and-quarantine-fallback"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed"));
         assertEquals(
@@ -262,6 +264,10 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals(
                 "my-island-other-island-ranking-visit-settings-and-warps-stay-logical-and-route-through-core-api",
                 SatisAddonIntegrationPolicy.operationScenarios().get("player-island-surface-mode")
+        );
+        assertEquals(
+                "postgresql-is-authoritative-redis-is-cache-lock-stream-queue-helper-object-storage-holds-portable-bundles",
+                SatisAddonIntegrationPolicy.operationScenarios().get("infrastructure-authority-mode")
         );
         assertEquals(
                 "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change",
