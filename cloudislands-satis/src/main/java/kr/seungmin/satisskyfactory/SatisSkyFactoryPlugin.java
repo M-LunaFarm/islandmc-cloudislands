@@ -368,7 +368,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             maintenanceTicker = new MaintenanceTickService(this, islands, skyblock, maintenance, () -> operationalFeatureEnabled("maintenance"), this::satisRuntimeTickReadyForIsland);
             maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
         }
-        if (dataWritesEnabled()) {
+        ensureDirtySaveService();
+        if (dataWritesEnabled() && dirtySaves != null) {
             dirtySaves.start(dirtySavePeriodTicks(configs.main()));
         }
     }
@@ -1497,6 +1498,27 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 this::dataWritesEnabled
         );
         dirtySaves.inventoryWriteGate(this::inventoryDataWritesEnabled);
+    }
+
+    private void ensureDirtySaveService() {
+        if (dirtySaves != null || database == null) {
+            return;
+        }
+        dirtySaves = new DirtySaveService(this, database);
+        configureDirtySaveWriteGates();
+        configureCoreApiStateWriters();
+        if (storage != null) {
+            storage.dirtySaves(dirtySaves);
+        }
+        if (islands != null) {
+            islands.dirtySaves(dirtySaves);
+        }
+        if (machines != null) {
+            machines.dirtySaves(dirtySaves);
+        }
+        if (nodes != null) {
+            nodes.dirtySaves(dirtySaves);
+        }
     }
 
     private void configureRuntimeWriteGates() {

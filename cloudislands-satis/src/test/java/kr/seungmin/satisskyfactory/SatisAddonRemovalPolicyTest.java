@@ -13,6 +13,9 @@ class SatisAddonRemovalPolicyTest {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
 
         assertTrue(source.contains("private void stopRuntimeActivity()"));
+        assertTrue(source.contains("private void ensureDirtySaveService()"));
+        assertTrue(source.contains("ensureDirtySaveService();"));
+        assertTrue(source.contains("if (dataWritesEnabled() && dirtySaves != null)"));
         assertTrue(source.contains("unregisterAddonCommands();"));
         assertTrue(source.contains("dirtySaves.stop();"));
         assertTrue(source.contains("dirtySaves.coreStatePublisher(null);"));
