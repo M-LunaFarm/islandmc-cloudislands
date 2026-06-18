@@ -4,8 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
+import kr.lunaf.cloudislands.migration.importer.MigrationImportPlan;
 import org.junit.jupiter.api.Test;
 
 class MigrationSafetyPolicyTest {
@@ -102,8 +103,31 @@ class MigrationSafetyPolicyTest {
         assertTrue(MigrationSafetyPolicy.forbiddenRuntimeProvider("SuperiorSkyblock2"));
         assertTrue(MigrationSafetyPolicy.forbiddenRuntimeProvider("bentobox"));
         assertTrue(MigrationSafetyPolicy.forbiddenRuntimeProvider(" ASkyBlock "));
+        assertTrue(MigrationSafetyPolicy.forbiddenRuntimeProvider("uSkyBlock"));
+        assertTrue(MigrationSafetyPolicy.forbiddenRuntimeProvider("IridiumSkyblock"));
         assertFalse(MigrationSafetyPolicy.forbiddenRuntimeProvider("CloudIslands"));
-        assertEquals("SuperiorSkyblock2,BentoBox,ASkyBlock", MigrationSafetyPolicy.forbiddenRuntimeProvidersCsv());
+        assertEquals("SuperiorSkyblock2,BentoBox,ASkyBlock,uSkyBlock,IridiumSkyblock", MigrationSafetyPolicy.forbiddenRuntimeProvidersCsv());
+    }
+
+    @Test
+    void importPreflightRequiresCleanDryRunApprovalAndStableSourceFingerprint() {
+        assertEquals(
+            "import-runs-only-after-clean-dryrun-admin-approval-and-unchanged-source-fingerprint",
+            MigrationSafetyPolicy.IMPORT_PREFLIGHT_POLICY
+        );
+        assertEquals(
+            List.of("dry-run-report-can-import", "admin-approval-token-present", "source-fingerprint-unchanged"),
+            MigrationSafetyPolicy.IMPORT_PREFLIGHT_REQUIREMENTS
+        );
+        assertTrue(MigrationSafetyPolicy.importPreflightRequirement("dry-run-report-can-import"));
+        assertTrue(MigrationSafetyPolicy.importPreflightSatisfied(true, true, true));
+        assertFalse(MigrationSafetyPolicy.importPreflightSatisfied(false, true, true));
+        assertFalse(MigrationSafetyPolicy.importPreflightSatisfied(true, false, true));
+        assertFalse(MigrationSafetyPolicy.importPreflightSatisfied(true, true, false));
+
+        MigrationImportPlan plan = new MigrationImportPlan(List.of(), List.of());
+        assertFalse(plan.importPreflightSatisfied());
+        assertTrue(plan.approve(plan.requiredApprovalToken()).importPreflightSatisfied());
     }
 
     @Test
@@ -115,7 +139,8 @@ class MigrationSafetyPolicyTest {
         assertEquals("false", metadata.get("runtimeDependency"));
         assertEquals("CloudIslands", metadata.get("targetRuntime"));
         assertEquals("migration-input-only-no-runtime-hooks", metadata.get("runtimePolicy"));
-        assertEquals("SuperiorSkyblock2,BentoBox,ASkyBlock", metadata.get("forbiddenRuntimeProviders"));
+        assertEquals("SuperiorSkyblock2,BentoBox,ASkyBlock,uSkyBlock,IridiumSkyblock", metadata.get("forbiddenRuntimeProviders"));
         assertEquals("warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes", metadata.get("forbiddenRuntimeAction"));
+        assertEquals("import-runs-only-after-clean-dryrun-admin-approval-and-unchanged-source-fingerprint", metadata.get("importPreflightPolicy"));
     }
 }

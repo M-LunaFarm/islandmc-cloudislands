@@ -57,6 +57,12 @@ public final class MigrationSafetyPolicy {
     public static final String FORBIDDEN_RUNTIME_ACTION = "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes";
     public static final String APPROVAL_POLICY = "import-requires-successful-dryrun-approval-token-and-unchanged-source-fingerprint";
     public static final String ROLLBACK_POLICY = "rollback-plan-records-imported-islands-and-removes-only-cloudislands-imported-state";
+    public static final String IMPORT_PREFLIGHT_POLICY = "import-runs-only-after-clean-dryrun-admin-approval-and-unchanged-source-fingerprint";
+    public static final List<String> IMPORT_PREFLIGHT_REQUIREMENTS = List.of(
+        "dry-run-report-can-import",
+        "admin-approval-token-present",
+        "source-fingerprint-unchanged"
+    );
 
     private MigrationSafetyPolicy() {
     }
@@ -71,6 +77,14 @@ public final class MigrationSafetyPolicy {
 
     public static boolean approvalRequired(String action) {
         return normalize(action).equals("import");
+    }
+
+    public static boolean importPreflightRequirement(String requirement) {
+        return IMPORT_PREFLIGHT_REQUIREMENTS.contains(normalize(requirement));
+    }
+
+    public static boolean importPreflightSatisfied(boolean dryRunCanImport, boolean approved, boolean sourceFingerprintMatches) {
+        return dryRunCanImport && approved && sourceFingerprintMatches;
     }
 
     public static boolean requiredTargetField(String field) {
@@ -108,6 +122,7 @@ public final class MigrationSafetyPolicy {
         fields.put("runtimePolicy", RUNTIME_POLICY);
         fields.put("forbiddenRuntimeProviders", forbiddenRuntimeProvidersCsv());
         fields.put("forbiddenRuntimeAction", FORBIDDEN_RUNTIME_ACTION);
+        fields.put("importPreflightPolicy", IMPORT_PREFLIGHT_POLICY);
         return Map.copyOf(fields);
     }
 

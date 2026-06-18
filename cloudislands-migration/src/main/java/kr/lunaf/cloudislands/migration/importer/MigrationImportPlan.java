@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.migration.MigrationIssue;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
 import kr.lunaf.cloudislands.migration.MigrationReport;
 import kr.lunaf.cloudislands.migration.MigrationReportBuilder;
+import kr.lunaf.cloudislands.migration.superior.MigrationSafetyPolicy;
 
 public record MigrationImportPlan(List<MigrationManifest> manifests, List<MigrationIssue> issues, String sourceFingerprint, String approvalToken) {
     public MigrationImportPlan {
@@ -25,7 +26,11 @@ public record MigrationImportPlan(List<MigrationManifest> manifests, List<Migrat
     }
 
     public boolean canImport() {
-        return report().canImport() && approved() && sourceFingerprintMatches();
+        return importPreflightSatisfied();
+    }
+
+    public boolean importPreflightSatisfied() {
+        return MigrationSafetyPolicy.importPreflightSatisfied(report().canImport(), approved(), sourceFingerprintMatches());
     }
 
     public MigrationReport report() {
