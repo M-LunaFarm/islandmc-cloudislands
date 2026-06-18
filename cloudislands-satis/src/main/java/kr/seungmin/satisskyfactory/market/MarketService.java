@@ -166,7 +166,10 @@ public final class MarketService {
         if (amount <= 0 || !prices.containsKey(itemId) || marketBlocked(island)) {
             return Optional.empty();
         }
-        VirtualInventory inventory = storage.islandStorage(island.islandUuid());
+        VirtualInventory inventory = storage.islandStorageIfAllowed(island.islandUuid()).orElse(null);
+        if (inventory == null) {
+            return Optional.empty();
+        }
         if (!inventory.remove(itemId, amount)) {
             return Optional.empty();
         }
