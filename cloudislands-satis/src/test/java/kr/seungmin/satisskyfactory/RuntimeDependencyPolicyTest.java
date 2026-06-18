@@ -17,6 +17,8 @@ class RuntimeDependencyPolicyTest {
                 "import com.bgsoftware.superiorskyblock",
                 "import world.bentobox.",
                 "import com.wasteofplastic.askyblock",
+                "import us.talabrek.ultimateskyblock",
+                "import com.iridium.iridiumskyblock",
                 "import com.massivecraft.factions"
         );
 
@@ -49,6 +51,8 @@ class RuntimeDependencyPolicyTest {
             assertFalse(lower.contains("superiorskyblock"), "plugin.yml declares SuperiorSkyblock runtime dependency: " + line);
             assertFalse(lower.contains("bentobox"), "plugin.yml declares BentoBox runtime dependency: " + line);
             assertFalse(lower.contains("askyblock"), "plugin.yml declares ASkyBlock runtime dependency: " + line);
+            assertFalse(lower.contains("uskyblock"), "plugin.yml declares uSkyBlock runtime dependency: " + line);
+            assertFalse(lower.contains("iridiumskyblock"), "plugin.yml declares IridiumSkyblock runtime dependency: " + line);
         }
     }
 
@@ -76,7 +80,10 @@ class RuntimeDependencyPolicyTest {
                 "superiorskyblock",
                 "bgsoftware",
                 "bentobox",
-                "askyblock"
+                "askyblock",
+                "uskyblock",
+                "ultimateskyblock",
+                "iridiumskyblock"
         );
 
         for (Path buildFile : buildFiles) {
