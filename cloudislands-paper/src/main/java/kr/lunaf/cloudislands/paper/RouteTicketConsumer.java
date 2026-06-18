@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.paper.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -287,14 +288,7 @@ public final class RouteTicketConsumer {
 
     private String sanitizePlayerMessage(String message) {
         String value = message == null || message.isBlank() ? "섬 이동을 처리하지 못했습니다." : message;
-        return value
-            .replaceAll("(?i)\\btargetNode\\s*[=:]\\s*[^\\s,|]+", "targetNode=숨김")
-            .replaceAll("(?i)\\brequestedNode\\s*[=:]\\s*[^\\s,|]+", "requestedNode=숨김")
-            .replaceAll("(?i)\\btargetServerName\\s*[=:]\\s*[^\\s,|]+", "targetServerName=숨김")
-            .replaceAll("(?i)\\bserver\\s*[=:]\\s*[^\\s,|]+", "server=숨김")
-            .replaceAll("(?i)\\bnode\\s*[=:]\\s*[^\\s,|]+", "node=숨김")
-            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*island[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버")
-            .replaceAll("(?i)\\b[A-Za-z0-9_.-]*node[-_ ]?\\d+[A-Za-z0-9_.-]*\\b", "섬 서버");
+        return PlayerRouteMessagePolicy.sanitize(value);
     }
 
     private void hideLoading(Player player) {
