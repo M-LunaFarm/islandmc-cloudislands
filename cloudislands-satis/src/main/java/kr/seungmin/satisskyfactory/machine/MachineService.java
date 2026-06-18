@@ -180,8 +180,7 @@ public final class MachineService {
         if (hasBufferedItems(machine)) {
             return false;
         }
-        delete(machine);
-        return true;
+        return delete(machine);
     }
 
     public boolean forceRemove(MachineInstance machine) {
@@ -196,11 +195,13 @@ public final class MachineService {
                 return false;
             }
         }
-        delete(machine);
-        return true;
+        return delete(machine);
     }
 
-    private void delete(MachineInstance machine) {
+    private boolean delete(MachineInstance machine) {
+        if (!deleteInventories(machine)) {
+            return false;
+        }
         machine.status(MachineStatus.SLEEPING);
         machines.remove(machine.machineId());
         byLocation.remove(LocationKey.from(machine.location()));
@@ -215,11 +216,11 @@ public final class MachineService {
         if (canWrite) {
             database.deleteMachine(machine.machineId());
         }
-        deleteInventories(machine);
         revision.incrementAndGet();
+        return true;
     }
 
-    private void deleteInventories(MachineInstance machine) {
+    private boolean deleteInventories(MachineInstance machine) {
         Set<UUID> inventoryIds = new HashSet<>();
         if (machine.inputInventoryId() != null) {
             inventoryIds.add(machine.inputInventoryId());
@@ -227,7 +228,17 @@ public final class MachineService {
         if (machine.outputInventoryId() != null) {
             inventoryIds.add(machine.outputInventoryId());
         }
-        inventoryIds.forEach(storage::delete);
+        for (UUID inventoryId : inventoryIds) {
+            if (!storage.canDelete(inventoryId)) {
+                return false;
+            }
+        }
+        for (UUID inventoryId : inventoryIds) {
+            if (!storage.delete(inventoryId)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean hasBufferedItems(MachineInstance machine) {

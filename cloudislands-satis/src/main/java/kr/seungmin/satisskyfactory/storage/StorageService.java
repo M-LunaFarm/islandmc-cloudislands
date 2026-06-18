@@ -104,13 +104,20 @@ public final class StorageService {
         database.saveInventory(inventory);
     }
 
-    public void delete(UUID inventoryId) {
+    public boolean canDelete(UUID inventoryId) {
         if (inventoryId == null) {
-            return;
+            return false;
         }
         VirtualInventory existing = cache.get(inventoryId);
-        if (!deleteWritesEnabled(existing)) {
-            return;
+        return deleteWritesEnabled(existing);
+    }
+
+    public boolean delete(UUID inventoryId) {
+        if (inventoryId == null) {
+            return false;
+        }
+        if (!canDelete(inventoryId)) {
+            return false;
         }
         VirtualInventory removed = cache.remove(inventoryId);
         if (dirtySaves != null) {
@@ -121,6 +128,7 @@ public final class StorageService {
             }
         }
         database.deleteInventory(inventoryId);
+        return true;
     }
 
     public void forgetIsland(UUID islandUuid) {

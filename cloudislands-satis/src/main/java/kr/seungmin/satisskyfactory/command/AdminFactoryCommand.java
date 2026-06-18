@@ -1577,6 +1577,7 @@ public final class AdminFactoryCommand {
                         "runtime-harvester-output-full-save-policy",
                         "runtime-machine-flush-inventory-rollback-policy",
                         "runtime-machine-clear-inventory-rollback-policy",
+                        "runtime-machine-delete-inventory-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

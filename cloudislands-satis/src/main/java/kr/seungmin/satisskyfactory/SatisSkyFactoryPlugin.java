@@ -614,6 +614,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-harvester-output-full-save-policy", "harvester-output-full-does-not-queue-an-inventory-save-when-no-output-was-added");
         state.put("runtime-machine-flush-inventory-rollback-policy", "machine-removal-buffer-flush-rolls-back-island-and-cleared-buffer-cache-on-partial-save-failure");
         state.put("runtime-machine-clear-inventory-rollback-policy", "machine-buffer-clear-rolls-back-already-cleared-buffer-cache-on-partial-save-failure");
+        state.put("runtime-machine-delete-inventory-policy", "machine-delete-checks-inventory-delete-gates-before-removing-machine-state");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));
