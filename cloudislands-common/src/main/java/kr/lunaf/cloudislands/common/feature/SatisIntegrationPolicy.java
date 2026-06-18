@@ -4,6 +4,10 @@ import java.util.List;
 import java.util.Map;
 
 public final class SatisIntegrationPolicy {
+    public static final String PLAYER_SURFACE_POLICY = "my-island-other-island-ranking-visit-settings-warps-use-logical-core-api-backed-flows";
+    public static final String PLAYER_SURFACE_HIDE_POLICY = "player-facing-satis-ui-hides-island-node-server-world-cell-and-route-ticket";
+    public static final String PLAYER_SURFACE_COMMAND_OWNER_POLICY = "velocity-owns-global-island-routing-commands-paper-satis-handles-local-addon-ui-only";
+
     private static final Map<String, String> OPERATION_SCENARIOS = Map.ofEntries(
         Map.entry("built-in-mode", "cloudislands-installs-one-plugin-satis-features-start-only-when-root-and-child-feature-gates-enable-them"),
         Map.entry("addon-plugin-mode", "cloudislands-plus-cloudislands-satis-jar-registers-through-addon-registry-and-uses-cloudislands-api-only"),
@@ -80,9 +84,29 @@ public final class SatisIntegrationPolicy {
     private static final Map<String, String> PLAYER_EXPERIENCE_BOUNDARIES = Map.of(
         "player-visible-mode", "addon-features-feel-built-in-when-enabled",
         "operator-visible-mode", "operator-manages-cloudislands-satis-through-addon-config-and-feature-gates",
+        "logical-player-surface", PLAYER_SURFACE_POLICY,
+        "player-surface-hidden-fields", PLAYER_SURFACE_HIDE_POLICY,
+        "player-surface-command-owner", PLAYER_SURFACE_COMMAND_OWNER_POLICY,
         "command-surface", "commands-appear-only-when-root-addon-and-command-feature-are-enabled",
         "gui-surface", "menus-appear-only-when-root-addon-and-gui-or-menu-feature-are-enabled",
         "disabled-surface", "disabled-or-removed-addon-leaves-no-player-facing-satis-entrypoints"
+    );
+
+    private static final List<String> LOGICAL_PLAYER_SURFACES = List.of(
+        "my-island",
+        "other-island",
+        "island-ranking",
+        "island-visit",
+        "island-settings",
+        "island-warps"
+    );
+
+    private static final List<String> PLAYER_HIDDEN_TOPOLOGY_FIELDS = List.of(
+        "island-node",
+        "server-name",
+        "world-name",
+        "cell",
+        "route-ticket"
     );
 
     private static final Map<String, String> OFFICIAL_FEATURE_PACK_BOUNDARIES = Map.of(
@@ -194,6 +218,22 @@ public final class SatisIntegrationPolicy {
 
     public static String playerExperienceBoundarySummary() {
         return summary(PLAYER_EXPERIENCE_BOUNDARIES);
+    }
+
+    public static List<String> logicalPlayerSurfaces() {
+        return LOGICAL_PLAYER_SURFACES;
+    }
+
+    public static String logicalPlayerSurfaceSummary() {
+        return String.join(",", LOGICAL_PLAYER_SURFACES);
+    }
+
+    public static List<String> playerHiddenTopologyFields() {
+        return PLAYER_HIDDEN_TOPOLOGY_FIELDS;
+    }
+
+    public static String playerHiddenTopologyFieldSummary() {
+        return String.join(",", PLAYER_HIDDEN_TOPOLOGY_FIELDS);
     }
 
     public static Map<String, String> officialFeaturePackBoundaries() {

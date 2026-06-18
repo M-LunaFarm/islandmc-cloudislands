@@ -3,6 +3,8 @@ package kr.seungmin.satisskyfactory.integration;
 import kr.seungmin.satisskyfactory.config.SatisFeatureGateResolver;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -65,6 +67,26 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals(
                 "velocity-owns-global-island-routing-commands-paper-satis-handles-local-addon-ui-only",
                 SatisAddonIntegrationPolicy.PLAYER_SURFACE_COMMAND_OWNER_POLICY
+        );
+        assertEquals(
+                "my-island-other-island-ranking-visit-settings-warps-use-logical-core-api-backed-flows",
+                SatisAddonIntegrationPolicy.playerExperienceBoundaries().get("logical-player-surface")
+        );
+        assertEquals(
+                "player-facing-satis-ui-hides-island-node-server-world-cell-and-route-ticket",
+                SatisAddonIntegrationPolicy.playerExperienceBoundaries().get("player-surface-hidden-fields")
+        );
+        assertEquals(
+                "velocity-owns-global-island-routing-commands-paper-satis-handles-local-addon-ui-only",
+                SatisAddonIntegrationPolicy.playerExperienceBoundaries().get("player-surface-command-owner")
+        );
+        assertEquals(
+                List.of("my-island", "other-island", "island-ranking", "island-visit", "island-settings", "island-warps"),
+                SatisAddonIntegrationPolicy.logicalPlayerSurfaces()
+        );
+        assertEquals(
+                List.of("island-node", "server-name", "world-name", "cell", "route-ticket"),
+                SatisAddonIntegrationPolicy.playerHiddenTopologyFields()
         );
         assertEquals(
                 "velocity-modern-forwarding-with-shared-secret-required-for-paper-node-identity-trust",
