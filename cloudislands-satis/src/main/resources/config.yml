@@ -119,7 +119,12 @@ addons:
         connection-timeout-ms: 0
       fallback:
         enabled: true
-        order: "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE"
+        order:
+          - POSTGRESQL
+          - MYSQL
+          - MARIADB
+          - CORE_API
+          - SQLITE
     commands:
       # Host-level addon alias for satis.commands.list-page-size.
       list-page-size: 12
@@ -185,6 +190,9 @@ setup:
     shared-directory: "../CloudIslands/satis-state"
     sqlite-file: "data.db"
     core-api:
+      # Explicit marker for setup.database.type=CORE_API. Keep this true when Satis should use
+      # CloudIslands addon-state as the authoritative backend instead of a direct JDBC database.
+      enabled: true
       local-cache-writes:
         # Keep false on multi-node networks. If Core API is unavailable, use fallback instead of split local writes.
         enabled: false
