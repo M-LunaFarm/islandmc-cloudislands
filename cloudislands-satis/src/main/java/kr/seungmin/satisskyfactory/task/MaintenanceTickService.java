@@ -5,6 +5,7 @@ import kr.seungmin.satisskyfactory.hook.IslandRef;
 import kr.seungmin.satisskyfactory.machine.FactoryIslandService;
 import kr.seungmin.satisskyfactory.machine.MaintenanceService;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
+import kr.seungmin.satisskyfactory.model.MaintenanceStatus;
 import kr.seungmin.satisskyfactory.util.SchedulerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -62,8 +63,17 @@ public final class MaintenanceTickService {
             Object rawIsland = skyblock.getIslandByUuid(island.islandUuid())
                     .map(IslandRef::raw)
                     .orElse(null);
+            long previousDebt = island.maintenanceDebt();
+            MaintenanceStatus previousStatus = island.maintenanceStatus();
+            long previousScore = island.factoryScore();
+            long previousLastMaintenanceAt = island.lastMaintenanceAt();
             maintenance.chargeIfDue(island, owner, rawIsland);
-            islands.save(island);
+            if (!islands.save(island)) {
+                island.maintenanceDebt(previousDebt);
+                island.maintenanceStatus(previousStatus);
+                island.factoryScore(previousScore);
+                island.lastMaintenanceAt(previousLastMaintenanceAt);
+            }
         }
     }
 
