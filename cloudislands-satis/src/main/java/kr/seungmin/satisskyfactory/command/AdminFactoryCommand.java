@@ -1522,6 +1522,7 @@ public final class AdminFactoryCommand {
                         "runtime-power-battery-save-policy",
                         "runtime-island-save-result-policy",
                         "runtime-admin-island-save-policy",
+                        "runtime-player-maintenance-status-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

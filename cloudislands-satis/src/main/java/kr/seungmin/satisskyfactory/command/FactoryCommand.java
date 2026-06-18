@@ -19,6 +19,7 @@ import kr.seungmin.satisskyfactory.model.FactoryContext;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.model.MachineInstance;
 import kr.seungmin.satisskyfactory.model.MachineStatus;
+import kr.seungmin.satisskyfactory.model.MaintenanceStatus;
 import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
@@ -372,8 +373,11 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         if (!enabled("maintenance")) {
             return;
         }
+        MaintenanceStatus previousStatus = island.maintenanceStatus();
         maintenance.updateStatus(island);
-        islands.save(island);
+        if (!islands.save(island)) {
+            island.maintenanceStatus(previousStatus);
+        }
     }
 
     private void depositHand(Player player, FactoryIsland island) {
