@@ -57,6 +57,21 @@ public final class CommandListPolicy {
                 .trim();
     }
 
+    public static List<String> displayLines(Page page) {
+        Objects.requireNonNull(page, "page");
+        List<String> lines = new ArrayList<>();
+        for (String command : page.entries()) {
+            lines.add(ENTRY_PREFIX + oneLine(command));
+        }
+        if (page.previousCommand() != null && !page.previousCommand().isBlank()) {
+            lines.add(ENTRY_PREFIX + oneLine(page.previousCommand()));
+        }
+        if (page.nextCommand() != null && !page.nextCommand().isBlank()) {
+            lines.add(ENTRY_PREFIX + oneLine(page.nextCommand()));
+        }
+        return List.copyOf(lines);
+    }
+
     public record Page(int page, int pages, int fromCommand, int toCommand, int totalCommands, List<String> entries, String previousCommand, String nextCommand) {
         public Page {
             fromCommand = Math.max(0, fromCommand);

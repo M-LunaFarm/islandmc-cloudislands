@@ -39,6 +39,20 @@ class CommandListPolicyTest {
     }
 
     @Test
+    void rendersDisplayLinesWithOneCommandPerChatLine() {
+        List<String> commands = List.of("섬 생성", "섬\n  방문", "섬 홈", "섬 설정", "섬 삭제");
+
+        CommandListPolicy.Page page = CommandListPolicy.page(commands, 2, "섬\ncommand   list", 2);
+
+        assertEquals(List.of(
+            "> /섬 홈",
+            "> /섬 설정",
+            "> /섬 command list 1",
+            "> /섬 command list 3"
+        ), CommandListPolicy.displayLines(page));
+    }
+
+    @Test
     void clampsInvalidPageRequestsToAvailableRange() {
         List<String> commands = IntStream.rangeClosed(1, 25)
             .mapToObj(index -> "factory command-" + index)

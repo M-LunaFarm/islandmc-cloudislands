@@ -1199,14 +1199,8 @@ public final class CloudIslandsVelocityPlugin {
     private void sendCommandList(Player player, String title, List<String> commands, int page, String nextCommand) {
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, nextCommand);
         player.sendMessage(Component.text(title + " " + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX));
-        for (String command : commandPage.entries()) {
-            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + command));
-        }
-        if (commandPage.previousCommand() != null) {
-            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand()));
-        }
-        if (commandPage.nextCommand() != null) {
-            player.sendMessage(Component.text(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand()));
+        for (String line : CommandListPolicy.displayLines(commandPage)) {
+            player.sendMessage(Component.text(line));
         }
     }
 

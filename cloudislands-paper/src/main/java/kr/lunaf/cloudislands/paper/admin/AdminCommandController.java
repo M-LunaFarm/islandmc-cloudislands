@@ -949,14 +949,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commandNames, 1, "ciadmin command list");
         String title = adminText("admin-command-subcommand-list-title", "CloudIslands 관리자 명령어 목록");
         sender.sendMessage(title.replace(CommandListPolicy.HEADER_SUFFIX, "").trim() + " " + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX);
-        for (String command : commandPage.entries()) {
-            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
-        }
-        if (commandPage.previousCommand() != null && !commandPage.previousCommand().isBlank()) {
-            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
-        }
-        if (commandPage.nextCommand() != null && !commandPage.nextCommand().isBlank()) {
-            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
+        for (String line : CommandListPolicy.displayLines(commandPage)) {
+            sender.sendMessage(line);
         }
     }
 
@@ -2814,14 +2808,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             .toList();
         CommandListPolicy.Page commandPage = CommandListPolicy.page(labelledCommands, page, label + " command list");
         sender.sendMessage(adminText("admin-command-list-title", "CloudIslands 관리자 명령어 목록 ") + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + adminText("admin-command-list-suffix", CommandListPolicy.HEADER_SUFFIX));
-        for (String command : commandPage.entries()) {
-            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
-        }
-        if (commandPage.previousCommand() != null) {
-            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
-        }
-        if (commandPage.nextCommand() != null) {
-            sender.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
+        for (String line : CommandListPolicy.displayLines(commandPage)) {
+            sender.sendMessage(line);
         }
     }
 
