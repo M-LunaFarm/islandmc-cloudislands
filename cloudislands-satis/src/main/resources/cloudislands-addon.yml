@@ -223,6 +223,10 @@ state:
   object-storage-retry-policy: retry-world-bundle-upload-before-deactivation-complete-or-delete-finalize
   object-storage-access-policy: satis-records-addon-state-references-only-cloudislands-core-owns-world-bundle-storage
   object-storage-queue-key: islandUuid+snapshotNo+fencingToken+bundleGeneration
+  bundle-manifest-policy: core-world-bundle-manifest-must-include-island-runtime-and-satis-addon-state-references
+  bundle-checksum-policy: restore-requires-manifest-and-checksums-sha256-match-before-satis-state-rehydrate
+  bundle-restore-policy: pre-restore-snapshot-then-core-restore-then-satis-addon-state-rehydrate
+  bundle-quarantine-policy: checksum-or-manifest-mismatch-quarantines-bundle-and-keeps-last-confirmed-satis-state
   bulk-request-models: AddonStateBulkSaveRequest,AddonStateBulkLoadRequest
   bulk-load-policy: table-key-value-load-uses-typed-request-and-core-api-before-local-cache
   placement-source-policy: record-core-payload-or-paper-allocator-on-activate-and-migrate

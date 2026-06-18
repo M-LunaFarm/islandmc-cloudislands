@@ -52,6 +52,10 @@ class DefaultConfigIntegrityTest {
         assertEquals("redis-cache-stream-locks-are-advisory-never-satis-state-authority", addon.getString("state.redis-advisory-policy"));
         assertEquals("redis-outage-keeps-last-confirmed-shared-state-authoritative-and-disables-cache-only-assumptions", addon.getString("state.redis-failure-policy"));
         assertEquals("satis-records-addon-state-references-only-cloudislands-core-owns-world-bundle-storage", addon.getString("state.object-storage-access-policy"));
+        assertEquals("core-world-bundle-manifest-must-include-island-runtime-and-satis-addon-state-references", addon.getString("state.bundle-manifest-policy"));
+        assertEquals("restore-requires-manifest-and-checksums-sha256-match-before-satis-state-rehydrate", addon.getString("state.bundle-checksum-policy"));
+        assertEquals("pre-restore-snapshot-then-core-restore-then-satis-addon-state-rehydrate", addon.getString("state.bundle-restore-policy"));
+        assertEquals("checksum-or-manifest-mismatch-quarantines-bundle-and-keeps-last-confirmed-satis-state", addon.getString("state.bundle-quarantine-policy"));
         assertEquals("not-owned-by-satis-addon", addon.getString("runtime.ciadmin-policy"));
         assertEquals("CORE_API", addon.getString("runtime.default-database-mode"));
         assertEquals("core-api-requires-cloudislands-api-addon-state-and-hydrated-island", addon.getString("runtime.tick-authority-policy"));

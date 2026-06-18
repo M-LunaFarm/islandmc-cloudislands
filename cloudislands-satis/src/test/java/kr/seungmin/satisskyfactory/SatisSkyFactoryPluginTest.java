@@ -101,6 +101,10 @@ class SatisSkyFactoryPluginTest {
         assertEquals("redis-cache-stream-locks-are-advisory-never-satis-state-authority", metadata.get("runtime-redis-advisory-policy"));
         assertEquals("redis-outage-keeps-last-confirmed-shared-state-authoritative-and-disables-cache-only-assumptions", metadata.get("runtime-redis-failure-policy"));
         assertEquals("satis-records-addon-state-references-only-cloudislands-core-owns-world-bundle-storage", metadata.get("object-storage-access-policy"));
+        assertEquals("core-world-bundle-manifest-must-include-island-runtime-and-satis-addon-state-references", metadata.get("bundle-manifest-policy"));
+        assertEquals("restore-requires-manifest-and-checksums-sha256-match-before-satis-state-rehydrate", metadata.get("bundle-checksum-policy"));
+        assertEquals("pre-restore-snapshot-then-core-restore-then-satis-addon-state-rehydrate", metadata.get("bundle-restore-policy"));
+        assertEquals("checksum-or-manifest-mismatch-quarantines-bundle-and-keeps-last-confirmed-satis-state", metadata.get("bundle-quarantine-policy"));
         assertTrue(metadata.get("satis-operation-scenarios").contains("a-b-server-new-island-mode=server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command"));
         assertTrue(metadata.get("satis-completion-criteria").contains("a-server-b-server-new-and-existing-island-flows-are-pinned"));
         assertEquals("node-count-does-not-change-satis-state-keys-or-storage-authority", metadata.get("island-state-scale-policy"));

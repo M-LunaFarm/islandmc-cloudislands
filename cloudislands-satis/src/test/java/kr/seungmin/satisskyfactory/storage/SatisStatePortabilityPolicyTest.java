@@ -41,6 +41,10 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("retry-table-key-value-bulk-save-as-flattened-addon-state", state.get("core-api-sync-write-fallback-policy"));
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API-before-SQLITE", state.get("core-api-sync-production-safe-fallback-policy"));
         assertEquals("satis-records-addon-state-references-only-cloudislands-core-owns-world-bundle-storage", state.get("core-api-sync-object-storage-access-policy"));
+        assertEquals("core-world-bundle-manifest-must-include-island-runtime-and-satis-addon-state-references", state.get("core-api-sync-bundle-manifest-policy"));
+        assertEquals("restore-requires-manifest-and-checksums-sha256-match-before-satis-state-rehydrate", state.get("core-api-sync-bundle-checksum-policy"));
+        assertEquals("pre-restore-snapshot-then-core-restore-then-satis-addon-state-rehydrate", state.get("core-api-sync-bundle-restore-policy"));
+        assertEquals("checksum-or-manifest-mismatch-quarantines-bundle-and-keeps-last-confirmed-satis-state", state.get("core-api-sync-bundle-quarantine-policy"));
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API", state.get("core-api-sync-shared-backends"));
         assertEquals("SQLITE", state.get("core-api-sync-local-backends"));
     }

@@ -112,6 +112,10 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"paper-backend-access-policy\""));
         assertTrue(source.contains("\"plugin-message-security-policy\""));
         assertTrue(source.contains("\"object-storage-access-policy\""));
+        assertTrue(source.contains("\"bundle-manifest-policy\""));
+        assertTrue(source.contains("\"bundle-checksum-policy\""));
+        assertTrue(source.contains("\"bundle-restore-policy\""));
+        assertTrue(source.contains("\"bundle-quarantine-policy\""));
         assertTrue(source.contains("\"island-state-redis-advisory-policy\""));
         assertTrue(source.contains("\"island-state-five-six-node-policy\""));
         assertTrue(source.contains("\"island-state-seven-plus-node-policy\""));

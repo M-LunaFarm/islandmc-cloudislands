@@ -47,6 +47,10 @@ public final class SatisStatePortabilityPolicy {
     public static final String OBJECT_STORAGE_RETRY_POLICY = "retry-world-bundle-upload-before-deactivation-complete-or-delete-finalize";
     public static final String OBJECT_STORAGE_ACCESS_POLICY = "satis-records-addon-state-references-only-cloudislands-core-owns-world-bundle-storage";
     public static final String OBJECT_STORAGE_QUEUE_KEY = "islandUuid+snapshotNo+fencingToken+bundleGeneration";
+    public static final String BUNDLE_MANIFEST_POLICY = "core-world-bundle-manifest-must-include-island-runtime-and-satis-addon-state-references";
+    public static final String BUNDLE_CHECKSUM_POLICY = "restore-requires-manifest-and-checksums-sha256-match-before-satis-state-rehydrate";
+    public static final String BUNDLE_RESTORE_POLICY = "pre-restore-snapshot-then-core-restore-then-satis-addon-state-rehydrate";
+    public static final String BUNDLE_QUARANTINE_POLICY = "checksum-or-manifest-mismatch-quarantines-bundle-and-keeps-last-confirmed-satis-state";
 
     private static final Set<String> SHARED_BACKENDS = Set.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API");
     private static final Set<String> LOCAL_BACKENDS = Set.of("SQLITE");
@@ -107,6 +111,10 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-object-storage-retry-policy", OBJECT_STORAGE_RETRY_POLICY);
         values.put("core-api-sync-object-storage-access-policy", OBJECT_STORAGE_ACCESS_POLICY);
         values.put("core-api-sync-object-storage-queue-key", OBJECT_STORAGE_QUEUE_KEY);
+        values.put("core-api-sync-bundle-manifest-policy", BUNDLE_MANIFEST_POLICY);
+        values.put("core-api-sync-bundle-checksum-policy", BUNDLE_CHECKSUM_POLICY);
+        values.put("core-api-sync-bundle-restore-policy", BUNDLE_RESTORE_POLICY);
+        values.put("core-api-sync-bundle-quarantine-policy", BUNDLE_QUARANTINE_POLICY);
         return Map.copyOf(values);
     }
 

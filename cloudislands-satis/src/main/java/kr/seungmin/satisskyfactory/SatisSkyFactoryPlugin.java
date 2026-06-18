@@ -820,6 +820,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-object-storage-retry-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_RETRY_POLICY);
         state.put("island-state-object-storage-access-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACCESS_POLICY);
         state.put("island-state-object-storage-queue-key", SatisStatePortabilityPolicy.OBJECT_STORAGE_QUEUE_KEY);
+        state.put("island-state-bundle-manifest-policy", SatisStatePortabilityPolicy.BUNDLE_MANIFEST_POLICY);
+        state.put("island-state-bundle-checksum-policy", SatisStatePortabilityPolicy.BUNDLE_CHECKSUM_POLICY);
+        state.put("island-state-bundle-restore-policy", SatisStatePortabilityPolicy.BUNDLE_RESTORE_POLICY);
+        state.put("island-state-bundle-quarantine-policy", SatisStatePortabilityPolicy.BUNDLE_QUARANTINE_POLICY);
     }
 
     private String disabledRuntimeFeatures() {
@@ -1950,6 +1954,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("object-storage-retry-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_RETRY_POLICY);
         metadata.put("object-storage-access-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACCESS_POLICY);
         metadata.put("object-storage-queue-key", SatisStatePortabilityPolicy.OBJECT_STORAGE_QUEUE_KEY);
+        metadata.put("bundle-manifest-policy", SatisStatePortabilityPolicy.BUNDLE_MANIFEST_POLICY);
+        metadata.put("bundle-checksum-policy", SatisStatePortabilityPolicy.BUNDLE_CHECKSUM_POLICY);
+        metadata.put("bundle-restore-policy", SatisStatePortabilityPolicy.BUNDLE_RESTORE_POLICY);
+        metadata.put("bundle-quarantine-policy", SatisStatePortabilityPolicy.BUNDLE_QUARANTINE_POLICY);
         metadata.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
         metadata.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");
         metadata.put("relocation-state-keys", "last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-state-authority,last-relocation-write-fence,last-relocation-duplicate-tick-policy,last-relocation-confirmed-state-policy,last-relocation-at");
