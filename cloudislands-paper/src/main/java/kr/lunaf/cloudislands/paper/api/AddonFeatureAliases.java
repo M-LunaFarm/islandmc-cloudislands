@@ -68,7 +68,16 @@ final class AddonFeatureAliases {
             }
         }
         String required = dependencies(metadata).get(canonical);
-        return required == null ? enabled : enabled && featureEnabled(metadata, features, required, visited);
+        if (required == null || required.isBlank()) {
+            return enabled;
+        }
+        for (String dependency : required.split("[+&]")) {
+            String safeDependency = dependency.trim();
+            if (!safeDependency.isBlank() && !featureEnabled(metadata, features, safeDependency, visited)) {
+                return false;
+            }
+        }
+        return enabled;
     }
 
     private static List<Alias> aliases(Map<String, String> metadata) {
