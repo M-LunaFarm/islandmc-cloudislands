@@ -34,4 +34,27 @@ class PortableIslandDesignPolicyTest {
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("admins-can-drain-or-migrate-by-node"));
         assertTrue(PortableIslandDesignPolicy.requiredOutcome("island-3-and-island-4-can-be-added-later"));
     }
+
+    @Test
+    void recordsExpectedAbServerMoveScenario() {
+        assertTrue(PortableIslandDesignPolicy.knownScenario("a-server-to-b-server-move"));
+        assertEquals(
+                "island-active-on-a-server>save-portable-bundle-with-manifest-and-checksum>b-server-claims-runtime",
+                PortableIslandDesignPolicy.expectedScenario("a-server-to-b-server-move").get(0)
+                        + ">"
+                        + PortableIslandDesignPolicy.expectedScenario("a-server-to-b-server-move").get(2)
+                        + ">"
+                        + PortableIslandDesignPolicy.expectedScenario("a-server-to-b-server-move").get(3)
+        );
+        assertTrue(PortableIslandDesignPolicy.scenarioSummary("a-server-to-b-server-move").contains("player-sees-same-island-without-node-knowledge"));
+    }
+
+    @Test
+    void recordsSoftFullScaleOutAndAddonRemovalScenarios() {
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("island-1-soft-full-create-on-island-2").contains("new-island-create-skips-island-1"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("island-1-soft-full-create-on-island-2").contains("allocator-selects-island-2"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("add-island-5-and-6").contains("players-do-not-change-commands"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("addon-disabled-or-removed").contains("core-island-create-home-visit-still-work"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("addon-disabled-or-removed").contains("reenable-restores-addon-state-by-island-uuid"));
+    }
 }
