@@ -14,6 +14,10 @@ import java.util.Locale;
 import javax.sql.DataSource;
 
 public final class JdbcSchemaBootstrap {
+    public static final String CORE_JDBC_BOOTSTRAP_PRODUCTS = "POSTGRESQL,MYSQL,MARIADB";
+    public static final String MYSQL_COMPATIBLE_SCHEMA_RESOURCE = "/db/mysql/V1__cloudislands_mysql_schema.sql";
+    public static final String MYSQL_COMPATIBLE_SCHEMA_ID = "mysql-v1";
+    public static final String MARIADB_SCHEMA_POLICY = "mariadb-uses-mysql-compatible-core-schema-bootstrap";
     private static final String[] POSTGRESQL_MIGRATIONS = {
         "/db/migration/V1__cloudislands_schema.sql",
         "/db/migration/V2__island_bank.sql",
@@ -81,17 +85,42 @@ public final class JdbcSchemaBootstrap {
 
     public static boolean apply(DataSource dataSource) {
         try (Connection connection = dataSource.getConnection()) {
-            String productName = connection.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);
-            if (productName.contains("mysql") || productName.contains("mariadb")) {
-                return apply(connection, Dialect.MYSQL, "mysql-v1", "/db/mysql/V1__cloudislands_mysql_schema.sql");
+            String productFamily = databaseProductFamily(connection.getMetaData().getDatabaseProductName());
+            if ("MYSQL".equals(productFamily) || "MARIADB".equals(productFamily)) {
+                return apply(connection, Dialect.MYSQL, MYSQL_COMPATIBLE_SCHEMA_ID, MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
             }
-            if (productName.contains("postgresql")) {
+            if ("POSTGRESQL".equals(productFamily)) {
                 return applyAll(connection, Dialect.POSTGRESQL, POSTGRESQL_MIGRATIONS);
             }
             return false;
         } catch (SQLException | IOException exception) {
             throw new IllegalStateException("failed to bootstrap database schema", exception);
         }
+    }
+
+    public static String databaseProductFamily(String productName) {
+        String value = productName == null ? "" : productName.toLowerCase(Locale.ROOT);
+        if (value.contains("mariadb")) {
+            return "MARIADB";
+        }
+        if (value.contains("mysql")) {
+            return "MYSQL";
+        }
+        if (value.contains("postgresql")) {
+            return "POSTGRESQL";
+        }
+        return "UNSUPPORTED";
+    }
+
+    public static String schemaResourceForProduct(String productName) {
+        String productFamily = databaseProductFamily(productName);
+        if ("MYSQL".equals(productFamily) || "MARIADB".equals(productFamily)) {
+            return MYSQL_COMPATIBLE_SCHEMA_RESOURCE;
+        }
+        if ("POSTGRESQL".equals(productFamily)) {
+            return "postgresql-migration-chain:" + POSTGRESQL_MIGRATIONS.length;
+        }
+        return "";
     }
 
     private static boolean applyAll(Connection connection, Dialect dialect, String[] resources) throws SQLException, IOException {
