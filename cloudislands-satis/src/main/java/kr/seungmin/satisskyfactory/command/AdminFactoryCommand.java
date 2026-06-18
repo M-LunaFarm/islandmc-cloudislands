@@ -1592,6 +1592,7 @@ public final class AdminFactoryCommand {
                         "addon-removal-dirty-save-detach-policy",
                         "addon-removal-dirty-save-reattach-policy",
                         "addon-reload-runtime-restart-policy",
+                        "addon-core-refresh-reapply-policy",
                         "runtime-dirty-save-running",
                         "runtime-dirty-save-pending-writes",
                         "runtime-dirty-save-pending-machines",

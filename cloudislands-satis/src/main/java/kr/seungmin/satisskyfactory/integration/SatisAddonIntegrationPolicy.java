@@ -34,6 +34,7 @@ public final class SatisAddonIntegrationPolicy {
     public static final String DIRTY_SAVE_DETACH_POLICY = "stop-dirty-save-loop-clear-publishers-detach-service-references";
     public static final String DIRTY_SAVE_REATTACH_POLICY = "recreate-dirty-save-service-and-reattach-service-references-before-restart";
     public static final String RELOAD_RUNTIME_RESTART_POLICY = "reload-reenable-starts-runtime-when-database-is-not-initialized";
+    public static final String CORE_REFRESH_REAPPLY_POLICY = "core-refresh-reapplies-satis-runtime-state-after-refresh-success-or-fallback";
     public static final String NO_AUTOMATIC_DELETE_POLICY = "no-automatic-delete-on-disable-remove-or-feature-off";
     public static final String STATE_KEY_POLICY = "island-uuid-stable-node-world-cell-volatile";
     public static final String PERSISTENT_ID_AUTHORITY = "cloudislands-island-uuid";

@@ -1759,7 +1759,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("satis-disabled-child-feature-policy", "child-features-remain-configured-but-operationalFeatureEnabled-always-returns-false");
         metadata.put("addon-runtime-enabled", Boolean.toString(addonRuntimeEnabled));
         putRuntimeActivityState(metadata);
-        metadata.put("dirty-save-state-keys", "runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,addon-removal-dirty-save-detach-policy,addon-removal-dirty-save-reattach-policy,addon-reload-runtime-restart-policy");
+        metadata.put("dirty-save-state-keys", "runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,addon-removal-dirty-save-detach-policy,addon-removal-dirty-save-reattach-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy");
         metadata.put("database-scope", scope);
         metadata.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         metadata.put("database-configured-backend", configuredDatabaseBackendName());
@@ -1968,6 +1968,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("addon-removal-dirty-save-detach-policy", SatisAddonIntegrationPolicy.DIRTY_SAVE_DETACH_POLICY);
         metadata.put("addon-removal-dirty-save-reattach-policy", SatisAddonIntegrationPolicy.DIRTY_SAVE_REATTACH_POLICY);
         metadata.put("addon-reload-runtime-restart-policy", SatisAddonIntegrationPolicy.RELOAD_RUNTIME_RESTART_POLICY);
+        metadata.put("addon-core-refresh-reapply-policy", SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY);
         metadata.put("cloudislands-lifecycle-depends-on-satis", "false");
         metadata.put("cloudislands-api-surface-policy", SatisAddonIntegrationPolicy.API_SURFACE_POLICY);
         metadata.put("cloudislands-direct-access-policy", SatisAddonIntegrationPolicy.FORBIDDEN_DIRECT_ACCESS_POLICY);
@@ -2014,6 +2015,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("addon-removal-dirty-save-detach-policy", SatisAddonIntegrationPolicy.DIRTY_SAVE_DETACH_POLICY),
                 Map.entry("addon-removal-dirty-save-reattach-policy", SatisAddonIntegrationPolicy.DIRTY_SAVE_REATTACH_POLICY),
                 Map.entry("addon-reload-runtime-restart-policy", SatisAddonIntegrationPolicy.RELOAD_RUNTIME_RESTART_POLICY),
+                Map.entry("addon-core-refresh-reapply-policy", SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY),
                 Map.entry("cloudislands-lifecycle-depends-on-satis", "false"),
                 Map.entry("addon-data-retention", "preserve-addon-state-by-island-uuid"),
                 Map.entry("addon-runtime-owns-islands", "false"),
@@ -2543,6 +2545,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-removal-dirty-save-detach-policy", SatisAddonIntegrationPolicy.DIRTY_SAVE_DETACH_POLICY);
         state.put("addon-removal-dirty-save-reattach-policy", SatisAddonIntegrationPolicy.DIRTY_SAVE_REATTACH_POLICY);
         state.put("addon-reload-runtime-restart-policy", SatisAddonIntegrationPolicy.RELOAD_RUNTIME_RESTART_POLICY);
+        state.put("addon-core-refresh-reapply-policy", SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY);
         state.put("reinstall-reconnect-policy", "reuse-existing-addon-state-by-island-uuid");
         state.put("reinstall-reconnect-requires", "matching-cloudislands-island-uuid-and-compatible-satis-state-schema");
     }

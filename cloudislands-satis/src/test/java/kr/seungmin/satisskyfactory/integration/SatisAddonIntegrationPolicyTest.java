@@ -47,6 +47,10 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals("false", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
         assertEquals("addons.cloudislands-satis.enabled&&satis.enabled", SatisAddonIntegrationPolicy.ROOT_GATE_POLICY);
         assertEquals(
+                "core-refresh-reapplies-satis-runtime-state-after-refresh-success-or-fallback",
+                SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY
+        );
+        assertEquals(
                 "root-disabled-forces-every-feature-off-child-disabled-skips-commands-gui-listeners-tickers-writes",
                 SatisAddonIntegrationPolicy.FEATURE_GATE_POLICY
         );

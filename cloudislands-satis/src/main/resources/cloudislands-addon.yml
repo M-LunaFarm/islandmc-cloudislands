@@ -43,6 +43,7 @@ removal:
   dirty-save-detach-policy: stop-dirty-save-loop-clear-publishers-detach-service-references
   dirty-save-reattach-policy: recreate-dirty-save-service-and-reattach-service-references-before-restart
   reload-runtime-restart-policy: reload-reenable-starts-runtime-when-database-is-not-initialized
+  core-refresh-reapply-policy: core-refresh-reapplies-satis-runtime-state-after-refresh-success-or-fallback
   core-impact: none
   runtime-stop-policy: unregister-satis-commands-listeners-tickers-placeholders-and-state-writers-only
   cloudislands-lifecycle-dependency: false
@@ -204,7 +205,7 @@ state:
   recovery-state-keys: last-lifecycle-heartbeat-expiry-policy,last-lifecycle-fencing-token-policy,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy
   addon-removal-scenario: missing-addon-state-never-blocks-cloudislands-base-island-load
   addon-removal-runtime-action: stop-satis-runtime-preserve-addon-state-leave-cloudislands-islands-loadable
-  addon-removal-state-keys: runtime-addon-removal-safe,runtime-addon-removal-policy,runtime-addon-removal-core-impact,runtime-addon-removal-action,runtime-addon-removal-data-retention,runtime-addon-reenable-policy,runtime-addon-disable-preflush-policy,addon-reload-runtime-restart-policy,runtime-cloudislands-lifecycle-depends-on-satis
+  addon-removal-state-keys: runtime-addon-removal-safe,runtime-addon-removal-policy,runtime-addon-removal-core-impact,runtime-addon-removal-action,runtime-addon-removal-data-retention,runtime-addon-reenable-policy,runtime-addon-disable-preflush-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy,runtime-cloudislands-lifecycle-depends-on-satis
   migration-preflush-policy: flush-dirty-state-before-source-node-deactivation-then-remap-on-target-activation
   fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
   fallback-safety-policy: production-safe-when-shared-backend-precedes-local-sqlite
@@ -221,7 +222,7 @@ state:
   relocation-state-keys: last-relocation-island,last-relocation-operation,last-relocation-source-node,last-relocation-target-node,last-relocation-previous-world,last-relocation-previous-center,last-relocation-target-world,last-relocation-target-center,last-relocation-delta,last-relocation-machine-delta,last-relocation-resource-node-delta,last-relocation-placement-changed,last-relocation-machines-remapped,last-relocation-resource-nodes-remapped,last-relocation-machine-remap-deferred,last-relocation-resource-node-remap-deferred,last-relocation-remap-source,last-relocation-policy,last-relocation-state-authority,last-relocation-write-fence,last-relocation-duplicate-tick-policy,last-relocation-confirmed-state-policy,last-relocation-handoff-audit-key,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy,last-relocation-at
   route-event-player-visible-policy: logical-island-and-action-only-hide-node-server-world-cell-route-ticket
   route-event-player-visible-state-keys: last-route-player-visible-destination,last-route-player-visible-action,last-route-player-visible-status,last-route-player-visible-topology
-  dirty-save-state-keys: runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,runtime-dirty-save-stop-policy,addon-removal-dirty-save-detach-policy,addon-removal-dirty-save-reattach-policy,last-preflush-status,last-preflush-writes,last-preflush-failures,last-preflush-at
+  dirty-save-state-keys: runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,runtime-dirty-save-stop-policy,addon-removal-dirty-save-detach-policy,addon-removal-dirty-save-reattach-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy,last-preflush-status,last-preflush-writes,last-preflush-failures,last-preflush-at
   dirty-save-stop-policy: runtime-stop-preflushes-queued-dirty-state-before-task-cancel-and-addon-unregister
   preflush-audit-policy: publish-global-and-island-addon-state-for-migration-deactivation-and-disable-flushes
   preflush-audit-state-keys: last-preflush-island,last-preflush-operation,last-preflush-reason,last-preflush-status,last-preflush-writes,last-preflush-failures,last-preflush-attempts,last-preflush-at,last-preflush-write-fence,last-preflush-handoff-policy

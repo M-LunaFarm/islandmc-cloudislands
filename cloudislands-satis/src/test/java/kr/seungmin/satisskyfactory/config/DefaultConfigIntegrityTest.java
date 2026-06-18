@@ -38,6 +38,7 @@ class DefaultConfigIntegrityTest {
         assertEquals("stop-dirty-save-loop-clear-publishers-detach-service-references", addon.getString("removal.dirty-save-detach-policy"));
         assertEquals("recreate-dirty-save-service-and-reattach-service-references-before-restart", addon.getString("removal.dirty-save-reattach-policy"));
         assertEquals("reload-reenable-starts-runtime-when-database-is-not-initialized", addon.getString("removal.reload-runtime-restart-policy"));
+        assertEquals("core-refresh-reapplies-satis-runtime-state-after-refresh-success-or-fallback", addon.getString("removal.core-refresh-reapply-policy"));
         assertEquals("config-reload-after-satis-disable-restarts-runtime-when-database-is-not-initialized", addon.getString("state.reload-reenable-scenario"));
         assertFalse(addon.getBoolean("runtime.owns-islands"));
         assertEquals("cloudislands-island-uuid", addon.getString("runtime.storage-key"));
@@ -131,9 +132,11 @@ class DefaultConfigIntegrityTest {
         assertEquals(60, config.getInt("database.save-interval-seconds"));
         assertEquals(1200, config.getInt("settings.dirty-save-period-ticks"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-reload-runtime-restart-policy"));
+        assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-core-refresh-reapply-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));
+        assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-core-refresh-reapply-policy"));
         assertFalse(config.getBoolean("cloudislands.allow-coop-build"));
         assertFalse(config.getBoolean("cloudislands.allow-spawn-island"));
         assertTrue(config.getBoolean("cloudislands.require-island-member"));
