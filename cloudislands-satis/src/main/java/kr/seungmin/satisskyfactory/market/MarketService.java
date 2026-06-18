@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 public final class MarketService {
     public record SellResult(long gross, long paidToPlayer, long debtRepaid, double serverDemandFactor,
@@ -32,6 +33,7 @@ public final class MarketService {
     private final DatabaseService database;
     private final ItemRegistry items;
     private final BooleanSupplier maintenanceEnabled;
+    private final Predicate<FactoryIsland> islandSaver;
     private BooleanSupplier writesEnabled = () -> true;
     private final Map<String, Long> prices = new HashMap<>();
     private final Map<String, Long> targetDailyAmounts = new HashMap<>();
@@ -54,11 +56,23 @@ public final class MarketService {
 
     public MarketService(StorageService storage, EconomyService economy, DatabaseService database, ItemRegistry items,
                          BooleanSupplier maintenanceEnabled) {
+        this(storage, economy, database, items, maintenanceEnabled, island -> {
+            database.saveIsland(island);
+            return true;
+        });
+    }
+
+    public MarketService(StorageService storage, EconomyService economy, DatabaseService database, ItemRegistry items,
+                         BooleanSupplier maintenanceEnabled, Predicate<FactoryIsland> islandSaver) {
         this.storage = storage;
         this.economy = economy;
         this.database = database;
         this.items = items;
         this.maintenanceEnabled = maintenanceEnabled == null ? () -> true : maintenanceEnabled;
+        this.islandSaver = islandSaver == null ? island -> {
+            database.saveIsland(island);
+            return true;
+        } : islandSaver;
     }
 
     public void writeGate(BooleanSupplier writesEnabled) {
@@ -231,12 +245,20 @@ public final class MarketService {
             debtRepaid = Math.min(island.maintenanceDebt(), Math.round(gross * clamp(repayRate, 0.0, 1.0)));
         }
         long paid = Math.max(0, gross - debtRepaid);
-        if (paid > 0 && !economy.deposit(owner, paid)) {
-            return Optional.empty();
-        }
         if (debtRepaid > 0) {
+            long previousDebt = island.maintenanceDebt();
             island.maintenanceDebt(island.maintenanceDebt() - debtRepaid);
-            database.saveIsland(island);
+            if (!islandSaver.test(island)) {
+                island.maintenanceDebt(previousDebt);
+                return Optional.empty();
+            }
+        }
+        if (paid > 0 && !economy.deposit(owner, paid)) {
+            if (debtRepaid > 0) {
+                island.maintenanceDebt(island.maintenanceDebt() + debtRepaid);
+                islandSaver.test(island);
+            }
+            return Optional.empty();
         }
         database.recordMarketSale(island.islandUuid(), itemId, dateKey, amount, factors.serverDemandFactor());
         if (debtRepaid > 0) {

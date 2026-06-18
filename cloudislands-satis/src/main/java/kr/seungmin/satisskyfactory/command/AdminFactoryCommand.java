@@ -1538,6 +1538,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-placement-link-save-policy",
                         "runtime-research-unlock-save-policy",
                         "runtime-contract-emergency-usage-save-policy",
+                        "runtime-market-debt-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

@@ -241,7 +241,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         nodes.dirtySaves(dirtySaves);
         itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
         power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
-        market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"));
+        market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"), islands::save);
         contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"), islands::save);
         maintenance = new MaintenanceService(machines, economy, database);
         research = new ResearchService(database, economy, () -> operationalFeatureEnabled("maintenance"), islands::save);
@@ -586,6 +586,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-machine-placement-link-save-policy", "resource-node-link-or-no-input-status-rolls-back-when-machine-save-is-not-accepted");
         state.put("runtime-research-unlock-save-policy", "research-unlock-uses-island-save-gate-before-writing-unlock-records");
         state.put("runtime-contract-emergency-usage-save-policy", "emergency-contract-usage-cache-uses-island-save-gate-and-rolls-back-on-failure");
+        state.put("runtime-market-debt-save-policy", "market-debt-repayment-uses-island-save-gate-before-player-payout-and-sale-record");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));
@@ -1371,7 +1372,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         nodes.dirtySaves(dirtySaves);
         itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
         power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
-        market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"));
+        market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"), islands::save);
         contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"), islands::save);
         maintenance = new MaintenanceService(machines, economy, database);
         research = new ResearchService(database, economy, () -> operationalFeatureEnabled("maintenance"), islands::save);
