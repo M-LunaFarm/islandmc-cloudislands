@@ -108,12 +108,26 @@ tasks.register<Copy>("distAddons") {
         val jarTask = addonProject.tasks.named<Jar>("jar")
         dependsOn(jarTask)
         from(jarTask.flatMap { it.archiveFile })
-        from(addonProject.layout.projectDirectory.file("src/main/resources/cloudislands-addon.yml")) {
-            rename { "$projectName.yml" }
-            into("descriptors")
-        }
     }
     into(layout.buildDirectory.dir("dist/addons"))
+}
+
+tasks.register<Copy>("distAddonDescriptors") {
+    group = "distribution"
+    description = "Collects optional CloudIslands addon descriptors separately from addon jars."
+    exclude(markdownDocPatterns)
+    exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+
+    val addonProjects = listOf(
+        "cloudislands-satis"
+    )
+    addonProjects.forEach { projectName ->
+        val addonProject = project(":$projectName")
+        from(addonProject.layout.projectDirectory.file("src/main/resources/cloudislands-addon.yml")) {
+            rename { "$projectName.yml" }
+        }
+    }
+    into(layout.buildDirectory.dir("dist/addon-descriptors"))
 }
 
 tasks.register<Copy>("distServices") {
@@ -185,6 +199,7 @@ tasks.register<Zip>("distBundle") {
     dependsOn(tasks.named("verifyNoMarkdownDocs"))
     dependsOn(tasks.named("distPlugins"))
     dependsOn(tasks.named("distAddons"))
+    dependsOn(tasks.named("distAddonDescriptors"))
     dependsOn(tasks.named("distServices"))
     dependsOn(tasks.named("distTools"))
     dependsOn(tasks.named("distDeveloperKit"))
@@ -197,6 +212,9 @@ tasks.register<Zip>("distBundle") {
     }
     from(layout.buildDirectory.dir("dist/addons")) {
         into("addons")
+    }
+    from(layout.buildDirectory.dir("dist/addon-descriptors")) {
+        into("addon-descriptors")
     }
     from(layout.buildDirectory.dir("dist/services")) {
         into("services")
@@ -215,12 +233,16 @@ tasks.register<Zip>("distAddonBundle") {
     description = "Packages optional CloudIslands addon jars separately from the required core bundle."
     dependsOn(tasks.named("verifyNoMarkdownDocs"))
     dependsOn(tasks.named("distAddons"))
+    dependsOn(tasks.named("distAddonDescriptors"))
     archiveBaseName.set("cloudislands-addons")
     archiveVersion.set(project.version.toString())
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
     from(layout.buildDirectory.dir("dist/addons")) {
         into("addons")
+    }
+    from(layout.buildDirectory.dir("dist/addon-descriptors")) {
+        into("addon-descriptors")
     }
     destinationDirectory.set(layout.buildDirectory.dir("dist"))
 }

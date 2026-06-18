@@ -122,7 +122,8 @@ public final class CloudIslandsModuleLayoutPolicy {
     private static Map<String, List<String>> distributionTasks() {
         LinkedHashMap<String, List<String>> tasks = new LinkedHashMap<>();
         tasks.put("distPlugins", List.of("cloudislands-paper", "cloudislands-velocity"));
-        tasks.put("distAddons", List.of("cloudislands-satis", "cloudislands-satis-descriptor"));
+        tasks.put("distAddons", List.of("cloudislands-satis"));
+        tasks.put("distAddonDescriptors", List.of("cloudislands-satis-descriptor"));
         tasks.put("distServices", List.of("cloudislands-core-service"));
         tasks.put("distTools", List.of("cloudislands-migration"));
         tasks.put("distDeveloperKit", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration", "cloudislands-testkit", "cloudislands-bom"));

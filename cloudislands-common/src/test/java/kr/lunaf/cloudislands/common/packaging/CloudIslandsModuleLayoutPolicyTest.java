@@ -63,8 +63,12 @@ class CloudIslandsModuleLayoutPolicyTest {
     @Test
     void recordsAddonDistributionAsJarAndDescriptorSidecar() {
         assertEquals(
-            List.of("cloudislands-satis", "cloudislands-satis-descriptor"),
+            List.of("cloudislands-satis"),
             CloudIslandsModuleLayoutPolicy.distributionTasks().get("distAddons")
+        );
+        assertEquals(
+            List.of("cloudislands-satis-descriptor"),
+            CloudIslandsModuleLayoutPolicy.distributionTasks().get("distAddonDescriptors")
         );
         assertEquals(
             List.of("addons", "addon-descriptors"),
