@@ -21,6 +21,9 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals("cloudislands-api-only-no-superiorskyblock2-runtime", SatisAddonIntegrationPolicy.API_POLICY);
         assertEquals("island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi", SatisAddonIntegrationPolicy.API_SURFACE_POLICY);
         assertEquals("no-direct-cloudislands-storage-runtime-or-world-owner-access", SatisAddonIntegrationPolicy.FORBIDDEN_DIRECT_ACCESS_POLICY);
+        assertEquals("optional-content-layer-not-cloudislands-core-lifecycle-owner", SatisAddonIntegrationPolicy.OFFICIAL_FEATURE_PACK_POLICY);
+        assertEquals("cloudislands-satis-owns-optional-machines-resource-nodes-contracts-research-market-and-placeholders", SatisAddonIntegrationPolicy.CONTENT_LAYER_POLICY);
+        assertEquals("cloudislands-core-owns-island-lifecycle-routing-storage-protection-and-public-api", SatisAddonIntegrationPolicy.CORE_BOUNDARY_POLICY);
         assertEquals("cloudislands-api-required-no-standalone-island-runtime", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY);
         assertEquals("bootstrap-or-services-manager", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY);
         assertEquals("disable-plugin-clear-features-register-no-components", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
@@ -145,6 +148,19 @@ class SatisAddonIntegrationPolicyTest {
                 "legacy-skyblock-calls-are-replaced-by-cloudislands-api-or-addon-spi",
                 SatisAddonIntegrationPolicy.requiredScenarios().get("no-superiorskyblock2")
         );
+    }
+
+    @Test
+    void exposesOfficialFeaturePackBoundaryFromCommonPolicy() {
+        assertEquals(
+                "cloudislands-core-owns-island-lifecycle-routing-storage-protection-and-public-api",
+                SatisAddonIntegrationPolicy.officialFeaturePackBoundaries().get("platform-layer")
+        );
+        assertEquals(
+                "cloudislands-satis-owns-optional-machines-resource-nodes-contracts-research-market-and-placeholders",
+                SatisAddonIntegrationPolicy.officialFeaturePackBoundaries().get("content-layer")
+        );
+        assertTrue(SatisAddonIntegrationPolicy.officialFeaturePackBoundarySummary().contains("failure-boundary=satis-failure-or-removal-must-not-stop-core-island-create-route-save-restore"));
     }
 
     @Test
