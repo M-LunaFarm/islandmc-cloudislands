@@ -356,7 +356,9 @@ commands:
     - ciadmin
   core-admin-root-owner: CloudIslands
   list-format: one-line-per-command
+  list-header-suffix: " - 1 line > 1 command"
   list-entry-prefix: "> /"
+  list-navigation-policy: previous-and-next-page-are-rendered-as-command-lines
   list-page-size: 12
   player-list-command: factory command list [page]
   admin-list-command: factory admin command list [page]

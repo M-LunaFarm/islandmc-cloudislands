@@ -1870,6 +1870,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("feature-gate-policy", "host-addon-config-and-satis-config-must-all-allow");
         metadata.put("feature-gate-sources", "addons.cloudislands-satis.enabled,satis.enabled,addons.cloudislands-satis.features,satis.features,features(legacy)");
         metadata.put("feature-gate-disabled-by", featureGateDisabledBy());
+        metadata.put("command-list-format", "one-line-per-command");
+        metadata.put("command-list-header-suffix", CommandListPolicy.HEADER_SUFFIX);
+        metadata.put("command-list-entry-prefix", CommandListPolicy.ENTRY_PREFIX);
+        metadata.put("command-list-navigation-policy", "previous-and-next-page-are-rendered-as-command-lines");
+        metadata.put("command-list-paging", "factory command list [page],factory admin command list [page]");
+        metadata.put("command-list-page-size", Integer.toString(commandListPageSize()));
         metadata.put("feature-gate-runtime-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes-preserve-data");
         metadata.put("feature-disable-data-policy", SatisAddonIntegrationPolicy.FEATURE_DISABLE_DATA_POLICY);
         metadata.put("addon-data-retention-policy", SatisAddonIntegrationPolicy.DATA_RETENTION_POLICY);
