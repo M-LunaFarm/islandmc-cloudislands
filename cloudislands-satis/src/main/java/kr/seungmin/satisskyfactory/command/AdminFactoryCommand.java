@@ -1423,6 +1423,7 @@ public final class AdminFactoryCommand {
                         "runtime-storage-gate",
                         "runtime-storage-status",
                         "runtime-storage-policy",
+                        "runtime-storage-save-result-policy",
                         "runtime-market-gate",
                         "runtime-market-status",
                         "runtime-market-policy",

@@ -497,6 +497,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-storage-gate", "addonRuntimeEnabled&&features.storage");
         state.put("runtime-storage-status", operationalFeatureEnabled("storage") ? "enabled" : "storage-feature-disabled");
         state.put("runtime-storage-policy", "disabled-feature-blocks-storage-commands-gui-and-writes-preserve-data");
+        state.put("runtime-storage-save-result-policy", "deposit-hand-removes-player-item-only-after-storage-save-accepted");
         state.put("runtime-market-gate", "addonRuntimeEnabled&&features.market&&features.storage");
         state.put("runtime-market-status", operationalFeatureEnabled("market") ? "enabled" : "market-or-storage-feature-disabled");
         state.put("runtime-market-policy", "disabled-feature-blocks-market-commands-gui-and-writes-preserve-data");

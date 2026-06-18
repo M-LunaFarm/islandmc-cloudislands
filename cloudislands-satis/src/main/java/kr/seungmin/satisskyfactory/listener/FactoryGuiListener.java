@@ -360,8 +360,12 @@ public final class FactoryGuiListener implements Listener {
             messages.send(player, "storage-full");
             return;
         }
+        if (!storage.saveIfAllowed(inventory)) {
+            inventory.remove(itemId, amount);
+            messages.send(player, "feature-disabled", Map.of("feature", "storage"));
+            return;
+        }
         hand.setAmount(0);
-        storage.save(inventory);
         messages.send(player, "deposited", Map.of("item", itemId, "amount", String.valueOf(amount)));
         gui.openStorage(player, island);
     }

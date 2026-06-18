@@ -75,15 +75,20 @@ public final class StorageService {
     }
 
     public void save(VirtualInventory inventory) {
+        saveIfAllowed(inventory);
+    }
+
+    public boolean saveIfAllowed(VirtualInventory inventory) {
         cache.put(inventory.inventoryId(), inventory);
         if (!writesEnabled(inventory)) {
-            return;
+            return false;
         }
         if (dirtySaves != null) {
             dirtySaves.markInventory(inventory);
-            return;
+            return true;
         }
         database.saveInventory(inventory);
+        return true;
     }
 
     public void saveNow(VirtualInventory inventory) {
