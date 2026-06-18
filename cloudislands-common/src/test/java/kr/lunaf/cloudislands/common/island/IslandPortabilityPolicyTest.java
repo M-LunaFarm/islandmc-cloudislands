@@ -10,13 +10,15 @@ import org.junit.jupiter.api.Test;
 class IslandPortabilityPolicyTest {
     @Test
     void keepsFiveAndSixIslandNodesInSupportedScaleOutExamples() {
-        assertEquals(List.of(3, 4, 5, 6, 8), IslandPortabilityPolicy.scaleOutExampleCounts());
+        assertEquals(List.of(3, 4, 5, 6, 7, 8), IslandPortabilityPolicy.scaleOutExampleCounts());
         assertTrue(IslandPortabilityPolicy.supportsIslandNodeCount(5));
         assertTrue(IslandPortabilityPolicy.supportsIslandNodeCount(6));
+        assertTrue(IslandPortabilityPolicy.supportsIslandNodeCount(7));
         assertTrue(IslandPortabilityPolicy.supportsIslandNodeCount(8));
         assertTrue(IslandPortabilityPolicy.supportsIslandNodeCount(12));
         assertTrue(IslandPortabilityPolicy.documentedScaleOutCount(5));
         assertTrue(IslandPortabilityPolicy.documentedScaleOutCount(6));
+        assertTrue(IslandPortabilityPolicy.documentedScaleOutCount(7));
         assertTrue(IslandPortabilityPolicy.documentedScaleOutCount(8));
         assertFalse(IslandPortabilityPolicy.supportsIslandNodeCount(0));
     }
@@ -32,10 +34,15 @@ class IslandPortabilityPolicyTest {
             IslandPortabilityPolicy.SCALE_OUT_GUARD_POLICY
         );
         assertTrue(IslandPortabilityPolicy.designEffects().contains("island-node-pool-can-run-five-or-six-nodes-with-unique-identities-and-shared-storage"));
+        assertTrue(IslandPortabilityPolicy.designEffects().contains("island-node-pool-can-run-seven-or-more-nodes-with-the-same-live-heartbeat-routing"));
         assertTrue(IslandPortabilityPolicy.designEffects().contains("island-node-pool-can-run-eight-or-more-nodes-with-the-same-live-heartbeat-routing"));
         assertEquals(
             "island-node-count-has-no-hard-coded-maximum-route-eligibility-comes-from-live-heartbeats",
             IslandPortabilityPolicy.NO_FIXED_NODE_COUNT_LIMIT_POLICY
+        );
+        assertEquals(
+            "seven-or-more-island-nodes-use-the-same-live-route-candidate-rules-with-no-player-command-change",
+            IslandPortabilityPolicy.ABOVE_SIX_NODE_POLICY
         );
         assertEquals(
             "eight-or-more-island-nodes-use-the-same-live-route-candidate-rules-with-no-player-command-change",
@@ -63,6 +70,7 @@ class IslandPortabilityPolicyTest {
         assertEquals(2L, IslandPortabilityPolicy.recommendedRouteCandidateMinimum(4));
         assertEquals(5L, IslandPortabilityPolicy.recommendedRouteCandidateMinimum(5));
         assertEquals(6L, IslandPortabilityPolicy.recommendedRouteCandidateMinimum(6));
+        assertEquals(6L, IslandPortabilityPolicy.recommendedRouteCandidateMinimum(7));
         assertEquals(6L, IslandPortabilityPolicy.recommendedRouteCandidateMinimum(8));
         assertEquals(6L, IslandPortabilityPolicy.recommendedRouteCandidateMinimum(12));
         assertEquals(6, IslandPortabilityPolicy.MAX_RECOMMENDED_ROUTE_CANDIDATES);

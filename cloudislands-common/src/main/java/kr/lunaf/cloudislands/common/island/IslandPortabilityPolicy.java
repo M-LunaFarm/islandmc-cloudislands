@@ -12,6 +12,7 @@ public final class IslandPortabilityPolicy {
     public static final String SCALE_POLICY = "add-island-nodes-by-registering-more-route-candidate-nodes-no-fixed-node-count-limit";
     public static final String NO_FIXED_NODE_COUNT_LIMIT_POLICY = "island-node-count-has-no-hard-coded-maximum-route-eligibility-comes-from-live-heartbeats";
     public static final String FIVE_SIX_NODE_POLICY = "five-or-six-island-nodes-are-supported-when-each-node-has-unique-node-id-unique-velocity-server-name-shared-storage-and-route-candidate-readiness";
+    public static final String ABOVE_SIX_NODE_POLICY = "seven-or-more-island-nodes-use-the-same-live-route-candidate-rules-with-no-player-command-change";
     public static final String EIGHT_PLUS_NODE_POLICY = "eight-or-more-island-nodes-use-the-same-live-route-candidate-rules-with-no-player-command-change";
     public static final String SCALE_READINESS_POLICY = "node-pool-readiness-is-live-heartbeat-driven-and-degraded-when-route-candidates-drop-below-recommended-minimum";
     public static final String ROUTE_CANDIDATE_MINIMUM_POLICY = "recommended-route-candidates-are-capped-for-alerting-not-for-node-count-limiting";
@@ -29,11 +30,12 @@ public final class IslandPortabilityPolicy {
         "admins-can-drain-and-migrate-by-node",
         "island-node-pool-can-scale-to-island-3-island-4-and-beyond",
         "island-node-pool-can-run-five-or-six-nodes-with-unique-identities-and-shared-storage",
+        "island-node-pool-can-run-seven-or-more-nodes-with-the-same-live-heartbeat-routing",
         "island-node-pool-can-run-eight-or-more-nodes-with-the-same-live-heartbeat-routing",
         "route-candidate-shortfall-is-reported-before-new-activations-fail"
     );
 
-    private static final List<Integer> SCALE_OUT_EXAMPLE_COUNTS = List.of(3, 4, 5, 6, 8);
+    private static final List<Integer> SCALE_OUT_EXAMPLE_COUNTS = List.of(3, 4, 5, 6, 7, 8);
 
     private IslandPortabilityPolicy() {}
 
@@ -46,7 +48,7 @@ public final class IslandPortabilityPolicy {
     }
 
     public static String scaleReadinessSummary() {
-        return SCALE_POLICY + "," + FIVE_SIX_NODE_POLICY + "," + SCALE_READINESS_POLICY;
+        return SCALE_POLICY + "," + FIVE_SIX_NODE_POLICY + "," + ABOVE_SIX_NODE_POLICY + "," + SCALE_READINESS_POLICY;
     }
 
     public static List<Integer> scaleOutExampleCounts() {
