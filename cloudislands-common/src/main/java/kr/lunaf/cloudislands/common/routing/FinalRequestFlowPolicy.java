@@ -73,11 +73,22 @@ public final class FinalRequestFlowPolicy {
         ));
         flows.put("soft-full-routing", List.of(
             "soft-full-node-avoided-for-new-islands",
+            "allocator-block-reason-state-soft-full",
             "ready-node-selected-for-new-islands",
             "ready-node-selected-for-inactive-existing-islands",
             "active-island-owner-member-use-reserved-slots-on-current-node",
             "active-island-visitor-queued-or-limited",
             "empty-active-island-may-migrate-after-save"
+        ));
+        flows.put("island-1-soft-full-create-on-island-2", List.of(
+            "player-runs-island-create",
+            "island-1-heartbeat-reports-soft-full",
+            "allocator-marks-island-1-state-soft-full-for-new-activation",
+            "allocator-keeps-searching-ready-candidates",
+            "island-2-ready-candidate-selected",
+            "create-island-job-targets-island-2",
+            "route-ticket-targets-island-2",
+            "player-command-does-not-change"
         ));
         return Collections.unmodifiableMap(flows);
     }

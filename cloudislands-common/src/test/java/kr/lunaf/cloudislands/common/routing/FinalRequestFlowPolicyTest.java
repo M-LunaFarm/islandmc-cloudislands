@@ -67,6 +67,7 @@ class FinalRequestFlowPolicyTest {
         assertEquals(
             List.of(
                 "soft-full-node-avoided-for-new-islands",
+                "allocator-block-reason-state-soft-full",
                 "ready-node-selected-for-new-islands",
                 "ready-node-selected-for-inactive-existing-islands",
                 "active-island-owner-member-use-reserved-slots-on-current-node",
@@ -78,8 +79,26 @@ class FinalRequestFlowPolicyTest {
     }
 
     @Test
+    void recordsIslandOneSoftFullCreateOnIslandTwoScenario() {
+        assertEquals(
+            List.of(
+                "player-runs-island-create",
+                "island-1-heartbeat-reports-soft-full",
+                "allocator-marks-island-1-state-soft-full-for-new-activation",
+                "allocator-keeps-searching-ready-candidates",
+                "island-2-ready-candidate-selected",
+                "create-island-job-targets-island-2",
+                "route-ticket-targets-island-2",
+                "player-command-does-not-change"
+            ),
+            FinalRequestFlowPolicy.flow("island-1-soft-full-create-on-island-2")
+        );
+    }
+
+    @Test
     void rejectsUnknownFlowKeys() {
         assertTrue(FinalRequestFlowPolicy.knownFlow("island-create"));
+        assertTrue(FinalRequestFlowPolicy.knownFlow("island-1-soft-full-create-on-island-2"));
         assertFalse(FinalRequestFlowPolicy.knownFlow("legacy-bungee-flow"));
         assertEquals(List.of(), FinalRequestFlowPolicy.flow(null));
     }
