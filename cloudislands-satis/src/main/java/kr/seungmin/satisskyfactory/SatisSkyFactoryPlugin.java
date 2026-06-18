@@ -1776,7 +1776,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         metadata.put("database-core-api-requires", "cloudislands-api,addon-state");
         metadata.put("database-core-api-mode", databaseCoreApiMode());
-        metadata.put("database-core-api-endpoint", String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS, AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS, AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_ENDPOINT, AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT));
+        metadata.put("database-core-api-endpoint", coreApiGlobalEndpointSet());
+        metadata.put("database-core-api-island-endpoint", coreApiIslandEndpointSet());
         metadata.put("database-core-api-bulk-request-models", "AddonStateBulkSaveRequest,AddonStateBulkLoadRequest");
         metadata.put("addon-state-table-key-value-bulk-load-global-endpoint", AddonStateBulkLoadRequest.GLOBAL_ENDPOINT);
         metadata.put("addon-state-table-key-value-bulk-load-island-endpoint", AddonStateBulkLoadRequest.ISLAND_ENDPOINT);
@@ -2234,7 +2235,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
         state.put("database-core-api-mode", databaseCoreApiMode());
-        state.put("database-core-api-endpoint", String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS, AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS, AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_ENDPOINT, AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT));
+        state.put("database-core-api-endpoint", coreApiGlobalEndpointSet());
+        state.put("database-core-api-island-endpoint", coreApiIslandEndpointSet());
         state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("database-core-api-fallback-target-ready", Boolean.toString(databaseCoreApiFallbackTargetReady()));
@@ -2421,7 +2423,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-node-local-cache-active", Boolean.toString(database != null && database.usesNodeLocalCache()));
         state.put("database-core-api-requires", "cloudislands-api,addon-state");
         state.put("database-core-api-mode", databaseCoreApiMode());
-        state.put("database-core-api-endpoint", String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS, AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS, AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_ENDPOINT, AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT));
+        state.put("database-core-api-endpoint", coreApiGlobalEndpointSet());
+        state.put("database-core-api-island-endpoint", coreApiIslandEndpointSet());
         state.put("database-core-api-local-cache", databaseCoreApiLocalCachePolicy());
         state.put("database-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("database-core-api-fallback-policy", databaseCoreApiFallbackPolicy());
@@ -4108,7 +4111,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("addon-state-sync-runtime-source", "CloudIslands IslandRuntime");
         state.put("addon-state-sync-remap-policy", "island-uuid-stable-active-world-and-center-volatile");
         state.put("addon-state-sync-node-bound", "false");
-        state.put("addon-state-sync-endpoint", String.join(",", AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_ENDPOINT, AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT, AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, AddonStateBulkSaveRequest.GLOBAL_BULK_SAVE_ALIAS, AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS, AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS));
+        state.put("addon-state-sync-endpoint", coreApiGlobalEndpointSet());
+        state.put("addon-state-sync-island-endpoint", coreApiIslandEndpointSet());
         state.put("addon-state-sync-core-api-mode", databaseCoreApiMode());
         state.put("addon-state-sync-core-api-fallback-target", databaseCoreApiFallbackTarget());
         state.put("addon-state-sync-flattened-fallback-enabled", Boolean.toString(coreApiFlattenedFallbackEnabled()));
@@ -5426,6 +5430,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String active = database == null ? "NOT_OPEN" : database.activeBackend().name();
         return "active:" + active;
+    }
+
+    private String coreApiGlobalEndpointSet() {
+        return String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS)
+                + "," + String.join(",", AddonStateBulkLoadRequest.GLOBAL_ENDPOINTS);
+    }
+
+    private String coreApiIslandEndpointSet() {
+        return String.join(",", AddonStateBulkSaveRequest.ISLAND_ENDPOINTS)
+                + "," + String.join(",", AddonStateBulkLoadRequest.ISLAND_ENDPOINTS);
     }
 
     private String databaseCoreApiMode() {
