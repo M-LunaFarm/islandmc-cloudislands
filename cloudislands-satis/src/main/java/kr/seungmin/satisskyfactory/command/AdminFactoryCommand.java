@@ -646,8 +646,11 @@ public final class AdminFactoryCommand {
     private void showFeatures(CommandSender sender) {
         sender.sendMessage(messages.raw("admin-features-title"));
         sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-catalog", "value", SatisFeatureGateResolver.featureKeysMetadata())));
+        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-root-gates", "value", SatisFeatureGateResolver.rootGateMetadata())));
+        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-config-roots", "value", SatisFeatureGateResolver.featureRootMetadata())));
         sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-aliases", "value", SatisFeatureGateResolver.aliasMetadata())));
         sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-dependencies", "value", SatisFeatureGateResolver.dependencyMetadata())));
+        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-config-gate-policy", "value", SatisFeatureGateResolver.configGatePolicy())));
         sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-disable-policy", "value", SatisFeatureGateResolver.disablePolicy())));
         for (String feature : FEATURE_KEYS) {
             sender.sendMessage(messages.raw("admin-features-entry", Map.of(

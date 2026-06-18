@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -90,6 +91,30 @@ class SatisFeatureGateResolverTest {
         assertFalse(SatisFeatureGateResolver.featureEnabled(config, "biomes"));
         assertFalse(SatisFeatureGateResolver.featureEnabled(config, "chat"));
         assertFalse(SatisFeatureGateResolver.featureEnabled(config, "templates"));
+    }
+
+    @Test
+    void exposesConfigGateMetadataForAdminAndAddonDescriptors() {
+        assertEquals(
+                List.of("satis.features.", "addons.cloudislands-satis.features.", "features."),
+                SatisFeatureGateResolver.featureRoots()
+        );
+        assertEquals(
+                "satis.features.,addons.cloudislands-satis.features.,features.",
+                SatisFeatureGateResolver.featureRootMetadata()
+        );
+        assertEquals(
+                List.of("satis.enabled", "integration.enabled", "addons.cloudislands-satis.enabled", "integration.mode!=DISABLED"),
+                SatisFeatureGateResolver.rootGates()
+        );
+        assertEquals(
+                "satis.enabled&&integration.enabled&&addons.cloudislands-satis.enabled&&integration.mode!=DISABLED",
+                SatisFeatureGateResolver.rootGateMetadata()
+        );
+        assertEquals(
+                "root-gates-disable-all-satis-runtime-and-feature-roots-disable-their-runtime-components",
+                SatisFeatureGateResolver.configGatePolicy()
+        );
     }
 
     private YamlConfiguration defaults() {

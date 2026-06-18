@@ -39,6 +39,12 @@ public final class SatisFeatureGateResolver {
             "addons.cloudislands-satis.features.",
             "features."
     );
+    private static final List<String> ROOT_GATES = List.of(
+            "satis.enabled",
+            "integration.enabled",
+            "addons.cloudislands-satis.enabled",
+            "integration.mode!=DISABLED"
+    );
     private static final Map<String, String> ALIASES = Map.of(
             "factories", "machines",
             "generators", "resource-nodes",
@@ -76,6 +82,22 @@ public final class SatisFeatureGateResolver {
         return String.join(",", FEATURE_KEYS);
     }
 
+    public static List<String> featureRoots() {
+        return FEATURE_ROOTS;
+    }
+
+    public static String featureRootMetadata() {
+        return String.join(",", FEATURE_ROOTS);
+    }
+
+    public static List<String> rootGates() {
+        return ROOT_GATES;
+    }
+
+    public static String rootGateMetadata() {
+        return String.join("&&", ROOT_GATES);
+    }
+
     public static String dependencyMetadata() {
         java.util.List<String> values = new java.util.ArrayList<>();
         DEPENDENCIES.entrySet().stream()
@@ -94,6 +116,10 @@ public final class SatisFeatureGateResolver {
 
     public static String disablePolicy() {
         return "disabled-features-hide-commands-skip-runtime-components-preserve-data-and-block-writes";
+    }
+
+    public static String configGatePolicy() {
+        return "root-gates-disable-all-satis-runtime-and-feature-roots-disable-their-runtime-components";
     }
 
     public static boolean rootEnabled(ConfigurationSection config) {
