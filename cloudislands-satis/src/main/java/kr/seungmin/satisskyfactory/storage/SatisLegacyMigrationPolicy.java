@@ -22,6 +22,7 @@ public final class SatisLegacyMigrationPolicy {
     public static final String FINGERPRINT_APPROVAL_TOKEN = "CONFIRM_IMPORT:<dryrun-sha256>";
     public static final String APPROVAL_TOKEN_POLICY = "plain-confirm-or-dryrun-sha256-bound-confirm";
     public static final String IMPORT_COMMAND = "factory admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>";
+    public static final String IMPORT_PROVIDER_PREREQUISITE = "verify-no-legacy-provider-passed-before-import";
     public static final String LEGACY_COMMAND_ROOT = "migrate-superiorskyblock2";
     public static final String ROLLBACK_POLICY = "rollback-manifest-only-no-automatic-live-data-delete";
     public static final String OUTPUT_ID_POLICY = "cloudislands-island-uuid";
@@ -168,6 +169,10 @@ public final class SatisLegacyMigrationPolicy {
 
     public static boolean legacyProviderMayBecomeRuntimeAuthority() {
         return false;
+    }
+
+    public static boolean importRequiresLegacyProviderClean() {
+        return true;
     }
 
     public static String runtimeProviderAction(boolean legacyProviderPresent) {

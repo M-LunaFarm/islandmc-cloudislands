@@ -27,6 +27,7 @@ class SatisLegacyMigrationPolicyTest {
         assertEquals("CONFIRM_IMPORT:<dryrun-sha256>", SatisLegacyMigrationPolicy.FINGERPRINT_APPROVAL_TOKEN);
         assertEquals("plain-confirm-or-dryrun-sha256-bound-confirm", SatisLegacyMigrationPolicy.APPROVAL_TOKEN_POLICY);
         assertEquals("factory admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>", SatisLegacyMigrationPolicy.IMPORT_COMMAND);
+        assertEquals("verify-no-legacy-provider-passed-before-import", SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE);
         assertEquals("migrate-superiorskyblock2", SatisLegacyMigrationPolicy.LEGACY_COMMAND_ROOT);
         assertEquals("rollback-manifest-only-no-automatic-live-data-delete", SatisLegacyMigrationPolicy.ROLLBACK_POLICY);
         assertEquals("cloudislands-island-uuid", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY);
@@ -38,6 +39,7 @@ class SatisLegacyMigrationPolicyTest {
     void runtimeDoesNotRequireOrPromoteLegacyProviders() {
         assertFalse(SatisLegacyMigrationPolicy.runtimeRequiresLegacyProvider());
         assertFalse(SatisLegacyMigrationPolicy.legacyProviderMayBecomeRuntimeAuthority());
+        assertTrue(SatisLegacyMigrationPolicy.importRequiresLegacyProviderClean());
         assertEquals("continue-cloudislands-api-only", SatisLegacyMigrationPolicy.runtimeProviderAction(false));
         assertEquals("warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes", SatisLegacyMigrationPolicy.runtimeProviderAction(true));
     }

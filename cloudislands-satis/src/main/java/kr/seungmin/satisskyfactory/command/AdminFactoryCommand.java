@@ -804,6 +804,7 @@ public final class AdminFactoryCommand {
         state.put("satismc-import-mode", "cross-backend-sqlite-copy");
         state.put("satismc-import-manifest", "migration-backups/legacy-import-last-manifest.json");
         state.put("satismc-import-prerequisite", "same-source-dryrun-or-verify-before-import");
+        state.put("satismc-import-provider-prerequisite", SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE);
         state.put("satismc-core-api-import-guard", "reject-core-api-import-when-addon-state-writer-unavailable");
         state.put("satismc-rollback-mode", "sqlite-snapshot-restore-or-shared-backend-table-restore");
         state.put("satismc-rollback-safety", "restores-known-satis-tables-from-migration-backups/legacy-import-last.db");
@@ -964,6 +965,23 @@ public final class AdminFactoryCommand {
         return false;
     }
 
+    private boolean legacyRuntimeClean() {
+        for (String provider : MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS.split(",")) {
+            String name = provider.trim();
+            try {
+                if (Bukkit.getPluginManager().isPluginEnabled(name)) {
+                    return false;
+                }
+            } catch (RuntimeException ignored) {
+                return false;
+            }
+            if (legacyProviderServiceRegistered(name)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void scanLegacyDatabase(CommandSender sender, String[] args, String action) {
         if (args.length < 4) {
             sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
@@ -1106,6 +1124,26 @@ public final class AdminFactoryCommand {
                 state.put("required", legacyApprovalToken(currentFingerprint));
                 state.put("compat-approval", MIGRATION_IMPORT_APPROVAL);
                 state.put("reason", "fingerprint approval token must match the last dryrun source");
+                state.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                                "key", entry.getKey(),
+                                "value", entry.getValue()
+                        ))));
+                return;
+            }
+            if (!legacyRuntimeClean()) {
+                sender.sendMessage(messages.raw("admin-migration-title"));
+                Map<String, String> state = new LinkedHashMap<>();
+                state.put("mode", "legacy-provider-present");
+                state.put("writes", "false");
+                state.put("source", plan.sourcePath());
+                state.put("required", "/factory admin migration verify-no-legacy-provider");
+                state.put("policy", SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE);
+                state.put("runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
+                state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
+                state.put("live-provider-hooks", "legacy-provider-plugin-or-service-present");
+                state.put("reason", "remove or disable legacy skyblock providers before accepting migration import");
                 state.entrySet().stream()
                         .sorted(Map.Entry.comparingByKey())
                         .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
