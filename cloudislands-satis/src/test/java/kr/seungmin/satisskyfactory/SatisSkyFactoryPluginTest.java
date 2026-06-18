@@ -170,6 +170,9 @@ class SatisSkyFactoryPluginTest {
         assertTrue(adminSource.contains("runtime-feature-pack-runtime-enabled"));
         assertTrue(adminSource.contains("runtime-feature-pack-runtime-shape"));
         assertTrue(adminSource.contains("runtime-feature-pack-block-reason"));
+        assertTrue(adminSource.contains("runtime-disable-activation-block-reason"));
+        assertTrue(adminSource.contains("last-preflush-activation-block-reason"));
+        assertTrue(adminSource.contains("preflush-activation-block-reason"));
     }
 
     @Test
