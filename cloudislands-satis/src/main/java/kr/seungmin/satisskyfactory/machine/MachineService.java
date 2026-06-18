@@ -89,7 +89,7 @@ public final class MachineService {
         }
         Optional<VirtualInventory> outputInventory = storage.createMachineInventoryIfAllowed(islandUuid, machine.machineId(), "MACHINE_OUTPUT", definition.outputCapacity());
         if (outputInventory.isEmpty()) {
-            storage.delete(inputInventory.get().inventoryId());
+            deleteCreatedInventory(inputInventory.get());
             return Optional.empty();
         }
         VirtualInventory input = inputInventory.get();
@@ -97,12 +97,16 @@ public final class MachineService {
         machine.inputInventoryId(input.inventoryId());
         machine.outputInventoryId(output.inventoryId());
         if (!save(machine)) {
-            storage.delete(input.inventoryId());
-            storage.delete(output.inventoryId());
+            deleteCreatedInventory(input);
+            deleteCreatedInventory(output);
             return Optional.empty();
         }
         revision.incrementAndGet();
         return Optional.of(machine);
+    }
+
+    private boolean deleteCreatedInventory(VirtualInventory inventory) {
+        return inventory != null && storage.delete(inventory.inventoryId());
     }
 
     public boolean save(MachineInstance machine) {
