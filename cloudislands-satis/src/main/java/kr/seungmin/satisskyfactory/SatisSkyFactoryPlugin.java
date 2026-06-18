@@ -570,6 +570,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-dirty-save-pending-nodes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingNodes()));
         state.put("runtime-dirty-save-pending-islands", dirtySaves == null ? "0" : Integer.toString(dirtySaves.pendingIslands()));
         state.put("runtime-machine-tick-fuel-save-policy", "generator-fuel-consumption-rolls-back-and-fails-when-storage-save-is-not-accepted");
+        state.put("runtime-machine-tick-harvest-save-policy", "harvester-output-rolls-back-and-fails-when-storage-save-is-not-accepted");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));

@@ -484,6 +484,7 @@ public final class MachineTickService {
                 : definition.harvestDrops();
         long amountPerCrop = Math.max(1, Math.round(boosts.boosts(machine.islandUuid()).agricultureBoost()));
         int range = Math.max(1, definition.range());
+        Map<String, Long> addedOutput = new java.util.HashMap<>();
         for (int x = -range; x <= range; x++) {
             for (int z = -range; z <= range; z++) {
                 Block block = location.clone().add(x, 0, z).getBlock();
@@ -493,14 +494,18 @@ public final class MachineTickService {
                 }
                 if (!output.add(itemId, amountPerCrop)) {
                     setStatus(machine, MachineStatus.OUTPUT_FULL);
-                    storage.save(output);
+                    storage.saveIfAllowed(output);
                     return false;
                 }
+                addedOutput.merge(itemId, amountPerCrop, Long::sum);
                 resetCrop(block);
                 harvested++;
             }
         }
-        storage.save(output);
+        if (harvested > 0 && !storage.saveIfAllowed(output)) {
+            addedOutput.forEach(output::remove);
+            return false;
+        }
         setStatus(machine, harvested > 0 ? MachineStatus.ACTIVE : MachineStatus.NO_INPUT);
         return harvested > 0;
     }
