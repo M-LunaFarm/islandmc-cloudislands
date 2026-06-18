@@ -71,6 +71,30 @@ class SuperiorSkyblockReplacementFeaturePolicyTest {
     }
 
     @Test
+    void pinsReplacementFeatureDomains() {
+        assertEquals(
+            SuperiorSkyblockReplacementFeaturePolicy.requiredFeatures().keySet(),
+            SuperiorSkyblockReplacementFeaturePolicy.featureDomains().keySet()
+        );
+        assertEquals("lifecycle", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("island-create"));
+        assertEquals("routing", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("island-home"));
+        assertEquals("access-control", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("visitor-ban"));
+        assertEquals("membership", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("roles-permissions"));
+        assertEquals("protection", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("island-flags"));
+        assertEquals("ranking-value", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("island-worth"));
+        assertEquals("economy-upgrades", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("island-bank"));
+        assertEquals("world-management", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("island-biome"));
+        assertEquals("social", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("team-chat"));
+        assertEquals("progression", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("missions"));
+        assertEquals("limits-generation", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("redstone-limits"));
+        assertEquals("operations", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("snapshot-rollback"));
+        assertEquals("api-surface", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("external-java-api"));
+        assertTrue(SuperiorSkyblockReplacementFeaturePolicy.featureDomainCovered("web-api"));
+        assertFalse(SuperiorSkyblockReplacementFeaturePolicy.featureDomainCovered("legacy-provider"));
+        assertEquals("", SuperiorSkyblockReplacementFeaturePolicy.featureDomain(null));
+    }
+
+    @Test
     void pinsMigrationInputOnlyRuntimeProviderFence() {
         assertEquals(
             "superiorskyblock2-is-readonly-migration-input-never-runtime-authority",
@@ -79,6 +103,14 @@ class SuperiorSkyblockReplacementFeaturePolicyTest {
         assertEquals(
             "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes",
             SuperiorSkyblockReplacementFeaturePolicy.FORBIDDEN_RUNTIME_PROVIDER_ACTION
+        );
+        assertEquals(
+            "cloudislands-core-api-is-authoritative-for-every-superiorskyblock2-replacement-feature",
+            SuperiorSkyblockReplacementFeaturePolicy.REPLACEMENT_AUTHORITY_POLICY
+        );
+        assertEquals(
+            "replacement-features-use-cloudislands-services-never-superiorskyblock2-service-lookup-events-or-storage",
+            SuperiorSkyblockReplacementFeaturePolicy.REPLACEMENT_RUNTIME_POLICY
         );
         assertEquals(
             List.of("SuperiorSkyblock2", "BentoBox", "ASkyBlock", "uSkyBlock", "IridiumSkyblock"),

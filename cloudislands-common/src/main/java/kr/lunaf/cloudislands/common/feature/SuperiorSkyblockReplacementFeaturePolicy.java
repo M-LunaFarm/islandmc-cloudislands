@@ -7,6 +7,7 @@ import java.util.Map;
 
 public final class SuperiorSkyblockReplacementFeaturePolicy {
     private static final Map<String, String> REQUIRED_FEATURES = buildRequiredFeatures();
+    private static final Map<String, String> FEATURE_DOMAINS = buildFeatureDomains();
     private static final List<String> MIGRATION_TARGETS = List.of(
         "island-id",
         "owner-uuid",
@@ -52,6 +53,8 @@ public final class SuperiorSkyblockReplacementFeaturePolicy {
     );
     public static final String MIGRATION_INPUT_ONLY_POLICY = "superiorskyblock2-is-readonly-migration-input-never-runtime-authority";
     public static final String FORBIDDEN_RUNTIME_PROVIDER_ACTION = "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes";
+    public static final String REPLACEMENT_AUTHORITY_POLICY = "cloudislands-core-api-is-authoritative-for-every-superiorskyblock2-replacement-feature";
+    public static final String REPLACEMENT_RUNTIME_POLICY = "replacement-features-use-cloudislands-services-never-superiorskyblock2-service-lookup-events-or-storage";
 
     private SuperiorSkyblockReplacementFeaturePolicy() {
     }
@@ -74,6 +77,24 @@ public final class SuperiorSkyblockReplacementFeaturePolicy {
 
     public static String requiredFeatureKeys() {
         return String.join(",", REQUIRED_FEATURES.keySet());
+    }
+
+    public static Map<String, String> featureDomains() {
+        return FEATURE_DOMAINS;
+    }
+
+    public static String featureDomain(String key) {
+        return key == null ? "" : FEATURE_DOMAINS.getOrDefault(key, "");
+    }
+
+    public static boolean featureDomainCovered(String key) {
+        return key != null && FEATURE_DOMAINS.containsKey(key);
+    }
+
+    public static String featureDomainSummary() {
+        return FEATURE_DOMAINS.entrySet().stream()
+            .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .collect(java.util.stream.Collectors.joining(","));
     }
 
     public static List<String> migrationTargets() {
@@ -163,5 +184,52 @@ public final class SuperiorSkyblockReplacementFeaturePolicy {
         features.put("web-api", "웹 API");
         features.put("external-java-api", "외부 플러그인 Java API");
         return Collections.unmodifiableMap(features);
+    }
+
+    private static Map<String, String> buildFeatureDomains() {
+        LinkedHashMap<String, String> domains = new LinkedHashMap<>();
+        domains.put("island-create", "lifecycle");
+        domains.put("template-select", "lifecycle");
+        domains.put("island-delete", "lifecycle");
+        domains.put("island-reset", "lifecycle");
+        domains.put("island-home", "routing");
+        domains.put("multiple-homes", "routing");
+        domains.put("island-visit", "routing");
+        domains.put("random-visit", "routing");
+        domains.put("public-private-access", "access-control");
+        domains.put("visitor-ban", "access-control");
+        domains.put("visitor-kick", "access-control");
+        domains.put("member-invite", "membership");
+        domains.put("member-kick", "membership");
+        domains.put("roles-permissions", "membership");
+        domains.put("custom-roles", "membership");
+        domains.put("island-flags", "protection");
+        domains.put("island-warps", "routing");
+        domains.put("island-ranking", "ranking-value");
+        domains.put("island-level", "ranking-value");
+        domains.put("island-worth", "ranking-value");
+        domains.put("block-value-settings", "ranking-value");
+        domains.put("island-upgrades", "economy-upgrades");
+        domains.put("island-size-expand", "economy-upgrades");
+        domains.put("island-border", "protection");
+        domains.put("island-biome", "world-management");
+        domains.put("island-bank", "economy-upgrades");
+        domains.put("island-chat", "social");
+        domains.put("team-chat", "social");
+        domains.put("missions", "progression");
+        domains.put("challenges", "progression");
+        domains.put("generator-upgrades", "limits-generation");
+        domains.put("spawner-hopper-limits", "limits-generation");
+        domains.put("entity-limits", "limits-generation");
+        domains.put("redstone-limits", "limits-generation");
+        domains.put("island-logs", "operations");
+        domains.put("admin-recovery", "operations");
+        domains.put("snapshot-rollback", "operations");
+        domains.put("island-migration", "operations");
+        domains.put("server-drain", "operations");
+        domains.put("distributed-api", "api-surface");
+        domains.put("web-api", "api-surface");
+        domains.put("external-java-api", "api-surface");
+        return Collections.unmodifiableMap(domains);
     }
 }
