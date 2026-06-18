@@ -2154,13 +2154,18 @@ public final class CloudIslandsCoreApplication {
             String checksum = JsonFields.text(body, "checksum", "");
             long sizeBytes = JsonFields.longValue(body, "sizeBytes", 0L);
             String nodeId = JsonFields.text(body, "nodeId", "");
+            long fencingToken = JsonFields.longValue(body, "fencingToken", 0L);
             var runtime = runtimeRepository.find(islandId).orElse(null);
             if (runtime == null || runtime.activeNode() == null || !runtime.activeNode().equals(nodeId)) {
                 write(exchange, 403, ApiResponses.error("SNAPSHOT_NODE_MISMATCH", "Snapshot must be recorded by the active island node"));
                 return;
             }
-            int pruned = recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId);
-            write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"pruned\":" + pruned + "}");
+            if (fencingToken <= 0L || runtime.fencingToken() != fencingToken) {
+                write(exchange, 409, ApiResponses.error("STALE_FENCING_TOKEN", "Snapshot fencing token must match the active island runtime"));
+                return;
+            }
+            int pruned = recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId, fencingToken);
+            write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"fencingToken\":" + fencingToken + ",\"pruned\":" + pruned + "}");
         });
         route("/v1/admin/block-values", exchange -> {
             String body = readBody(exchange);
@@ -4005,6 +4010,10 @@ public final class CloudIslandsCoreApplication {
     }
 
     private int recordSnapshotAndPublish(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId) {
+        return recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId, 0L);
+    }
+
+    private int recordSnapshotAndPublish(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
         snapshotRepository.record(islandId, snapshotNo, storagePath, reason, null, checksum, sizeBytes);
         int pruned = snapshotRepository.prune(islandId, snapshotRetentionPolicy);
         events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of(
@@ -4015,6 +4024,7 @@ public final class CloudIslandsCoreApplication {
             "checksum", checksum == null ? "" : checksum,
             "sizeBytes", Long.toString(sizeBytes),
             "nodeId", nodeId == null ? "" : nodeId,
+            "fencingToken", Long.toString(fencingToken),
             "pruned", Integer.toString(pruned)
         ));
         return pruned;

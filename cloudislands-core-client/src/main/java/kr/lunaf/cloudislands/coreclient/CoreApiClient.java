@@ -110,6 +110,9 @@ public interface CoreApiClient {
     CompletableFuture<String> sendIslandChat(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit);
     CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId);
+    default CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
+        return recordIslandSnapshot(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId);
+    }
     CompletableFuture<String> requestIslandSaveResult(UUID islandId, String reason);
     CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason);
     CompletableFuture<String> requestIslandSnapshotResult(UUID islandId, String reason);

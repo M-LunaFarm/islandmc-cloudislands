@@ -52,7 +52,7 @@ public final class PeriodicIslandSaveTask {
             try {
                 IslandSaveService.SaveResult result = saveService.save(activeIsland.islandId(), activeIsland);
                 retryQueue.remove(activeIsland.islandId());
-                recordSnapshot(result);
+                recordSnapshot(result, activeIsland.fencingToken());
             } catch (java.io.IOException exception) {
                 failuresTotal.incrementAndGet();
                 int attempts = retryQueue.merge(activeIsland.islandId(), 1, Integer::sum);
@@ -69,14 +69,14 @@ public final class PeriodicIslandSaveTask {
         return failuresTotal.get();
     }
 
-    private void recordSnapshot(IslandSaveService.SaveResult result) {
+    private void recordSnapshot(IslandSaveService.SaveResult result, long fencingToken) {
         if (coreApiClient == null || result.snapshotNo() <= 0L) {
             return;
         }
         String storagePath = result.storagePath() == null || result.storagePath().isBlank()
             ? "islands/" + result.islandId() + "/snapshots/" + String.format("%06d", result.snapshotNo()) + "/bundle.tar.zst"
             : result.storagePath();
-        coreApiClient.recordIslandSnapshot(result.islandId(), result.snapshotNo(), storagePath, "AUTO", result.checksum(), result.sizeBytes(), nodeId)
+        coreApiClient.recordIslandSnapshot(result.islandId(), result.snapshotNo(), storagePath, "AUTO", result.checksum(), result.sizeBytes(), nodeId, fencingToken)
             .exceptionally(error -> {
                 plugin.getLogger().warning("Periodic island snapshot record failed for " + result.islandId() + ": " + error.getMessage());
                 return null;
