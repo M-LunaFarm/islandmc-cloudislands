@@ -10,6 +10,7 @@ public final class SatisAddonIntegrationPolicy {
     public static final String COMPATIBLE_BUILT_IN_MODE = "BUILT_IN_COMPATIBLE";
     public static final String DISABLED_MODE = "DISABLED";
     public static final String SUPPORTED_PACKAGING_MODES = "external-plugin,built-in-feature-pack,built-in-compatible";
+    public static final String BUILT_IN_COMPATIBLE_BOUNDARY_POLICY = "built-in-compatible-uses-cloudislands-api-and-addon-gates-no-standalone-runtime";
     public static final String API_POLICY = "cloudislands-api-only-no-superiorskyblock2-runtime";
     public static final String API_SURFACE_POLICY = "island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi";
     public static final String FORBIDDEN_DIRECT_ACCESS_POLICY = "no-direct-cloudislands-storage-runtime-or-world-owner-access";
@@ -279,6 +280,17 @@ public final class SatisAddonIntegrationPolicy {
 
     public static boolean modeSupported(String mode) {
         return SUPPORTED_MODES.contains(mode);
+    }
+
+    public static String modeRuntimeBoundary(String mode) {
+        String normalized = mode == null ? "" : mode.trim().replace('-', '_').toUpperCase(java.util.Locale.ROOT);
+        if (DISABLED_MODE.equals(normalized)) {
+            return "disabled-no-runtime-components";
+        }
+        if (COMPATIBLE_BUILT_IN_MODE.equals(normalized)) {
+            return BUILT_IN_COMPATIBLE_BOUNDARY_POLICY;
+        }
+        return CLOUDISLANDS_REQUIRED_POLICY;
     }
 
     public static boolean featureGateRequired(String feature) {

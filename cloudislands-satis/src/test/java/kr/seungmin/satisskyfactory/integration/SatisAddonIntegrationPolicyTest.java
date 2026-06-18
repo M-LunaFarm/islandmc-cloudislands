@@ -16,6 +16,19 @@ class SatisAddonIntegrationPolicyTest {
         assertTrue(SatisAddonIntegrationPolicy.modeSupported("EXTERNAL_ADDON"));
         assertTrue(SatisAddonIntegrationPolicy.modeSupported("BUILT_IN_COMPATIBLE"));
         assertTrue(SatisAddonIntegrationPolicy.modeSupported("DISABLED"));
+        assertEquals(
+                "built-in-compatible-uses-cloudislands-api-and-addon-gates-no-standalone-runtime",
+                SatisAddonIntegrationPolicy.BUILT_IN_COMPATIBLE_BOUNDARY_POLICY
+        );
+        assertEquals(
+                "cloudislands-api-required-no-standalone-island-runtime",
+                SatisAddonIntegrationPolicy.modeRuntimeBoundary("EXTERNAL_ADDON")
+        );
+        assertEquals(
+                "built-in-compatible-uses-cloudislands-api-and-addon-gates-no-standalone-runtime",
+                SatisAddonIntegrationPolicy.modeRuntimeBoundary("built-in-compatible")
+        );
+        assertEquals("disabled-no-runtime-components", SatisAddonIntegrationPolicy.modeRuntimeBoundary("DISABLED"));
     }
 
     @Test
