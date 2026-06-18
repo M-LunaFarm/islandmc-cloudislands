@@ -1,5 +1,6 @@
 package kr.seungmin.satisskyfactory.integration;
 
+import kr.seungmin.satisskyfactory.config.SatisFeatureGateResolver;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,6 +52,16 @@ class SatisAddonIntegrationPolicyTest {
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("maintenance"));
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("placeholders"));
         assertTrue(SatisAddonIntegrationPolicy.featureGateRequired("addon-state"));
+    }
+
+    @Test
+    void requiresEveryConfiguredFeatureGateInAddonPolicy() {
+        for (String feature : SatisFeatureGateResolver.featureKeys()) {
+            assertTrue(
+                    SatisAddonIntegrationPolicy.featureGateRequired(feature),
+                    feature + " must be declared as a CloudIslands Satis addon feature gate"
+            );
+        }
     }
 
     @Test
