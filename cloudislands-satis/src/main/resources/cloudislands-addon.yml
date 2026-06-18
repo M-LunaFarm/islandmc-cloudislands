@@ -95,6 +95,9 @@ database:
   setup-source-policy: env-type-explicit-type-core-api-marker-jdbc-url-single-backend-section-legacy-database
   setup-source-precedence: env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type
   core-api-readiness-fields: setup.database.core-api.enabled,cloudislands-api,addon-state,table-key-value-bulk-save-or-flattened-fallback
+  postgresql-readiness-fields: setup.database.postgresql.jdbc-url,setup.database.postgresql.host,setup.database.postgresql.database,setup.database.postgresql.username,setup.database.postgresql.password
+  mysql-readiness-fields: setup.database.mysql.jdbc-url,setup.database.mysql.host,setup.database.mysql.database,setup.database.mysql.username,setup.database.mysql.password
+  mariadb-readiness-fields: setup.database.mariadb.jdbc-url,setup.database.mariadb.host,setup.database.mariadb.database,setup.database.mariadb.username,setup.database.mariadb.password
   jdbc-readiness-policy: jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials
   core-api-local-cache-write-policy: core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only
   default-mode: CORE_API

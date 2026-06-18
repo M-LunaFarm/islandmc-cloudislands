@@ -89,6 +89,9 @@ class SatisSkyFactoryPluginTest {
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-writes", metadata.get("runtime-write-authority-local-fallback-policy"));
         assertEquals("env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type", metadata.get("database-setup-source-precedence"));
         assertTrue(metadata.get("database-setup-core-api-readiness-fields").contains("table-key-value-bulk-save-or-flattened-fallback"));
+        assertTrue(metadata.get("database-setup-postgresql-readiness-fields").contains("setup.database.postgresql.jdbc-url"));
+        assertTrue(metadata.get("database-setup-mysql-readiness-fields").contains("setup.database.mysql.database"));
+        assertTrue(metadata.get("database-setup-mariadb-readiness-fields").contains("setup.database.mariadb.password"));
         assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", metadata.get("database-setup-jdbc-readiness-policy"));
         assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", metadata.get("database-setup-core-api-local-cache-write-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
@@ -178,6 +181,9 @@ class SatisSkyFactoryPluginTest {
         assertTrue(adminSource.contains("last-preflush-activation-block-reason"));
         assertTrue(adminSource.contains("preflush-activation-block-reason"));
         assertTrue(adminSource.contains("database-setup-core-api-readiness-fields"));
+        assertTrue(adminSource.contains("database-setup-postgresql-readiness-fields"));
+        assertTrue(adminSource.contains("database-setup-mysql-readiness-fields"));
+        assertTrue(adminSource.contains("database-setup-mariadb-readiness-fields"));
         assertTrue(adminSource.contains("database-setup-core-api-local-cache-write-policy"));
     }
 
