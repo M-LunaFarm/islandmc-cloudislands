@@ -668,6 +668,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-heartbeat-expiry-policy", SatisStatePortabilityPolicy.HEARTBEAT_EXPIRY_POLICY);
         state.put("runtime-fencing-token-policy", SatisStatePortabilityPolicy.FENCING_TOKEN_POLICY);
         state.put("runtime-stale-write-policy", SatisStatePortabilityPolicy.STALE_WRITE_POLICY);
+        state.put("runtime-authoritative-store-policy", SatisStatePortabilityPolicy.AUTHORITATIVE_STORE_POLICY);
+        state.put("runtime-redis-advisory-policy", SatisStatePortabilityPolicy.REDIS_ADVISORY_POLICY);
+        state.put("runtime-redis-failure-policy", SatisStatePortabilityPolicy.REDIS_FAILURE_POLICY);
         state.put("runtime-tick-authority-policy", SatisRuntimeTickAuthorityPolicy.tickPolicy(database == null ? null : database.activeBackend()));
         state.put("runtime-tick-authority-core-api-policy", SatisRuntimeTickAuthorityPolicy.CORE_API_TICK_POLICY);
         state.put("runtime-tick-authority-shared-sql-policy", SatisRuntimeTickAuthorityPolicy.SHARED_SQL_TICK_POLICY);
@@ -802,6 +805,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-scale-risk", "duplicate-active-runtime-blocked-by-cloudislands-runtime-fencing");
         state.put("island-state-node-move-state-keys", "last-lifecycle-source-node,last-lifecycle-target-node,last-lifecycle-node-move,source-node,target-node,node-move");
         state.put("island-state-storage-authority", coreApiAddonStateAvailable() ? "cloudislands-addon-state" : databaseScope());
+        state.put("island-state-authoritative-store-policy", SatisStatePortabilityPolicy.AUTHORITATIVE_STORE_POLICY);
+        state.put("island-state-redis-advisory-policy", SatisStatePortabilityPolicy.REDIS_ADVISORY_POLICY);
+        state.put("island-state-redis-failure-policy", SatisStatePortabilityPolicy.REDIS_FAILURE_POLICY);
         state.put("island-state-write-fence", "cloudislands-runtime-active-island-only");
         state.put("island-state-duplicate-tick-policy", "single-active-runtime-owner");
         state.put("island-state-reconnect-policy", "reload-by-island-uuid-and-remap-active-world");
@@ -809,6 +815,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("island-state-object-storage-active-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACTIVE_ISLAND_POLICY);
         state.put("island-state-object-storage-save-failure-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_SAVE_FAILURE_POLICY);
         state.put("island-state-object-storage-retry-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_RETRY_POLICY);
+        state.put("island-state-object-storage-access-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACCESS_POLICY);
         state.put("island-state-object-storage-queue-key", SatisStatePortabilityPolicy.OBJECT_STORAGE_QUEUE_KEY);
     }
 
@@ -1938,6 +1945,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("object-storage-active-island-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACTIVE_ISLAND_POLICY);
         metadata.put("object-storage-save-failure-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_SAVE_FAILURE_POLICY);
         metadata.put("object-storage-retry-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_RETRY_POLICY);
+        metadata.put("object-storage-access-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACCESS_POLICY);
         metadata.put("object-storage-queue-key", SatisStatePortabilityPolicy.OBJECT_STORAGE_QUEUE_KEY);
         metadata.put("lifecycle-placement-source-policy", "record-core-payload-or-paper-allocator-on-activate-and-migrate");
         metadata.put("lifecycle-placement-source-state-key", "last-lifecycle-operation");

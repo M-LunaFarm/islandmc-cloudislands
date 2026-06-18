@@ -85,6 +85,9 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"runtime-route-events-last-block-reason\""));
         assertTrue(source.contains("\"runtime-route-authority-policy\""));
         assertTrue(source.contains("\"runtime-route-ticket-privacy-policy\""));
+        assertTrue(source.contains("\"runtime-authoritative-store-policy\""));
+        assertTrue(source.contains("\"runtime-redis-advisory-policy\""));
+        assertTrue(source.contains("\"runtime-redis-failure-policy\""));
         assertTrue(source.contains("\"write-gate-route-events\""));
         assertTrue(source.contains("\"addon-removal-dirty-save-detach-policy\""));
         assertTrue(source.contains("\"addon-removal-dirty-save-reattach-policy\""));
@@ -102,6 +105,8 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"route-event-last-block-reason\""));
         assertTrue(source.contains("\"last-route-player-visible-topology\""));
         assertTrue(source.contains("\"last-route-ticket-player-visible\""));
+        assertTrue(source.contains("\"object-storage-access-policy\""));
+        assertTrue(source.contains("\"island-state-redis-advisory-policy\""));
         assertTrue(source.contains("\"island-state-five-six-node-policy\""));
         assertTrue(source.contains("\"island-state-seven-plus-node-policy\""));
     }

@@ -39,9 +39,13 @@ public final class SatisStatePortabilityPolicy {
     public static final String FALLBACK_COMMON_POLICY_API = "SetupBackendFallbackPolicy.fallbackOrder,fallbackReadyChain,fallbackReadyChainRisk,fallbackReadyChainProductionSafe";
     public static final String CORE_API_WRITE_FALLBACK_POLICY = "retry-table-key-value-bulk-save-as-flattened-addon-state";
     public static final String PRODUCTION_SAFE_FALLBACK_POLICY = "POSTGRESQL,MYSQL,MARIADB,CORE_API-before-SQLITE";
+    public static final String AUTHORITATIVE_STORE_POLICY = "postgresql-or-core-api-shared-state-is-authoritative-for-satis-state";
+    public static final String REDIS_ADVISORY_POLICY = "redis-cache-stream-locks-are-advisory-never-satis-state-authority";
+    public static final String REDIS_FAILURE_POLICY = "redis-outage-keeps-last-confirmed-shared-state-authoritative-and-disables-cache-only-assumptions";
     public static final String OBJECT_STORAGE_ACTIVE_ISLAND_POLICY = "active-island-remains-on-node-local-staging-when-object-storage-is-unavailable";
     public static final String OBJECT_STORAGE_SAVE_FAILURE_POLICY = "queue-save-retry-and-keep-last-confirmed-core-state-authoritative";
     public static final String OBJECT_STORAGE_RETRY_POLICY = "retry-world-bundle-upload-before-deactivation-complete-or-delete-finalize";
+    public static final String OBJECT_STORAGE_ACCESS_POLICY = "satis-records-addon-state-references-only-cloudislands-core-owns-world-bundle-storage";
     public static final String OBJECT_STORAGE_QUEUE_KEY = "islandUuid+snapshotNo+fencingToken+bundleGeneration";
 
     private static final Set<String> SHARED_BACKENDS = Set.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API");
@@ -78,6 +82,9 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-fallback-common-policy-api", FALLBACK_COMMON_POLICY_API);
         values.put("core-api-sync-write-fallback-policy", CORE_API_WRITE_FALLBACK_POLICY);
         values.put("core-api-sync-production-safe-fallback-policy", PRODUCTION_SAFE_FALLBACK_POLICY);
+        values.put("core-api-sync-authoritative-store-policy", AUTHORITATIVE_STORE_POLICY);
+        values.put("core-api-sync-redis-advisory-policy", REDIS_ADVISORY_POLICY);
+        values.put("core-api-sync-redis-failure-policy", REDIS_FAILURE_POLICY);
         values.put("core-api-sync-shared-backends", String.join(",", RECOMMENDED_FALLBACK_ORDER.stream().filter(SatisStatePortabilityPolicy::sharedBackend).toList()));
         values.put("core-api-sync-local-backends", String.join(",", LOCAL_BACKENDS));
         return Map.copyOf(values);
@@ -98,6 +105,7 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-object-storage-active-island-policy", OBJECT_STORAGE_ACTIVE_ISLAND_POLICY);
         values.put("core-api-sync-object-storage-save-failure-policy", OBJECT_STORAGE_SAVE_FAILURE_POLICY);
         values.put("core-api-sync-object-storage-retry-policy", OBJECT_STORAGE_RETRY_POLICY);
+        values.put("core-api-sync-object-storage-access-policy", OBJECT_STORAGE_ACCESS_POLICY);
         values.put("core-api-sync-object-storage-queue-key", OBJECT_STORAGE_QUEUE_KEY);
         return Map.copyOf(values);
     }

@@ -16,6 +16,9 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("cloudislands-addon-state", state.get("core-api-sync-authority"));
         assertEquals("false", state.get("core-api-sync-node-bound"));
         assertEquals("portable-across-island-nodes", state.get("core-api-sync-portability"));
+        assertEquals("postgresql-or-core-api-shared-state-is-authoritative-for-satis-state", state.get("core-api-sync-authoritative-store-policy"));
+        assertEquals("redis-cache-stream-locks-are-advisory-never-satis-state-authority", state.get("core-api-sync-redis-advisory-policy"));
+        assertEquals("redis-outage-keeps-last-confirmed-shared-state-authoritative-and-disables-cache-only-assumptions", state.get("core-api-sync-redis-failure-policy"));
         assertEquals("CloudIslands IslandRuntime", state.get("core-api-sync-runtime-source"));
         assertEquals("island-uuid-stable-active-world-and-center-volatile", state.get("core-api-sync-remap-policy"));
         assertEquals("islandUuid", state.get("core-api-sync-state-owner-key"));
@@ -37,6 +40,7 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("SetupBackendFallbackPolicy.fallbackOrder,fallbackReadyChain,fallbackReadyChainRisk,fallbackReadyChainProductionSafe", state.get("core-api-sync-fallback-common-policy-api"));
         assertEquals("retry-table-key-value-bulk-save-as-flattened-addon-state", state.get("core-api-sync-write-fallback-policy"));
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API-before-SQLITE", state.get("core-api-sync-production-safe-fallback-policy"));
+        assertEquals("satis-records-addon-state-references-only-cloudislands-core-owns-world-bundle-storage", state.get("core-api-sync-object-storage-access-policy"));
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API", state.get("core-api-sync-shared-backends"));
         assertEquals("SQLITE", state.get("core-api-sync-local-backends"));
     }

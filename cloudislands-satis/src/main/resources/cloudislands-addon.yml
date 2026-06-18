@@ -204,7 +204,10 @@ state:
   route-authority-policy: core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only
   route-ticket-privacy-policy: player-facing-satis-output-never-includes-route-ticket-node-server-world-cell
   recovery-scenario: heartbeat-expiry-fencing-token-guards-last-confirmed-state-no-duplicate-tick-or-write
-  recovery-state-keys: last-lifecycle-heartbeat-expiry-policy,last-lifecycle-fencing-token-policy,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy
+  recovery-state-keys: last-lifecycle-heartbeat-expiry-policy,last-lifecycle-fencing-token-policy,last-relocation-heartbeat-expiry-policy,last-relocation-fencing-token-policy,last-relocation-stale-write-policy,runtime-authoritative-store-policy,runtime-redis-advisory-policy,runtime-redis-failure-policy
+  authoritative-store-policy: postgresql-or-core-api-shared-state-is-authoritative-for-satis-state
+  redis-advisory-policy: redis-cache-stream-locks-are-advisory-never-satis-state-authority
+  redis-failure-policy: redis-outage-keeps-last-confirmed-shared-state-authoritative-and-disables-cache-only-assumptions
   addon-removal-scenario: missing-addon-state-never-blocks-cloudislands-base-island-load
   addon-removal-runtime-action: stop-satis-runtime-preserve-addon-state-leave-cloudislands-islands-loadable
   addon-removal-state-keys: runtime-addon-removal-safe,runtime-addon-removal-policy,runtime-addon-removal-core-impact,runtime-addon-removal-action,runtime-addon-removal-data-retention,runtime-addon-reenable-policy,runtime-addon-disable-preflush-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy,runtime-cloudislands-lifecycle-depends-on-satis
@@ -215,6 +218,7 @@ state:
   object-storage-active-island-policy: active-island-remains-on-node-local-staging-when-object-storage-is-unavailable
   object-storage-save-failure-policy: queue-save-retry-and-keep-last-confirmed-core-state-authoritative
   object-storage-retry-policy: retry-world-bundle-upload-before-deactivation-complete-or-delete-finalize
+  object-storage-access-policy: satis-records-addon-state-references-only-cloudislands-core-owns-world-bundle-storage
   object-storage-queue-key: islandUuid+snapshotNo+fencingToken+bundleGeneration
   bulk-request-models: AddonStateBulkSaveRequest,AddonStateBulkLoadRequest
   bulk-load-policy: table-key-value-load-uses-typed-request-and-core-api-before-local-cache
