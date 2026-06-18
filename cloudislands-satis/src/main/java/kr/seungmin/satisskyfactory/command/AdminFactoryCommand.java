@@ -236,7 +236,8 @@ public final class AdminFactoryCommand {
             case "state" -> enabled("addon-state") ? null : "addon-state";
             case "give", "giveitem", "removehere" -> enabled("machines") ? null : "machines";
             case "addresearch" -> enabled("research") ? null : "research";
-            case "setdebt", "charge", "repairhere" -> enabled("maintenance") ? null : "maintenance";
+            case "setdebt", "charge" -> enabled("maintenance") ? null : "maintenance";
+            case "repairhere" -> !enabled("maintenance") ? "maintenance" : (!enabled("machines") ? "machines" : null);
             case "gennodes" -> enabled("resource-nodes") ? null : "resource-nodes";
             case "debug" -> debugCommandsVisible() ? null : "debug";
             default -> null;
@@ -292,7 +293,9 @@ public final class AdminFactoryCommand {
             if (enabled("maintenance")) {
                 values.add("setdebt");
                 values.add("charge");
-                values.add("repairhere");
+                if (enabled("machines")) {
+                    values.add("repairhere");
+                }
             }
             if (enabled("resource-nodes")) {
                 values.add("gennodes");
@@ -321,6 +324,9 @@ public final class AdminFactoryCommand {
             return new ArrayList<>();
         }
         if ((args[1].equalsIgnoreCase("setdebt") || args[1].equalsIgnoreCase("charge") || args[1].equalsIgnoreCase("repairhere")) && !enabled("maintenance")) {
+            return new ArrayList<>();
+        }
+        if (args[1].equalsIgnoreCase("repairhere") && !enabled("machines")) {
             return new ArrayList<>();
         }
         if (args[1].equalsIgnoreCase("gennodes") && !enabled("resource-nodes")) {
@@ -1723,6 +1729,7 @@ public final class AdminFactoryCommand {
         return (command.contains(" give ") || command.contains(" giveitem ") || command.contains(" removehere")) && !enabled("machines")
                 || command.contains(" addresearch ") && !enabled("research")
                 || (command.contains(" setdebt ") || command.contains(" charge ") || command.contains(" repairhere")) && !enabled("maintenance")
+                || command.contains(" repairhere") && !enabled("machines")
                 || command.contains(" gennodes ") && !enabled("resource-nodes")
                 || (command.contains(" migration") || command.contains(" migrate-superiorskyblock2") || command.contains(" migrate-ss2")) && !enabled("migration")
                 || command.contains(" state") && !enabled("addon-state")
