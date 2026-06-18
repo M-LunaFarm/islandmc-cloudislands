@@ -1421,6 +1421,7 @@ public final class AdminFactoryCommand {
                         "runtime-research-gate",
                         "runtime-research-status",
                         "runtime-research-policy",
+                        "runtime-research-unlock-save-policy",
                         "runtime-machines-gate",
                         "runtime-machines-status",
                         "runtime-machines-policy",

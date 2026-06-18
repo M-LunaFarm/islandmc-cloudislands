@@ -509,7 +509,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private void research(Player player, FactoryIsland island, String[] args) {
         if (args.length >= 3 && args[1].equalsIgnoreCase("unlock")) {
             ResearchService.UnlockResult result = research.unlock(island, player, args[2]);
-            islands.save(island);
+            if (result == ResearchService.UnlockResult.UNLOCKED) {
+                islands.save(island);
+            }
             messages.send(player, "research-unlock-result", Map.of("result", result.name()));
             return;
         }
