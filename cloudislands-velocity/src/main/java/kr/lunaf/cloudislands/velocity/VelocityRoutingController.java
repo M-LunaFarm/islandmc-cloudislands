@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
@@ -3711,15 +3712,20 @@ public final class VelocityRoutingController {
     }
 
     private String routeTargetName(RouteTicket ticket) {
-        if (ticket == null || ticket.action() == null) {
+        if (ticket == null) {
             return "섬";
         }
-        return switch (ticket.action().name().toUpperCase(Locale.ROOT)) {
-            case "HOME" -> "내 섬";
-            case "VISIT" -> "방문할 섬";
-            case "WARP" -> "섬 워프";
-            case "ADMIN_TELEPORT" -> "관리 대상 섬";
-            case "RETURN_AFTER_MIGRATION" -> "이전하던 섬";
+        return routeTargetName(PlayerRouteTicketView.from(ticket).destination());
+    }
+
+    private String routeTargetName(String destination) {
+        return switch (destination == null ? "" : destination.toLowerCase(Locale.ROOT)) {
+            case "my-island" -> "내 섬";
+            case "other-island" -> "다른 사람 섬";
+            case "island-ranking" -> "섬 랭킹";
+            case "island-visit" -> "방문할 섬";
+            case "island-settings" -> "섬 설정";
+            case "island-warps" -> "섬 워프";
             default -> "섬";
         };
     }
@@ -3737,15 +3743,16 @@ public final class VelocityRoutingController {
     }
 
     private String arrivalMessage(RouteTicket ticket) {
-        if (ticket == null || ticket.action() == null) {
+        if (ticket == null) {
             return "섬에 도착했습니다.";
         }
-        return switch (ticket.action().name().toUpperCase(Locale.ROOT)) {
-            case "HOME" -> "내 섬에 도착했습니다.";
-            case "VISIT" -> "방문한 섬에 도착했습니다.";
-            case "WARP" -> "섬 워프에 도착했습니다.";
-            case "ADMIN_TELEPORT" -> "관리 대상 섬에 도착했습니다.";
-            case "RETURN_AFTER_MIGRATION" -> "섬 이전이 끝났습니다.";
+        return switch (PlayerRouteTicketView.from(ticket).destination()) {
+            case "my-island" -> "내 섬에 도착했습니다.";
+            case "other-island" -> "다른 사람 섬에 도착했습니다.";
+            case "island-ranking" -> "섬 랭킹을 열었습니다.";
+            case "island-visit" -> "방문한 섬에 도착했습니다.";
+            case "island-settings" -> "섬 설정을 열었습니다.";
+            case "island-warps" -> "섬 워프에 도착했습니다.";
             default -> "섬에 도착했습니다.";
         };
     }

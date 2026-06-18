@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
+import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
@@ -1476,15 +1477,16 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     private String routeTargetName(RouteTicket ticket) {
-        if (ticket == null || ticket.action() == null) {
+        if (ticket == null) {
             return "섬";
         }
-        return switch (ticket.action().name().toUpperCase(Locale.ROOT)) {
-            case "HOME" -> "내 섬";
-            case "VISIT" -> "방문할 섬";
-            case "WARP" -> "섬 워프";
-            case "ADMIN_TELEPORT" -> "관리 대상 섬";
-            case "RETURN_AFTER_MIGRATION" -> "이전하던 섬";
+        return switch (PlayerRouteTicketView.from(ticket).destination()) {
+            case "my-island" -> "내 섬";
+            case "other-island" -> "다른 사람 섬";
+            case "island-ranking" -> "섬 랭킹";
+            case "island-visit" -> "방문할 섬";
+            case "island-settings" -> "섬 설정";
+            case "island-warps" -> "섬 워프";
             default -> "섬";
         };
     }
