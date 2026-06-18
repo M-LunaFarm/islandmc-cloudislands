@@ -11,9 +11,9 @@ public final class CacheInvalidationPlan {
 
     public static Set<CacheTarget> targetsFor(CloudIslandEventType eventType) {
         return switch (eventType) {
-            case ISLAND_CREATED -> EnumSet.of(CacheTarget.RUNTIME, CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
-            case ISLAND_MEMBER_JOINED, ISLAND_MEMBER_LEFT, ISLAND_MEMBER_CHANGED, ISLAND_MEMBER_ROLE_CHANGED -> EnumSet.of(CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
-            case ISLAND_OWNERSHIP_CHANGED -> EnumSet.of(CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
+            case ISLAND_CREATED -> EnumSet.of(CacheTarget.PLAYER_ISLAND, CacheTarget.RUNTIME, CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
+            case ISLAND_MEMBER_JOINED, ISLAND_MEMBER_LEFT, ISLAND_MEMBER_CHANGED, ISLAND_MEMBER_ROLE_CHANGED -> EnumSet.of(CacheTarget.PLAYER_ISLAND, CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
+            case ISLAND_OWNERSHIP_CHANGED -> EnumSet.of(CacheTarget.PLAYER_ISLAND, CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
             case ISLAND_RENAMED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_INVITE_CHANGED -> EnumSet.of(CacheTarget.INVITES, CacheTarget.SUMMARY);
             case ISLAND_ACCESS_CHANGED -> EnumSet.of(CacheTarget.PERMISSIONS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
@@ -31,7 +31,8 @@ public final class CacheInvalidationPlan {
             case ISLAND_BLOCKS_CHANGED -> EnumSet.of(CacheTarget.BLOCKS, CacheTarget.LEVEL, CacheTarget.SUMMARY);
             case ISLAND_BLOCK_VALUE_CHANGED -> EnumSet.of(CacheTarget.BLOCKS, CacheTarget.LEVEL, CacheTarget.SUMMARY);
             case ISLAND_DELETE_BACKUP_FAILED -> EnumSet.of(CacheTarget.RUNTIME, CacheTarget.SNAPSHOTS, CacheTarget.SUMMARY);
-            case ISLAND_RUNTIME_CHANGED, ISLAND_RECOVERY_REQUIRED, ISLAND_REPAIRED, ISLAND_PRE_CREATE, ISLAND_PRE_ACTIVATE, ISLAND_ACTIVATE_REQUESTED, ISLAND_ACTIVATED, ISLAND_DEACTIVATE_REQUESTED, ISLAND_DEACTIVATED, ISLAND_MIGRATE_REQUESTED, ISLAND_MIGRATED, ISLAND_RESTORE_REQUESTED, ISLAND_RESTORED, ISLAND_RESET_REQUESTED, ISLAND_RESET, ISLAND_DELETE_REQUESTED, NODE_STATE_CHANGED -> EnumSet.of(CacheTarget.RUNTIME, CacheTarget.ROUTE, CacheTarget.SUMMARY);
+            case ISLAND_RUNTIME_CHANGED, ISLAND_RECOVERY_REQUIRED, ISLAND_REPAIRED, ISLAND_PRE_CREATE, ISLAND_PRE_ACTIVATE, ISLAND_ACTIVATE_REQUESTED, ISLAND_ACTIVATED, ISLAND_DEACTIVATE_REQUESTED, ISLAND_DEACTIVATED, ISLAND_MIGRATE_REQUESTED, ISLAND_MIGRATED, ISLAND_RESTORE_REQUESTED, ISLAND_RESTORED, ISLAND_RESET_REQUESTED, ISLAND_RESET, ISLAND_DELETE_REQUESTED -> EnumSet.of(CacheTarget.RUNTIME, CacheTarget.ROUTE, CacheTarget.SUMMARY);
+            case NODE_STATE_CHANGED -> EnumSet.of(CacheTarget.NODE_HEARTBEAT, CacheTarget.RUNTIME, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_LEVEL_UPDATED, ISLAND_WORTH_CHANGED -> EnumSet.of(CacheTarget.LEVEL, CacheTarget.SUMMARY);
             case ISLAND_UPGRADE -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.LEVEL, CacheTarget.LIMITS, CacheTarget.BANK, CacheTarget.FLAGS, CacheTarget.GENERATOR, CacheTarget.CROP);
             case ISLAND_SNAPSHOT_REQUESTED, ISLAND_SNAPSHOT_CREATED -> EnumSet.of(CacheTarget.SUMMARY, CacheTarget.SNAPSHOTS);
@@ -67,6 +68,25 @@ public final class CacheInvalidationPlan {
         return java.util.Collections.unmodifiableSet(keys);
     }
 
+    public static Set<String> playerRedisKeysFor(CloudIslandEventType eventType, UUID playerUuid) {
+        if (eventType == null || playerUuid == null || !targetsFor(eventType).contains(CacheTarget.PLAYER_ISLAND)) {
+            return Set.of();
+        }
+        return Set.of(RedisKeys.playerIsland(playerUuid));
+    }
+
+    public static Set<String> nodeRedisKeysFor(CloudIslandEventType eventType, String nodeId) {
+        if (eventType == null || nodeId == null || nodeId.isBlank() || !targetsFor(eventType).contains(CacheTarget.NODE_HEARTBEAT)) {
+            return Set.of();
+        }
+        String safeNodeId = nodeId.trim();
+        return Set.of(
+            RedisKeys.serverHeartbeat(safeNodeId),
+            RedisKeys.serverState(safeNodeId),
+            RedisKeys.serverMetrics(safeNodeId)
+        );
+    }
+
     public static String redisKey(CacheTarget target, UUID islandId) {
         return redisKey(target, islandId, "");
     }
@@ -79,6 +99,7 @@ public final class CacheInvalidationPlan {
             return "";
         }
         return switch (target) {
+            case PLAYER_ISLAND, NODE_HEARTBEAT -> "";
             case SUMMARY -> RedisKeys.islandSummary(islandId);
             case RUNTIME -> RedisKeys.islandRuntime(islandId);
             case MEMBERS -> RedisKeys.islandMembers(islandId);
@@ -106,8 +127,10 @@ public final class CacheInvalidationPlan {
     }
 
     public enum CacheTarget {
+        PLAYER_ISLAND,
         SUMMARY,
         RUNTIME,
+        NODE_HEARTBEAT,
         MEMBERS,
         INVITES,
         PERMISSIONS,
