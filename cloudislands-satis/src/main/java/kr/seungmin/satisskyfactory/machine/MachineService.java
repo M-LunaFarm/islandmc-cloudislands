@@ -221,6 +221,7 @@ public final class MachineService {
     }
 
     private boolean deleteInventories(MachineInstance machine) {
+        List<VirtualInventory> inventories = machineInventories(machine);
         Set<UUID> inventoryIds = new HashSet<>();
         if (machine.inputInventoryId() != null) {
             inventoryIds.add(machine.inputInventoryId());
@@ -233,12 +234,26 @@ public final class MachineService {
                 return false;
             }
         }
+        List<VirtualInventory> deletedInventories = new ArrayList<>();
         for (UUID inventoryId : inventoryIds) {
             if (!storage.delete(inventoryId)) {
+                restoreDeletedInventories(deletedInventories);
                 return false;
             }
+            inventories.stream()
+                    .filter(inventory -> inventory.inventoryId().equals(inventoryId))
+                    .findFirst()
+                    .ifPresent(deletedInventories::add);
         }
         return true;
+    }
+
+    private void restoreDeletedInventories(List<VirtualInventory> inventories) {
+        for (VirtualInventory inventory : inventories) {
+            if (!storage.saveIfAllowed(inventory)) {
+                storage.delete(inventory.inventoryId());
+            }
+        }
     }
 
     private boolean hasBufferedItems(MachineInstance machine) {

@@ -1578,6 +1578,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-flush-inventory-rollback-policy",
                         "runtime-machine-clear-inventory-rollback-policy",
                         "runtime-machine-delete-inventory-policy",
+                        "runtime-machine-delete-inventory-rollback-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
