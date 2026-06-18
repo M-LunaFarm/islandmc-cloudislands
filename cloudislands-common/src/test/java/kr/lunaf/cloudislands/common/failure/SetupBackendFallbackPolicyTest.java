@@ -19,8 +19,16 @@ class SetupBackendFallbackPolicyTest {
         assertEquals("setup.database.fallback", SetupBackendFallbackPolicy.FALLBACK_CONFIG_PATH);
         assertEquals("setup.database.type", SetupBackendFallbackPolicy.SELECTED_BACKEND_FIELD);
         assertEquals("setup.database.fallback.order", SetupBackendFallbackPolicy.FALLBACK_ORDER_FIELD);
+        assertEquals("setup.database.core-api.enabled", SetupBackendFallbackPolicy.CORE_API_ENABLED_FIELD);
+        assertEquals("setup.database.core-api.local-cache-writes.enabled", SetupBackendFallbackPolicy.CORE_API_LOCAL_CACHE_WRITES_FIELD);
+        assertEquals("setup.database.core-api.flattened-fallback.enabled", SetupBackendFallbackPolicy.CORE_API_FLATTENED_FALLBACK_FIELD);
+        assertEquals("setup.database.jdbc.url", SetupBackendFallbackPolicy.JDBC_URL_FIELD);
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API", SetupBackendFallbackPolicy.PRODUCTION_SAFE_ORDER);
         assertEquals("SQLITE,UNSUPPORTED_JDBC", SetupBackendFallbackPolicy.LAST_RESORT_ORDER);
+        assertEquals(
+            "env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type",
+            SetupBackendFallbackPolicy.SETUP_SOURCE_PRECEDENCE
+        );
         assertEquals(
             List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API"),
             SetupBackendFallbackPolicy.PRODUCTION_FALLBACK_ORDER
@@ -29,6 +37,81 @@ class SetupBackendFallbackPolicyTest {
             List.of("SQLITE", "UNSUPPORTED_JDBC"),
             SetupBackendFallbackPolicy.LAST_RESORT_FALLBACK_ORDER
         );
+    }
+
+    @Test
+    void exposesReadinessFieldsForSetupDatabaseBackends() {
+        assertEquals(
+            List.of(
+                "env-type",
+                "setup.database.type",
+                "setup.database.core-api.enabled",
+                "setup.database.jdbc.url",
+                "single-configured-shared-backend",
+                "legacy-database.type"
+            ),
+            SetupBackendFallbackPolicy.setupSourcePrecedence()
+        );
+        assertEquals(
+            List.of(
+                "setup.database.core-api.enabled",
+                "cloudislands-api",
+                "addon-state",
+                "table-key-value-bulk-save-or-flattened-fallback"
+            ),
+            SetupBackendFallbackPolicy.backendReadinessFields("core-api")
+        );
+        assertEquals(
+            List.of(
+                "setup.database.postgresql.jdbc-url",
+                "setup.database.postgresql.host",
+                "setup.database.postgresql.database",
+                "setup.database.postgresql.username",
+                "setup.database.postgresql.password"
+            ),
+            SetupBackendFallbackPolicy.backendReadinessFields("postgres")
+        );
+        assertEquals(
+            List.of(
+                "setup.database.mysql.jdbc-url",
+                "setup.database.mysql.host",
+                "setup.database.mysql.database",
+                "setup.database.mysql.username",
+                "setup.database.mysql.password"
+            ),
+            SetupBackendFallbackPolicy.backendReadinessFields("mysql")
+        );
+        assertEquals(
+            List.of(
+                "setup.database.mariadb.jdbc-url",
+                "setup.database.mariadb.host",
+                "setup.database.mariadb.database",
+                "setup.database.mariadb.username",
+                "setup.database.mariadb.password"
+            ),
+            SetupBackendFallbackPolicy.backendReadinessFields("mariadb")
+        );
+        assertTrue(SetupBackendFallbackPolicy.backendHasReadinessContract("coreapi"));
+        assertFalse(SetupBackendFallbackPolicy.backendHasReadinessContract("unknown"));
+        assertEquals(
+            "core-api-ready-requires-cloudislands-api-addon-state-and-bulk-or-flattened-state-writer",
+            SetupBackendFallbackPolicy.CORE_API_READY_POLICY
+        );
+        assertEquals(
+            "jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials",
+            SetupBackendFallbackPolicy.JDBC_READY_POLICY
+        );
+    }
+
+    @Test
+    void keepsCoreApiLocalCacheWritesSingleNodeOnly() {
+        assertEquals(
+            "core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only",
+            SetupBackendFallbackPolicy.LOCAL_CACHE_WRITE_POLICY
+        );
+        assertTrue(SetupBackendFallbackPolicy.coreApiLocalCacheWritesProductionSafe(false, false));
+        assertTrue(SetupBackendFallbackPolicy.coreApiLocalCacheWritesProductionSafe(true, true));
+        assertFalse(SetupBackendFallbackPolicy.coreApiLocalCacheWritesProductionSafe(true, false));
     }
 
     @Test
