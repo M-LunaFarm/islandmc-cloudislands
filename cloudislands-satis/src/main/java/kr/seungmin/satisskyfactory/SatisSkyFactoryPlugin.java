@@ -1704,6 +1704,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("standalone-island-management", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
         metadata.put("standalone-island-runtime-policy", SatisRuntimeComponentPlan.STANDALONE_ISLAND_RUNTIME_POLICY);
         metadata.put("island-runtime-authority", runtimeIslandAuthorityMetadata());
+        metadata.put("runtime-tick-authority-policy", SatisRuntimeTickAuthorityPolicy.CORE_API_TICK_POLICY);
+        metadata.put("runtime-tick-authority-shared-sql-policy", SatisRuntimeTickAuthorityPolicy.SHARED_SQL_TICK_POLICY);
+        metadata.put("runtime-tick-authority-local-fallback-policy", SatisRuntimeTickAuthorityPolicy.LOCAL_FALLBACK_TICK_POLICY);
         metadata.put("missing-cloudislands-behavior", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
         metadata.put("addon-event-source", "cloudislands-global-event-stream");
         metadata.put("addon-event-delivery", "typed-cloud-event-callbacks-through-cloudislands-api");

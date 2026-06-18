@@ -35,6 +35,8 @@ class DefaultConfigIntegrityTest {
         assertEquals("CloudIslands", addon.getString("runtime.core-admin-root-owner"));
         assertEquals("not-owned-by-satis-addon", addon.getString("runtime.ciadmin-policy"));
         assertEquals("CORE_API", addon.getString("runtime.default-database-mode"));
+        assertEquals("core-api-requires-cloudislands-api-addon-state-and-hydrated-island", addon.getString("runtime.tick-authority-policy"));
+        assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-ticks", addon.getString("runtime.local-fallback-tick-policy"));
         assertTrue(addon.getBoolean("superiorskyblock2.migration-input-only"));
         assertFalse(addon.getBoolean("superiorskyblock2.runtime-dependency"));
         assertEquals("kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin", plugin.getString("main"));

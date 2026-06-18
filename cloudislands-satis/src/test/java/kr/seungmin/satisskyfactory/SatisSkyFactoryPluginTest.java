@@ -68,6 +68,8 @@ class SatisSkyFactoryPluginTest {
         assertEquals("false", metadata.get("standalone-island-management"));
         assertEquals("cloudislands-api-required-no-standalone-island-runtime", metadata.get("standalone-island-runtime-policy"));
         assertEquals("disabled-no-standalone-island-management", metadata.get("island-runtime-authority"));
+        assertEquals("core-api-requires-cloudislands-api-addon-state-and-hydrated-island", metadata.get("runtime-tick-authority-policy"));
+        assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-ticks", metadata.get("runtime-tick-authority-local-fallback-policy"));
         assertEquals("disable-plugin-clear-features-register-no-components", metadata.get("missing-cloudislands-behavior"));
         assertEquals("no-hardcoded-island-node-count", metadata.get("island-state-node-count-policy"));
         assertEquals("node-id-is-routing-context-not-addon-state-key", metadata.get("island-state-node-identity-policy"));

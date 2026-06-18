@@ -55,6 +55,9 @@ runtime:
   cloudislands-api-status-key: runtime-cloudislands-api-available
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API
+  tick-authority-policy: core-api-requires-cloudislands-api-addon-state-and-hydrated-island
+  shared-sql-tick-policy: shared-sql-backend-uses-cloudislands-runtime-owner-fence
+  local-fallback-tick-policy: local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-ticks
   load-phase: Paper-POSTWORLD-after-CloudIslands
   command-owner: external-addon
   command-roots: factory,sfactory
