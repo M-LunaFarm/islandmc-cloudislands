@@ -101,6 +101,7 @@ tasks.register<Copy>("distTools") {
 tasks.register<Zip>("distBundle") {
     group = "distribution"
     description = "Packages the CloudIslands plugins, optional addons, Core API service runtime, and migration support jars."
+    dependsOn(tasks.named("verifyNoMarkdownDocs"))
     dependsOn(tasks.named("distPlugins"))
     dependsOn(tasks.named("distAddons"))
     dependsOn(tasks.named("distServices"))
@@ -125,6 +126,7 @@ tasks.register<Zip>("distBundle") {
 tasks.register<Zip>("distAddonBundle") {
     group = "distribution"
     description = "Packages optional CloudIslands addon jars separately from the required core bundle."
+    dependsOn(tasks.named("verifyNoMarkdownDocs"))
     dependsOn(tasks.named("distAddons"))
     archiveBaseName.set("cloudislands-addons")
     archiveVersion.set(project.version.toString())
