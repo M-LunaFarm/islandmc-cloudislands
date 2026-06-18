@@ -65,6 +65,8 @@ class SatisSkyFactoryPluginTest {
         assertEquals("bootstrap-or-services-manager", metadata.get("cloudislands-api-resolution"));
         assertEquals("CloudIslands", metadata.get("runtime-hard-depend-plugin"));
         assertEquals("false", metadata.get("standalone-island-management"));
+        assertEquals("cloudislands-api-required-no-standalone-island-runtime", metadata.get("standalone-island-runtime-policy"));
+        assertEquals("disabled-no-standalone-island-management", metadata.get("island-runtime-authority"));
         assertEquals("disable-plugin-clear-features-register-no-components", metadata.get("missing-cloudislands-behavior"));
         assertEquals("no-hardcoded-island-node-count", metadata.get("island-state-node-count-policy"));
         assertEquals("node-id-is-routing-context-not-addon-state-key", metadata.get("island-state-node-identity-policy"));
