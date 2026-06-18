@@ -23,6 +23,8 @@ import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.event.CloudEvent;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
@@ -821,6 +823,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveState(AddonStateBulkSaveRequest request) {
+            if (request == null) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
+            if (request.islandScoped()) {
+                return tableKeyValueBulkSaveIslandState(request);
+            }
+            return bulkSaveState(request.addonId(), request.tableScoped() ? Map.of() : request.values(), request.tablesWithScopedTable());
+        }
+
+        @Override
         public CompletableFuture<Map<String, String>> tableBulkState(String id, Map<String, Map<String, String>> tables) {
             String safeId = safeRegistrationId(id);
             Map<String, String> merged = new HashMap<>();
@@ -875,6 +888,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return coreClient.tableKeyValueBulkLoadAddonState(safeId, safeTable)
                 .thenApply(this::stateFromJson)
                 .exceptionally(_error -> tableValuesFromState(readAddonState(safeId), safeTable));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadState(AddonStateBulkLoadRequest request) {
+            if (request == null) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
+            if (request.islandScoped()) {
+                return tableKeyValueBulkLoadIslandState(request);
+            }
+            return tableKeyValueBulkLoadState(request.addonId(), request.table());
         }
 
         @Override
@@ -1215,6 +1239,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveIslandState(AddonStateBulkSaveRequest request) {
+            if (request == null || !request.islandScoped()) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
+            return bulkSaveIslandState(request.addonId(), request.islandId(), request.tableScoped() ? Map.of() : request.values(), request.tablesWithScopedTable());
+        }
+
+        @Override
         public CompletableFuture<Map<String, String>> tableBulkIslandState(String id, UUID islandId, Map<String, Map<String, String>> tables) {
             String safeId = safeRegistrationId(id);
             if (islandId == null) {
@@ -1271,6 +1303,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return coreClient.tableKeyValueBulkLoadAddonIslandState(safeId, islandId, safeTable)
                 .thenApply(this::stateFromJson)
                 .exceptionally(_error -> tableValuesFromState(readAddonIslandState(safeId, islandId), safeTable));
+        }
+
+        @Override
+        public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadIslandState(AddonStateBulkLoadRequest request) {
+            if (request == null || !request.islandScoped()) {
+                return CompletableFuture.completedFuture(Map.of());
+            }
+            return tableKeyValueBulkLoadIslandState(request.addonId(), request.islandId(), request.table());
         }
 
         @Override
