@@ -4004,6 +4004,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         Map<String, String> state = new LinkedHashMap<>();
         state.put("runtime-disable-flush", "completed");
         state.put("runtime-disable-flush-reason", reason == null || reason.isBlank() ? "addon-disabled" : reason);
+        state.put("runtime-disable-activation-block-reason", runtimeFeaturePackActivationDecision().blockReason());
         state.put("runtime-disable-data-retention", "preserve-addon-state-by-island-uuid");
         state.put("runtime-disable-core-policy", "stop-satis-components-without-clearing-cloudislands-island-lifecycle");
         state.put("runtime-disable-at", Instant.now().toString());
@@ -4028,6 +4029,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("last-preflush-island", islandId == null ? "" : islandId.toString());
         state.put("last-preflush-operation", safeOperation);
         state.put("last-preflush-reason", safeReason);
+        state.put("last-preflush-activation-block-reason", runtimeFeaturePackActivationDecision().blockReason());
         state.put("last-preflush-status", status);
         state.put("last-preflush-writes", writes);
         state.put("last-preflush-failures", failures);
@@ -4047,6 +4049,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         Map<String, String> islandState = new LinkedHashMap<>();
         islandState.put("preflush-operation", safeOperation);
         islandState.put("preflush-reason", safeReason);
+        islandState.put("preflush-activation-block-reason", runtimeFeaturePackActivationDecision().blockReason());
         islandState.put("preflush-status", status);
         islandState.put("preflush-writes", writes);
         islandState.put("preflush-failures", failures);

@@ -159,6 +159,9 @@ class SatisSkyFactoryPluginTest {
         assertTrue(source.contains("operationalFeatureEnabled(\"addon-state\"),\n                cloudIslandsApi != null"));
         assertTrue(source.contains("SatisAddonIntegrationPolicy.activationDecision("));
         assertTrue(source.contains("runtime-feature-pack-block-reason"));
+        assertTrue(source.contains("runtime-disable-activation-block-reason"));
+        assertTrue(source.contains("last-preflush-activation-block-reason"));
+        assertTrue(source.contains("preflush-activation-block-reason"));
         assertTrue(source.contains("CloudIslands Satis runtime blocked by activation policy"));
         assertTrue(adminSource.contains("runtime-feature-pack-activation-policy"));
         assertTrue(adminSource.contains("runtime-feature-pack-activation-mode"));
