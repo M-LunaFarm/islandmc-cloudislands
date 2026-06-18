@@ -504,7 +504,6 @@ public final class MachineTickService {
                 }
                 if (!output.add(itemId, amountPerCrop)) {
                     setStatus(machine, MachineStatus.OUTPUT_FULL);
-                    storage.saveIfAllowed(output);
                     return false;
                 }
                 addedOutput.merge(itemId, amountPerCrop, Long::sum);
