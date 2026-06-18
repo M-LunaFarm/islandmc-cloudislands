@@ -550,7 +550,10 @@ public final class AdminFactoryCommand {
             return;
         }
         machines.at(block.getLocation()).ifPresentOrElse(machine -> {
-            machines.forceRemove(machine);
+            if (!machines.forceRemove(machine)) {
+                messages.send(sender, "machine-reclaim-storage-full");
+                return;
+            }
             block.setType(Material.AIR, false);
             messages.send(sender, "machine-removed-admin");
         }, () -> messages.send(sender, "no-machine-here"));
@@ -1448,6 +1451,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-gui-storage-action-policy",
                         "runtime-machine-create-storage-save-policy",
                         "runtime-admin-machine-helper-policy",
+                        "runtime-machine-remove-write-policy",
                         "runtime-machine-break-storage-gate",
                         "runtime-machine-break-policy",
                         "runtime-admin-virtual-item-storage-gate",

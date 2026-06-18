@@ -160,6 +160,9 @@ public final class MachineService {
         if (!loaded) {
             return false;
         }
+        if (!writesEnabled()) {
+            return false;
+        }
         if (hasBufferedItems(machine)) {
             return false;
         }
@@ -167,14 +170,18 @@ public final class MachineService {
         return true;
     }
 
-    public void forceRemove(MachineInstance machine) {
+    public boolean forceRemove(MachineInstance machine) {
         if (!loaded) {
-            return;
+            return false;
+        }
+        if (!writesEnabled()) {
+            return false;
         }
         if (!flushInventories(machine)) {
             clearInventories(machine);
         }
         delete(machine);
+        return true;
     }
 
     private void delete(MachineInstance machine) {
