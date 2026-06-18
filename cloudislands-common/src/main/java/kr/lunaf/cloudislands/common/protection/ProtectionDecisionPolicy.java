@@ -100,8 +100,8 @@ public final class ProtectionDecisionPolicy {
     }
 
     public static boolean protectedEvent(String eventName) {
-        String normalized = normalize(eventName);
-        return PROTECTED_EVENTS.stream().anyMatch(event -> normalize(event).equals(normalized));
+        String normalized = compact(normalize(eventName));
+        return PROTECTED_EVENTS.stream().anyMatch(event -> compact(normalize(event)).equals(normalized));
     }
 
     public static String borderAction(String role) {
@@ -123,6 +123,10 @@ public final class ProtectionDecisionPolicy {
     }
 
     private static String normalize(String source) {
-        return source == null ? "" : source.toLowerCase(Locale.ROOT).replace('_', '-').trim();
+        return source == null ? "" : source.toLowerCase(Locale.ROOT).replace('_', '-').replace(' ', '-').trim();
+    }
+
+    private static String compact(String source) {
+        return source.replace("-", "");
     }
 }
