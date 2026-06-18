@@ -17,6 +17,11 @@ class SatisAddonRemovalPolicyTest {
         assertTrue(source.contains("dirtySaves.stop();"));
         assertTrue(source.contains("dirtySaves.coreStatePublisher(null);"));
         assertTrue(source.contains("dirtySaves.coreStateDeletePublisher(null);"));
+        assertTrue(source.contains("storage.dirtySaves(null);"));
+        assertTrue(source.contains("islands.dirtySaves(null);"));
+        assertTrue(source.contains("machines.dirtySaves(null);"));
+        assertTrue(source.contains("nodes.dirtySaves(null);"));
+        assertTrue(source.contains("dirtySaves = null;"));
         assertTrue(source.contains("database.coreStateWriter(null);"));
         assertTrue(source.contains("database.coreTableWriter(null);"));
         assertTrue(source.contains("database.coreBulkWriter(null);"));
