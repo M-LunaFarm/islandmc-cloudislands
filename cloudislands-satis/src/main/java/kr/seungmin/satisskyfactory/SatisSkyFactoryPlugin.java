@@ -504,6 +504,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-contracts-gate", "addonRuntimeEnabled&&features.contracts&&features.storage");
         state.put("runtime-contracts-status", operationalFeatureEnabled("contracts") ? "enabled" : "contracts-or-storage-feature-disabled");
         state.put("runtime-contracts-policy", "disabled-feature-blocks-contract-commands-gui-and-writes-preserve-data");
+        state.put("runtime-contract-storage-save-policy", "contract-completion-rewards-and-status-write-only-after-storage-save-accepted");
         state.put("runtime-research-gate", "addonRuntimeEnabled&&features.research");
         state.put("runtime-research-status", operationalFeatureEnabled("research") ? "enabled" : "research-feature-disabled");
         state.put("runtime-research-policy", "disabled-feature-blocks-research-commands-gui-and-writes-preserve-data");

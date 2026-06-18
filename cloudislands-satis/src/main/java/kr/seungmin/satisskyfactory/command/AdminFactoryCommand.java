@@ -1434,6 +1434,7 @@ public final class AdminFactoryCommand {
                         "runtime-contracts-gate",
                         "runtime-contracts-status",
                         "runtime-contracts-policy",
+                        "runtime-contract-storage-save-policy",
                         "runtime-research-gate",
                         "runtime-research-status",
                         "runtime-research-policy",

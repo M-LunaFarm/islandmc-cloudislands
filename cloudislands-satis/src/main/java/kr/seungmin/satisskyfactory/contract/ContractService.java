@@ -297,7 +297,11 @@ public final class ContractService {
         }
         template.required().forEach((item, amount) -> inventory.remove(item, amount));
         template.itemRewards().forEach(inventory::add);
-        storage.save(inventory);
+        if (!storage.saveIfAllowed(inventory)) {
+            template.itemRewards().forEach((item, amount) -> inventory.remove(item, amount));
+            template.required().forEach(inventory::add);
+            return false;
+        }
         if (template.money() > 0) {
             economy.deposit(owner, template.money());
             database.addLedger(island.islandUuid(), "CONTRACT_REWARD", template.money(), template.id());
