@@ -1565,6 +1565,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-region-remap-save-policy",
                         "runtime-machine-tick-save-policy",
                         "runtime-inventory-cache-write-policy",
+                        "runtime-generator-fuel-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

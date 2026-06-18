@@ -469,6 +469,10 @@ public final class MachineTickService {
         }
         if (changedIsland && !storage.saveIfAllowed(islandStorage)) {
             removedIsland.forEach(islandStorage::add);
+            removedInput.forEach(input::add);
+            if (changedInput) {
+                storage.saveIfAllowed(input);
+            }
             return false;
         }
         return true;
