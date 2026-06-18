@@ -87,6 +87,10 @@ class SatisSkyFactoryPluginTest {
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-ticks", metadata.get("runtime-tick-authority-local-fallback-policy"));
         assertEquals("core-api-writes-require-addon-state-write-authority", metadata.get("runtime-write-authority-policy"));
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-writes", metadata.get("runtime-write-authority-local-fallback-policy"));
+        assertEquals("env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type", metadata.get("database-setup-source-precedence"));
+        assertTrue(metadata.get("database-setup-core-api-readiness-fields").contains("table-key-value-bulk-save-or-flattened-fallback"));
+        assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", metadata.get("database-setup-jdbc-readiness-policy"));
+        assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", metadata.get("database-setup-core-api-local-cache-write-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));
@@ -173,6 +177,8 @@ class SatisSkyFactoryPluginTest {
         assertTrue(adminSource.contains("runtime-disable-activation-block-reason"));
         assertTrue(adminSource.contains("last-preflush-activation-block-reason"));
         assertTrue(adminSource.contains("preflush-activation-block-reason"));
+        assertTrue(adminSource.contains("database-setup-core-api-readiness-fields"));
+        assertTrue(adminSource.contains("database-setup-core-api-local-cache-write-policy"));
     }
 
     @Test
