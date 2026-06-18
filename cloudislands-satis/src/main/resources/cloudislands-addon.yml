@@ -206,6 +206,7 @@ state:
   addon-removal-scenario: missing-addon-state-never-blocks-cloudislands-base-island-load
   addon-removal-runtime-action: stop-satis-runtime-preserve-addon-state-leave-cloudislands-islands-loadable
   addon-removal-state-keys: runtime-addon-removal-safe,runtime-addon-removal-policy,runtime-addon-removal-core-impact,runtime-addon-removal-action,runtime-addon-removal-data-retention,runtime-addon-reenable-policy,runtime-addon-disable-preflush-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy,runtime-cloudislands-lifecycle-depends-on-satis
+  core-refresh-reapply-state-keys: last-core-refresh-reason,last-core-refresh-result,last-core-refresh-policy,last-core-refresh-database-open,last-core-refresh-runtime-enabled,last-core-refresh-at
   migration-preflush-policy: flush-dirty-state-before-source-node-deactivation-then-remap-on-target-activation
   fallback-policy: local-cache-on-core-api-failure-with-configurable-database-fallback
   fallback-safety-policy: production-safe-when-shared-backend-precedes-local-sqlite

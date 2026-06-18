@@ -133,6 +133,8 @@ class DefaultConfigIntegrityTest {
         assertEquals(1200, config.getInt("settings.dirty-save-period-ticks"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-reload-runtime-restart-policy"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-core-refresh-reapply-policy"));
+        assertTrue(addon.getString("state.core-refresh-reapply-state-keys").contains("last-core-refresh-policy"));
+        assertTrue(addon.getString("state.core-refresh-reapply-state-keys").contains("last-core-refresh-result"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));

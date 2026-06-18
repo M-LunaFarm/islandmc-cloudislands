@@ -60,6 +60,8 @@ class SatisSkyFactoryPluginTest {
         assertEquals("stop-dirty-save-loop-clear-publishers-detach-service-references", metadata.get("addon-removal-dirty-save-detach-policy"));
         assertEquals("recreate-dirty-save-service-and-reattach-service-references-before-restart", metadata.get("addon-removal-dirty-save-reattach-policy"));
         assertEquals("reload-reenable-starts-runtime-when-database-is-not-initialized", metadata.get("addon-reload-runtime-restart-policy"));
+        assertEquals("core-refresh-reapplies-satis-runtime-state-after-refresh-success-or-fallback", metadata.get("addon-core-refresh-reapply-policy"));
+        assertEquals("core-refresh-reapplies-satis-runtime-state-after-refresh-success-or-fallback", metadata.get("runtime-core-refresh-reapply-policy"));
         assertEquals("preserve-addon-state-by-island-uuid", metadata.get("addon-data-retention"));
         assertEquals("false", metadata.get("addon-runtime-owns-islands"));
         assertEquals("CORE_API", metadata.get("addon-default-database-mode"));
@@ -81,6 +83,7 @@ class SatisSkyFactoryPluginTest {
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));
+        assertTrue(metadata.get("dirty-save-state-keys").contains("addon-core-refresh-reapply-policy"));
         assertEquals("disable-plugin-clear-features-register-no-components", metadata.get("missing-cloudislands-behavior"));
         assertEquals("no-hardcoded-island-node-count", metadata.get("island-state-node-count-policy"));
         assertEquals("node-id-is-routing-context-not-addon-state-key", metadata.get("island-state-node-identity-policy"));

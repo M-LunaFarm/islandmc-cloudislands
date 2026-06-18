@@ -88,6 +88,9 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"addon-removal-dirty-save-reattach-policy\""));
         assertTrue(source.contains("\"addon-reload-runtime-restart-policy\""));
         assertTrue(source.contains("\"addon-core-refresh-reapply-policy\""));
+        assertTrue(source.contains("\"runtime-core-refresh-reapply-policy\""));
+        assertTrue(source.contains("\"core-refresh-reapply-state-keys\""));
+        assertTrue(source.contains("\"last-core-refresh-result\""));
         assertTrue(source.contains("\"island-state-ab-server-new-island-scenario\""));
         assertTrue(source.contains("\"island-state-ab-server-existing-island-scenario\""));
         assertTrue(source.contains("\"island-state-reload-reenable-scenario\""));

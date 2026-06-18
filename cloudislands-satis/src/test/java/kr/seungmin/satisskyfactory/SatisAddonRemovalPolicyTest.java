@@ -60,4 +60,16 @@ class SatisAddonRemovalPolicyTest {
         assertTrue(source.contains("state.put(\"addon-core-refresh-reapply-policy\", SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY);"));
         assertTrue(source.contains("state.put(\"reinstall-reconnect-policy\", \"reuse-existing-addon-state-by-island-uuid\");"));
     }
+
+    @Test
+    void coreRefreshPublishesReapplyStateBeforeRuntimeRestart() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+
+        assertTrue(source.contains(".thenAccept(snapshot -> applySatisRuntimeFallback(reason, \"refresh-success\"))"));
+        assertTrue(source.contains("applySatisRuntimeFallback(reason, \"refresh-fallback\");"));
+        assertTrue(source.contains("applySatisRuntimeFallback(reason, \"core-api-unavailable\");"));
+        assertTrue(source.contains("private void publishCoreRefreshReapplyState(String reason, String result)"));
+        assertTrue(source.contains("publishCoreRefreshReapplyState(reason, result);"));
+        assertTrue(source.contains("state.put(\"last-core-refresh-policy\", SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY);"));
+    }
 }

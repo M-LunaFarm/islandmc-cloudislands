@@ -456,6 +456,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-cloudislands-api-required", Boolean.toString(requiresCloudIslandsApi()));
         state.put("runtime-cloudislands-api-available", Boolean.toString(cloudIslandsApi != null));
         state.put("runtime-cloudislands-api-missing-behavior", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
+        state.put("runtime-core-refresh-reapply-policy", SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY);
         state.put("runtime-standalone-island-runtime", "false");
         state.put("runtime-standalone-island-runtime-policy", SatisRuntimeComponentPlan.STANDALONE_ISLAND_RUNTIME_POLICY);
         state.put("runtime-island-runtime-authority", runtimeIslandAuthorityMetadata());
@@ -2212,23 +2213,45 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void reloadSatisRuntimeFromCore(String reason) {
         if (cloudIslandsApi != null) {
             cloudIslandsApi.addons().refresh(ADDON_ID)
-                    .thenAccept(snapshot -> applySatisRuntimeFallback(reason))
+                    .thenAccept(snapshot -> applySatisRuntimeFallback(reason, "refresh-success"))
                     .exceptionally(error -> {
                         getLogger().warning("Failed to refresh CloudIslands Satis addon after " + reason + ": " + error.getMessage());
-                        applySatisRuntimeFallback(reason);
+                        applySatisRuntimeFallback(reason, "refresh-fallback");
                         return null;
                     });
             return;
         }
-        applySatisRuntimeFallback(reason);
+        applySatisRuntimeFallback(reason, "core-api-unavailable");
     }
 
     private void applySatisRuntimeFallback(String reason) {
+        applySatisRuntimeFallback(reason, "manual-fallback");
+    }
+
+    private void applySatisRuntimeFallback(String reason, String result) {
         getServer().getScheduler().runTask(this, () -> {
+            publishCoreRefreshReapplyState(reason, result);
             if (!isEnabled() || database == null) {
                 return;
             }
             applyAddonRuntimeState();
+        });
+    }
+
+    private void publishCoreRefreshReapplyState(String reason, String result) {
+        if (cloudIslandsApi == null) {
+            return;
+        }
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-core-refresh-reason", reason == null || reason.isBlank() ? "unknown" : reason);
+        state.put("last-core-refresh-result", result == null || result.isBlank() ? "unknown" : result);
+        state.put("last-core-refresh-policy", SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY);
+        state.put("last-core-refresh-database-open", Boolean.toString(database != null));
+        state.put("last-core-refresh-runtime-enabled", Boolean.toString(addonRuntimeEnabled));
+        state.put("last-core-refresh-at", Instant.now().toString());
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis core refresh state: " + error.getMessage());
+            return Map.of();
         });
     }
 
