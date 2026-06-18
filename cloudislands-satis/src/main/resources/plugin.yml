@@ -24,10 +24,6 @@ commands:
     description: CloudIslands Satis command
     usage: /sfactory help
     permission: satisskyfactory.use
-  ciadmin:
-    description: CloudIslands Satis admin command
-    usage: /ciadmin help
-    permission: satisskyfactory.admin
 permissions:
   satisskyfactory.use:
     default: true

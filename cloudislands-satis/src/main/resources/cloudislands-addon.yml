@@ -54,6 +54,9 @@ runtime:
   default-database-mode: CORE_API
   load-phase: Paper-POSTWORLD-after-CloudIslands
   command-owner: external-addon
+  command-roots: factory,sfactory
+  core-admin-root-owner: CloudIslands
+  ciadmin-policy: not-owned-by-satis-addon
   root-switch-gate: addons.cloudislands-satis.enabled&&satis.enabled
   root-switch-policy: disabled-root-switch-forces-all-runtime-features-off-even-when-child-feature-switches-are-true
   disabled-mode: unregister-disabled-commands-no-listeners-no-tickers-no-placeholders-no-core-api-writers
@@ -293,6 +296,12 @@ features:
     - chat
     - templates
 commands:
+  owned-roots:
+    - factory
+    - sfactory
+  not-owned-roots:
+    - ciadmin
+  core-admin-root-owner: CloudIslands
   list-format: one-line-per-command
   list-entry-prefix: "> /"
   list-page-size: 12

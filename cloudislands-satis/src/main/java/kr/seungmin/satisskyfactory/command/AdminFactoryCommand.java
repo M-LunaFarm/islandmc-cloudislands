@@ -1712,16 +1712,10 @@ public final class AdminFactoryCommand {
     }
 
     private String adminNavigationCommand(String label) {
-        if (label.equalsIgnoreCase("ciadmin")) {
-            return label + " command list";
-        }
         return label + " admin command list";
     }
 
     private String displayCommand(String command, String label) {
-        if (label.equalsIgnoreCase("ciadmin")) {
-            return command.replaceFirst("^factory admin", label);
-        }
         return command.replaceFirst("^factory", label);
     }
 
