@@ -58,6 +58,9 @@ runtime:
   tick-authority-policy: core-api-requires-cloudislands-api-addon-state-and-hydrated-island
   shared-sql-tick-policy: shared-sql-backend-uses-cloudislands-runtime-owner-fence
   local-fallback-tick-policy: local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-ticks
+  write-authority-policy: core-api-writes-require-addon-state-write-authority
+  shared-sql-write-policy: shared-sql-backend-can-write-under-cloudislands-runtime-owner-fence
+  local-fallback-write-policy: local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-writes
   load-phase: Paper-POSTWORLD-after-CloudIslands
   command-owner: external-addon
   command-roots: factory,sfactory
