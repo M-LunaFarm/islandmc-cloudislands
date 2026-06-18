@@ -515,7 +515,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-resource-nodes-policy", "disabled-feature-blocks-node-generation-commands-gui-and-writes-preserve-data");
         state.put("runtime-gui-gate", "addonRuntimeEnabled&&features.gui&&features.machines");
         state.put("runtime-gui-status", operationalFeatureEnabled("gui") ? "enabled" : "gui-or-machines-feature-disabled");
-        state.put("runtime-gui-policy", "disabled-feature-registers-no-gui-listener-and-opens-no-satis-menus");
+        state.put("runtime-gui-policy", "disabled-feature-registers-no-gui-listener-and-gui-service-opens-no-satis-menus");
+        state.put("runtime-gui-service-policy", "FactoryGuiService-public-open-methods-reject-when-gui-feature-disabled");
         state.put("runtime-menus-gate", "addonRuntimeEnabled&&features.menus->features.gui");
         state.put("runtime-menus-status", operationalFeatureEnabled("menus") ? "enabled" : "menus-or-gui-feature-disabled");
         state.put("runtime-lifecycle-gate", "addonRuntimeEnabled&&features.lifecycle");

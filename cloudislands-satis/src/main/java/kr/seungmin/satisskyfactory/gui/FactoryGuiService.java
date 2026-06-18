@@ -63,6 +63,9 @@ public final class FactoryGuiService {
 
     public void openMain(Player player, FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState,
                          IslandBoostService.Boosts boosts) {
+        if (!requireGui(player)) {
+            return;
+        }
         FactoryGuiHolder holder = new FactoryGuiHolder("main", island.islandUuid(), null);
         Inventory inventory = Bukkit.createInventory(holder, 27, title("main-title", "SatisSkyFactory"));
         holder.inventory(inventory);
@@ -114,6 +117,15 @@ public final class FactoryGuiService {
                     List.of(ChatColor.GRAY + "Browse island virtual storage.")));
         }
         player.openInventory(inventory);
+    }
+
+    private boolean requireGui(Player player) {
+        if (enabled("gui")) {
+            return true;
+        }
+        messages.send(player, "feature-disabled", Map.of("feature", "gui"));
+        player.closeInventory();
+        return false;
     }
 
     private boolean enabled(String feature) {
@@ -172,6 +184,9 @@ public final class FactoryGuiService {
     }
 
     public void openAdmin(Player player, FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState) {
+        if (!requireGui(player)) {
+            return;
+        }
         FactoryGuiHolder holder = new FactoryGuiHolder("admin", island.islandUuid(), null);
         Inventory inventory = Bukkit.createInventory(holder, 27, title("admin-title", "Factory Admin"));
         holder.inventory(inventory);
@@ -199,6 +214,9 @@ public final class FactoryGuiService {
     }
 
     public void openStorage(Player player, FactoryIsland island, int page) {
+        if (!requireGui(player)) {
+            return;
+        }
         if (!enabled("storage")) {
             messages.send(player, "feature-disabled", Map.of("feature", "storage"));
             player.closeInventory();
@@ -249,6 +267,9 @@ public final class FactoryGuiService {
     }
 
     public void openMachine(Player player, MachineInstance machine) {
+        if (!requireGui(player)) {
+            return;
+        }
         if (!enabled("machines")) {
             messages.send(player, "feature-disabled", Map.of("feature", "machines"));
             return;
@@ -346,6 +367,9 @@ public final class FactoryGuiService {
     }
 
     public void openContracts(Player player, FactoryIsland island, ContractService contracts) {
+        if (!requireGui(player)) {
+            return;
+        }
         if (!enabled("contracts")) {
             messages.send(player, "feature-disabled", Map.of("feature", "contracts"));
             player.closeInventory();
@@ -399,6 +423,9 @@ public final class FactoryGuiService {
     }
 
     public void openContractDetail(Player player, FactoryIsland island, ContractService contracts, java.util.UUID contractId) {
+        if (!requireGui(player)) {
+            return;
+        }
         if (!enabled("contracts")) {
             messages.send(player, "feature-disabled", Map.of("feature", "contracts"));
             player.closeInventory();
@@ -474,6 +501,9 @@ public final class FactoryGuiService {
     }
 
     public void openMarket(Player player, FactoryIsland island, MarketService market, int page) {
+        if (!requireGui(player)) {
+            return;
+        }
         if (!enabled("market")) {
             messages.send(player, "feature-disabled", Map.of("feature", "market"));
             player.closeInventory();
@@ -526,6 +556,9 @@ public final class FactoryGuiService {
     }
 
     public void openResearch(Player player, FactoryIsland island, ResearchService research) {
+        if (!requireGui(player)) {
+            return;
+        }
         if (!enabled("research")) {
             messages.send(player, "feature-disabled", Map.of("feature", "research"));
             player.closeInventory();

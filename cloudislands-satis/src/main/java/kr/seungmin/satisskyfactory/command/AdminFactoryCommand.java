@@ -1428,6 +1428,7 @@ public final class AdminFactoryCommand {
                         "runtime-gui-gate",
                         "runtime-gui-status",
                         "runtime-gui-policy",
+                        "runtime-gui-service-policy",
                         "runtime-menus-gate",
                         "runtime-menus-status",
                         "runtime-lifecycle-gate",
