@@ -463,7 +463,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-placeholder-denied-internal-fields", PlaceholderFeaturePolicy.deniedInternalFields());
         state.put("runtime-placeholder-internal-placement-exposure", "false");
         state.put("runtime-migration-gate", "addonRuntimeEnabled&&features.migration");
-        state.put("runtime-migration-status", featureEnabled("migration") ? "enabled" : "migration-feature-disabled");
+        state.put("runtime-migration-status", operationalFeatureEnabled("migration") ? "enabled" : migrationBlockReason());
         state.put("runtime-migration-policy", "disabled-feature-hides-migration-command-and-import-actions");
         state.put("runtime-storage-gate", "addonRuntimeEnabled&&features.storage");
         state.put("runtime-storage-status", operationalFeatureEnabled("storage") ? "enabled" : "storage-feature-disabled");
@@ -603,6 +603,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("write-gate-biomes", Boolean.toString(operationalFeatureEnabled("biomes")));
         state.put("write-gate-chat", Boolean.toString(operationalFeatureEnabled("chat")));
         state.put("write-gate-templates", Boolean.toString(operationalFeatureEnabled("templates")));
+        state.put("write-gate-migration", Boolean.toString(operationalFeatureEnabled("migration")));
+        state.put("write-gate-migration-policy", "disabled-feature-hides-migration-admin-surface-and-rejects-scan-dryrun-verify-import-rollback");
         state.put("write-gate-lifecycle-subfeatures", "members,permissions,level-values,warps,biomes,chat,templates");
         state.put("write-gate-addon-state", Boolean.toString(operationalFeatureEnabled("addon-state") && coreApiAddonStateAvailable()));
         state.put("write-gate-route-events", Boolean.toString(routeEventStateEnabled()));
@@ -713,6 +715,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             return "placeholderapi-not-installed";
+        }
+        return "not-registered";
+    }
+
+    private String migrationBlockReason() {
+        if (!addonRuntimeEnabled) {
+            return "addon-disabled";
+        }
+        if (!featureEnabled("migration")) {
+            return "migration-feature-disabled";
+        }
+        if (!SatisFeatureGateResolver.featureEnabled(configs.main(), "migration")) {
+            return "migration-config-disabled";
         }
         return "not-registered";
     }
