@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
@@ -486,7 +487,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/state/table/key-value/bulk-save", exchange -> {
+        route(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -508,7 +509,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/state/table/key-value/bulk/save", exchange -> {
+        route(AddonStateBulkSaveRequest.GLOBAL_BULK_SAVE_ALIAS, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -530,7 +531,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/state/table/key-value/bulk", exchange -> {
+        route(AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -574,7 +575,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/state/table/key-value/bulk-load", exchange -> {
+        route(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String table = JsonFields.text(body, "table", "");
@@ -589,7 +590,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/state/table/load", exchange -> {
+        route(AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String table = JsonFields.text(body, "table", "");
@@ -604,7 +605,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/state/table/bulk-set", exchange -> {
+        route(AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String table = JsonFields.text(body, "table", "");
@@ -802,7 +803,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/islands/state/table/key-value/bulk-save", exchange -> {
+        route(AddonStateBulkSaveRequest.ISLAND_ENDPOINT, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -825,7 +826,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/islands/state/table/key-value/bulk/save", exchange -> {
+        route(AddonStateBulkSaveRequest.ISLAND_BULK_SAVE_ALIAS, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -848,7 +849,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/islands/state/table/key-value/bulk", exchange -> {
+        route(AddonStateBulkSaveRequest.ISLAND_BULK_ALIAS, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -871,7 +872,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/islands/state/table/bulk-set", exchange -> {
+        route(AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_SET_ENDPOINT, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -894,7 +895,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/islands/state/table/key-value/bulk-load", exchange -> {
+        route(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -910,7 +911,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        route("/v1/addons/islands/state/table/load", exchange -> {
+        route(AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS, exchange -> {
             String body = readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -2969,14 +2970,16 @@ public final class CloudIslandsCoreApplication {
             + "\"addonStateTableKeyValueBulkIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_BULK_ALIAS + "\","
             + "\"addonStateTableKeyValueBulkSaveGlobalAliases\":\"" + String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS) + "\","
             + "\"addonStateTableKeyValueBulkSaveIslandAliases\":\"" + String.join(",", AddonStateBulkSaveRequest.ISLAND_ENDPOINTS) + "\","
-            + "\"addonStateTableKeyValueBulkLoadGlobalEndpoint\":\"/v1/addons/state/table/key-value/bulk-load\","
-            + "\"addonStateTableKeyValueBulkLoadIslandEndpoint\":\"/v1/addons/islands/state/table/key-value/bulk-load\","
-            + "\"addonStateTableLoadGlobalEndpoint\":\"/v1/addons/state/table/load\","
-            + "\"addonStateTableLoadIslandEndpoint\":\"/v1/addons/islands/state/table/load\","
-            + "\"addonStateTableBulkGlobalEndpoint\":\"/v1/addons/state/table/bulk\","
-            + "\"addonStateTableBulkIslandEndpoint\":\"/v1/addons/islands/state/table/bulk\","
-            + "\"addonStateTableBulkSetGlobalEndpoint\":\"/v1/addons/state/table/bulk-set\","
-            + "\"addonStateTableBulkSetIslandEndpoint\":\"/v1/addons/islands/state/table/bulk-set\","
+            + "\"addonStateTableKeyValueBulkLoadGlobalEndpoint\":\"" + AddonStateBulkLoadRequest.GLOBAL_ENDPOINT + "\","
+            + "\"addonStateTableKeyValueBulkLoadIslandEndpoint\":\"" + AddonStateBulkLoadRequest.ISLAND_ENDPOINT + "\","
+            + "\"addonStateTableKeyValueBulkLoadGlobalAliases\":\"" + String.join(",", AddonStateBulkLoadRequest.GLOBAL_ENDPOINTS) + "\","
+            + "\"addonStateTableKeyValueBulkLoadIslandAliases\":\"" + String.join(",", AddonStateBulkLoadRequest.ISLAND_ENDPOINTS) + "\","
+            + "\"addonStateTableLoadGlobalEndpoint\":\"" + AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS + "\","
+            + "\"addonStateTableLoadIslandEndpoint\":\"" + AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS + "\","
+            + "\"addonStateTableBulkGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_ENDPOINT + "\","
+            + "\"addonStateTableBulkIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_ENDPOINT + "\","
+            + "\"addonStateTableBulkSetGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT + "\","
+            + "\"addonStateTableBulkSetIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_SET_ENDPOINT + "\","
             + "\"addonStateTableKeyValueBulkSavePayload\":\"addonId,islandId(optional),values,tables\","
             + "\"addonStateTableKeyValueBulkLoadPayload\":\"addonId,islandId(optional),table\","
             + "\"addonStateTableKeyValueBulkSaveStorageMode\":\"table-prefix-flattened-key-value\","
