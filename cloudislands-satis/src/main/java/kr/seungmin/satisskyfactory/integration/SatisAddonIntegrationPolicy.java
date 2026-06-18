@@ -10,6 +10,9 @@ public final class SatisAddonIntegrationPolicy {
     public static final String COMPATIBLE_BUILT_IN_MODE = "BUILT_IN_COMPATIBLE";
     public static final String DISABLED_MODE = "DISABLED";
     public static final String SUPPORTED_PACKAGING_MODES = "external-plugin,built-in-feature-pack,built-in-compatible";
+    public static final String EXTERNAL_ADDON_BOUNDARY = "paper-plugin-hard-depends-cloudislands-but-uses-public-cloudislands-api";
+    public static final String BUILT_IN_COMPATIBLE_BOUNDARY = "same-cloudislands-addon-spi-no-core-internals-no-standalone-runtime";
+    public static final String PACKAGING_BOUNDARY_POLICY = "external-plugin-and-built-in-compatible-share-public-addon-spi-and-feature-gates";
     public static final String BUILT_IN_COMPATIBLE_BOUNDARY_POLICY = "built-in-compatible-uses-cloudislands-api-and-addon-gates-no-standalone-runtime";
     public static final String API_POLICY = "cloudislands-api-only-no-superiorskyblock2-runtime";
     public static final String API_SURFACE_POLICY = "island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi";
