@@ -3250,7 +3250,9 @@ public final class CloudIslandsCoreApplication {
             + "\"snapshotRequiredTriggerReasons\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.automaticTriggerReasonSummary()) + "\","
             + "\"snapshotManualTriggerReason\":\"MANUAL\","
             + "\"snapshotPreRestoreReason\":\"BEFORE_RESTORE\","
-            + "\"snapshotRestorePipeline\":\"lock-restoring,evacuate-active-players,pre-restore-snapshot,restore-bundle,clear-runtime,reactivate,unlock\","
+            + "\"snapshotRestorePipeline\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORE_PIPELINE_POLICY) + "\",
+            + "\"snapshotRestoringLockState\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORING_LOCK_STATE) + "\",
+            + "\"snapshotRuntimeResetPolicy\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RUNTIME_RESET_POLICY) + "\","
             + "\"snapshotRollbackSteps\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.rollbackStepSummary()) + "\","
             + "\"coreApiAuthPolicy\":\"token-or-mtls-required\","
             + "\"coreApiTokenConfigured\":" + (config.coreToken() != null && !config.coreToken().isBlank()) + ","

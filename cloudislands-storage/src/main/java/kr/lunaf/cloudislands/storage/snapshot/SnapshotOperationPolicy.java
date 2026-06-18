@@ -6,6 +6,9 @@ public final class SnapshotOperationPolicy {
     public static final String AUTOMATIC_TRIGGER_POLICY = "create,deactivate,periodic,before-delete,before-reset,before-migration,manual-admin";
     public static final String RETENTION_POLICY = "hourly-daily-weekly-manual-with-compression-and-checksum";
     public static final String ACTIVE_ROLLBACK_POLICY = "lock-restoring-evacuate-players-pre-restore-snapshot-promote-target-clear-runtime-reactivate-unlock";
+    public static final String RESTORE_PIPELINE_POLICY = "lock-restoring,evacuate-active-players,pre-restore-snapshot,restore-bundle,clear-runtime,reactivate,unlock";
+    public static final String RESTORING_LOCK_STATE = "RESTORING";
+    public static final String RUNTIME_RESET_POLICY = "clear-island-runtime-after-promote-before-reactivate";
     public static final String ACTIVE_ISLAND_PLAYER_POLICY = "move-active-island-players-to-lobby-before-promoting-snapshot";
     public static final String CHECKSUM_POLICY = "sha256-required-before-promote";
     public static final String PORTABILITY_POLICY = "portable-bundle-required-before-promote";
