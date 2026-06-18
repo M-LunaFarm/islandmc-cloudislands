@@ -129,8 +129,10 @@ class DefaultConfigIntegrityTest {
         assertEquals("data.db", config.getString("database.sqlite-file"));
         assertEquals(60, config.getInt("database.save-interval-seconds"));
         assertEquals(1200, config.getInt("settings.dirty-save-period-ticks"));
+        assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-reload-runtime-restart-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
         assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
+        assertTrue(addon.getString("state.dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));
         assertFalse(config.getBoolean("cloudislands.allow-coop-build"));
         assertFalse(config.getBoolean("cloudislands.allow-spawn-island"));
         assertTrue(config.getBoolean("cloudislands.require-island-member"));
