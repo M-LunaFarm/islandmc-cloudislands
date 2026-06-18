@@ -408,10 +408,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean coreApiLocalCacheWritesEnabled() {
-        return setupAddonLegacyBoolean("setup.database.core-api.local-cache-writes.enabled",
+        return firstConfiguredBoolean(false,
+                "setup.database.core-api.local-cache-writes.enabled",
+                "setup.database.core_api.local-cache-writes.enabled",
+                "setup.database.core.api.local-cache-writes.enabled",
                 "addons.cloudislands-satis.database.core-api.local-cache-writes.enabled",
+                "addons.cloudislands-satis.database.core_api.local-cache-writes.enabled",
+                "addons.cloudislands-satis.database.core.api.local-cache-writes.enabled",
                 "database.core-api.local-cache-writes.enabled",
-                false);
+                "database.core_api.local-cache-writes.enabled",
+                "database.core.api.local-cache-writes.enabled");
     }
 
     private void putRuntimeActivityState(Map<String, String> state) {
@@ -5402,10 +5408,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private boolean coreApiFlattenedFallbackEnabled() {
-        return setupAddonLegacyBoolean("setup.database.core-api.flattened-fallback.enabled",
+        return firstConfiguredBoolean(true,
+                "setup.database.core-api.flattened-fallback.enabled",
+                "setup.database.core_api.flattened-fallback.enabled",
+                "setup.database.core.api.flattened-fallback.enabled",
                 "addons.cloudislands-satis.database.core-api.flattened-fallback.enabled",
+                "addons.cloudislands-satis.database.core_api.flattened-fallback.enabled",
+                "addons.cloudislands-satis.database.core.api.flattened-fallback.enabled",
                 "database.core-api.flattened-fallback.enabled",
-                true);
+                "database.core_api.flattened-fallback.enabled",
+                "database.core.api.flattened-fallback.enabled");
     }
 
     private String databaseCoreApiWriteFallbackPolicy() {
@@ -5459,6 +5471,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return configs.main().getBoolean(legacyPath, fallback);
     }
 
+    private boolean firstConfiguredBoolean(boolean fallback, String... paths) {
+        if (paths == null) {
+            return fallback;
+        }
+        for (String path : paths) {
+            if (path != null && configs.main().contains(path)) {
+                return configs.main().getBoolean(path, fallback);
+            }
+        }
+        return fallback;
+    }
+
     private boolean coreApiSetupMarkerEnabled() {
         return !coreApiSetupMarkerSource().equals("not-configured");
     }
@@ -5467,10 +5491,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         String[] paths = {
                 "setup.database.core-api.enabled",
                 "setup.database.core_api.enabled",
+                "setup.database.core.api.enabled",
                 "addons.cloudislands-satis.database.core-api.enabled",
                 "addons.cloudislands-satis.database.core_api.enabled",
+                "addons.cloudislands-satis.database.core.api.enabled",
                 "database.core-api.enabled",
-                "database.core_api.enabled"
+                "database.core_api.enabled",
+                "database.core.api.enabled"
         };
         for (String path : paths) {
             if (configs.main().contains(path)) {
