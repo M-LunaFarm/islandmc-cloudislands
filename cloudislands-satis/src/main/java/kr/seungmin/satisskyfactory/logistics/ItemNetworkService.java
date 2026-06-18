@@ -7,6 +7,7 @@ import kr.seungmin.satisskyfactory.model.ItemNetwork;
 import kr.seungmin.satisskyfactory.model.MachineInstance;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,12 +50,31 @@ public final class ItemNetworkService {
                 Instant.now().toEpochMilli()
         );
         Map<UUID, UUID> assignments = result.assignments();
+        Map<UUID, UUID> previousNetworkIds = new HashMap<>();
+        boolean assignmentsAccepted = true;
         for (MachineInstance machine : islandMachines) {
             UUID networkId = assignments.get(machine.machineId());
             if (!Objects.equals(networkId, machine.itemNetworkId())) {
+                previousNetworkIds.put(machine.machineId(), machine.itemNetworkId());
                 machine.itemNetworkId(networkId);
-                machines.saveLater(machine);
+                if (!machines.saveLater(machine)) {
+                    machine.itemNetworkId(previousNetworkIds.get(machine.machineId()));
+                    assignmentsAccepted = false;
+                    break;
+                }
             }
+        }
+        if (!assignmentsAccepted) {
+            for (MachineInstance machine : islandMachines) {
+                if (previousNetworkIds.containsKey(machine.machineId())) {
+                    UUID previousNetworkId = previousNetworkIds.get(machine.machineId());
+                    if (!Objects.equals(previousNetworkId, machine.itemNetworkId())) {
+                        machine.itemNetworkId(previousNetworkId);
+                        machines.saveLater(machine);
+                    }
+                }
+            }
+            return load(islandUuid);
         }
         database.replaceItemNetworks(islandUuid, result.networks());
         return result.networks();
