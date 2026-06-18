@@ -22,6 +22,7 @@ tasks.jar {
             "CloudIslands-Storage-Outage-Policy" to "StorageOutagePolicy-active-islands-stay-local-save-failures-queued-for-retry",
             "CloudIslands-Backend-Access-Policy" to "BackendAccessPolicy-velocity-modern-forwarding-proxy-only-paper-backends",
             "CloudIslands-Protection-Decision-Policy" to "ProtectionDecisionPolicy-region-index-local-cache-only-no-sync-io",
+            "CloudIslands-Setup-Backend-Fallback-Policy" to "SetupBackendFallbackPolicy-shared-db-or-core-api-before-unsupported-local-fallback",
             "CloudIslands-Cache-Invalidation-Targets" to "player,island-summary,runtime,members,permissions,flags,warps,node-heartbeat",
             "CloudIslands-Cache-Invalidation-Redis-Key-Mapper" to "CacheInvalidationPlan.redisKeysFor-event-to-RedisKeys",
             "CloudIslands-Package-Modules" to "api,common,protocol,core-client,core-service,velocity,paper,satis,storage,migration,testkit,bom",
