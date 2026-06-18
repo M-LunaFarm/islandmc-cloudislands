@@ -20,6 +20,7 @@ import kr.seungmin.satisskyfactory.model.BlockKey;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.model.MachineDefinition;
 import kr.seungmin.satisskyfactory.model.MachineInstance;
+import kr.seungmin.satisskyfactory.model.MaintenanceStatus;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.recipe.RecipeDefinition;
 import kr.seungmin.satisskyfactory.recipe.RecipeService;
@@ -398,8 +399,11 @@ public final class FactoryGuiListener implements Listener {
         if (!enabled("maintenance")) {
             return;
         }
+        MaintenanceStatus previousStatus = island.maintenanceStatus();
         maintenance.updateStatus(island);
-        islands.save(island);
+        if (!islands.save(island)) {
+            island.maintenanceStatus(previousStatus);
+        }
     }
 
     private void depositMachineInput(Player player, MachineInstance machine) {
