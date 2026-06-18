@@ -196,6 +196,24 @@ class SatisAddonIntegrationPolicyTest {
                 "warp-command-gui-and-location-write-paths",
                 SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("warps")
         );
+        assertEquals(
+                "research-command-research-gui-research-progress-writes",
+                SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("research")
+        );
+        assertEquals(
+                "maintenance-task-registration-repair-gui-and-operator-write-paths",
+                SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("maintenance")
+        );
+        assertEquals(
+                "migration-scan-dryrun-import-rollback-and-legacy-provider-check-commands",
+                SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("migration")
+        );
+        for (String featureGate : SatisAddonIntegrationPolicy.featureGates()) {
+            assertTrue(
+                    SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().containsKey(featureGate),
+                    featureGate + " must declare concrete runtime blocks when disabled"
+            );
+        }
         assertTrue(SatisAddonIntegrationPolicy.featureOffRuntimeBlockSummary().contains("addon-state=core-api-state-writer-table-key-value-bulk-save-and-load"));
     }
 
