@@ -82,6 +82,8 @@ class SatisSkyFactoryPluginTest {
         assertEquals("seven-or-more-island-nodes-use-the-same-live-route-candidate-rules-with-no-player-command-change", metadata.get("island-state-seven-plus-node-policy"));
         assertEquals("server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command", metadata.get("island-state-ab-server-new-island-scenario"));
         assertEquals("existing-island-deactivates-on-server-a-saves-satis-state-by-island-uuid-activates-on-server-b-and-remaps-volatile-placement", metadata.get("island-state-ab-server-existing-island-scenario"));
+        assertTrue(metadata.get("satis-operation-scenarios").contains("a-b-server-new-island-mode=server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command"));
+        assertTrue(metadata.get("satis-completion-criteria").contains("a-server-b-server-new-and-existing-island-flows-are-pinned"));
         assertEquals("node-count-does-not-change-satis-state-keys-or-storage-authority", metadata.get("island-state-scale-policy"));
         assertEquals("A-node-save-B-node-restore-by-island-uuid", metadata.get("island-state-node-handoff-policy"));
         assertEquals("read-only-snapshot-or-sqlite-scan-no-live-provider-hooks", metadata.get("migration-source-policy"));

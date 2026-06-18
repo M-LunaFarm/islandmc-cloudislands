@@ -86,6 +86,8 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"write-gate-route-events\""));
         assertTrue(source.contains("\"island-state-ab-server-new-island-scenario\""));
         assertTrue(source.contains("\"island-state-ab-server-existing-island-scenario\""));
+        assertTrue(source.contains("\"satis-operation-scenarios\""));
+        assertTrue(source.contains("\"satis-completion-criteria\""));
         assertTrue(source.contains("\"lifecycle-event-source\""));
         assertTrue(source.contains("\"route-event-last-block-reason\""));
         assertTrue(source.contains("\"last-route-player-visible-topology\""));
