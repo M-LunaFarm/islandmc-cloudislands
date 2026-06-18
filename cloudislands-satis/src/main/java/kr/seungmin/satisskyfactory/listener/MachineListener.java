@@ -41,6 +41,7 @@ import java.util.function.BooleanSupplier;
 public final class MachineListener implements Listener {
     private final BooleanSupplier active;
     private final BooleanSupplier resourceNodesEnabled;
+    private final BooleanSupplier storageEnabled;
     private final BooleanSupplier maintenanceEnabled;
     private final BooleanSupplier researchEnabled;
     private final BooleanSupplier guiEnabled;
@@ -60,7 +61,8 @@ public final class MachineListener implements Listener {
     private final FileConfiguration maintenanceConfig;
     private final IslandBoostService boosts;
 
-    public MachineListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled, BooleanSupplier maintenanceEnabled, BooleanSupplier researchEnabled, BooleanSupplier guiEnabled,
+    public MachineListener(BooleanSupplier active, BooleanSupplier resourceNodesEnabled, BooleanSupplier storageEnabled,
+                           BooleanSupplier maintenanceEnabled, BooleanSupplier researchEnabled, BooleanSupplier guiEnabled,
                            JavaPlugin plugin, CustomItemFactory itemFactory, MachineDefinitionService definitions, MachineService machines,
                            SkyblockProvider skyblock, FactoryIslandService islands, FactoryGuiService gui,
                            MessageService messages, ResearchService research, ResourceNodeService nodes,
@@ -69,6 +71,7 @@ public final class MachineListener implements Listener {
                            FileConfiguration config, FileConfiguration maintenanceConfig, IslandBoostService boosts) {
         this.active = active;
         this.resourceNodesEnabled = resourceNodesEnabled;
+        this.storageEnabled = storageEnabled;
         this.maintenanceEnabled = maintenanceEnabled;
         this.researchEnabled = researchEnabled;
         this.guiEnabled = guiEnabled;
@@ -240,6 +243,10 @@ public final class MachineListener implements Listener {
         return enabled(resourceNodesEnabled);
     }
 
+    private boolean storageEnabled() {
+        return enabled(storageEnabled);
+    }
+
     private boolean maintenanceEnabled() {
         return enabled(maintenanceEnabled);
     }
@@ -271,6 +278,11 @@ public final class MachineListener implements Listener {
             if (island == null || !skyblock.isPlayerIslandMember(player, island)) {
                 event.setCancelled(true);
                 messages.send(player, "not-member");
+                return;
+            }
+            if (!storageEnabled()) {
+                event.setCancelled(true);
+                messages.send(player, "feature-disabled", Map.of("feature", "storage"));
                 return;
             }
             MachineDefinition definition = definitions.get(machine.typeId()).orElse(null);
