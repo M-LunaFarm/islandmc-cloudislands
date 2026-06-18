@@ -3496,6 +3496,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves != null) {
             dirtySaves.flushIslandSafely(islandId);
         }
+        publishPreflushAuditState(islandId, safeOperation, "island-flush");
         coreHydratedIslandActivations.remove(islandId);
         publishCoreHydrationState(islandId, safeOperation, coreHydrationKey(safeOperation), "reset-after-flush");
         publishLifecycleState(islandId, safeOperation);
@@ -3506,6 +3507,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves != null) {
             dirtySaves.flushIslandSafely(islandId);
         }
+        publishPreflushAuditState(islandId, safeOperation, "migration-preflush");
         FactoryIsland island = islands == null ? null : islands.find(islandId).orElse(null);
         publishCoreHydrationState(islandId, safeOperation, coreHydrationKey(safeOperation), "migration-preflush");
         publishIslandLifecycleState(islandId, safeOperation, island, "preflushed", "");
@@ -3527,6 +3529,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         } finally {
             effectiveFeatures = disabledFeatures;
         }
+        publishPreflushAuditState(null, reason, "runtime-disable");
         if (cloudIslandsApi == null || !addonStateReportingWasEnabled) {
             return;
         }
@@ -3538,6 +3541,55 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-disable-at", Instant.now().toString());
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis disable flush state: " + error.getMessage());
+            return Map.of();
+        });
+    }
+
+    private void publishPreflushAuditState(UUID islandId, String operation, String reason) {
+        if (cloudIslandsApi == null || !addonStateReportingWasEnabled) {
+            return;
+        }
+        String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
+        String safeReason = reason == null || reason.isBlank() ? "preflush" : reason;
+        String status = dirtySaves == null ? "skipped-no-dirty-service" : dirtySaves.lastFlushStatus();
+        String writes = dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites());
+        String failures = dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushFailures());
+        String attempts = dirtySaves == null ? "0" : Long.toString(dirtySaves.flushAttempts());
+        String at = dirtySaves == null || dirtySaves.lastFlushAt().isBlank() ? Instant.now().toString() : dirtySaves.lastFlushAt();
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("last-preflush-island", islandId == null ? "" : islandId.toString());
+        state.put("last-preflush-operation", safeOperation);
+        state.put("last-preflush-reason", safeReason);
+        state.put("last-preflush-status", status);
+        state.put("last-preflush-writes", writes);
+        state.put("last-preflush-failures", failures);
+        state.put("last-preflush-attempts", attempts);
+        state.put("last-preflush-at", at);
+        state.put("last-preflush-write-fence", SatisStatePortabilityPolicy.WRITE_FENCE);
+        state.put("last-preflush-handoff-policy", SatisStatePortabilityPolicy.NODE_HANDOFF_POLICY);
+        state.put("last-preflush-preflush-policy", SatisStatePortabilityPolicy.NODE_HANDOFF_PREFLUSH_POLICY);
+        state.put("last-preflush-state-owner-policy", SatisStatePortabilityPolicy.STATE_OWNER_POLICY);
+        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis preflush audit state: " + error.getMessage());
+            return Map.of();
+        });
+        if (islandId == null) {
+            return;
+        }
+        Map<String, String> islandState = new LinkedHashMap<>();
+        islandState.put("preflush-operation", safeOperation);
+        islandState.put("preflush-reason", safeReason);
+        islandState.put("preflush-status", status);
+        islandState.put("preflush-writes", writes);
+        islandState.put("preflush-failures", failures);
+        islandState.put("preflush-attempts", attempts);
+        islandState.put("preflush-at", at);
+        islandState.put("preflush-write-fence", SatisStatePortabilityPolicy.WRITE_FENCE);
+        islandState.put("preflush-handoff-policy", SatisStatePortabilityPolicy.NODE_HANDOFF_POLICY);
+        islandState.put("preflush-preflush-policy", SatisStatePortabilityPolicy.NODE_HANDOFF_PREFLUSH_POLICY);
+        islandState.put("preflush-state-owner-policy", SatisStatePortabilityPolicy.STATE_OWNER_POLICY);
+        cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, islandState).exceptionally(error -> {
+            getLogger().warning("Failed to publish CloudIslands Satis island preflush audit state: " + error.getMessage());
             return Map.of();
         });
     }
