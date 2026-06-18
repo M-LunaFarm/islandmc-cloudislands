@@ -485,6 +485,9 @@ public final class RoutingOrchestrator {
         details.put("routeCandidateRecommendedMinimum", Long.toString(recommendedCandidates));
         details.put("routeCandidateShortfall", Long.toString(candidateShortfall));
         details.put("routeCandidateEstimatePolicy", "allocator-ready-node-candidates-no-fixed-node-limit");
+        details.put("routeCandidateHardRulePolicy", NodeAllocator.ACTIVATION_HARD_RULE_POLICY);
+        details.put("routeCandidateScoreWeightPolicy", NodeAllocator.SCORE_WEIGHT_POLICY);
+        details.put("routeCandidateSoftFullPolicy", NodeAllocator.SOFT_FULL_NEW_ACTIVATION_POLICY);
         details.put("elasticLimitPolicy", IslandPortabilityPolicy.NO_FIXED_NODE_COUNT_LIMIT_POLICY);
         details.put("eightPlusNodePolicy", IslandPortabilityPolicy.EIGHT_PLUS_NODE_POLICY);
         details.put("routeCandidateMinimumPolicy", IslandPortabilityPolicy.ROUTE_CANDIDATE_MINIMUM_POLICY);

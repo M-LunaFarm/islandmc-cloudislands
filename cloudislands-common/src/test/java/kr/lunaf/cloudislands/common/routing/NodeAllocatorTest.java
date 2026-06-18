@@ -13,6 +13,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class NodeAllocatorTest {
     private static final Instant NOW = Instant.parse("2026-06-17T00:00:00Z");
 
+    
+    void exposesGoalRoutingHardRulesAndScoreWeights() {
+        assertTrue(NodeAllocator.ACTIVATION_HARD_RULE_POLICY.contains("fresh-heartbeat"));
+        assertTrue(NodeAllocator.ACTIVATION_HARD_RULE_POLICY.contains("activation-queue-open"));
+        assertTrue(NodeAllocator.ACTIVATION_HARD_RULE_POLICY.contains("template-supported"));
+        assertTrue(NodeAllocator.SCORE_WEIGHT_POLICY.contains("player_ratio=0.25"));
+        assertTrue(NodeAllocator.SCORE_WEIGHT_POLICY.contains("mspt_ratio=0.25"));
+        assertTrue(NodeAllocator.SCORE_WEIGHT_POLICY.contains("recent_failure_penalty=0.05"));
+        assertTrue(NodeAllocator.SOFT_FULL_NEW_ACTIVATION_POLICY.contains("prefers-READY"));
+    }
+
     @Test
     void selectsLeastLoadedReadyNodeFromSixIslandNodes() {
         NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));

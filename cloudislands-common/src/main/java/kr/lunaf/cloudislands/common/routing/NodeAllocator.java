@@ -11,6 +11,10 @@ import java.util.Locale;
 import kr.lunaf.cloudislands.api.model.NodeState;
 
 public final class NodeAllocator {
+    public static final String ACTIVATION_HARD_RULE_POLICY = "pool-match,unique-velocity-server-name,READY-or-policy-allowed-SOFT_FULL,fresh-heartbeat,storage-ready,primary-storage-healthy,no-save-retry-backlog,hard-player-cap-open,active-island-cap-open,activation-queue-open,template-supported,min-node-version-satisfied";
+    public static final String SCORE_WEIGHT_POLICY = "player_ratio=0.25,active_island_ratio=0.15,mspt_ratio=0.25,activation_queue=0.15,chunk_load_pressure=0.10,memory_pressure=0.05,recent_failure_penalty=0.05";
+    public static final String SOFT_FULL_NEW_ACTIVATION_POLICY = "new-and-inactive-island-activation-prefers-READY-and-avoids-SOFT_FULL-unless-config-policy-allows";
+
     private final Duration heartbeatTimeout;
     private final boolean avoidSoftFullNewActivations;
     private final boolean allowHardFullNewActivations;
