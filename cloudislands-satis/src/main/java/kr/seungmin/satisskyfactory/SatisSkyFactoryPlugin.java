@@ -590,6 +590,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-market-debt-save-policy", "market-debt-repayment-uses-island-save-gate-before-player-payout-and-sale-record");
         state.put("runtime-island-create-save-policy", "get-or-create-island-uses-island-save-gate-instead-of-direct-database-save");
         state.put("runtime-emergency-contract-command-save-policy", "emergency-contract-command-and-gui-avoid-duplicate-ignored-island-save-after-status-refresh");
+        state.put("runtime-admin-maintenance-charge-save-policy", "admin-charge-sends-success-only-after-island-save-and-rolls-back-cache-on-failure");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));

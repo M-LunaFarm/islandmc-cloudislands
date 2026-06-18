@@ -223,12 +223,23 @@ public final class AdminFactoryCommand {
                 if (!requireFeature(sender, "maintenance")) {
                     return;
                 }
+                long previousDebt = island.maintenanceDebt();
+                MaintenanceStatus previousStatus = island.maintenanceStatus();
+                long previousScore = island.factoryScore();
+                long previousLastMaintenanceAt = island.lastMaintenanceAt();
                 islands.context(target).ifPresent(context -> {
                     if (maintenance.chargeNowIfWritesAllowed(island, target, context.islandRef().raw())) {
-                        islands.save(island);
+                        if (!islands.save(island)) {
+                            island.maintenanceDebt(previousDebt);
+                            island.maintenanceStatus(previousStatus);
+                            island.factoryScore(previousScore);
+                            island.lastMaintenanceAt(previousLastMaintenanceAt);
+                            messages.send(sender, "feature-disabled", Map.of("feature", "maintenance"));
+                            return;
+                        }
+                        messages.send(sender, "admin-maintenance-charged");
                     }
                 });
-                messages.send(sender, "admin-maintenance-charged");
             });
             case "gennodes" -> withPlayerContext(sender, args, 2, (target, island) -> {
                 if (!requireFeature(sender, "resource-nodes")) {
@@ -1542,6 +1553,7 @@ public final class AdminFactoryCommand {
                         "runtime-market-debt-save-policy",
                         "runtime-island-create-save-policy",
                         "runtime-emergency-contract-command-save-policy",
+                        "runtime-admin-maintenance-charge-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",
