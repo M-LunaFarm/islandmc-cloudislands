@@ -22,8 +22,32 @@ public record AddonStateBulkLoadRequest(
         return new AddonStateBulkLoadRequest(addonId, null, table);
     }
 
+    public static AddonStateBulkLoadRequest globalBulk(String addonId, String table) {
+        return global(addonId, table);
+    }
+
+    public static AddonStateBulkLoadRequest globalTableKeyValueBulkLoad(String addonId, String table) {
+        return global(addonId, table);
+    }
+
+    public static AddonStateBulkLoadRequest tableKeyValueBulkLoad(String addonId, String table) {
+        return global(addonId, table);
+    }
+
     public static AddonStateBulkLoadRequest island(String addonId, UUID islandId, String table) {
         return new AddonStateBulkLoadRequest(addonId, islandId, table);
+    }
+
+    public static AddonStateBulkLoadRequest islandBulk(String addonId, UUID islandId, String table) {
+        return island(addonId, islandId, table);
+    }
+
+    public static AddonStateBulkLoadRequest islandTableKeyValueBulkLoad(String addonId, UUID islandId, String table) {
+        return island(addonId, islandId, table);
+    }
+
+    public static AddonStateBulkLoadRequest tableKeyValueBulkLoad(String addonId, UUID islandId, String table) {
+        return island(addonId, islandId, table);
     }
 
     private static String safeTableName(String table) {
