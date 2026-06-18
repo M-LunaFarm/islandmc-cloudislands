@@ -442,6 +442,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-root-block-reason", SatisFeatureGateResolver.rootBlockReason(configs == null ? null : configs.main()));
         state.put("runtime-root-switch-policy", "when-disabled-all-satis-features-are-forced-off-even-if-child-feature-configs-are-true");
         state.put("runtime-addon-status", addonRuntimeEnabled ? "enabled" : "addon-disabled-by-config-or-registry");
+        var activationDecision = runtimeFeaturePackActivationDecision();
+        state.put("runtime-feature-pack-activation-policy", SatisAddonIntegrationPolicy.FEATURE_PACK_ACTIVATION_POLICY);
+        state.put("runtime-feature-pack-activation-mode", activationDecision.mode());
+        state.put("runtime-feature-pack-runtime-enabled", Boolean.toString(activationDecision.runtimeEnabled()));
+        state.put("runtime-feature-pack-runtime-shape", activationDecision.runtimeShape());
+        state.put("runtime-feature-pack-block-reason", activationDecision.blockReason());
         state.put("runtime-addon-policy", "disabled-addon-registers-no-active-components-preserves-satis-data-and-cloudislands-core");
         state.put("runtime-addon-removal-safe", "true");
         state.put("runtime-addon-removal-policy", SatisAddonIntegrationPolicy.REMOVAL_POLICY);
@@ -1629,13 +1635,19 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         try {
             CloudIslandsAddonSnapshot addon = register(cloudIslandsApi).join();
-            addonRuntimeEnabled = addon.enabled();
+            var activationDecision = SatisAddonIntegrationPolicy.activationDecision(
+                    configuredIntegrationMode(),
+                    enabledByDefault(),
+                    addon.enabled(),
+                    true,
+                    true
+            );
+            addonRuntimeEnabled = activationDecision.runtimeEnabled();
             effectiveFeatures = addon.features();
             addonStateReportingWasEnabled = addonStateReportingEnabled(addon);
-            getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled());
-            if (!addon.enabled()) {
-                getLogger().info("CloudIslands disabled this addon through the parent config.");
-                addonRuntimeEnabled = false;
+            getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled() + " activation=" + activationDecision.runtimeEnabled());
+            if (!activationDecision.runtimeEnabled()) {
+                getLogger().info("CloudIslands Satis runtime blocked by activation policy: " + activationDecision.blockReason());
                 effectiveFeatures = Map.of();
                 return false;
             }
@@ -2108,6 +2120,16 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String configuredIntegrationMode() {
         return SatisFeatureGateResolver.integrationMode(configs == null ? null : configs.main(), "ADDON");
+    }
+
+    private kr.lunaf.cloudislands.common.feature.SatisFeaturePackActivationPolicy.ActivationDecision runtimeFeaturePackActivationDecision() {
+        return SatisAddonIntegrationPolicy.activationDecision(
+                configuredIntegrationMode(),
+                enabledByDefault(),
+                addonRuntimeEnabled || cloudIslandsApi == null,
+                cloudIslandsApi != null,
+                true
+        );
     }
 
     private String integrationRuntimeShape(String integrationMode) {

@@ -154,6 +154,9 @@ class SatisSkyFactoryPluginTest {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
 
         assertTrue(source.contains("operationalFeatureEnabled(\"addon-state\"),\n                cloudIslandsApi != null"));
+        assertTrue(source.contains("SatisAddonIntegrationPolicy.activationDecision("));
+        assertTrue(source.contains("runtime-feature-pack-block-reason"));
+        assertTrue(source.contains("CloudIslands Satis runtime blocked by activation policy"));
     }
 
     @Test
