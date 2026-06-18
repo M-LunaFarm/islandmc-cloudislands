@@ -2005,6 +2005,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("cloudislands-lifecycle-depends-on-satis", "false");
         metadata.put("cloudislands-api-surface-policy", SatisAddonIntegrationPolicy.API_SURFACE_POLICY);
         metadata.put("cloudislands-direct-access-policy", SatisAddonIntegrationPolicy.FORBIDDEN_DIRECT_ACCESS_POLICY);
+        metadata.put("core-api-metadata-state-policy", SatisAddonIntegrationPolicy.CORE_API_METADATA_STATE_POLICY);
+        metadata.put("core-api-forbidden-content-policy", SatisAddonIntegrationPolicy.CORE_API_FORBIDDEN_CONTENT_POLICY);
+        metadata.put("core-api-addon-state-boundaries", SatisAddonIntegrationPolicy.coreApiAddonStateBoundarySummary());
         metadata.put("cloudislands-forbidden-direct-access-targets", SatisAddonIntegrationPolicy.forbiddenDirectAccessTargetsCsv());
         metadata.put("cloudislands-core-internal-access", "false");
         metadata.put("topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);

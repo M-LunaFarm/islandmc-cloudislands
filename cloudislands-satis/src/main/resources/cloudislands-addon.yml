@@ -188,6 +188,9 @@ database:
 state:
   authority: core-api-table-key-value-or-shared-database
   cloudislands-api-surface-policy: island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi
+  core-api-metadata-state-policy: core-api-stores-addon-metadata-and-opaque-state-without-satis-business-rules
+  core-api-forbidden-content-policy: core-api-does-not-interpret-machines-factories-generators-contracts-research-or-market-rules
+  core-api-opaque-state-scope: island-uuid-and-addon-id
   cloudislands-direct-access-policy: no-direct-cloudislands-storage-runtime-or-world-owner-access
   cloudislands-forbidden-direct-access-targets: SuperiorSkyblock2-runtime-api,CloudIslands-core-service-internals,CloudIslands-storage-implementation,Paper-world-name-as-state-owner,Island-node-name-as-state-owner
   cloudislands-core-internal-access: false

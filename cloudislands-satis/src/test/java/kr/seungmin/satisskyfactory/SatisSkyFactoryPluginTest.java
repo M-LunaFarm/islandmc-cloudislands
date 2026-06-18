@@ -94,6 +94,9 @@ class SatisSkyFactoryPluginTest {
         assertEquals("config-reload-after-satis-disable-restarts-runtime-when-database-is-not-initialized", metadata.get("island-state-reload-reenable-scenario"));
         assertEquals("core-api-owns-route-ticket-create-consume-satis-records-diagnostics-only", metadata.get("route-authority-policy"));
         assertEquals("player-facing-satis-output-never-includes-route-ticket-node-server-world-cell", metadata.get("route-ticket-privacy-policy"));
+        assertEquals("core-api-stores-addon-metadata-and-opaque-state-without-satis-business-rules", metadata.get("core-api-metadata-state-policy"));
+        assertEquals("core-api-does-not-interpret-machines-factories-generators-contracts-research-or-market-rules", metadata.get("core-api-forbidden-content-policy"));
+        assertTrue(metadata.get("core-api-addon-state-boundaries").contains("state-contract=core-api-stores-opaque-table-key-value-addon-state-scoped-by-island-uuid-and-addon-id"));
         assertEquals("my-island-other-island-ranking-visit-settings-warps-use-logical-core-api-backed-flows", metadata.get("player-surface-policy"));
         assertEquals("player-facing-satis-ui-hides-island-node-server-world-cell-and-route-ticket", metadata.get("player-surface-hide-policy"));
         assertEquals("velocity-owns-global-island-routing-commands-paper-satis-handles-local-addon-ui-only", metadata.get("player-surface-command-owner-policy"));
