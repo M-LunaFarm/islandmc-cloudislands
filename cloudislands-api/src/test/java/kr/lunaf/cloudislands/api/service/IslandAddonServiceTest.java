@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api.service;
 
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import org.junit.jupiter.api.Test;
@@ -91,6 +92,10 @@ class IslandAddonServiceTest {
                 service.tableKeyValueBulkLoadState("cloudislands-satis", "machines").join());
         assertEquals(Map.of("island/0001/machine/0002", "active"),
                 service.bulkLoadTableKeyValueState("cloudislands-satis", "machines").join());
+        assertEquals(Map.of("island/0001/machine/0002", "active"),
+                service.tableLoadState("cloudislands-satis", "machines").join());
+        assertEquals(Map.of("island/0001/machine/0002", "active"),
+                service.tableLoadState(AddonStateBulkLoadRequest.global("cloudislands-satis", "machines")).join());
     }
 
     @Test
@@ -140,6 +145,10 @@ class IslandAddonServiceTest {
                 service.tableKeyValueBulkLoadIslandState("cloudislands-satis", islandId, "resource_nodes").join());
         assertEquals(Map.of("node/ore/0/0", "12000"),
                 service.bulkLoadTableKeyValueIslandState("cloudislands-satis", islandId, "resource_nodes").join());
+        assertEquals(Map.of("node/ore/0/0", "12000"),
+                service.tableLoadIslandState("cloudislands-satis", islandId, "resource_nodes").join());
+        assertEquals(Map.of("node/ore/0/0", "12000"),
+                service.tableLoadIslandState(AddonStateBulkLoadRequest.island("cloudislands-satis", islandId, "resource_nodes")).join());
     }
 
     @Test

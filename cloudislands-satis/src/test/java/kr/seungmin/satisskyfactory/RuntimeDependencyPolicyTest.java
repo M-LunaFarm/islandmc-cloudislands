@@ -110,6 +110,7 @@ class RuntimeDependencyPolicyTest {
         Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
         String satisBuild = Files.readString(repoRoot.resolve("cloudislands-satis/build.gradle.kts"));
         String coreBuild = Files.readString(repoRoot.resolve("cloudislands-core-service/build.gradle.kts"));
+        String clientBuild = Files.readString(repoRoot.resolve("cloudislands-core-client/build.gradle.kts"));
         List<String> globalEndpoints = List.of(
                 "/v1/addons/state/table/bulk",
                 "/v1/addons/state/table-key-value/bulk-save",
@@ -134,13 +135,16 @@ class RuntimeDependencyPolicyTest {
         assertTrue(satisBuild.contains("CloudIslands-Satis-Core-API-Bulk-Endpoints"));
         assertTrue(coreBuild.contains("CloudIslands-Core-Addon-State-Bulk-Endpoints"));
         assertTrue(coreBuild.contains("CloudIslands-Core-Addon-Island-State-Bulk-Endpoints"));
+        assertTrue(clientBuild.contains("CloudIslands-Core-Client-Bulk-State-Endpoints"));
         for (String endpoint : globalEndpoints) {
             assertTrue(satisBuild.contains(endpoint), "Satis manifest missing global endpoint " + endpoint);
             assertTrue(coreBuild.contains(endpoint), "Core manifest missing global endpoint " + endpoint);
+            assertTrue(clientBuild.contains(endpoint), "Core client manifest missing global endpoint " + endpoint);
         }
         for (String endpoint : islandEndpoints) {
             assertTrue(satisBuild.contains(endpoint), "Satis manifest missing island endpoint " + endpoint);
             assertTrue(coreBuild.contains(endpoint), "Core manifest missing island endpoint " + endpoint);
+            assertTrue(clientBuild.contains(endpoint), "Core client manifest missing island endpoint " + endpoint);
         }
     }
 
