@@ -180,6 +180,9 @@ public final class NodeAllocator {
         if (node.storagePrimaryDegraded()) {
             return "STORAGE_PRIMARY_DEGRADED";
         }
+        if (node.storageSaveRetryQueueTotal() > 0) {
+            return "STORAGE_SAVE_RETRY_QUEUE";
+        }
         if (node.lastHeartbeat() == null) {
             return "HEARTBEAT_MISSING";
         }

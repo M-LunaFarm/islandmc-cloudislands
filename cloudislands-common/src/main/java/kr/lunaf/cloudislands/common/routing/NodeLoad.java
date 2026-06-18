@@ -61,6 +61,9 @@ public record NodeLoad(
         if (storagePrimaryDegraded()) {
             return "STORAGE_PRIMARY_DEGRADED";
         }
+        if (storageSaveRetryQueueTotal() > 0) {
+            return "STORAGE_SAVE_RETRY_QUEUE";
+        }
         if (lastHeartbeat == null) {
             return "HEARTBEAT_MISSING";
         }
@@ -148,6 +151,15 @@ public record NodeLoad(
 
     public boolean storagePrimaryDegraded() {
         return "true".equalsIgnoreCase(heartbeatMetadata().getOrDefault("storagePrimaryDegraded", "false"));
+    }
+
+    public int storageSaveRetryQueueTotal() {
+        Map<String, String> metadata = heartbeatMetadata();
+        if (metadata.containsKey("storageSaveRetryQueueTotal")) {
+            return metadataInt(metadata, "storageSaveRetryQueueTotal");
+        }
+        return Math.max(0, metadataInt(metadata, "periodicSaveRetryQueue")
+            + metadataInt(metadata, "emptySaveRetryQueue"));
     }
 
     public boolean defaultNodeIdentityRisk() {
@@ -261,6 +273,7 @@ public record NodeLoad(
         breakdown.put("recentFailurePressure", recentFailurePressure());
         breakdown.put("recentFailureWeight", RECENT_FAILURE_WEIGHT);
         breakdown.put("recentFailureContribution", recentFailureScoreContribution());
+        breakdown.put("storageSaveRetryQueueTotal", (double) storageSaveRetryQueueTotal());
         breakdown.put("score", score());
         return Map.copyOf(breakdown);
     }
@@ -330,6 +343,18 @@ public record NodeLoad(
             return 1.5D;
         }
         return Math.min(Math.max(value, 0.0D), 1.5D);
+    }
+
+    private static int metadataInt(Map<String, String> metadata, String key) {
+        String value = metadata.get(key);
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(value.trim()));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 
     private static int compareVersions(String left, String right) {

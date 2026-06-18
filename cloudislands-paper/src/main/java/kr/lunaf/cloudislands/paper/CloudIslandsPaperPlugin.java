@@ -780,6 +780,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             + ";periodicSaveFailures=" + (periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal())
             + ";emptySaveRetryQueue=" + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize())
             + ";emptySaveFailures=" + (emptyIslandSaveTask == null ? 0L : emptyIslandSaveTask.failuresTotal())
+            + ";storageSaveRetryQueueTotal=" + ((periodicSaveTask == null ? 0 : periodicSaveTask.retryQueueSize()) + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize()))
             + ";islandSaveFailures=" + ((periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal()) + (emptyIslandSaveTask == null ? 0L : emptyIslandSaveTask.failuresTotal()))
             + ";backendAccessPolicy=" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CONTRACT
             + ";paperDirectAccessPolicy=" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY
