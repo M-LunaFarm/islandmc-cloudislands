@@ -88,6 +88,13 @@ class SatisSkyFactoryPluginTest {
     }
 
     @Test
+    void runtimePlanUsesCloudIslandsApiPresenceForStandaloneGuard() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+
+        assertTrue(source.contains("operationalFeatureEnabled(\"addon-state\"),\n                cloudIslandsApi != null"));
+    }
+
+    @Test
     void commandsFeatureGateUnregistersFactoryEntrypoints() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
 

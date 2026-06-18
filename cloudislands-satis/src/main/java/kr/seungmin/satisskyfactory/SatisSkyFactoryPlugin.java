@@ -846,7 +846,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 getServer().getPluginManager().isPluginEnabled("PlaceholderAPI"),
                 dataWritesEnabled(),
                 operationalFeatureEnabled("addon-state"),
-                coreApiAddonStateAvailable()
+                cloudIslandsApi != null
         );
     }
 
