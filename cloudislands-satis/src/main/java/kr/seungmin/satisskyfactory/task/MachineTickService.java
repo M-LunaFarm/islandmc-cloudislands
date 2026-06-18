@@ -786,13 +786,21 @@ public final class MachineTickService {
 
     private boolean saveMovedInventories(VirtualInventory source, Map<String, Long> sourceBefore,
                                          VirtualInventory target, Map<String, Long> targetBefore) {
-        if (storage.saveIfAllowed(source) && storage.saveIfAllowed(target)) {
+        Map<String, Long> sourceAfter = source.items();
+        Map<String, Long> targetAfter = target.items();
+        boolean sourceSaved = storage.saveIfAllowed(source);
+        boolean targetSaved = sourceSaved && storage.saveIfAllowed(target);
+        if (sourceSaved && targetSaved) {
             return true;
         }
         restoreInventory(source, sourceBefore);
         restoreInventory(target, targetBefore);
-        storage.saveIfAllowed(source);
-        storage.saveIfAllowed(target);
+        if (sourceSaved && !storage.saveIfAllowed(source)) {
+            restoreInventory(source, sourceAfter);
+        }
+        if (targetSaved && !storage.saveIfAllowed(target)) {
+            restoreInventory(target, targetAfter);
+        }
         return false;
     }
 
