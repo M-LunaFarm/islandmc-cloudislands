@@ -1385,6 +1385,8 @@ public final class AdminFactoryCommand {
                         "database-fallback-chain-policy",
                         "database-fallback-readiness-policy",
                         "database-fallback-ready-chain-policy",
+                        "database-setup-selected-source",
+                        "database-setup-path",
                         "database-config-source",
                         "database-core-api-marker",
                         "database-core-api-available",

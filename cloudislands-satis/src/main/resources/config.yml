@@ -142,6 +142,9 @@ setup:
     # SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API.
     # CORE_API uses CloudIslands addon-state as the authority and keeps a local SQLite read cache.
     type: CORE_API
+    path: ""
+    shared-directory: "../CloudIslands/satis-state"
+    sqlite-file: "data.db"
     core-api:
       local-cache-writes:
         # Keep false on multi-node networks. If Core API is unavailable, use fallback instead of split local writes.
