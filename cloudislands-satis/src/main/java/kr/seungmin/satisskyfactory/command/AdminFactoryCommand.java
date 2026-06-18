@@ -1496,6 +1496,7 @@ public final class AdminFactoryCommand {
                         "runtime-dirty-save-pending-inventories",
                         "runtime-dirty-save-pending-nodes",
                         "runtime-dirty-save-pending-islands",
+                        "runtime-machine-tick-fuel-save-policy",
                         "runtime-dirty-save-last-flush-status",
                         "runtime-dirty-save-last-flush-at",
                         "runtime-dirty-save-last-flush-writes",

@@ -440,22 +440,33 @@ public final class MachineTickService {
         }
         boolean changedInput = false;
         boolean changedIsland = false;
+        Map<String, Long> removedInput = new java.util.HashMap<>();
+        Map<String, Long> removedIsland = new java.util.HashMap<>();
         for (Map.Entry<String, Long> entry : fuel.entrySet()) {
             long remaining = entry.getValue();
             long fromInput = Math.min(remaining, input.amount(entry.getKey()));
             if (fromInput > 0 && input.remove(entry.getKey(), fromInput)) {
+                removedInput.merge(entry.getKey(), fromInput, Long::sum);
                 remaining -= fromInput;
                 changedInput = true;
             }
             if (remaining > 0 && islandStorage != null && islandStorage.remove(entry.getKey(), remaining)) {
+                removedIsland.merge(entry.getKey(), remaining, Long::sum);
                 changedIsland = true;
             }
         }
-        if (changedInput) {
-            storage.save(input);
+        if (changedInput && !storage.saveIfAllowed(input)) {
+            removedInput.forEach(input::add);
+            removedIsland.forEach((itemId, amount) -> {
+                if (islandStorage != null) {
+                    islandStorage.add(itemId, amount);
+                }
+            });
+            return false;
         }
-        if (changedIsland) {
-            storage.save(islandStorage);
+        if (changedIsland && !storage.saveIfAllowed(islandStorage)) {
+            removedIsland.forEach(islandStorage::add);
+            return false;
         }
         return true;
     }
