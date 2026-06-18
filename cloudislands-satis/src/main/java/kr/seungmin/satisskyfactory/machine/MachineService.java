@@ -241,26 +241,50 @@ public final class MachineService {
         if (!islandStorage.canAdd("__machine_buffer__", bufferedItems)) {
             return false;
         }
+        Map<String, Long> islandBefore = islandStorage.items();
+        Map<UUID, Map<String, Long>> bufferBefore = new java.util.HashMap<>();
         for (VirtualInventory buffer : buffers) {
+            bufferBefore.put(buffer.inventoryId(), buffer.items());
             for (Map.Entry<String, Long> entry : buffer.items().entrySet()) {
                 islandStorage.add(entry.getKey(), entry.getValue());
             }
         }
+        Map<String, Long> islandAfter = islandStorage.items();
         if (!storage.saveIfAllowed(islandStorage)) {
-            for (VirtualInventory buffer : buffers) {
-                for (Map.Entry<String, Long> entry : buffer.items().entrySet()) {
-                    islandStorage.remove(entry.getKey(), entry.getValue());
-                }
-            }
+            restoreInventory(islandStorage, islandBefore);
             return false;
         }
+        List<VirtualInventory> clearedBuffers = new ArrayList<>();
         for (VirtualInventory buffer : buffers) {
             new ArrayList<>(buffer.items().keySet()).forEach(itemId -> buffer.set(itemId, 0));
             if (!storage.saveIfAllowed(buffer)) {
+                restoreInventory(buffer, bufferBefore.getOrDefault(buffer.inventoryId(), Map.of()));
+                restoreFlushedInventories(islandStorage, islandBefore, islandAfter, clearedBuffers, bufferBefore);
                 return false;
             }
+            clearedBuffers.add(buffer);
         }
         return true;
+    }
+
+    private void restoreFlushedInventories(VirtualInventory islandStorage, Map<String, Long> islandBefore,
+                                           Map<String, Long> islandAfter, List<VirtualInventory> clearedBuffers,
+                                           Map<UUID, Map<String, Long>> bufferBefore) {
+        restoreInventory(islandStorage, islandBefore);
+        if (!storage.saveIfAllowed(islandStorage)) {
+            restoreInventory(islandStorage, islandAfter);
+        }
+        for (VirtualInventory buffer : clearedBuffers) {
+            restoreInventory(buffer, bufferBefore.getOrDefault(buffer.inventoryId(), Map.of()));
+            if (!storage.saveIfAllowed(buffer)) {
+                restoreInventory(buffer, Map.of());
+            }
+        }
+    }
+
+    private void restoreInventory(VirtualInventory inventory, Map<String, Long> snapshot) {
+        new ArrayList<>(inventory.items().keySet()).forEach(itemId -> inventory.set(itemId, 0));
+        snapshot.forEach(inventory::set);
     }
 
     private boolean clearInventories(MachineInstance machine) {
