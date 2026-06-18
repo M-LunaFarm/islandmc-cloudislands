@@ -211,7 +211,6 @@ public final class PowerNetworkService {
                         stored = maxStored;
                     } else {
                         restoreInventory(islandStorage, before);
-                        storage.saveIfAllowed(islandStorage);
                         stored = previousStored;
                     }
                 }
@@ -229,7 +228,6 @@ public final class PowerNetworkService {
                         stored += charge;
                     } else {
                         restoreInventory(islandStorage, before);
-                        storage.saveIfAllowed(islandStorage);
                     }
                 } else if (!writeBattery) {
                     stored += charge;
@@ -245,7 +243,6 @@ public final class PowerNetworkService {
                         available += discharge;
                     } else {
                         restoreInventory(islandStorage, before);
-                        storage.saveIfAllowed(islandStorage);
                     }
                 } else if (!writeBattery) {
                     stored -= discharge;

@@ -609,6 +609,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-logistics-inventory-rollback-policy", "logistics-inventory-cache-restores-persisted-side-when-partial-move-rollback-save-is-not-accepted");
         state.put("runtime-recipe-inventory-rollback-policy", "recipe-input-output-cache-restores-persisted-side-when-output-or-node-rollback-save-is-not-accepted");
         state.put("runtime-node-producer-rollback-policy", "node-producer-output-and-machine-link-roll-back-or-realign-when-node-save-is-not-accepted");
+        state.put("runtime-power-battery-inventory-rollback-policy", "power-battery-inventory-cache-restores-snapshot-without-retrying-rejected-save");
         state.put("runtime-dirty-save-last-flush-status", dirtySaves == null ? "not-configured" : dirtySaves.lastFlushStatus());
         state.put("runtime-dirty-save-last-flush-at", dirtySaves == null ? "" : dirtySaves.lastFlushAt());
         state.put("runtime-dirty-save-last-flush-writes", dirtySaves == null ? "0" : Integer.toString(dirtySaves.lastFlushWrites()));
