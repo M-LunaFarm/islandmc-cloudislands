@@ -2210,6 +2210,8 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
             + " rankingPolicy=" + textValue(body, "rankingUpdatePolicy")
             + " blockValuePolicy=" + textValue(body, "blockValuePolicy")
             + " upgradePolicy=" + textValue(body, "upgradePolicy")
+            + " upgradeTypes=" + textValue(body, "upgradeTypePolicy")
+            + " upgradeEconomy=" + textValue(body, "upgradeEconomyPolicy")
             + " generatorPolicy=" + textValue(body, "generatorPolicy")
             + " ss2Replacement=" + textValue(body, "superiorSkyblock2ReplacementFeatures")
             + " ss2ReplacementPolicy=" + textValue(body, "superiorSkyblock2ReplacementPolicy")

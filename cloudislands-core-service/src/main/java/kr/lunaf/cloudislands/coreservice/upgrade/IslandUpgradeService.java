@@ -6,6 +6,9 @@ import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 
 public final class IslandUpgradeService {
+    public static final String PURCHASE_POLICY = "validate-rule-max-level-cost-withdraw-bank-before-upgrade-level-write";
+    public static final String ECONOMY_ABSTRACTION_POLICY = "economy-bridge-or-island-bank-withdraw-before-upgrade-level-commit";
+
     private final IslandUpgradeRepository repository;
     private final IslandBankRepository bankRepository;
     private final UpgradePolicy policy;
