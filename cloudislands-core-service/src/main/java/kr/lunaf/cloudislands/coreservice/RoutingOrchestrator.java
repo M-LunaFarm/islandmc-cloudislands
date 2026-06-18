@@ -454,6 +454,12 @@ public final class RoutingOrchestrator {
         long primaryStorageHealthy = poolSnapshot.stream()
             .filter(node -> !node.storagePrimaryDegraded())
             .count();
+        long storageSaveRetryBacklogNodes = poolSnapshot.stream()
+            .filter(node -> node.storageSaveRetryQueueTotal() > 0)
+            .count();
+        long storageSaveRetryBacklogTotal = poolSnapshot.stream()
+            .mapToLong(NodeLoad::storageSaveRetryQueueTotal)
+            .sum();
         long defaultIdentityRisk = poolSnapshot.stream()
             .filter(NodeLoad::defaultNodeIdentityRisk)
             .count();
@@ -467,6 +473,8 @@ public final class RoutingOrchestrator {
         details.put("readyOrSoftFullNodeCount", Long.toString(readyOrSoftFull));
         details.put("storageReadyNodeCount", Long.toString(storageReady));
         details.put("primaryStorageHealthyNodeCount", Long.toString(primaryStorageHealthy));
+        details.put("storageSaveRetryBacklogNodeCount", Long.toString(storageSaveRetryBacklogNodes));
+        details.put("storageSaveRetryBacklogTotal", Long.toString(storageSaveRetryBacklogTotal));
         details.put("hardCapOpenNodeCount", Long.toString(hardCapOpen));
         details.put("activeIslandOpenNodeCount", Long.toString(activeIslandOpen));
         details.put("queueOpenNodeCount", Long.toString(queueOpen));

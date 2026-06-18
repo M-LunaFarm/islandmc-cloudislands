@@ -232,6 +232,9 @@ public final class NodeAllocator {
         if (reason.equals("STORAGE_PRIMARY_DEGRADED")) {
             return 21;
         }
+        if (reason.equals("STORAGE_SAVE_RETRY_QUEUE")) {
+            return 22;
+        }
         if (reason.equals("DUPLICATE_VELOCITY_SERVER_NAME")) {
             return 25;
         }
