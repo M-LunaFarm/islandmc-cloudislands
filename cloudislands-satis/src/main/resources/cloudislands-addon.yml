@@ -241,11 +241,13 @@ superiorskyblock2:
   plugin-yml-dependency: false
   live-provider-hooks: false
   provider-service-check: plugin-enabled-only-no-bukkit-service-binding
+  provider-service-binding: false
   runtime-dependency-whitelist:
     - CloudIslands
     - Vault
     - PlaceholderAPI
   runtime-policy: migration-input-only-no-runtime-hooks
+  runtime-provider-hook-policy: forbid-superiorskyblock2-runtime-hooks-after-import
   forbidden-runtime-dependencies:
     - SuperiorSkyblock2
     - BentoBox

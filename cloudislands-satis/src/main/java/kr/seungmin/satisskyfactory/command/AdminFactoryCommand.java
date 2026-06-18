@@ -713,6 +713,7 @@ public final class AdminFactoryCommand {
         state.put("superior-forbidden-runtime-dependencies", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
         state.put("superior-provider-lookup", "disabled-at-runtime");
         state.put("superior-provider-service-check", "plugin-enabled-only-no-bukkit-service-binding");
+        state.put("superior-provider-service-binding", "false");
         state.put("superior-migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         state.put("superior-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
         state.put("superior-runtime-provider-hook-policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
@@ -1357,10 +1358,12 @@ public final class AdminFactoryCommand {
                         "runtime-superior-migration-input-only",
                         "runtime-superior-runtime-dependency",
                         "runtime-superior-runtime-policy",
+                        "runtime-superior-runtime-provider-hook-policy",
                         "runtime-superior-api-replacement",
                         "runtime-superior-plugin-yml-dependency",
                         "runtime-superior-runtime-classpath-policy",
                         "runtime-forbidden-skyblock-providers",
+                        "runtime-forbidden-skyblock-provider-service-binding",
                         "runtime-legacy-provider-lookup",
                         "runtime-migration-source-policy",
                         "runtime-addon-state-gate",

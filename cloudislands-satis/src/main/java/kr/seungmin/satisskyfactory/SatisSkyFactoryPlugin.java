@@ -449,6 +449,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-superior-migration-input-only", "true");
         state.put("runtime-superior-runtime-dependency", "false");
         state.put("runtime-superior-runtime-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
+        state.put("runtime-superior-runtime-provider-hook-policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
         state.put("runtime-superior-api-replacement", "SuperiorSkyblockAPI-compileOnly-removed-cloudislands-api-used-instead");
         state.put("runtime-superior-plugin-yml-dependency", "none");
         state.put("runtime-superior-runtime-classpath-policy", "no-superiorskyblock2-classes-or-services-required-after-migration");
@@ -457,6 +458,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-forbidden-skyblock-provider-check", "plugin-enabled-only-no-bukkit-service-binding");
         state.put("runtime-forbidden-skyblock-provider-policy", "ignored-for-runtime-migration-input-only");
         state.put("runtime-forbidden-skyblock-provider-action", "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes");
+        state.put("runtime-forbidden-skyblock-provider-service-binding", "false");
         state.put("runtime-legacy-provider-lookup", "disabled");
         state.put("runtime-migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         state.put("runtime-addon-state-gate", "addonRuntimeEnabled&&features.addon-state&&CloudIslandsApi");
@@ -1813,6 +1815,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("forbidden-skyblock-runtime-dependencies", SatisLegacyMigrationPolicy.forbiddenRuntimeProvidersCsv()),
                 Map.entry("forbidden-skyblock-runtime-provider-check", "plugin-enabled-only-no-bukkit-service-binding"),
                 Map.entry("forbidden-skyblock-runtime-action", "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"),
+                Map.entry("forbidden-skyblock-runtime-provider-hook-policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY),
+                Map.entry("forbidden-skyblock-runtime-provider-service-binding", "false"),
                 Map.entry("legacy-provider-lookup", "disabled"),
                 Map.entry("migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY),
                 Map.entry("migration-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY),
