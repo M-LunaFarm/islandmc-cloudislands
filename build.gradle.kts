@@ -24,14 +24,14 @@ val markdownDocPatterns = listOf(
 val markdownDocExtensions = listOf(".md", ".mdx", ".mdown", ".mkdn", ".markdown", ".mkd")
 
 fun isMarkdownDocPath(path: String): Boolean =
-    markdownDocExtensions.any { path.lowercase().endsWith(it) }
+    path.replace('\\', '/') != "README.md" && markdownDocExtensions.any { path.lowercase().endsWith(it) }
 
 fun isMarkdownDocElement(element: FileTreeElement): Boolean =
     isMarkdownDocPath(element.path)
 
 allprojects {
     group = "kr.lunaf.cloudislands"
-    version = "0.1.0"
+    version = "1.0.0"
 }
 
 subprojects {

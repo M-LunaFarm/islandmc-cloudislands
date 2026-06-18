@@ -15,7 +15,7 @@ class ResultRepositoryPublicationPolicyTest {
         assertEquals("result", ResultRepositoryPublicationPolicy.REPOSITORY_ROOT);
         assertEquals("M-LunaFarm/islandmc-cloudislands", ResultRepositoryPublicationPolicy.REMOTE_REPOSITORY);
         assertEquals("git-operations-target-result-root-only", ResultRepositoryPublicationPolicy.GIT_SCOPE_POLICY);
-        assertEquals("result-tree-is-code-and-build-output-only-no-markdown-documents", ResultRepositoryPublicationPolicy.DOCUMENTATION_POLICY);
+        assertEquals("result-tree-allows-root-readme-only-no-extra-markdown-documents", ResultRepositoryPublicationPolicy.DOCUMENTATION_POLICY);
         assertEquals("github-repository-must-be-public", ResultRepositoryPublicationPolicy.PUBLICATION_VISIBILITY_POLICY);
         assertEquals("commit-locally-and-push-main-after-credentialed-publication", ResultRepositoryPublicationPolicy.PUSH_POLICY);
         assertEquals("do-not-retry-known-invalid-github-token-use-fresh-credential", ResultRepositoryPublicationPolicy.PUSH_AUTH_FAILURE_POLICY);
@@ -55,6 +55,7 @@ class ResultRepositoryPublicationPolicyTest {
     void checksResultTreePathsForMarkdownDocuments() {
         assertTrue(ResultRepositoryPublicationPolicy.markdownFree(List.of(
             "settings.gradle.kts",
+            "README.md",
             "cloudislands-satis/src/main/resources/plugin.yml",
             "cloudislands-common/src/main/java/Policy.java",
             ".git/COMMIT_EDITMSG"

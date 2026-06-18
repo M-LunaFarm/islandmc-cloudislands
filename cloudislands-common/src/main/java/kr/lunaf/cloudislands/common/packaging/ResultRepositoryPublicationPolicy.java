@@ -6,7 +6,7 @@ import java.util.Locale;
 public final class ResultRepositoryPublicationPolicy {
     public static final String REPOSITORY_ROOT = "result";
     public static final String GIT_SCOPE_POLICY = "git-operations-target-result-root-only";
-    public static final String DOCUMENTATION_POLICY = "result-tree-is-code-and-build-output-only-no-markdown-documents";
+    public static final String DOCUMENTATION_POLICY = "result-tree-allows-root-readme-only-no-extra-markdown-documents";
     public static final String PUBLICATION_VISIBILITY_POLICY = "github-repository-must-be-public";
     public static final String PUSH_POLICY = "commit-locally-and-push-main-after-credentialed-publication";
     public static final String PUSH_AUTH_FAILURE_POLICY = "do-not-retry-known-invalid-github-token-use-fresh-credential";
@@ -68,6 +68,9 @@ public final class ResultRepositoryPublicationPolicy {
             }
             String normalized = path.trim().replace('\\', '/');
             if (normalized.startsWith(".git/") || normalized.contains("/.git/")) {
+                continue;
+            }
+            if (normalized.equals("README.md")) {
                 continue;
             }
             if (markdownDenied(normalized)) {
