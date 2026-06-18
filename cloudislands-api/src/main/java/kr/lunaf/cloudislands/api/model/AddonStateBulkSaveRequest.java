@@ -26,6 +26,18 @@ public record AddonStateBulkSaveRequest(
         return new AddonStateBulkSaveRequest(addonId, null, "", values, Map.of());
     }
 
+    public static AddonStateBulkSaveRequest global(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return new AddonStateBulkSaveRequest(addonId, null, "", values, tables);
+    }
+
+    public static AddonStateBulkSaveRequest globalBulk(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return global(addonId, values, tables);
+    }
+
+    public static AddonStateBulkSaveRequest globalTableKeyValueBulkSave(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return global(addonId, values, tables);
+    }
+
     public static AddonStateBulkSaveRequest globalTables(String addonId, Map<String, Map<String, String>> tables) {
         return new AddonStateBulkSaveRequest(addonId, null, "", Map.of(), tables);
     }
@@ -34,8 +46,24 @@ public record AddonStateBulkSaveRequest(
         return new AddonStateBulkSaveRequest(addonId, null, table, values, Map.of());
     }
 
+    public static AddonStateBulkSaveRequest globalTableKeyValueBulkSave(String addonId, String table, Map<String, String> values) {
+        return globalTable(addonId, table, values);
+    }
+
     public static AddonStateBulkSaveRequest island(String addonId, UUID islandId, Map<String, String> values) {
         return new AddonStateBulkSaveRequest(addonId, islandId, "", values, Map.of());
+    }
+
+    public static AddonStateBulkSaveRequest island(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return new AddonStateBulkSaveRequest(addonId, islandId, "", values, tables);
+    }
+
+    public static AddonStateBulkSaveRequest islandBulk(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return island(addonId, islandId, values, tables);
+    }
+
+    public static AddonStateBulkSaveRequest islandTableKeyValueBulkSave(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
+        return island(addonId, islandId, values, tables);
     }
 
     public static AddonStateBulkSaveRequest islandTables(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
@@ -44,6 +72,10 @@ public record AddonStateBulkSaveRequest(
 
     public static AddonStateBulkSaveRequest islandTable(String addonId, UUID islandId, String table, Map<String, String> values) {
         return new AddonStateBulkSaveRequest(addonId, islandId, table, values, Map.of());
+    }
+
+    public static AddonStateBulkSaveRequest islandTableKeyValueBulkSave(String addonId, UUID islandId, String table, Map<String, String> values) {
+        return islandTable(addonId, islandId, table, values);
     }
 
     public boolean islandScoped() {
