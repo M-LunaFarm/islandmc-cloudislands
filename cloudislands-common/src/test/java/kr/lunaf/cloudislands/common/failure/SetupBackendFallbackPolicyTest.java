@@ -19,10 +19,15 @@ class SetupBackendFallbackPolicyTest {
         assertEquals("setup.database.fallback", SetupBackendFallbackPolicy.FALLBACK_CONFIG_PATH);
         assertEquals("setup.database.type", SetupBackendFallbackPolicy.SELECTED_BACKEND_FIELD);
         assertEquals("setup.database.fallback.order", SetupBackendFallbackPolicy.FALLBACK_ORDER_FIELD);
-        assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC", SetupBackendFallbackPolicy.PRODUCTION_SAFE_ORDER);
+        assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API", SetupBackendFallbackPolicy.PRODUCTION_SAFE_ORDER);
+        assertEquals("UNSUPPORTED_JDBC", SetupBackendFallbackPolicy.LAST_RESORT_ORDER);
         assertEquals(
-            List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "UNSUPPORTED_JDBC"),
+            List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API"),
             SetupBackendFallbackPolicy.PRODUCTION_FALLBACK_ORDER
+        );
+        assertEquals(
+            List.of("UNSUPPORTED_JDBC"),
+            SetupBackendFallbackPolicy.LAST_RESORT_FALLBACK_ORDER
         );
     }
 
