@@ -301,6 +301,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             stopRuntimeActivity();
             return;
         }
+        if (database == null) {
+            startRuntime();
+            return;
+        }
         reloadDatabaseIfNeeded();
         configureSkyblockHook();
         boosts.configure(configs.main());
