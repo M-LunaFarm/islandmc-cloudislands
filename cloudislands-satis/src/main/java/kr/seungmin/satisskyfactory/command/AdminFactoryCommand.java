@@ -208,8 +208,11 @@ public final class AdminFactoryCommand {
                 if (!requireFeature(sender, "maintenance")) {
                     return;
                 }
-                islands.context(target).ifPresent(context -> maintenance.chargeNow(island, target, context.islandRef().raw()));
-                islands.save(island);
+                islands.context(target).ifPresent(context -> {
+                    if (maintenance.chargeNowIfWritesAllowed(island, target, context.islandRef().raw())) {
+                        islands.save(island);
+                    }
+                });
                 messages.send(sender, "admin-maintenance-charged");
             });
             case "gennodes" -> withPlayerContext(sender, args, 2, (target, island) -> {

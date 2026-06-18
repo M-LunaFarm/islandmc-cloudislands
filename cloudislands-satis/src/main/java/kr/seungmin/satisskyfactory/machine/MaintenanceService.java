@@ -108,6 +108,14 @@ public final class MaintenanceService {
         return charge(island, owner, rawIsland, true);
     }
 
+    public boolean chargeNowIfWritesAllowed(FactoryIsland island, OfflinePlayer owner, Object rawIsland) {
+        if (!writesEnabled()) {
+            return false;
+        }
+        charge(island, owner, rawIsland, true);
+        return true;
+    }
+
     private long charge(FactoryIsland island, OfflinePlayer owner, Object rawIsland, boolean force) {
         long now = Instant.now().toEpochMilli();
         if (!writesEnabled()) {
