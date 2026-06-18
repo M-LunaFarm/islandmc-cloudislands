@@ -1827,6 +1827,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-setup-sqlite-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("SQLITE")));
         metadata.put("database-setup-jdbc-readiness-policy", SetupBackendFallbackPolicy.JDBC_READY_POLICY);
         metadata.put("database-setup-core-api-local-cache-write-policy", SetupBackendFallbackPolicy.LOCAL_CACHE_WRITE_POLICY);
+        metadata.put("setup-readiness-state-keys", "database-setup-source-precedence,database-setup-core-api-readiness-fields,database-setup-postgresql-readiness-fields,database-setup-mysql-readiness-fields,database-setup-mariadb-readiness-fields,database-setup-sqlite-readiness-fields,database-setup-jdbc-readiness-policy,database-setup-core-api-local-cache-write-policy");
         metadata.put("database-setup-fallback-precedence", SatisDatabaseConfigPolicy.FALLBACK_PRECEDENCE);
         metadata.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-configured-shared-backend-then-sqlite");
         metadata.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
@@ -2561,6 +2562,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-setup-sqlite-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("SQLITE")));
         state.put("database-setup-jdbc-readiness-policy", SetupBackendFallbackPolicy.JDBC_READY_POLICY);
         state.put("database-setup-core-api-local-cache-write-policy", SetupBackendFallbackPolicy.LOCAL_CACHE_WRITE_POLICY);
+        state.put("database-setup-readiness-state-keys", "database-setup-source-precedence,database-setup-core-api-readiness-fields,database-setup-postgresql-readiness-fields,database-setup-mysql-readiness-fields,database-setup-mariadb-readiness-fields,database-setup-sqlite-readiness-fields,database-setup-jdbc-readiness-policy,database-setup-core-api-local-cache-write-policy");
         state.put("database-setup-fallback-precedence", SatisDatabaseConfigPolicy.FALLBACK_PRECEDENCE);
         state.put("database-setup-core-api-fallback", "cloudislands-addon-state-then-first-non-core-api-backend");
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));

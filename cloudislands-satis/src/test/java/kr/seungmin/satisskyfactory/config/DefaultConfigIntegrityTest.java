@@ -167,6 +167,8 @@ class DefaultConfigIntegrityTest {
         assertTrue(addon.getString("database.sqlite-readiness-fields").contains("single-node-or-shared-directory-only"));
         assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", addon.getString("database.jdbc-readiness-policy"));
         assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", addon.getString("database.core-api-local-cache-write-policy"));
+        assertTrue(addon.getString("state.setup-readiness-state-keys").contains("database-setup-core-api-readiness-fields"));
+        assertTrue(addon.getString("state.setup-readiness-state-keys").contains("database-setup-core-api-local-cache-write-policy"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-reload-runtime-restart-policy"));
         assertTrue(addon.getString("state.addon-removal-state-keys").contains("addon-core-refresh-reapply-policy"));
         assertTrue(addon.getString("state.core-refresh-reapply-state-keys").contains("last-core-refresh-policy"));

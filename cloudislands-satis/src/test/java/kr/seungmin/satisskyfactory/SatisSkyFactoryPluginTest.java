@@ -75,6 +75,8 @@ class SatisSkyFactoryPluginTest {
         assertTrue(metadata.get("activation-state-keys").contains("runtime-feature-pack-block-reason"));
         assertTrue(metadata.get("activation-state-keys").contains("runtime-disable-activation-block-reason"));
         assertTrue(metadata.get("activation-state-keys").contains("last-preflush-activation-block-reason"));
+        assertTrue(metadata.get("setup-readiness-state-keys").contains("database-setup-core-api-readiness-fields"));
+        assertTrue(metadata.get("setup-readiness-state-keys").contains("database-setup-core-api-local-cache-write-policy"));
         assertEquals("external-addon-runtime", metadata.get("feature-pack-runtime-shape"));
         assertEquals("cloudislands-api-required-no-standalone-island-runtime", metadata.get("integration-mode-runtime-boundary"));
         assertEquals("cloudislands-api-required-no-standalone-island-runtime", metadata.get("cloudislands-required-policy"));

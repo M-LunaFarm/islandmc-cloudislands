@@ -1386,6 +1386,7 @@ public final class AdminFactoryCommand {
                         "database-setup-sqlite-readiness-fields",
                         "database-setup-jdbc-readiness-policy",
                         "database-setup-core-api-local-cache-write-policy",
+            "database-setup-readiness-state-keys",
                         "database-setup-source-policy",
                         "database-setup-path",
                         "database-setup-fallback-precedence",

@@ -198,6 +198,7 @@ database:
     fallback-enabled: CLOUDISLANDS_SATIS_DB_FALLBACK_ENABLED
     fallback-order: CLOUDISLANDS_SATIS_DB_FALLBACK_ORDER
 state:
+  setup-readiness-state-keys: database-setup-source-precedence,database-setup-core-api-readiness-fields,database-setup-postgresql-readiness-fields,database-setup-mysql-readiness-fields,database-setup-mariadb-readiness-fields,database-setup-sqlite-readiness-fields,database-setup-jdbc-readiness-policy,database-setup-core-api-local-cache-write-policy
   authority: core-api-table-key-value-or-shared-database
   cloudislands-api-surface-policy: island-member-permission-location-upgrade-values-through-cloudislands-api-or-addon-spi
   core-api-metadata-state-policy: core-api-stores-addon-metadata-and-opaque-state-without-satis-business-rules
