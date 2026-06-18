@@ -56,5 +56,8 @@ class PortableIslandDesignPolicyTest {
         assertTrue(PortableIslandDesignPolicy.expectedScenario("add-island-5-and-6").contains("players-do-not-change-commands"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("addon-disabled-or-removed").contains("core-island-create-home-visit-still-work"));
         assertTrue(PortableIslandDesignPolicy.expectedScenario("addon-disabled-or-removed").contains("reenable-restores-addon-state-by-island-uuid"));
+        assertTrue(PortableIslandDesignPolicy.knownScenario("a-server-to-b-server-move-with-addon-disabled"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("a-server-to-b-server-move-with-addon-disabled").contains("b-server-claims-runtime-without-satis-runtime-components"));
+        assertTrue(PortableIslandDesignPolicy.expectedScenario("a-server-to-b-server-move-with-addon-disabled").contains("satis-reenable-reconnects-state-by-island-uuid"));
     }
 }

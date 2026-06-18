@@ -100,6 +100,15 @@ public final class PortableIslandDesignPolicy {
                 "addon-state-remains-in-shared-storage",
                 "reenable-restores-addon-state-by-island-uuid"
         ));
+        scenarios.put("a-server-to-b-server-move-with-addon-disabled", List.of(
+                "island-active-on-a-server",
+                "satis-addon-disabled-or-jar-removed",
+                "core-saves-and-restores-portable-island-bundle",
+                "b-server-claims-runtime-without-satis-runtime-components",
+                "core-island-create-home-visit-still-work",
+                "addon-state-remains-in-shared-storage",
+                "satis-reenable-reconnects-state-by-island-uuid"
+        ));
         return Collections.unmodifiableMap(scenarios);
     }
 }

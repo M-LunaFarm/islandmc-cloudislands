@@ -153,6 +153,7 @@ public final class SatisAddonIntegrationPolicy {
 
     private static final Map<String, String> REQUIRED_SCENARIOS = Map.ofEntries(
             Map.entry("a-b-node-move", "factory-upgrade-menu-progress-state-restores-on-target-node-from-shared-state"),
+            Map.entry("a-b-node-move-addon-disabled", "cloudislands-moves-island-from-node-a-to-node-b-without-satis-runtime-and-reconnects-shared-addon-state-when-reenabled"),
             Map.entry("satis-disabled", "base-cloudislands-create-visit-protect-save-restore-continues-without-satis-runtime-components"),
             Map.entry("partial-features", "disabled-feature-registers-no-command-gui-listener-task-or-write-path"),
             Map.entry("feature-off-data-retention", "existing-feature-state-is-preserved-and-not-deleted-while-feature-is-off"),

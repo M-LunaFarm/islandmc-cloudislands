@@ -10,6 +10,7 @@ public final class SatisIntegrationPolicy {
         Map.entry("partial-feature-mode", "enabled-features-register-runtime-components-disabled-features-register-no-commands-gui-listeners-placeholders-tasks-or-writes"),
         Map.entry("legacy-migration-mode", "superiorskyblock2-backed-satis-data-is-rebound-to-cloudislands-api-island-member-permission-location-upgrade-state"),
         Map.entry("a-b-island-node-move", "satis-state-follows-cloudislands-island-uuid-through-shared-state-when-island-moves-from-node-a-to-node-b"),
+        Map.entry("a-b-node-move-addon-disabled-mode", "cloudislands-moves-island-from-node-a-to-node-b-even-when-satis-runtime-is-disabled-or-addon-jar-is-absent-and-reconnects-state-after-reenable"),
         Map.entry("addon-removed-mode", "cloudislands-core-boots-and-base-island-lifecycle-continues-when-satis-addon-jar-is-absent"),
         Map.entry("setup-database-mode", "operator-selects-core-api-postgresql-mysql-mariadb-or-safe-fallback-through-setup-database-config"),
         Map.entry("bulk-table-state-mode", "satis-uses-table-key-value-bulk-save-and-load-before-flattened-addon-state-fallback"),
@@ -113,6 +114,7 @@ public final class SatisIntegrationPolicy {
         "command-list-renders-one-line-per-command-with-paging",
         "island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned",
         "state-survives-a-node-to-b-node-island-move",
+        "state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed",
         "base-cloudislands-functions-survive-satis-disable-or-addon-removal"
     );
 

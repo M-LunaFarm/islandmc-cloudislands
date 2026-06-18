@@ -99,6 +99,10 @@ class SatisAddonIntegrationPolicyTest {
                 SatisAddonIntegrationPolicy.requiredScenarios().get("a-b-node-move")
         );
         assertEquals(
+                "cloudislands-moves-island-from-node-a-to-node-b-without-satis-runtime-and-reconnects-shared-addon-state-when-reenabled",
+                SatisAddonIntegrationPolicy.requiredScenarios().get("a-b-node-move-addon-disabled")
+        );
+        assertEquals(
                 "base-cloudislands-create-visit-protect-save-restore-continues-without-satis-runtime-components",
                 SatisAddonIntegrationPolicy.requiredScenarios().get("satis-disabled")
         );
@@ -172,6 +176,7 @@ class SatisAddonIntegrationPolicyTest {
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("table-key-value-bulk-save-api-covers-global-and-island-addon-state"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("command-list-renders-one-line-per-command-with-paging"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed"));
         assertEquals(
                 "operator-selects-core-api-postgresql-mysql-mariadb-or-safe-fallback-through-setup-database-config",
                 SatisAddonIntegrationPolicy.operationScenarios().get("setup-database-mode")
@@ -187,6 +192,10 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals(
                 "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change",
                 SatisAddonIntegrationPolicy.operationScenarios().get("soft-full-create-mode")
+        );
+        assertEquals(
+                "cloudislands-moves-island-from-node-a-to-node-b-even-when-satis-runtime-is-disabled-or-addon-jar-is-absent-and-reconnects-state-after-reenable",
+                SatisAddonIntegrationPolicy.operationScenarios().get("a-b-node-move-addon-disabled-mode")
         );
     }
 
