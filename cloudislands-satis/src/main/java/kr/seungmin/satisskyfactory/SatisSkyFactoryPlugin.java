@@ -1601,7 +1601,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-recommended-fallback-order", "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
         metadata.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-any-island-node-count");
         metadata.put("database-config-source", databaseConfigSource());
-        metadata.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false))));
+        metadata.put("database-core-api-marker", Boolean.toString(coreApiSetupMarkerEnabled()));
         metadata.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         metadata.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
         metadata.put("database-core-api-local-cache-writes-enabled", Boolean.toString(coreApiLocalCacheWritesEnabled()));
@@ -2039,7 +2039,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-local-fallback-backend", "SQLITE");
         state.put("database-recommended-fallback-order", "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
         state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-any-island-node-count");
-        state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false))));
+        state.put("database-core-api-marker", Boolean.toString(coreApiSetupMarkerEnabled()));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
         state.put("database-core-api-local-cache-writes-enabled", Boolean.toString(coreApiLocalCacheWritesEnabled()));
@@ -2216,7 +2216,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-local-fallback-backend", "SQLITE");
         state.put("database-recommended-fallback-order", "POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE");
         state.put("database-multi-node-warning", "keep-shared-backend-before-sqlite-for-any-island-node-count");
-        state.put("database-core-api-marker", Boolean.toString(configs.main().getBoolean("setup.database.core-api.enabled", configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false))));
+        state.put("database-core-api-marker", Boolean.toString(coreApiSetupMarkerEnabled()));
         state.put("database-core-api-available", Boolean.toString(coreApiAddonStateAvailable()));
         state.put("database-core-api-authority-ready", Boolean.toString(database == null || database.coreApiAuthorityReady()));
         state.put("database-core-api-local-cache-writes-enabled", Boolean.toString(coreApiLocalCacheWritesEnabled()));
@@ -4662,10 +4662,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (addonType != null && !addonType.isBlank()) {
             return addonType;
         }
-        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
-            return "CORE_API";
-        }
-        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
+        if (coreApiSetupMarkerEnabled()) {
             return "CORE_API";
         }
         String jdbcType = inferredJdbcDatabaseType();
@@ -4739,10 +4736,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (setupType != null && !setupType.isBlank()) {
             return false;
         }
-        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
-            return false;
-        }
-        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
+        if (coreApiSetupMarkerEnabled()) {
             return false;
         }
         return !inferredJdbcDatabaseType().isBlank() || !inferredSetupDatabaseType().isBlank();
@@ -4763,7 +4757,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         String setupType = configs.main().getString("setup.database.type", "");
         if (setupType != null && !setupType.isBlank()) {
-            if (configs.main().getBoolean("setup.database.core-api.enabled", false)
+            if (coreApiSetupMarkerEnabled()
                     && DatabaseService.StorageBackend.parse(setupType, null) != DatabaseService.StorageBackend.CORE_API) {
                 return "core-api-marker-ignored-by-setup.database.type:" + safeReasonToken(setupType);
             }
@@ -4772,10 +4766,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             return "none";
         }
-        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
-            return "none";
-        }
-        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
+        if (coreApiSetupMarkerEnabled()) {
             return "none";
         }
         String databaseType = configs.main().getString("database.type", "");
@@ -5230,11 +5221,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (configured == DatabaseService.StorageBackend.CORE_API) {
             return "configured-core-api-fell-back-to-" + active.name();
         }
-        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
-            return "setup-core-api-marker-only";
-        }
-        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
-            return "addon-core-api-marker-only";
+        String coreApiMarkerSource = coreApiSetupMarkerSource();
+        if (!coreApiMarkerSource.equals("not-configured")) {
+            return coreApiMarkerSource.replace('.', '-').replace("_", "-") + "-marker-only";
         }
         return "not-selected";
     }
@@ -5470,6 +5459,27 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return configs.main().getBoolean(legacyPath, fallback);
     }
 
+    private boolean coreApiSetupMarkerEnabled() {
+        return !coreApiSetupMarkerSource().equals("not-configured");
+    }
+
+    private String coreApiSetupMarkerSource() {
+        String[] paths = {
+                "setup.database.core-api.enabled",
+                "setup.database.core_api.enabled",
+                "addons.cloudislands-satis.database.core-api.enabled",
+                "addons.cloudislands-satis.database.core_api.enabled",
+                "database.core-api.enabled",
+                "database.core_api.enabled"
+        };
+        for (String path : paths) {
+            if (configs.main().contains(path)) {
+                return configs.main().getBoolean(path, false) ? path : "not-configured";
+            }
+        }
+        return "not-configured";
+    }
+
     private int envInt(String key, int fallback) {
         String value = System.getenv(key);
         if (value == null || value.isBlank()) {
@@ -5550,11 +5560,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (setupType != null && !setupType.isBlank()) {
             return "setup.database.type";
         }
-        if (configs.main().getBoolean("setup.database.core-api.enabled", false)) {
-            return "setup.database.core-api.enabled";
-        }
-        if (configs.main().getBoolean("addons.cloudislands-satis.database.core-api.enabled", false)) {
-            return "addons.cloudislands-satis.database.core-api.enabled";
+        String coreApiMarkerSource = coreApiSetupMarkerSource();
+        if (!coreApiMarkerSource.equals("not-configured")) {
+            return coreApiMarkerSource;
         }
         if (!inferredJdbcDatabaseType().isBlank()) {
             return databaseJdbcSource();

@@ -29,6 +29,11 @@ public final class SatisDatabaseConfigPolicy {
             "setup.database.type",
             "addons.cloudislands-satis.database.type",
             "setup.database.core-api.enabled",
+            "setup.database.core_api.enabled",
+            "addons.cloudislands-satis.database.core-api.enabled",
+            "addons.cloudislands-satis.database.core_api.enabled",
+            "database.core-api.enabled",
+            "database.core_api.enabled",
             "jdbc-url-inference",
             "setup.database.<backend>",
             "database.type"
