@@ -1049,6 +1049,9 @@ public final class MachineTickService {
     }
 
     private void setStatus(MachineInstance machine, MachineStatus status) {
+        MachineStatus previousStatus = machine.status();
+        double previousWear = machine.wear();
+        long previousLastProcessAt = machine.lastProcessAt();
         if (status == MachineStatus.ACTIVE) {
             definitions.get(machine.typeId()).ifPresent(definition ->
                     machine.wear(Math.min(breakWear, machine.wear() + Math.max(0.0, definition.wearPerCycle()))));
@@ -1058,7 +1061,12 @@ public final class MachineTickService {
         }
         machine.status(status);
         machine.lastProcessAt(Instant.now().toEpochMilli());
-        machines.saveLater(machine);
+        if (!machines.saveLater(machine)) {
+            machine.status(previousStatus);
+            machine.wear(previousWear);
+            machine.lastProcessAt(previousLastProcessAt);
+            return;
+        }
         if (status == MachineStatus.ACTIVE) {
             spawnActiveParticle(machine);
         }
