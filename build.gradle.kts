@@ -75,7 +75,7 @@ tasks.register<Copy>("distPlugins") {
     group = "distribution"
     description = "Collects required CloudIslands plugin jars."
     exclude(markdownDocPatterns)
-    exclude(::isMarkdownDocElement)
+    exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
 
     val pluginProjects = listOf(
         "cloudislands-paper",
@@ -93,7 +93,7 @@ tasks.register<Copy>("distAddons") {
     group = "distribution"
     description = "Collects optional CloudIslands addon jars."
     exclude(markdownDocPatterns)
-    exclude(::isMarkdownDocElement)
+    exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
 
     val addonProjects = listOf(
         "cloudislands-satis"
@@ -115,7 +115,7 @@ tasks.register<Copy>("distServices") {
     group = "distribution"
     description = "Collects CloudIslands service runtime images."
     exclude(markdownDocPatterns)
-    exclude(::isMarkdownDocElement)
+    exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
 
     val coreService = project(":cloudislands-core-service")
     val installTask = coreService.tasks.named("installDist")
@@ -128,7 +128,7 @@ tasks.register<Copy>("distTools") {
     group = "distribution"
     description = "Collects CloudIslands migration support jars used by the Core admin API."
     exclude(markdownDocPatterns)
-    exclude(::isMarkdownDocElement)
+    exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
 
     val migrationJar = project(":cloudislands-migration").tasks.named<Jar>("jar")
     dependsOn(migrationJar)
@@ -140,7 +140,7 @@ tasks.register<Copy>("distDeveloperKit") {
     group = "distribution"
     description = "Collects API, client, protocol, testkit, and BOM artifacts for addon/plugin developers."
     exclude(markdownDocPatterns)
-    exclude(::isMarkdownDocElement)
+    exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
 
     val developerProjects = listOf(
         "cloudislands-api",
@@ -186,7 +186,7 @@ tasks.register<Zip>("distBundle") {
     archiveBaseName.set("cloudislands")
     archiveVersion.set(project.version.toString())
     exclude(markdownDocPatterns)
-    exclude(::isMarkdownDocElement)
+    exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
     from(layout.buildDirectory.dir("dist/plugins")) {
         into("plugins")
     }
@@ -213,7 +213,7 @@ tasks.register<Zip>("distAddonBundle") {
     archiveBaseName.set("cloudislands-addons")
     archiveVersion.set(project.version.toString())
     exclude(markdownDocPatterns)
-    exclude(::isMarkdownDocElement)
+    exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
     from(layout.buildDirectory.dir("dist/addons")) {
         into("addons")
     }
