@@ -2,6 +2,8 @@
 *.MD
 *.mdx
 *.MDX
+*.mdown
+*.MDOWN
 *.mkd
 *.MKD
 *.markdown
