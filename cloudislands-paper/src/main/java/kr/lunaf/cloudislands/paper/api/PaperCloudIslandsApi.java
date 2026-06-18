@@ -400,7 +400,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 ConfigurationSection aliasSection = plugin.getConfig().getConfigurationSection(alias + ".features");
                 if (aliasSection != null) {
                     for (String key : aliasSection.getKeys(false)) {
-                        effective.put(key, effective.getOrDefault(key, true) && aliasSection.getBoolean(key, true));
+                        if (aliasSection.isBoolean(key)) {
+                            effective.put(key, effective.getOrDefault(key, true) && aliasSection.getBoolean(key, true));
+                        }
                     }
                 }
             }
@@ -410,7 +412,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return effective;
             }
             for (String key : section.getKeys(false)) {
-                effective.put(key, effective.getOrDefault(key, true) && section.getBoolean(key, true));
+                if (section.isBoolean(key)) {
+                    effective.put(key, effective.getOrDefault(key, true) && section.getBoolean(key, true));
+                }
             }
             applyFeatureAliases(effective, registration.metadata());
             return effective;
