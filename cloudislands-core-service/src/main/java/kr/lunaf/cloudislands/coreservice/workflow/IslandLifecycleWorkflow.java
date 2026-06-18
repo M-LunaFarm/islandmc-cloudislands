@@ -81,10 +81,11 @@ public final class IslandLifecycleWorkflow {
         if (node == null) {
             return new Result(false, readyNodeUnavailableCode(nodeSnapshot, templateId), null);
         }
-        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "activate");
-        if (activationLock != null && lease == null) {
+        RedisActivationLock.AcquireResult activationLease = acquireActivationLock(islandId, "activate");
+        if (activationLease.locked()) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
+        RedisActivationLock.Lease lease = activationLease.lease().orElse(null);
         events.publish(CloudIslandEventType.ISLAND_PRE_ACTIVATE.name(), Map.of("islandId", islandId.toString(), "targetNode", node.nodeId()));
         IslandRuntimeSnapshot runtime;
         try {
@@ -98,7 +99,7 @@ public final class IslandLifecycleWorkflow {
             }
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
-        events.publish(CloudIslandEventType.ISLAND_ACTIVATE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "targetNode", node.nodeId()));
+        events.publish(CloudIslandEventType.ISLAND_ACTIVATE_REQUESTED.name(), activationEvent(islandId, runtime.state().name(), node.nodeId(), activationLease));
         return new Result(true, "ACTIVATING", runtime);
     }
 
@@ -174,10 +175,11 @@ public final class IslandLifecycleWorkflow {
         if (node == null) {
             return new Result(false, targetNodeUnavailableCode(allocator.targetNodeBlockReason(nodeSnapshot, now, targetNode, templateId, minNodeVersion(templateId), islandPool)), null);
         }
-        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "migrate");
-        if (activationLock != null && lease == null) {
+        RedisActivationLock.AcquireResult activationLease = acquireActivationLock(islandId, "migrate");
+        if (activationLease.locked()) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
+        RedisActivationLock.Lease lease = activationLease.lease().orElse(null);
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
         islands.setState(islandId, IslandState.DEACTIVATING);
         String sourceNode = current == null ? "" : current.activeNode();
@@ -275,10 +277,11 @@ public final class IslandLifecycleWorkflow {
         if (node == null) {
             return new Result(false, readyNodeUnavailableCode(nodeSnapshot, templateId), null);
         }
-        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "restore");
-        if (activationLock != null && lease == null) {
+        RedisActivationLock.AcquireResult activationLease = acquireActivationLock(islandId, "restore");
+        if (activationLease.locked()) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
+        RedisActivationLock.Lease lease = activationLease.lease().orElse(null);
         try {
             kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
         } catch (RuntimeException exception) {
@@ -318,10 +321,11 @@ public final class IslandLifecycleWorkflow {
         if (node == null) {
             return new Result(false, readyNodeUnavailableCode(nodeSnapshot, templateId), null);
         }
-        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "reset");
-        if (activationLock != null && lease == null) {
+        RedisActivationLock.AcquireResult activationLease = acquireActivationLock(islandId, "reset");
+        if (activationLease.locked()) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
+        RedisActivationLock.Lease lease = activationLease.lease().orElse(null);
         IslandRuntimeSnapshot runtime;
         try {
             runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
@@ -363,10 +367,11 @@ public final class IslandLifecycleWorkflow {
         if (!activeNode.storageAvailable()) {
             return new Result(false, StorageOutagePolicy.STORAGE_BLOCK_CODE, current);
         }
-        RedisActivationLock.Lease lease = acquireActivationLock(islandId, "restore");
-        if (activationLock != null && lease == null) {
+        RedisActivationLock.AcquireResult activationLease = acquireActivationLock(islandId, "restore");
+        if (activationLease.locked()) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
+        RedisActivationLock.Lease lease = activationLease.lease().orElse(null);
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.RESTORING);
         islands.setState(islandId, IslandState.RESTORING);
         String worldName = current.activeWorld() == null || current.activeWorld().isBlank() ? "ci_shard_001" : current.activeWorld();
@@ -512,13 +517,24 @@ public final class IslandLifecycleWorkflow {
         return templates.find(templateId).map(kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot::minNodeVersion).orElse("");
     }
 
-    private RedisActivationLock.Lease acquireActivationLock(UUID islandId, String owner) {
-        return activationLock == null ? null : activationLock.acquire(islandId, owner).orElse(null);
+    private RedisActivationLock.AcquireResult acquireActivationLock(UUID islandId, String owner) {
+        return activationLock == null ? RedisActivationLock.AcquireResult.disabled() : activationLock.tryAcquire(islandId, owner);
     }
 
     private void releaseActivationLock(RedisActivationLock.Lease lease) {
         if (activationLock != null) {
             activationLock.release(lease);
         }
+    }
+
+    private Map<String, String> activationEvent(UUID islandId, String state, String targetNode, RedisActivationLock.AcquireResult activationLease) {
+        java.util.LinkedHashMap<String, String> event = new java.util.LinkedHashMap<>();
+        event.put("islandId", islandId.toString());
+        event.put("state", state);
+        event.put("targetNode", targetNode);
+        if (activationLease.fallback()) {
+            event.put("lockFallback", activationLease.source());
+        }
+        return event;
     }
 }

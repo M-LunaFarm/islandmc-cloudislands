@@ -611,8 +611,13 @@ public final class RoutingOrchestrator {
             throw new IllegalStateException("NO_READY_NODE".equals(blockReason) ? "NO_READY_NODE" : "NO_READY_NODE_" + blockReason);
         }
         RedisActivationLock.Lease lease = null;
+        RedisActivationLock.AcquireResult activationLease = RedisActivationLock.AcquireResult.disabled();
         if (activationLock != null) {
-            lease = activationLock.acquire(runtime.islandId(), "route").orElseThrow(() -> new IllegalStateException("ACTIVATION_LOCKED"));
+            activationLease = activationLock.tryAcquire(runtime.islandId(), "route");
+            if (activationLease.locked()) {
+                throw new IllegalStateException("ACTIVATION_LOCKED");
+            }
+            lease = activationLease.lease().orElse(null);
         }
         IslandRuntimeSnapshot activating;
         try {
@@ -637,7 +642,14 @@ public final class RoutingOrchestrator {
             }
             throw exception;
         }
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", runtime.islandId().toString(), "state", activating.state().name(), "targetNode", selected.nodeId()));
+        Map<String, String> event = new LinkedHashMap<>();
+        event.put("islandId", runtime.islandId().toString());
+        event.put("state", activating.state().name());
+        event.put("targetNode", selected.nodeId());
+        if (activationLease.fallback()) {
+            event.put("lockFallback", activationLease.source());
+        }
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), event);
         return new RouteTarget(selected, activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(), RouteTicketState.PREPARING);
     }
 

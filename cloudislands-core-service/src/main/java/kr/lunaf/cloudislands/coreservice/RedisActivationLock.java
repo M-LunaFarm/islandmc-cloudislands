@@ -29,16 +29,22 @@ public final class RedisActivationLock {
     }
 
     public Optional<Lease> acquire(UUID islandId, String owner) {
+        return tryAcquire(islandId, owner).lease();
+    }
+
+    public AcquireResult tryAcquire(UUID islandId, String owner) {
         String token = (owner == null || owner.isBlank() ? "core" : owner) + ":" + UUID.randomUUID();
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             String response = redis.command("SET", RedisKeys.activationLock(islandId), token, "NX", "PX", Long.toString(ttlMillis));
             if ("OK".equalsIgnoreCase(response)) {
-                return Optional.of(new Lease(islandId, token));
+                return AcquireResult.acquired(new Lease(islandId, token), false, "redis");
             }
-            return Optional.empty();
+            return AcquireResult.locked("redis");
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
-            return acquireLocal(islandId, token);
+            return acquireLocal(islandId, token)
+                .map(lease -> AcquireResult.acquired(lease, true, "redis_unavailable_local"))
+                .orElseGet(() -> AcquireResult.locked("local_fallback"));
         }
     }
 
@@ -79,6 +85,28 @@ public final class RedisActivationLock {
     }
 
     public record Lease(UUID islandId, String token) {}
+
+    public record AcquireResult(Optional<Lease> lease, boolean fallback, String source) {
+        public static AcquireResult disabled() {
+            return new AcquireResult(Optional.empty(), false, "disabled");
+        }
+
+        public static AcquireResult acquired(Lease lease, boolean fallback, String source) {
+            return new AcquireResult(Optional.of(lease), fallback, source);
+        }
+
+        public static AcquireResult locked(String source) {
+            return new AcquireResult(Optional.empty(), false, source);
+        }
+
+        public boolean acquired() {
+            return lease.isPresent();
+        }
+
+        public boolean locked() {
+            return lease.isEmpty() && !"disabled".equals(source);
+        }
+    }
 
     private Optional<Lease> acquireLocal(UUID islandId, String token) {
         if (islandId == null) {
