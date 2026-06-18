@@ -178,6 +178,8 @@ public final class PrometheusMetricsRenderer {
         type(out, "cloudislands_cluster_storage_available_nodes", "gauge");
         help(out, "cloudislands_cluster_storage_failure_ratio", "Fresh online nodes with unavailable object storage divided by fresh online nodes");
         type(out, "cloudislands_cluster_storage_failure_ratio", "gauge");
+        help(out, "cloudislands_storage_failure_ratio", "Per-node object storage failure ratio derived from heartbeat availability");
+        type(out, "cloudislands_storage_failure_ratio", "gauge");
         help(out, "cloudislands_cluster_activation_eligible_nodes", "Fresh nodes currently eligible for island activation");
         type(out, "cloudislands_cluster_activation_eligible_nodes", "gauge");
         help(out, "cloudislands_cluster_max_mspt", "Highest MSPT reported by fresh CloudIslands nodes");
@@ -415,6 +417,7 @@ public final class PrometheusMetricsRenderer {
             labels(out, "cloudislands_node_heap_max_mb", node, null).append(node.heapMaxMb()).append('\n');
             labels(out, "cloudislands_node_memory_pressure", node, null).append(memoryPressure(node)).append('\n');
             labels(out, "cloudislands_node_storage_available", node, null).append(node.storageAvailable() ? 1 : 0).append('\n');
+            labels(out, "cloudislands_storage_failure_ratio", node, null).append(node.storageAvailable() ? 0 : 1).append('\n');
             labels(out, "cloudislands_node_routing_score", node, null).append(node.score()).append('\n');
             if (fresh && allocationBlockReason.isBlank()) {
                 activationEligibleNodes++;
