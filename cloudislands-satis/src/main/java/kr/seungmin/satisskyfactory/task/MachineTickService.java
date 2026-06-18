@@ -777,6 +777,23 @@ public final class MachineTickService {
         return produced;
     }
 
+    private boolean saveMovedInventories(VirtualInventory source, Map<String, Long> sourceBefore,
+                                         VirtualInventory target, Map<String, Long> targetBefore) {
+        if (storage.saveIfAllowed(source) && storage.saveIfAllowed(target)) {
+            return true;
+        }
+        restoreInventory(source, sourceBefore);
+        restoreInventory(target, targetBefore);
+        storage.saveIfAllowed(source);
+        storage.saveIfAllowed(target);
+        return false;
+    }
+
+    private void restoreInventory(VirtualInventory inventory, Map<String, Long> snapshot) {
+        inventory.items().keySet().forEach(itemId -> inventory.set(itemId, 0));
+        snapshot.forEach(inventory::set);
+    }
+
     private boolean processLogistics(MachineInstance machine, MachineDefinition definition) {
         VirtualInventory buffer = inputInventory(machine);
         long remaining = definition.logisticsThroughput();
@@ -797,9 +814,13 @@ public final class MachineTickService {
                 continue;
             }
             VirtualInventory output = outputInventory(target);
+            Map<String, Long> outputBefore = output.items();
+            Map<String, Long> bufferBefore = buffer.items();
             long transfer = moveAny(output, buffer, remaining, definition);
             if (transfer > 0) {
-                storage.save(output);
+                if (!saveMovedInventories(output, outputBefore, buffer, bufferBefore)) {
+                    return false;
+                }
                 machines.reactivate(target);
                 moved += transfer;
                 remaining -= transfer;
@@ -815,9 +836,13 @@ public final class MachineTickService {
                     continue;
                 }
                 VirtualInventory input = inputInventory(target);
+                Map<String, Long> bufferBefore = buffer.items();
+                Map<String, Long> inputBefore = input.items();
                 long transfer = fillInput(buffer, input, target, targetDefinition, definition, remaining);
                 if (transfer > 0) {
-                    storage.save(input);
+                    if (!saveMovedInventories(buffer, bufferBefore, input, inputBefore)) {
+                        return false;
+                    }
                     machines.reactivate(target);
                     moved += transfer;
                     remaining -= transfer;
@@ -840,17 +865,18 @@ public final class MachineTickService {
                         continue;
                     }
                     VirtualInventory input = inputInventory(target);
+                    Map<String, Long> storageBefore = storageInventory.items();
+                    Map<String, Long> inputBefore = input.items();
                     long transfer = fillInput(storageInventory, input, target, targetDefinition, definition, remaining);
                     if (transfer > 0) {
-                        storage.save(input);
+                        if (!saveMovedInventories(storageInventory, storageBefore, input, inputBefore)) {
+                            return false;
+                        }
                         machines.reactivate(target);
                         moved += transfer;
                         movedFromStorage += transfer;
                         remaining -= transfer;
                     }
-                }
-                if (movedFromStorage > 0) {
-                    storage.save(storageInventory);
                 }
             }
         }
@@ -860,16 +886,17 @@ public final class MachineTickService {
                     break;
                 }
                 VirtualInventory storageInventory = inputInventory(storageNode);
+                Map<String, Long> bufferBefore = buffer.items();
+                Map<String, Long> storageBefore = storageInventory.items();
                 long transfer = moveAny(buffer, storageInventory, remaining, definition);
                 if (transfer > 0) {
-                    storage.save(storageInventory);
+                    if (!saveMovedInventories(buffer, bufferBefore, storageInventory, storageBefore)) {
+                        return false;
+                    }
                     moved += transfer;
                     remaining -= transfer;
                 }
             }
-        }
-        if (moved > 0) {
-            storage.save(buffer);
         }
         setStatus(machine, moved > 0 ? MachineStatus.ACTIVE : MachineStatus.SLEEPING);
         return moved > 0;
