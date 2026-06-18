@@ -1428,6 +1428,7 @@ public final class AdminFactoryCommand {
                         "runtime-machine-break-storage-gate",
                         "runtime-machine-break-policy",
                         "runtime-admin-virtual-item-storage-gate",
+                        "runtime-player-storage-command-service-gate",
                         "runtime-resource-nodes-gate",
                         "runtime-resource-nodes-status",
                         "runtime-resource-nodes-policy",

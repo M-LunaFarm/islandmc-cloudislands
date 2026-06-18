@@ -374,6 +374,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private void depositHand(Player player, FactoryIsland island) {
+        if (!requireFeature(player, "storage")) {
+            return;
+        }
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand.getType() == Material.AIR || hand.getAmount() <= 0) {
             messages.send(player, "hold-item-first");
@@ -409,6 +412,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private void withdraw(Player player, FactoryIsland island, String[] args) {
+        if (!requireFeature(player, "storage")) {
+            return;
+        }
         if (args.length < 3) {
             messages.send(player, "withdraw-usage");
             return;
