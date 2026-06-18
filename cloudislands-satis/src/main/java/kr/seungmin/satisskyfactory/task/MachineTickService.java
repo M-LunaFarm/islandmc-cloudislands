@@ -543,8 +543,11 @@ public final class MachineTickService {
                     setStatus(machine, MachineStatus.NO_INPUT);
                     return false;
                 }
+                if (!storage.saveIfAllowed(input)) {
+                    input.add(seed.get().getKey(), 1);
+                    return false;
+                }
                 crop.setType(rule.crop());
-                storage.save(input);
                 setStatus(machine, MachineStatus.ACTIVE);
                 return true;
             }
