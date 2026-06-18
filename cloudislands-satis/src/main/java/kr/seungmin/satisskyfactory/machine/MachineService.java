@@ -140,10 +140,14 @@ public final class MachineService {
                 || machine.status() == MachineStatus.CHUNK_UNLOADED || machine.status() == MachineStatus.MAINTENANCE_LOCKED) {
             return;
         }
+        MachineStatus previousStatus = machine.status();
         if (machine.status() != MachineStatus.ACTIVE) {
             machine.status(MachineStatus.SLEEPING);
         }
-        saveLater(machine);
+        if (!saveLater(machine)) {
+            machine.status(previousStatus);
+            return;
+        }
         revision.incrementAndGet();
     }
 
@@ -153,9 +157,13 @@ public final class MachineService {
             if (machine.status() != MachineStatus.NO_POWER) {
                 continue;
             }
+            MachineStatus previousStatus = machine.status();
             machine.status(MachineStatus.SLEEPING);
-            saveLater(machine);
-            changed = true;
+            if (saveLater(machine)) {
+                changed = true;
+            } else {
+                machine.status(previousStatus);
+            }
         }
         if (changed) {
             revision.incrementAndGet();
