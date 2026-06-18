@@ -56,6 +56,49 @@ class AddonStateBulkLoadRequestTest {
     }
 
     @Test
+    void exposesBulkLoadFactoryAliasesForGlobalAndIslandScopes() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000712");
+
+        AddonStateBulkLoadRequest globalBulk = AddonStateBulkLoadRequest.globalBulk(
+            "cloudislands-satis",
+            "machines"
+        );
+        AddonStateBulkLoadRequest globalAlias = AddonStateBulkLoadRequest.globalTableKeyValueBulkLoad(
+            "cloudislands-satis",
+            "resource_nodes"
+        );
+        AddonStateBulkLoadRequest islandBulk = AddonStateBulkLoadRequest.islandBulk(
+            "cloudislands-satis",
+            islandId,
+            "machines"
+        );
+        AddonStateBulkLoadRequest islandAlias = AddonStateBulkLoadRequest.islandTableKeyValueBulkLoad(
+            "cloudislands-satis",
+            islandId,
+            "resource_nodes"
+        );
+
+        assertEquals("global", globalBulk.scopeName());
+        assertEquals("machines", globalBulk.table());
+        assertEquals("resource_nodes", globalAlias.table());
+        assertEquals("island", islandBulk.scopeName());
+        assertEquals(islandId, islandBulk.islandId());
+        assertEquals("resource_nodes", islandAlias.table());
+    }
+
+    @Test
+    void treatsNilIslandIdAsGlobalLoadScope() {
+        AddonStateBulkLoadRequest request = AddonStateBulkLoadRequest.island(
+            "cloudislands-satis",
+            new UUID(0L, 0L),
+            "machines"
+        );
+
+        assertFalse(request.islandScoped());
+        assertEquals("global", request.scopeName());
+    }
+
+    @Test
     void rejectsNestedTableNamesByBlankingUnsafeTable() {
         AddonStateBulkLoadRequest request = AddonStateBulkLoadRequest.global(
             "cloudislands-satis",
