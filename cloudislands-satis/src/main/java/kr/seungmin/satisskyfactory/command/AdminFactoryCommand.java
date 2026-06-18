@@ -1671,7 +1671,7 @@ public final class AdminFactoryCommand {
 
     private void help(CommandSender sender, String label, int page) {
         List<String> commands = visibleHelpCommands(label);
-        CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, label + " admin command list");
+        CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, adminNavigationCommand(label));
         sender.sendMessage(messages.raw("admin-command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.rangeSummary());
         for (String command : commandPage.entries()) {
             sender.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
@@ -1690,9 +1690,23 @@ public final class AdminFactoryCommand {
             if (commandRequiresDisabledFeature(command)) {
                 continue;
             }
-            values.add(command.replaceFirst("^factory", label));
+            values.add(displayCommand(command, label));
         }
         return values;
+    }
+
+    private String adminNavigationCommand(String label) {
+        if (label.equalsIgnoreCase("ciadmin")) {
+            return label + " command list";
+        }
+        return label + " admin command list";
+    }
+
+    private String displayCommand(String command, String label) {
+        if (label.equalsIgnoreCase("ciadmin")) {
+            return command.replaceFirst("^factory admin", label);
+        }
+        return command.replaceFirst("^factory", label);
     }
 
     private boolean commandRequiresDisabledFeature(String command) {

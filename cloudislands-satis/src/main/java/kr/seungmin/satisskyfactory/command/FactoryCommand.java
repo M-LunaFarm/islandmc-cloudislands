@@ -683,6 +683,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
         if (!enabled("commands")) {
             return new ArrayList<>();
         }
+        if (alias.equalsIgnoreCase("ciadmin") || command.getName().equalsIgnoreCase("ciadmin")) {
+            return adminCommand.complete(sender, rootAdminArgs(args));
+        }
         if (args.length == 1) {
             List<String> values = new ArrayList<>();
             values.add("help");
