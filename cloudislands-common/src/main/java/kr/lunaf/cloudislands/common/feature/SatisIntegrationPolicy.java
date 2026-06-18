@@ -22,7 +22,8 @@ public final class SatisIntegrationPolicy {
         Map.entry("island-lifecycle-state-machine-mode", "create-activate-save-delete-error-quarantine-and-recovery-states-follow-cloudislands-core-lifecycle"),
         Map.entry("soft-full-create-mode", "island-1-soft-full-new-create-skips-to-ready-island-2-without-player-command-change"),
         Map.entry("a-b-server-new-island-mode", "server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command"),
-        Map.entry("a-b-server-existing-island-mode", "existing-island-deactivates-on-server-a-saves-satis-state-by-island-uuid-activates-on-server-b-and-remaps-volatile-placement")
+        Map.entry("a-b-server-existing-island-mode", "existing-island-deactivates-on-server-a-saves-satis-state-by-island-uuid-activates-on-server-b-and-remaps-volatile-placement"),
+        Map.entry("reload-reenable-mode", "config-reload-after-satis-disable-restarts-runtime-when-database-is-not-initialized")
     );
 
     private static final List<String> RECOMMENDED_MODE_REASONS = List.of(
@@ -141,6 +142,7 @@ public final class SatisIntegrationPolicy {
         "a-server-b-server-new-and-existing-island-flows-are-pinned",
         "state-survives-a-node-to-b-node-island-move",
         "state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed",
+        "config-reload-reenable-restores-satis-runtime-after-disabled-registration",
         "base-cloudislands-functions-survive-satis-disable-or-addon-removal"
     );
 

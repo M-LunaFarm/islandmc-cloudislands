@@ -256,6 +256,7 @@ class SatisAddonIntegrationPolicyTest {
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("island-create-home-visit-and-soft-full-island-1-to-island-2-flows-are-pinned"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("a-server-b-server-new-and-existing-island-flows-are-pinned"));
         assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("state-survives-a-node-to-b-node-move-while-satis-is-disabled-or-removed"));
+        assertTrue(SatisAddonIntegrationPolicy.completionCriteria().contains("config-reload-reenable-restores-satis-runtime-after-disabled-registration"));
         assertEquals(
                 "operator-selects-core-api-postgresql-mysql-mariadb-or-safe-fallback-through-setup-database-config",
                 SatisAddonIntegrationPolicy.operationScenarios().get("setup-database-mode")
@@ -299,6 +300,10 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals(
                 "existing-island-deactivates-on-server-a-saves-satis-state-by-island-uuid-activates-on-server-b-and-remaps-volatile-placement",
                 SatisAddonIntegrationPolicy.operationScenarios().get("a-b-server-existing-island-mode")
+        );
+        assertEquals(
+                "config-reload-after-satis-disable-restarts-runtime-when-database-is-not-initialized",
+                SatisAddonIntegrationPolicy.operationScenarios().get("reload-reenable-mode")
         );
         assertEquals(
                 "cloudislands-moves-island-from-node-a-to-node-b-even-when-satis-runtime-is-disabled-or-addon-jar-is-absent-and-reconnects-state-after-reenable",
