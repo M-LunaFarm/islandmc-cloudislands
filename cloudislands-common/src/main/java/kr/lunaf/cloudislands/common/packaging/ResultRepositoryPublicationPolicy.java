@@ -9,6 +9,7 @@ public final class ResultRepositoryPublicationPolicy {
     public static final String DOCUMENTATION_POLICY = "result-tree-is-code-and-build-output-only-no-markdown-documents";
     public static final String PUBLICATION_VISIBILITY_POLICY = "github-repository-must-be-public";
     public static final String PUSH_POLICY = "commit-locally-and-push-main-after-credentialed-publication";
+    public static final String PUSH_AUTH_FAILURE_POLICY = "do-not-retry-known-invalid-github-token-use-fresh-credential";
     public static final String COMPLETION_AUDIT_POLICY = "complete-only-after-result-root-build-test-public-clone-and-doc-free-verification";
     public static final String REMOTE_REPOSITORY = "M-LunaFarm/islandmc-cloudislands";
 
@@ -78,5 +79,9 @@ public final class ResultRepositoryPublicationPolicy {
 
     public static boolean completionEvidenceRequired(String evidence) {
         return evidence != null && REQUIRED_PUBLICATION_EVIDENCE.contains(evidence);
+    }
+
+    public static boolean retryPushAllowed(boolean knownInvalidCredential) {
+        return !knownInvalidCredential;
     }
 }

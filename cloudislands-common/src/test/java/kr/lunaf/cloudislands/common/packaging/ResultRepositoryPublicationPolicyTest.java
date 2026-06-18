@@ -18,6 +18,7 @@ class ResultRepositoryPublicationPolicyTest {
         assertEquals("result-tree-is-code-and-build-output-only-no-markdown-documents", ResultRepositoryPublicationPolicy.DOCUMENTATION_POLICY);
         assertEquals("github-repository-must-be-public", ResultRepositoryPublicationPolicy.PUBLICATION_VISIBILITY_POLICY);
         assertEquals("commit-locally-and-push-main-after-credentialed-publication", ResultRepositoryPublicationPolicy.PUSH_POLICY);
+        assertEquals("do-not-retry-known-invalid-github-token-use-fresh-credential", ResultRepositoryPublicationPolicy.PUSH_AUTH_FAILURE_POLICY);
     }
 
     @Test
@@ -72,5 +73,11 @@ class ResultRepositoryPublicationPolicyTest {
     void policyCollectionsAreImmutable() {
         assertThrows(UnsupportedOperationException.class, () -> ResultRepositoryPublicationPolicy.markdownDenyPatterns().add("*.rst"));
         assertThrows(UnsupportedOperationException.class, () -> ResultRepositoryPublicationPolicy.requiredPublicationEvidence().add("manual-claim"));
+    }
+
+    @Test
+    void avoidsRepeatingKnownInvalidPushCredentials() {
+        assertFalse(ResultRepositoryPublicationPolicy.retryPushAllowed(true));
+        assertTrue(ResultRepositoryPublicationPolicy.retryPushAllowed(false));
     }
 }
