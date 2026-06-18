@@ -49,14 +49,33 @@ class StorageOutagePolicyTest {
         );
         assertTrue(StorageOutagePolicy.retryQueue("periodic-save"));
         assertTrue(StorageOutagePolicy.retryQueue("empty-island-save"));
+        assertTrue(StorageOutagePolicy.retryQueue("local-fallback-bundle-reconcile"));
         assertFalse(StorageOutagePolicy.retryQueue("snapshot-restore"));
         assertFalse(StorageOutagePolicy.retryQueue(null));
     }
 
     @Test
+    void reconcilesLocalFallbackBundlesAfterStorageRecovery() {
+        assertEquals(
+            "local-filesystem-fallback-stores-portable-bundles-until-object-storage-recovers",
+            StorageOutagePolicy.LOCAL_FALLBACK_POLICY
+        );
+        assertEquals(
+            "object-storage-recovery-reuploads-local-fallback-bundles-after-manifest-and-checksum-verification",
+            StorageOutagePolicy.RECOVERY_RECONCILE_POLICY
+        );
+        assertEquals(
+            "local-fallback-bundles-are-node-temporary-and-never-become-shared-authority",
+            StorageOutagePolicy.SPLIT_BRAIN_PREVENTION_POLICY
+        );
+        assertTrue(StorageOutagePolicy.localFallbackQueue("local-fallback-bundle-reconcile"));
+        assertFalse(StorageOutagePolicy.localFallbackQueue("periodic-save"));
+    }
+
+    @Test
     void namesMetricsNeededToOperateTheOutageQueue() {
         assertEquals(
-            "storageSaveRetryQueueTotal,periodicSaveRetryQueue,emptySaveRetryQueue,storageOperationFailuresTotal",
+            "storageSaveRetryQueueTotal,periodicSaveRetryQueue,emptySaveRetryQueue,storageOperationFailuresTotal,localFallbackBundleQueueTotal,storageFallbackReconcileFailuresTotal",
             StorageOutagePolicy.OBSERVABILITY_KEYS
         );
     }
