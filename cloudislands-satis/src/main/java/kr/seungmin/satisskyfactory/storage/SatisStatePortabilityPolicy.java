@@ -36,6 +36,7 @@ public final class SatisStatePortabilityPolicy {
     public static final String FALLBACK_CHAIN_POLICY = "shared-backend-before-local-sqlite-or-warn";
     public static final String FALLBACK_READINESS_POLICY = "use-only-explicitly-configured-shared-targets-then-explicit-local-sqlite";
     public static final String FALLBACK_READY_CHAIN_POLICY = "report-ready-fallback-targets-before-using-local-sqlite";
+    public static final String FALLBACK_COMMON_POLICY_API = "SetupBackendFallbackPolicy.fallbackOrder,fallbackReadyChain,fallbackReadyChainRisk,fallbackReadyChainProductionSafe";
     public static final String CORE_API_WRITE_FALLBACK_POLICY = "retry-table-key-value-bulk-save-as-flattened-addon-state";
     public static final String PRODUCTION_SAFE_FALLBACK_POLICY = "POSTGRESQL,MYSQL,MARIADB,CORE_API-before-SQLITE";
     public static final String OBJECT_STORAGE_ACTIVE_ISLAND_POLICY = "active-island-remains-on-node-local-staging-when-object-storage-is-unavailable";
@@ -74,6 +75,7 @@ public final class SatisStatePortabilityPolicy {
         values.put("core-api-sync-fallback-chain-policy", FALLBACK_CHAIN_POLICY);
         values.put("core-api-sync-fallback-readiness-policy", FALLBACK_READINESS_POLICY);
         values.put("core-api-sync-fallback-ready-chain-policy", FALLBACK_READY_CHAIN_POLICY);
+        values.put("core-api-sync-fallback-common-policy-api", FALLBACK_COMMON_POLICY_API);
         values.put("core-api-sync-write-fallback-policy", CORE_API_WRITE_FALLBACK_POLICY);
         values.put("core-api-sync-production-safe-fallback-policy", PRODUCTION_SAFE_FALLBACK_POLICY);
         values.put("core-api-sync-shared-backends", String.join(",", RECOMMENDED_FALLBACK_ORDER.stream().filter(SatisStatePortabilityPolicy::sharedBackend).toList()));

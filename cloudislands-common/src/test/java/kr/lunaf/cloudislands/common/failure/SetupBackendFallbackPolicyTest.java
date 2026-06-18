@@ -20,13 +20,13 @@ class SetupBackendFallbackPolicyTest {
         assertEquals("setup.database.type", SetupBackendFallbackPolicy.SELECTED_BACKEND_FIELD);
         assertEquals("setup.database.fallback.order", SetupBackendFallbackPolicy.FALLBACK_ORDER_FIELD);
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API", SetupBackendFallbackPolicy.PRODUCTION_SAFE_ORDER);
-        assertEquals("UNSUPPORTED_JDBC", SetupBackendFallbackPolicy.LAST_RESORT_ORDER);
+        assertEquals("SQLITE,UNSUPPORTED_JDBC", SetupBackendFallbackPolicy.LAST_RESORT_ORDER);
         assertEquals(
             List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API"),
             SetupBackendFallbackPolicy.PRODUCTION_FALLBACK_ORDER
         );
         assertEquals(
-            List.of("UNSUPPORTED_JDBC"),
+            List.of("SQLITE", "UNSUPPORTED_JDBC"),
             SetupBackendFallbackPolicy.LAST_RESORT_FALLBACK_ORDER
         );
     }
@@ -40,6 +40,8 @@ class SetupBackendFallbackPolicyTest {
         assertTrue(SetupBackendFallbackPolicy.sharedStateBackend("coreapi"));
         assertFalse(SetupBackendFallbackPolicy.sharedStateBackend("unsupported-jdbc"));
         assertFalse(SetupBackendFallbackPolicy.sharedStateBackend(null));
+        assertTrue(SetupBackendFallbackPolicy.localStateBackend("sqlite"));
+        assertTrue(SetupBackendFallbackPolicy.localStateBackend("local-sqlite"));
     }
 
     @Test
@@ -49,21 +51,60 @@ class SetupBackendFallbackPolicyTest {
         assertEquals("POSTGRESQL", SetupBackendFallbackPolicy.fallbackTarget("pgsql"));
         assertTrue(SetupBackendFallbackPolicy.fallbackKeepsSharedState("sqlite"));
         assertEquals("setup-backend-empty-use-core-api", SetupBackendFallbackPolicy.fallbackReason(""));
-        assertEquals("setup-backend-unknown-use-core-api", SetupBackendFallbackPolicy.fallbackReason("sqlite"));
+        assertEquals("local-fallback-last-resort-not-shared-safe", SetupBackendFallbackPolicy.fallbackReason("sqlite"));
         assertEquals("setup-backend-supported", SetupBackendFallbackPolicy.fallbackReason("postgresql"));
     }
 
     @Test
     void keepsUnsupportedJdbcExplicitlyLastResort() {
         assertTrue(SetupBackendFallbackPolicy.unsafeLocalFallback("unsupported-jdbc"));
+        assertTrue(SetupBackendFallbackPolicy.unsafeLocalFallback("sqlite"));
         assertFalse(SetupBackendFallbackPolicy.unsafeLocalFallback("core-api"));
         assertEquals(
             "unsupported-jdbc-is-last-resort-and-not-valid-for-multi-island-node-production",
             SetupBackendFallbackPolicy.UNSAFE_LOCAL_POLICY
         );
         assertEquals(
-            "unsupported-jdbc-last-resort-not-shared-safe",
+            "local-fallback-last-resort-not-shared-safe",
             SetupBackendFallbackPolicy.fallbackReason("unsupported_jdbc")
+        );
+    }
+
+    @Test
+    void resolvesReadyFallbackChainWithoutPromotingLocalStorageFirst() {
+        assertEquals(
+            List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE", "UNSUPPORTED_JDBC"),
+            SetupBackendFallbackPolicy.fallbackOrder("")
+        );
+        assertEquals(
+            "MYSQL,CORE_API,SQLITE",
+            SetupBackendFallbackPolicy.fallbackReadyChain("POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE", "mysql,coreapi,local-sqlite")
+        );
+        assertEquals(
+            "POSTGRESQL,MARIADB",
+            SetupBackendFallbackPolicy.fallbackNotReadyBackends("POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE", "mysql,coreapi,local-sqlite")
+        );
+        assertEquals(
+            "ready=MYSQL,CORE_API,SQLITE;not-ready=POSTGRESQL,MARIADB",
+            SetupBackendFallbackPolicy.fallbackReadinessSummary("POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE", "mysql,coreapi,local-sqlite")
+        );
+        assertEquals(
+            SetupBackendFallbackPolicy.FALLBACK_RISK_SHARED_BEFORE_LOCAL,
+            SetupBackendFallbackPolicy.fallbackReadyChainRisk("POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE", "mysql,coreapi,local-sqlite")
+        );
+        assertTrue(SetupBackendFallbackPolicy.fallbackReadyChainProductionSafe("POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE", "mysql,coreapi,local-sqlite"));
+    }
+
+    @Test
+    void flagsLocalOnlyOrLocalFirstFallbackAsUnsafeForIslandNodePools() {
+        assertEquals(
+            SetupBackendFallbackPolicy.FALLBACK_RISK_LOCAL_ONLY,
+            SetupBackendFallbackPolicy.fallbackReadyChainRisk("POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE", "sqlite")
+        );
+        assertFalse(SetupBackendFallbackPolicy.fallbackReadyChainProductionSafe("POSTGRESQL,MYSQL,MARIADB,CORE_API,SQLITE", "sqlite"));
+        assertEquals(
+            SetupBackendFallbackPolicy.FALLBACK_RISK_LOCAL_BEFORE_SHARED,
+            SetupBackendFallbackPolicy.fallbackRisk(List.of("sqlite", "core-api"))
         );
     }
 }

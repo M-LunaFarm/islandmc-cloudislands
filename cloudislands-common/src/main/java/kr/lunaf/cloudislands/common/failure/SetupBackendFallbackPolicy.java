@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.common.failure;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.ArrayList;
 
 public final class SetupBackendFallbackPolicy {
     public static final String CONTRACT = "setup-selects-postgresql-mysql-mariadb-or-core-api-with-shared-safe-fallback-before-local";
@@ -11,9 +12,15 @@ public final class SetupBackendFallbackPolicy {
     public static final String SELECTED_BACKEND_FIELD = "setup.database.type";
     public static final String FALLBACK_ORDER_FIELD = "setup.database.fallback.order";
     public static final String PRODUCTION_SAFE_ORDER = "POSTGRESQL,MYSQL,MARIADB,CORE_API";
-    public static final String LAST_RESORT_ORDER = "UNSUPPORTED_JDBC";
+    public static final String LAST_RESORT_ORDER = "SQLITE,UNSUPPORTED_JDBC";
     public static final String FALLBACK_POLICY = "shared-db-or-core-api-before-unsupported-local-fallback";
     public static final String UNSAFE_LOCAL_POLICY = "unsupported-jdbc-is-last-resort-and-not-valid-for-multi-island-node-production";
+    public static final String FALLBACK_RISK_NO_ORDER = "no-fallback-order";
+    public static final String FALLBACK_RISK_NO_READY_BACKEND = "no-ready-backend";
+    public static final String FALLBACK_RISK_LOCAL_ONLY = "local-only";
+    public static final String FALLBACK_RISK_LOCAL_BEFORE_SHARED = "local-before-shared";
+    public static final String FALLBACK_RISK_SHARED_BEFORE_LOCAL = "shared-before-local";
+    public static final String FALLBACK_RISK_SHARED_ONLY = "shared-only";
 
     public static final List<String> SUPPORTED_BACKENDS = List.of(
         "POSTGRESQL",
@@ -30,6 +37,7 @@ public final class SetupBackendFallbackPolicy {
     );
 
     public static final List<String> LAST_RESORT_FALLBACK_ORDER = List.of(
+        "SQLITE",
         "UNSUPPORTED_JDBC"
     );
 
@@ -38,6 +46,11 @@ public final class SetupBackendFallbackPolicy {
         "MYSQL",
         "MARIADB",
         "CORE_API"
+    );
+
+    public static final Set<String> LOCAL_STATE_BACKENDS = Set.of(
+        "SQLITE",
+        "UNSUPPORTED_JDBC"
     );
 
     private SetupBackendFallbackPolicy() {
@@ -63,6 +76,9 @@ public final class SetupBackendFallbackPolicy {
         if (normalized.equals("COREAPI")) {
             return "CORE_API";
         }
+        if (normalized.equals("LOCAL") || normalized.equals("LOCAL_SQLITE") || normalized.equals("MEMORY") || normalized.equals("IN_MEMORY")) {
+            return "SQLITE";
+        }
         return normalized;
     }
 
@@ -74,8 +90,12 @@ public final class SetupBackendFallbackPolicy {
         return SHARED_STATE_BACKENDS.contains(normalizeBackend(backend));
     }
 
+    public static boolean localStateBackend(String backend) {
+        return LOCAL_STATE_BACKENDS.contains(normalizeBackend(backend));
+    }
+
     public static boolean unsafeLocalFallback(String backend) {
-        return "UNSUPPORTED_JDBC".equals(normalizeBackend(backend));
+        return localStateBackend(backend);
     }
 
     public static String fallbackTarget(String requestedBackend) {
@@ -99,8 +119,105 @@ public final class SetupBackendFallbackPolicy {
             return "setup-backend-supported";
         }
         if (unsafeLocalFallback(normalized)) {
-            return "unsupported-jdbc-last-resort-not-shared-safe";
+            return "local-fallback-last-resort-not-shared-safe";
         }
         return "setup-backend-unknown-use-core-api";
+    }
+
+    public static List<String> fallbackOrder(String configuredOrder) {
+        List<String> parsed = parseBackends(configuredOrder);
+        if (parsed.isEmpty()) {
+            List<String> defaults = new ArrayList<>(PRODUCTION_FALLBACK_ORDER);
+            defaults.addAll(LAST_RESORT_FALLBACK_ORDER);
+            return List.copyOf(defaults);
+        }
+        return parsed;
+    }
+
+    public static String fallbackReadyChain(String configuredOrder, String readyBackends) {
+        List<String> order = fallbackOrder(configuredOrder);
+        List<String> ready = parseBackends(readyBackends);
+        if (ready.isEmpty()) {
+            return "";
+        }
+        List<String> readyOrder = new ArrayList<>();
+        for (String backend : order) {
+            if (ready.contains(backend)) {
+                readyOrder.add(backend);
+            }
+        }
+        return String.join(",", readyOrder);
+    }
+
+    public static String fallbackNotReadyBackends(String configuredOrder, String readyBackends) {
+        List<String> order = fallbackOrder(configuredOrder);
+        List<String> ready = parseBackends(readyBackends);
+        List<String> missing = new ArrayList<>();
+        for (String backend : order) {
+            if (!ready.contains(backend)) {
+                missing.add(backend);
+            }
+        }
+        return String.join(",", missing);
+    }
+
+    public static String fallbackRisk(List<String> order) {
+        if (order == null || order.isEmpty()) {
+            return FALLBACK_RISK_NO_ORDER;
+        }
+        int firstShared = -1;
+        int firstLocal = -1;
+        for (int index = 0; index < order.size(); index++) {
+            String normalized = normalizeBackend(order.get(index));
+            if (firstShared < 0 && sharedStateBackend(normalized)) {
+                firstShared = index;
+            }
+            if (firstLocal < 0 && localStateBackend(normalized)) {
+                firstLocal = index;
+            }
+        }
+        if (firstShared < 0 && firstLocal < 0) {
+            return FALLBACK_RISK_NO_READY_BACKEND;
+        }
+        if (firstShared < 0) {
+            return FALLBACK_RISK_LOCAL_ONLY;
+        }
+        if (firstLocal < 0) {
+            return FALLBACK_RISK_SHARED_ONLY;
+        }
+        return firstShared < firstLocal ? FALLBACK_RISK_SHARED_BEFORE_LOCAL : FALLBACK_RISK_LOCAL_BEFORE_SHARED;
+    }
+
+    public static String fallbackReadyChainRisk(String configuredOrder, String readyBackends) {
+        String chain = fallbackReadyChain(configuredOrder, readyBackends);
+        if (chain.isBlank()) {
+            return parseBackends(readyBackends).isEmpty() ? FALLBACK_RISK_NO_READY_BACKEND : FALLBACK_RISK_NO_READY_BACKEND;
+        }
+        return fallbackRisk(parseBackends(chain));
+    }
+
+    public static boolean fallbackReadyChainProductionSafe(String configuredOrder, String readyBackends) {
+        String risk = fallbackReadyChainRisk(configuredOrder, readyBackends);
+        return FALLBACK_RISK_SHARED_BEFORE_LOCAL.equals(risk) || FALLBACK_RISK_SHARED_ONLY.equals(risk);
+    }
+
+    public static String fallbackReadinessSummary(String configuredOrder, String readyBackends) {
+        String ready = fallbackReadyChain(configuredOrder, readyBackends);
+        String missing = fallbackNotReadyBackends(configuredOrder, readyBackends);
+        return "ready=" + (ready.isBlank() ? "none" : ready) + ";not-ready=" + (missing.isBlank() ? "none" : missing);
+    }
+
+    private static List<String> parseBackends(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        List<String> backends = new ArrayList<>();
+        for (String token : value.split(",")) {
+            String normalized = normalizeBackend(token);
+            if (!normalized.isBlank() && !backends.contains(normalized)) {
+                backends.add(normalized);
+            }
+        }
+        return List.copyOf(backends);
     }
 }

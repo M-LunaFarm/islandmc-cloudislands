@@ -34,6 +34,7 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("shared-backend-before-local-sqlite-or-warn", state.get("core-api-sync-fallback-chain-policy"));
         assertEquals("use-only-explicitly-configured-shared-targets-then-explicit-local-sqlite", state.get("core-api-sync-fallback-readiness-policy"));
         assertEquals("report-ready-fallback-targets-before-using-local-sqlite", state.get("core-api-sync-fallback-ready-chain-policy"));
+        assertEquals("SetupBackendFallbackPolicy.fallbackOrder,fallbackReadyChain,fallbackReadyChainRisk,fallbackReadyChainProductionSafe", state.get("core-api-sync-fallback-common-policy-api"));
         assertEquals("retry-table-key-value-bulk-save-as-flattened-addon-state", state.get("core-api-sync-write-fallback-policy"));
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API-before-SQLITE", state.get("core-api-sync-production-safe-fallback-policy"));
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API", state.get("core-api-sync-shared-backends"));
