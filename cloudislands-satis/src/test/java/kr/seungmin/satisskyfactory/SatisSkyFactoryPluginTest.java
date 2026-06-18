@@ -77,6 +77,8 @@ class SatisSkyFactoryPluginTest {
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-ticks", metadata.get("runtime-tick-authority-local-fallback-policy"));
         assertEquals("core-api-writes-require-addon-state-write-authority", metadata.get("runtime-write-authority-policy"));
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-writes", metadata.get("runtime-write-authority-local-fallback-policy"));
+        assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-detach-policy"));
+        assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertEquals("disable-plugin-clear-features-register-no-components", metadata.get("missing-cloudislands-behavior"));
         assertEquals("no-hardcoded-island-node-count", metadata.get("island-state-node-count-policy"));
         assertEquals("node-id-is-routing-context-not-addon-state-key", metadata.get("island-state-node-identity-policy"));
