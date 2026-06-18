@@ -321,6 +321,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sell(Player player, FactoryIsland island, String[] args) {
+        if (!requireFeature(player, "market") || !requireFeature(player, "storage")) {
+            return;
+        }
         if (args.length >= 2 && args[1].equalsIgnoreCase("hand")) {
             sellHand(player, island);
             return;
@@ -625,6 +628,9 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     }
 
     private void repairTarget(Player player, FactoryIsland island) {
+        if (!requireFeature(player, "maintenance") || !requireFeature(player, "storage")) {
+            return;
+        }
         Block block = player.getTargetBlockExact(8);
         if (block == null || block.getType() == Material.AIR) {
             messages.send(player, "no-target-machine");
