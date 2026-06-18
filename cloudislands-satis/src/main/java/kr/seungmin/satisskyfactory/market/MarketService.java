@@ -156,13 +156,16 @@ public final class MarketService {
         if (!inventory.remove(itemId, amount)) {
             return Optional.empty();
         }
+        if (!storage.saveIfAllowed(inventory)) {
+            inventory.add(itemId, amount);
+            return Optional.empty();
+        }
         Optional<SellResult> result = payout(island, owner, itemId, amount);
         if (result.isEmpty()) {
             inventory.add(itemId, amount);
-            storage.save(inventory);
+            storage.saveIfAllowed(inventory);
             return Optional.empty();
         }
-        storage.save(inventory);
         database.addLedger(island.islandUuid(), "MARKET_SELL", result.get().gross(), itemId + " x" + amount);
         return result;
     }

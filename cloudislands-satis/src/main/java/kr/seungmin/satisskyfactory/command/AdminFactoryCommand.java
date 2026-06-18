@@ -1431,6 +1431,7 @@ public final class AdminFactoryCommand {
                         "runtime-market-gate",
                         "runtime-market-status",
                         "runtime-market-policy",
+                        "runtime-market-storage-save-policy",
                         "runtime-contracts-gate",
                         "runtime-contracts-status",
                         "runtime-contracts-policy",
