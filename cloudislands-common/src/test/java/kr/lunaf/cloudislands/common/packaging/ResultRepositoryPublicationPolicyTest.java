@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.common.packaging;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -46,6 +48,24 @@ class ResultRepositoryPublicationPolicyTest {
         assertTrue(ResultRepositoryPublicationPolicy.completionEvidenceRequired("fresh-public-clone-builds"));
         assertTrue(ResultRepositoryPublicationPolicy.completionEvidenceRequired("tests-pass-in-result-root"));
         assertFalse(ResultRepositoryPublicationPolicy.completionEvidenceRequired("chat-summary-only"));
+    }
+
+    @Test
+    void checksResultTreePathsForMarkdownDocuments() {
+        assertTrue(ResultRepositoryPublicationPolicy.markdownFree(List.of(
+            "settings.gradle.kts",
+            "cloudislands-satis/src/main/resources/plugin.yml",
+            "cloudislands-common/src/main/java/Policy.java",
+            ".git/COMMIT_EDITMSG"
+        )));
+        assertFalse(ResultRepositoryPublicationPolicy.markdownFree(List.of(
+            "cloudislands-satis/src/main/resources/plugin.yml",
+            "README.md"
+        )));
+        assertFalse(ResultRepositoryPublicationPolicy.markdownFree(List.of(
+            "docs/goal.markdown"
+        )));
+        assertTrue(ResultRepositoryPublicationPolicy.markdownFree(null));
     }
 
     @Test

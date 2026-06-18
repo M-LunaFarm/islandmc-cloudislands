@@ -57,6 +57,25 @@ public final class ResultRepositoryPublicationPolicy {
             .anyMatch(normalized::endsWith);
     }
 
+    public static boolean markdownFree(Iterable<String> resultRelativePaths) {
+        if (resultRelativePaths == null) {
+            return true;
+        }
+        for (String path : resultRelativePaths) {
+            if (path == null) {
+                continue;
+            }
+            String normalized = path.trim().replace('\\', '/');
+            if (normalized.startsWith(".git/") || normalized.contains("/.git/")) {
+                continue;
+            }
+            if (markdownDenied(normalized)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static boolean completionEvidenceRequired(String evidence) {
         return evidence != null && REQUIRED_PUBLICATION_EVIDENCE.contains(evidence);
     }
