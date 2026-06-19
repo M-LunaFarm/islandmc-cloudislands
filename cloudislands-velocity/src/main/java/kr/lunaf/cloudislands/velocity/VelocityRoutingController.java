@@ -38,6 +38,7 @@ import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityEventMessageFormatter;
+import kr.lunaf.cloudislands.velocity.message.VelocityIslandMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMigrationMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRouteMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
@@ -70,6 +71,7 @@ public final class VelocityRoutingController {
     private final VelocityCoreStatusMessageFormatter coreStatusMessages = new VelocityCoreStatusMessageFormatter();
     private final VelocityMigrationMessageFormatter migrationMessages = new VelocityMigrationMessageFormatter();
     private final VelocityEventMessageFormatter eventMessages;
+    private final VelocityIslandMessageFormatter islandMessages = new VelocityIslandMessageFormatter();
     private final VelocityRouteMessageFormatter routeMessages;
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
@@ -318,65 +320,11 @@ public final class VelocityRoutingController {
 
     public void listMyIslands(Player player) {
         coreApiClient.listPlayerIslands(player.getUniqueId())
-            .thenAccept(body -> player.sendMessage(Component.text(playerIslandListMessage(body))))
+            .thenAccept(body -> player.sendMessage(Component.text(islandMessages.playerIslands(body))))
             .exceptionally(error -> {
                 player.sendMessage(Component.text("내 섬 목록을 불러오지 못했습니다."));
                 return null;
             });
-    }
-
-    private String playerIslandListMessage(String body) {
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String islandId = islandText(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = islandText(object, "name");
-                String role = islandText(object, "role");
-                long level = islandNumber(object, "level");
-                entries.add((name.isBlank() ? "이름 없는 섬" : name) + " (ID=" + shortId(islandId) + ", 역할=" + (role.isBlank() ? "MEMBER" : role) + ", 레벨=" + level + ")");
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "속한 섬이 없습니다." : "내 섬 목록: " + String.join(" / ", entries);
-    }
-
-    private String islandText(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private long islandNumber(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return 0L;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && Character.isDigit(body.charAt(end))) {
-            end++;
-        }
-        try {
-            return Long.parseLong(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0L;
-        }
     }
 
     public void routeRandomVisit(Player player) {
@@ -387,7 +335,7 @@ public final class VelocityRoutingController {
     }
 
     public void listPublicIslands(Player player, int limit) {
-        sendBodyResult(player, coreApiClient.listPublicIslands(Math.max(1, Math.min(limit, 100))).thenApply(this::publicIslandListMessage), "공개 섬 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listPublicIslands(Math.max(1, Math.min(limit, 100))).thenApply(islandMessages::publicIslands), "공개 섬 목록을 불러오지 못했습니다.");
     }
 
     public void routeWarp(Player player, UUID targetIslandId, String warpName) {
@@ -436,7 +384,7 @@ public final class VelocityRoutingController {
     }
 
     public void listInvites(Player player) {
-        coreApiClient.listPendingInvites(player.getUniqueId()).thenAccept(body -> player.sendMessage(Component.text(inviteListMessage(body)))).exceptionally(error -> {
+        coreApiClient.listPendingInvites(player.getUniqueId()).thenAccept(body -> player.sendMessage(Component.text(islandMessages.invites(body)))).exceptionally(error -> {
             player.sendMessage(Component.text("초대 목록을 불러오지 못했습니다."));
             return null;
         });
@@ -2460,38 +2408,6 @@ public final class VelocityRoutingController {
         return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
     }
 
-    private String publicIslandListMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "공개 섬이 없습니다.";
-        }
-        String islands = arrayValue(body, "islands");
-        if (islands.isBlank()) {
-            return "공개 섬이 없습니다.";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < islands.length() && entries.size() < 20) {
-            int objectStart = islands.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(islands, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = islands.substring(objectStart, objectEnd + 1);
-            String islandId = jsonValue(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = jsonValue(object, "name");
-                long level = longValue(object, "level");
-                String worth = jsonValue(object, "worth");
-                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? "이름 없는 섬" : name) + " (ID=" + shortId(islandId) + ", 레벨=" + level + ", 가치=" + (worth.isBlank() ? "0" : worth) + ")");
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
-    }
-
     private void appendLongSummary(StringBuilder summary, String label, long value) {
         if (value > 0L) {
             summary.append(", ").append(label).append('=').append(value);
@@ -2527,30 +2443,6 @@ public final class VelocityRoutingController {
             return null;
         });
     }
-    private String inviteListMessage(String body) {
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String inviteId = jsonValue(object, "inviteId");
-            if (!inviteId.isBlank()) {
-                String islandId = jsonValue(object, "islandId");
-                String inviterUuid = jsonValue(object, "inviterUuid");
-                entries.add(shortId(inviteId) + (islandId.isBlank() ? "" : " 섬=" + shortId(islandId)) + (inviterUuid.isBlank() ? "" : " 초대한사람=" + shortId(inviterUuid)));
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
-    }
-
     private String playerPayloadMessage(String body, String emptyMessage, String successMessage) {
         if (body == null || body.isBlank()) {
             return emptyMessage;
