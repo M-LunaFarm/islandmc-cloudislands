@@ -13,9 +13,11 @@ class PaperPluginMetadataTest {
     @Test
     void pluginMetadataUsesCentralProjectVersionAndPaperBaseline() throws IOException {
         String descriptor = mainResource("plugin.yml");
+        String expectedVersion = System.getProperty("cloudislands.version");
+        String expectedPaperBaseline = System.getProperty("cloudislands.minecraftBaseline");
 
-        assertTrue(descriptor.contains("version: '1.0.1'") || descriptor.contains("version: 1.0.1"));
-        assertTrue(descriptor.contains("api-version: '1.21.11'"));
+        assertTrue(descriptor.contains("version: '" + expectedVersion + "'") || descriptor.contains("version: " + expectedVersion));
+        assertTrue(descriptor.contains("api-version: '" + expectedPaperBaseline + "'"));
         assertFalse(descriptor.contains("0.1.0"));
         assertFalse(descriptor.contains("${"));
     }

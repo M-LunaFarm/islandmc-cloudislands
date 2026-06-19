@@ -12,7 +12,7 @@ class VelocityPluginMetadataTest {
         Plugin metadata = CloudIslandsVelocityPlugin.class.getAnnotation(Plugin.class);
 
         assertNotNull(metadata);
-        assertEquals("1.0.1", BuildInfo.VERSION);
+        assertEquals(System.getProperty("cloudislands.version"), BuildInfo.VERSION);
         assertEquals(BuildInfo.VERSION, metadata.version());
     }
 }

@@ -1,6 +1,7 @@
 import org.gradle.api.file.FileTreeElement
 import org.gradle.jvm.tasks.Jar
 import org.gradle.api.tasks.bundling.Zip
+import org.gradle.api.tasks.testing.Test
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import java.security.MessageDigest
 
@@ -28,6 +29,7 @@ val markdownDocExtensions = listOf(".md", ".mdx", ".mdown", ".mkdn", ".markdown"
 val versionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val cloudislandsVersion = versionCatalog.findVersion("cloudislands").orElseThrow().requiredVersion
 val javaCurrentVersion = versionCatalog.findVersion("java-current").orElseThrow().requiredVersion.toInt()
+val minecraftBaselineVersion = versionCatalog.findVersion("minecraft-baseline").orElseThrow().requiredVersion
 
 fun isMarkdownDocPath(path: String): Boolean =
     path.replace('\\', '/') != "README.md" && markdownDocExtensions.any { path.lowercase().endsWith(it) }
@@ -58,6 +60,11 @@ subprojects {
         tasks.withType<JavaCompile>().configureEach {
             options.encoding = "UTF-8"
             options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:-processing"))
+        }
+
+        tasks.withType<Test>().configureEach {
+            systemProperty("cloudislands.version", project.version.toString())
+            systemProperty("cloudislands.minecraftBaseline", minecraftBaselineVersion)
         }
 
         tasks.withType<Jar>().configureEach {
