@@ -5,13 +5,10 @@ import java.time.Duration;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
-import kr.lunaf.cloudislands.api.CloudIslandsApi;
-import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
-import kr.lunaf.cloudislands.paper.api.PaperCloudIslandsApi;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.activation.EmptyIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
@@ -20,11 +17,11 @@ import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
 import kr.lunaf.cloudislands.paper.activation.PeriodicIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.bootstrap.LifecycleRegistry;
+import kr.lunaf.cloudislands.paper.bootstrap.PaperRuntimeServices;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.command.PaperCommandRegistrar;
-import kr.lunaf.cloudislands.paper.economy.VaultEconomyBridge;
 import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
@@ -43,7 +40,6 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.message.TranslationManager;
-import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
 import kr.lunaf.cloudislands.paper.redis.PaperRedisClient;
 import kr.lunaf.cloudislands.paper.security.ProxySourceAllowlist;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
@@ -61,7 +57,6 @@ import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
 import kr.lunaf.cloudislands.paper.world.export.ExternalTarIslandBundleExporter;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
-import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class CloudIslandsPaperPlugin extends JavaPlugin {
@@ -74,13 +69,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private PeriodicIslandLevelScanTask periodicLevelScanTask;
     private PaperHealthService healthService;
     private ActiveIslandRegistry activeIslands;
-    private CloudIslandsApi api;
-    private EconomyBridge economyBridge;
     private GeneratorLevelCache generatorLevels;
     private IslandGeneratorListener generatorListener;
     private PaperRouteSessionListener routeSessionListener;
     private IslandBoundaryListener boundaryListener;
-    private Object placeholderExpansion;
     private MessageRenderer messages;
     private PaperRedisClient redisClient;
     private LocalCacheManager localCaches;
@@ -121,12 +113,9 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             resolveEnv(getConfig().getString("redis.uri", "redis://redis.internal:6379")),
             Duration.ofMillis(Math.max(1L, getConfig().getLong("redis.timeout-ms", 1000L)))
         );
-        this.api = new PaperCloudIslandsApi(client, agent);
-        CloudIslandsProvider.set(api);
-        getServer().getServicesManager().register(CloudIslandsApi.class, api, this, ServicePriority.Normal);
-        this.economyBridge = new VaultEconomyBridge(getServer());
-        getServer().getServicesManager().register(EconomyBridge.class, economyBridge, this, ServicePriority.Normal);
-        registerPlaceholderExpansion(client);
+        PaperRuntimeServices runtimeServices = PaperRuntimeServices.register(this, client, agent);
+        lifecycle.started("runtime-services", runtimeServices::stop);
+        EconomyBridge economyBridge = runtimeServices.economyBridge();
         IslandLimitCache limitCache = new IslandLimitCache(client);
         localCaches.register("limits", limitCache::invalidateAll);
         long denyMessageCooldownMs = getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
@@ -243,16 +232,6 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             localCaches.invalidateAll();
             localCaches = null;
         }
-        unregisterPlaceholderExpansion();
-        if (api != null) {
-            CloudIslandsProvider.clear(api);
-            getServer().getServicesManager().unregister(CloudIslandsApi.class, api);
-            api = null;
-        }
-        if (economyBridge != null) {
-            getServer().getServicesManager().unregister(EconomyBridge.class, economyBridge);
-            economyBridge = null;
-        }
         messages = null;
     }
 
@@ -266,34 +245,6 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public PaperIslandJobWorker jobWorker() {
         return jobWorker;
-    }
-
-    private void registerPlaceholderExpansion(CoreApiClient client) {
-        if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return;
-        }
-        try {
-            CloudIslandsPlaceholderExpansion expansion = new CloudIslandsPlaceholderExpansion(this, client);
-            if (expansion.register()) {
-                this.placeholderExpansion = expansion;
-                getLogger().info("Registered PlaceholderAPI expansion: cloudislands");
-            }
-        } catch (LinkageError error) {
-            getLogger().warning("PlaceholderAPI was detected but the CloudIslands expansion could not be registered: " + error.getMessage());
-        }
-    }
-
-    private void unregisterPlaceholderExpansion() {
-        Object expansion = placeholderExpansion;
-        placeholderExpansion = null;
-        if (expansion == null) {
-            return;
-        }
-        try {
-            expansion.getClass().getMethod("unregister").invoke(expansion);
-        } catch (ReflectiveOperationException ignored) {
-            // PlaceholderAPI handles plugin-disable cleanup when explicit unregister is unavailable.
-        }
     }
 
     private String paperHealthJson(AgentRole role, String nodeId) {
