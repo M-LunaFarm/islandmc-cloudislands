@@ -68,6 +68,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBankRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBlockLevelRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandCommunicationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandUpgradeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
@@ -361,6 +362,7 @@ public final class CloudIslandsCoreApplication {
         new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandBlockLevelRoutes(levelRepository, rankingRepository, levelRecalculation, islandRepository, metadataRepository, permissionRules, audit, events).register(this::route);
         new IslandUpgradeRoutes(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
+        new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -739,38 +741,6 @@ public final class CloudIslandsCoreApplication {
             }
             int pruned = recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId, fencingToken);
             write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"fencingToken\":" + fencingToken + ",\"pruned\":" + pruned + "}");
-        });
-        route("/v1/islands/logs", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, islandLogsJson(islandLogs.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.integer(body, "limit", 30))));
-        });
-        route("/v1/islands/chat", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            String channel = JsonFields.text(body, "channel", "ISLAND").toUpperCase();
-            String message = JsonFields.text(body, "message", "");
-            if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
-                return;
-            }
-            if (message.isBlank()) {
-                write(exchange, 400, ApiResponses.error("EMPTY_CHAT_MESSAGE", "Chat message is empty"));
-                return;
-            }
-            String normalizedChannel = channel.equals("TEAM") ? "TEAM" : "ISLAND";
-            String actorName = playerProfiles.find(actorUuid).lastName();
-            islandLogs.append(islandId, actorUuid, "ISLAND_CHAT", Map.of("channel", normalizedChannel, "message", message));
-            java.util.Map<String, String> payload = new java.util.LinkedHashMap<>();
-            payload.put("islandId", islandId.toString());
-            payload.put("actorUuid", actorUuid.toString());
-            payload.put("actorName", actorName == null || actorName.isBlank() ? actorUuid.toString() : actorName);
-            payload.put("channel", normalizedChannel);
-            payload.put("message", message);
-            if (normalizedChannel.equals("TEAM")) {
-                payload.put("recipients", String.join(",", metadataRepository.members(islandId).stream().map(member -> member.playerUuid().toString()).toList()));
-            }
-            events.publish(CloudIslandEventType.ISLAND_CHAT_SENT.name(), payload);
-            write(exchange, 202, "{\"accepted\":true,\"channel\":\"" + normalizedChannel + "\",\"message\":\"" + escape(message) + "\"}");
         });
         route("/v1/islands/delete", exchange -> {
             String body = readBody(exchange);
