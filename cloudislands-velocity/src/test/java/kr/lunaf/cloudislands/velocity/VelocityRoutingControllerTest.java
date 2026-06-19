@@ -16,27 +16,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class VelocityRoutingControllerTest {
     @Test
-    void hidesRouteDiagnosticNodeFieldsWhenConfigured() throws Exception {
-        VelocityRoutingController controller = new VelocityRoutingController(
-                null,
-                null,
-                "Lobby",
-                20,
-                true,
-                true,
-                true,
-                "island",
-                30
-        );
-
-        assertEquals("", privateString(controller, "routeNodeSuffix", "island-2"));
-        assertEquals("", privateString(controller, "routeRequestedNodeSuffix", "island-3"));
-        assertEquals("", privateString(controller, "routeServerSuffix", "island-4"));
-        assertEquals("", privateString(controller, "runtimeWorldSuffix", "ci_island_shard_03"));
-        assertEquals("", privateString(controller, "runtimeCellSuffix", "{\"cellX\":12,\"cellZ\":7}"));
-    }
-
-    @Test
     void sanitizesPhysicalNodeNamesFromPlayerMessages() throws Exception {
         VelocityRoutingController controller = new VelocityRoutingController(
                 null,

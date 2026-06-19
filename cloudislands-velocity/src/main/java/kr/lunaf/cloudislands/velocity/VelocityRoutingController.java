@@ -38,6 +38,7 @@ import kr.lunaf.cloudislands.velocity.event.CoreEventCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
 import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
+import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import kr.lunaf.cloudislands.velocity.platform.VelocityServerGateway;
@@ -61,6 +62,7 @@ public final class VelocityRoutingController {
     private final boolean useActionBar;
     private final boolean useBossBarLoading;
     private final VelocityMessages messages;
+    private final VelocityRoutePrivacyFormatter routePrivacy;
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
     private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
@@ -105,6 +107,7 @@ public final class VelocityRoutingController {
         this.useActionBar = useActionBar;
         this.useBossBarLoading = useBossBarLoading;
         this.messages = messages == null ? VelocityMessages.defaults() : messages;
+        this.routePrivacy = new VelocityRoutePrivacyFormatter(hideNodeNames);
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
         this.servers = new VelocityServerGateway(proxy, this.islandPool, hideNodeNames);
@@ -1431,9 +1434,9 @@ public final class VelocityRoutingController {
         String activeWorld = jsonValue(body, "activeWorld");
         return "Island runtime: 섬=" + shortId(islandId)
             + " state=" + (state.isBlank() ? "UNKNOWN" : state)
-            + routeNodeSuffix(activeNode)
-            + runtimeWorldSuffix(activeWorld)
-            + runtimeCellSuffix(body)
+            + routePrivacy.routeNodeSuffix(activeNode)
+            + routePrivacy.runtimeWorldSuffix(activeWorld)
+            + routePrivacy.runtimeCellSuffix(body)
             + " fence=" + longValue(body, "fencingToken");
     }
 
@@ -2317,7 +2320,7 @@ public final class VelocityRoutingController {
         long count = longValue(body, "count");
         String islands = arrayValue(body, "islands");
         if (islands.isBlank() || count == 0L) {
-            return "노드 섬 현황" + hiddenNodeLabel(nodeId) + ": 활성 섬 없음";
+            return "노드 섬 현황" + routePrivacy.hiddenNodeLabel(nodeId) + ": 활성 섬 없음";
         }
         java.util.List<String> entries = new java.util.ArrayList<>();
         int index = 0;
@@ -2333,11 +2336,11 @@ public final class VelocityRoutingController {
             String object = islands.substring(objectStart, objectEnd + 1);
             String islandId = jsonValue(object, "islandId");
             if (!islandId.isBlank()) {
-                entries.add(islandId + "(" + nodeIslandRuntimeSuffix(object) + ")");
+                entries.add(islandId + "(" + routePrivacy.nodeIslandRuntimeSuffix(object) + ")");
             }
             index = objectEnd + 1;
         }
-        return "노드 섬 현황" + hiddenNodeLabel(nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
+        return "노드 섬 현황" + routePrivacy.hiddenNodeLabel(nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
     }
 
     private String storageStatusMessage(String body) {
@@ -2361,7 +2364,7 @@ public final class VelocityRoutingController {
             String nodeId = jsonValue(object, "nodeId");
             boolean available = boolValue(object, "storageAvailable");
             if (!nodeId.isBlank()) {
-                entries.add(displayNodeName(nodeId, entries.size() + 1) + "=" + (available ? "OK" : "DOWN") + storageMetricSuffix(object));
+                entries.add(routePrivacy.displayNodeName(nodeId, entries.size() + 1) + "=" + (available ? "OK" : "DOWN") + storageMetricSuffix(object));
                 if (!available) {
                     unavailable++;
                 }
@@ -2533,13 +2536,13 @@ public final class VelocityRoutingController {
     private String nodeActionSummaryMessage(String label, String nodeId, String body) {
         String displayNode = nodeId == null || nodeId.isBlank() ? "target-node" : nodeId;
         if (body == null || body.isBlank()) {
-            return label + ": accepted" + routeNodeSuffix(displayNode);
+            return label + ": accepted" + routePrivacy.routeNodeSuffix(displayNode);
         }
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
-            return label + ": " + (boolValue(body, "accepted") ? "accepted" : "rejected") + routeNodeSuffix(displayNode) + " code=" + code;
+            return label + ": " + (boolValue(body, "accepted") ? "accepted" : "rejected") + routePrivacy.routeNodeSuffix(displayNode) + " code=" + code;
         }
-        return label + ": " + (boolValue(body, "accepted") ? "accepted" : "requested") + routeNodeSuffix(displayNode);
+        return label + ": " + (boolValue(body, "accepted") ? "accepted" : "requested") + routePrivacy.routeNodeSuffix(displayNode);
     }
 
     private String nodeSweepMessage(String body) {
@@ -2557,7 +2560,7 @@ public final class VelocityRoutingController {
                 break;
             }
             String nodeId = nodes.substring(valueStart + 1, valueEnd);
-            swept.add(displayNodeName(nodeId, swept.size() + 1));
+            swept.add(routePrivacy.displayNodeName(nodeId, swept.size() + 1));
             index = valueEnd + 1;
         }
         return "Node sweep: nodes=" + (swept.isEmpty() ? "none" : String.join(",", swept)) + " recoveryRequired=" + recoveryRequired;
@@ -2629,7 +2632,7 @@ public final class VelocityRoutingController {
             .append(" attempts=")
             .append(attempts);
         if (!targetNode.isBlank()) {
-            builder.append(routeNodeSuffix(targetNode));
+            builder.append(routePrivacy.routeNodeSuffix(targetNode));
         }
         if (!error.isBlank()) {
             builder.append(" error=").append(error);
@@ -2691,10 +2694,10 @@ public final class VelocityRoutingController {
                 + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
                 + (action.isBlank() ? "" : " action=" + action)
                 + (reason.isBlank() ? "" : " reason=" + reason)
-                + routeRequestedNodeSuffix(requestedNode)
+                + routePrivacy.routeRequestedNodeSuffix(requestedNode)
                 + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
                 + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
-                + routeNodeSuffix(nodeId)
+                + routePrivacy.routeNodeSuffix(nodeId)
                 + (occurredAt.isBlank() ? "" : " at=" + occurredAt));
             index = objectEnd + 1;
         }
@@ -2817,8 +2820,8 @@ public final class VelocityRoutingController {
             String expiresAt = jsonValue(object, "expiresAt");
             entries.add(shortId(playerUuid)
                 + " ticket=" + shortId(ticketId)
-                + routeNodeSuffix(nodeId)
-                + routeServerSuffix(serverName)
+                + routePrivacy.routeNodeSuffix(nodeId)
+                + routePrivacy.routeServerSuffix(serverName)
                 + (expiresAt.isBlank() ? "" : " expires=" + expiresAt));
             index = objectEnd + 1;
         }
@@ -2850,7 +2853,7 @@ public final class VelocityRoutingController {
             + " " + (action.isBlank() ? "UNKNOWN" : action)
             + " " + (state.isBlank() ? "UNKNOWN" : state)
             + (islandId.isBlank() ? "" : " 섬=" + shortId(islandId))
-            + routeNodeSuffix(nodeId);
+            + routePrivacy.routeNodeSuffix(nodeId);
     }
 
     private String shortId(String value) {
@@ -2897,71 +2900,6 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
-    }
-
-    private String hiddenNodeLabel(String nodeId) {
-        if (hideNodeNames) {
-            return "";
-        }
-        return nodeId == null || nodeId.isBlank() ? "" : " " + nodeId;
-    }
-
-    private String displayNodeName(String nodeId, int index) {
-        if (hideNodeNames || nodeId == null || nodeId.isBlank()) {
-            return "node-" + Math.max(1, index);
-        }
-        return nodeId;
-    }
-
-    private String routeNodeSuffix(String nodeId) {
-        if (nodeId == null || nodeId.isBlank()) {
-            return "";
-        }
-        return hideNodeNames ? "" : " node=" + nodeId;
-    }
-
-    private String routeRequestedNodeSuffix(String nodeId) {
-        if (nodeId == null || nodeId.isBlank()) {
-            return "";
-        }
-        return hideNodeNames ? "" : " requestedNode=" + nodeId;
-    }
-
-    private String routeServerSuffix(String serverName) {
-        if (serverName == null || serverName.isBlank()) {
-            return "";
-        }
-        return hideNodeNames ? "" : " server=" + serverName;
-    }
-
-    private String runtimeWorldSuffix(String worldName) {
-        if (worldName == null || worldName.isBlank()) {
-            return "";
-        }
-        return hideNodeNames ? "" : " world=" + worldName;
-    }
-
-    private String runtimeCellSuffix(String object) {
-        if (object == null || object.contains("\"cellX\":null") || object.contains("\"cellZ\":null")) {
-            return "";
-        }
-        return hideNodeNames ? "" : " cell=" + longValue(object, "cellX") + "," + longValue(object, "cellZ");
-    }
-
-    private String nodeIslandRuntimeSuffix(String object) {
-        java.util.List<String> parts = new java.util.ArrayList<>();
-        String state = jsonValue(object, "state");
-        if (!state.isBlank()) {
-            parts.add(state);
-        }
-        String world = jsonValue(object, "activeWorld");
-        if (!world.isBlank()) {
-            parts.add("world=" + world);
-        }
-        if (!object.contains("\"cellX\":null") && !object.contains("\"cellZ\":null")) {
-            parts.add("cell=" + longValue(object, "cellX") + "," + longValue(object, "cellZ"));
-        }
-        return String.join(" ", parts);
     }
 
     private void appendLongSummary(StringBuilder summary, String label, long value) {
