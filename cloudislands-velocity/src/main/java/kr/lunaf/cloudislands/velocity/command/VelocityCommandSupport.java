@@ -9,18 +9,19 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
+import kr.lunaf.cloudislands.velocity.VelocityRoutingActions;
 import kr.lunaf.cloudislands.velocity.VelocityRoutingController;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 import net.kyori.adventure.text.Component;
 
 abstract class VelocityCommandSupport {
     protected final ProxyServer proxy;
-    protected final VelocityRoutingController routingController;
+    protected final VelocityRoutingActions routingController;
     protected final VelocityConfig config;
 
     protected VelocityCommandSupport(ProxyServer proxy, VelocityRoutingController routingController, VelocityConfig config) {
         this.proxy = proxy;
-        this.routingController = routingController;
+        this.routingController = routingController.actions();
         this.config = config;
     }
 
