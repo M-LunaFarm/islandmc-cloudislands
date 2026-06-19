@@ -67,6 +67,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.ProgressionRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RoutePreparationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RouteTicketRoutes;
@@ -651,38 +652,7 @@ public final class CloudIslandsCoreApplication {
             audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_ROLLBACK", "MIGRATION", "superiorskyblock2", Map.of());
             write(exchange, 202, migrationAdmin.rollbackLastImport());
         });
-        route("/v1/admin/players/info", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, playerProfileJson(playerProfiles.find(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)))));
-        });
-        route("/v1/players/info", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            String lastName = JsonFields.text(body, "lastName", "");
-            java.util.Optional<kr.lunaf.cloudislands.api.model.PlayerIslandProfile> profile = playerUuid.equals(new UUID(0L, 0L))
-                ? playerProfiles.findByLastName(lastName)
-                : java.util.Optional.of(playerProfiles.find(playerUuid));
-            write(exchange, profile.isPresent() ? 200 : 404, profile.map(CloudIslandsCoreApplication::playerProfileJson).orElseGet(() -> ApiResponses.error("PLAYER_NOT_FOUND", "Player was not found")));
-        });
-        route("/v1/players/touch", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            String lastName = JsonFields.text(body, "lastName", "");
-            write(exchange, 202, playerProfileJson(playerProfiles.touch(playerUuid, lastName)));
-        });
-        route("/v1/admin/players/setisland", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            audit.log(new UUID(0L, 0L), "ADMIN", "PLAYER_SET_ISLAND", "PLAYER", playerUuid.toString(), Map.of("islandId", islandId.toString()));
-            write(exchange, 202, playerProfileJson(playerProfiles.setPrimaryIsland(playerUuid, islandId)));
-        });
-        route("/v1/admin/players/clearisland", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            audit.log(new UUID(0L, 0L), "ADMIN", "PLAYER_CLEAR_ISLAND", "PLAYER", playerUuid.toString(), Map.of());
-            write(exchange, 202, playerProfileJson(playerProfiles.clearPrimaryIsland(playerUuid)));
-        });
+        new PlayerProfileRoutes(playerProfiles, audit).register(this::route);
         route("/v1/admin/templates/list", exchange -> write(exchange, 200, templatesJson(templateRepository.list())));
         route("/v1/admin/templates/upsert", exchange -> {
             String body = readBody(exchange);
