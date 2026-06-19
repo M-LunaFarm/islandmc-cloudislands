@@ -61,6 +61,7 @@ import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.http.routes.AdminRuntimeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AddonRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AuditRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
@@ -571,22 +572,7 @@ public final class CloudIslandsCoreApplication {
         });
         new RoutePreparationRoutes(routing).register(this::route);
         new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(this::route);
-        route("/v1/admin/cache/clear", exchange -> {
-            int clearedSessions = sessions.clearAll();
-            int clearedTickets = tickets.clearAll();
-            int clearedRedisKeys = redisCacheAdmin == null ? 0 : redisCacheAdmin.clearApplicationCaches();
-            audit.log(new UUID(0L, 0L), "ADMIN", "CACHE_CLEAR", "CORE", "application-cache", Map.of("sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets), "redisKeys", Integer.toString(clearedRedisKeys)));
-            events.publish(CloudIslandEventType.CORE_CACHE_CLEARED.name(), Map.of("scope", "application-cache", "sessions", Integer.toString(clearedSessions), "tickets", Integer.toString(clearedTickets), "redisKeys", Integer.toString(clearedRedisKeys)));
-            write(exchange, 202, "{\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + ",\"clearedRedisKeys\":" + clearedRedisKeys + "}");
-        });
-        route("/v1/admin/reload", exchange -> {
-            int clearedSessions = sessions.clearAll();
-            int clearedTickets = tickets.clearAll();
-            int clearedRedisKeys = redisCacheAdmin == null ? 0 : redisCacheAdmin.clearApplicationCaches();
-            audit.log(new UUID(0L, 0L), "ADMIN", "CORE_RELOAD", "CORE", "runtime", Map.of("clearedSessions", Integer.toString(clearedSessions), "clearedTickets", Integer.toString(clearedTickets), "clearedRedisKeys", Integer.toString(clearedRedisKeys)));
-            events.publish(CloudIslandEventType.CORE_RELOADED.name(), Map.of("clearedSessions", Integer.toString(clearedSessions), "clearedTickets", Integer.toString(clearedTickets), "clearedRedisKeys", Integer.toString(clearedRedisKeys)));
-            write(exchange, 202, "{\"reloaded\":true,\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + ",\"clearedRedisKeys\":" + clearedRedisKeys + "}");
-        });
+        new AdminRuntimeRoutes(sessions, tickets, redisCacheAdmin, audit, events).register(this::route);
         new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), migrationAdmin, audit).register(this::route);
         new PlayerProfileRoutes(playerProfiles, audit).register(this::route);
         new TemplateRoutes(templateRepository, audit, events).register(this::route);
