@@ -69,6 +69,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBankRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBlockLevelRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandCommunicationRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandSnapshotRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandUpgradeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
@@ -363,6 +364,7 @@ public final class CloudIslandsCoreApplication {
         new IslandBlockLevelRoutes(levelRepository, rankingRepository, levelRecalculation, islandRepository, metadataRepository, permissionRules, audit, events).register(this::route);
         new IslandUpgradeRoutes(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(this::route);
+        new IslandSnapshotRoutes(snapshotRepository, runtimeRepository, snapshotRetentionPolicy, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -711,36 +713,6 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_REPAIRED.name(), Map.of("islandId", islandId.toString(), "reason", reason, "state", runtime.state().name()));
             events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "reason", "REPAIRED"));
             write(exchange, 202, runtimeJson(runtime));
-        });
-        route("/v1/islands/snapshots", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, snapshotsJson(snapshotRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.integer(body, "limit", 20))));
-        });
-        route("/v1/islands/snapshots/record", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
-            if (snapshotNo <= 0L) {
-                write(exchange, 409, ApiResponses.error("INVALID_SNAPSHOT", "Snapshot number is required"));
-                return;
-            }
-            String storagePath = JsonFields.text(body, "storagePath", "islands/" + islandId + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst");
-            String reason = JsonFields.text(body, "reason", "AUTO");
-            String checksum = JsonFields.text(body, "checksum", "");
-            long sizeBytes = JsonFields.longValue(body, "sizeBytes", 0L);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            long fencingToken = JsonFields.longValue(body, "fencingToken", 0L);
-            var runtime = runtimeRepository.find(islandId).orElse(null);
-            if (runtime == null || runtime.activeNode() == null || !runtime.activeNode().equals(nodeId)) {
-                write(exchange, 403, ApiResponses.error("SNAPSHOT_NODE_MISMATCH", "Snapshot must be recorded by the active island node"));
-                return;
-            }
-            if (fencingToken <= 0L || runtime.fencingToken() != fencingToken) {
-                write(exchange, 409, ApiResponses.error("STALE_FENCING_TOKEN", "Snapshot fencing token must match the active island runtime"));
-                return;
-            }
-            int pruned = recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId, fencingToken);
-            write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"fencingToken\":" + fencingToken + ",\"pruned\":" + pruned + "}");
         });
         route("/v1/islands/delete", exchange -> {
             String body = readBody(exchange);
