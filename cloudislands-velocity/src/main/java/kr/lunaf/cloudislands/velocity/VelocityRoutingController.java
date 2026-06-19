@@ -3,11 +3,9 @@ package kr.lunaf.cloudislands.velocity;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.arrayValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.boolValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.countObjects;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.doubleValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.matchingObjectEnd;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.parseLong;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
@@ -40,6 +38,7 @@ import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter
 import kr.lunaf.cloudislands.velocity.message.VelocityEventMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityIslandMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMigrationMessageFormatter;
+import kr.lunaf.cloudislands.velocity.message.VelocityNodeJobMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRouteMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
@@ -72,6 +71,7 @@ public final class VelocityRoutingController {
     private final VelocityMigrationMessageFormatter migrationMessages = new VelocityMigrationMessageFormatter();
     private final VelocityEventMessageFormatter eventMessages;
     private final VelocityIslandMessageFormatter islandMessages;
+    private final VelocityNodeJobMessageFormatter nodeJobMessages;
     private final VelocityRouteMessageFormatter routeMessages;
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
@@ -122,6 +122,7 @@ public final class VelocityRoutingController {
         this.routePrivacy = new VelocityRoutePrivacyFormatter(hideNodeNames);
         this.eventMessages = new VelocityEventMessageFormatter(routePrivacy);
         this.islandMessages = new VelocityIslandMessageFormatter(routePrivacy);
+        this.nodeJobMessages = new VelocityNodeJobMessageFormatter(routePrivacy);
         this.routeMessages = new VelocityRouteMessageFormatter(routePrivacy);
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
@@ -777,49 +778,49 @@ public final class VelocityRoutingController {
     }
 
     public void listJobs(Player player) {
-        sendBodyResult(player, coreApiClient.listJobs().thenApply(this::jobListMessage), "작업 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listJobs().thenApply(nodeJobMessages::jobList), "작업 목록을 불러오지 못했습니다.");
     }
 
     public void retryJob(Player player, UUID jobId) {
-        sendBodyResult(player, coreApiClient.retryJob(jobId).thenApply(body -> jobActionMessage("retry", body)), "작업 재시도를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.retryJob(jobId).thenApply(body -> nodeJobMessages.jobAction("retry", body)), "작업 재시도를 요청하지 못했습니다.");
     }
 
     public void cancelJob(Player player, UUID jobId) {
-        sendBodyResult(player, coreApiClient.cancelJob(jobId).thenApply(body -> jobActionMessage("cancel", body)), "작업 취소를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.cancelJob(jobId).thenApply(body -> nodeJobMessages.jobAction("cancel", body)), "작업 취소를 요청하지 못했습니다.");
     }
 
     public void recoverJobs(Player player, String nodeId, long minIdleMillis, int maxJobs) {
-        sendBodyResult(player, coreApiClient.recoverJobs(nodeId, minIdleMillis, maxJobs).thenApply(body -> jobActionMessage("recover", body)), "작업 복구를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.recoverJobs(nodeId, minIdleMillis, maxJobs).thenApply(body -> nodeJobMessages.jobAction("recover", body)), "작업 복구를 요청하지 못했습니다.");
     }
 
     public void listNodes(Player player) {
-        sendBodyResult(player, coreApiClient.listNodes().thenApply(this::nodeListSummaryMessage), "노드 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listNodes().thenApply(nodeJobMessages::nodeListSummary), "노드 목록을 불러오지 못했습니다.");
     }
 
     public void nodeInfo(Player player, String nodeId) {
-        sendBodyResult(player, coreApiClient.nodeInfo(nodeId).thenApply(this::appendLevelScanSummary), "노드 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.nodeInfo(nodeId).thenApply(nodeJobMessages::appendLevelScanSummary), "노드 정보를 불러오지 못했습니다.");
     }
 
     public void nodeIslands(Player player, String nodeId, int limit) {
-        sendBodyResult(player, coreApiClient.nodeIslands(nodeId, Math.max(1, Math.min(limit, 200))).thenApply(this::nodeIslandListMessage), "노드 섬 현황을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.nodeIslands(nodeId, Math.max(1, Math.min(limit, 200))).thenApply(nodeJobMessages::nodeIslandList), "노드 섬 현황을 불러오지 못했습니다.");
     }
 
     public void drainNode(Player player, String nodeId) {
-        sendBodyResult(player, coreApiClient.drainNode(nodeId).thenApply(body -> nodeActionSummaryMessage("Node drain", nodeId, body)), "노드 drain을 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.drainNode(nodeId).thenApply(body -> nodeJobMessages.nodeActionSummary("Node drain", nodeId, body)), "노드 drain을 요청하지 못했습니다.");
     }
 
     public void undrainNode(Player player, String nodeId) {
-        sendBodyResult(player, coreApiClient.undrainNode(nodeId).thenApply(body -> nodeActionSummaryMessage("Node undrain", nodeId, body)), "노드 undrain을 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.undrainNode(nodeId).thenApply(body -> nodeJobMessages.nodeActionSummary("Node undrain", nodeId, body)), "노드 undrain을 요청하지 못했습니다.");
     }
 
     public void sweepNode(Player player, String nodeId) {
-        sendBodyResult(player, coreApiClient.sweepNode(nodeId).thenApply(this::nodeSweepMessage), "노드 장애 스윕을 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.sweepNode(nodeId).thenApply(nodeJobMessages::nodeSweep), "노드 장애 스윕을 요청하지 못했습니다.");
     }
 
     public void kickAllNode(Player player, String nodeId, String reason) {
         coreApiClient.kickAllNode(nodeId, reason).thenAccept(body -> {
             int moved = moveNodePlayersToFallback(nodeId);
-            player.sendMessage(Component.text(nodeActionSummaryMessage("Node kickall", nodeId, body) + " lobbyMoved=" + moved));
+            player.sendMessage(Component.text(nodeJobMessages.nodeActionSummary("Node kickall", nodeId, body) + " lobbyMoved=" + moved));
         }).exceptionally(error -> {
             player.sendMessage(Component.text("노드 kickall을 요청하지 못했습니다."));
             return null;
@@ -829,7 +830,7 @@ public final class VelocityRoutingController {
     public void shutdownSafeNode(Player player, String nodeId, String reason) {
         coreApiClient.shutdownNodeSafely(nodeId, reason).thenAccept(body -> {
             int moved = moveNodePlayersToFallback(nodeId);
-            player.sendMessage(Component.text(nodeActionSummaryMessage("Node shutdown-safe", nodeId, body) + " lobbyMoved=" + moved));
+            player.sendMessage(Component.text(nodeJobMessages.nodeActionSummary("Node shutdown-safe", nodeId, body) + " lobbyMoved=" + moved));
         }).exceptionally(error -> {
             player.sendMessage(Component.text("노드 shutdown-safe를 요청하지 못했습니다."));
             return null;
@@ -1021,7 +1022,7 @@ public final class VelocityRoutingController {
     }
 
     public void storageStatus(Player player) {
-        sendBodyResult(player, coreApiClient.storageStatus().thenApply(this::storageStatusMessage), "Storage 상태를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.storageStatus().thenApply(nodeJobMessages::storageStatus), "Storage 상태를 불러오지 못했습니다.");
     }
 
     public void addonStateSummary(Player player) {
@@ -1389,418 +1390,6 @@ public final class VelocityRoutingController {
         moveNodePlayersToFallback(nodeId);
     }
 
-    private String appendLevelScanSummary(String body) {
-        java.util.List<String> summaries = new java.util.ArrayList<>();
-        String activation = activationAllocationSummary(body);
-        if (!activation.isBlank()) {
-            summaries.add(activation);
-        }
-        String levelScan = levelScanSummary(body);
-        if (!levelScan.isBlank()) {
-            summaries.add(levelScan);
-        }
-        if (summaries.isEmpty()) {
-            return body;
-        }
-        return (body == null || body.isBlank() ? "" : body + " | ") + String.join(" | ", summaries);
-    }
-
-    private String activationAllocationSummary(String body) {
-        if (body == null || body.isBlank() || !body.contains("\"eligibleForNewActivation\"")) {
-            return "";
-        }
-        boolean eligible = boolValue(body, "eligibleForNewActivation");
-        String reason = jsonValue(body, "allocationBlockReason");
-        return "활성화 배정=" + (eligible ? "가능" : "차단(" + (reason.isBlank() ? "UNKNOWN" : reason) + ")");
-    }
-
-    private String levelScanSummary(String body) {
-        String scan = objectValue(body, "levelScan");
-        if (scan.isBlank()) {
-            return "";
-        }
-        StringBuilder summary = new StringBuilder("레벨 스캔=");
-        summary.append(boolValue(scan, "running") ? "실행 중" : "대기");
-        String lastIsland = jsonValue(scan, "lastIsland");
-        if (!lastIsland.isBlank()) {
-            summary.append(", 마지막 섬=").append(lastIsland);
-        }
-        appendLongSummary(summary, "시작", longValue(scan, "startedAt"));
-        appendLongSummary(summary, "완료", longValue(scan, "finishedAt"));
-        appendLongSummary(summary, "실패", longValue(scan, "failedAt"));
-        return summary.toString();
-    }
-
-    private String nodeIslandSummary(String body) {
-        if (body == null || body.isBlank()) {
-            return "";
-        }
-        String id = jsonValue(body, "id");
-        String server = jsonValue(body, "server");
-        String state = jsonValue(body, "state");
-        long active = longValue(body, "activeIslands");
-        long max = longValue(body, "maxActiveIslands");
-        StringBuilder summary = new StringBuilder("노드 섬 현황");
-        if (!id.isBlank()) {
-            summary.append(' ').append(id);
-        }
-        summary.append(": 활성 섬 ").append(active);
-        if (max > 0L) {
-            summary.append('/').append(max);
-        }
-        if (!state.isBlank()) {
-            summary.append(", 상태=").append(state);
-        }
-        if (!server.isBlank()) {
-            summary.append(", 서버=").append(server);
-        }
-        return summary.toString();
-    }
-
-    private String nodeIslandListMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "";
-        }
-        String nodeId = jsonValue(body, "nodeId");
-        long count = longValue(body, "count");
-        String islands = arrayValue(body, "islands");
-        if (islands.isBlank() || count == 0L) {
-            return "노드 섬 현황" + routePrivacy.hiddenNodeLabel(nodeId) + ": 활성 섬 없음";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < islands.length()) {
-            int objectStart = islands.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(islands, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = islands.substring(objectStart, objectEnd + 1);
-            String islandId = jsonValue(object, "islandId");
-            if (!islandId.isBlank()) {
-                entries.add(islandId + "(" + routePrivacy.nodeIslandRuntimeSuffix(object) + ")");
-            }
-            index = objectEnd + 1;
-        }
-        return "노드 섬 현황" + routePrivacy.hiddenNodeLabel(nodeId) + ": " + (entries.isEmpty() ? "활성 섬 없음" : String.join(", ", entries));
-    }
-
-    private String storageStatusMessage(String body) {
-        String nodes = arrayValue(body, "nodes");
-        if (nodes.isBlank()) {
-            return "Storage status: registered node 없음";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int unavailable = 0;
-        int index = 0;
-        while (index < nodes.length()) {
-            int objectStart = nodes.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(nodes, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = nodes.substring(objectStart, objectEnd + 1);
-            String nodeId = jsonValue(object, "nodeId");
-            boolean available = boolValue(object, "storageAvailable");
-            if (!nodeId.isBlank()) {
-                entries.add(routePrivacy.displayNodeName(nodeId, entries.size() + 1) + "=" + (available ? "OK" : "DOWN") + storageMetricSuffix(object));
-                if (!available) {
-                    unavailable++;
-                }
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty()
-            ? "Storage status: registered node 없음"
-            : "Storage status: " + String.join(", ", entries) + " / unavailable=" + unavailable;
-    }
-
-    private String storageMetricSuffix(String nodeObject) {
-        String storage = objectValue(nodeObject, "storage");
-        if (storage.isBlank()) {
-            return "";
-        }
-        long failures = longValue(storage, "healthCheckFailures")
-            + longValue(storage, "uploadFailures")
-            + longValue(storage, "downloadFailures")
-            + longValue(storage, "operationFailures");
-        String backend = fallback(jsonValue(storage, "backend"), "unknown");
-        boolean primaryDegraded = boolValue(storage, "primaryDegraded");
-        return "(backend=" + backend
-            + ", primaryDegraded=" + primaryDegraded
-            + ", failures=" + failures
-            + ", up=" + seconds(doubleValue(storage, "uploadSeconds")) + "s"
-            + ", down=" + seconds(doubleValue(storage, "downloadSeconds")) + "s)";
-    }
-
-    private String nodeListSummaryMessage(String body) {
-        String nodes = arrayValue(body, "nodes");
-        if (nodes.isBlank()) {
-            return "Nodes: empty";
-        }
-        int total = 0;
-        int starting = 0;
-        int warming = 0;
-        int ready = 0;
-        int softFull = 0;
-        int hardFull = 0;
-        int draining = 0;
-        int shuttingDown = 0;
-        int down = 0;
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < nodes.length()) {
-            int objectStart = nodes.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(nodes, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = nodes.substring(objectStart, objectEnd + 1);
-            String state = jsonValue(object, "state");
-            total++;
-            if (state.equalsIgnoreCase("STARTING")) {
-                starting++;
-            } else if (state.equalsIgnoreCase("WARMING")) {
-                warming++;
-            } else if (state.equalsIgnoreCase("READY")) {
-                ready++;
-            } else if (state.equalsIgnoreCase("SOFT_FULL")) {
-                softFull++;
-            } else if (state.equalsIgnoreCase("HARD_FULL")) {
-                hardFull++;
-            } else if (state.equalsIgnoreCase("DRAINING")) {
-                draining++;
-            } else if (state.equalsIgnoreCase("SHUTTING_DOWN")) {
-                shuttingDown++;
-            } else if (state.equalsIgnoreCase("DOWN")) {
-                down++;
-            }
-            if (entries.size() < 10) {
-                entries.add(nodeSummary(object, entries.size() + 1));
-            }
-            index = objectEnd + 1;
-        }
-        return "Nodes: total=" + total
-            + " starting=" + starting
-            + " warming=" + warming
-            + " ready=" + ready
-            + " softFull=" + softFull
-            + " hardFull=" + hardFull
-            + " draining=" + draining
-            + " shuttingDown=" + shuttingDown
-            + " down=" + down
-            + poolSummarySuffix(body)
-            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    private String poolSummarySuffix(String body) {
-        String pools = arrayValue(body, "pools");
-        if (pools.isBlank()) {
-            return "";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < pools.length()) {
-            int objectStart = pools.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(pools, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = pools.substring(objectStart, objectEnd + 1);
-            String pool = fallback(jsonValue(object, "pool"), "island");
-            entries.add(pool
-                + " nodes=" + longValue(object, "healthyNodeCount") + "/" + longValue(object, "nodeCount")
-                + " players=" + longValue(object, "players") + "/" + longValue(object, "softPlayerCap") + "/" + longValue(object, "hardPlayerCap")
-                + " reserved=" + longValue(object, "reservedSlots")
-                + " islands=" + longValue(object, "activeIslands") + "/" + longValue(object, "maxActiveIslands")
-                + " queue=" + longValue(object, "activationQueue") + "/" + longValue(object, "maxActivationQueue"));
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "" : " / pools: " + String.join(" | ", entries);
-    }
-
-    private String nodeSummary(String object, int displayIndex) {
-        String id = jsonValue(object, "id");
-        String state = jsonValue(object, "state");
-        long players = longValue(object, "players");
-        long softCap = longValue(object, "softPlayerCap");
-        long hardCap = longValue(object, "hardPlayerCap");
-        long reservedSlots = longValue(object, "reservedSlots");
-        long activeIslands = longValue(object, "activeIslands");
-        long maxActiveIslands = longValue(object, "maxActiveIslands");
-        long activationQueue = longValue(object, "activationQueue");
-        long maxActivationQueue = longValue(object, "maxActivationQueue");
-        boolean activationEligible = boolValue(object, "eligibleForNewActivation");
-        String allocationBlockReason = jsonValue(object, "allocationBlockReason");
-        String displayNode = id.isBlank() ? "node-" + displayIndex : id;
-        return displayNode
-            + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + " players=" + players + "/" + softCap + "/" + hardCap + " reserved=" + reservedSlots
-            + " islands=" + activeIslands + "/" + maxActiveIslands
-            + " queue=" + activationQueue + "/" + maxActivationQueue
-            + " mspt=" + seconds(doubleValue(object, "mspt"))
-            + " score=" + seconds(doubleValue(object, "score"))
-            + scoreParts(object)
-            + " activation=" + (activationEligible ? "ok" : "blocked:" + (allocationBlockReason.isBlank() ? "UNKNOWN" : allocationBlockReason))
-            + " storage=" + (boolValue(object, "storageAvailable") ? "ok" : "down");
-    }
-
-    private String scoreParts(String nodeObject) {
-        String breakdown = objectValue(nodeObject, "scoreBreakdown");
-        if (breakdown.isBlank()) {
-            return "";
-        }
-        return " parts=p:" + seconds(doubleValue(breakdown, "playerPressure"))
-            + ",a:" + seconds(doubleValue(breakdown, "activeIslandPressure"))
-            + ",m:" + seconds(doubleValue(breakdown, "msptPressure"))
-            + ",q:" + seconds(doubleValue(breakdown, "activationQueuePressure"))
-            + ",mem:" + seconds(doubleValue(breakdown, "memoryPressure"))
-            + ",fail:" + seconds(scorePartValue(breakdown, "recentFailurePressure", "recentFailurePenalty"));
-    }
-
-    private double scorePartValue(String breakdown, String primaryKey, String fallbackKey) {
-        double primary = doubleValue(breakdown, primaryKey);
-        if (primary != 0.0D || breakdown.contains("\"" + primaryKey + "\"")) {
-            return primary;
-        }
-        return doubleValue(breakdown, fallbackKey);
-    }
-
-    private String nodeActionSummaryMessage(String label, String nodeId, String body) {
-        String displayNode = nodeId == null || nodeId.isBlank() ? "target-node" : nodeId;
-        if (body == null || body.isBlank()) {
-            return label + ": accepted" + routePrivacy.routeNodeSuffix(displayNode);
-        }
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return label + ": " + (boolValue(body, "accepted") ? "accepted" : "rejected") + routePrivacy.routeNodeSuffix(displayNode) + " code=" + code;
-        }
-        return label + ": " + (boolValue(body, "accepted") ? "accepted" : "requested") + routePrivacy.routeNodeSuffix(displayNode);
-    }
-
-    private String nodeSweepMessage(String body) {
-        String nodes = arrayValue(body, "nodes");
-        long recoveryRequired = longValue(body, "recoveryRequired");
-        java.util.List<String> swept = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < nodes.length()) {
-            int valueStart = nodes.indexOf('"', index);
-            if (valueStart < 0) {
-                break;
-            }
-            int valueEnd = nodes.indexOf('"', valueStart + 1);
-            if (valueEnd < 0) {
-                break;
-            }
-            String nodeId = nodes.substring(valueStart + 1, valueEnd);
-            swept.add(routePrivacy.displayNodeName(nodeId, swept.size() + 1));
-            index = valueEnd + 1;
-        }
-        return "Node sweep: nodes=" + (swept.isEmpty() ? "none" : String.join(",", swept)) + " recoveryRequired=" + recoveryRequired;
-    }
-
-    private String jobListMessage(String body) {
-        String jobs = arrayValue(body, "jobs");
-        if (jobs.isBlank()) {
-            return "Jobs: empty";
-        }
-        int pending = 0;
-        int claimed = 0;
-        int failed = 0;
-        int done = 0;
-        int other = 0;
-        int total = 0;
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < jobs.length()) {
-            int objectStart = jobs.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(jobs, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = jobs.substring(objectStart, objectEnd + 1);
-            String state = jsonValue(object, "state");
-            total++;
-            if (state.equalsIgnoreCase("PENDING")) {
-                pending++;
-            } else if (state.equalsIgnoreCase("CLAIMED")) {
-                claimed++;
-            } else if (state.equalsIgnoreCase("FAILED")) {
-                failed++;
-            } else if (state.equalsIgnoreCase("DONE") || state.equalsIgnoreCase("COMPLETED")) {
-                done++;
-            } else {
-                other++;
-            }
-            if (entries.size() < 10) {
-                entries.add(jobSummary(object));
-            }
-            index = objectEnd + 1;
-        }
-        return "Jobs: total=" + total
-            + " pending=" + pending
-            + " claimed=" + claimed
-            + " failed=" + failed
-            + " done=" + done
-            + " other=" + other
-            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    private String jobSummary(String object) {
-        String id = jsonValue(object, "id");
-        String type = jsonValue(object, "type");
-        String state = jsonValue(object, "state");
-        String targetNode = jsonValue(object, "targetNode");
-        long attempts = longValue(object, "attempts");
-        String error = jsonValue(object, "error");
-        String shortId = id.length() > 8 ? id.substring(0, 8) : id;
-        StringBuilder builder = new StringBuilder(shortId.isBlank() ? "job" : shortId)
-            .append(' ')
-            .append(type.isBlank() ? "UNKNOWN" : type)
-            .append(' ')
-            .append(state.isBlank() ? "UNKNOWN" : state)
-            .append(" attempts=")
-            .append(attempts);
-        if (!targetNode.isBlank()) {
-            builder.append(routePrivacy.routeNodeSuffix(targetNode));
-        }
-        if (!error.isBlank()) {
-            builder.append(" error=").append(error);
-        }
-        return builder.toString();
-    }
-
-    private String jobActionMessage(String action, String body) {
-        if (body == null || body.isBlank()) {
-            return "Job " + action + ": no response";
-        }
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "Job " + action + ": failed code=" + code;
-        }
-        if (body.contains("\"recovered\"")) {
-            String recoveredText = jsonValue(body, "recovered");
-            long recoveredNumber = longValue(body, "recovered");
-            return "Job recover: recovered=" + (recoveredText.isBlank() ? Long.toString(recoveredNumber) : recoveredText);
-        }
-        return "Job " + action + ": " + (boolValue(body, "ok") ? "accepted" : "not applied");
-    }
-
     private String routeDebugMessage(String body) {
         return playerMessage(routeMessages.debug(body));
     }
@@ -1847,32 +1436,11 @@ public final class VelocityRoutingController {
         return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(" | ", entries);
     }
 
-    private String shortId(String value) {
-        if (value == null || value.isBlank()) {
-            return "-";
-        }
-        return value.length() > 8 ? value.substring(0, 8) : value;
-    }
-
     private String shortChecksum(String checksum) {
         if (checksum == null || checksum.isBlank()) {
             return "";
         }
         return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
-    }
-
-    private void appendLongSummary(StringBuilder summary, String label, long value) {
-        if (value > 0L) {
-            summary.append(", ").append(label).append('=').append(value);
-        }
-    }
-
-    private String seconds(double value) {
-        return String.format(java.util.Locale.ROOT, "%.3f", value);
-    }
-
-    private String fallback(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
     }
 
     private void sendInviteActionResult(Player player, CompletableFuture<String> future, String successMessage, String failureMessage) {
