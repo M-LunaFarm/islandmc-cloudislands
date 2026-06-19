@@ -1,21 +1,33 @@
 plugins {
     `java-library`
-    id("com.gradleup.shadow")
+    alias(libs.plugins.shadow)
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("me.clip:placeholderapi:2.11.6")
+    compileOnly(libs.paper.api)
+    compileOnly(libs.placeholderapi)
     implementation(project(":cloudislands-api"))
     implementation(project(":cloudislands-protocol"))
     implementation(project(":cloudislands-common"))
     implementation(project(":cloudislands-core-client"))
     implementation(project(":cloudislands-storage"))
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+    testImplementation(libs.junit.jupiter)
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.processResources {
+    filteringCharset = "UTF-8"
+    inputs.property("projectVersion", project.version)
+    inputs.property("paperApiBaseline", libs.versions.minecraft.baseline.get())
+    filesMatching("plugin.yml") {
+        expand(
+            "projectVersion" to project.version,
+            "paperApiBaseline" to libs.versions.minecraft.baseline.get()
+        )
+    }
 }
 
 tasks.shadowJar {

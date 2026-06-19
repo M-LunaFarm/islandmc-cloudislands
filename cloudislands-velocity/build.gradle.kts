@@ -1,17 +1,53 @@
 plugins {
     `java-library`
-    id("com.gradleup.shadow")
+    alias(libs.plugins.shadow)
+}
+
+val generatedBuildInfoDir = layout.buildDirectory.dir("generated/sources/build-info/java")
+val generateBuildInfo by tasks.registering {
+    inputs.property("projectVersion", project.version.toString())
+    outputs.dir(generatedBuildInfoDir)
+    doLast {
+        val packageDir = generatedBuildInfoDir.get().asFile.resolve("kr/lunaf/cloudislands/velocity")
+        packageDir.mkdirs()
+        packageDir.resolve("BuildInfo.java").writeText(
+            """
+            package kr.lunaf.cloudislands.velocity;
+
+            public final class BuildInfo {
+                public static final String VERSION = "${project.version}";
+
+                private BuildInfo() {
+                }
+            }
+            """.trimIndent() + System.lineSeparator()
+        )
+    }
+}
+
+sourceSets {
+    named("main") {
+        java.srcDir(generatedBuildInfoDir)
+    }
 }
 
 dependencies {
-    compileOnly("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
-    annotationProcessor("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
+    compileOnly(libs.velocity.api)
+    annotationProcessor(libs.velocity.api)
     implementation(project(":cloudislands-api"))
     implementation(project(":cloudislands-protocol"))
     implementation(project(":cloudislands-core-client"))
     implementation(project(":cloudislands-common"))
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
-    testImplementation("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.velocity.api)
+}
+
+tasks.compileJava {
+    dependsOn(generateBuildInfo)
+}
+
+tasks.named("sourcesJar") {
+    dependsOn(generateBuildInfo)
 }
 
 tasks.test {

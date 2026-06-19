@@ -1,26 +1,26 @@
 plugins {
     `java-library`
-    id("com.gradleup.shadow")
+    alias(libs.plugins.shadow)
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
+    compileOnly(libs.paper.api)
+    compileOnly(libs.vault.api) {
         exclude(group = "org.bukkit", module = "bukkit")
     }
-    compileOnly("me.clip:placeholderapi:2.11.6")
-    implementation("org.xerial:sqlite-jdbc:3.46.1.0")
-    implementation("org.postgresql:postgresql:42.7.4")
-    implementation("com.mysql:mysql-connector-j:9.1.0")
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.1")
-    implementation("com.zaxxer:HikariCP:5.1.0")
+    compileOnly(libs.placeholderapi)
+    implementation(libs.sqlite.jdbc)
+    implementation(libs.postgresql)
+    implementation(libs.mysql.connector)
+    implementation(libs.mariadb.client)
+    implementation(libs.hikaricp)
     implementation(project(":cloudislands-protocol"))
     implementation(project(":cloudislands-common"))
     compileOnly(project(":cloudislands-api"))
     testImplementation(project(":cloudislands-api"))
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
-    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    testImplementation("com.github.MilkBowl:VaultAPI:1.7") {
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.paper.api)
+    testImplementation(libs.vault.api) {
         exclude(group = "org.bukkit", module = "bukkit")
     }
 }
@@ -31,8 +31,23 @@ tasks.test {
 
 tasks.processResources {
     filteringCharset = "UTF-8"
+    inputs.property("projectVersion", project.version)
+    inputs.property("paperApiBaseline", libs.versions.minecraft.baseline.get())
+    inputs.property("sqliteJdbcVersion", libs.versions.sqlite.get())
+    inputs.property("postgresqlVersion", libs.versions.postgresql.get())
+    inputs.property("mysqlVersion", libs.versions.mysql.get())
+    inputs.property("mariadbVersion", libs.versions.mariadb.get())
+    inputs.property("hikaricpVersion", libs.versions.hikaricp.get())
     filesMatching("plugin.yml") {
-        expand("version" to project.version)
+        expand(
+            "projectVersion" to project.version,
+            "paperApiBaseline" to libs.versions.minecraft.baseline.get(),
+            "sqliteJdbcVersion" to libs.versions.sqlite.get(),
+            "postgresqlVersion" to libs.versions.postgresql.get(),
+            "mysqlVersion" to libs.versions.mysql.get(),
+            "mariadbVersion" to libs.versions.mariadb.get(),
+            "hikaricpVersion" to libs.versions.hikaricp.get()
+        )
     }
 }
 

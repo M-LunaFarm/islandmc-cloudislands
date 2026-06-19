@@ -7,8 +7,8 @@ fun embeddedOutput(projectName: String) =
 dependencies {
     implementation(project(":cloudislands-api"))
     implementation(project(":cloudislands-storage"))
-    compileOnly("org.postgresql:postgresql:42.7.7")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+    compileOnly(libs.postgresql)
+    testImplementation(libs.junit.jupiter)
 }
 
 tasks.test {

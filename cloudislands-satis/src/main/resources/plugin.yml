@@ -1,18 +1,18 @@
 name: CloudIslandsSatis
 main: kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin
-version: ${version}
+version: ${projectVersion}
 description: Official CloudIslands Satis addon without a SuperiorSkyblock2 runtime dependency
-api-version: "1.21"
+api-version: "${paperApiBaseline}"
 load: POSTWORLD
 prefix: CloudIslandsSatis
 depend: [CloudIslands]
 softdepend: [Vault, PlaceholderAPI]
 libraries:
-  - org.xerial:sqlite-jdbc:3.46.1.0
-  - org.postgresql:postgresql:42.7.4
-  - com.mysql:mysql-connector-j:9.1.0
-  - org.mariadb.jdbc:mariadb-java-client:3.5.1
-  - com.zaxxer:HikariCP:5.1.0
+  - org.xerial:sqlite-jdbc:${sqliteJdbcVersion}
+  - org.postgresql:postgresql:${postgresqlVersion}
+  - com.mysql:mysql-connector-j:${mysqlVersion}
+  - org.mariadb.jdbc:mariadb-java-client:${mariadbVersion}
+  - com.zaxxer:HikariCP:${hikaricpVersion}
 author: LeeSeungmin
 website: "mailto:admin@lunaf.kr"
 commands:

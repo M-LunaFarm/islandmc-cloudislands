@@ -6,10 +6,10 @@ dependencies {
     implementation(project(":cloudislands-protocol"))
     implementation(project(":cloudislands-storage"))
     implementation(project(":cloudislands-migration"))
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
-    runtimeOnly("org.postgresql:postgresql:42.7.7")
-    runtimeOnly("com.mysql:mysql-connector-j:9.1.0")
-    runtimeOnly("org.mariadb.jdbc:mariadb-java-client:3.5.1")
+    testImplementation(libs.junit.jupiter)
+    runtimeOnly(libs.postgresql)
+    runtimeOnly(libs.mysql.connector)
+    runtimeOnly(libs.mariadb.client)
 }
 
 application {

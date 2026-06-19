@@ -1,11 +1,12 @@
 import org.gradle.api.file.FileTreeElement
 import org.gradle.jvm.tasks.Jar
 import org.gradle.api.tasks.bundling.Zip
+import org.gradle.api.artifacts.VersionCatalogsExtension
 import java.security.MessageDigest
 
 plugins {
     `java-library`
-    id("com.gradleup.shadow") version "8.3.6" apply false
+    alias(libs.plugins.shadow) apply false
 }
 
 val markdownDocPatterns = listOf(
@@ -24,6 +25,9 @@ val markdownDocPatterns = listOf(
 )
 
 val markdownDocExtensions = listOf(".md", ".mdx", ".mdown", ".mkdn", ".markdown", ".mkd")
+val versionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val cloudislandsVersion = versionCatalog.findVersion("cloudislands").orElseThrow().requiredVersion
+val javaCurrentVersion = versionCatalog.findVersion("java-current").orElseThrow().requiredVersion.toInt()
 
 fun isMarkdownDocPath(path: String): Boolean =
     path.replace('\\', '/') != "README.md" && markdownDocExtensions.any { path.lowercase().endsWith(it) }
@@ -33,7 +37,11 @@ fun isMarkdownDocElement(element: FileTreeElement): Boolean =
 
 allprojects {
     group = "kr.lunaf.cloudislands"
-    version = "1.0.1"
+    version = cloudislandsVersion
+
+    dependencyLocking {
+        lockAllConfigurations()
+    }
 }
 
 subprojects {
@@ -42,7 +50,7 @@ subprojects {
 
         java {
             toolchain {
-                languageVersion.set(JavaLanguageVersion.of(21))
+                languageVersion.set(JavaLanguageVersion.of(javaCurrentVersion))
             }
             withSourcesJar()
         }
