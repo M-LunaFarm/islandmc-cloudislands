@@ -1,0 +1,72 @@
+package kr.lunaf.cloudislands.paper.platform.compatibility;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
+
+class PaperPlatformBoundaryTest {
+    @Test
+    void coreModulesDoNotImportMinecraftServerApis() throws Exception {
+        Path root = repositoryRoot();
+        try (Stream<Path> files = Stream.of(
+                root.resolve("cloudislands-api/src/main/java"),
+                root.resolve("cloudislands-common/src/main/java"),
+                root.resolve("cloudislands-protocol/src/main/java"),
+                root.resolve("cloudislands-core-service/src/main/java")
+            ).flatMap(PaperPlatformBoundaryTest::javaFiles)) {
+            String violations = files
+                .filter(PaperPlatformBoundaryTest::importsMinecraftServerApi)
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    private static Path repositoryRoot() {
+        Path current = Path.of(".").toAbsolutePath().normalize();
+        if (Files.exists(current.resolve("cloudislands-api"))) {
+            return current;
+        }
+        Path parent = current.getParent();
+        if (parent != null && Files.exists(parent.resolve("cloudislands-api"))) {
+            return parent;
+        }
+        return current;
+    }
+
+    @Test
+    void paperCompatibilityBoundaryTypesExist() {
+        PaperCapabilities capabilities = new DetectedPaperCapabilities();
+
+        assertTrue(capabilities.supportsMinorApiVersion());
+    }
+
+    private static Stream<Path> javaFiles(Path root) {
+        try {
+            if (Files.notExists(root)) {
+                return Stream.empty();
+            }
+            return Files.walk(root).filter(path -> path.toString().endsWith(".java"));
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static boolean importsMinecraftServerApi(Path path) {
+        try {
+            String source = Files.readString(path);
+            return source.contains("import org.bukkit.")
+                || source.contains("import io.papermc.")
+                || source.contains("import com.velocitypowered.")
+                || source.contains("import net.minecraft.");
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+}

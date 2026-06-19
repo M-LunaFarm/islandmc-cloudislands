@@ -14,33 +14,29 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.velocity.command.IslandCommandCatalog;
+import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
+import kr.lunaf.cloudislands.velocity.config.VelocityConfigLoader;
 import kr.lunaf.cloudislands.velocity.health.VelocityHealthService;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
+import kr.lunaf.cloudislands.velocity.security.PluginMessageFirewall;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
 @Plugin(id = "cloudislands", name = "CloudIslands", version = BuildInfo.VERSION, description = "Portable island routing and management", authors = {"LeeSeungmin"})
 public final class CloudIslandsVelocityPlugin {
-    private static final List<String> ALIASES = List.of("is", "island", "섬");
     private final ProxyServer proxy;
     private final Logger logger;
     private final VelocityRoutingController routingController;
@@ -49,13 +45,13 @@ public final class CloudIslandsVelocityPlugin {
     private final VelocityConfig config;
     private final VelocityHealthService healthService;
     private final VelocityMessages messages;
-    private final AtomicLong pluginMessagesBlocked = new AtomicLong();
+    private final PluginMessageFirewall pluginMessageFirewall = new PluginMessageFirewall();
 
     @Inject
     public CloudIslandsVelocityPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
         this.proxy = proxy;
         this.logger = logger;
-        VelocityConfig config = loadConfig(dataDirectory, logger);
+        VelocityConfig config = VelocityConfigLoader.load(dataDirectory, logger);
         this.config = config;
         String coreUrl = System.getProperty("cloudislands.core", config.coreBaseUrl());
         String coreToken = System.getenv().getOrDefault("CI_CORE_TOKEN", config.coreToken());
@@ -81,167 +77,6 @@ public final class CloudIslandsVelocityPlugin {
         if (config.debug()) {
             logger.info("CloudIslands Velocity config loaded: language={}, aliases={}, health={}:{}", config.language(), commandAliases, config.healthBindHost(), config.healthPort());
         }
-    }
-
-    private static VelocityConfig loadConfig(Path dataDirectory, Logger logger) {
-        Map<String, String> values = new HashMap<>();
-        List<String> aliases = new ArrayList<>();
-        Path configPath = dataDirectory.resolve("config.yaml");
-        try {
-            if (Files.notExists(configPath)) {
-                Files.createDirectories(dataDirectory);
-                try (InputStream defaults = CloudIslandsVelocityPlugin.class.getClassLoader().getResourceAsStream("config.yaml")) {
-                    if (defaults != null) {
-                        Files.copy(defaults, configPath, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                }
-            }
-            if (Files.exists(configPath)) {
-                Map<Integer, String> sections = new HashMap<>();
-                boolean readingAliases = false;
-                for (String rawLine : Files.readAllLines(configPath)) {
-                    String line = rawLine.strip();
-                    if (line.isBlank() || line.startsWith("#")) {
-                        continue;
-                    }
-                    if (readingAliases && line.startsWith("-")) {
-                        String alias = unquote(line.substring(1).strip());
-                        if (!alias.isBlank()) {
-                            aliases.add(alias);
-                        }
-                        continue;
-                    }
-                    readingAliases = false;
-                    int colon = line.indexOf(':');
-                    if (colon <= 0) {
-                        continue;
-                    }
-                    int indent = leadingSpaces(rawLine);
-                    String parent = parentSection(sections, indent);
-                    String key = line.substring(0, colon).strip();
-                    String rawValue = line.substring(colon + 1).strip();
-                    String value = unquote(rawValue);
-                    String fullKey = parent.isBlank() ? key : parent + "." + key;
-                    if (fullKey.equals("commands.aliases") && value.isBlank()) {
-                        readingAliases = true;
-                        continue;
-                    }
-                    if (rawValue.isBlank()) {
-                        sections.entrySet().removeIf(entry -> entry.getKey() >= indent);
-                        sections.put(indent, fullKey);
-                        continue;
-                    }
-                    values.put(fullKey, resolveEnv(value));
-                }
-            }
-        } catch (IOException exception) {
-            logger.warn("Failed to load CloudIslands Velocity config, using defaults", exception);
-        }
-        return new VelocityConfig(
-            values.getOrDefault("plugin.language", "ko_kr"),
-            bool(values.get("plugin.debug"), false),
-            value(values, "setup.core-api.base-url", value(values, "setup-core-api.base-url", value(values, "core-api.base-url", "https://core-api.internal:8443"))),
-            value(values, "setup.core-api.auth-token", value(values, "setup-core-api.auth-token", value(values, "core-api.auth-token", ""))),
-            value(values, "setup.core-api.admin-token", value(values, "setup-core-api.admin-token", value(values, "core-api.admin-token", ""))),
-            positiveInteger(values.get("setup.core-api.timeout-ms"), positiveInteger(values.get("setup-core-api.timeout-ms"), integer(values.get("core-api.timeout-ms"), 3000))),
-            values.getOrDefault("routing.fallback-on-failure", values.getOrDefault("routing.default-lobby", "Lobby")),
-            integer(values.get("routing.wait-for-activation-timeout-seconds"), 20),
-            values.getOrDefault("routing.island-pool", "island"),
-            integer(values.get("routing.route-ticket-ttl-seconds"), 30),
-            bool(values.get("routing.hide-node-names"), true),
-            bool(values.get("messages.use-actionbar"), true),
-            bool(values.get("messages.use-bossbar-loading"), true),
-            bool(values.get("security.require-modern-forwarding"), true),
-            values.getOrDefault("security.forwarding-secret", ""),
-            bool(values.get("security.block-cloudislands-plugin-messages"), true),
-            bool(values.get("health.enabled"), false),
-            values.getOrDefault("health.bind-host", "127.0.0.1"),
-            integer(values.get("health.port"), 8788),
-            bool(values.get("migration.superiorskyblock2-enabled"), bool(values.get("migration.enabled"), true)),
-            messageValues(values),
-            aliases.isEmpty() ? ALIASES : List.copyOf(aliases)
-        );
-    }
-
-    private static int leadingSpaces(String line) {
-        int spaces = 0;
-        while (spaces < line.length() && line.charAt(spaces) == ' ') {
-            spaces++;
-        }
-        return spaces;
-    }
-
-    private static String parentSection(Map<Integer, String> sections, int indent) {
-        String parent = "";
-        int parentIndent = -1;
-        for (Map.Entry<Integer, String> entry : sections.entrySet()) {
-            if (entry.getKey() < indent && entry.getKey() > parentIndent) {
-                parent = entry.getValue();
-                parentIndent = entry.getKey();
-            }
-        }
-        return parent;
-    }
-
-    private static Map<String, String> messageValues(Map<String, String> values) {
-        Map<String, String> messages = new HashMap<>();
-        for (Map.Entry<String, String> entry : values.entrySet()) {
-            String key = entry.getKey();
-            if (key.startsWith("messages.") && !key.equals("messages.use-actionbar") && !key.equals("messages.use-bossbar-loading")) {
-                messages.put(key.substring("messages.".length()), entry.getValue());
-            }
-        }
-        return Map.copyOf(messages);
-    }
-
-    private static String unquote(String value) {
-        if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
-            return value.substring(1, value.length() - 1);
-        }
-        return value;
-    }
-
-    private static String resolveEnv(String value) {
-        if (value == null) {
-            return "";
-        }
-        String trimmed = value.trim();
-        if (trimmed.startsWith("${") && trimmed.endsWith("}")) {
-            return System.getenv().getOrDefault(trimmed.substring(2, trimmed.length() - 1), "");
-        }
-        return trimmed;
-    }
-
-    private static String value(Map<String, String> values, String key, String fallback) {
-        String value = values.get(key);
-        return value == null || value.isBlank() ? fallback : value;
-    }
-
-    private static int integer(String value, int fallback) {
-        try {
-            return value == null || value.isBlank() ? fallback : Integer.parseInt(value);
-        } catch (NumberFormatException exception) {
-            return fallback;
-        }
-    }
-
-    private static int positiveInteger(String value, int fallback) {
-        int parsed = integer(value, fallback);
-        return parsed <= 0 ? fallback : parsed;
-    }
-
-    private static boolean bool(String value, boolean fallback) {
-        if (value == null || value.isBlank()) {
-            return fallback;
-        }
-        String normalized = value.trim().toLowerCase(Locale.ROOT);
-        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled") || normalized.equals("켜기") || normalized.equals("허용") || normalized.equals("활성")) {
-            return true;
-        }
-        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled") || normalized.equals("끄기") || normalized.equals("거부") || normalized.equals("비활성")) {
-            return false;
-        }
-        return fallback;
     }
 
     private static String[] commandAliasArray(List<String> aliases) {
@@ -272,8 +107,6 @@ public final class CloudIslandsVelocityPlugin {
             logger.warn("CloudIslands security: cloudislands plugin messages are not blocked at Velocity");
         }
     }
-
-    private record VelocityConfig(String language, boolean debug, String coreBaseUrl, String coreToken, String adminToken, int timeoutMs, String fallbackServer, int routeWaitSeconds, String islandPool, int routeTicketTtlSeconds, boolean hideNodeNames, boolean useActionBar, boolean useBossBarLoading, boolean requireModernForwarding, String forwardingSecret, boolean blockCloudIslandsPluginMessages, boolean healthEnabled, String healthBindHost, int healthPort, boolean superiorSkyblock2MigrationEnabled, Map<String, String> messages, List<String> aliases) {}
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
@@ -362,7 +195,7 @@ public final class CloudIslandsVelocityPlugin {
             + "\"playerTopologyPolicy\":\"logical-island-only\","
             + "\"playerNodeNamePolicy\":\"" + (config.hideNodeNames() ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only") + "\","
             + "\"topologyExposureRisk\":" + !config.hideNodeNames() + ","
-            + "\"pluginMessagesBlockedTotal\":" + pluginMessagesBlocked.get() + ","
+            + "\"pluginMessagesBlockedTotal\":" + pluginMessageFirewall.blockedMessages() + ","
             + "\"aliases\":\"" + escapeJson(String.join(",", commandAliases)) + "\","
             + "\"fallbackServer\":\"" + escapeJson(config.fallbackServer()) + "\","
             + "\"fallbackServerRegistered\":" + fallbackServerRegistered() + ","
@@ -380,7 +213,7 @@ public final class CloudIslandsVelocityPlugin {
             + "cloudislands_velocity_plugin_message_blocking 1\n"
             + "cloudislands_velocity_plugin_message_control_channel_allowed 0\n"
             + "cloudislands_velocity_plugin_message_control_channel_enforced_blocked 1\n"
-            + "cloudislands_velocity_plugin_messages_blocked_total " + pluginMessagesBlocked.get() + "\n"
+            + "cloudislands_velocity_plugin_messages_blocked_total " + pluginMessageFirewall.blockedMessages() + "\n"
             + "cloudislands_velocity_modern_forwarding_required " + (config.requireModernForwarding() ? 1 : 0) + "\n"
             + "cloudislands_velocity_forwarding_secret_configured " + (config.forwardingSecret().isBlank() ? 0 : 1) + "\n"
             + "cloudislands_velocity_hide_node_names " + (config.hideNodeNames() ? 1 : 0) + "\n"
@@ -412,20 +245,7 @@ public final class CloudIslandsVelocityPlugin {
 
     @Subscribe
     public void onPluginMessage(PluginMessageEvent event) {
-        String channel = event.getIdentifier().getId();
-        String identifier = event.getIdentifier().toString();
-        if (isCloudIslandsPluginMessage(channel) || isCloudIslandsPluginMessage(identifier)) {
-            pluginMessagesBlocked.incrementAndGet();
-            event.setResult(PluginMessageEvent.ForwardResult.handled());
-        }
-    }
-
-    private boolean isCloudIslandsPluginMessage(String channel) {
-        if (channel == null) {
-            return false;
-        }
-        String normalized = channel.trim().toLowerCase(Locale.ROOT);
-        return normalized.equals("cloudislands") || normalized.startsWith("cloudislands:");
+        pluginMessageFirewall.handle(event);
     }
 
     @Subscribe

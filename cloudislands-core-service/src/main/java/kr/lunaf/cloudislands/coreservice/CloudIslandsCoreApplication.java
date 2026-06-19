@@ -59,7 +59,9 @@ import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
+import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
@@ -372,12 +374,7 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 200, nodeIslandsJson(nodeId, runtimeRepository.listByNode(nodeId, limit)));
         });
         route("/v1/jobs", exchange -> write(exchange, 200, jobsJson(jobs)));
-        route("/v1/events", exchange -> {
-            String body = readBody(exchange);
-            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 512), 4096));
-            long sinceSeq = Math.max(0L, JsonFields.longValue(body, "sinceSeq", 0L));
-            write(exchange, 200, inMemoryEvents.toJson(limit, sinceSeq));
-        });
+        new EventRoutes(inMemoryEvents).register(this::route);
         route("/v1/audit", exchange -> {
             String body = readBody(exchange);
             int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 100), 500));
@@ -5144,7 +5141,7 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static String readBody(HttpExchange exchange) throws IOException {
-        return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        return CoreHttpResponses.readBody(exchange);
     }
 
     private static int queryInteger(HttpExchange exchange, String key, int fallback, int min, int max) {
@@ -5198,16 +5195,6 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static void write(HttpExchange exchange, int status, String body, String contentType) throws IOException {
-        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().put("Content-Type", java.util.List.of(contentType));
-        exchange.getResponseHeaders().put("Cache-Control", java.util.List.of("no-store"));
-        exchange.getResponseHeaders().put("Pragma", java.util.List.of("no-cache"));
-        exchange.getResponseHeaders().put("X-Content-Type-Options", java.util.List.of("nosniff"));
-        exchange.getResponseHeaders().put("X-Frame-Options", java.util.List.of("DENY"));
-        exchange.getResponseHeaders().put("Referrer-Policy", java.util.List.of("no-referrer"));
-        exchange.sendResponseHeaders(status, bytes.length);
-        try (OutputStream response = exchange.getResponseBody()) {
-            response.write(bytes);
-        }
+        CoreHttpResponses.write(exchange, status, body, contentType);
     }
 }

@@ -13,10 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -28,13 +25,16 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
+import kr.lunaf.cloudislands.velocity.event.CoreEventBatch;
+import kr.lunaf.cloudislands.velocity.event.CoreEventCodec;
+import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
+import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
+import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityRoutingController {
-    private static final Pattern EVENT = Pattern.compile("\\{[^}]*\"seq\":(\\d+)[^}]*\"type\":\"([^\"]+)\"[^}]*\"fields\":\\{([^}]*)}[^}]*\"occurredAt\":\"([^\"]+)\"[^}]*}");
-    private static final Pattern FIELD = Pattern.compile("\"([^\"]+)\":\"([^\"]*)\"");
     private static final int EVENT_BATCH_SIZE = 512;
     private static final long PLAYER_ROUTE_COOLDOWN_MILLIS = 1_500L;
 
@@ -48,22 +48,8 @@ public final class VelocityRoutingController {
     private final boolean useActionBar;
     private final boolean useBossBarLoading;
     private final VelocityMessages messages;
-    private final AtomicLong routeAttempts = new AtomicLong();
-    private final AtomicLong routeSuccesses = new AtomicLong();
-    private final AtomicLong routeFailures = new AtomicLong();
-    private final Map<String, AtomicLong> routeFailureCodes = new ConcurrentHashMap<>();
-    private final AtomicLong fallbackTransfers = new AtomicLong();
-    private final AtomicLong fallbackMissing = new AtomicLong();
-    private final AtomicLong fallbackFailures = new AtomicLong();
-    private final AtomicLong fallbackSkippedOffline = new AtomicLong();
-    private final AtomicLong pendingRouteLookups = new AtomicLong();
-    private final AtomicLong pendingRouteResumes = new AtomicLong();
-    private final AtomicLong pendingRouteMissing = new AtomicLong();
-    private final AtomicLong pendingRouteFailures = new AtomicLong();
-    private volatile String lastFallbackCode = "none";
-    private volatile String lastFallbackCategory = "none";
-    private volatile String lastFallbackResult = "none";
-    private volatile long lastFallbackAtEpochMillis;
+    private final CoreEventCodec eventCodec;
+    private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> recentRouteRequests = new ConcurrentHashMap<>();
     private ScheduledTask eventPollTask;
@@ -90,6 +76,10 @@ public final class VelocityRoutingController {
     }
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames, String islandPool, int routeTicketTtlSeconds, VelocityMessages messages) {
+        this(proxy, coreApiClient, fallbackServer, routeWaitSeconds, useActionBar, useBossBarLoading, hideNodeNames, islandPool, routeTicketTtlSeconds, messages, new CoreEventJsonCodec());
+    }
+
+    public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames, String islandPool, int routeTicketTtlSeconds, VelocityMessages messages, CoreEventCodec eventCodec) {
         this.proxy = proxy;
         this.coreApiClient = coreApiClient;
         this.fallbackServer = fallbackServer;
@@ -100,6 +90,7 @@ public final class VelocityRoutingController {
         this.useActionBar = useActionBar;
         this.useBossBarLoading = useBossBarLoading;
         this.messages = messages == null ? VelocityMessages.defaults() : messages;
+        this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
     }
 
     public void createIsland(Player player, String templateId) {
@@ -150,22 +141,7 @@ public final class VelocityRoutingController {
             + ", hideNodeNames=" + hideNodeNames
             + ", topologyPrivacyPolicy=" + CloudIslandsApiContract.TOPOLOGY_PRIVACY_POLICY
             + ", topologyPrivacyActive=" + hideNodeNames
-            + ", routeAttempts=" + routeAttempts.get()
-            + ", routeSuccesses=" + routeSuccesses.get()
-            + ", routeFailures=" + routeFailures.get()
-            + ", routeFailureCodes=" + routeFailureCodesSummary()
-            + ", fallbackTransfers=" + fallbackTransfers.get()
-            + ", fallbackMissing=" + fallbackMissing.get()
-            + ", fallbackFailures=" + fallbackFailures.get()
-            + ", fallbackSkippedOffline=" + fallbackSkippedOffline.get()
-            + ", pendingRouteLookups=" + pendingRouteLookups.get()
-            + ", pendingRouteResumes=" + pendingRouteResumes.get()
-            + ", pendingRouteMissing=" + pendingRouteMissing.get()
-            + ", pendingRouteFailures=" + pendingRouteFailures.get()
-            + ", lastFallbackCode=" + lastFallbackCode
-            + ", lastFallbackCategory=" + lastFallbackCategory
-            + ", lastFallbackResult=" + lastFallbackResult
-            + ", lastFallbackAtEpochMillis=" + lastFallbackAtEpochMillis;
+            + metrics.statusSummary();
     }
 
     public String routingMetricsText() {
@@ -178,20 +154,9 @@ public final class VelocityRoutingController {
             + "cloudislands_velocity_actionbar_enabled " + (useActionBar ? 1 : 0) + "\n"
             + "cloudislands_velocity_bossbar_loading_enabled " + (useBossBarLoading ? 1 : 0) + "\n"
             + "cloudislands_velocity_island_pool_servers " + islandPoolServerCount() + "\n"
-            + "cloudislands_velocity_route_attempts_total " + routeAttempts.get() + "\n"
-            + "cloudislands_velocity_route_success_total " + routeSuccesses.get() + "\n"
-            + "cloudislands_velocity_route_failed_total " + routeFailures.get() + "\n"
-            + routeFailureCodeMetrics()
+            + metrics.prometheusText()
             + "cloudislands_velocity_fallback_server_available " + (fallbackServerAvailable() ? 1 : 0) + "\n"
-            + "cloudislands_velocity_fallback_transfers_total " + fallbackTransfers.get() + "\n"
-            + "cloudislands_velocity_fallback_missing_total " + fallbackMissing.get() + "\n"
-            + "cloudislands_velocity_fallback_failed_total " + fallbackFailures.get() + "\n"
-            + "cloudislands_velocity_fallback_skipped_offline_total " + fallbackSkippedOffline.get() + "\n"
-            + "cloudislands_velocity_pending_route_lookups_total " + pendingRouteLookups.get() + "\n"
-            + "cloudislands_velocity_pending_route_resumes_total " + pendingRouteResumes.get() + "\n"
-            + "cloudislands_velocity_pending_route_missing_total " + pendingRouteMissing.get() + "\n"
-            + "cloudislands_velocity_pending_route_failures_total " + pendingRouteFailures.get() + "\n"
-            + "cloudislands_velocity_last_fallback_at_epoch_seconds " + (lastFallbackAtEpochMillis / 1000L) + "\n";
+            ;
     }
 
     private String routingPolicyName() {
@@ -354,15 +319,15 @@ public final class VelocityRoutingController {
     }
 
     public void routePendingSession(Player player) {
-        pendingRouteLookups.incrementAndGet();
+        metrics.pendingRouteLookup();
         coreApiClient.findAnyRouteSession(player.getUniqueId()).thenAccept(session -> {
             if (session.isPresent()) {
                 connectPendingSession(player, session.get());
             } else {
-                pendingRouteMissing.incrementAndGet();
+                metrics.pendingRouteMissing();
             }
         }).exceptionally(error -> {
-            pendingRouteFailures.incrementAndGet();
+            metrics.pendingRouteFailure();
             return null;
         });
     }
@@ -377,7 +342,7 @@ public final class VelocityRoutingController {
         String targetServerName = session.targetServerName() == null || session.targetServerName().isBlank() ? session.targetNode() : session.targetServerName();
         RegisteredServer server = findServer(targetServerName);
         if (server == null) {
-            pendingRouteFailures.incrementAndGet();
+            metrics.pendingRouteFailure();
             coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_TARGET_NOT_FOUND").exceptionally(error -> null);
             fallback(player, "이전 섬 이동 경로를 찾을 수 없어 로비로 이동합니다.");
             return;
@@ -385,14 +350,14 @@ public final class VelocityRoutingController {
         actionBar(player, "이전 섬 이동을 이어갑니다.");
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (!success) {
-                pendingRouteFailures.incrementAndGet();
+                metrics.pendingRouteFailure();
                 coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_FAILED").exceptionally(error -> null);
                 fallback(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
                 return;
             }
-            pendingRouteResumes.incrementAndGet();
+            metrics.pendingRouteResume();
         }).exceptionally(error -> {
-            pendingRouteFailures.incrementAndGet();
+            metrics.pendingRouteFailure();
             coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_EXCEPTION").exceptionally(ignored -> null);
             fallback(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
             return null;
@@ -2289,8 +2254,9 @@ public final class VelocityRoutingController {
 
     private void pollCoreEvents() {
         coreApiClient.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).thenAccept(body -> {
-            long oldestSequence = longValue(body, "oldestSeq");
-            long latestSequence = longValue(body, "latestSeq");
+            CoreEventBatch batch = eventCodec.decodeBatch(body);
+            long oldestSequence = batch.oldestSequence();
+            long latestSequence = batch.latestSequence();
             if (latestSequence > 0L && latestSequence < lastEventSequence) {
                 lastEventSequence = 0L;
                 seenEvents.clear();
@@ -2299,13 +2265,12 @@ public final class VelocityRoutingController {
                 lastEventSequence = oldestSequence - 1L;
                 seenEvents.clear();
             }
-            Matcher matcher = EVENT.matcher(body == null ? "" : body);
-            while (matcher.find()) {
-                long sequence = parseLong(matcher.group(1));
+            for (CoreEventEnvelope event : batch.events()) {
+                long sequence = event.sequence();
                 lastEventSequence = Math.max(lastEventSequence, sequence);
-                String type = matcher.group(2);
-                Map<String, String> fields = fields(matcher.group(3));
-                String key = eventKey(type, fields, matcher.group(4));
+                String type = event.type();
+                Map<String, String> fields = event.fields();
+                String key = eventKey(type, fields, event.occurredAt());
                 if (seenEvents.add(key)) {
                     handleCoreEvent(type, fields);
                 }
@@ -2348,15 +2313,6 @@ public final class VelocityRoutingController {
             }
         }
         return "";
-    }
-
-    private Map<String, String> fields(String raw) {
-        Map<String, String> result = new java.util.HashMap<>();
-        Matcher matcher = FIELD.matcher(raw == null ? "" : raw);
-        while (matcher.find()) {
-            result.put(matcher.group(1), matcher.group(2));
-        }
-        return result;
     }
 
     private String appendLevelScanSummary(String body) {
@@ -3414,7 +3370,7 @@ public final class VelocityRoutingController {
     }
 
     private void route(Player player, RouteTicket ticket, String failureMessage) {
-        routeAttempts.incrementAndGet();
+        metrics.routeAttempt();
         if (ticket == null) {
             fallback(player, failureMessage);
             return;
@@ -3597,7 +3553,7 @@ public final class VelocityRoutingController {
                 fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.", "CONNECT_FAILED");
                 return;
             }
-            routeSuccesses.incrementAndGet();
+            metrics.routeSuccess();
             actionBar(player, arrivalMessage(ticket));
         }).exceptionally(error -> {
             clearFailedRoute(ticket, "CONNECT_EXCEPTION");
@@ -3622,33 +3578,32 @@ public final class VelocityRoutingController {
     }
 
     private void fallback(Player player, String message, String code) {
-        routeFailures.incrementAndGet();
         String safeCode = safeRouteFailureCode(code, "ROUTE_FAILED");
-        recordRouteFailureCode(safeCode);
-        rememberFallback(safeCode, "attempt");
+        metrics.routeFailure(safeCode);
+        metrics.rememberFallback(safeCode, "attempt");
         if (!playerOnline(player)) {
-            fallbackSkippedOffline.incrementAndGet();
-            rememberFallback(safeCode, "skipped-offline");
+            metrics.fallbackSkippedOffline();
+            metrics.rememberFallback(safeCode, "skipped-offline");
             return;
         }
         player.sendMessage(playerComponent(message));
         RegisteredServer server = findServer(fallbackServer);
         if (server == null) {
-            fallbackMissing.incrementAndGet();
-            rememberFallback(safeCode, "fallback-missing");
+            metrics.fallbackMissing();
+            metrics.rememberFallback(safeCode, "fallback-missing");
             return;
         }
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (success) {
-                fallbackTransfers.incrementAndGet();
-                rememberFallback(safeCode, "transferred");
+                metrics.fallbackTransfer();
+                metrics.rememberFallback(safeCode, "transferred");
             } else {
-                fallbackFailures.incrementAndGet();
-                rememberFallback(safeCode, "transfer-failed");
+                metrics.fallbackFailure();
+                metrics.rememberFallback(safeCode, "transfer-failed");
             }
         }).exceptionally(error -> {
-            fallbackFailures.incrementAndGet();
-            rememberFallback(safeCode, "transfer-exception");
+            metrics.fallbackFailure();
+            metrics.rememberFallback(safeCode, "transfer-exception");
             return null;
         });
     }
@@ -3665,41 +3620,6 @@ public final class VelocityRoutingController {
             current = current.getCause();
         }
         return safeRouteFailureCode(fallback, "ROUTE_FAILED");
-    }
-
-    private void recordRouteFailureCode(String code) {
-        routeFailureCodes.computeIfAbsent(safeRouteFailureCode(code, "ROUTE_FAILED"), ignored -> new AtomicLong()).incrementAndGet();
-    }
-
-    private void rememberFallback(String code, String result) {
-        String safeCode = safeRouteFailureCode(code, "ROUTE_FAILED");
-        lastFallbackCode = safeCode;
-        lastFallbackCategory = kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy.playerSafeCategory(safeCode);
-        lastFallbackResult = result == null || result.isBlank() ? "unknown" : result;
-        lastFallbackAtEpochMillis = System.currentTimeMillis();
-    }
-
-    private String routeFailureCodesSummary() {
-        if (routeFailureCodes.isEmpty()) {
-            return "none";
-        }
-        return routeFailureCodes.entrySet().stream()
-            .sorted(Map.Entry.comparingByKey())
-            .map(entry -> entry.getKey() + "=" + entry.getValue().get())
-            .reduce((left, right) -> left + "," + right)
-            .orElse("none");
-    }
-
-    private String routeFailureCodeMetrics() {
-        StringBuilder builder = new StringBuilder();
-        routeFailureCodes.entrySet().stream()
-            .sorted(Map.Entry.comparingByKey())
-            .forEach(entry -> builder.append("cloudislands_velocity_route_failed_total{code=\"")
-                .append(metricLabel(entry.getKey()))
-                .append("\"} ")
-                .append(entry.getValue().get())
-                .append('\n'));
-        return builder.toString();
     }
 
     private String safeRouteFailureCode(String code, String fallback) {
@@ -3761,7 +3681,7 @@ public final class VelocityRoutingController {
         RegisteredServer target = findServer(nodeId);
         RegisteredServer fallback = findServer(fallbackServer);
         if (target == null || fallback == null) {
-            fallbackMissing.incrementAndGet();
+            metrics.fallbackMissing();
             return 0;
         }
         java.util.List<Player> players = java.util.List.copyOf(target.getPlayersConnected());
@@ -3769,12 +3689,12 @@ public final class VelocityRoutingController {
             connected.sendMessage(Component.text("섬 점검으로 로비로 이동합니다."));
             connected.createConnectionRequest(fallback).connectWithIndication().thenAccept(success -> {
                 if (success) {
-                    fallbackTransfers.incrementAndGet();
+                    metrics.fallbackTransfer();
                 } else {
-                    fallbackFailures.incrementAndGet();
+                    metrics.fallbackFailure();
                 }
             }).exceptionally(error -> {
-                fallbackFailures.incrementAndGet();
+                metrics.fallbackFailure();
                 return null;
             });
         }

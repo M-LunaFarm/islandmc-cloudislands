@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
 import kr.lunaf.cloudislands.paper.activation.PeriodicIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
+import kr.lunaf.cloudislands.paper.bootstrap.LifecycleRegistry;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
@@ -111,9 +112,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private LocalCacheManager localCaches;
     private ProxySourceAllowlist proxySourceAllowlist;
     private MeteredIslandStorage islandStorage;
+    private LifecycleRegistry lifecycle;
 
     @Override
     public void onEnable() {
+        this.lifecycle = new LifecycleRegistry(getLogger());
         saveDefaultConfig();
         logSecurityPosture();
         getServer().getMessenger().registerOutgoingPluginChannel(this, "minecraft:brand");
@@ -238,6 +241,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             () -> jobWorker == null ? 0 : jobWorker.recentFailurePenalty()
         );
         heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));
+        lifecycle.started("heartbeat", heartbeatService::stop);
         if (getConfig().getBoolean("health.enabled", false)) {
             this.healthService = new PaperHealthService(
                 this,
@@ -247,6 +251,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
                 () -> paperMetricsText(role, nodeId, storage)
             );
             healthService.start();
+            lifecycle.started("health", healthService::stop);
         }
         if (role == AgentRole.ISLAND_NODE) {
             startIslandNodeWorker(client, nodeId, storage, limitCache);
@@ -256,28 +261,17 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (jobWorker != null) {
-            jobWorker.stop();
+        if (lifecycle != null) {
+            lifecycle.close();
+            lifecycle = null;
         }
-        if (permissionEventPoller != null) {
-            permissionEventPoller.stop();
-        }
-        if (periodicSaveTask != null) {
-            periodicSaveTask.stop();
-        }
-        if (emptyIslandSaveTask != null) {
-            emptyIslandSaveTask.stop();
-        }
-        if (periodicLevelScanTask != null) {
-            periodicLevelScanTask.stop();
-        }
-        if (heartbeatService != null) {
-            heartbeatService.stop();
-        }
-        if (healthService != null) {
-            healthService.stop();
-            healthService = null;
-        }
+        healthService = null;
+        heartbeatService = null;
+        jobWorker = null;
+        permissionEventPoller = null;
+        periodicSaveTask = null;
+        emptyIslandSaveTask = null;
+        periodicLevelScanTask = null;
         if (redisClient != null) {
             redisClient.close();
             redisClient = null;
@@ -835,10 +829,15 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         this.emptyIslandSaveTask = new EmptyIslandSaveTask(this, activeIslands, agent.protection(), saveService, client);
         this.periodicLevelScanTask = new PeriodicIslandLevelScanTask(this, activeIslands, new IslandLevelScanService(this, () -> activeIslands, client));
         permissionEventPoller.start(getConfig().getLong("protection.cache-event-poll-ticks", 100L));
+        lifecycle.started("permission-event-poller", permissionEventPoller::stop);
         jobWorker.start(getConfig().getLong("island-node.activation.worker-interval-ticks", 20L));
+        lifecycle.started("job-worker", jobWorker::stop);
         periodicSaveTask.start(getConfig().getLong("island-node.activation.periodic-save-seconds", 600L));
+        lifecycle.started("periodic-save", periodicSaveTask::stop);
         emptyIslandSaveTask.start(getConfig().getLong("island-node.activation.save-on-empty-after-seconds", 300L));
+        lifecycle.started("empty-save", emptyIslandSaveTask::stop);
         periodicLevelScanTask.start(getConfig().getLong("island-node.level-scan-interval-seconds", 900L));
+        lifecycle.started("level-scan", periodicLevelScanTask::stop);
     }
 
     private String coreApiToken() {
