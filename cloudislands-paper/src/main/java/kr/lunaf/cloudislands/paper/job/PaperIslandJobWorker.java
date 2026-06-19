@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.job;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
@@ -12,13 +13,15 @@ import kr.lunaf.cloudislands.paper.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandDeleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreActivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreCreateEvent;
+import kr.lunaf.cloudislands.paper.platform.scheduler.BukkitPlatformScheduler;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
+import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPayload;
 import kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 
 public final class PaperIslandJobWorker {
     private final Plugin plugin;
@@ -28,7 +31,8 @@ public final class PaperIslandJobWorker {
     private final ActiveIslandRegistry activeIslands;
     private final PermissionCacheSyncService permissionSync;
     private final String nodeId;
-    private BukkitTask task;
+    private final PlatformScheduler scheduler;
+    private TaskHandle task;
     private volatile int consecutiveFailures;
     private volatile int inFlightJobs;
     private long nextPollAtMillis;
@@ -42,6 +46,10 @@ public final class PaperIslandJobWorker {
     }
 
     public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, IslandDeactivationHandler deactivationHandler, ActiveIslandRegistry activeIslands, PermissionCacheSyncService permissionSync, String nodeId) {
+        this(plugin, jobSource, activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId, new BukkitPlatformScheduler(plugin));
+    }
+
+    public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, IslandDeactivationHandler deactivationHandler, ActiveIslandRegistry activeIslands, PermissionCacheSyncService permissionSync, String nodeId, PlatformScheduler scheduler) {
         this.plugin = plugin;
         this.jobSource = jobSource;
         this.activationHandler = activationHandler;
@@ -49,11 +57,13 @@ public final class PaperIslandJobWorker {
         this.activeIslands = activeIslands;
         this.permissionSync = permissionSync;
         this.nodeId = nodeId;
+        this.scheduler = scheduler == null ? new BukkitPlatformScheduler(plugin) : scheduler;
     }
 
     public void start(long intervalTicks) {
         stop();
-        task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::poll, intervalTicks, intervalTicks);
+        Duration interval = Duration.ofMillis(Math.max(1L, intervalTicks) * 50L);
+        task = scheduler.repeatAsync(interval, interval, this::poll);
     }
 
     public void stop() {

@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.activation;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -10,10 +11,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.storage.StorageOutagePolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.platform.scheduler.BukkitPlatformScheduler;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
+import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 
 public final class EmptyIslandSaveTask {
     private final Plugin plugin;
@@ -21,19 +24,25 @@ public final class EmptyIslandSaveTask {
     private final ProtectionController protection;
     private final IslandSaveService saveService;
     private final CoreApiClient coreApiClient;
+    private final PlatformScheduler scheduler;
     private final Map<UUID, Long> emptySinceMillis = new HashMap<>();
     private final Set<UUID> savedWhileEmpty = new HashSet<>();
     private final Map<UUID, Integer> retryQueue = new ConcurrentHashMap<>();
     private final AtomicLong failuresTotal = new AtomicLong();
-    private BukkitTask task;
+    private TaskHandle task;
     private long delayMillis;
 
     public EmptyIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, ProtectionController protection, IslandSaveService saveService, CoreApiClient coreApiClient) {
+        this(plugin, activeIslands, protection, saveService, coreApiClient, new BukkitPlatformScheduler(plugin));
+    }
+
+    public EmptyIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, ProtectionController protection, IslandSaveService saveService, CoreApiClient coreApiClient, PlatformScheduler scheduler) {
         this.plugin = plugin;
         this.activeIslands = activeIslands;
         this.protection = protection;
         this.saveService = saveService;
         this.coreApiClient = coreApiClient;
+        this.scheduler = scheduler == null ? new BukkitPlatformScheduler(plugin) : scheduler;
     }
 
     public void start(long delaySeconds) {
@@ -42,7 +51,7 @@ public final class EmptyIslandSaveTask {
             return;
         }
         this.delayMillis = delaySeconds * 1000L;
-        task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::scan, 20L, 20L);
+        task = scheduler.repeatGlobal(Duration.ofSeconds(1), Duration.ofSeconds(1), this::scan);
     }
 
     public void stop() {
@@ -68,7 +77,7 @@ public final class EmptyIslandSaveTask {
             }
             long emptySince = emptySinceMillis.computeIfAbsent(islandId, ignored -> now);
             if (now - emptySince >= delayMillis && savedWhileEmpty.add(islandId)) {
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> saveEmptyIsland(activeIsland));
+                scheduler.runAsync(() -> saveEmptyIsland(activeIsland));
             }
         }
         emptySinceMillis.keySet().removeIf(islandId -> activeIslands.find(islandId).isEmpty());
@@ -90,14 +99,14 @@ public final class EmptyIslandSaveTask {
             retryQueue.remove(activeIsland.islandId());
             coreApiClient.deactivateIsland(activeIsland.islandId()).exceptionally(error -> {
                 plugin.getLogger().warning("Empty island deactivate request failed for " + activeIsland.islandId());
-                Bukkit.getScheduler().runTask(plugin, () -> savedWhileEmpty.remove(activeIsland.islandId()));
+                scheduler.runGlobal(() -> savedWhileEmpty.remove(activeIsland.islandId()));
                 return null;
             });
         } catch (java.io.IOException exception) {
             failuresTotal.incrementAndGet();
             int attempts = retryQueue.merge(activeIsland.islandId(), 1, Integer::sum);
             plugin.getLogger().warning("Empty island save failed for " + activeIsland.islandId() + " retry=" + attempts + " queued=" + retryQueue.size() + " policy=" + StorageOutagePolicy.DEACTIVATION_POLICY + ": " + exception.getMessage());
-            Bukkit.getScheduler().runTask(plugin, () -> savedWhileEmpty.remove(activeIsland.islandId()));
+            scheduler.runGlobal(() -> savedWhileEmpty.remove(activeIsland.islandId()));
         }
     }
 
