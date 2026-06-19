@@ -32,7 +32,6 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
-import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import kr.lunaf.cloudislands.velocity.event.CoreEventCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
 import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
@@ -45,6 +44,7 @@ import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import kr.lunaf.cloudislands.velocity.platform.VelocityServerGateway;
 import kr.lunaf.cloudislands.velocity.routing.PendingRouteService;
 import kr.lunaf.cloudislands.velocity.routing.RouteFallbackService;
+import kr.lunaf.cloudislands.velocity.routing.RouteProgressPresenter;
 import kr.lunaf.cloudislands.velocity.routing.RouteRequestGuard;
 import kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver;
 import net.kyori.adventure.bossbar.BossBar;
@@ -72,6 +72,7 @@ public final class VelocityRoutingController {
     private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
     private final VelocityServerGateway servers;
     private final RouteFallbackService fallbackService;
+    private final RouteProgressPresenter progressPresenter;
     private final RouteRequestGuard routeRequestGuard;
     private final VelocityTargetResolver targetResolver;
     private final PendingRouteService pendingRoutes;
@@ -117,6 +118,7 @@ public final class VelocityRoutingController {
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
         this.servers = new VelocityServerGateway(proxy, this.islandPool, hideNodeNames);
         this.fallbackService = new RouteFallbackService(proxy, fallbackServer, metrics, this::playerComponent);
+        this.progressPresenter = new RouteProgressPresenter(useActionBar, useBossBarLoading, this::playerComponent);
         this.routeRequestGuard = new RouteRequestGuard(PLAYER_ROUTE_COOLDOWN_MILLIS);
         this.targetResolver = new VelocityTargetResolver(coreApiClient, name -> proxy.getPlayer(name).map(Player::getUniqueId));
         this.pendingRoutes = new PendingRouteService(coreApiClient, fallbackService, metrics, this::playerComponent);
@@ -132,7 +134,7 @@ public final class VelocityRoutingController {
                 player.sendMessage(Component.text(messageForCreateFailure(code)));
                 return;
             }
-            actionBar(player, messages.text("island-create-starting"));
+            progressPresenter.actionBar(player, messages.text("island-create-starting"));
             if (result.ticket() != null) {
                 route(player, result.ticket(), "섬으로 이동하지 못했습니다.");
             }
@@ -2740,9 +2742,9 @@ public final class VelocityRoutingController {
         }
         if (ticket.state().name().equals("PREPARING")) {
             String target = routeTargetName(ticket);
-            actionBar(player, messages.text("route-preparing", "target", target));
-            BossBar bossBar = BossBar.bossBar(playerComponent(messages.text("route-loading-title", "target", target)), RoutePreparationProgressPolicy.preparingProgress(0), BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
-            showBossBar(player, bossBar);
+            progressPresenter.actionBar(player, messages.text("route-preparing", "target", target));
+            BossBar bossBar = progressPresenter.loadingBossBar(messages.text("route-loading-title", "target", target));
+            progressPresenter.showBossBar(player, bossBar);
             waitForReadyTicket(player, ticket, failureMessage, bossBar, 0);
             return;
         }
@@ -2780,42 +2782,36 @@ public final class VelocityRoutingController {
 
     private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, BossBar bossBar, int attempt) {
         if (!fallbackService.playerOnline(player)) {
-            hideBossBar(player, bossBar);
+            progressPresenter.hideBossBar(player, bossBar);
             clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
             return;
         }
-        int progress = RoutePreparationProgressPolicy.preparingPercent(attempt);
-        bossBar.progress(RoutePreparationProgressPolicy.preparingProgress(attempt));
         String target = routeTargetName(ticket);
-        String progressValue = Integer.toString(progress);
-        bossBar.name(playerComponent(messages.text("route-loading-progress", "target", target, "progress", progressValue)));
-        actionBar(player, messages.text("route-preparing-progress", "target", target, "progress", progressValue));
+        String progressValue = RouteProgressPresenter.progressValue(attempt);
+        progressPresenter.preparing(player, bossBar, messages.text("route-loading-progress", "target", target, "progress", progressValue), messages.text("route-preparing-progress", "target", target, "progress", progressValue), attempt);
         coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
             Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
             if (ready.isPresent()) {
-                bossBar.progress(1.0F);
                 String readyTarget = routeTargetName(ready.get());
-                Component readyMessage = playerComponent(messages.text("route-ready", "target", readyTarget));
-                bossBar.name(readyMessage);
-                actionBar(player, messages.text("route-ready", "target", readyTarget));
-                hideBossBar(player, bossBar);
+                progressPresenter.ready(player, bossBar, messages.text("route-ready", "target", readyTarget));
+                progressPresenter.hideBossBar(player, bossBar);
                 publishAndConnect(player, ready.get());
                 return;
             }
             if (status.isPresent() && terminalRouteState(status.get())) {
-                hideBossBar(player, bossBar);
+                progressPresenter.hideBossBar(player, bossBar);
                 fallbackService.transfer(player, terminalRouteMessage(status.get(), failureMessage));
                 return;
             }
             if (attempt >= routeWaitSeconds) {
-                hideBossBar(player, bossBar);
+                progressPresenter.hideBossBar(player, bossBar);
                 clearFailedRoute(ticket, "ROUTE_READY_TIMEOUT");
                 fallbackService.transfer(player, failureMessage, "ROUTE_READY_TIMEOUT");
                 return;
             }
             CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> waitForReadyTicket(player, ticket, failureMessage, bossBar, attempt + 1));
         }).exceptionally(error -> {
-            hideBossBar(player, bossBar);
+            progressPresenter.hideBossBar(player, bossBar);
             clearFailedRoute(ticket, "ROUTE_STATUS_FAILED");
             fallbackService.transfer(player, routeFailureMessage(error, failureMessage), routeFailureCode(error, "ROUTE_STATUS_FAILED"));
             return null;
@@ -2848,24 +2844,6 @@ public final class VelocityRoutingController {
             return playerErrorMessage(reason, fallback);
         }
         return fallback;
-    }
-
-    private void actionBar(Player player, String message) {
-        if (useActionBar) {
-            player.sendActionBar(playerComponent(message));
-        }
-    }
-
-    private void showBossBar(Player player, BossBar bossBar) {
-        if (useBossBarLoading) {
-            player.showBossBar(bossBar);
-        }
-    }
-
-    private void hideBossBar(Player player, BossBar bossBar) {
-        if (useBossBarLoading) {
-            player.hideBossBar(bossBar);
-        }
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket) {
@@ -2909,7 +2887,7 @@ public final class VelocityRoutingController {
                 return;
             }
             metrics.routeSuccess();
-            actionBar(player, arrivalMessage(ticket));
+            progressPresenter.actionBar(player, arrivalMessage(ticket));
         }).exceptionally(error -> {
             clearFailedRoute(ticket, "CONNECT_EXCEPTION");
             fallbackService.transfer(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.", "CONNECT_EXCEPTION");
