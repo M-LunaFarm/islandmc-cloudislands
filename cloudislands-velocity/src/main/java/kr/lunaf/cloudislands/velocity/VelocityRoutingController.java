@@ -33,7 +33,6 @@ import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
-import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import kr.lunaf.cloudislands.velocity.event.CoreEventCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
 import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
@@ -44,6 +43,7 @@ import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import kr.lunaf.cloudislands.velocity.platform.VelocityServerGateway;
+import kr.lunaf.cloudislands.velocity.routing.PendingRouteService;
 import kr.lunaf.cloudislands.velocity.routing.RouteFallbackService;
 import kr.lunaf.cloudislands.velocity.routing.RouteRequestGuard;
 import kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver;
@@ -74,6 +74,7 @@ public final class VelocityRoutingController {
     private final RouteFallbackService fallbackService;
     private final RouteRequestGuard routeRequestGuard;
     private final VelocityTargetResolver targetResolver;
+    private final PendingRouteService pendingRoutes;
     private ScheduledTask eventPollTask;
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer) {
@@ -118,6 +119,7 @@ public final class VelocityRoutingController {
         this.fallbackService = new RouteFallbackService(proxy, fallbackServer, metrics, this::playerComponent);
         this.routeRequestGuard = new RouteRequestGuard(PLAYER_ROUTE_COOLDOWN_MILLIS);
         this.targetResolver = new VelocityTargetResolver(coreApiClient, name -> proxy.getPlayer(name).map(Player::getUniqueId));
+        this.pendingRoutes = new PendingRouteService(coreApiClient, fallbackService, metrics, this::playerComponent);
     }
 
     public void createIsland(Player player, String templateId) {
@@ -299,47 +301,11 @@ public final class VelocityRoutingController {
     }
 
     public void routePendingSession(Player player) {
-        metrics.pendingRouteLookup();
-        coreApiClient.findAnyRouteSession(player.getUniqueId()).thenAccept(session -> {
-            if (session.isPresent()) {
-                connectPendingSession(player, session.get());
-            } else {
-                metrics.pendingRouteMissing();
-            }
-        }).exceptionally(error -> {
-            metrics.pendingRouteFailure();
-            return null;
-        });
+        pendingRoutes.routePendingSession(player);
     }
 
     public void clearPlayerState(UUID playerUuid) {
         routeRequestGuard.clear(playerUuid);
-    }
-
-    private void connectPendingSession(Player player, PlayerRouteSession session) {
-        String targetServerName = session.targetServerName() == null || session.targetServerName().isBlank() ? session.targetNode() : session.targetServerName();
-        RegisteredServer server = fallbackService.findServer(targetServerName);
-        if (server == null) {
-            metrics.pendingRouteFailure();
-            coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_TARGET_NOT_FOUND").exceptionally(error -> null);
-            fallbackService.transfer(player, "이전 섬 이동 경로를 찾을 수 없어 로비로 이동합니다.");
-            return;
-        }
-        actionBar(player, "이전 섬 이동을 이어갑니다.");
-        player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
-            if (!success) {
-                metrics.pendingRouteFailure();
-                coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_FAILED").exceptionally(error -> null);
-                fallbackService.transfer(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
-                return;
-            }
-            metrics.pendingRouteResume();
-        }).exceptionally(error -> {
-            metrics.pendingRouteFailure();
-            coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_EXCEPTION").exceptionally(ignored -> null);
-            fallbackService.transfer(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
-            return null;
-        });
     }
 
     public void listMyIslands(Player player) {
