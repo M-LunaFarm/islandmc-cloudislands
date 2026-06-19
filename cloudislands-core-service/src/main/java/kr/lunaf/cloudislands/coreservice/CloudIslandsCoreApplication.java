@@ -28,7 +28,6 @@ import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
-import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
@@ -70,6 +69,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.ProgressionRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.ProtocolRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RoutePreparationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RouteTicketRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.SuperiorSkyblock2MigrationRoutes;
@@ -576,17 +576,7 @@ public final class CloudIslandsCoreApplication {
         new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), migrationAdmin, audit).register(this::route);
         new PlayerProfileRoutes(playerProfiles, audit).register(this::route);
         new TemplateRoutes(templateRepository, audit, events).register(this::route);
-        route("/v1/nodes/heartbeat", exchange -> {
-            NodeHeartbeatRequest heartbeat = heartbeat(readBody(exchange));
-            kr.lunaf.cloudislands.protocol.ProtocolVersion.NegotiationResult negotiation = kr.lunaf.cloudislands.protocol.ProtocolVersion.negotiate(heartbeat.protocolVersion());
-            if (!negotiation.accepted()) {
-                write(exchange, 426, protocolNegotiationJson(negotiation));
-                return;
-            }
-            nodes.heartbeat(heartbeat);
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/admin/protocol", exchange -> write(exchange, 200, protocolStatusJson()));
+        new ProtocolRoutes(nodes).register(this::route);
         route("/v1/admin/nodes/drain", exchange -> {
             String body = readBody(exchange);
             String nodeId = JsonFields.text(body, "nodeId", "");
@@ -3638,37 +3628,6 @@ public final class CloudIslandsCoreApplication {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
-    private static String protocolNegotiationJson(kr.lunaf.cloudislands.protocol.ProtocolVersion.NegotiationResult negotiation) {
-        return "{"
-            + "\"success\":false,"
-            + "\"code\":\"PROTOCOL_VERSION_UNSUPPORTED\","
-            + "\"message\":\"Node protocol version is not supported\","
-            + "\"clientVersion\":" + negotiation.clientVersion() + ","
-            + "\"minSupported\":" + negotiation.minSupported() + ","
-            + "\"current\":" + negotiation.current() + ","
-            + "\"accepted\":" + negotiation.accepted() + ","
-            + "\"status\":\"" + escape(negotiation.status()) + "\","
-            + "\"field\":\"" + escape(negotiation.field()) + "\","
-            + "\"policy\":\"" + escape(negotiation.policy()) + "\","
-            + "\"upgradeHint\":\"" + escape(negotiation.upgradeHint()) + "\""
-            + "}";
-    }
-
-    private static String protocolStatusJson() {
-        kr.lunaf.cloudislands.protocol.ProtocolVersion.NegotiationResult current = kr.lunaf.cloudislands.protocol.ProtocolVersion.negotiate(NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION);
-        return "{"
-            + "\"success\":true,"
-            + "\"nodeProtocolMinSupported\":" + current.minSupported() + ","
-            + "\"nodeProtocolCurrent\":" + current.current() + ","
-            + "\"nodeProtocolHeartbeatField\":\"" + escape(current.field()) + "\","
-            + "\"nodeProtocolNegotiationPolicy\":\"" + escape(current.policy()) + "\","
-            + "\"nodeProtocolCurrentAccepted\":" + current.accepted() + ","
-            + "\"nodeProtocolCurrentStatus\":\"" + escape(current.status()) + "\","
-            + "\"nodeProtocolUpgradeHint\":\"" + escape(current.upgradeHint()) + "\","
-            + "\"nodeHeartbeatEndpoint\":\"/v1/nodes/heartbeat\""
-            + "}";
-    }
-
     private static boolean avoidsSoftFullNewActivations(String policy) {
         return policy == null
             || policy.isBlank()
@@ -3681,10 +3640,6 @@ public final class CloudIslandsCoreApplication {
             && (policy.equalsIgnoreCase("ALLOW_NEW_ACTIVATIONS")
                 || policy.equalsIgnoreCase("ALLOW")
                 || policy.equalsIgnoreCase("IGNORE_HARD_FULL"));
-    }
-
-    private static NodeHeartbeatRequest heartbeat(String body) {
-        return new NodeHeartbeatRequest(JsonFields.integer(body, "protocolVersion", NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION), JsonFields.text(body, "nodeId", "unknown"), JsonFields.text(body, "pool", "island"), JsonFields.text(body, "velocityServerName", JsonFields.text(body, "nodeId", "unknown")), JsonFields.text(body, "nodeVersion", ""), JsonFields.enumValue(NodeState.class, body, "state", NodeState.READY), JsonFields.integer(body, "players", 0), JsonFields.integer(body, "softPlayerCap", 90), JsonFields.integer(body, "hardPlayerCap", 110), JsonFields.integer(body, "reservedSlots", 0), JsonFields.integer(body, "activeIslands", 0), JsonFields.integer(body, "maxActiveIslands", 600), JsonFields.decimal(body, "mspt", 20.0D), JsonFields.integer(body, "activationQueue", 0), JsonFields.integer(body, "maxActivationQueue", 20), JsonFields.decimal(body, "chunkLoadPressure", 0.0D), JsonFields.longValue(body, "heapUsedMb", 0L), JsonFields.longValue(body, "heapMaxMb", 1L), JsonFields.integer(body, "recentFailurePenalty", 0), JsonFields.bool(body, "storageAvailable", true), JsonFields.text(body, "supportedTemplates", "*"));
     }
 
     private static String readBody(HttpExchange exchange) throws IOException {
