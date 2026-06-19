@@ -9,6 +9,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: paper-1.21.11
+            java: "21"
+            minecraft-baseline: "1.21.11"
+    env:
+      CLOUDISLANDS_CI_PLATFORM: ${{ matrix.platform }}
+      CLOUDISLANDS_MINECRAFT_BASELINE: ${{ matrix.minecraft-baseline }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -17,7 +27,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: ${{ matrix.java }}
 
       - name: Build and test
         run: ./gradlew build distBundle distAddonBundle distChecksums --no-daemon
@@ -25,7 +35,7 @@ jobs:
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: cloudislands-dist
+          name: cloudislands-dist-${{ matrix.platform }}-java${{ matrix.java }}
           path: |
             build/dist/*.zip
             build/dist/checksums-sha256.txt

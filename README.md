@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.0.0`
+Version: `1.0.1`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -298,15 +298,25 @@ Requires Java 21.
 ./gradlew build
 ```
 
+## Supported runtime matrix
+
+| Platform | Minecraft baseline | Java | Build check |
+|---|---:|---:|---|
+| Paper | `1.21.11` | `21` | `.github/workflows/build.yml` matrix `paper-1.21.11` |
+| Velocity | `3.5.0-SNAPSHOT` | `21` | `.github/workflows/build.yml` matrix `paper-1.21.11` |
+
+The Paper `plugin.yml` `api-version` and compile baseline both use `1.21.11`.
+The Velocity plugin version is generated from the Gradle project version.
+
 ## Release
 
-Current release: `v1.0.0`
+Current release: `v1.0.1`
 
-Built for the CloudIslands 1.0.0 baseline.
+Built for the CloudIslands 1.0.1 baseline.
 
 ## Project status
 
-Current read: broad early `v1.0.0`.
+Current read: broad early `v1.0.1`.
 
 Good platform direction.
 Not a production GA for multi-Core deployment yet.
