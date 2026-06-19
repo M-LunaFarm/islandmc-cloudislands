@@ -63,6 +63,7 @@ import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
@@ -340,7 +341,7 @@ public final class CloudIslandsCoreApplication {
         new HealthRoutes(config, metrics::render).register(this::route);
         route("/v1/admin/config", exchange -> write(exchange, 200, configSummaryJson(config, nodes)));
         new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(this::route);
-        route("/v1/jobs", exchange -> write(exchange, 200, jobsJson(jobs)));
+        new JobRoutes(jobs, jobCompletion, audit).register(this::route);
         new EventRoutes(inMemoryEvents).register(this::route);
         route("/v1/audit", exchange -> {
             String body = readBody(exchange);
@@ -1290,106 +1291,6 @@ public final class CloudIslandsCoreApplication {
             islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_RESET", Map.of("role", role.name(), "removed", Boolean.toString(removed)));
             events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_RESET"));
             write(exchange, 202, "{\"accepted\":true,\"code\":\"ROLE_RESET\",\"role\":\"" + role.name() + "\",\"removed\":" + removed + "}");
-        });
-        route("/v1/jobs/claim", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.claim(nodeId, supportedJobTypes(JsonFields.text(body, "supportedTypes", "")), JsonFields.integer(body, "maxJobs", 4));
-            write(exchange, 200, kr.lunaf.cloudislands.protocol.job.json.IslandJobJson.writeArray(claimed));
-        });
-        route("/v1/jobs/complete", exchange -> {
-            String body = readBody(exchange);
-            UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            java.util.Map<String, String> payload = JsonFields.object(body, "payload");
-            java.util.Optional<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.findClaimed(jobId)
-                .map(job -> new kr.lunaf.cloudislands.protocol.job.IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), java.util.Map.copyOf(new java.util.HashMap<String, String>() {{ putAll(job.payload()); putAll(payload); }}), job.createdAt()));
-            if (claimed.isEmpty() || !jobs.complete(nodeId, jobId)) {
-                write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
-                return;
-            }
-            claimed.ifPresent(jobCompletion::completed);
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/jobs/fail", exchange -> {
-            String body = readBody(exchange);
-            UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            String error = JsonFields.text(body, "error", "unknown");
-            java.util.Optional<kr.lunaf.cloudislands.protocol.job.IslandJob> claimed = jobs.findClaimed(jobId);
-            if (claimed.isEmpty() || !jobs.fail(nodeId, jobId, error)) {
-                write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
-                return;
-            }
-            claimed.ifPresent(job -> jobCompletion.failed(job, error));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/jobs/recover", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "recovery");
-            long minIdleMillis = JsonFields.longValue(body, "minIdleMillis", 60000L);
-            int maxJobs = JsonFields.integer(body, "maxJobs", 16);
-            if (jobs instanceof kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue redisJobs) {
-                String recovered = redisJobs.recoverPending(
-                    nodeId,
-                    minIdleMillis,
-                    maxJobs
-                );
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "REDIS", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
-                write(exchange, 202, "{\"recovered\":\"" + recovered.replace("\"", "'") + "\"}");
-            } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
-                String recovered = jdbcJobs.recoverPending(
-                    nodeId,
-                    minIdleMillis,
-                    maxJobs
-                );
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "JDBC", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
-                write(exchange, 202, "{\"recovered\":" + recovered + "}");
-            } else {
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "UNAVAILABLE", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs)));
-                write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Job recovery is only available when CI_JOB_QUEUE_MODE=REDIS or JDBC"));
-            }
-        });
-        route("/v1/admin/jobs/recover", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "recovery");
-            long minIdleMillis = JsonFields.longValue(body, "minIdleMillis", 60000L);
-            int maxJobs = JsonFields.integer(body, "maxJobs", 16);
-            if (jobs instanceof kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue redisJobs) {
-                String recovered = redisJobs.recoverPending(
-                    nodeId,
-                    minIdleMillis,
-                    maxJobs
-                );
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "REDIS", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
-                write(exchange, 202, "{\"recovered\":\"" + recovered.replace("\"", "'") + "\"}");
-            } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
-                String recovered = jdbcJobs.recoverPending(
-                    nodeId,
-                    minIdleMillis,
-                    maxJobs
-                );
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "JDBC", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
-                write(exchange, 202, "{\"recovered\":" + recovered + "}");
-            } else {
-                audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "UNAVAILABLE", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs)));
-                write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Job recovery is only available when CI_JOB_QUEUE_MODE=REDIS or JDBC"));
-            }
-        });
-        route("/v1/admin/jobs/list", exchange -> write(exchange, 200, jobsJson(jobs)));
-        route("/v1/admin/jobs/retry", exchange -> {
-            String body = readBody(exchange);
-            UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
-            boolean retried = jobs.retry(jobId);
-            audit.log(new UUID(0L, 0L), "ADMIN", "JOB_RETRY", "JOB", jobId.toString(), Map.of("retried", Boolean.toString(retried)));
-            write(exchange, retried ? 202 : 404, retried ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
-        });
-        route("/v1/admin/jobs/cancel", exchange -> {
-            String body = readBody(exchange);
-            UUID jobId = JsonFields.uuid(body, "jobId", new UUID(0L, 0L));
-            boolean canceled = jobs.cancel(jobId);
-            audit.log(new UUID(0L, 0L), "ADMIN", "JOB_CANCEL", "JOB", jobId.toString(), Map.of("canceled", Boolean.toString(canceled)));
-            write(exchange, canceled ? 202 : 404, canceled ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
         });
         route("/v1/routes/home", exchange -> {
             String body = readBody(exchange);
@@ -4057,26 +3958,6 @@ public final class CloudIslandsCoreApplication {
         return pruned;
     }
 
-    private static String jobsJson(IslandJobQueue jobs) {
-        if (jobs instanceof InMemoryIslandJobPublisher memoryJobs) {
-            return memoryJobs.toJson();
-        }
-        if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
-            return jdbcJobs.toJson();
-        }
-        if (jobs instanceof RedisIslandJobQueue redisJobs) {
-            Map<String, Long> counts = redisJobs.countsByState();
-            return "{\"mode\":\"REDIS\""
-                + ",\"pending\":" + counts.getOrDefault("PENDING", 0L)
-                + ",\"claimed\":" + counts.getOrDefault("CLAIMED", 0L)
-                + ",\"failed\":" + counts.getOrDefault("FAILED", 0L)
-                + ",\"retryAttempts\":" + redisJobs.retryAttemptsTotal()
-                + ",\"redisFailures\":" + redisJobs.redisFailuresTotal()
-                + "}";
-        }
-        return "{\"mode\":\"EXTERNAL\"}";
-    }
-
     private static String deleteResultJson(DeleteIslandResult result) {
         return "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + result.islandId() + "\"}";
     }
@@ -4418,31 +4299,6 @@ public final class CloudIslandsCoreApplication {
                 .append('}');
         }
         return builder.append("]}").toString();
-    }
-
-    private static java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJobType> supportedJobTypes(String value) {
-        if (value == null || value.isBlank()) {
-            return java.util.List.of(
-                kr.lunaf.cloudislands.protocol.job.IslandJobType.CREATE_ISLAND,
-                kr.lunaf.cloudislands.protocol.job.IslandJobType.ACTIVATE_ISLAND,
-                kr.lunaf.cloudislands.protocol.job.IslandJobType.SAVE_ISLAND,
-                kr.lunaf.cloudislands.protocol.job.IslandJobType.DEACTIVATE_ISLAND,
-                kr.lunaf.cloudislands.protocol.job.IslandJobType.SNAPSHOT_ISLAND,
-                kr.lunaf.cloudislands.protocol.job.IslandJobType.DELETE_ISLAND,
-                kr.lunaf.cloudislands.protocol.job.IslandJobType.MIGRATE_ISLAND,
-                kr.lunaf.cloudislands.protocol.job.IslandJobType.RESTORE_ISLAND,
-                kr.lunaf.cloudislands.protocol.job.IslandJobType.RESET_ISLAND
-            );
-        }
-        java.util.List<kr.lunaf.cloudislands.protocol.job.IslandJobType> result = new java.util.ArrayList<>();
-        for (String part : value.split(",")) {
-            try {
-                result.add(kr.lunaf.cloudislands.protocol.job.IslandJobType.valueOf(part.trim().toUpperCase()));
-            } catch (IllegalArgumentException ignored) {
-                // Ignore unknown worker capabilities.
-            }
-        }
-        return result.isEmpty() ? supportedJobTypes("") : java.util.List.copyOf(result);
     }
 
     private static String upgradePurchaseJson(UpgradePurchaseResult result) {
