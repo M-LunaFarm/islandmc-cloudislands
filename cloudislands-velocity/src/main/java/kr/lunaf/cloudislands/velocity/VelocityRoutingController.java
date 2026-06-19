@@ -37,6 +37,7 @@ import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
 import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter;
+import kr.lunaf.cloudislands.velocity.message.VelocityEventMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMigrationMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
@@ -67,6 +68,7 @@ public final class VelocityRoutingController {
     private final VelocityRoutePrivacyFormatter routePrivacy;
     private final VelocityCoreStatusMessageFormatter coreStatusMessages = new VelocityCoreStatusMessageFormatter();
     private final VelocityMigrationMessageFormatter migrationMessages = new VelocityMigrationMessageFormatter();
+    private final VelocityEventMessageFormatter eventMessages;
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
     private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
@@ -114,6 +116,7 @@ public final class VelocityRoutingController {
         this.useBossBarLoading = useBossBarLoading;
         this.messages = messages == null ? VelocityMessages.defaults() : messages;
         this.routePrivacy = new VelocityRoutePrivacyFormatter(hideNodeNames);
+        this.eventMessages = new VelocityEventMessageFormatter(routePrivacy);
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
         this.servers = new VelocityServerGateway(proxy, this.islandPool, hideNodeNames);
@@ -1046,11 +1049,11 @@ public final class VelocityRoutingController {
     }
 
     public void listEvents(Player player) {
-        sendBodyResult(player, coreApiClient.listEvents().thenApply(this::eventListMessage), "이벤트 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listEvents().thenApply(eventMessages::events), "이벤트 목록을 불러오지 못했습니다.");
     }
 
     public void listAuditLogs(Player player) {
-        sendBodyResult(player, coreApiClient.listAuditLogs().thenApply(this::auditListMessage), "감사 로그를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listAuditLogs().thenApply(eventMessages::audit), "감사 로그를 불러오지 못했습니다.");
     }
 
     public void metrics(Player player) {
@@ -2392,85 +2395,6 @@ public final class VelocityRoutingController {
             return "Job recover: recovered=" + (recoveredText.isBlank() ? Long.toString(recoveredNumber) : recoveredText);
         }
         return "Job " + action + ": " + (boolValue(body, "ok") ? "accepted" : "not applied");
-    }
-
-    private String eventListMessage(String body) {
-        String events = arrayValue(body, "events");
-        if (events.isBlank()) {
-            return "Events: empty";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < events.length() && entries.size() < 10) {
-            int objectStart = events.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(events, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = events.substring(objectStart, objectEnd + 1);
-            String type = jsonValue(object, "type");
-            String occurredAt = jsonValue(object, "occurredAt");
-            String fields = objectValue(object, "fields");
-            String islandId = jsonValue(fields, "islandId");
-            String ticketId = jsonValue(fields, "ticketId");
-            String playerUuid = jsonValue(fields, "playerUuid");
-            String action = jsonValue(fields, "action");
-            String reason = jsonValue(fields, "reason");
-            String requestedNode = jsonValue(fields, "requestedNode");
-            String clearedSession = jsonValue(fields, "clearedSession");
-            String clearedTicket = jsonValue(fields, "clearedTicket");
-            String nodeId = jsonValue(fields, "nodeId");
-            if (nodeId.isBlank()) {
-                nodeId = jsonValue(fields, "targetNode");
-            }
-            entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
-                + (islandId.isBlank() ? "" : " 섬=" + islandId)
-                + (ticketId.isBlank() ? "" : " ticket=" + shortId(ticketId))
-                + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
-                + (action.isBlank() ? "" : " action=" + action)
-                + (reason.isBlank() ? "" : " reason=" + reason)
-                + routePrivacy.routeRequestedNodeSuffix(requestedNode)
-                + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
-                + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
-                + routePrivacy.routeNodeSuffix(nodeId)
-                + (occurredAt.isBlank() ? "" : " at=" + occurredAt));
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "Events: empty" : "Events: " + String.join(" | ", entries);
-    }
-
-    private String auditListMessage(String body) {
-        String audit = arrayValue(body, "audit");
-        if (audit.isBlank()) {
-            return "Audit: empty";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < audit.length() && entries.size() < 10) {
-            int objectStart = audit.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(audit, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = audit.substring(objectStart, objectEnd + 1);
-            String action = jsonValue(object, "action");
-            String actorType = jsonValue(object, "actorType");
-            String targetType = jsonValue(object, "targetType");
-            String targetId = jsonValue(object, "targetId");
-            String createdAt = jsonValue(object, "createdAt");
-            entries.add((action.isBlank() ? "UNKNOWN_ACTION" : action)
-                + (targetType.isBlank() && targetId.isBlank() ? "" : " target=" + targetType + ":" + targetId)
-                + (actorType.isBlank() ? "" : " actor=" + actorType)
-                + (createdAt.isBlank() ? "" : " at=" + createdAt));
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
     }
 
     private String routeDebugMessage(String body) {
