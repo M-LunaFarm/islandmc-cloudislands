@@ -1,7 +1,5 @@
 package kr.lunaf.cloudislands.velocity;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.boolValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.countObjects;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.parseLong;
@@ -26,6 +24,7 @@ import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
 import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreNodeStateEventHandler;
 import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
+import kr.lunaf.cloudislands.velocity.message.VelocityCoreConfigMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityEventMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityIslandMessageFormatter;
@@ -62,6 +61,7 @@ public final class VelocityRoutingController {
     private final VelocityMessages messages;
     private final VelocityRoutePrivacyFormatter routePrivacy;
     private final VelocityCoreStatusMessageFormatter coreStatusMessages = new VelocityCoreStatusMessageFormatter();
+    private final VelocityCoreConfigMessageFormatter coreConfigMessages = new VelocityCoreConfigMessageFormatter();
     private final VelocityMigrationMessageFormatter migrationMessages = new VelocityMigrationMessageFormatter();
     private final VelocityEventMessageFormatter eventMessages;
     private final VelocityIslandMessageFormatter islandMessages;
@@ -1014,7 +1014,7 @@ public final class VelocityRoutingController {
     }
 
     public void coreConfig(Player player) {
-        sendBodyResult(player, coreApiClient.coreConfig().thenApply(this::coreConfigMessage), "Core config를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.coreConfig().thenApply(coreConfigMessages::format), "Core config를 불러오지 못했습니다.");
     }
 
     public void addonEndpoints(Player player) {
@@ -1043,230 +1043,6 @@ public final class VelocityRoutingController {
 
     public void migrateSuperiorSkyblock2(Player player, String action, String path) {
         sendBodyResult(player, coreApiClient.migrateSuperiorSkyblock2(action, path).thenApply(migrationMessages::format), "마이그레이션 명령을 실행하지 못했습니다.");
-    }
-
-    private String coreConfigMessage(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "Core config: failed code=" + code;
-        }
-        return "Core config: repo=" + jsonValue(body, "repositoryMode")
-            + " jobs=" + jsonValue(body, "jobQueueMode")
-            + " events=" + jsonValue(body, "eventBusMode")
-            + " effectiveRepo=" + jsonValue(body, "effectiveRepositoryMode")
-            + " effectiveJobs=" + jsonValue(body, "effectiveJobQueueMode")
-            + " storage=" + jsonValue(body, "storageType")
-            + " islandModel=" + jsonValue(body, "islandResourceModel")
-            + " portableBundle=" + boolValue(body, "islandPortableBundle")
-            + " serverPinned=" + boolValue(body, "islandServerPinned")
-            + " islandExecution=" + jsonValue(body, "islandExecutionModel")
-            + " islandNodeRole=" + jsonValue(body, "islandNodeRole")
-            + " islandRouting=" + jsonValue(body, "islandRoutingModel")
-            + " createFlow=" + jsonValue(body, "createIslandRequestFlow")
-            + " homeFlow=" + jsonValue(body, "homeRequestFlow")
-            + " visitFlow=" + jsonValue(body, "visitRequestFlow")
-            + " routeUi=" + jsonValue(body, "routePlayerLoadingUi")
-            + " routeFailureCodes=" + jsonValue(body, "routePlayerFailureCodes")
-            + " routePublicMessages=" + jsonValue(body, "routePublicMessagePolicy")
-            + " routeDebugReasons=" + jsonValue(body, "routeDebugReasonPolicy")
-            + " routeTransferFailure=" + jsonValue(body, "routeTransferFailurePolicy")
-            + " softFullRoute=" + jsonValue(body, "softFullRoutingPolicy")
-            + " modules=" + jsonValue(body, "moduleLayout")
-            + " dist=" + jsonValue(body, "distributionLayout")
-            + " addonRegistry=" + jsonValue(body, "addonRegistryPolicy")
-            + " addonStateOwner=" + jsonValue(body, "addonStateOwnershipPolicy")
-            + " addonRemovalSafe=" + jsonValue(body, "addonRemovalSafetyPolicy")
-            + " addonStateIsolation=" + jsonValue(body, "addonStateFailureIsolationPolicy")
-            + " addonExtension=" + jsonValue(body, "addonExtensionModel")
-            + " addonApiLookup=" + jsonValue(body, "addonApiLookupPolicy")
-            + " addonApiContract=" + jsonValue(body, "addonApiContractVersion")
-            + " addonApiContractStatus=" + jsonValue(body, "addonApiContractCompatibility")
-            + " addonApiContractCompatible=" + jsonValue(body, "addonApiContractCompatible")
-            + " satisMultiNodeSafe=" + boolValue(body, "satisMultiNodeSafe")
-            + " satisNodeCountPolicy=" + jsonValue(body, "satisNodeCountPolicy")
-            + " addonApiRequiredKeys=" + jsonValue(body, "addonApiRequiredMetadataKeys")
-            + " addonApiRead=" + jsonValue(body, "addonApiReadPolicy")
-            + " addonApiWrite=" + jsonValue(body, "addonApiWriteAuthority")
-            + " addonApiSyncEvent=" + jsonValue(body, "addonApiSyncEventPolicy")
-            + " addonApiStorage=" + jsonValue(body, "addonApiStoragePolicy")
-            + " addonJavaApi=" + jsonValue(body, "addonJavaPluginApiPolicy")
-            + " addonInternalApi=" + jsonValue(body, "addonInternalApiPolicy")
-            + " addonEventApi=" + jsonValue(body, "addonEventApiPolicy")
-            + " addonCoreAuth=" + jsonValue(body, "addonCoreAuthPolicy")
-            + " addonAdminEndpoint=" + jsonValue(body, "addonAdminEndpointPolicy")
-            + " addonNetworkExposure=" + jsonValue(body, "addonNetworkExposurePolicy")
-            + " addonSecurityPosture=" + jsonValue(body, "addonSecurityPostureSummary")
-            + " addonTopologyPrivacy=" + jsonValue(body, "addonTopologyPrivacyPolicy")
-            + " addonConsistency=" + jsonValue(body, "addonConsistencyAuthorityPolicy")
-            + " addonEvents=" + jsonValue(body, "addonEventDeliveryPolicy")
-            + " addonEventCoverage=" + jsonValue(body, "addonEventCoverage")
-            + " addonEventBackfill=" + jsonValue(body, "addonEventBackfillPolicy")
-            + " satisPackaging=" + jsonValue(body, "satisPackaging")
-            + " satisCoreCoupling=" + jsonValue(body, "satisCoreCoupling")
-            + " satisAddonRemovalPolicy=" + jsonValue(body, "satisAddonRemovalPolicy")
-            + " satisDataRetentionPolicy=" + jsonValue(body, "satisDataRetentionPolicy")
-            + " satisCoreBootRequiresAddon=" + boolValue(body, "satisCoreBootRequiresAddon")
-            + " satisCommandOwner=" + jsonValue(body, "satisCommandOwner")
-            + " velocitySatisCommandPolicy=" + jsonValue(body, "velocitySatisCommandPolicy")
-            + " paperSatisCommandPolicy=" + jsonValue(body, "paperSatisCommandPolicy")
-            + " paperAgentRolePolicy=" + jsonValue(body, "paperAgentRolePolicy")
-            + " paperLobbyRolePolicy=" + jsonValue(body, "paperLobbyRolePolicy")
-            + " paperIslandNodeRolePolicy=" + jsonValue(body, "paperIslandNodeRolePolicy")
-            + " velocityCommandOwner=" + jsonValue(body, "velocityCommandOwnershipPolicy")
-            + " paperCommandFallback=" + jsonValue(body, "paperCommandFallbackPolicy")
-            + " pluginMessaging=" + jsonValue(body, "pluginMessagingPolicy")
-            + " pluginMessagingAllowed=" + jsonValue(body, "pluginMessagingAllowedUse")
-            + " pluginMessagingForbidden=" + jsonValue(body, "pluginMessagingForbiddenUse")
-            + " authPolicy=" + jsonValue(body, "coreApiAuthPolicy")
-            + " adminPolicy=" + jsonValue(body, "adminPermissionPolicy")
-            + " auditPolicy=" + jsonValue(body, "auditLogPolicy")
-            + " infraPolicy=" + jsonValue(body, "infrastructureExposurePolicy")
-            + " bindPolicy=" + jsonValue(body, "publicBindRiskPolicy")
-            + " dbType=" + jsonValue(body, "configuredDatabaseType")
-            + " dbTypeSource=" + jsonValue(body, "configuredDatabaseTypeSource")
-            + " dbBackend=" + jsonValue(body, "databaseBackend")
-            + " jdbcSource=" + jsonValue(body, "jdbcUrlSource")
-            + " jdbcSettingsType=" + jsonValue(body, "effectiveJdbcSettingsType")
-            + " jdbcSettingsSource=" + jsonValue(body, "effectiveJdbcSettingsSource")
-            + " jdbcSupported=" + boolValue(body, "coreJdbcSupported")
-            + " jdbcSupportedBackends=" + jsonValue(body, "coreJdbcSupportedBackends")
-            + " setupFallbackBackends=" + jsonValue(body, "coreSetupFallbackBackends")
-            + " setupFallbackEnabled=" + boolValue(body, "coreSetupFallbackEnabled")
-            + " setupFallbackSharedFirst=" + boolValue(body, "coreSetupFallbackRequireSharedBeforeLocal")
-            + " setupFallbackLocalLast=" + boolValue(body, "coreSetupFallbackLocalLast")
-            + " setupFallbackSafeOrder=" + jsonValue(body, "coreSetupFallbackProductionSafeOrder")
-            + " setupFallbackOrder=" + jsonValue(body, "coreSetupFallbackOrder")
-            + " setupFallbackMode=" + jsonValue(body, "coreSetupFallbackMode")
-            + " setupDbFallbackSummary=" + jsonValue(body, "coreSetupDatabaseFallbackSummary")
-            + " setupDbProductionDurable=" + boolValue(body, "coreSetupDatabaseProductionDurable")
-            + " setupDbRequested=" + jsonValue(body, "coreSetupDatabaseRequestedBackend")
-            + " setupDbAuthority=" + jsonValue(body, "coreSetupDatabaseEffectiveAuthority")
-            + " setupDbEffectiveBackend=" + jsonValue(body, "coreSetupDatabaseEffectiveBackend")
-            + " setupDbFallbackTarget=" + jsonValue(body, "coreSetupDatabaseFallbackTarget")
-            + " setupDbFallbackReason=" + jsonValue(body, "coreSetupDatabaseFallbackReason")
-            + " setupDbDurable=" + boolValue(body, "coreSetupDatabaseDurable")
-            + " setupDbModes=" + jsonValue(body, "coreSetupDatabaseOperationalModes")
-            + " setupDbLoader=" + jsonValue(body, "coreSetupDatabaseConfigLoader")
-            + " setupDbPaths=" + jsonValue(body, "coreSetupDatabaseResolvedPathExamples")
-            + " setupDbShapes=" + jsonValue(body, "coreSetupDatabaseConfigShapes")
-            + " setupDbTypedShapes=" + jsonValue(body, "coreSetupDatabaseTypedShapes")
-            + " setupDbTypedCredentials=" + jsonValue(body, "coreSetupDatabaseTypedCredentialKeys")
-            + " setupDbTypedHostMode=" + jsonValue(body, "coreSetupDatabaseTypedHostMode")
-            + " setupDbTypedProbeOrder=" + jsonValue(body, "coreSetupDatabaseTypedProbeOrder")
-            + " setupDbCoreApiMode=" + jsonValue(body, "coreSetupDatabaseCoreApiMode")
-            + " setupDbCoreApiBaseUrl=" + jsonValue(body, "coreSetupDatabaseCoreApiBaseUrl")
-            + " setupDbCoreApiAuthToken=" + boolValue(body, "coreSetupDatabaseCoreApiAuthTokenConfigured")
-            + " setupDbCoreApiAdminToken=" + boolValue(body, "coreSetupDatabaseCoreApiAdminTokenConfigured")
-            + " setupDbCoreApiTimeoutMs=" + longValue(body, "coreSetupDatabaseCoreApiTimeoutMs")
-            + " setupDbCoreApiPaths=" + jsonValue(body, "coreSetupDatabaseCoreApiConfigPaths")
-            + " setupDbEnv=" + jsonValue(body, "coreSetupDatabaseEnv")
-            + " setupDbPrecedence=" + jsonValue(body, "coreSetupDatabasePrecedence")
-            + " setupDbNameAliases=" + jsonValue(body, "coreSetupDatabaseNameAliases")
-            + " setupDbJdbcAliases=" + jsonValue(body, "coreSetupDatabaseJdbcAliases")
-            + " setupDbTypeInference=" + jsonValue(body, "coreSetupDatabaseTypeInference")
-            + " jdbcFallback=" + jsonValue(body, "coreJdbcFallbackReason")
-            + " jdbcFallbackActive=" + boolValue(body, "coreJdbcFallbackActive")
-            + " setupFallbackEffective=" + boolValue(body, "coreSetupFallbackEffective")
-            + " setupFallbackSafetyForced=" + boolValue(body, "coreSetupFallbackSafetyForced")
-            + " setupFallbackPolicy=" + jsonValue(body, "coreSetupFallbackPolicy")
-            + " jdbcFallbackStatus=" + jsonValue(body, "coreJdbcFallbackStatus")
-            + " addonBulkSave=" + boolValue(body, "addonStateBulkSaveApi")
-            + " addonBulkGlobal=" + jsonValue(body, "addonStateBulkSaveGlobalEndpoint")
-            + " addonBulkIsland=" + jsonValue(body, "addonStateBulkSaveIslandEndpoint")
-            + " addonTableBulkGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
-            + " addonTableBulkIsland=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint")
-            + " addonTableBulkGlobalAlias=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalAlias")
-            + " addonTableBulkIslandAlias=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandAlias")
-            + " addonTableBulkGlobalCompat=" + jsonValue(body, "addonStateTableKeyValueBulkGlobalEndpoint")
-            + " addonTableBulkIslandCompat=" + jsonValue(body, "addonStateTableKeyValueBulkIslandEndpoint")
-            + " addonTableBulkGlobalMap=" + jsonValue(body, "addonStateTableBulkGlobalEndpoint")
-            + " addonTableBulkIslandMap=" + jsonValue(body, "addonStateTableBulkIslandEndpoint")
-            + " addonTablePrefix=" + jsonValue(body, "addonStateTableKeyPrefix")
-            + " addonMaxKeys=" + longValue(body, "addonStateMaxKeysPerAddon")
-            + " addonMaxValue=" + longValue(body, "addonStateMaxValueLength")
-            + " addonGlobalCacheKey=" + jsonValue(body, "addonStateGlobalCacheKey")
-            + " addonIslandCacheKey=" + jsonValue(body, "addonStateIslandCacheKey")
-            + " addonCacheInvalidationApi=" + jsonValue(body, "addonStateCacheInvalidationApi")
-            + " cacheEventFields=" + jsonValue(body, "cacheInvalidationEventFields")
-            + " globalEventTypeKeys=" + jsonValue(body, "globalEventTypeKeys")
-            + " globalEventRecoveryKeys=" + jsonValue(body, "globalEventRecoveryKeys")
-            + " globalEventAddonKeys=" + jsonValue(body, "globalEventAddonKeys")
-            + " satisCoreRequiresAddon=" + boolValue(body, "satisCoreBootRequiresAddon")
-            + " satisDataRetention=" + jsonValue(body, "satisDataRetentionPolicy")
-            + " satisCommandOwner=" + jsonValue(body, "satisCommandOwner")
-            + " pool=" + jsonValue(body, "islandPool")
-            + " poolNodes=" + longValue(body, "islandPoolNodeCount")
-            + " poolRouteCandidates=" + longValue(body, "islandPoolRouteCandidateCount")
-            + " poolRouteCandidateMin=" + longValue(body, "islandPoolRouteCandidateRecommendedMinimum")
-            + " poolRouteCandidateMinStatus=" + jsonValue(body, "islandPoolRouteCandidateMinimumStatus")
-            + " poolScale=" + jsonValue(body, "islandPoolScaleStatus")
-            + " poolScaleModel=" + jsonValue(body, "islandPoolScaleModel")
-            + " poolElasticLimit=" + jsonValue(body, "islandPoolElasticLimitPolicy")
-            + " poolMultiNodeReady=" + boolValue(body, "islandPoolMultiNodeReady")
-            + " poolScaleGuidance=" + jsonValue(body, "islandPoolScaleGuidance")
-            + " poolHorizontalScale=" + jsonValue(body, "islandPoolHorizontalScalePolicy")
-            + " poolFiveSixNodes=" + jsonValue(body, "islandPoolFiveSixNodePolicy")
-            + " poolFiveSixHealthy=" + boolValue(body, "islandPoolFiveSixNodeHealthy")
-            + " placement=" + jsonValue(body, "islandPlacementPolicy")
-            + " placementShards=" + longValue(body, "islandPlacementShardCount")
-            + " placementCellsPerAxis=" + longValue(body, "islandPlacementCellsPerAxis")
-            + " placementCollision=" + jsonValue(body, "islandPlacementCollisionPolicy")
-            + " nodeHardRules=" + jsonValue(body, "islandNodeHardRules")
-            + " nodeScoreWeights=" + jsonValue(body, "islandNodeScoreWeights")
-            + " nodeSchema=" + jsonValue(body, "islandNodeSchemaColumns")
-            + " existingRoutePolicy=" + jsonValue(body, "islandNodeExistingRoutePolicy")
-            + " visitorSoftFullPolicy=" + jsonValue(body, "islandNodeVisitorSoftFullPolicy")
-            + " routingFailureDetails=" + jsonValue(body, "routingFailureDetailKeys")
-            + " poolDegraded=" + boolValue(body, "islandPoolDegraded")
-            + " poolCandidateShortfall=" + longValue(body, "islandPoolRouteCandidateShortfall")
-            + " poolCandidateBlocks=" + jsonValue(body, "islandPoolRouteCandidateBlockSummary")
-            + " poolCandidateNodes=" + jsonValue(body, "islandPoolRouteCandidateNodeIds")
-            + " poolBlockedNodes=" + jsonValue(body, "islandPoolBlockedNodeIds")
-            + " poolFiveSixStatus=" + jsonValue(body, "islandPoolFiveSixNodeStatus")
-            + " poolDuplicateServers=" + longValue(body, "islandPoolDuplicateVelocityServerNameNodeCount")
-            + " poolDefaultIdentityRisk=" + longValue(body, "islandPoolDefaultNodeIdentityRiskCount")
-            + " dbPool=" + longValue(body, "databasePoolSize")
-            + " softFull=" + jsonValue(body, "softFullPolicy")
-            + " hardFull=" + jsonValue(body, "hardFullPolicy")
-            + " migration=" + jsonValue(body, "migrationPolicy")
-            + " superiorMigration=" + boolValue(body, "superiorSkyblock2MigrationEnabled")
-            + " superiorInputOnly=" + boolValue(body, "superiorSkyblock2MigrationInputOnly")
-            + " superiorRuntimeDependency=" + boolValue(body, "superiorSkyblock2RuntimeDependency")
-            + " superiorRuntimePolicy=" + jsonValue(body, "superiorSkyblock2RuntimePolicy")
-            + " ticketTtl=" + longValue(body, "routeTicketTtlSeconds") + "s"
-            + " prepTtl=" + longValue(body, "routePreparingTicketTtlSeconds") + "s"
-            + " heartbeatTimeout=" + longValue(body, "heartbeatTimeoutSeconds") + "s"
-            + " leaseDuration=" + longValue(body, "leaseDurationSeconds") + "s"
-            + " redisTtl=" + jsonValue(body, "redisCacheTtlPolicy")
-            + " redisKeys=" + jsonValue(body, "redisKeyPolicy")
-            + " redisStreams=" + jsonValue(body, "redisStreamPolicy")
-            + " globalEvents=" + jsonValue(body, "globalEventTypes")
-            + " routeMetricServer=" + boolValue(body, "routeMetricsTargetServerName")
-            + " routeMetricServerEvents=" + jsonValue(body, "routeMetricsTargetServerNameEvents")
-            + " routeMetricRequestedNode=" + boolValue(body, "routeMetricsRequestedNode")
-            + " routeMetricRequestedNodeEvents=" + jsonValue(body, "routeMetricsRequestedNodeEvents")
-            + " lockPolicy=" + jsonValue(body, "distributedLockPolicy")
-            + " fencing=" + jsonValue(body, "fencingTokenPolicy")
-            + " staleWrite=" + jsonValue(body, "staleWritePolicy")
-            + " storageLayout=" + jsonValue(body, "storageLayout")
-            + " storageLatest=" + jsonValue(body, "storageLatestPointer")
-            + " storageManifest=" + jsonValue(body, "storageSnapshotManifest")
-            + " storageBundle=" + jsonValue(body, "storageBundleObject")
-            + " storageChecksumFile=" + jsonValue(body, "storageChecksumFile")
-            + " storageBackup=" + jsonValue(body, "storageDeleteBackupPath")
-            + " storageRecovery=" + jsonValue(body, "storageRecoveryPath")
-            + " storagePortability=" + jsonValue(body, "storagePortabilityPolicy")
-            + " snapshotLatest=" + longValue(body, "snapshotKeepLatest")
-            + " snapshotRetention=" + longValue(body, "snapshotKeepHourly") + "/" + longValue(body, "snapshotKeepDaily") + "/" + longValue(body, "snapshotKeepWeekly") + "/" + longValue(body, "snapshotKeepManual")
-            + " snapshotCompress=" + boolValue(body, "snapshotCompress")
-            + " snapshotChecksum=" + jsonValue(body, "snapshotChecksumAlgorithm")
-            + " snapshotRestore=" + jsonValue(body, "snapshotRestorePipeline")
-            + " rankingPolicy=" + jsonValue(body, "rankingUpdatePolicy")
-            + " blockValuePolicy=" + jsonValue(body, "blockValuePolicy")
-            + " upgradePolicy=" + jsonValue(body, "upgradePolicy")
-            + " generatorPolicy=" + jsonValue(body, "generatorPolicy")
-            + " mtls=" + boolValue(body, "requireMtls")
-            + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
     }
 
     public void playerInfo(Player player, UUID playerUuid) {
