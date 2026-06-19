@@ -69,6 +69,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBankRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBlockLevelRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandCommunicationRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandMemberRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSnapshotRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandUpgradeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
@@ -365,6 +366,7 @@ public final class CloudIslandsCoreApplication {
         new IslandUpgradeRoutes(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(this::route);
         new IslandSnapshotRoutes(snapshotRepository, runtimeRepository, snapshotRetentionPolicy, events).register(this::route);
+        new IslandMemberRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, playerProfiles, islandLogs, audit, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -739,90 +741,6 @@ public final class CloudIslandsCoreApplication {
                 islandLogs.append(islandId, actorUuid, "ISLAND_RESET", Map.of("reason", reason));
             }
             lifecycle(exchange, result);
-        });
-        route("/v1/islands/members", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, membersJson(metadataRepository.members(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
-        });
-        route("/v1/players/islands", exchange -> {
-            String body = readBody(exchange);
-            java.util.ArrayList<IslandSnapshot> islands = new java.util.ArrayList<>();
-            for (kr.lunaf.cloudislands.api.model.IslandMemberSnapshot member : metadataRepository.islandsForMember(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)))) {
-                islandRepository.findById(member.islandId()).ifPresent(islands::add);
-            }
-            write(exchange, 200, islandsJson(islands));
-        });
-        route("/v1/islands/members/set", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.MEMBER);
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
-                return;
-            }
-            java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members = metadataRepository.members(islandId);
-            IslandRole currentRole = memberRole(members, playerUuid);
-            if (role == IslandRole.VISITOR || role == IslandRole.BANNED) {
-                write(exchange, 409, ApiResponses.error("MEMBER_ROLE_UNAVAILABLE", "Visitor and banned roles are not managed as island members"));
-                return;
-            }
-            if (role == IslandRole.OWNER || currentRole == IslandRole.OWNER) {
-                write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island ownership must be changed through ownership transfer"));
-                return;
-            }
-            boolean existingMember = currentRole != null;
-            if (!existingMember && members.size() >= limitValue(limitRepository, islandId, "MEMBERS", 3L)) {
-                write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
-                return;
-            }
-            metadataRepository.upsertMember(islandId, playerUuid, role);
-            audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
-            islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_SET", Map.of("playerUuid", playerUuid.toString(), "role", role.name()));
-            events.publish(existingMember ? CloudIslandEventType.ISLAND_MEMBER_ROLE_CHANGED.name() : CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), existingMember
-                ? Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "oldRole", currentRole.name(), "newRole", role.name())
-                : Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
-            events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/transfer", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            UUID targetUuid = JsonFields.uuid(body, "targetUuid", new UUID(0L, 0L));
-            boolean transferred = islandRepository.transferOwnership(islandId, actorUuid, targetUuid);
-            if (transferred) {
-                metadataRepository.upsertMember(islandId, actorUuid, IslandRole.CO_OWNER);
-                metadataRepository.upsertMember(islandId, targetUuid, IslandRole.OWNER);
-                playerProfiles.clearPrimaryIsland(actorUuid);
-                playerProfiles.setPrimaryIsland(targetUuid, islandId);
-            }
-            audit.log(actorUuid, "PLAYER", "ISLAND_OWNERSHIP_TRANSFER", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
-            islandLogs.append(islandId, actorUuid, "ISLAND_OWNERSHIP_TRANSFER", Map.of("targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
-            if (transferred) {
-                events.publish(CloudIslandEventType.ISLAND_OWNERSHIP_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "targetUuid", targetUuid.toString()));
-                events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "targetUuid", targetUuid.toString()));
-            }
-            write(exchange, transferred ? 202 : 409, transferred ? ApiResponses.ok(true) : ApiResponses.error("OWNERSHIP_TRANSFER_DENIED", "Only the current owner can transfer to a player without an island"));
-        });
-        route("/v1/islands/members/remove", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)) {
-                return;
-            }
-            if (memberRole(metadataRepository.members(islandId), playerUuid) == IslandRole.OWNER) {
-                write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
-                return;
-            }
-            metadataRepository.removeMember(islandId, playerUuid);
-            audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
-            islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_REMOVE", Map.of("playerUuid", playerUuid.toString()));
-            events.publish(CloudIslandEventType.ISLAND_MEMBER_LEFT.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
-            events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
-            write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/invites", exchange -> {
             String body = readBody(exchange);
