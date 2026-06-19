@@ -72,6 +72,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.IslandCommunicationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandMemberRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSnapshotRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandUpgradeRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandVisitorRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
@@ -367,6 +368,7 @@ public final class CloudIslandsCoreApplication {
         new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(this::route);
         new IslandSnapshotRoutes(snapshotRepository, runtimeRepository, snapshotRetentionPolicy, events).register(this::route);
         new IslandMemberRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, playerProfiles, islandLogs, audit, events).register(this::route);
+        new IslandVisitorRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -741,123 +743,6 @@ public final class CloudIslandsCoreApplication {
                 islandLogs.append(islandId, actorUuid, "ISLAND_RESET", Map.of("reason", reason));
             }
             lifecycle(exchange, result);
-        });
-        route("/v1/islands/invites", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID inviterUuid = JsonFields.uuid(body, "inviterUuid", new UUID(0L, 0L));
-            UUID targetUuid = JsonFields.uuid(body, "targetUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, inviterUuid, IslandPermission.MANAGE_MEMBERS)) {
-                return;
-            }
-            boolean existingMember = metadataRepository.members(islandId).stream().anyMatch(member -> member.playerUuid().equals(targetUuid));
-            if (existingMember) {
-                write(exchange, 409, ApiResponses.error("ALREADY_MEMBER", "Player is already an island member"));
-                return;
-            }
-            if (!existingMember && metadataRepository.members(islandId).size() >= limitValue(limitRepository, islandId, "MEMBERS", 3L)) {
-                write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
-                return;
-            }
-            var invite = metadataRepository.createInvite(islandId, inviterUuid, targetUuid);
-            audit.log(inviterUuid, "PLAYER", "ISLAND_INVITE_CREATE", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
-            islandLogs.append(islandId, inviterUuid, "ISLAND_INVITE_CREATE", Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
-            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("islandId", islandId.toString(), "targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString(), "state", invite.state()));
-            write(exchange, 202, "{\"accepted\":true,\"inviteId\":\"" + invite.inviteId() + "\",\"islandId\":\"" + invite.islandId() + "\",\"inviterUuid\":\"" + invite.inviterUuid() + "\",\"targetUuid\":\"" + invite.targetUuid() + "\",\"state\":\"" + invite.state() + "\",\"createdAt\":\"" + invite.createdAt() + "\",\"expiresAt\":\"" + invite.expiresAt() + "\"}");
-        });
-        route("/v1/players/invites", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, invitesJson(metadataRepository.pendingInvites(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)))));
-        });
-        route("/v1/islands/invites/accept", exchange -> {
-            String body = readBody(exchange);
-            UUID inviteId = JsonFields.uuid(body, "inviteId", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandInviteSnapshot> invite = metadataRepository.pendingInvites(playerUuid).stream().filter(value -> value.inviteId().equals(inviteId)).findFirst();
-            String islandId = invite.map(value -> value.islandId().toString()).orElse("");
-            if (invite.isPresent()) {
-                UUID inviteIslandId = invite.get().islandId();
-                boolean existingMember = metadataRepository.members(inviteIslandId).stream().anyMatch(member -> member.playerUuid().equals(playerUuid));
-                if (!existingMember && metadataRepository.members(inviteIslandId).size() >= limitValue(limitRepository, inviteIslandId, "MEMBERS", 3L)) {
-                    write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
-                    return;
-                }
-            }
-            boolean accepted = metadataRepository.acceptInvite(inviteId, playerUuid);
-            audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", Boolean.toString(accepted)));
-            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
-            if (accepted) {
-                invite.ifPresent(value -> islandLogs.append(value.islandId(), playerUuid, "ISLAND_INVITE_ACCEPT", Map.of("inviteId", inviteId.toString(), "accepted", "true")));
-                events.publish(CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "role", IslandRole.MEMBER.name()));
-                events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString()));
-            }
-            write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing, expired, or not pending"));
-        });
-        route("/v1/islands/invites/decline", exchange -> {
-            String body = readBody(exchange);
-            UUID inviteId = JsonFields.uuid(body, "inviteId", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandInviteSnapshot> invite = metadataRepository.pendingInvites(playerUuid).stream().filter(value -> value.inviteId().equals(inviteId)).findFirst();
-            String islandId = invite.map(value -> value.islandId().toString()).orElse("");
-            boolean declined = metadataRepository.declineInvite(inviteId, playerUuid);
-            audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_DECLINE", "INVITE", inviteId.toString(), Map.of("declined", Boolean.toString(declined)));
-            if (declined) {
-                invite.ifPresent(value -> islandLogs.append(value.islandId(), playerUuid, "ISLAND_INVITE_DECLINE", Map.of("inviteId", inviteId.toString(), "declined", "true")));
-            }
-            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "declined", Boolean.toString(declined)));
-            write(exchange, declined ? 202 : 409, declined ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing or not pending"));
-        });
-        route("/v1/islands/bans/set", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            String reason = JsonFields.text(body, "reason", "island ban");
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.BAN_VISITOR)) {
-                return;
-            }
-            IslandRole targetRole = memberRole(metadataRepository.members(islandId), playerUuid);
-            if (targetRole != null && targetRole != IslandRole.VISITOR && targetRole != IslandRole.BANNED) {
-                write(exchange, 409, ApiResponses.error("VISITOR_BAN_DENIED", "Island members cannot be handled through visitor bans"));
-                return;
-            }
-            metadataRepository.banVisitor(islandId, actorUuid, playerUuid, reason);
-            metadataRepository.removeMember(islandId, playerUuid);
-            audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_BAN", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "reason", reason));
-            islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_BAN", Map.of("playerUuid", playerUuid.toString(), "reason", reason));
-            events.publish(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "banned", Boolean.toString(true)));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/bans", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, bansJson(metadataRepository.bans(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
-        });
-        route("/v1/islands/bans/remove", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.BAN_VISITOR)) {
-                return;
-            }
-            metadataRepository.pardonVisitor(islandId, playerUuid);
-            audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_PARDON", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
-            islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_PARDON", Map.of("playerUuid", playerUuid.toString()));
-            events.publish(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "banned", Boolean.toString(false)));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/visitors/kick", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.KICK_VISITOR)) {
-                return;
-            }
-            audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_KICK", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
-            islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_KICK", Map.of("playerUuid", playerUuid.toString()));
-            events.publish(CloudIslandEventType.ISLAND_VISITOR_KICKED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "actorUuid", actorUuid.toString()));
-            write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/lock", exchange -> {
             String body = readBody(exchange);
@@ -2683,14 +2568,6 @@ public final class CloudIslandsCoreApplication {
         return false;
     }
 
-    private static IslandRole memberRole(java.util.List<kr.lunaf.cloudislands.api.model.IslandMemberSnapshot> members, UUID playerUuid) {
-        return members.stream()
-            .filter(member -> member.playerUuid().equals(playerUuid))
-            .map(kr.lunaf.cloudislands.api.model.IslandMemberSnapshot::role)
-            .findFirst()
-            .orElse(null);
-    }
-
     private static boolean requireMember(HttpExchange exchange, IslandRepository islandRepository, IslandMetadataRepository metadataRepository, UUID islandId, UUID actorUuid) throws IOException {
         boolean owner = islandRepository.findById(islandId)
             .map(island -> island.ownerUuid().equals(actorUuid))
@@ -2831,27 +2708,6 @@ public final class CloudIslandsCoreApplication {
                 .append("\"playerUuid\":\"").append(member.playerUuid()).append("\",")
                 .append("\"role\":\"").append(member.role()).append("\",")
                 .append("\"joinedAt\":\"").append(member.joinedAt()).append("\"")
-                .append('}');
-        }
-        return builder.append("]}").toString();
-    }
-
-    private static String invitesJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandInviteSnapshot> invites) {
-        StringBuilder builder = new StringBuilder("{\"invites\":[");
-        boolean first = true;
-        for (kr.lunaf.cloudislands.api.model.IslandInviteSnapshot invite : invites) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"inviteId\":\"").append(invite.inviteId()).append("\",")
-                .append("\"islandId\":\"").append(invite.islandId()).append("\",")
-                .append("\"inviterUuid\":\"").append(invite.inviterUuid()).append("\",")
-                .append("\"targetUuid\":\"").append(invite.targetUuid()).append("\",")
-                .append("\"state\":\"").append(invite.state()).append("\",")
-                .append("\"createdAt\":\"").append(invite.createdAt()).append("\",")
-                .append("\"expiresAt\":\"").append(invite.expiresAt()).append("\"")
                 .append('}');
         }
         return builder.append("]}").toString();
