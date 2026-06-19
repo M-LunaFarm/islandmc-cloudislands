@@ -71,6 +71,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.ProgressionRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RoutePreparationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RouteTicketRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.TemplateRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
@@ -138,7 +139,6 @@ import kr.lunaf.cloudislands.coreservice.snapshot.JdbcIslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.template.CachingIslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.template.InMemoryIslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
-import kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.coreservice.template.JdbcIslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.CachingRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
@@ -653,51 +653,7 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 202, migrationAdmin.rollbackLastImport());
         });
         new PlayerProfileRoutes(playerProfiles, audit).register(this::route);
-        route("/v1/admin/templates/list", exchange -> write(exchange, 200, templatesJson(templateRepository.list())));
-        route("/v1/admin/templates/upsert", exchange -> {
-            String body = readBody(exchange);
-            String templateId = JsonFields.text(body, "templateId", JsonFields.text(body, "id", "default"));
-            boolean enabled = JsonFields.bool(body, "enabled", true);
-            if (enabled && isMigrationInputOnlyTemplate(templateId)) {
-                audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_UPSERT_REJECTED", "TEMPLATE", templateId, Map.of("reason", "MIGRATION_INPUT_ONLY"));
-                write(exchange, 409, ApiResponses.error("TEMPLATE_MIGRATION_INPUT_ONLY", "This template is reserved for migration imports and cannot be enabled for normal island creation"));
-                return;
-            }
-            IslandTemplateSnapshot snapshot = templateRepository.upsert(
-                templateId,
-                JsonFields.text(body, "displayName", templateId),
-                enabled,
-                JsonFields.text(body, "minNodeVersion", "")
-            );
-            audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_UPSERT", "TEMPLATE", snapshot.id(), Map.of("enabled", Boolean.toString(snapshot.enabled()), "minNodeVersion", snapshot.minNodeVersion()));
-            events.publish(CloudIslandEventType.ISLAND_TEMPLATE_CHANGED.name(), Map.of("templateId", snapshot.id(), "enabled", Boolean.toString(snapshot.enabled()), "minNodeVersion", snapshot.minNodeVersion(), "operation", "UPSERT"));
-            write(exchange, 202, templateJson(snapshot));
-        });
-        route("/v1/admin/templates/enable", exchange -> {
-            String body = readBody(exchange);
-            String templateId = JsonFields.text(body, "templateId", JsonFields.text(body, "id", "default"));
-            if (isMigrationInputOnlyTemplate(templateId)) {
-                audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_ENABLE_REJECTED", "TEMPLATE", templateId, Map.of("reason", "MIGRATION_INPUT_ONLY"));
-                write(exchange, 409, ApiResponses.error("TEMPLATE_MIGRATION_INPUT_ONLY", "This template is reserved for migration imports and cannot be enabled for normal island creation"));
-                return;
-            }
-            boolean changed = templateRepository.setEnabled(templateId, true);
-            audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_ENABLE", "TEMPLATE", templateId, Map.of("changed", Boolean.toString(changed)));
-            if (changed) {
-                events.publish(CloudIslandEventType.ISLAND_TEMPLATE_CHANGED.name(), Map.of("templateId", templateId, "enabled", Boolean.toString(true), "operation", "ENABLE"));
-            }
-            write(exchange, changed ? 202 : 404, changed ? templateRepository.find(templateId).map(CloudIslandsCoreApplication::templateJson).orElseGet(() -> ApiResponses.ok(true)) : ApiResponses.error("TEMPLATE_NOT_FOUND", "Island template was not found"));
-        });
-        route("/v1/admin/templates/disable", exchange -> {
-            String body = readBody(exchange);
-            String templateId = JsonFields.text(body, "templateId", JsonFields.text(body, "id", "default"));
-            boolean changed = templateRepository.setEnabled(templateId, false);
-            audit.log(new UUID(0L, 0L), "ADMIN", "TEMPLATE_DISABLE", "TEMPLATE", templateId, Map.of("changed", Boolean.toString(changed)));
-            if (changed) {
-                events.publish(CloudIslandEventType.ISLAND_TEMPLATE_CHANGED.name(), Map.of("templateId", templateId, "enabled", Boolean.toString(false), "operation", "DISABLE"));
-            }
-            write(exchange, changed ? 202 : 404, changed ? templateRepository.find(templateId).map(CloudIslandsCoreApplication::templateJson).orElseGet(() -> ApiResponses.ok(true)) : ApiResponses.error("TEMPLATE_NOT_FOUND", "Island template was not found"));
-        });
+        new TemplateRoutes(templateRepository, audit, events).register(this::route);
         route("/v1/nodes/heartbeat", exchange -> {
             NodeHeartbeatRequest heartbeat = heartbeat(readBody(exchange));
             kr.lunaf.cloudislands.protocol.ProtocolVersion.NegotiationResult negotiation = kr.lunaf.cloudislands.protocol.ProtocolVersion.negotiate(heartbeat.protocolVersion());
@@ -2196,10 +2152,6 @@ public final class CloudIslandsCoreApplication {
         return "{\"code\":\"MIGRATION_DISABLED\",\"state\":\"DISABLED\",\"sourcePlugin\":\"SuperiorSkyblock2\",\"migrationInputOnly\":true,\"runtimeDependency\":false,\"targetRuntime\":\"CloudIslands\",\"message\":\"SuperiorSkyblock2 migration is disabled by config\"}";
     }
 
-    private static boolean isMigrationInputOnlyTemplate(String templateId) {
-        return "superiorskyblock2".equalsIgnoreCase(templateId == null ? "" : templateId.trim());
-    }
-
     private static String jdbcBackend(String jdbcUrl) {
         if (jdbcUrl == null || jdbcUrl.isBlank()) {
             return "NONE";
@@ -3046,27 +2998,6 @@ public final class CloudIslandsCoreApplication {
             + ",\"visitorPolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.VISITOR_POLICY) + "\""
             + ",\"nextStep\":\"" + escape(nextStep) + "\""
             + "}";
-    }
-
-    private static String templatesJson(java.util.List<IslandTemplateSnapshot> templates) {
-        StringBuilder builder = new StringBuilder("{\"templates\":[");
-        boolean first = true;
-        for (IslandTemplateSnapshot template : templates) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(templateJson(template));
-        }
-        return builder.append("]}").toString();
-    }
-
-    private static String templateJson(IslandTemplateSnapshot template) {
-        return "{\"id\":\"" + escape(template.id())
-            + "\",\"displayName\":\"" + escape(template.displayName())
-            + "\",\"enabled\":" + template.enabled()
-            + ",\"minNodeVersion\":\"" + escape(template.minNodeVersion())
-            + "\"}";
     }
 
     private static String nullable(String value) {
