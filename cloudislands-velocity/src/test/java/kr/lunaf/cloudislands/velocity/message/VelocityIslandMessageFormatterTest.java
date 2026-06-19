@@ -57,4 +57,36 @@ class VelocityIslandMessageFormatterTest {
     void formatsEmptyInviteList() {
         assertEquals("대기 중인 섬 초대가 없습니다.", formatter.invites("[]"));
     }
+
+    @Test
+    void formatsActionResultWithAdminDetail() {
+        assertEquals(
+            "Island activate: rejected target=11111111 code=NO_READY_NODE_POOL detail=no-ready-node 섬=22222222",
+            formatter.actionResult(
+                "Island activate",
+                "11111111-1111-1111-1111-111111111111",
+                "{\"accepted\":false,\"code\":\"NO_READY_NODE_POOL\",\"islandId\":\"22222222-2222-2222-2222-222222222222\"}"
+            )
+        );
+    }
+
+    @Test
+    void hidesRuntimeTopologyWhenConfigured() {
+        VelocityIslandMessageFormatter hidden = new VelocityIslandMessageFormatter(new VelocityRoutePrivacyFormatter(true));
+
+        assertEquals(
+            "Island runtime: 섬=33333333 state=READY fence=7",
+            hidden.runtimeInfo("{\"islandId\":\"33333333-3333-3333-3333-333333333333\",\"state\":\"READY\",\"activeNode\":\"island-1\",\"activeWorld\":\"ci_shard_001\",\"cellX\":3,\"cellZ\":4,\"fencingToken\":7}")
+        );
+    }
+
+    @Test
+    void showsRuntimeTopologyWhenConfigured() {
+        VelocityIslandMessageFormatter visible = new VelocityIslandMessageFormatter(new VelocityRoutePrivacyFormatter(false));
+
+        assertEquals(
+            "Island runtime: 섬=33333333 state=READY node=island-1 world=ci_shard_001 cell=3,4 fence=7",
+            visible.runtimeInfo("{\"islandId\":\"33333333-3333-3333-3333-333333333333\",\"state\":\"READY\",\"activeNode\":\"island-1\",\"activeWorld\":\"ci_shard_001\",\"cellX\":3,\"cellZ\":4,\"fencingToken\":7}")
+        );
+    }
 }

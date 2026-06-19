@@ -71,7 +71,7 @@ public final class VelocityRoutingController {
     private final VelocityCoreStatusMessageFormatter coreStatusMessages = new VelocityCoreStatusMessageFormatter();
     private final VelocityMigrationMessageFormatter migrationMessages = new VelocityMigrationMessageFormatter();
     private final VelocityEventMessageFormatter eventMessages;
-    private final VelocityIslandMessageFormatter islandMessages = new VelocityIslandMessageFormatter();
+    private final VelocityIslandMessageFormatter islandMessages;
     private final VelocityRouteMessageFormatter routeMessages;
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
@@ -121,6 +121,7 @@ public final class VelocityRoutingController {
         this.messages = messages == null ? VelocityMessages.defaults() : messages;
         this.routePrivacy = new VelocityRoutePrivacyFormatter(hideNodeNames);
         this.eventMessages = new VelocityEventMessageFormatter(routePrivacy);
+        this.islandMessages = new VelocityIslandMessageFormatter(routePrivacy);
         this.routeMessages = new VelocityRouteMessageFormatter(routePrivacy);
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
@@ -207,35 +208,35 @@ public final class VelocityRoutingController {
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
-        sendBodyResult(player, coreApiClient.resetIsland(islandId, player.getUniqueId(), reason).thenApply(body -> actionResultMessage("Island reset", islandId.toString(), body)), "섬 리셋을 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.resetIsland(islandId, player.getUniqueId(), reason).thenApply(body -> islandMessages.actionResult("Island reset", islandId.toString(), body)), "섬 리셋을 요청하지 못했습니다.");
     }
 
     public void showMyIsland(Player player) {
-        sendBodyResult(player, coreApiClient.islandInfoByOwner(player.getUniqueId()).thenApply(this::islandInfoMessage), "섬 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfoByOwner(player.getUniqueId()).thenApply(islandMessages::islandInfo), "섬 정보를 불러오지 못했습니다.");
     }
 
     public void showIslandSettings(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(this::islandInfoMessage), "섬 설정을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(islandMessages::islandInfo), "섬 설정을 불러오지 못했습니다.");
     }
 
     public void showIslandLevel(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("섬 레벨", "level", body)), "섬 레벨을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandMessages.islandStat("섬 레벨", "level", body)), "섬 레벨을 불러오지 못했습니다.");
     }
 
     public void showIslandWorth(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("섬 가치", "worth", body)), "섬 가치를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandMessages.islandStat("섬 가치", "worth", body)), "섬 가치를 불러오지 못했습니다.");
     }
 
     public void showIslandSize(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("섬 크기", "size", body)), "섬 크기를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandMessages.islandStat("섬 크기", "size", body)), "섬 크기를 불러오지 못했습니다.");
     }
 
     public void showIslandBorder(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandStatMessage("섬 경계", "border", body)), "섬 경계를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandMessages.islandStat("섬 경계", "border", body)), "섬 경계를 불러오지 못했습니다.");
     }
 
     public void showBiome(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandBiome(islandId).thenApply(this::biomeInfoMessage), "섬 바이옴을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandBiome(islandId).thenApply(islandMessages::biomeInfo), "섬 바이옴을 불러오지 못했습니다.");
     }
 
     public void setBiome(Player player, UUID islandId, String biomeKey) {
@@ -346,11 +347,11 @@ public final class VelocityRoutingController {
     }
 
     public void listWarps(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandWarps(islandId).thenApply(body -> warpListMessage("섬 워프", body)), "섬 워프를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listIslandWarps(islandId).thenApply(body -> islandMessages.warpList("섬 워프", body)), "섬 워프를 불러오지 못했습니다.");
     }
 
     public void listPublicWarps(Player player) {
-        sendBodyResult(player, coreApiClient.listPublicWarps(27).thenApply(body -> warpListMessage("공개 워프", body)), "공개 워프를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listPublicWarps(27).thenApply(body -> islandMessages.warpList("공개 워프", body)), "공개 워프를 불러오지 못했습니다.");
     }
 
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
@@ -367,7 +368,7 @@ public final class VelocityRoutingController {
     }
 
     public void invite(Player player, UUID islandId, UUID targetUuid) {
-        sendBodyResult(player, coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid).thenApply(this::inviteCreateMessage), "초대를 생성하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid).thenApply(islandMessages::inviteCreate), "초대를 생성하지 못했습니다.");
     }
 
     public void inviteTarget(Player player, UUID islandId, String target) {
@@ -425,7 +426,7 @@ public final class VelocityRoutingController {
     }
 
     public void listMembers(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandMembers(islandId).thenApply(this::memberListMessage), "멤버 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listIslandMembers(islandId).thenApply(islandMessages::memberList), "멤버 목록을 불러오지 못했습니다.");
     }
 
     public void setRole(Player player, UUID islandId, UUID targetUuid, IslandRole role) {
@@ -497,7 +498,7 @@ public final class VelocityRoutingController {
     }
 
     public void listBans(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandBans(islandId).thenApply(this::banListMessage), "밴 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listIslandBans(islandId).thenApply(islandMessages::banList), "밴 목록을 불러오지 못했습니다.");
     }
 
     public void pardonVisitor(Player player, UUID islandId, UUID targetUuid) {
@@ -565,11 +566,11 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "플래그를 확인할 섬을 찾지 못했습니다.", "섬 플래그를 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandFlags(resolved).thenApply(this::flagListMessage), "섬 플래그를 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.listIslandFlags(resolved).thenApply(islandMessages::flagList), "섬 플래그를 불러오지 못했습니다."));
     }
 
     public void listHomes(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandHomes(islandId).thenApply(this::homeListMessage), "섬 홈을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listIslandHomes(islandId).thenApply(islandMessages::homeList), "섬 홈을 불러오지 못했습니다.");
     }
 
     public void setHome(Player player, UUID islandId, String name) {
@@ -586,7 +587,7 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "권한을 확인할 섬을 찾지 못했습니다.", "섬 권한을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandPermissions(resolved).thenApply(this::permissionListMessage), "섬 권한을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.listIslandPermissions(resolved).thenApply(islandMessages::permissionList), "섬 권한을 불러오지 못했습니다."));
     }
 
     public void setPermission(Player player, UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
@@ -598,7 +599,7 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "역할을 확인할 섬을 찾지 못했습니다.", "섬 역할을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandRoles(resolved).thenApply(this::roleListMessage), "섬 역할을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.listIslandRoles(resolved).thenApply(islandMessages::roleList), "섬 역할을 불러오지 못했습니다."));
     }
 
     public void upsertRole(Player player, UUID islandId, IslandRole role, int weight, String displayName) {
@@ -614,7 +615,7 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "로그를 확인할 섬을 찾지 못했습니다.", "섬 로그를 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandLogs(resolved, 30).thenApply(this::islandLogListMessage), "섬 로그를 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.listIslandLogs(resolved, 30).thenApply(islandMessages::islandLogList), "섬 로그를 불러오지 못했습니다."));
     }
 
     public void showBank(Player player, UUID islandId) {
@@ -622,7 +623,7 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "은행을 확인할 섬을 찾지 못했습니다.", "섬 은행을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.islandBank(resolved).thenApply(this::bankInfoMessage), "섬 은행을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.islandBank(resolved).thenApply(islandMessages::bankInfo), "섬 은행을 불러오지 못했습니다."));
     }
 
     public void depositBank(Player player, UUID islandId, String amount) {
@@ -638,7 +639,7 @@ public final class VelocityRoutingController {
     }
 
     public void showLevelRanking(Player player, int limit) {
-        sendBodyResult(player, coreApiClient.topIslandsByLevel(Math.max(1, Math.min(limit, 100))).thenApply(body -> rankingListMessage("섬 랭킹", body)), "랭킹을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.topIslandsByLevel(Math.max(1, Math.min(limit, 100))).thenApply(body -> islandMessages.rankingList("섬 랭킹", body)), "랭킹을 불러오지 못했습니다.");
     }
 
     public void showWorthRanking(Player player) {
@@ -646,16 +647,16 @@ public final class VelocityRoutingController {
     }
 
     public void showWorthRanking(Player player, int limit) {
-        sendBodyResult(player, coreApiClient.topIslandsByWorth(Math.max(1, Math.min(limit, 100))).thenApply(body -> rankingListMessage("가치 랭킹", body)), "가치 랭킹을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.topIslandsByWorth(Math.max(1, Math.min(limit, 100))).thenApply(body -> islandMessages.rankingList("가치 랭킹", body)), "가치 랭킹을 불러오지 못했습니다.");
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
         withResolvedIsland(player, islandId, "레벨을 계산할 섬을 찾지 못했습니다.", "레벨 계산을 시작하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.recalculateIslandLevel(resolved, player.getUniqueId()).thenApply(this::levelRecalculationMessage), "레벨 계산을 시작하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.recalculateIslandLevel(resolved, player.getUniqueId()).thenApply(islandMessages::levelRecalculation), "레벨 계산을 시작하지 못했습니다."));
     }
 
     public void listUpgradeRules(Player player) {
-        sendBodyResult(player, coreApiClient.listUpgradeRules().thenApply(this::upgradeRulesMessage), "업그레이드 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listUpgradeRules().thenApply(islandMessages::upgradeRules), "업그레이드 목록을 불러오지 못했습니다.");
     }
 
     public void listUpgrades(Player player, UUID islandId) {
@@ -663,7 +664,7 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "업그레이드를 확인할 섬을 찾지 못했습니다.", "섬 업그레이드를 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandUpgrades(resolved).thenApply(this::upgradeListMessage), "섬 업그레이드를 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.listIslandUpgrades(resolved).thenApply(islandMessages::upgradeList), "섬 업그레이드를 불러오지 못했습니다."));
     }
 
     public void showGenerator(Player player, UUID islandId) {
@@ -671,12 +672,12 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "생성기를 확인할 섬을 찾지 못했습니다.", "섬 생성기를 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandUpgrades(resolved).thenApply(this::generatorInfoMessage), "섬 생성기를 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.listIslandUpgrades(resolved).thenApply(islandMessages::generatorInfo), "섬 생성기를 불러오지 못했습니다."));
     }
 
     public void purchaseUpgrade(Player player, UUID islandId, String upgradeKey) {
         withResolvedIsland(player, islandId, "업그레이드할 섬을 찾지 못했습니다.", "업그레이드에 실패했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.purchaseIslandUpgrade(resolved, player.getUniqueId(), upgradeKey).thenApply(this::upgradePurchaseMessage), "업그레이드에 실패했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.purchaseIslandUpgrade(resolved, player.getUniqueId(), upgradeKey).thenApply(islandMessages::upgradePurchase), "업그레이드에 실패했습니다."));
     }
 
     public void listMissions(Player player, UUID islandId) {
@@ -684,7 +685,7 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "미션을 확인할 섬을 찾지 못했습니다.", "미션 목록을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandMissions(resolved, "MISSION").thenApply(body -> missionListMessage("섬 미션", body)), "미션 목록을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.listIslandMissions(resolved, "MISSION").thenApply(body -> islandMessages.missionList("섬 미션", body)), "미션 목록을 불러오지 못했습니다."));
     }
 
     public void listChallenges(Player player, UUID islandId) {
@@ -692,17 +693,17 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "챌린지를 확인할 섬을 찾지 못했습니다.", "챌린지 목록을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandMissions(resolved, "CHALLENGE").thenApply(body -> missionListMessage("섬 챌린지", body)), "챌린지 목록을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.listIslandMissions(resolved, "CHALLENGE").thenApply(body -> islandMessages.missionList("섬 챌린지", body)), "챌린지 목록을 불러오지 못했습니다."));
     }
 
     public void completeMission(Player player, UUID islandId, String missionKey) {
         withResolvedIsland(player, islandId, "미션을 완료할 섬을 찾지 못했습니다.", "미션을 완료하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.completeIslandMission(resolved, player.getUniqueId(), missionKey, "MISSION").thenApply(body -> missionResultMessage("섬 미션", body)), "미션을 완료하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.completeIslandMission(resolved, player.getUniqueId(), missionKey, "MISSION").thenApply(body -> islandMessages.missionResult("섬 미션", body)), "미션을 완료하지 못했습니다."));
     }
 
     public void completeChallenge(Player player, UUID islandId, String missionKey) {
         withResolvedIsland(player, islandId, "챌린지를 완료할 섬을 찾지 못했습니다.", "챌린지를 완료하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.completeIslandMission(resolved, player.getUniqueId(), missionKey, "CHALLENGE").thenApply(body -> missionResultMessage("섬 챌린지", body)), "챌린지를 완료하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.completeIslandMission(resolved, player.getUniqueId(), missionKey, "CHALLENGE").thenApply(body -> islandMessages.missionResult("섬 챌린지", body)), "챌린지를 완료하지 못했습니다."));
     }
 
     public void listLimits(Player player, UUID islandId) {
@@ -710,12 +711,12 @@ public final class VelocityRoutingController {
             return;
         }
         withResolvedIsland(player, islandId, "제한을 확인할 섬을 찾지 못했습니다.", "섬 제한을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandLimits(resolved).thenApply(this::limitListMessage), "섬 제한을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.listIslandLimits(resolved).thenApply(islandMessages::limitList), "섬 제한을 불러오지 못했습니다."));
     }
 
     public void setLimit(Player player, UUID islandId, String limitKey, long value) {
         withResolvedIsland(player, islandId, "제한을 변경할 섬을 찾지 못했습니다.", "섬 제한을 변경하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.setIslandLimit(resolved, player.getUniqueId(), limitKey, value).thenApply(this::limitResultMessage), "섬 제한을 변경하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.setIslandLimit(resolved, player.getUniqueId(), limitKey, value).thenApply(islandMessages::limitResult), "섬 제한을 변경하지 못했습니다."));
     }
 
     public void sendIslandChat(Player player, UUID islandId, String channel, String message) {
@@ -730,7 +731,7 @@ public final class VelocityRoutingController {
     }
 
     private void sendIslandChatResolved(Player player, UUID islandId, String channel, String message, String label) {
-        sendBodyResult(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message).thenApply(body -> chatResultMessage(label, body)), label + "을 전송하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message).thenApply(body -> islandMessages.chatResult(label, body)), label + "을 전송하지 못했습니다.");
     }
 
     private boolean rejectExplicitIslandLookup(Player player, UUID islandId) {
@@ -772,7 +773,7 @@ public final class VelocityRoutingController {
 
     public void restore(Player player, UUID islandId, long snapshotNo) {
         withResolvedIsland(player, islandId, "복원할 섬을 찾지 못했습니다.", "섬 복원을 요청하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.restoreIslandSnapshotResult(resolved, snapshotNo).thenApply(body -> actionResultMessage("Island restore", resolved.toString(), body)), "섬 복원을 요청하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.restoreIslandSnapshotResult(resolved, snapshotNo).thenApply(body -> islandMessages.actionResult("Island restore", resolved.toString(), body)), "섬 복원을 요청하지 못했습니다."));
     }
 
     public void listJobs(Player player) {
@@ -836,7 +837,7 @@ public final class VelocityRoutingController {
     }
 
     public void activateIsland(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.activateIsland(islandId).thenApply(body -> actionResultMessage("Island activate", islandId.toString(), body)), "섬 활성화를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.activateIsland(islandId).thenApply(body -> islandMessages.actionResult("Island activate", islandId.toString(), body)), "섬 활성화를 요청하지 못했습니다.");
     }
 
     public void activateIslandTarget(Player player, String target) {
@@ -844,7 +845,7 @@ public final class VelocityRoutingController {
     }
 
     public void deactivateIsland(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.deactivateIsland(islandId).thenApply(body -> actionResultMessage("Island deactivate", islandId.toString(), body)), "섬 비활성화를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.deactivateIsland(islandId).thenApply(body -> islandMessages.actionResult("Island deactivate", islandId.toString(), body)), "섬 비활성화를 요청하지 못했습니다.");
     }
 
     public void deactivateIslandTarget(Player player, String target) {
@@ -852,7 +853,7 @@ public final class VelocityRoutingController {
     }
 
     public void migrateIsland(Player player, UUID islandId, String targetNode) {
-        sendBodyResult(player, coreApiClient.migrateIsland(islandId, targetNode).thenApply(body -> actionResultMessage("Island migrate", islandId.toString(), body)), "섬 마이그레이션을 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.migrateIsland(islandId, targetNode).thenApply(body -> islandMessages.actionResult("Island migrate", islandId.toString(), body)), "섬 마이그레이션을 요청하지 못했습니다.");
     }
 
     public void migrateIslandTarget(Player player, String target, String targetNode) {
@@ -860,7 +861,7 @@ public final class VelocityRoutingController {
     }
 
     public void quarantineIsland(Player player, UUID islandId, String reason) {
-        sendBodyResult(player, coreApiClient.quarantineIsland(islandId, reason).thenApply(body -> actionResultMessage("Island quarantine", islandId.toString(), body)), "섬 격리를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.quarantineIsland(islandId, reason).thenApply(body -> islandMessages.actionResult("Island quarantine", islandId.toString(), body)), "섬 격리를 요청하지 못했습니다.");
     }
 
     public void quarantineIslandTarget(Player player, String target, String reason) {
@@ -868,7 +869,7 @@ public final class VelocityRoutingController {
     }
 
     public void adminIslandInfo(Player player, UUID lookupUuid) {
-        sendBodyResult(player, coreApiClient.adminIslandInfo(lookupUuid).thenApply(this::islandInfoMessage), "섬 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.adminIslandInfo(lookupUuid).thenApply(islandMessages::islandInfo), "섬 정보를 불러오지 못했습니다.");
     }
 
     public void adminIslandInfoTarget(Player player, String target) {
@@ -877,11 +878,11 @@ public final class VelocityRoutingController {
             adminIslandInfo(player, parsed);
             return;
         }
-        sendBodyResult(player, coreApiClient.islandInfoByName(target).thenApply(this::islandInfoMessage), "섬 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islandInfoByName(target).thenApply(islandMessages::islandInfo), "섬 정보를 불러오지 못했습니다.");
     }
 
     public void adminIslandWhere(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.adminIslandWhere(islandId).thenApply(this::runtimeInfoMessage), "섬 위치 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.adminIslandWhere(islandId).thenApply(islandMessages::runtimeInfo), "섬 위치 정보를 불러오지 못했습니다.");
     }
 
     public void adminIslandWhereTarget(Player player, String target) {
@@ -897,7 +898,7 @@ public final class VelocityRoutingController {
     }
 
     public void adminDeleteIsland(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.adminDeleteIsland(islandId).thenApply(body -> actionResultMessage("Island delete", islandId.toString(), body)), "섬 삭제를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.adminDeleteIsland(islandId).thenApply(body -> islandMessages.actionResult("Island delete", islandId.toString(), body)), "섬 삭제를 요청하지 못했습니다.");
     }
 
     public void adminDeleteIslandTarget(Player player, String target) {
@@ -905,7 +906,7 @@ public final class VelocityRoutingController {
     }
 
     public void repairIsland(Player player, UUID islandId, String reason) {
-        sendBodyResult(player, coreApiClient.repairIsland(islandId, reason).thenApply(body -> actionResultMessage("Island repair", islandId.toString(), body)), "섬 복구를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.repairIsland(islandId, reason).thenApply(body -> islandMessages.actionResult("Island repair", islandId.toString(), body)), "섬 복구를 요청하지 못했습니다.");
     }
 
     public void repairIslandTarget(Player player, String target, String reason) {
@@ -1024,15 +1025,15 @@ public final class VelocityRoutingController {
     }
 
     public void addonStateSummary(Player player) {
-        sendBodyResult(player, coreApiClient.addonStateSummary().thenApply(this::addonStateSummaryMessage), "Addon state 상태를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.addonStateSummary().thenApply(islandMessages::addonStateSummary), "Addon state 상태를 불러오지 못했습니다.");
     }
 
     public void listBlockValues(Player player) {
-        sendBodyResult(player, coreApiClient.listBlockValues().thenApply(this::blockValueListMessage), "블록 가치 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listBlockValues().thenApply(islandMessages::blockValueList), "블록 가치 목록을 불러오지 못했습니다.");
     }
 
     public void setBlockValue(Player player, String materialKey, String worth, long levelPoints, long limit) {
-        sendBodyResult(player, coreApiClient.setBlockValueResult(player.getUniqueId(), materialKey, worth, levelPoints, limit).thenApply(body -> actionResultMessage("Block value set", materialKey, body)), "블록 가치를 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.setBlockValueResult(player.getUniqueId(), materialKey, worth, levelPoints, limit).thenApply(body -> islandMessages.actionResult("Block value set", materialKey, body)), "블록 가치를 변경하지 못했습니다.");
     }
 
     public void reload(Player player) {
@@ -1041,554 +1042,6 @@ public final class VelocityRoutingController {
 
     public void migrateSuperiorSkyblock2(Player player, String action, String path) {
         sendBodyResult(player, coreApiClient.migrateSuperiorSkyblock2(action, path).thenApply(migrationMessages::format), "마이그레이션 명령을 실행하지 못했습니다.");
-    }
-
-    private String actionResultMessage(String label, String targetId, String body) {
-        if (body == null || body.isBlank()) {
-            return label + ": accepted target=" + compactTarget(targetId);
-        }
-        String code = jsonValue(body, "code");
-        boolean accepted = body.contains("\"accepted\"") ? boolValue(body, "accepted") : !body.contains("\"accepted\":false");
-        StringBuilder builder = new StringBuilder(label)
-            .append(": ")
-            .append(accepted ? "accepted" : "rejected")
-            .append(" target=")
-            .append(compactTarget(targetId));
-        if (!code.isBlank()) {
-            builder.append(" code=").append(code);
-            String detail = adminCodeDetail(code);
-            if (!detail.isBlank()) {
-                builder.append(" detail=").append(detail);
-            }
-        }
-        String islandId = jsonValue(body, "islandId");
-        if (!islandId.isBlank() && !islandId.equals(targetId)) {
-            builder.append(" 섬=").append(shortId(islandId));
-        }
-        String materialKey = jsonValue(body, "materialKey");
-        if (!materialKey.isBlank()) {
-            builder.append(" material=").append(materialKey);
-        }
-        String worth = jsonValue(body, "worth");
-        if (!worth.isBlank()) {
-            builder.append(" worth=").append(worth);
-        }
-        if (body.contains("\"snapshotNo\"")) {
-            builder.append(" snapshot=").append(longValue(body, "snapshotNo"));
-        }
-        String storagePath = jsonValue(body, "storagePath");
-        if (!storagePath.isBlank()) {
-            builder.append(" storagePath=").append(storagePath);
-        }
-        if (body.contains("\"restoreManifestRequired\"")) {
-            builder.append(" restoreManifest=").append(boolValue(body, "restoreManifestRequired"));
-        }
-        String restoreChecksumPolicy = jsonValue(body, "restoreChecksumPolicy");
-        if (!restoreChecksumPolicy.isBlank()) {
-            builder.append(" restoreChecksum=").append(restoreChecksumPolicy);
-        }
-        if (body.contains("\"restorePortableRequired\"")) {
-            builder.append(" restorePortable=").append(boolValue(body, "restorePortableRequired"));
-        }
-        String restoreSupportedFormats = jsonValue(body, "restoreSupportedFormats");
-        if (!restoreSupportedFormats.isBlank()) {
-            builder.append(" restoreFormats=").append(restoreSupportedFormats);
-        }
-        return builder.toString();
-    }
-
-    private String adminCodeDetail(String code) {
-        if (code == null || code.isBlank()) {
-            return "";
-        }
-        if (code.startsWith("NO_READY_NODE")) {
-            return "no-ready-node";
-        }
-        if (code.startsWith("TARGET_NODE")) {
-            return "target-node-blocked";
-        }
-        if (code.startsWith("ACTIVE_NODE")) {
-            return "active-node-blocked";
-        }
-        return switch (code) {
-            case "ACTIVATION_LOCKED" -> "activation-in-progress";
-            case "VISITOR_SOFT_FULL" -> "visitor-denied-soft-full";
-            case "CREATE_LOCKED" -> "player-create-lock-held";
-            case "NODE_UNAVAILABLE" -> "node-unavailable";
-            default -> "";
-        };
-    }
-
-    private String inviteCreateMessage(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "초대: 실패 사유=" + code;
-        }
-        return "초대: 생성됨 invite=" + shortId(jsonValue(body, "inviteId"))
-            + " 섬=" + shortId(jsonValue(body, "islandId"))
-            + " target=" + shortId(jsonValue(body, "targetUuid"))
-            + " state=" + jsonValue(body, "state");
-    }
-
-    private String chatResultMessage(String label, String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return label + ": 실패 사유=" + code;
-        }
-        return label + ": 전송 완료 채널=" + jsonValue(body, "channel");
-    }
-
-    private String compactTarget(String targetId) {
-        return targetId != null && targetId.length() == 36 && targetId.indexOf('-') > 0 ? shortId(targetId) : targetId;
-    }
-
-    private String islandInfoMessage(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "섬 정보: 실패 사유=" + code;
-        }
-        String islandId = jsonValue(body, "islandId");
-        String ownerUuid = jsonValue(body, "ownerUuid");
-        String name = jsonValue(body, "name");
-        String state = jsonValue(body, "state");
-        return "섬 정보: ID=" + shortId(islandId)
-            + " 소유자=" + shortId(ownerUuid)
-            + (name.isBlank() ? "" : " 이름=" + name)
-            + " 상태=" + (state.isBlank() ? "UNKNOWN" : state)
-            + " 크기=" + longValue(body, "size")
-            + " 레벨=" + longValue(body, "level")
-            + " 가치=" + jsonValue(body, "worth")
-            + " 공개=" + boolValue(body, "publicAccess");
-    }
-
-    private String islandStatMessage(String label, String field, String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return label + ": 실패 사유=" + code;
-        }
-        String islandId = jsonValue(body, "islandId");
-        String value = field.equals("worth") ? jsonValue(body, field) : Long.toString(longValue(body, field));
-        return label + ": 섬=" + shortId(islandId) + " 값=" + value;
-    }
-
-    private String biomeInfoMessage(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "섬 바이옴: 실패 사유=" + code;
-        }
-        return "섬 바이옴: 섬=" + shortId(jsonValue(body, "islandId"))
-            + " 바이옴=" + jsonValue(body, "biomeKey")
-            + " 변경자=" + shortId(jsonValue(body, "updatedBy"));
-    }
-
-    private String runtimeInfoMessage(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "Island runtime: failed code=" + code;
-        }
-        String islandId = jsonValue(body, "islandId");
-        String state = jsonValue(body, "state");
-        String activeNode = jsonValue(body, "activeNode");
-        String activeWorld = jsonValue(body, "activeWorld");
-        return "Island runtime: 섬=" + shortId(islandId)
-            + " state=" + (state.isBlank() ? "UNKNOWN" : state)
-            + routePrivacy.routeNodeSuffix(activeNode)
-            + routePrivacy.runtimeWorldSuffix(activeWorld)
-            + routePrivacy.runtimeCellSuffix(body)
-            + " fence=" + longValue(body, "fencingToken");
-    }
-
-    private String playerInfoMessage(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "플레이어 정보: 실패 사유=" + code;
-        }
-        String playerUuid = jsonValue(body, "playerUuid");
-        String lastName = jsonValue(body, "lastName");
-        String islandId = jsonValue(body, "primaryIslandId");
-        return "플레이어 정보: ID=" + shortId(playerUuid)
-            + (lastName.isBlank() ? "" : " 이름=" + lastName)
-            + (islandId.isBlank() ? " 섬=없음" : " 섬=" + shortId(islandId));
-    }
-
-    private String rankingListMessage(String label, String body) {
-        String rankings = arrayValue(body, "rankings");
-        if (rankings.isBlank()) {
-            return label + ": 기록이 없습니다.";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < rankings.length()) {
-            int objectStart = rankings.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(rankings, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            total++;
-            if (entries.size() < 10) {
-                String object = rankings.substring(objectStart, objectEnd + 1);
-                String islandId = jsonValue(object, "islandId");
-                String name = jsonValue(object, "name");
-                entries.add("#" + total
-                    + " " + (name.isBlank() ? "이름 없는 섬" : name)
-                    + " (ID=" + shortId(islandId)
-                    + ", 레벨=" + longValue(object, "level")
-                    + ", 가치=" + jsonValue(object, "worth") + ")");
-            }
-            index = objectEnd + 1;
-        }
-        return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    private String blockValueListMessage(String body) {
-        String values = arrayValue(body, "values");
-        if (values.isBlank()) {
-            return "Block values: empty";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < values.length()) {
-            int objectStart = values.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(values, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            total++;
-            if (entries.size() < 10) {
-                String object = values.substring(objectStart, objectEnd + 1);
-                entries.add(jsonValue(object, "materialKey")
-                    + " worth=" + jsonValue(object, "worth")
-                    + " level=" + longValue(object, "levelPoints")
-                    + " limit=" + longValue(object, "limit"));
-            }
-            index = objectEnd + 1;
-        }
-        return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    private String addonStateSummaryMessage(String body) {
-        String addons = arrayValue(body, "addons");
-        if (addons.isBlank()) {
-            return "Addon state: empty";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < addons.length()) {
-            int objectStart = addons.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(addons, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            total++;
-            if (entries.size() < 10) {
-                String object = addons.substring(objectStart, objectEnd + 1);
-                entries.add(jsonValue(object, "addonId")
-                    + " global=" + longValue(object, "globalKeys")
-                    + " island=" + longValue(object, "islandKeys")
-                    + " totalKeys=" + longValue(object, "totalKeys"));
-            }
-            index = objectEnd + 1;
-        }
-        return "Addon state: total=" + total
-            + " owner=" + jsonValue(body, "stateOwnership")
-            + " registeredRequired=" + boolValue(body, "registeredAddonRequired")
-            + " orphanPolicy=" + jsonValue(body, "orphanStatePolicy")
-            + " missingPolicy=" + jsonValue(body, "missingAddonStatePolicy")
-            + " tableKeyPrefix=" + jsonValue(body, "tableKeyPrefix")
-            + " maxKeysPerAddon=" + longValue(body, "maxKeysPerAddon")
-            + " maxValueLength=" + longValue(body, "maxValueLength")
-            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    private String templateListMessage(String body) {
-        String templates = arrayValue(body, "templates");
-        if (templates.isBlank()) {
-            return "섬 템플릿: 없음";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int total = 0;
-        int enabled = 0;
-        int index = 0;
-        while (index < templates.length()) {
-            int objectStart = templates.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(templates, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = templates.substring(objectStart, objectEnd + 1);
-            total++;
-            if (boolValue(object, "enabled")) {
-                enabled++;
-            }
-            if (entries.size() < 10) {
-                String minNodeVersion = jsonValue(object, "minNodeVersion");
-                entries.add(jsonValue(object, "id")
-                    + " " + (boolValue(object, "enabled") ? "사용 가능" : "비활성")
-                    + (minNodeVersion.isBlank() ? "" : " 최소버전=" + minNodeVersion));
-            }
-            index = objectEnd + 1;
-        }
-        return "섬 템플릿: 전체 " + total + "개, 사용 가능 " + enabled + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    private String warpListMessage(String label, String body) {
-        return namedObjectListMessage(label, body, "warps", object -> jsonValue(object, "name")
-            + (boolValue(object, "publicAccess") ? "(공개)" : "")
-            + " 섬=" + shortId(jsonValue(object, "islandId"))
-            + " 위치=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
-    }
-
-    private String homeListMessage(String body) {
-        return namedObjectListMessage("섬 홈", body, "homes", object -> jsonValue(object, "name")
-            + " 위치=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
-    }
-
-    private String memberListMessage(String body) {
-        return namedObjectListMessage("섬 멤버", body, "members", object -> shortId(jsonValue(object, "playerUuid"))
-            + " 역할=" + jsonValue(object, "role"));
-    }
-
-    private String banListMessage(String body) {
-        return namedObjectListMessage("섬 밴", body, "bans", object -> shortId(jsonValue(object, "bannedUuid"))
-            + " 사유=" + fallback(jsonValue(object, "reason"), "-"));
-    }
-
-    private String permissionListMessage(String body) {
-        return namedObjectListMessage("섬 권한", body, "rules", object -> jsonValue(object, "role")
-            + ":" + jsonValue(object, "permission")
-            + "=" + (boolValue(object, "allowed") ? "허용" : "거부"));
-    }
-
-    private String roleListMessage(String body) {
-        return namedObjectListMessage("섬 역할", body, "roles", object -> jsonValue(object, "role")
-            + " weight=" + longValue(object, "weight")
-            + " name=" + fallback(jsonValue(object, "displayName"), "-"));
-    }
-
-    private String islandLogListMessage(String body) {
-        return namedObjectListMessage("섬 로그", body, "logs", object -> fallback(jsonValue(object, "action"), "UNKNOWN")
-            + " 처리자=" + shortId(jsonValue(object, "actorUuid"))
-            + " 시각=" + jsonValue(object, "createdAt"));
-    }
-
-    private String bankInfoMessage(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "섬 은행: 실패 사유=" + code;
-        }
-        return "섬 은행: 섬=" + shortId(jsonValue(body, "islandId"))
-            + " balance=" + jsonValue(body, "balance");
-    }
-
-    private String bankActionMessage(String label, String body) {
-        String code = jsonValue(body, "code");
-        String bank = objectValue(body, "bank");
-        if (bank.isBlank()) {
-            bank = body;
-        }
-        boolean accepted = !body.contains("\"accepted\":false");
-        return label + ": " + (accepted ? "접수됨" : "거부됨")
-            + (code.isBlank() ? "" : " 사유=" + code)
-            + " 섬=" + shortId(jsonValue(bank, "islandId"))
-            + " 잔액=" + jsonValue(bank, "balance");
-    }
-
-    private String levelRecalculationMessage(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "레벨 계산: 실패 사유=" + code;
-        }
-        return "레벨 계산: 섬=" + shortId(jsonValue(body, "islandId"))
-            + " level=" + longValue(body, "level")
-            + " worth=" + jsonValue(body, "worth");
-    }
-
-    private String upgradeListMessage(String body) {
-        return namedObjectListMessage("섬 업그레이드", body, "upgrades", object -> jsonValue(object, "upgradeKey")
-            + " 레벨=" + longValue(object, "level")
-            + " 유형=" + jsonValue(object, "type"));
-    }
-
-    private String generatorInfoMessage(String body) {
-        String generatorKey = "default";
-        long level = 1L;
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String upgradeKey = jsonValue(object, "upgradeKey");
-            String normalized = upgradeKey.toLowerCase(java.util.Locale.ROOT);
-            if (normalized.equals("generator") || normalized.startsWith("generator:")) {
-                long currentLevel = Math.max(1L, longValue(object, "level"));
-                String currentKey = jsonValue(object, "generatorKey");
-                if (currentKey.isBlank()) {
-                    int separator = upgradeKey.indexOf(':');
-                    currentKey = separator < 0 ? "default" : upgradeKey.substring(separator + 1);
-                }
-                if (currentLevel > level || (currentLevel == level && generatorKey.equals("default") && !currentKey.equalsIgnoreCase("default"))) {
-                    level = currentLevel;
-                    generatorKey = currentKey.isBlank() ? "default" : currentKey;
-                }
-            }
-            index = objectEnd + 1;
-        }
-        return "섬 생성기: key=" + generatorKey + " level=" + level + " / 업그레이드: /섬 업그레이드구매 generator";
-    }
-
-    private String upgradePurchaseMessage(String body) {
-        String code = jsonValue(body, "code");
-        String upgrade = objectValue(body, "upgrade");
-        boolean accepted = boolValue(body, "accepted");
-        return "업그레이드 구매: " + (accepted ? "접수됨" : "거부됨")
-            + (code.isBlank() ? "" : " 사유=" + code)
-            + " 비용=" + jsonValue(body, "cost")
-            + (upgrade.isBlank() ? "" : " 업그레이드=" + jsonValue(upgrade, "upgradeKey") + " 레벨=" + longValue(upgrade, "level"));
-    }
-
-    private String missionListMessage(String label, String body) {
-        return namedObjectListMessage(label, body, "missions", object -> jsonValue(object, "missionKey")
-            + " " + longValue(object, "progress") + "/" + longValue(object, "goal")
-            + " 완료=" + boolValue(object, "completed"));
-    }
-
-    private String missionResultMessage(String label, String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return label + ": 실패 사유=" + code;
-        }
-        return label + ": 완료 키=" + jsonValue(body, "missionKey")
-            + " 보상=" + jsonValue(body, "reward");
-    }
-
-    private String limitListMessage(String body) {
-        return namedObjectListMessage("섬 제한", body, "limits", object -> jsonValue(object, "limitKey")
-            + " 값=" + longValue(object, "value"));
-    }
-
-    private String limitResultMessage(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "섬 제한 변경: 실패 사유=" + code;
-        }
-        return "섬 제한 변경: " + jsonValue(body, "limitKey")
-            + "=" + longValue(body, "value")
-            + " 섬=" + shortId(jsonValue(body, "islandId"));
-    }
-
-    private String flagListMessage(String body) {
-        String flags = objectValue(body, "flags");
-        if (flags.isBlank()) {
-            return "섬 플래그: 없음";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < flags.length()) {
-            int keyStart = flags.indexOf('"', index);
-            if (keyStart < 0) {
-                break;
-            }
-            int keyEnd = flags.indexOf('"', keyStart + 1);
-            if (keyEnd < 0) {
-                break;
-            }
-            int valueStart = flags.indexOf('"', keyEnd + 1);
-            if (valueStart < 0) {
-                break;
-            }
-            int valueEnd = flags.indexOf('"', valueStart + 1);
-            if (valueEnd < 0) {
-                break;
-            }
-            total++;
-            if (entries.size() < 12) {
-                entries.add(flags.substring(keyStart + 1, keyEnd) + "=" + flags.substring(valueStart + 1, valueEnd));
-            }
-            index = valueEnd + 1;
-        }
-        return "섬 플래그: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    private String namedObjectListMessage(String label, String body, String arrayField, java.util.function.Function<String, String> formatter) {
-        String array = arrayValue(body, arrayField);
-        if (array.isBlank()) {
-            return label + ": empty";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < array.length()) {
-            int objectStart = array.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(array, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            total++;
-            if (entries.size() < 10) {
-                entries.add(formatter.apply(array.substring(objectStart, objectEnd + 1)));
-            }
-            index = objectEnd + 1;
-        }
-        return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    private String fallback(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
-    }
-
-    private String upgradeRulesMessage(String body) {
-        String rules = arrayValue(body, "rules");
-        if (rules.isBlank()) {
-            return "업그레이드 규칙: 없음";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < rules.length()) {
-            int objectStart = rules.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(rules, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            total++;
-            if (entries.size() < 10) {
-                String object = rules.substring(objectStart, objectEnd + 1);
-                entries.add(jsonValue(object, "upgradeKey")
-                    + " 유형=" + jsonValue(object, "type")
-                    + " 최대=" + longValue(object, "maxLevel")
-                    + " 기본비용=" + jsonValue(object, "baseCost"));
-            }
-            index = objectEnd + 1;
-        }
-        return "업그레이드 규칙: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String coreConfigMessage(String body) {
@@ -1816,7 +1269,7 @@ public final class VelocityRoutingController {
     }
 
     public void playerInfo(Player player, UUID playerUuid) {
-        sendBodyResult(player, coreApiClient.playerInfo(playerUuid).thenApply(this::playerInfoMessage), "플레이어 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.playerInfo(playerUuid).thenApply(islandMessages::playerInfo), "플레이어 정보를 불러오지 못했습니다.");
     }
 
     public void playerInfoTarget(Player player, String target) {
@@ -1833,7 +1286,7 @@ public final class VelocityRoutingController {
     }
 
     public void setPlayerIsland(Player player, UUID playerUuid, UUID islandId) {
-        sendBodyResult(player, coreApiClient.setPlayerIsland(playerUuid, islandId).thenApply(body -> actionResultMessage("Player setisland", playerUuid.toString(), body)), "플레이어 섬을 설정하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.setPlayerIsland(playerUuid, islandId).thenApply(body -> islandMessages.actionResult("Player setisland", playerUuid.toString(), body)), "플레이어 섬을 설정하지 못했습니다.");
     }
 
     public void setPlayerIslandTarget(Player player, String target, UUID islandId) {
@@ -1850,7 +1303,7 @@ public final class VelocityRoutingController {
     }
 
     public void clearPlayerIsland(Player player, UUID playerUuid) {
-        sendBodyResult(player, coreApiClient.clearPlayerIsland(playerUuid).thenApply(body -> actionResultMessage("Player clearisland", playerUuid.toString(), body)), "플레이어 섬을 해제하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.clearPlayerIsland(playerUuid).thenApply(body -> islandMessages.actionResult("Player clearisland", playerUuid.toString(), body)), "플레이어 섬을 해제하지 못했습니다.");
     }
 
     public void clearPlayerIslandTarget(Player player, String target) {
@@ -1867,19 +1320,19 @@ public final class VelocityRoutingController {
     }
 
     public void listTemplates(Player player) {
-        sendBodyResult(player, coreApiClient.listTemplates().thenApply(this::templateListMessage), "섬 템플릿 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.listTemplates().thenApply(islandMessages::templateList), "섬 템플릿 목록을 불러오지 못했습니다.");
     }
 
     public void upsertTemplate(Player player, String templateId, String displayName, boolean enabled, String minNodeVersion) {
-        sendBodyResult(player, coreApiClient.upsertTemplate(templateId, displayName, enabled, minNodeVersion).thenApply(body -> actionResultMessage("Template upsert", templateId, body)), "섬 템플릿을 저장하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.upsertTemplate(templateId, displayName, enabled, minNodeVersion).thenApply(body -> islandMessages.actionResult("Template upsert", templateId, body)), "섬 템플릿을 저장하지 못했습니다.");
     }
 
     public void enableTemplate(Player player, String templateId) {
-        sendBodyResult(player, coreApiClient.enableTemplate(templateId).thenApply(body -> actionResultMessage("Template enable", templateId, body)), "섬 템플릿을 활성화하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.enableTemplate(templateId).thenApply(body -> islandMessages.actionResult("Template enable", templateId, body)), "섬 템플릿을 활성화하지 못했습니다.");
     }
 
     public void disableTemplate(Player player, String templateId) {
-        sendBodyResult(player, coreApiClient.disableTemplate(templateId).thenApply(body -> actionResultMessage("Template disable", templateId, body)), "섬 템플릿을 비활성화하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.disableTemplate(templateId).thenApply(body -> islandMessages.actionResult("Template disable", templateId, body)), "섬 템플릿을 비활성화하지 못했습니다.");
     }
 
     private void sendPlayerPayload(Player player, String body, String emptyMessage, String successMessage) {
@@ -2416,6 +1869,10 @@ public final class VelocityRoutingController {
 
     private String seconds(double value) {
         return String.format(java.util.Locale.ROOT, "%.3f", value);
+    }
+
+    private String fallback(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     private void sendInviteActionResult(Player player, CompletableFuture<String> future, String successMessage, String failureMessage) {
