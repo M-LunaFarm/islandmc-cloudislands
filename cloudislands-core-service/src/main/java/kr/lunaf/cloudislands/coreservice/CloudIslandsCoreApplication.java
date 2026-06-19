@@ -65,6 +65,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.RoutePreparationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RouteTicketRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
@@ -1292,48 +1293,7 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_RESET"));
             write(exchange, 202, "{\"accepted\":true,\"code\":\"ROLE_RESET\",\"role\":\"" + role.name() + "\",\"removed\":" + removed + "}");
         });
-        route("/v1/routes/home", exchange -> {
-            String body = readBody(exchange);
-            routeResult(exchange, routing.prepareHomeRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.text(body, "homeName", "default")));
-        });
-        route("/v1/routes/visit", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            String islandName = JsonFields.text(body, "islandName", "");
-            if (!islandName.isBlank()) {
-                routeResult(exchange, routing.prepareVisitRouteByName(playerUuid, islandName));
-                return;
-            }
-            UUID ownerUuid = JsonFields.uuid(body, "ownerUuid", new UUID(0L, 0L));
-            if (!ownerUuid.equals(new UUID(0L, 0L))) {
-                routeResult(exchange, routing.prepareVisitRouteByOwner(playerUuid, ownerUuid));
-                return;
-            }
-            routeResult(exchange, routing.prepareVisitRoute(playerUuid, JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
-        });
-        route("/v1/routes/random", exchange -> {
-            String body = readBody(exchange);
-            routeResult(exchange, routing.prepareRandomVisitRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L))));
-        });
-        route("/v1/routes/warp", exchange -> {
-            String body = readBody(exchange);
-            routeResult(exchange, routing.prepareWarpRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "warpName", "default")));
-        });
-        route("/v1/routes/migration-return", exchange -> {
-            String body = readBody(exchange);
-            java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
-            payload.put("localX", Double.toString(JsonFields.decimal(body, "localX", 0.5D)));
-            payload.put("localY", Double.toString(JsonFields.decimal(body, "localY", 100.0D)));
-            payload.put("localZ", Double.toString(JsonFields.decimal(body, "localZ", 0.5D)));
-            payload.put("yaw", Float.toString((float) JsonFields.decimal(body, "yaw", 180.0D)));
-            payload.put("pitch", Float.toString((float) JsonFields.decimal(body, "pitch", 0.0D)));
-            routeResult(exchange, routing.prepareMigrationReturnRoute(
-                JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)),
-                JsonFields.uuid(body, "islandId", new UUID(0L, 0L)),
-                JsonFields.text(body, "targetNode", ""),
-                payload
-            ));
-        });
+        new RoutePreparationRoutes(routing).register(this::route);
         new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(this::route);
         route("/v1/admin/cache/clear", exchange -> {
             int clearedSessions = sessions.clearAll();
@@ -1777,10 +1737,6 @@ public final class CloudIslandsCoreApplication {
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
             write(exchange, runtime.isPresent() ? 200 : 404, runtime.map(CloudIslandsCoreApplication::runtimeJson).orElseGet(() -> ApiResponses.error("ISLAND_RUNTIME_NOT_FOUND", "Island runtime was not found")));
-        });
-        route("/v1/admin/islands/tp", exchange -> {
-            String body = readBody(exchange);
-            routeResult(exchange, routing.prepareAdminTeleportRoute(JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L)), JsonFields.uuid(body, "islandId", new UUID(0L, 0L))));
         });
         route("/v1/admin/islands/delete", exchange -> {
             String body = readBody(exchange);
@@ -3673,10 +3629,6 @@ public final class CloudIslandsCoreApplication {
             default -> {
             }
         }
-    }
-
-    private static void routeResult(HttpExchange exchange, RoutePreparationResult result) throws IOException {
-        write(exchange, result.status(), result.body());
     }
 
     private boolean requestIslandDelete(UUID islandId, UUID ownerUuid, UUID requesterUuid, String reason) {
