@@ -71,6 +71,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.ProgressionRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RoutePreparationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RouteTicketRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.SuperiorSkyblock2MigrationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.TemplateRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
@@ -586,72 +587,7 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.CORE_RELOADED.name(), Map.of("clearedSessions", Integer.toString(clearedSessions), "clearedTickets", Integer.toString(clearedTickets), "clearedRedisKeys", Integer.toString(clearedRedisKeys)));
             write(exchange, 202, "{\"reloaded\":true,\"clearedSessions\":" + clearedSessions + ",\"clearedTickets\":" + clearedTickets + ",\"clearedRedisKeys\":" + clearedRedisKeys + "}");
         });
-        route("/v1/admin/migrations/superiorskyblock2/scan", exchange -> {
-            if (!config.superiorSkyblock2MigrationEnabled()) {
-                write(exchange, 403, migrationDisabledJson());
-                return;
-            }
-            String body = readBody(exchange);
-            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_SCAN", "MIGRATION", "superiorskyblock2", Map.of());
-            write(exchange, 202, migrationAdmin.scan(JsonFields.text(body, "path", "plugins/SuperiorSkyblock2")));
-        });
-        route("/v1/admin/migrations/superiorskyblock2/status", exchange -> {
-            if (!config.superiorSkyblock2MigrationEnabled()) {
-                write(exchange, 403, migrationDisabledJson());
-                return;
-            }
-            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_STATUS", "MIGRATION", "superiorskyblock2", Map.of());
-            write(exchange, 200, migrationAdmin.status());
-        });
-        route("/v1/admin/migrations/superiorskyblock2/dryrun", exchange -> {
-            if (!config.superiorSkyblock2MigrationEnabled()) {
-                write(exchange, 403, migrationDisabledJson());
-                return;
-            }
-            String body = readBody(exchange);
-            String path = JsonFields.text(body, "path", "");
-            if (!path.isBlank()) {
-                migrationAdmin.scan(path);
-            }
-            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_DRYRUN", "MIGRATION", "superiorskyblock2", path.isBlank() ? Map.of() : Map.of("path", path));
-            write(exchange, 202, migrationAdmin.dryRun());
-        });
-        route("/v1/admin/migrations/superiorskyblock2/extract", exchange -> {
-            if (!config.superiorSkyblock2MigrationEnabled()) {
-                write(exchange, 403, migrationDisabledJson());
-                return;
-            }
-            String body = readBody(exchange);
-            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_EXTRACT", "MIGRATION", "superiorskyblock2", Map.of());
-            write(exchange, 202, migrationAdmin.extractWorldBundles(JsonFields.text(body, "path", "")));
-        });
-        route("/v1/admin/migrations/superiorskyblock2/import", exchange -> {
-            if (!config.superiorSkyblock2MigrationEnabled()) {
-                write(exchange, 403, migrationDisabledJson());
-                return;
-            }
-            String body = readBody(exchange);
-            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_IMPORT", "MIGRATION", "superiorskyblock2", Map.of());
-            write(exchange, 202, migrationAdmin.importLastPlan(JsonFields.text(body, "approval", "")));
-        });
-        route("/v1/admin/migrations/superiorskyblock2/verify", exchange -> {
-            if (!config.superiorSkyblock2MigrationEnabled()) {
-                write(exchange, 403, migrationDisabledJson());
-                return;
-            }
-            String body = readBody(exchange);
-            String path = JsonFields.text(body, "path", "");
-            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_VERIFY", "MIGRATION", "superiorskyblock2", path.isBlank() ? Map.of() : Map.of("path", path));
-            write(exchange, 202, migrationAdmin.verify(path));
-        });
-        route("/v1/admin/migrations/superiorskyblock2/rollback", exchange -> {
-            if (!config.superiorSkyblock2MigrationEnabled()) {
-                write(exchange, 403, migrationDisabledJson());
-                return;
-            }
-            audit.log(new UUID(0L, 0L), "ADMIN", "MIGRATION_ROLLBACK", "MIGRATION", "superiorskyblock2", Map.of());
-            write(exchange, 202, migrationAdmin.rollbackLastImport());
-        });
+        new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), migrationAdmin, audit).register(this::route);
         new PlayerProfileRoutes(playerProfiles, audit).register(this::route);
         new TemplateRoutes(templateRepository, audit, events).register(this::route);
         route("/v1/nodes/heartbeat", exchange -> {
@@ -2146,10 +2082,6 @@ public final class CloudIslandsCoreApplication {
             + "\"rateLimitRequests\":" + config.rateLimitRequests() + ","
             + "\"rateLimitWindowSeconds\":" + config.rateLimitWindow().toSeconds()
             + "}";
-    }
-
-    private static String migrationDisabledJson() {
-        return "{\"code\":\"MIGRATION_DISABLED\",\"state\":\"DISABLED\",\"sourcePlugin\":\"SuperiorSkyblock2\",\"migrationInputOnly\":true,\"runtimeDependency\":false,\"targetRuntime\":\"CloudIslands\",\"message\":\"SuperiorSkyblock2 migration is disabled by config\"}";
     }
 
     private static String jdbcBackend(String jdbcUrl) {
