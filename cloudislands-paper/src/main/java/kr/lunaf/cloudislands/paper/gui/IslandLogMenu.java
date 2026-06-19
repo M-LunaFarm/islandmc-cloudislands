@@ -53,7 +53,7 @@ public final class IslandLogMenu implements Listener {
         client.listIslandLogs(islandId, 27)
             .thenAccept(body -> openSync(plugin, player, body, messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -103,7 +103,7 @@ public final class IslandLogMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 36, TITLE);
             List<LogEntry> entries = logs(body);
             if (entries.isEmpty()) {

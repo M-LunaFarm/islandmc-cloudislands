@@ -67,27 +67,27 @@ public final class RouteTicketConsumer {
             return;
         }
         if (attempt == 0 || attempt % 5 == 0) {
-            Bukkit.getScheduler().runTask(plugin, () -> notifyPreparing(playerUuid, attempt));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> notifyPreparing(playerUuid, attempt));
         }
         coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> {
             if (ticket.isPresent()) {
-                Bukkit.getScheduler().runTask(plugin, () -> teleport(playerUuid, ticket.get(), 0));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> teleport(playerUuid, ticket.get(), 0));
                 return;
             }
             if (attempt < 20) {
                 consumeRetries.incrementAndGet();
-                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
             } else {
                 recordConsumeFailure("TICKET_NOT_READY");
-                Bukkit.getScheduler().runTask(plugin, () -> failRoute(playerUuid, ticketId, "TICKET_NOT_READY", true));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> failRoute(playerUuid, ticketId, "TICKET_NOT_READY", true));
             }
         }).exceptionally(error -> {
             if (attempt < 20) {
                 consumeRetries.incrementAndGet();
-                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
             } else {
                 recordConsumeFailure("CONSUME_EXCEPTION");
-                Bukkit.getScheduler().runTask(plugin, () -> failRoute(playerUuid, ticketId, "CONSUME_EXCEPTION", true));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> failRoute(playerUuid, ticketId, "CONSUME_EXCEPTION", true));
             }
             return null;
         });
@@ -108,7 +108,7 @@ public final class RouteTicketConsumer {
             }
             if (attempt < 20) {
                 worldWaitRetries.incrementAndGet();
-                Bukkit.getScheduler().runTaskLater(plugin, () -> teleport(playerUuid, ticket, attempt + 1), 20L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> teleport(playerUuid, ticket, attempt + 1), 20L);
             } else {
                 recordTeleportFailure("WORLD_NOT_READY");
                 failRoute(playerUuid, ticket.ticketId(), "WORLD_NOT_READY", true);

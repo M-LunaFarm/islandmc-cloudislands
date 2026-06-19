@@ -36,7 +36,7 @@ public final class IslandInfoMenu implements Listener {
         client.islandInfo(islandId)
             .thenAccept(body -> openSync(plugin, player, body, messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -70,7 +70,7 @@ public final class IslandInfoMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(10, item(Material.GRASS_BLOCK, message(messages, "info-menu-basic-title", "기본 정보"), message(messages, "info-menu-island-name", "섬 이름: ") + fallback(text(body, "name"), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(text(body, "state"), message(messages, "info-menu-unknown", "알 수 없음")), message(messages, "info-menu-island-id", "섬 ID: ") + shortId(text(body, "islandId"), messages)));
             inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, message(messages, "info-menu-level-title", "레벨"), message(messages, "info-menu-level", "레벨: ") + number(body, "level"), message(messages, "info-menu-worth", "가치: ") + fallback(text(body, "worth"), "0")));

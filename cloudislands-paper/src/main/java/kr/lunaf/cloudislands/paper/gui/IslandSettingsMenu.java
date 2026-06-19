@@ -35,13 +35,13 @@ public final class IslandSettingsMenu implements Listener {
         client.islandInfo(islandId)
             .thenAccept(body -> openSync(plugin, player, body, messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "settings-menu-load-failed", "섬 설정을 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "settings-menu-load-failed", "섬 설정을 불러오지 못했습니다.")));
                 return null;
             });
     }
 
     private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             boolean publicAccess = bool(body, "publicAccess");
             boolean locked = bool(body, "locked");
             Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));

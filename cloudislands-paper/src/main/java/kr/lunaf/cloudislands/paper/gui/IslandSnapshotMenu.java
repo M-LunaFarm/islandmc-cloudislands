@@ -37,7 +37,7 @@ public final class IslandSnapshotMenu implements Listener {
         client.listIslandSnapshots(islandId, 20)
             .thenAccept(body -> openSync(plugin, player, snapshots(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -100,7 +100,7 @@ public final class IslandSnapshotMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, List<Snapshot> snapshots, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(45, item(Material.CHEST, message(messages, "snapshot-menu-create-name", "새 스냅샷 생성"), message(messages, "snapshot-menu-create-command", "/섬 스냅샷생성 manual")));
             inventory.setItem(49, item(Material.CLOCK, message(messages, "snapshot-menu-refresh-name", "새로고침"), message(messages, "snapshot-menu-refresh-command", "/섬 스냅샷")));

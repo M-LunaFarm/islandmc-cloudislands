@@ -164,7 +164,7 @@ public final class PermissionEventPoller {
 
     public void start(long intervalTicks) {
         stop();
-        task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::poll, intervalTicks, intervalTicks);
+        task = kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runTimerAsync(plugin, this::poll, intervalTicks, intervalTicks);
     }
 
     public void stop() {
@@ -346,15 +346,15 @@ public final class PermissionEventPoller {
         String state = fields.getOrDefault("state", "");
         String operation = fields.getOrDefault("operation", "");
         if (type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("DOWN")) {
-            Bukkit.getScheduler().runTask(plugin, () -> moveAllPlayersToFallback(message("node-down-evacuate", "섬 서버 장애로 로비로 이동합니다. 사유: " + reason)));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> moveAllPlayersToFallback(message("node-down-evacuate", "섬 서버 장애로 로비로 이동합니다. 사유: " + reason)));
             return true;
         }
         if ((type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("KICKALL")) || type.equals("NODE_KICKALL")) {
-            Bukkit.getScheduler().runTask(plugin, () -> kickPlayers(reason));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> kickPlayers(reason));
             return true;
         }
         if ((type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && (state.equals("SHUTDOWN_SAFE") || operation.equals("SHUTDOWN_SAFE"))) || type.equals("NODE_SHUTDOWN_SAFE")) {
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                 kickPlayers(reason);
                 Bukkit.shutdown();
             });
@@ -380,7 +380,7 @@ public final class PermissionEventPoller {
         String channel = fields.getOrDefault("channel", "ISLAND");
         String actorName = fields.getOrDefault("actorName", actorUuidValue);
         String recipients = fields.getOrDefault("recipients", "");
-        Bukkit.getScheduler().runTask(plugin, () -> broadcastIslandChat(islandId, actorName, channel, message, recipients));
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> broadcastIslandChat(islandId, actorName, channel, message, recipients));
         return true;
     }
 
@@ -463,7 +463,7 @@ public final class PermissionEventPoller {
             return;
         }
         String targetNode = fields.getOrDefault("targetNode", "");
-        Bukkit.getScheduler().runTask(plugin, () -> notifyMigratingIslandPlayers(islandId, targetNode));
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> notifyMigratingIslandPlayers(islandId, targetNode));
     }
 
     private void notifyMigratingIslandPlayers(UUID islandId, String targetNode) {
@@ -480,7 +480,7 @@ public final class PermissionEventPoller {
             player.sendMessage(secondary);
             player.sendActionBar(Component.text(secondary));
             player.showBossBar(bossBar);
-            Bukkit.getScheduler().runTaskLater(plugin, () -> player.hideBossBar(bossBar), 160L);
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> player.hideBossBar(bossBar), 160L);
             if (!targetNode.isBlank()) {
                 createMigrationReturnTicket(player, islandId, targetNode, region, location);
             }
@@ -493,7 +493,7 @@ public final class PermissionEventPoller {
         client.createMigrationReturnTicket(player.getUniqueId(), islandId, targetNode, localX, location.getY(), localZ, location.getYaw(), location.getPitch())
             .thenAccept(ticket -> waitMigrationReturnTicket(player.getUniqueId(), ticket, 0))
             .exceptionally(error -> {
-                Bukkit.getScheduler().runTask(plugin, () -> player.sendActionBar(Component.text(message("migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다."))));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendActionBar(Component.text(message("migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다."))));
                 return null;
             });
     }
@@ -504,7 +504,7 @@ public final class PermissionEventPoller {
             return;
         }
         if (ticket.state() == RouteTicketState.FAILED || ticket.state() == RouteTicketState.EXPIRED || attempt >= 180) {
-            Bukkit.getScheduler().runTask(plugin, () -> migrationReturnFailed(playerUuid));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerUuid));
             return;
         }
         CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() ->
@@ -512,13 +512,13 @@ public final class PermissionEventPoller {
                 if (status.isPresent()) {
                     waitMigrationReturnTicket(playerUuid, status.get(), attempt + 1);
                 } else {
-                    Bukkit.getScheduler().runTask(plugin, () -> migrationReturnFailed(playerUuid));
+                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerUuid));
                 }
             }).exceptionally(error -> {
                 if (attempt < 180) {
                     waitMigrationReturnTicket(playerUuid, ticket, attempt + 1);
                 } else {
-                    Bukkit.getScheduler().runTask(plugin, () -> migrationReturnFailed(playerUuid));
+                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerUuid));
                 }
                 return null;
             })
@@ -527,9 +527,9 @@ public final class PermissionEventPoller {
 
     private void publishMigrationReturnSession(UUID playerUuid, RouteTicket ticket) {
         client.publishRouteSession(ticket).thenRun(() ->
-            Bukkit.getScheduler().runTask(plugin, () -> connectMigratingPlayer(playerUuid, ticket))
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> connectMigratingPlayer(playerUuid, ticket))
         ).exceptionally(error -> {
-            Bukkit.getScheduler().runTask(plugin, () -> migrationReturnFailed(playerUuid));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerUuid));
             return null;
         });
     }
@@ -604,7 +604,7 @@ public final class PermissionEventPoller {
             case "ISLAND_DELETE_REQUESTED" -> message("island-delete-evacuate", "섬 삭제를 위해 로비로 이동합니다.");
             default -> message("island-operation-evacuate", "섬 작업을 위해 로비로 이동합니다.");
         };
-        Bukkit.getScheduler().runTask(plugin, () -> moveIslandPlayersToFallback(islandId, reason));
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> moveIslandPlayersToFallback(islandId, reason));
     }
 
     private void moveIslandPlayersToFallback(UUID islandId, String reason) {
@@ -680,7 +680,7 @@ public final class PermissionEventPoller {
         if (islandId == null || playerUuid == null) {
             return true;
         }
-        Bukkit.getScheduler().runTask(plugin, () -> moveVisitorToFallback(islandId, playerUuid));
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> moveVisitorToFallback(islandId, playerUuid));
         return true;
     }
 

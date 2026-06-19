@@ -37,7 +37,7 @@ public final class IslandMissionMenu implements Listener {
         client.listIslandMissions(islandId, kind)
             .thenAccept(body -> openSync(plugin, player, kind, missions(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -81,7 +81,7 @@ public final class IslandMissionMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, String kind, List<Mission> missions, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, "CHALLENGE".equalsIgnoreCase(kind) ? CHALLENGE_TITLE : MISSION_TITLE);
             int slot = 0;
             for (Mission mission : missions.stream().limit(45).toList()) {

@@ -47,7 +47,7 @@ public final class IslandBiomeMenu implements Listener {
         client.islandBiome(islandId)
             .thenAccept(body -> openSync(plugin, player, text(body, "biomeKey"), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -94,7 +94,7 @@ public final class IslandBiomeMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, String currentBiome, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
             int slot = 9;
             for (String biome : BIOMES) {

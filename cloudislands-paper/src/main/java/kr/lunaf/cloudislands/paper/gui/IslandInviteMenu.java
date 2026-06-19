@@ -36,7 +36,7 @@ public final class IslandInviteMenu implements Listener {
         client.listPendingInvites(player.getUniqueId())
             .thenAccept(body -> openSync(plugin, player, invites(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "invite-menu-load-failed", "섬 초대 목록을 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "invite-menu-load-failed", "섬 초대 목록을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -79,7 +79,7 @@ public final class IslandInviteMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, List<Invite> invites, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             if (invites.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "invite-menu-empty-title", "대기 중인 초대 없음"), message(messages, "invite-menu-empty", "받은 섬 초대가 없습니다.")));

@@ -36,7 +36,7 @@ public final class IslandMemberMenu implements Listener {
         client.listIslandMembers(islandId)
             .thenAccept(body -> openSync(plugin, player, members(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -102,7 +102,7 @@ public final class IslandMemberMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, List<Member> members, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             inventory.setItem(45, item(Material.WRITABLE_BOOK, message(messages, "member-menu-invite-name", "멤버 초대"), message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));
             inventory.setItem(46, item(Material.PAPER, message(messages, "member-menu-invite-list-name", "초대 목록"), message(messages, "member-menu-invite-list-command", "/섬 초대목록")));

@@ -38,7 +38,7 @@ public final class PaperScoreboardListener implements Listener {
             refreshScoreboards();
             return;
         }
-        Bukkit.getScheduler().runTask(plugin, this::refreshScoreboards);
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, this::refreshScoreboards);
     }
 
     private void refreshScoreboards() {

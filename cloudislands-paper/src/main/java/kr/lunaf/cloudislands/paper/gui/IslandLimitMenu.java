@@ -37,7 +37,7 @@ public final class IslandLimitMenu implements Listener {
         client.listIslandLimits(islandId)
             .thenAccept(body -> openSync(plugin, player, limits(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "limit-menu-load-failed", "섬 제한을 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "limit-menu-load-failed", "섬 제한을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -83,7 +83,7 @@ public final class IslandLimitMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, List<Limit> limits, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
             for (Limit limit : limits.stream().limit(45).toList()) {

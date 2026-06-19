@@ -32,7 +32,7 @@ public final class IslandLevelScanService {
             return CompletableFuture.completedFuture(null);
         }
         CompletableFuture<Void> future = new CompletableFuture<>();
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             try {
                 World world = Bukkit.getWorld(active.worldName());
                 if (world == null) {

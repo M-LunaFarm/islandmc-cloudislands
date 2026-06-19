@@ -36,7 +36,7 @@ public final class IslandBankMenu implements Listener {
         client.islandBank(islandId)
             .thenAccept(body -> openSync(plugin, player, text(body, "balance"), text(body, "updatedAt"), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "bank-menu-load-failed", "섬 은행을 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "bank-menu-load-failed", "섬 은행을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -77,7 +77,7 @@ public final class IslandBankMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, String balance, String updatedAt, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "bank-menu-balance-name", "잔액"), message(messages, "bank-menu-current-balance", "현재 잔액: ") + (balance.isBlank() ? "0" : balance), updatedAt.isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + updatedAt));
             inventory.setItem(10, item(Material.EMERALD, message(messages, "bank-menu-deposit-1000-name", "1,000 입금"), message(messages, "bank-menu-deposit-1000-command", "/섬 입금 1000")));

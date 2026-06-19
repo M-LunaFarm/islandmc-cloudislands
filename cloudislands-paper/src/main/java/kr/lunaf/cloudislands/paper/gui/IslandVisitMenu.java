@@ -36,7 +36,7 @@ public final class IslandVisitMenu implements Listener {
         client.listPublicIslands(45)
             .thenAccept(body -> openSync(plugin, player, islands(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -81,7 +81,7 @@ public final class IslandVisitMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, List<IslandEntry> islands, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(4, item(Material.COMPASS, message(messages, "visit-menu-random-name", "랜덤 공개 섬"), message(messages, "visit-menu-random-description", "공개된 섬 중 하나로 이동합니다.")));
             if (islands.isEmpty()) {

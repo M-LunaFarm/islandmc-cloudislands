@@ -36,7 +36,7 @@ public final class IslandUpgradeMenu implements Listener {
         client.listIslandUpgrades(islandId)
             .thenAccept(body -> openSync(plugin, player, upgrades(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -79,7 +79,7 @@ public final class IslandUpgradeMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, List<Upgrade> upgrades, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             int slot = 0;
             for (Upgrade upgrade : upgrades.stream().limit(45).toList()) {

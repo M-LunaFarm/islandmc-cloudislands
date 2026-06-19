@@ -1241,7 +1241,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 .thenAccept(body -> {
                     message(player, actionResultMessage(publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId, body));
                     if (!resultRejected(body)) {
-                        plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.performCommand("섬 설정"));
                     }
                 })
                 .exceptionally(error -> {
@@ -1261,7 +1261,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 .thenAccept(body -> {
                     message(player, actionResultMessage(locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId, body));
                     if (!resultRejected(body)) {
-                        plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.performCommand("섬 설정"));
                     }
                 })
                 .exceptionally(error -> {
@@ -1443,7 +1443,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
                 clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
                 message(player, routeMessage("route-command-failed", "섬으로 이동하지 못했습니다."));
@@ -1492,7 +1492,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void connectPlayerToServer(Player player, String targetServerName, String successMessage, String failureMessage) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
                 player.sendMessage(playerMessage(failureMessage));
                 return;
@@ -2244,7 +2244,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
                 coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), targetUuid, reason)
-                    .thenAccept(body -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                         if (resultRejected(body)) {
                             player.sendMessage(playerMessage(actionResultMessage("섬 방문자 밴", targetUuid, body)));
                             return;
@@ -2285,7 +2285,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
                 coreApiClient.kickIslandVisitorResult(islandId, player.getUniqueId(), targetUuid)
-                    .thenAccept(body -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                         if (resultRejected(body)) {
                             player.sendMessage(playerMessage(actionResultMessage("섬 방문자 추방", targetUuid, body)));
                             return;
@@ -2484,7 +2484,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 .thenAccept(body -> {
                     message(player, actionResultMessage("섬 이름 변경", name, body));
                     if (!resultRejected(body)) {
-                        plugin.getServer().getScheduler().runTask(plugin, () -> player.performCommand("섬 설정"));
+                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.performCommand("섬 설정"));
                     }
                 })
                 .exceptionally(error -> {
@@ -3042,7 +3042,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void teleport(Player player, Point point, String missingMessage, String successMessage) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             if (point == null) {
                 player.sendMessage(missingMessage);
                 return;
@@ -3219,7 +3219,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void message(Player player, String message) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(playerMessage(message)));
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(playerMessage(message)));
     }
 
     private String playerMessage(String message) {

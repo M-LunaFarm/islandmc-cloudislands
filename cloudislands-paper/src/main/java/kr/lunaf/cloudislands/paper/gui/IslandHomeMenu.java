@@ -37,7 +37,7 @@ public final class IslandHomeMenu implements Listener {
         client.listIslandHomes(islandId)
             .thenAccept(body -> openSync(plugin, player, homes(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "home-menu-load-failed", "섬 홈을 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "home-menu-load-failed", "섬 홈을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -87,7 +87,7 @@ public final class IslandHomeMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, List<Home> homes, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(45, item(Material.RED_BED, message(messages, "home-menu-set-current-name", "현재 위치를 홈으로 설정"), message(messages, "home-menu-set-default-click", "좌클릭: default 홈으로 설정"), message(messages, "home-menu-set-named-click", "우클릭: ") + message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>")));
             int slot = 0;

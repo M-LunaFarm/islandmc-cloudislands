@@ -2519,7 +2519,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             AtomicLong cursor = new AtomicLong(Math.max(0L, sinceSeq));
             int safeLimit = Math.max(1, limit);
             long safeInterval = Math.max(1L, intervalTicks);
-            BukkitTask task = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () ->
+            BukkitTask task = kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runTimerAsync(plugin, () ->
                 listGlobalEventsSince(cursor.get(), safeLimit)
                     .thenAccept(events -> {
                         if (events.isEmpty()) {

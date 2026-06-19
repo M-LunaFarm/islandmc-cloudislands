@@ -26,7 +26,7 @@ public final class PaperBrandingListener implements Listener {
         event.joinMessage(messages.component("join-message", "player", event.getPlayer().getName()));
         String brand = messages.plain("server-brand");
         if (!brand.isBlank()) {
-            plugin.getServer().getScheduler().runTaskLater(plugin, () ->
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () ->
                 event.getPlayer().sendPluginMessage(plugin, "minecraft:brand", brandPayload(brand)), 10L);
         }
     }
@@ -34,7 +34,7 @@ public final class PaperBrandingListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         event.quitMessage(messages.component("quit-message", "player", event.getPlayer().getName()));
-        plugin.getServer().getScheduler().runTask(plugin, this::refreshTabList);
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, this::refreshTabList);
     }
 
     private void refreshTabList() {

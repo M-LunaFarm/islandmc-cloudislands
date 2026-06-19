@@ -27,7 +27,7 @@ public final class PermissionCacheSyncService {
 
     public void sync(UUID islandId) {
         if (Bukkit.isPrimaryThread()) {
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> sync(islandId));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runAsync(plugin, () -> sync(islandId));
             return;
         }
         try {

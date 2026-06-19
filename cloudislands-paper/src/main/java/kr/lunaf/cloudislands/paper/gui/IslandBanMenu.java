@@ -36,7 +36,7 @@ public final class IslandBanMenu implements Listener {
         client.listIslandBans(islandId)
             .thenAccept(body -> openSync(plugin, player, bans(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -84,7 +84,7 @@ public final class IslandBanMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, List<Ban> bans, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
             if (bans.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "ban-menu-empty-title", "밴 기록 없음"), message(messages, "ban-menu-empty", "현재 밴된 방문자가 없습니다.")));

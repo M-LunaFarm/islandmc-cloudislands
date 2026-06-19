@@ -472,9 +472,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length > 1 && args[1].equalsIgnoreCase("menu")) {
             if (sender instanceof Player player) {
                 coreApiClient.nodeInfo(nodeId)
-                    .thenAccept(body -> agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, body, messages)))
+                    .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, body, messages)))
                     .exceptionally(error -> {
-                        agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, messages));
+                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, messages));
                         return null;
                     });
             } else {
@@ -551,7 +551,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 }
                 String[] resolvedArgs = args.clone();
                 resolvedArgs[2] = resolvedIslandId.toString();
-                agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> handleIsland(sender, resolvedArgs));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> handleIsland(sender, resolvedArgs));
             }).exceptionally(error -> {
                 sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[2]);
                 return null;
@@ -1215,7 +1215,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
-        agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> {
             if (targetServerName == null || targetServerName.isBlank()) {
                 clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
                 player.sendMessage(adminText("admin-command-route-target-missing", "섬 이동 경로를 찾을 수 없습니다."));
@@ -2793,7 +2793,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private void message(CommandSender sender, String text) {
-        agent.plugin().getServer().getScheduler().runTask(agent.plugin(), () -> sender.sendMessage(text));
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> sender.sendMessage(text));
     }
 
     private String adminText(String key, String fallback) {

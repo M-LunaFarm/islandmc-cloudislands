@@ -14,12 +14,12 @@ public final class BukkitPlatformScheduler implements PlatformScheduler {
 
     @Override
     public TaskHandle runGlobal(Runnable task) {
-        return handle(plugin.getServer().getScheduler().runTask(plugin, task));
+        return handle(PaperSchedulers.run(plugin, task));
     }
 
     @Override
     public TaskHandle runAsync(Runnable task) {
-        return handle(plugin.getServer().getScheduler().runTaskAsynchronously(plugin, task));
+        return handle(PaperSchedulers.runAsync(plugin, task));
     }
 
     @Override
@@ -36,19 +36,19 @@ public final class BukkitPlatformScheduler implements PlatformScheduler {
     public TaskHandle repeatGlobal(Duration delay, Duration interval, Runnable task) {
         long delayTicks = ticks(delay);
         long intervalTicks = Math.max(1L, ticks(interval));
-        return handle(plugin.getServer().getScheduler().runTaskTimer(plugin, task, delayTicks, intervalTicks));
+        return handle(PaperSchedulers.runTimer(plugin, task, delayTicks, intervalTicks));
     }
 
     @Override
     public TaskHandle repeatAsync(Duration delay, Duration interval, Runnable task) {
         long delayTicks = ticks(delay);
         long intervalTicks = Math.max(1L, ticks(interval));
-        return handle(plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, task, delayTicks, intervalTicks));
+        return handle(PaperSchedulers.runTimerAsync(plugin, task, delayTicks, intervalTicks));
     }
 
     @Override
     public void close() {
-        plugin.getServer().getScheduler().cancelTasks(plugin);
+        PaperSchedulers.cancelAll(plugin);
     }
 
     private static TaskHandle handle(BukkitTask task) {

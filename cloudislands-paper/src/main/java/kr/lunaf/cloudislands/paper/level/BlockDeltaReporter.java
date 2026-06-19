@@ -60,14 +60,14 @@ public final class BlockDeltaReporter {
     }
 
     private void report(UUID islandId, String materialKey, long delta) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> client.recordBlockDelta(islandId, materialKey, delta));
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runAsync(plugin, () -> client.recordBlockDelta(islandId, materialKey, delta));
     }
 
     private void progressPlaced(UUID islandId, UUID actorUuid, Material material) {
         if (actorUuid == null) {
             return;
         }
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runAsync(plugin, () -> {
             client.progressIslandMission(islandId, actorUuid, "first_blocks", "MISSION", 1L).exceptionally(error -> null);
             client.progressIslandMission(islandId, actorUuid, "daily_builder", "CHALLENGE", 1L).exceptionally(error -> null);
             if (isFarmBlock(material)) {
@@ -80,7 +80,7 @@ public final class BlockDeltaReporter {
         if (actorUuid == null) {
             return;
         }
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runAsync(plugin, () ->
             client.progressIslandMission(islandId, actorUuid, "daily_miner", "CHALLENGE", 1L).exceptionally(error -> null));
     }
 

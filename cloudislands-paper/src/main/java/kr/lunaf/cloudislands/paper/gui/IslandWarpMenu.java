@@ -37,7 +37,7 @@ public final class IslandWarpMenu implements Listener {
         client.listIslandWarps(islandId)
             .thenAccept(body -> openSync(plugin, player, TITLE, warps(body), false, messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -50,7 +50,7 @@ public final class IslandWarpMenu implements Listener {
         client.listPublicWarps(45)
             .thenAccept(body -> openSync(plugin, player, PUBLIC_TITLE, warps(body), true, messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -112,7 +112,7 @@ public final class IslandWarpMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, String title, List<Warp> warps, boolean publicMenu, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, title);
             inventory.setItem(45, publicMenu
                 ? item(Material.COMPASS, message(messages, "warp-menu-public-refresh-name", "공개 워프 새로고침"), message(messages, "warp-menu-public-refresh-command", "/섬 공개워프목록"))

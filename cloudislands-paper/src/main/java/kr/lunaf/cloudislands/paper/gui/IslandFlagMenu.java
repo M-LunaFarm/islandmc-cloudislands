@@ -38,7 +38,7 @@ public final class IslandFlagMenu implements Listener {
         client.listIslandFlags(islandId)
             .thenAccept(body -> openSync(plugin, player, flags(body), messages))
             .exceptionally(error -> {
-                plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(message(messages, "flag-menu-load-failed", "섬 플래그를 불러오지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "flag-menu-load-failed", "섬 플래그를 불러오지 못했습니다.")));
                 return null;
             });
     }
@@ -83,7 +83,7 @@ public final class IslandFlagMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, Map<IslandFlag, String> values, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
             for (IslandFlag flag : IslandFlag.values()) {

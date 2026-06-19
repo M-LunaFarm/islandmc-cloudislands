@@ -79,7 +79,7 @@ public final class IslandCreateMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, List<Template> templates, MessageRenderer messages) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
             List<Template> enabled = templates.stream().filter(Template::enabled).limit(14).toList();
             if (enabled.isEmpty()) {

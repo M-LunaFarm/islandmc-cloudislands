@@ -47,6 +47,23 @@ class PaperPlatformBoundaryTest {
         assertTrue(capabilities.supportsMinorApiVersion());
     }
 
+    @Test
+    void bukkitSchedulerAccessStaysInsidePlatformSchedulerAdapter() throws Exception {
+        Path root = repositoryRoot();
+        Path paperSource = root.resolve("cloudislands-paper/src/main/java");
+        try (Stream<Path> files = javaFiles(paperSource)) {
+            String violations = files
+                .filter(path -> !root.relativize(path).toString().contains("/platform/scheduler/"))
+                .filter(PaperPlatformBoundaryTest::directlyUsesBukkitScheduler)
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
     private static Stream<Path> javaFiles(Path root) {
         try {
             if (Files.notExists(root)) {
@@ -65,6 +82,16 @@ class PaperPlatformBoundaryTest {
                 || source.contains("import io.papermc.")
                 || source.contains("import com.velocitypowered.")
                 || source.contains("import net.minecraft.");
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static boolean directlyUsesBukkitScheduler(Path path) {
+        try {
+            String source = Files.readString(path);
+            return source.contains(".getServer().getScheduler()")
+                || source.contains("Bukkit.getScheduler()");
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }

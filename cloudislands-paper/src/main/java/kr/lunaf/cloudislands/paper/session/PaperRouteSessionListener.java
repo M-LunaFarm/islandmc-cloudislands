@@ -143,7 +143,7 @@ public final class PaperRouteSessionListener implements Listener {
     private void scheduleVerifiedSessionExpiry(UUID playerUuid, PlayerRouteSession session) {
         long delayMillis = Math.max(50L, session.expiresAt().toEpochMilli() - System.currentTimeMillis());
         long delayTicks = Math.max(1L, (delayMillis + 49L) / 50L);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> verifiedSessions.remove(playerUuid, session), delayTicks);
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> verifiedSessions.remove(playerUuid, session), delayTicks);
     }
 
     private void consumeSession(java.util.UUID playerUuid, int attempt, PlayerRouteSession expectedSession) {
@@ -166,17 +166,17 @@ public final class PaperRouteSessionListener implements Listener {
                 return;
             }
             if (attempt < 6) {
-                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeSession(playerUuid, attempt + 1, expectedSession), 10L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeSession(playerUuid, attempt + 1, expectedSession), 10L);
             } else if (requireRouteSession) {
                 rejectDirectJoin(playerUuid);
             }
         }).exceptionally(error -> {
             if (attempt < 6) {
-                Bukkit.getScheduler().runTaskLater(plugin, () -> consumeSession(playerUuid, attempt + 1, expectedSession), 10L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeSession(playerUuid, attempt + 1, expectedSession), 10L);
             } else if (requireRouteSession) {
                 rejectDirectJoin(playerUuid);
             } else {
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                     var player = Bukkit.getPlayer(playerUuid);
                     if (player != null) {
                         player.sendActionBar(Component.text(playerMessage("route-session-check-failed", "섬 입장 준비를 확인하지 못했습니다.")));
@@ -195,7 +195,7 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     private void showPreparing(java.util.UUID playerUuid) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             var player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.sendActionBar(Component.text(playerMessage("route-session-preparing", "섬 입장을 준비하는 중입니다...")));
@@ -205,12 +205,12 @@ public final class PaperRouteSessionListener implements Listener {
 
     private void rejectDirectJoin(java.util.UUID playerUuid) {
         routeSessionRejections.incrementAndGet();
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             var player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.sendActionBar(Component.text(playerMessage("route-session-missing-fallback", "섬 입장 요청이 없어 로비로 이동합니다.")));
                 sendToFallback(player);
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> {
                     var stillHere = Bukkit.getPlayer(playerUuid);
                     if (stillHere != null) {
                         stillHere.kick(Component.text(playerMessage("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
