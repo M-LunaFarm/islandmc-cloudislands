@@ -68,6 +68,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBankRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBlockLevelRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandUpgradeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
@@ -359,6 +360,7 @@ public final class CloudIslandsCoreApplication {
         new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(this::route);
         new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandBlockLevelRoutes(levelRepository, rankingRepository, levelRecalculation, islandRepository, metadataRepository, permissionRules, audit, events).register(this::route);
+        new IslandUpgradeRoutes(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -737,32 +739,6 @@ public final class CloudIslandsCoreApplication {
             }
             int pruned = recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId, fencingToken);
             write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"fencingToken\":" + fencingToken + ",\"pruned\":" + pruned + "}");
-        });
-        route("/v1/islands/upgrades", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, upgradesJson(upgradeRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
-        });
-        route("/v1/islands/upgrades/purchase", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            String upgradeKey = JsonFields.text(body, "upgradeKey", "size").toLowerCase();
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_UPGRADES)) {
-                return;
-            }
-            UpgradePurchaseResult result = upgradeService.purchase(islandId, upgradeKey);
-            audit.log(actorUuid, "PLAYER", "ISLAND_UPGRADE_PURCHASE", "ISLAND", islandId.toString(), Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
-            islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_PURCHASE", Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
-            if (result.accepted()) {
-                events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
-                applyUpgradeLimit(limitRepository, events, islandId, actorUuid, upgradePolicy.rule(upgradeKey), result.snapshot().type(), result.snapshot().level());
-                applyUpgradeFlag(metadataRepository, events, islandId, result.snapshot().type());
-                if (result.cost().signum() > 0) {
-                    String balance = bankRepository.balance(islandId).balance();
-                    events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "operation", "UPGRADE_PURCHASE", "amount", result.cost().toPlainString(), "balance", balance));
-                }
-            }
-            write(exchange, result.accepted() ? 202 : 409, upgradePurchaseJson(result));
         });
         route("/v1/islands/logs", exchange -> {
             String body = readBody(exchange);
