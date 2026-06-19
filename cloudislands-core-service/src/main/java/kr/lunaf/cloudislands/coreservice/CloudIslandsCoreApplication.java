@@ -62,6 +62,7 @@ import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.routes.AddonRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.AuditRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
@@ -315,7 +316,6 @@ public final class CloudIslandsCoreApplication {
         IslandLogRepository islandLogs = config.redisEvents() || config.redisJobs()
             ? new CachingIslandLogRepository(baseIslandLogs, config.redisUri())
             : baseIslandLogs;
-        java.util.function.IntFunction<String> auditJson = audit::toJson;
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events, config.islandPool(), config.routeTicketTtl(), config.routePreparingTicketTtl(), activationLock);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, templateRepository, nodes, allocator, runtimeRepository, jobs, events, tickets, config.islandPool(), config.routePreparingTicketTtl(), playerCreationLock);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, templateRepository, nodes, allocator, jobs, events, config.islandPool(), config.migrationPolicy(), activationLock);
@@ -346,21 +346,7 @@ public final class CloudIslandsCoreApplication {
         new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(this::route);
         new JobRoutes(jobs, jobCompletion, audit).register(this::route);
         new EventRoutes(inMemoryEvents).register(this::route);
-        route("/v1/audit", exchange -> {
-            String body = readBody(exchange);
-            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 100), 500));
-            write(exchange, 200, auditJson.apply(limit));
-        });
-        route("/v1/admin/audit", exchange -> {
-            String body = readBody(exchange);
-            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 100), 500));
-            write(exchange, 200, auditJson.apply(limit));
-        });
-        route("/v1/admin/audit/list", exchange -> {
-            String body = readBody(exchange);
-            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 100), 500));
-            write(exchange, 200, auditJson.apply(limit));
-        });
+        new AuditRoutes(audit).register(this::route);
         new AddonRoutes(addonStates, audit, events).register(this::route);
         new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         route("/v1/islands/info", exchange -> {
