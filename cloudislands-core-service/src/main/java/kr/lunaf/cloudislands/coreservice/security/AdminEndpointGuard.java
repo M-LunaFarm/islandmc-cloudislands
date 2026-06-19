@@ -12,14 +12,20 @@ import kr.lunaf.cloudislands.coreservice.security.permission.AdminPermissionPoli
 public final class AdminEndpointGuard {
     private final String adminToken;
     private final boolean adminApiEnabled;
+    private final AdminPermissionPolicy tokenPolicy;
 
     public AdminEndpointGuard(String adminToken) {
         this(adminToken, true);
     }
 
     public AdminEndpointGuard(String adminToken, boolean adminApiEnabled) {
+        this(adminToken, adminApiEnabled, "*");
+    }
+
+    public AdminEndpointGuard(String adminToken, boolean adminApiEnabled, String serverSidePermissions) {
         this.adminToken = adminToken == null ? "" : adminToken;
         this.adminApiEnabled = adminApiEnabled;
+        this.tokenPolicy = policy(serverSidePermissions);
     }
 
     public boolean allowed(String path, HttpExchange exchange) {
@@ -33,7 +39,7 @@ public final class AdminEndpointGuard {
         if (!tokenAllowed(exchange)) {
             return false;
         }
-        return policy(exchange).allows(required);
+        return tokenPolicy.allows(required);
     }
 
     private boolean tokenAllowed(HttpExchange exchange) {
@@ -56,8 +62,7 @@ public final class AdminEndpointGuard {
             || path.equals("/v1/jobs/recover");
     }
 
-    private AdminPermissionPolicy policy(HttpExchange exchange) {
-        String raw = exchange.getRequestHeaders().getFirst("X-CloudIslands-Admin-Permissions");
+    private AdminPermissionPolicy policy(String raw) {
         if (raw == null || raw.isBlank()) {
             return new AdminPermissionPolicy(EnumSet.noneOf(AdminPermission.class));
         }

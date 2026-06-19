@@ -168,6 +168,7 @@ class CoreServiceConfigTest {
                 "us-east-1",
                 "",
                 "",
+                "*",
                 "",
                 "",
                 "",
@@ -192,6 +193,7 @@ class CoreServiceConfigTest {
                 true,
                 "X-SSL-Client-Verify",
                 "SUCCESS",
+                "127.0.0.1,localhost,::1",
                 240,
                 Duration.ofSeconds(60)
         );

@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Optional;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -78,7 +79,7 @@ public final class RouteTicketConsumer {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
             } else {
                 recordConsumeFailure("TICKET_NOT_READY");
-                Bukkit.getScheduler().runTask(plugin, () -> notifyRouteFailed(playerUuid));
+                Bukkit.getScheduler().runTask(plugin, () -> failRoute(playerUuid, ticketId, "TICKET_NOT_READY", true));
             }
         }).exceptionally(error -> {
             if (attempt < 20) {
@@ -86,7 +87,7 @@ public final class RouteTicketConsumer {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
             } else {
                 recordConsumeFailure("CONSUME_EXCEPTION");
-                Bukkit.getScheduler().runTask(plugin, () -> notifyRouteFailed(playerUuid));
+                Bukkit.getScheduler().runTask(plugin, () -> failRoute(playerUuid, ticketId, "CONSUME_EXCEPTION", true));
             }
             return null;
         });
@@ -110,7 +111,7 @@ public final class RouteTicketConsumer {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> teleport(playerUuid, ticket, attempt + 1), 20L);
             } else {
                 recordTeleportFailure("WORLD_NOT_READY");
-                notifyRouteFailed(playerUuid);
+                failRoute(playerUuid, ticket.ticketId(), "WORLD_NOT_READY", true);
             }
             return;
         }
@@ -121,12 +122,18 @@ public final class RouteTicketConsumer {
             Bukkit.getPluginManager().callEvent(preVisit);
             if (preVisit.isCancelled()) {
                 recordTeleportFailure("VISIT_CANCELLED");
-                hideLoading(player);
                 player.sendActionBar(Component.text(playerMessage("route-visit-cancelled", "섬 방문이 취소되었습니다.")));
+                failRoute(playerUuid, ticket.ticketId(), "VISIT_CANCELLED", true);
                 return;
             }
         }
-        Location target = targetLocation(world, ticket, payload);
+        Optional<Location> maybeTarget = targetLocation(world, ticket, payload);
+        if (maybeTarget.isEmpty()) {
+            recordTeleportFailure("ACTIVE_ISLAND_ORIGIN_MISSING");
+            failRoute(playerUuid, ticket.ticketId(), "ACTIVE_ISLAND_ORIGIN_MISSING", true);
+            return;
+        }
+        Location target = maybeTarget.get();
         teleportAttempts.incrementAndGet();
         lastTargetType = payload.getOrDefault("targetType", ticket.action().name());
         if (player.teleport(target)) {
@@ -146,19 +153,22 @@ public final class RouteTicketConsumer {
             }
         } else {
             recordTeleportFailure("BUKKIT_TELEPORT_REJECTED");
-            notifyRouteFailed(playerUuid);
+            failRoute(playerUuid, ticket.ticketId(), "BUKKIT_TELEPORT_REJECTED", true);
         }
     }
 
-    private Location targetLocation(World world, RouteTicket ticket, java.util.Map<String, String> payload) {
+    private Optional<Location> targetLocation(World world, RouteTicket ticket, java.util.Map<String, String> payload) {
         double localX = decimal(payload, "localX", defaultLocalX(ticket.action()));
         double localY = decimal(payload, "localY", defaultLocalY(ticket.action()));
         double localZ = decimal(payload, "localZ", defaultLocalZ(ticket.action()));
         ActiveIslandRegistry registry = activeIslands;
         ActiveIslandRegistry.ActiveIsland active = registry == null ? null : registry.find(ticket.islandId()).orElse(null);
-        double worldX = active == null ? localX : active.originX() + localX;
-        double worldZ = active == null ? localZ : active.originZ() + localZ;
-        return new Location(world, worldX, localY, worldZ, (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D));
+        if (active == null) {
+            return Optional.empty();
+        }
+        double worldX = active.originX() + localX;
+        double worldZ = active.originZ() + localZ;
+        return Optional.of(new Location(world, worldX, localY, worldZ, (float) decimal(payload, "yaw", 180.0D), (float) decimal(payload, "pitch", 0.0D)));
     }
 
     private java.util.Map<String, String> routeEventFields(RouteTicket ticket, Location target, java.util.Map<String, String> payload) {
@@ -183,7 +193,7 @@ public final class RouteTicketConsumer {
 
     private String targetResolution(RouteTicket ticket) {
         ActiveIslandRegistry registry = activeIslands;
-        return registry != null && registry.find(ticket.islandId()).isPresent() ? "active-island-origin" : "ticket-local-absolute-fallback";
+        return registry != null && registry.find(ticket.islandId()).isPresent() ? "active-island-origin" : "unresolved-active-island-origin";
     }
 
     private void recordConsumeFailure(String reason) {
@@ -301,6 +311,15 @@ public final class RouteTicketConsumer {
     private void clearRoute(UUID playerUuid, UUID ticketId, String reason) {
         coreApiClient.clearRoute(playerUuid, ticketId, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
         loadingBars.remove(playerUuid);
+    }
+
+    private void failRoute(UUID playerUuid, UUID ticketId, String reason, boolean clearCoreRoute) {
+        if (clearCoreRoute && ticketId != null) {
+            clearRoute(playerUuid, ticketId, reason);
+        } else {
+            loadingBars.remove(playerUuid);
+        }
+        notifyRouteFailed(playerUuid);
     }
 
     private double decimal(java.util.Map<String, String> payload, String key, double fallback) {

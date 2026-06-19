@@ -86,7 +86,7 @@ class SnapshotRollbackServiceTest {
 
         IOException exception = assertThrows(IOException.class, () -> rollback.restoreBundle(ISLAND_ID, 3L, backup.storagePath()));
 
-        assertEquals("rollback bundle is not portable: " + backup.storagePath(), exception.getMessage());
+        assertEquals("rollback preflight failed for " + backup.storagePath() + ": missing-portable", exception.getMessage());
         assertFalse(storage.readSnapshotManifest(ISLAND_ID, 3L).isPresent());
     }
 

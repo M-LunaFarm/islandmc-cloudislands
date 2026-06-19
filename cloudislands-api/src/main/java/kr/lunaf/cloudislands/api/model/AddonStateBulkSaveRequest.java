@@ -142,19 +142,15 @@ public record AddonStateBulkSaveRequest(
     }
 
     public int tableKeyCount() {
-        int count = tableScoped() ? values.size() : 0;
-        for (Map<String, String> tableValues : tables.values()) {
+        int count = 0;
+        for (Map<String, String> tableValues : tablesWithScopedTable().values()) {
             count += tableValues.size();
         }
         return count;
     }
 
     public int tableCount() {
-        int count = tables.size();
-        if (tableScoped() && !values.isEmpty()) {
-            count++;
-        }
-        return count;
+        return tablesWithScopedTable().size();
     }
 
     public int totalStateKeyCount() {

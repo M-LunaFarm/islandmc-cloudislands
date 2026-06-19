@@ -165,6 +165,7 @@ class AdminFactoryCommandTest {
                 Map::of,
                 Map::of,
                 _islandId -> Map.of(),
+                12,
                 () -> {
                 }
         );

@@ -233,8 +233,9 @@ class RuntimeDependencyPolicyTest {
 
         assertTrue(satisBuild.contains("compileOnly(project(\":cloudislands-api\"))"));
         assertTrue(satisBuild.contains("testImplementation(project(\":cloudislands-api\"))"));
-        assertTrue(satisBuild.contains("val jarDependencyProjects = embeddedProjects"));
-        assertFalse(satisBuild.contains("val jarDependencyProjects = embeddedProjects + listOf(\":cloudislands-api\")"));
+        assertTrue(satisBuild.contains("id(\"com.gradleup.shadow\")"));
+        assertTrue(satisBuild.contains("tasks.shadowJar"));
+        assertTrue(satisBuild.contains("mergeServiceFiles()"));
         assertFalse(satisBuild.contains("implementation(project(\":cloudislands-api\"))"));
         assertFalse(satisBuild.contains("project(\":cloudislands-core-service\")"));
         assertFalse(satisBuild.contains("project(\":cloudislands-paper\")"));
@@ -282,13 +283,13 @@ class RuntimeDependencyPolicyTest {
     }
 
     @Test
-    void rootBuildCheckRejectsMarkdownDocuments() throws IOException {
+    void rootBuildCheckExcludesMarkdownDocumentsFromArtifacts() throws IOException {
         Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
         String rootBuild = Files.readString(repoRoot.resolve("build.gradle.kts"));
 
-        assertTrue(rootBuild.contains("tasks.register(\"verifyNoMarkdownDocs\")"));
-        assertTrue(rootBuild.contains("Markdown documents are not allowed in result/"));
-        assertTrue(rootBuild.contains("tasks.named(\"build\") {\n    dependsOn(tasks.named(\"verifyNoMarkdownDocs\"))\n}"));
-        assertTrue(rootBuild.contains("tasks.named(\"check\") {\n    dependsOn(tasks.named(\"verifyNoMarkdownDocs\"))\n}"));
+        assertTrue(rootBuild.contains("tasks.register(\"verifyMarkdownDocsExcludedFromArtifacts\")"));
+        assertTrue(rootBuild.contains("markdown documents are allowed in source but excluded from packaged artifacts"));
+        assertTrue(rootBuild.contains("tasks.named(\"build\") {\n    dependsOn(tasks.named(\"verifyMarkdownDocsExcludedFromArtifacts\"))\n}"));
+        assertTrue(rootBuild.contains("tasks.named(\"check\") {\n    dependsOn(tasks.named(\"verifyMarkdownDocsExcludedFromArtifacts\"))\n}"));
     }
 }

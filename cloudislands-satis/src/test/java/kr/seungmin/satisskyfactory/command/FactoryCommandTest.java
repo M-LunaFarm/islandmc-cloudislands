@@ -175,6 +175,7 @@ class FactoryCommandTest {
                 Map::of,
                 Map::of,
                 _islandId -> Map.of(),
+                12,
                 () -> {
                 }
         );

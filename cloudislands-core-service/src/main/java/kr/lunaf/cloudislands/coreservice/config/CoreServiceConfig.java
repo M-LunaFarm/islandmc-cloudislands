@@ -45,6 +45,7 @@ public record CoreServiceConfig(
     String storageBearerToken,
     String coreToken,
     String adminToken,
+    String adminPermissions,
     String ipAllowlist,
     String upgradesFile,
     String blockValuesFile,
@@ -66,6 +67,7 @@ public record CoreServiceConfig(
     boolean requireMtls,
     String mtlsVerifiedHeader,
     String mtlsVerifiedValue,
+    String mtlsTrustedProxies,
     int rateLimitRequests,
     Duration rateLimitWindow
 ) {
@@ -108,6 +110,7 @@ public record CoreServiceConfig(
             env("CI_STORAGE_BEARER_TOKEN", setting(config, "storage.auth-token", env("S3_BEARER_TOKEN", ""))),
             env("CI_CORE_TOKEN", setting(config, "security.core-token", "")),
             env("CI_ADMIN_TOKEN", setting(config, "security.admin-token", "")),
+            env("CI_ADMIN_PERMISSIONS", setting(config, "security.admin-permissions", "*")),
             env("CI_IP_ALLOWLIST", setting(config, "security.ip-allowlist", "")),
             env("CI_UPGRADES_FILE", setting(config, "upgrades.file", "")),
             env("CI_BLOCK_VALUES_FILE", setting(config, "block-values.file", "")),
@@ -129,6 +132,7 @@ public record CoreServiceConfig(
             bool("CI_REQUIRE_MTLS", configBoolean(config, "security.require-mtls", true)),
             env("CI_MTLS_VERIFIED_HEADER", setting(config, "security.mtls-verified-header", "X-SSL-Client-Verify")),
             env("CI_MTLS_VERIFIED_VALUE", setting(config, "security.mtls-verified-value", "SUCCESS")),
+            env("CI_MTLS_TRUSTED_PROXIES", setting(config, "security.mtls-trusted-proxies", "127.0.0.1,localhost,::1")),
             integer("CI_RATE_LIMIT_REQUESTS", configInteger(config, "security.rate-limit-requests", 240)),
             Duration.ofSeconds(integer("CI_RATE_LIMIT_WINDOW_SECONDS", configInteger(config, "security.rate-limit-window-seconds", 60)))
         );
@@ -331,7 +335,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, rateLimitRequests, rateLimitWindow);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow);
     }
 
     public static String configuredDatabaseTypeSource() {

@@ -12,7 +12,7 @@ class GeneratorRegistryTest {
         GeneratorRegistry registry = DefaultGeneratorRules.create();
 
         assertEquals(5, registry.ruleLevelCount() - 3);
-        assertEquals("minecraft:coal_ore", registry.rule("default", 1).select(new FixedRandom(89)));
+        assertEquals("minecraft:coal_ore", registry.rule("default", 1).select(new FixedRandom(90)));
         assertEquals("minecraft:cobblestone", registry.rule("default", 2).select(new FixedRandom(74)));
         assertEquals("minecraft:coal_ore", registry.rule("default", 2).select(new FixedRandom(75)));
         assertEquals("minecraft:iron_ore", registry.rule("default", 2).select(new FixedRandom(90)));

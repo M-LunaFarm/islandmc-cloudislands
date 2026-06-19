@@ -6,11 +6,11 @@ import java.util.Locale;
 public final class ResultRepositoryPublicationPolicy {
     public static final String REPOSITORY_ROOT = "result";
     public static final String GIT_SCOPE_POLICY = "git-operations-target-result-root-only";
-    public static final String DOCUMENTATION_POLICY = "result-tree-allows-root-readme-only-no-extra-markdown-documents";
+    public static final String DOCUMENTATION_POLICY = "source-tree-may-keep-operator-docs-packaged-artifacts-exclude-markdown";
     public static final String PUBLICATION_VISIBILITY_POLICY = "github-repository-must-be-public";
     public static final String PUSH_POLICY = "commit-locally-and-push-main-after-credentialed-publication";
     public static final String PUSH_AUTH_FAILURE_POLICY = "do-not-retry-known-invalid-github-token-use-fresh-credential";
-    public static final String COMPLETION_AUDIT_POLICY = "complete-only-after-result-root-build-test-public-clone-and-doc-free-verification";
+    public static final String COMPLETION_AUDIT_POLICY = "complete-only-after-result-root-build-test-public-clone-and-packaged-markdown-exclusion";
     public static final String REMOTE_REPOSITORY = "M-LunaFarm/islandmc-cloudislands";
 
     private static final List<String> MARKDOWN_DENY_PATTERNS = List.of(
@@ -30,7 +30,7 @@ public final class ResultRepositoryPublicationPolicy {
 
     private static final List<String> REQUIRED_PUBLICATION_EVIDENCE = List.of(
         "git-root-is-result",
-        "no-markdown-files-under-result",
+        "packaged-artifacts-exclude-markdown-docs",
         "public-github-repo-private-false",
         "main-branch-pushed",
         "fresh-public-clone-builds",

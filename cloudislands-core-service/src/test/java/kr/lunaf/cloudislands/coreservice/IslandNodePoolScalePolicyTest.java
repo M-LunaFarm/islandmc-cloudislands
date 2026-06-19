@@ -71,6 +71,7 @@ class IslandNodePoolScalePolicyTest {
                 "us-east-1",
                 "",
                 "",
+                "*",
                 "",
                 "",
                 "",
@@ -95,6 +96,7 @@ class IslandNodePoolScalePolicyTest {
                 true,
                 "X-SSL-Client-Verify",
                 "SUCCESS",
+                "127.0.0.1,localhost,::1",
                 240,
                 Duration.ofSeconds(60)
         );

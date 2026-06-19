@@ -15,8 +15,8 @@ class SatisAddonRemovalPolicyTest {
         assertTrue(source.contains("private void stopRuntimeActivity()"));
         assertTrue(source.contains("private void ensureDirtySaveService()"));
         assertTrue(source.contains("ensureDirtySaveService();"));
-        assertTrue(source.contains("if (dataWritesEnabled() && dirtySaves != null)"));
-        assertTrue(source.contains(".thenAccept(snapshot -> applySatisRuntimeFallback(reason))"));
+        assertTrue(source.contains("if (dataWritesEnabled())"));
+        assertTrue(source.contains(".thenAccept(snapshot -> applySatisRuntimeFallback(reason, \"refresh-success\"))"));
         assertTrue(source.contains("if (database == null) {\n            startRuntime();\n            return;\n        }"));
         assertTrue(source.contains("unregisterAddonCommands();"));
         assertTrue(source.contains("dirtySaves.stop();"));

@@ -15,11 +15,18 @@ import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 public final class RedisPlayerCreationLock {
     private final URI redisUri;
     private final long ttlMillis;
+    private final boolean localFallbackEnabled;
     private final AtomicLong failures = new AtomicLong();
     private final Map<UUID, LocalLock> localLocks = new ConcurrentHashMap<>();
+    private static final String RELEASE_IF_TOKEN_SCRIPT = "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0";
 
     public RedisPlayerCreationLock(URI redisUri, Duration ttl) {
+        this(redisUri, ttl, false);
+    }
+
+    public RedisPlayerCreationLock(URI redisUri, Duration ttl, boolean localFallbackEnabled) {
         this.redisUri = redisUri;
+        this.localFallbackEnabled = localFallbackEnabled;
         Duration safeTtl = ttl == null || ttl.isNegative() || ttl.isZero() ? Duration.ofSeconds(30) : ttl;
         this.ttlMillis = clampLockTtl(safeTtl.toMillis());
     }
@@ -38,6 +45,9 @@ public final class RedisPlayerCreationLock {
             return Optional.empty();
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
+            if (!localFallbackEnabled) {
+                return Optional.empty();
+            }
             return acquireLocal(playerUuid, token);
         }
     }
@@ -47,14 +57,13 @@ public final class RedisPlayerCreationLock {
             return;
         }
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            String current = redis.command("GET", RedisKeys.playerCreateLock(lease.playerUuid()));
-            if (lease.token().equals(current)) {
-                redis.command("DEL", RedisKeys.playerCreateLock(lease.playerUuid()));
-            }
+            redis.command("EVAL", RELEASE_IF_TOKEN_SCRIPT, "1", RedisKeys.playerCreateLock(lease.playerUuid()), lease.token());
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         } finally {
-            releaseLocal(lease);
+            if (localFallbackEnabled) {
+                releaseLocal(lease);
+            }
         }
     }
 

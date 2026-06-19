@@ -37,6 +37,7 @@ class CoreSecurityControlsTest {
         assertFalse(guard.allowed(exchange("127.0.0.1")));
         assertFalse(guard.allowed(exchange("127.0.0.1", "X-SSL-Client-Verify", "FAILED")));
         assertTrue(guard.allowed(exchange("127.0.0.1", "X-SSL-Client-Verify", "success")));
+        assertFalse(guard.allowed(exchange("10.0.0.5", "X-SSL-Client-Verify", "success")));
         assertTrue(new MtlsHeaderGuard(false, "", "").allowed(exchange("127.0.0.1")));
     }
 
@@ -62,13 +63,14 @@ class CoreSecurityControlsTest {
 
     @Test
     void adminEndpointsRequireTokenAndSpecificPermission() {
-        AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true);
+        AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true, "island-restore,audit-read");
+        AdminEndpointGuard snapshotOnly = new AdminEndpointGuard("admin-secret", true, "island-snapshot");
 
         assertFalse(guard.allowed("/v1/admin/islands/restore", exchange("127.0.0.1")));
-        assertFalse(guard.allowed("/v1/admin/islands/restore", exchange(
+        assertFalse(snapshotOnly.allowed("/v1/admin/islands/restore", exchange(
             "127.0.0.1",
             "X-CloudIslands-Admin-Token", "admin-secret",
-            "X-CloudIslands-Admin-Permissions", "island-snapshot"
+            "X-CloudIslands-Admin-Permissions", "island-restore"
         )));
         assertTrue(guard.allowed("/v1/admin/islands/restore", exchange(
             "127.0.0.1",
@@ -89,28 +91,40 @@ class CoreSecurityControlsTest {
 
     @Test
     void pathStyleAdminEndpointsKeepSpecificPermissions() {
-        AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true);
+        AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true, "island-migrate,node-drain");
+        AdminEndpointGuard auditOnly = new AdminEndpointGuard("admin-secret", true, "audit-read");
         String islandId = "00000000-0000-0000-0000-000000000201";
 
-        assertFalse(guard.allowed("/v1/admin/islands/" + islandId + "/migrate", exchange(
+        assertFalse(auditOnly.allowed("/v1/admin/islands/" + islandId + "/migrate", exchange(
             "127.0.0.1",
             "X-CloudIslands-Admin-Token", "admin-secret",
-            "X-CloudIslands-Admin-Permissions", "audit-read"
+            "X-CloudIslands-Admin-Permissions", "island-migrate"
         )));
         assertTrue(guard.allowed("/v1/admin/islands/" + islandId + "/migrate", exchange(
             "127.0.0.1",
             "X-CloudIslands-Admin-Token", "admin-secret",
             "X-CloudIslands-Admin-Permissions", "island-migrate"
         )));
-        assertFalse(guard.allowed("/v1/admin/nodes/island-2/drain", exchange(
+        assertFalse(auditOnly.allowed("/v1/admin/nodes/island-2/drain", exchange(
             "127.0.0.1",
             "X-CloudIslands-Admin-Token", "admin-secret",
-            "X-CloudIslands-Admin-Permissions", "audit-read"
+            "X-CloudIslands-Admin-Permissions", "node-drain"
         )));
         assertTrue(guard.allowed("/v1/admin/nodes/island-2/drain", exchange(
             "127.0.0.1",
             "X-CloudIslands-Admin-Token", "admin-secret",
             "X-CloudIslands-Admin-Permissions", "node-drain"
+        )));
+    }
+
+    @Test
+    void adminPermissionHeaderCannotEscalateServerSideTokenPolicy() {
+        AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true, "audit-read");
+
+        assertFalse(guard.allowed("/v1/admin/islands/delete", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret",
+            "X-CloudIslands-Admin-Permissions", "*"
         )));
     }
 

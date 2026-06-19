@@ -1,16 +1,7 @@
-plugins { `java-library` }
-
-fun embeddedOutput(projectName: String) =
-    (project(projectName).extensions.getByName("sourceSets") as org.gradle.api.tasks.SourceSetContainer)
-        .named("main").get().output
-
-val embeddedProjects = listOf(
-    ":cloudislands-api",
-    ":cloudislands-protocol",
-    ":cloudislands-common",
-    ":cloudislands-core-client",
-    ":cloudislands-storage"
-)
+plugins {
+    `java-library`
+    id("com.gradleup.shadow")
+}
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
@@ -27,13 +18,11 @@ tasks.test {
     useJUnitPlatform()
 }
 
-tasks.jar {
+tasks.shadowJar {
     archiveBaseName.set("CloudIslands-Paper")
+    archiveClassifier.set("")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    dependsOn(embeddedProjects.map { project(it).tasks.named("jar") })
-    embeddedProjects.forEach { embeddedProject ->
-        from(embeddedOutput(embeddedProject))
-    }
+    mergeServiceFiles()
     manifest {
         attributes(
             "CloudIslands-Multi-Node-Pool-Support" to "true",
@@ -75,7 +64,8 @@ tasks.jar {
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
     }
-    from(configurations.runtimeClasspath.get().map {
-        if (it.isDirectory) it else zipTree(it)
-    })
+}
+
+tasks.jar {
+    enabled = false
 }

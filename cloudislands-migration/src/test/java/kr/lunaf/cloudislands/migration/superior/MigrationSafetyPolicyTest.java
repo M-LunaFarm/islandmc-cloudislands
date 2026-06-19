@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import kr.lunaf.cloudislands.migration.MigrationManifest;
 import kr.lunaf.cloudislands.migration.importer.MigrationImportPlan;
 import org.junit.jupiter.api.Test;
 
@@ -128,7 +130,37 @@ class MigrationSafetyPolicyTest {
 
         MigrationImportPlan plan = new MigrationImportPlan(List.of(), List.of());
         assertFalse(plan.importPreflightSatisfied());
-        assertTrue(plan.approve(plan.requiredApprovalToken()).importPreflightSatisfied());
+        MigrationImportPlan cleanPlan = new MigrationImportPlan(List.of(manifest()), List.of());
+        assertTrue(cleanPlan.approve(cleanPlan.requiredApprovalToken()).importPreflightSatisfied());
+    }
+
+    private static MigrationManifest manifest() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000009001");
+        UUID ownerId = UUID.fromString("00000000-0000-0000-0000-000000009002");
+        return new MigrationManifest(
+            islandId,
+            ownerId,
+            List.of(ownerId),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of(),
+            "minecraft:plains",
+            "0",
+            true,
+            false,
+            300,
+            10L,
+            "2500",
+            "/superior/islands/" + islandId
+        );
     }
 
     @Test

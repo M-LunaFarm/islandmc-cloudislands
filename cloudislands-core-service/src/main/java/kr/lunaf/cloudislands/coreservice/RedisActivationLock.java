@@ -15,11 +15,19 @@ import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 public final class RedisActivationLock {
     private final URI redisUri;
     private final long ttlMillis;
+    private final boolean localFallbackEnabled;
     private final AtomicLong failures = new AtomicLong();
     private final Map<UUID, LocalLock> localLocks = new ConcurrentHashMap<>();
+    private static final String RELEASE_IF_TOKEN_SCRIPT = "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0";
+    private static final String RELEASE_IF_PREFIX_SCRIPT = "local v = redis.call('GET', KEYS[1]); if v and string.sub(v, 1, string.len(ARGV[1])) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0";
 
     public RedisActivationLock(URI redisUri, Duration ttl) {
+        this(redisUri, ttl, false);
+    }
+
+    public RedisActivationLock(URI redisUri, Duration ttl, boolean localFallbackEnabled) {
         this.redisUri = redisUri;
+        this.localFallbackEnabled = localFallbackEnabled;
         Duration safeTtl = ttl == null || ttl.isNegative() || ttl.isZero() ? Duration.ofMillis(RedisTtls.LOCK_MAX_MILLIS) : ttl;
         this.ttlMillis = clampLockTtl(safeTtl.toMillis());
     }
@@ -42,8 +50,11 @@ public final class RedisActivationLock {
             return AcquireResult.locked("redis");
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
+            if (!localFallbackEnabled) {
+                return AcquireResult.locked("redis_unavailable");
+            }
             return acquireLocal(islandId, token)
-                .map(lease -> AcquireResult.acquired(lease, true, "redis_unavailable_local"))
+                .map(lease -> AcquireResult.acquired(lease, true, "redis_unavailable_local_single_node"))
                 .orElseGet(() -> AcquireResult.locked("local_fallback"));
         }
     }
@@ -53,14 +64,13 @@ public final class RedisActivationLock {
             return;
         }
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            String current = redis.command("GET", RedisKeys.activationLock(lease.islandId()));
-            if (lease.token().equals(current)) {
-                redis.command("DEL", RedisKeys.activationLock(lease.islandId()));
-            }
+            redis.command("EVAL", RELEASE_IF_TOKEN_SCRIPT, "1", RedisKeys.activationLock(lease.islandId()), lease.token());
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         } finally {
-            releaseLocal(lease);
+            if (localFallbackEnabled) {
+                releaseLocal(lease);
+            }
         }
     }
 
@@ -70,13 +80,12 @@ public final class RedisActivationLock {
         }
         String prefix = (owner == null || owner.isBlank() ? "core" : owner) + ":";
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            String current = redis.command("GET", RedisKeys.activationLock(islandId));
-            if (current != null && current.startsWith(prefix)) {
-                redis.command("DEL", RedisKeys.activationLock(islandId));
-            }
+            redis.command("EVAL", RELEASE_IF_PREFIX_SCRIPT, "1", RedisKeys.activationLock(islandId), prefix);
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
-            releaseLocalIfOwner(islandId, prefix);
+            if (localFallbackEnabled) {
+                releaseLocalIfOwner(islandId, prefix);
+            }
         }
     }
 

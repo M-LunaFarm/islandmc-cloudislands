@@ -85,6 +85,7 @@ public final class SatisAddonIntegrationPolicy {
             "maintenance",
             "placeholders",
             "migration",
+            "lifecycle",
             "addon-state",
             "route-events",
             "members",
@@ -121,8 +122,10 @@ public final class SatisAddonIntegrationPolicy {
             "island-pre-activate",
             "island-activation-requested",
             "island-activated",
+            "island-deactivation-request",
             "island-deactivation-requested",
             "island-deactivated",
+            "island-migration-request",
             "island-migration-requested",
             "island-migrated",
             "island-delete-requested",
@@ -310,6 +313,14 @@ public final class SatisAddonIntegrationPolicy {
 
     public static String playerHiddenTopologyFieldSummary() {
         return SatisIntegrationPolicy.playerHiddenTopologyFieldSummary();
+    }
+
+    public static Map<String, String> playerExperienceBoundaries() {
+        return Map.of(
+            "logical-player-surface", PLAYER_SURFACE_POLICY,
+            "player-surface-hidden-fields", PLAYER_SURFACE_HIDE_POLICY,
+            "player-surface-command-owner", PLAYER_SURFACE_COMMAND_OWNER_POLICY
+        );
     }
 
     public static Map<String, String> featureOffRuntimeBlocks() {

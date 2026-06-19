@@ -4,13 +4,18 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import javax.net.ssl.SSLSocketFactory;
 
 public final class RedisRespConnection implements Closeable {
+    private static final int CONNECT_TIMEOUT_MILLIS = 3_000;
+    private static final int READ_TIMEOUT_MILLIS = 3_000;
+    private static final int MAX_BULK_BYTES = 16 * 1024 * 1024;
     private final Socket socket;
     private final BufferedInputStream input;
     private final BufferedOutputStream output;
@@ -18,7 +23,9 @@ public final class RedisRespConnection implements Closeable {
     public RedisRespConnection(URI redisUri) throws IOException {
         String host = redisUri.getHost() == null ? "localhost" : redisUri.getHost();
         int port = redisUri.getPort() < 0 ? 6379 : redisUri.getPort();
-        this.socket = new Socket(host, port);
+        this.socket = createSocket(redisUri);
+        this.socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MILLIS);
+        this.socket.setSoTimeout(READ_TIMEOUT_MILLIS);
         this.input = new BufferedInputStream(socket.getInputStream());
         this.output = new BufferedOutputStream(socket.getOutputStream());
         String userInfo = redisUri.getUserInfo();
@@ -30,6 +37,13 @@ public final class RedisRespConnection implements Closeable {
                 command("AUTH", parts[0]);
             }
         }
+    }
+
+    private static Socket createSocket(URI redisUri) throws IOException {
+        if ("rediss".equalsIgnoreCase(redisUri.getScheme())) {
+            return SSLSocketFactory.getDefault().createSocket();
+        }
+        return new Socket();
     }
 
     public synchronized String command(String... args) throws IOException {
@@ -57,6 +71,9 @@ public final class RedisRespConnection implements Closeable {
             int length = parseRedisInteger(line, "bulk length");
             if (length < 0) {
                 return "";
+            }
+            if (length > MAX_BULK_BYTES) {
+                throw new IOException("redis bulk string exceeds maximum size: " + length);
             }
             byte[] data = input.readNBytes(length);
             if (data.length != length) {

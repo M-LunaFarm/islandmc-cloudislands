@@ -1,11 +1,7 @@
-plugins { `java-library` }
-
-fun embeddedOutput(projectName: String) =
-    (project(projectName).extensions.getByName("sourceSets") as org.gradle.api.tasks.SourceSetContainer)
-        .named("main").get().output
-
-val embeddedProjects = listOf(":cloudislands-protocol")
-val jarDependencyProjects = embeddedProjects
+plugins {
+    `java-library`
+    id("com.gradleup.shadow")
+}
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
@@ -40,13 +36,11 @@ tasks.processResources {
     }
 }
 
-tasks.jar {
+tasks.shadowJar {
     archiveBaseName.set("CloudIslands-Satis")
+    archiveClassifier.set("")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    dependsOn(jarDependencyProjects.map { project(it).tasks.named("jar") })
-    embeddedProjects.forEach { embeddedProject ->
-        from(embeddedOutput(embeddedProject))
-    }
+    mergeServiceFiles()
     manifest {
         attributes(
             "CloudIslands-Addon" to "cloudislands-satis",
@@ -121,7 +115,8 @@ tasks.jar {
             "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Action" to "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"
         )
     }
-    from(configurations.runtimeClasspath.get().map {
-        if (it.isDirectory) it else zipTree(it)
-    })
+}
+
+tasks.jar {
+    enabled = false
 }

@@ -199,6 +199,9 @@ public final class MachineService {
                 return false;
             }
         }
+        if (dirtySaves != null) {
+            dirtySaves.flushIslandSafely(machine.islandUuid());
+        }
         return delete(machine);
     }
 

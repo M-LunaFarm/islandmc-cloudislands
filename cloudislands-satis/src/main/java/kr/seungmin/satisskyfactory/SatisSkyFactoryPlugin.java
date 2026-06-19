@@ -374,7 +374,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
         }
         ensureDirtySaveService();
-        if (dataWritesEnabled() && dirtySaves != null) {
+        if (dataWritesEnabled()) {
             dirtySaves.start(dirtySavePeriodTicks(configs.main()));
         }
     }
@@ -1800,7 +1800,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("satis-disabled-child-feature-policy", "child-features-remain-configured-but-operationalFeatureEnabled-always-returns-false");
         metadata.put("addon-runtime-enabled", Boolean.toString(addonRuntimeEnabled));
         putRuntimeActivityState(metadata);
-        metadata.put("dirty-save-state-keys", "runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,addon-removal-dirty-save-detach-policy,addon-removal-dirty-save-reattach-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy");
+        metadata.put("dirty-save-state-keys", "runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,addon-removal-dirty-save-detach-policy,addon-removal-dirty-save-reattach-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy,runtime-core-refresh-reapply-policy");
         metadata.put("database-scope", scope);
         metadata.put("database-supported-backends", "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API");
         metadata.put("database-configured-backend", configuredDatabaseBackendName());
@@ -2077,6 +2077,29 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("addon-spi-policy", SatisAddonIntegrationPolicy.ADDON_SPI_POLICY),
                 Map.entry("supported-integration-modes", "EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED"),
                 Map.entry("built-in-compatible-policy", "same-addon-api-contract-config-gated-no-core-boot-dependency"),
+                Map.entry("feature-pack-activation-policy", SatisAddonIntegrationPolicy.FEATURE_PACK_ACTIVATION_POLICY),
+                Map.entry("feature-pack-activation-supported-modes", String.join(",", SatisAddonIntegrationPolicy.activationSupportedModes())),
+                Map.entry("activation-state-keys", "runtime-feature-pack-activation-policy,runtime-feature-pack-activation-mode,runtime-feature-pack-runtime-enabled,runtime-feature-pack-runtime-shape,runtime-feature-pack-block-reason,runtime-disable-activation-block-reason,last-preflush-activation-block-reason,preflush-activation-block-reason"),
+                Map.entry("setup-readiness-state-keys", "database-setup-source-precedence,database-setup-core-api-readiness-fields,database-setup-postgresql-readiness-fields,database-setup-mysql-readiness-fields,database-setup-mariadb-readiness-fields,database-setup-sqlite-readiness-fields,database-setup-jdbc-readiness-policy,database-setup-core-api-local-cache-write-policy"),
+                Map.entry("feature-pack-runtime-shape", SatisAddonIntegrationPolicy.activationRuntimeShape(SatisAddonIntegrationPolicy.RECOMMENDED_MODE)),
+                Map.entry("integration-mode-runtime-boundary", SatisAddonIntegrationPolicy.modeRuntimeBoundary(SatisAddonIntegrationPolicy.RECOMMENDED_MODE)),
+                Map.entry("standalone-island-runtime-policy", SatisRuntimeComponentPlan.STANDALONE_ISLAND_RUNTIME_POLICY),
+                Map.entry("island-runtime-authority", "disabled-no-standalone-island-management"),
+                Map.entry("runtime-tick-authority-policy", SatisRuntimeTickAuthorityPolicy.CORE_API_TICK_POLICY),
+                Map.entry("runtime-tick-authority-local-fallback-policy", SatisRuntimeTickAuthorityPolicy.LOCAL_FALLBACK_TICK_POLICY),
+                Map.entry("runtime-write-authority-policy", SatisRuntimeTickAuthorityPolicy.CORE_API_WRITE_POLICY),
+                Map.entry("runtime-write-authority-local-fallback-policy", SatisRuntimeTickAuthorityPolicy.LOCAL_FALLBACK_WRITE_POLICY),
+                Map.entry("database-setup-source-precedence", SetupBackendFallbackPolicy.SETUP_SOURCE_PRECEDENCE),
+                Map.entry("database-setup-core-api-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("CORE_API"))),
+                Map.entry("database-setup-postgresql-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("POSTGRESQL"))),
+                Map.entry("database-setup-mysql-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("MYSQL"))),
+                Map.entry("database-setup-mariadb-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("MARIADB"))),
+                Map.entry("database-setup-sqlite-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("SQLITE"))),
+                Map.entry("database-setup-jdbc-readiness-policy", SetupBackendFallbackPolicy.JDBC_READY_POLICY),
+                Map.entry("database-setup-core-api-local-cache-write-policy", SetupBackendFallbackPolicy.LOCAL_CACHE_WRITE_POLICY),
+                Map.entry("database-fallback-operator-remediation", "put-shared-backend-before-sqlite-or-disable-distributed-runtime-writes"),
+                Map.entry("fallback-remediation-state-keys", "database-fallback-readiness-summary,database-fallback-ready-chain-risk,database-fallback-ready-chain-production-safe,database-fallback-operator-remediation"),
+                Map.entry("dirty-save-state-keys", "runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,addon-removal-dirty-save-detach-policy,addon-removal-dirty-save-reattach-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy,runtime-core-refresh-reapply-policy"),
                 Map.entry("extension-model", "superiorskyblock-style-addon"),
                 Map.entry("removable-addon", "true"),
                 Map.entry("addon-removal-safe", "true"),
@@ -2088,6 +2111,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("addon-removal-dirty-save-reattach-policy", SatisAddonIntegrationPolicy.DIRTY_SAVE_REATTACH_POLICY),
                 Map.entry("addon-reload-runtime-restart-policy", SatisAddonIntegrationPolicy.RELOAD_RUNTIME_RESTART_POLICY),
                 Map.entry("addon-core-refresh-reapply-policy", SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY),
+                Map.entry("runtime-core-refresh-reapply-policy", SatisAddonIntegrationPolicy.CORE_REFRESH_REAPPLY_POLICY),
                 Map.entry("cloudislands-lifecycle-depends-on-satis", "false"),
                 Map.entry("addon-data-retention", "preserve-addon-state-by-island-uuid"),
                 Map.entry("addon-runtime-owns-islands", "false"),
@@ -2105,14 +2129,39 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("legacy-provider-lookup", "disabled"),
                 Map.entry("migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY),
                 Map.entry("migration-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY),
+                Map.entry("legacy-satismc-import-provider-prerequisite", SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE),
                 Map.entry("migration-manifest-policy", SatisLegacyMigrationPolicy.MANIFEST_POLICY),
                 Map.entry("migration-output-id-policy", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY),
+                Map.entry("database-core-api-endpoint", String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS) + "," + String.join(",", AddonStateBulkLoadRequest.GLOBAL_ENDPOINTS)),
+                Map.entry("database-core-api-island-endpoint", String.join(",", AddonStateBulkSaveRequest.ISLAND_ENDPOINTS) + "," + String.join(",", AddonStateBulkLoadRequest.ISLAND_ENDPOINTS)),
                 Map.entry("cloudislands-api-only", "true"),
                 Map.entry("cloudislands-required-policy", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY),
                 Map.entry("cloudislands-api-resolution", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY),
                 Map.entry("runtime-hard-depend-plugin", SatisAddonIntegrationPolicy.RUNTIME_HARD_DEPEND_PLUGIN),
                 Map.entry("standalone-island-management", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT),
                 Map.entry("missing-cloudislands-behavior", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR),
+                Map.entry("route-authority-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY),
+                Map.entry("route-ticket-privacy-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY),
+                Map.entry("core-api-metadata-state-policy", SatisAddonIntegrationPolicy.CORE_API_METADATA_STATE_POLICY),
+                Map.entry("core-api-forbidden-content-policy", SatisAddonIntegrationPolicy.CORE_API_FORBIDDEN_CONTENT_POLICY),
+                Map.entry("core-api-addon-state-boundaries", SatisAddonIntegrationPolicy.coreApiAddonStateBoundarySummary()),
+                Map.entry("player-surface-policy", SatisAddonIntegrationPolicy.PLAYER_SURFACE_POLICY),
+                Map.entry("player-surface-hide-policy", SatisAddonIntegrationPolicy.PLAYER_SURFACE_HIDE_POLICY),
+                Map.entry("player-surface-command-owner-policy", SatisAddonIntegrationPolicy.PLAYER_SURFACE_COMMAND_OWNER_POLICY),
+                Map.entry("velocity-forwarding-policy", SatisAddonIntegrationPolicy.VELOCITY_FORWARDING_POLICY),
+                Map.entry("paper-backend-access-policy", SatisAddonIntegrationPolicy.PAPER_BACKEND_ACCESS_POLICY),
+                Map.entry("plugin-message-security-policy", SatisAddonIntegrationPolicy.PLUGIN_MESSAGE_SECURITY_POLICY),
+                Map.entry("runtime-authoritative-store-policy", SatisStatePortabilityPolicy.AUTHORITATIVE_STORE_POLICY),
+                Map.entry("runtime-redis-advisory-policy", SatisStatePortabilityPolicy.REDIS_ADVISORY_POLICY),
+                Map.entry("runtime-redis-failure-policy", SatisStatePortabilityPolicy.REDIS_FAILURE_POLICY),
+                Map.entry("object-storage-access-policy", SatisStatePortabilityPolicy.OBJECT_STORAGE_ACCESS_POLICY),
+                Map.entry("bundle-manifest-policy", SatisStatePortabilityPolicy.BUNDLE_MANIFEST_POLICY),
+                Map.entry("bundle-checksum-policy", SatisStatePortabilityPolicy.BUNDLE_CHECKSUM_POLICY),
+                Map.entry("bundle-restore-policy", SatisStatePortabilityPolicy.BUNDLE_RESTORE_POLICY),
+                Map.entry("bundle-quarantine-policy", SatisStatePortabilityPolicy.BUNDLE_QUARANTINE_POLICY),
+                Map.entry("lifecycle-authority-policy", SatisStatePortabilityPolicy.LIFECYCLE_AUTHORITY_POLICY),
+                Map.entry("lifecycle-error-policy", SatisStatePortabilityPolicy.LIFECYCLE_ERROR_POLICY),
+                Map.entry("lifecycle-recovery-policy", SatisStatePortabilityPolicy.LIFECYCLE_RECOVERY_POLICY),
                 Map.entry("island-state-node-count-policy", "no-hardcoded-island-node-count"),
                 Map.entry("island-state-node-identity-policy", "node-id-is-routing-context-not-addon-state-key"),
                 Map.entry("island-state-five-six-node-policy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.FIVE_SIX_NODE_POLICY),

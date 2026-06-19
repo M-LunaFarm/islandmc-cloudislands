@@ -26,8 +26,8 @@ public final class CloudIslandsModuleLayoutPolicy {
 
     private static final Map<String, List<String>> MODULE_RESPONSIBILITIES = responsibilities();
     private static final Map<String, List<String>> MODULE_RUNTIME_SURFACES = runtimeSurfaces();
-    private static final Map<String, List<String>> DISTRIBUTION_ARTIFACTS = distributionArtifacts();
-    private static final Map<String, List<String>> DISTRIBUTION_TASKS = distributionTasks();
+    private static final Map<String, List<String>> DISTRIBUTION_ARTIFACTS = createDistributionArtifacts();
+    private static final Map<String, List<String>> DISTRIBUTION_TASKS = createDistributionTasks();
 
     private CloudIslandsModuleLayoutPolicy() {
     }
@@ -109,7 +109,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         return Collections.unmodifiableMap(modules);
     }
 
-    private static Map<String, List<String>> distributionArtifacts() {
+    private static Map<String, List<String>> createDistributionArtifacts() {
         LinkedHashMap<String, List<String>> artifacts = new LinkedHashMap<>();
         artifacts.put("plugins", List.of("cloudislands-paper", "cloudislands-velocity"));
         artifacts.put("addons", List.of("cloudislands-satis"));
@@ -119,7 +119,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         return Collections.unmodifiableMap(artifacts);
     }
 
-    private static Map<String, List<String>> distributionTasks() {
+    private static Map<String, List<String>> createDistributionTasks() {
         LinkedHashMap<String, List<String>> tasks = new LinkedHashMap<>();
         tasks.put("distPlugins", List.of("cloudislands-paper", "cloudislands-velocity"));
         tasks.put("distAddons", List.of("cloudislands-satis"));

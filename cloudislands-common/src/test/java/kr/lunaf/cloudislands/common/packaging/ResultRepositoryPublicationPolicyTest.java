@@ -15,7 +15,7 @@ class ResultRepositoryPublicationPolicyTest {
         assertEquals("result", ResultRepositoryPublicationPolicy.REPOSITORY_ROOT);
         assertEquals("M-LunaFarm/islandmc-cloudislands", ResultRepositoryPublicationPolicy.REMOTE_REPOSITORY);
         assertEquals("git-operations-target-result-root-only", ResultRepositoryPublicationPolicy.GIT_SCOPE_POLICY);
-        assertEquals("result-tree-allows-root-readme-only-no-extra-markdown-documents", ResultRepositoryPublicationPolicy.DOCUMENTATION_POLICY);
+        assertEquals("source-tree-may-keep-operator-docs-packaged-artifacts-exclude-markdown", ResultRepositoryPublicationPolicy.DOCUMENTATION_POLICY);
         assertEquals("github-repository-must-be-public", ResultRepositoryPublicationPolicy.PUBLICATION_VISIBILITY_POLICY);
         assertEquals("commit-locally-and-push-main-after-credentialed-publication", ResultRepositoryPublicationPolicy.PUSH_POLICY);
         assertEquals("do-not-retry-known-invalid-github-token-use-fresh-credential", ResultRepositoryPublicationPolicy.PUSH_AUTH_FAILURE_POLICY);
@@ -39,11 +39,11 @@ class ResultRepositoryPublicationPolicyTest {
     @Test
     void requiresEvidenceBeforeGoalCompletion() {
         assertEquals(
-            "complete-only-after-result-root-build-test-public-clone-and-doc-free-verification",
+            "complete-only-after-result-root-build-test-public-clone-and-packaged-markdown-exclusion",
             ResultRepositoryPublicationPolicy.COMPLETION_AUDIT_POLICY
         );
         assertTrue(ResultRepositoryPublicationPolicy.completionEvidenceRequired("git-root-is-result"));
-        assertTrue(ResultRepositoryPublicationPolicy.completionEvidenceRequired("no-markdown-files-under-result"));
+        assertTrue(ResultRepositoryPublicationPolicy.completionEvidenceRequired("packaged-artifacts-exclude-markdown-docs"));
         assertTrue(ResultRepositoryPublicationPolicy.completionEvidenceRequired("public-github-repo-private-false"));
         assertTrue(ResultRepositoryPublicationPolicy.completionEvidenceRequired("main-branch-pushed"));
         assertTrue(ResultRepositoryPublicationPolicy.completionEvidenceRequired("fresh-public-clone-builds"));
@@ -52,17 +52,16 @@ class ResultRepositoryPublicationPolicyTest {
     }
 
     @Test
-    void checksResultTreePathsForMarkdownDocuments() {
+    void checksArtifactPathsForMarkdownDocuments() {
         assertTrue(ResultRepositoryPublicationPolicy.markdownFree(List.of(
             "settings.gradle.kts",
-            "README.md",
             "cloudislands-satis/src/main/resources/plugin.yml",
             "cloudislands-common/src/main/java/Policy.java",
             ".git/COMMIT_EDITMSG"
         )));
         assertFalse(ResultRepositoryPublicationPolicy.markdownFree(List.of(
             "cloudislands-satis/src/main/resources/plugin.yml",
-            "README.md"
+            "docs/runbook.md"
         )));
         assertFalse(ResultRepositoryPublicationPolicy.markdownFree(List.of(
             "docs/goal.markdown"

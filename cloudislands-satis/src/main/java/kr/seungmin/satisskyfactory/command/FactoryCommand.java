@@ -800,7 +800,7 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             if (enabled("maintenance") && enabled("storage")) {
                 values.add("repair");
             }
-            if (sender.hasPermission("satisskyfactory.admin")) {
+            if (sender != null && sender.hasPermission("satisskyfactory.admin")) {
                 values.add("admin");
             }
             return filter(values, args[0]);

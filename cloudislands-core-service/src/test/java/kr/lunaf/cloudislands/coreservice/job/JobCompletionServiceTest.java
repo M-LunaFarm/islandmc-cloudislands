@@ -100,7 +100,7 @@ class JobCompletionServiceTest {
         InMemoryIslandRepository islands = new InMemoryIslandRepository();
         InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
         InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
-        RedisActivationLock activationLock = new RedisActivationLock(URI.create("redis://127.0.0.1:1"), Duration.ofSeconds(30));
+        RedisActivationLock activationLock = new RedisActivationLock(URI.create("redis://127.0.0.1:1"), Duration.ofSeconds(30), true);
         JobCompletionService service = service(runtimes, islands, events, snapshots, activationLock);
         islands.createOwnedIsland(ISLAND, OWNER, "default", "restore target");
         runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 42L);

@@ -196,9 +196,9 @@ public final class CloudIslandsCoreApplication {
         Clock clock = Clock.systemUTC();
         this.tokenGuard = new ApiTokenGuard(config.coreToken());
         this.rateLimiter = new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis());
-        this.adminGuard = new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled());
+        this.adminGuard = new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.adminPermissions());
         this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
-        this.mtlsGuard = new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue());
+        this.mtlsGuard = new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies());
         logSecurityPosture(config);
         this.deleteStorage = migrationRollbackStorage(config);
         MeteredDataSource meteredDataSource = new MeteredDataSource(new BoundedDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()), config.databasePoolSize()));
@@ -3058,7 +3058,7 @@ public final class CloudIslandsCoreApplication {
             + "\"moduleRuntimeSurfaceLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.moduleRuntimeSurfaceSummary()) + "\","
             + "\"distributionLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.distributionArtifactSummary()) + "\","
             + "\"distributionTaskLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.distributionTaskSummary()) + "\","
-            + "\"distributionNoMarkdownGuard\":\"verifyNoMarkdownDocs-before-build-and-distBundle\","
+            + "\"distributionMarkdownPackagingGuard\":\"verifyMarkdownDocsExcludedFromArtifacts-before-build-and-distBundle\","
             + "\"addonRegistryPolicy\":\"paper-addon-registers-core-stores-snapshot-only\","
             + "\"addonStateOwnershipPolicy\":\"core-persists-addon-key-value-state-without-addon-business-logic\","
             + "\"addonRemovalSafetyPolicy\":\"missing-addon-metadata-or-state-must-not-block-island-lifecycle\","
@@ -3250,8 +3250,8 @@ public final class CloudIslandsCoreApplication {
             + "\"snapshotRequiredTriggerReasons\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.automaticTriggerReasonSummary()) + "\","
             + "\"snapshotManualTriggerReason\":\"MANUAL\","
             + "\"snapshotPreRestoreReason\":\"BEFORE_RESTORE\","
-            + "\"snapshotRestorePipeline\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORE_PIPELINE_POLICY) + "\",
-            + "\"snapshotRestoringLockState\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORING_LOCK_STATE) + "\",
+            + "\"snapshotRestorePipeline\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORE_PIPELINE_POLICY) + "\","
+            + "\"snapshotRestoringLockState\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORING_LOCK_STATE) + "\","
             + "\"snapshotRuntimeResetPolicy\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RUNTIME_RESET_POLICY) + "\","
             + "\"snapshotRollbackSteps\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.rollbackStepSummary()) + "\","
             + "\"coreApiAuthPolicy\":\"token-or-mtls-required\","
@@ -3306,7 +3306,7 @@ public final class CloudIslandsCoreApplication {
             + "\"upgradeEffectPolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy.EFFECT_APPLICATION_POLICY) + "\","
             + "\"upgradePurchasePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService.PURCHASE_POLICY) + "\","
             + "\"upgradeEconomyPolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService.ECONOMY_ABSTRACTION_POLICY) + "\","
-            + "\"paperUpgradeEconomyPolicy\":\"" + escape(kr.lunaf.cloudislands.paper.upgrade.UpgradePurchaseService.PAPER_ECONOMY_POLICY) + "\","
+            + "\"paperUpgradeEconomyPolicy\":\"paper-agent-uses-economy-bridge-for-player-facing-upgrade-purchase\","
             + "\"generatorPolicy\":\"paper-agent-local-generator-rules-by-island-upgrade-level\","
             + "\"superiorSkyblock2ReplacementPolicy\":\"built-in-cloudislands-modules-replace-superiorskyblock2-runtime-dependency\","
             + "\"superiorSkyblock2ReplacementFeatures\":\"create,template-select,delete,reset,home,multiple-homes,visit,random-visit,public-private,visitor-ban,visitor-kick,member-invite,member-kick,roles-permissions,custom-roles,flags,warps,ranking,level,worth,block-values,upgrades,size-expansion,border,biome,bank,island-chat,team-chat,missions,challenges,generator-upgrades,spawner-limits,hopper-limits,entity-limits,redstone-limits,island-logs,admin-recovery,snapshots-rollback,migration,server-drain,distributed-api,web-api,external-java-api\","
