@@ -62,6 +62,7 @@ import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
@@ -336,10 +337,7 @@ public final class CloudIslandsCoreApplication {
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
-        route("/live", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
-        route("/ready", exchange -> writeReadiness(exchange, config));
-        route("/health", exchange -> writeReadiness(exchange, config));
-        route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
+        new HealthRoutes(config, metrics::render).register(this::route);
         route("/v1/admin/config", exchange -> write(exchange, 200, configSummaryJson(config, nodes)));
         new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(this::route);
         route("/v1/jobs", exchange -> write(exchange, 200, jobsJson(jobs)));
@@ -3916,18 +3914,6 @@ public final class CloudIslandsCoreApplication {
 
     private static boolean healthProbePath(String path) {
         return "/live".equals(path) || "/ready".equals(path) || "/health".equals(path);
-    }
-
-    private static void writeReadiness(HttpExchange exchange, CoreServiceConfig config) throws IOException {
-        boolean ready = config.setupDatabaseReady();
-        write(exchange, ready ? 200 : 503,
-            "{\"status\":\"" + (ready ? "UP" : "DOWN") + "\""
-                + ",\"databaseReady\":" + ready
-                + ",\"databaseDurable\":" + config.setupDatabaseProductionDurable()
-                + ",\"databaseReadiness\":\"" + escape(config.setupDatabaseFallbackReadiness()) + "\""
-                + ",\"databaseEffectiveBackend\":\"" + escape(config.setupDatabaseEffectiveBackend()) + "\""
-                + ",\"databaseEffectiveAuthority\":\"" + escape(config.setupDatabaseEffectiveAuthority()) + "\""
-                + "}");
     }
 
     private String coreApiAuthRejectCode() {

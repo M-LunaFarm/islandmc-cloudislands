@@ -29,6 +29,7 @@ import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
+import kr.lunaf.cloudislands.velocity.platform.VelocityServerGateway;
 import kr.lunaf.cloudislands.velocity.routing.RouteFallbackService;
 import kr.lunaf.cloudislands.velocity.routing.RouteRequestGuard;
 import net.kyori.adventure.bossbar.BossBar;
@@ -51,6 +52,7 @@ public final class VelocityRoutingController {
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
     private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
+    private final VelocityServerGateway servers;
     private final RouteFallbackService fallbackService;
     private final RouteRequestGuard routeRequestGuard;
     private ScheduledTask eventPollTask;
@@ -92,6 +94,7 @@ public final class VelocityRoutingController {
         this.messages = messages == null ? VelocityMessages.defaults() : messages;
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
+        this.servers = new VelocityServerGateway(proxy, this.islandPool, hideNodeNames);
         this.fallbackService = new RouteFallbackService(proxy, fallbackServer, metrics, this::playerComponent);
         this.routeRequestGuard = new RouteRequestGuard(PLAYER_ROUTE_COOLDOWN_MILLIS);
     }
@@ -130,12 +133,12 @@ public final class VelocityRoutingController {
     }
 
     public String statusSummary() {
-        return "CloudIslands Velocity router online, fallback=" + displayServerName(fallbackServer)
+        return "CloudIslands Velocity router online, fallback=" + servers.displayServerName(fallbackServer)
             + ", fallbackAvailable=" + fallbackServerAvailable()
             + ", routingPolicy=" + routingPolicyName()
             + ", islandPool=" + islandPool
-            + ", islandPoolServers=" + islandPoolServerCount()
-            + ", islandPoolServerNames=" + islandPoolServerNames()
+            + ", islandPoolServers=" + servers.islandPoolServerCount()
+            + ", islandPoolServerNames=" + servers.islandPoolServerNames()
             + ", routeWaitSeconds=" + routeWaitSeconds
             + ", routeTicketTtlSeconds=" + routeTicketTtlSeconds
             + ", onlinePlayers=" + proxy.getPlayerCount()
@@ -156,7 +159,7 @@ public final class VelocityRoutingController {
             + "cloudislands_velocity_topology_privacy_active " + (hideNodeNames ? 1 : 0) + "\n"
             + "cloudislands_velocity_actionbar_enabled " + (useActionBar ? 1 : 0) + "\n"
             + "cloudislands_velocity_bossbar_loading_enabled " + (useBossBarLoading ? 1 : 0) + "\n"
-            + "cloudislands_velocity_island_pool_servers " + islandPoolServerCount() + "\n"
+            + "cloudislands_velocity_island_pool_servers " + servers.islandPoolServerCount() + "\n"
             + metrics.prometheusText()
             + "cloudislands_velocity_fallback_server_available " + (fallbackServerAvailable() ? 1 : 0) + "\n"
             ;
@@ -166,55 +169,8 @@ public final class VelocityRoutingController {
         return "core-ticket-wait-fallback";
     }
 
-    private int islandPoolServerCount() {
-        int count = 0;
-        for (RegisteredServer server : proxy.getAllServers()) {
-            if (isIslandPoolServer(server.getServerInfo().getName())) {
-                count++;
-            }
-        }
-        return count;
-    }
-
     private boolean fallbackServerAvailable() {
         return fallbackService.fallbackAvailable();
-    }
-
-    private String islandPoolServerNames() {
-        int count = islandPoolServerCount();
-        if (hideNodeNames) {
-            return count <= 0 ? "-" : "hidden(" + count + ")";
-        }
-        StringBuilder names = new StringBuilder();
-        for (RegisteredServer server : proxy.getAllServers()) {
-            String name = server.getServerInfo().getName();
-            if (!isIslandPoolServer(name)) {
-                continue;
-            }
-            if (!names.isEmpty()) {
-                names.append(',');
-            }
-            names.append(name);
-        }
-        return names.isEmpty() ? "-" : names.toString();
-    }
-
-    private String displayServerName(String serverName) {
-        if (!hideNodeNames || !isIslandPoolServer(serverName)) {
-            return serverName == null || serverName.isBlank() ? "-" : serverName;
-        }
-        return "island-pool";
-    }
-
-    private boolean isIslandPoolServer(String serverName) {
-        if (serverName == null || serverName.isBlank()) {
-            return false;
-        }
-        String normalizedServer = serverName.toLowerCase(Locale.ROOT);
-        String normalizedPool = islandPool.toLowerCase(Locale.ROOT);
-        return normalizedServer.equals(normalizedPool)
-            || normalizedServer.startsWith(normalizedPool + "-")
-            || normalizedServer.startsWith(normalizedPool + "_");
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
