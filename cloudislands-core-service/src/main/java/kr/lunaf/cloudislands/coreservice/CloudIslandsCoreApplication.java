@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice;
 
 import static kr.lunaf.cloudislands.coreservice.config.CoreSetupSummary.*;
 import static kr.lunaf.cloudislands.coreservice.config.CoreNetworkExposure.*;
+import static kr.lunaf.cloudislands.coreservice.config.CoreIslandPoolSummary.*;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -16,7 +17,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -35,7 +35,6 @@ import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.permission.CachedPermissionSet;
 import kr.lunaf.cloudislands.common.permission.defaults.DefaultIslandPermissions;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
-import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -986,240 +985,6 @@ public final class CloudIslandsCoreApplication {
             + "\"rateLimitRequests\":" + config.rateLimitRequests() + ","
             + "\"rateLimitWindowSeconds\":" + config.rateLimitWindow().toSeconds()
             + "}";
-    }
-
-    private static long islandPoolNodeCount(CoreServiceConfig config, NodeRegistry nodes) {
-        if (nodes == null) {
-            return 0L;
-        }
-        return nodes.snapshot().stream()
-            .filter(node -> inIslandPool(config, node))
-            .count();
-    }
-
-    private static long islandPoolRouteCandidateCount(CoreServiceConfig config, NodeRegistry nodes) {
-        if (nodes == null) {
-            return 0L;
-        }
-        java.util.List<NodeLoad> snapshot = nodes.snapshot();
-        java.util.Map<String, Long> velocityServerCounts = islandPoolVelocityServerCounts(config, snapshot);
-        java.time.Instant now = java.time.Instant.now();
-        return snapshot.stream()
-            .filter(node -> inIslandPool(config, node))
-            .filter(node -> islandPoolRouteCandidateBlockReason(config, node, now, velocityServerCounts).isBlank())
-            .count();
-    }
-
-    private static String islandPoolRouteCandidateNodeIds(CoreServiceConfig config, NodeRegistry nodes) {
-        if (nodes == null) {
-            return "";
-        }
-        java.util.List<NodeLoad> snapshot = nodes.snapshot();
-        java.util.Map<String, Long> velocityServerCounts = islandPoolVelocityServerCounts(config, snapshot);
-        java.time.Instant now = java.time.Instant.now();
-        return snapshot.stream()
-            .filter(node -> inIslandPool(config, node))
-            .filter(node -> islandPoolRouteCandidateBlockReason(config, node, now, velocityServerCounts).isBlank())
-            .map(NodeLoad::nodeId)
-            .filter(id -> id != null && !id.isBlank())
-            .sorted()
-            .collect(java.util.stream.Collectors.joining(","));
-    }
-
-    private static String islandPoolScaleStatus(CoreServiceConfig config, NodeRegistry nodes) {
-        long nodeCount = islandPoolNodeCount(config, nodes);
-        long candidates = islandPoolRouteCandidateCount(config, nodes);
-        if (nodeCount <= 0L) {
-            return "NO_POOL_NODES";
-        }
-        if (nodeCount == 1L) {
-            return candidates > 0L ? "SINGLE_NODE_READY" : "SINGLE_NODE_BLOCKED";
-        }
-        if (candidates <= 0L) {
-            return "MULTI_NODE_BLOCKED";
-        }
-        if (candidates == 1L) {
-            return "MULTI_NODE_DEGRADED";
-        }
-        return "MULTI_NODE_READY";
-    }
-
-    private static boolean islandPoolDegraded(CoreServiceConfig config, NodeRegistry nodes) {
-        return islandPoolNodeCount(config, nodes) > 1L && islandPoolRouteCandidateCount(config, nodes) == 1L;
-    }
-
-    private static boolean islandPoolMultiNodeReady(CoreServiceConfig config, NodeRegistry nodes) {
-        return islandPoolNodeCount(config, nodes) > 1L
-            && islandPoolRouteCandidateCount(config, nodes) > 1L
-            && islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) == 0L
-            && islandPoolDefaultNodeIdentityRiskCount(config, nodes) == 0L;
-    }
-
-    private static long islandPoolRouteCandidateRecommendedMinimum(CoreServiceConfig config, NodeRegistry nodes) {
-        long nodeCount = islandPoolNodeCount(config, nodes);
-        if (nodeCount <= 0L) {
-            return 0L;
-        }
-        if (nodeCount == 1L) {
-            return 1L;
-        }
-        if (nodeCount < 5L) {
-            return 2L;
-        }
-        if (nodeCount <= 6L) {
-            return nodeCount;
-        }
-        return Math.min(nodeCount, 6L);
-    }
-
-    private static String islandPoolRouteCandidateMinimumStatus(CoreServiceConfig config, NodeRegistry nodes) {
-        long minimum = islandPoolRouteCandidateRecommendedMinimum(config, nodes);
-        long candidates = islandPoolRouteCandidateCount(config, nodes);
-        if (minimum <= 0L) {
-            return "NO_POOL_NODES";
-        }
-        if (candidates >= minimum) {
-            return "OK candidates=" + candidates + "/" + minimum;
-        }
-        return "SHORTFALL candidates=" + candidates + "/" + minimum
-            + " blocked=" + islandPoolBlockedNodeIds(config, nodes);
-    }
-
-    private static boolean islandPoolFiveSixNodeHealthy(CoreServiceConfig config, NodeRegistry nodes) {
-        long nodeCount = islandPoolNodeCount(config, nodes);
-        if (nodeCount < 5L || nodeCount > 6L) {
-            return false;
-        }
-        return islandPoolRouteCandidateCount(config, nodes) >= islandPoolRouteCandidateRecommendedMinimum(config, nodes)
-            && islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) == 0L
-            && islandPoolDefaultNodeIdentityRiskCount(config, nodes) == 0L;
-    }
-
-    private static String islandPoolFiveSixNodeStatus(CoreServiceConfig config, NodeRegistry nodes) {
-        long nodeCount = islandPoolNodeCount(config, nodes);
-        long candidates = islandPoolRouteCandidateCount(config, nodes);
-        if (nodeCount < 5L) {
-            return "NOT_5_6_NODE_POOL";
-        }
-        if ((nodeCount == 5L || nodeCount == 6L)
-                && candidates == nodeCount
-                && islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) == 0L
-                && islandPoolDefaultNodeIdentityRiskCount(config, nodes) == 0L) {
-            return "READY";
-        }
-        if (nodeCount > 6L && candidates == nodeCount) {
-            return "READY_ABOVE_6_NODES";
-        }
-        return "DEGRADED candidates=" + candidates + "/" + nodeCount
-            + " blocked=" + islandPoolBlockedNodeIds(config, nodes);
-    }
-
-    private static long islandPoolRouteCandidateShortfall(CoreServiceConfig config, NodeRegistry nodes) {
-        return Math.max(0L, islandPoolNodeCount(config, nodes) - islandPoolRouteCandidateCount(config, nodes));
-    }
-
-    private static String islandPoolRouteCandidateBlockSummary(CoreServiceConfig config, NodeRegistry nodes) {
-        if (nodes == null) {
-            return "none";
-        }
-        java.util.List<NodeLoad> snapshot = nodes.snapshot();
-        java.util.Map<String, Long> velocityServerCounts = islandPoolVelocityServerCounts(config, snapshot);
-        java.time.Instant now = java.time.Instant.now();
-        java.util.Map<String, Long> blocked = new java.util.TreeMap<>();
-        snapshot.stream()
-            .filter(node -> inIslandPool(config, node))
-            .map(node -> islandPoolRouteCandidateBlockReason(config, node, now, velocityServerCounts))
-            .filter(reason -> reason != null && !reason.isBlank())
-            .forEach(reason -> blocked.merge(reason, 1L, Long::sum));
-        if (blocked.isEmpty()) {
-            return "none";
-        }
-        return blocked.entrySet().stream()
-            .map(entry -> entry.getKey() + "=" + entry.getValue())
-            .collect(java.util.stream.Collectors.joining(","));
-    }
-
-    private static String globalEventTypeKeys() {
-        return java.util.Arrays.stream(CloudIslandEventType.values())
-            .map(Enum::name)
-            .collect(java.util.stream.Collectors.joining(","));
-    }
-
-    private static String islandPoolBlockedNodeIds(CoreServiceConfig config, NodeRegistry nodes) {
-        if (nodes == null) {
-            return "";
-        }
-        java.util.List<NodeLoad> snapshot = nodes.snapshot();
-        java.util.Map<String, Long> velocityServerCounts = islandPoolVelocityServerCounts(config, snapshot);
-        java.time.Instant now = java.time.Instant.now();
-        return snapshot.stream()
-            .filter(node -> inIslandPool(config, node))
-            .map(node -> {
-                String reason = islandPoolRouteCandidateBlockReason(config, node, now, velocityServerCounts);
-                if (reason == null || reason.isBlank()) {
-                    return "";
-                }
-                String id = node.nodeId() == null || node.nodeId().isBlank() ? "unknown" : node.nodeId();
-                return id + ":" + reason;
-            })
-            .filter(value -> !value.isBlank())
-            .sorted()
-            .collect(java.util.stream.Collectors.joining(","));
-    }
-
-    private static long islandPoolDuplicateVelocityServerNameNodeCount(CoreServiceConfig config, NodeRegistry nodes) {
-        if (nodes == null) {
-            return 0L;
-        }
-        java.util.List<NodeLoad> snapshot = nodes.snapshot();
-        java.util.Map<String, Long> serverCounts = islandPoolVelocityServerCounts(config, snapshot);
-        return snapshot.stream()
-            .filter(node -> inIslandPool(config, node))
-            .map(CloudIslandsCoreApplication::velocityServerNameKey)
-            .filter(server -> !server.isBlank() && serverCounts.getOrDefault(server, 0L) > 1L)
-            .count();
-    }
-
-    private static long islandPoolDefaultNodeIdentityRiskCount(CoreServiceConfig config, NodeRegistry nodes) {
-        if (nodes == null) {
-            return 0L;
-        }
-        return nodes.snapshot().stream()
-            .filter(node -> inIslandPool(config, node))
-            .filter(NodeLoad::defaultNodeIdentityRisk)
-            .count();
-    }
-
-    private static boolean inIslandPool(CoreServiceConfig config, NodeLoad node) {
-        return node != null && node.inPool(islandPool(config));
-    }
-
-    private static String islandPool(CoreServiceConfig config) {
-        return config == null || config.islandPool() == null || config.islandPool().isBlank() ? "island" : config.islandPool();
-    }
-
-    private static java.util.Map<String, Long> islandPoolVelocityServerCounts(CoreServiceConfig config, java.util.List<NodeLoad> snapshot) {
-        return snapshot.stream()
-            .filter(node -> inIslandPool(config, node))
-            .map(CloudIslandsCoreApplication::velocityServerNameKey)
-            .filter(server -> !server.isBlank())
-            .collect(java.util.stream.Collectors.groupingBy(server -> server, java.util.stream.Collectors.counting()));
-    }
-
-    private static String islandPoolRouteCandidateBlockReason(CoreServiceConfig config, NodeLoad node, java.time.Instant now, java.util.Map<String, Long> velocityServerCounts) {
-        String blockReason = node.allocationBlockReason(now, config.heartbeatTimeout());
-        if (!blockReason.isBlank()) {
-            return blockReason;
-        }
-        String server = velocityServerNameKey(node);
-        if (!server.isBlank() && velocityServerCounts.getOrDefault(server, 0L) > 1L) {
-            return "DUPLICATE_VELOCITY_SERVER_NAME";
-        }
-        return "";
-    }
-
-    private static String velocityServerNameKey(NodeLoad node) {
-        return node == null || node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase(Locale.ROOT);
     }
 
     public void start() {

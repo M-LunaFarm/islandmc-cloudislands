@@ -1,44 +1,40 @@
 package kr.lunaf.cloudislands.coreservice;
 
-import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
-import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
-import org.junit.jupiter.api.Test;
-
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.time.Duration;
-
+import static kr.lunaf.cloudislands.coreservice.config.CoreIslandPoolSummary.islandPoolFiveSixNodeHealthy;
+import static kr.lunaf.cloudislands.coreservice.config.CoreIslandPoolSummary.islandPoolFiveSixNodeStatus;
+import static kr.lunaf.cloudislands.coreservice.config.CoreIslandPoolSummary.islandPoolRouteCandidateRecommendedMinimum;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
+import org.junit.jupiter.api.Test;
+
+import java.net.URI;
+import java.time.Duration;
+
 class IslandNodePoolScalePolicyTest {
     @Test
-    void fiveAndSixIslandNodePoolsAreTreatedAsHealthyWhenAllNodesAreRouteCandidates() throws Exception {
+    void fiveAndSixIslandNodePoolsAreTreatedAsHealthyWhenAllNodesAreRouteCandidates() {
         CoreServiceConfig config = config();
 
-        assertTrue((Boolean) invoke("islandPoolFiveSixNodeHealthy", config, new InMemoryNodeRegistry(5)));
-        assertEquals("READY", invoke("islandPoolFiveSixNodeStatus", config, new InMemoryNodeRegistry(5)));
-        assertEquals(5L, invoke("islandPoolRouteCandidateRecommendedMinimum", config, new InMemoryNodeRegistry(5)));
+        assertTrue(islandPoolFiveSixNodeHealthy(config, new InMemoryNodeRegistry(5)));
+        assertEquals("READY", islandPoolFiveSixNodeStatus(config, new InMemoryNodeRegistry(5)));
+        assertEquals(5L, islandPoolRouteCandidateRecommendedMinimum(config, new InMemoryNodeRegistry(5)));
 
-        assertTrue((Boolean) invoke("islandPoolFiveSixNodeHealthy", config, new InMemoryNodeRegistry(6)));
-        assertEquals("READY", invoke("islandPoolFiveSixNodeStatus", config, new InMemoryNodeRegistry(6)));
-        assertEquals(6L, invoke("islandPoolRouteCandidateRecommendedMinimum", config, new InMemoryNodeRegistry(6)));
+        assertTrue(islandPoolFiveSixNodeHealthy(config, new InMemoryNodeRegistry(6)));
+        assertEquals("READY", islandPoolFiveSixNodeStatus(config, new InMemoryNodeRegistry(6)));
+        assertEquals(6L, islandPoolRouteCandidateRecommendedMinimum(config, new InMemoryNodeRegistry(6)));
     }
 
     @Test
-    void poolsAboveSixNodesRemainSupportedButUseSixAsRecommendationFloor() throws Exception {
+    void poolsAboveSixNodesRemainSupportedButUseSixAsRecommendationFloor() {
         CoreServiceConfig config = config();
 
-        assertFalse((Boolean) invoke("islandPoolFiveSixNodeHealthy", config, new InMemoryNodeRegistry(7)));
-        assertEquals("READY_ABOVE_6_NODES", invoke("islandPoolFiveSixNodeStatus", config, new InMemoryNodeRegistry(7)));
-        assertEquals(6L, invoke("islandPoolRouteCandidateRecommendedMinimum", config, new InMemoryNodeRegistry(7)));
-    }
-
-    private static Object invoke(String methodName, CoreServiceConfig config, NodeRegistry nodes) throws Exception {
-        Method method = CloudIslandsCoreApplication.class.getDeclaredMethod(methodName, CoreServiceConfig.class, NodeRegistry.class);
-        method.setAccessible(true);
-        return method.invoke(null, config, nodes);
+        assertFalse(islandPoolFiveSixNodeHealthy(config, new InMemoryNodeRegistry(7)));
+        assertEquals("READY_ABOVE_6_NODES", islandPoolFiveSixNodeStatus(config, new InMemoryNodeRegistry(7)));
+        assertEquals(6L, islandPoolRouteCandidateRecommendedMinimum(config, new InMemoryNodeRegistry(7)));
     }
 
     private static CoreServiceConfig config() {
