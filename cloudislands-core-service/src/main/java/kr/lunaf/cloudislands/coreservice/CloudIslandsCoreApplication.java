@@ -20,7 +20,6 @@ import java.util.logging.Logger;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
-import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
@@ -70,6 +69,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.IslandBlockLevelRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandCatalogRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandCommunicationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandMemberRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandPlayerLifecycleRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSettingsRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSnapshotRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandUpgradeRoutes;
@@ -374,6 +374,7 @@ public final class CloudIslandsCoreApplication {
         new IslandSettingsRoutes(islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandCatalogRoutes(islandRepository, metadataRepository, createIsland, islandLogs, audit).register(this::route);
+        new IslandPlayerLifecycleRoutes(islandRepository, metadataRepository, permissionRules, lifecycle, this::requestIslandDelete, islandLogs, audit, events).register(this::route);
         routePrefix("/v1/islands/", exchange -> {
             String method = exchange.getRequestMethod();
             String path = exchange.getRequestURI().getPath();
@@ -712,32 +713,6 @@ public final class CloudIslandsCoreApplication {
             events.publish(CloudIslandEventType.ISLAND_REPAIRED.name(), Map.of("islandId", islandId.toString(), "reason", reason, "state", runtime.state().name()));
             events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "reason", "REPAIRED"));
             write(exchange, 202, runtimeJson(runtime));
-        });
-        route("/v1/islands/delete", exchange -> {
-            String body = readBody(exchange);
-            UUID requesterUuid = JsonFields.uuid(body, "requesterUuid", new UUID(0L, 0L));
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            boolean deleted = requestIslandDelete(islandId, requesterUuid, requesterUuid, "player-delete");
-            if (deleted) {
-                audit.log(requesterUuid, "PLAYER", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of());
-                islandLogs.append(islandId, requesterUuid, "ISLAND_DELETE", Map.of());
-            }
-            write(exchange, deleted ? 202 : 403, deleteResultJson(new DeleteIslandResult(deleted, deleted ? "DELETED" : "NOT_OWNER_OR_MISSING", islandId)));
-        });
-        route("/v1/islands/reset", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            String reason = JsonFields.text(body, "reason", "player-reset");
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)) {
-                return;
-            }
-            IslandLifecycleWorkflow.Result result = lifecycle.reset(islandId, reason);
-            if (result.accepted()) {
-                audit.log(actorUuid, "PLAYER", "ISLAND_RESET", "ISLAND", islandId.toString(), Map.of("reason", reason));
-                islandLogs.append(islandId, actorUuid, "ISLAND_RESET", Map.of("reason", reason));
-            }
-            lifecycle(exchange, result);
         });
     }
 
@@ -2062,10 +2037,6 @@ public final class CloudIslandsCoreApplication {
             "pruned", Integer.toString(pruned)
         ));
         return pruned;
-    }
-
-    private static String deleteResultJson(DeleteIslandResult result) {
-        return "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + result.islandId() + "\"}";
     }
 
     private static String islandJson(IslandSnapshot island) {
