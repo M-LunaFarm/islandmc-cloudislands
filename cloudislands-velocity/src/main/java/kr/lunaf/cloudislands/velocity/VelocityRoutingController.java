@@ -9,6 +9,7 @@ import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValu
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.matchingObjectEnd;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.parseLong;
+import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -42,6 +43,7 @@ import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import kr.lunaf.cloudislands.velocity.platform.VelocityServerGateway;
 import kr.lunaf.cloudislands.velocity.routing.RouteFallbackService;
 import kr.lunaf.cloudislands.velocity.routing.RouteRequestGuard;
+import kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
@@ -65,6 +67,7 @@ public final class VelocityRoutingController {
     private final VelocityServerGateway servers;
     private final RouteFallbackService fallbackService;
     private final RouteRequestGuard routeRequestGuard;
+    private final VelocityTargetResolver targetResolver;
     private ScheduledTask eventPollTask;
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer) {
@@ -107,6 +110,7 @@ public final class VelocityRoutingController {
         this.servers = new VelocityServerGateway(proxy, this.islandPool, hideNodeNames);
         this.fallbackService = new RouteFallbackService(proxy, fallbackServer, metrics, this::playerComponent);
         this.routeRequestGuard = new RouteRequestGuard(PLAYER_ROUTE_COOLDOWN_MILLIS);
+        this.targetResolver = new VelocityTargetResolver(coreApiClient, name -> proxy.getPlayer(name).map(Player::getUniqueId));
     }
 
     public void createIsland(Player player, String templateId) {
@@ -438,7 +442,7 @@ public final class VelocityRoutingController {
     }
 
     public void inviteTarget(Player player, UUID islandId, String target) {
-        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
             if (targetUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("초대할 플레이어를 찾지 못했습니다."));
                 return;
@@ -462,7 +466,7 @@ public final class VelocityRoutingController {
     }
 
     public void acceptInviteTarget(Player player, String target) {
-        resolveInviteTarget(player, target).thenAccept(inviteId -> {
+        targetResolver.resolveInviteTarget(player.getUniqueId(), target).thenAccept(inviteId -> {
             if (inviteId.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
                 return;
@@ -479,7 +483,7 @@ public final class VelocityRoutingController {
     }
 
     public void declineInviteTarget(Player player, String target) {
-        resolveInviteTarget(player, target).thenAccept(inviteId -> {
+        targetResolver.resolveInviteTarget(player.getUniqueId(), target).thenAccept(inviteId -> {
             if (inviteId.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
                 return;
@@ -500,7 +504,7 @@ public final class VelocityRoutingController {
     }
 
     public void setRoleTarget(Player player, UUID islandId, String target, IslandRole role) {
-        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
             if (targetUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
                 return;
@@ -517,7 +521,7 @@ public final class VelocityRoutingController {
     }
 
     public void transferOwnershipTarget(Player player, UUID islandId, String target) {
-        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
             if (targetUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
                 return;
@@ -534,7 +538,7 @@ public final class VelocityRoutingController {
     }
 
     public void kickMemberTarget(Player player, UUID islandId, String target) {
-        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
             if (targetUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
                 return;
@@ -551,7 +555,7 @@ public final class VelocityRoutingController {
     }
 
     public void banVisitorTarget(Player player, UUID islandId, String target, String reason) {
-        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
             if (targetUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
                 return;
@@ -572,7 +576,7 @@ public final class VelocityRoutingController {
     }
 
     public void pardonVisitorTarget(Player player, UUID islandId, String target) {
-        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
             if (targetUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
                 return;
@@ -594,7 +598,7 @@ public final class VelocityRoutingController {
     }
 
     public void kickVisitorTarget(Player player, UUID islandId, String target) {
-        resolvePlayerUuid(target).thenAccept(targetUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
             if (targetUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
                 return;
@@ -996,7 +1000,7 @@ public final class VelocityRoutingController {
     }
 
     public void debugRoutesTarget(Player player, String target) {
-        resolvePlayerUuid(target).thenAccept(playerUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(playerUuid -> {
             if (playerUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("플레이어를 찾지 못했습니다."));
                 return;
@@ -1018,7 +1022,7 @@ public final class VelocityRoutingController {
             routeTicket(player, ticketId);
             return;
         }
-        resolvePlayerUuid(target).thenAccept(playerUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(playerUuid -> {
             if (playerUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("플레이어를 찾지 못했습니다."));
                 return;
@@ -1035,7 +1039,7 @@ public final class VelocityRoutingController {
     }
 
     public void clearRouteTarget(Player player, String target, UUID ticketId) {
-        resolvePlayerUuid(target).thenAccept(playerUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(playerUuid -> {
             if (playerUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("플레이어를 찾지 못했습니다."));
                 return;
@@ -2121,7 +2125,7 @@ public final class VelocityRoutingController {
     }
 
     public void playerInfoTarget(Player player, String target) {
-        resolvePlayerUuid(target).thenAccept(playerUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(playerUuid -> {
             if (playerUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
                 return;
@@ -2138,7 +2142,7 @@ public final class VelocityRoutingController {
     }
 
     public void setPlayerIslandTarget(Player player, String target, UUID islandId) {
-        resolvePlayerUuid(target).thenAccept(playerUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(playerUuid -> {
             if (playerUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
                 return;
@@ -2155,7 +2159,7 @@ public final class VelocityRoutingController {
     }
 
     public void clearPlayerIslandTarget(Player player, String target) {
-        resolvePlayerUuid(target).thenAccept(playerUuid -> {
+        targetResolver.resolvePlayerUuid(target).thenAccept(playerUuid -> {
             if (playerUuid.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
                 return;
@@ -2983,56 +2987,8 @@ public final class VelocityRoutingController {
         });
     }
 
-    private CompletableFuture<UUID> resolveInviteTarget(Player player, String target) {
-        if (target == null || target.isBlank()) {
-            return CompletableFuture.completedFuture(new UUID(0L, 0L));
-        }
-        UUID parsed = parseUuid(target);
-        if (!parsed.equals(new UUID(0L, 0L))) {
-            return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> {
-                UUID inviteId = findInviteId(body, parsed);
-                return inviteId.equals(new UUID(0L, 0L)) ? parsed : inviteId;
-            });
-        }
-        Optional<Player> online = proxy.getPlayer(target);
-        if (online.isPresent()) {
-            return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> findInviteId(body, online.get().getUniqueId()));
-        }
-        return coreApiClient.playerInfoByName(target)
-            .handle((body, error) -> error == null ? parseUuid(jsonValue(body, "playerUuid")) : new UUID(0L, 0L))
-            .thenCompose(playerUuid -> {
-                if (playerUuid.equals(new UUID(0L, 0L))) {
-                    return resolveInviteIslandName(player, target);
-                }
-                return coreApiClient.listPendingInvites(player.getUniqueId()).thenCompose(invites -> {
-                    UUID inviteId = findInviteId(invites, playerUuid);
-                    return inviteId.equals(new UUID(0L, 0L)) ? resolveInviteIslandName(player, target) : CompletableFuture.completedFuture(inviteId);
-                });
-            });
-    }
-
-    private CompletableFuture<UUID> resolveInviteIslandName(Player player, String islandName) {
-        return coreApiClient.islandInfoByName(islandName)
-            .thenCompose(body -> coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, parseUuid(jsonValue(body, "islandId")))));
-    }
-
-    private CompletableFuture<UUID> resolvePlayerUuid(String target) {
-        if (target == null || target.isBlank()) {
-            return CompletableFuture.completedFuture(new UUID(0L, 0L));
-        }
-        UUID parsed = parseUuid(target);
-        if (!parsed.equals(new UUID(0L, 0L))) {
-            return CompletableFuture.completedFuture(parsed);
-        }
-        Optional<Player> online = proxy.getPlayer(target);
-        if (online.isPresent()) {
-            return CompletableFuture.completedFuture(online.get().getUniqueId());
-        }
-        return coreApiClient.playerInfoByName(target).thenApply(body -> parseUuid(jsonValue(body, "playerUuid")));
-    }
-
     private void adminIslandTarget(Player player, String target, Consumer<UUID> action) {
-        resolveIslandId(target).thenAccept(islandId -> {
+        targetResolver.resolveIslandId(target).thenAccept(islandId -> {
             if (islandId.equals(new UUID(0L, 0L))) {
                 player.sendMessage(Component.text("섬을 찾지 못했습니다."));
                 return;
@@ -3043,42 +2999,6 @@ public final class VelocityRoutingController {
             return null;
         });
     }
-
-    private CompletableFuture<UUID> resolveIslandId(String target) {
-        if (target == null || target.isBlank()) {
-            return CompletableFuture.completedFuture(new UUID(0L, 0L));
-        }
-        UUID parsed = parseUuid(target);
-        if (!parsed.equals(new UUID(0L, 0L))) {
-            return CompletableFuture.completedFuture(parsed);
-        }
-        return coreApiClient.islandInfoByName(target).thenApply(body -> parseUuid(jsonValue(body, "islandId")));
-    }
-
-    private UUID findInviteId(String body, UUID targetUuid) {
-        if (body == null || targetUuid == null || targetUuid.equals(new UUID(0L, 0L))) {
-            return new UUID(0L, 0L);
-        }
-        int index = 0;
-        while (index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            UUID inviteId = parseUuid(jsonValue(object, "inviteId"));
-            if (targetUuid.equals(inviteId) || targetUuid.equals(parseUuid(jsonValue(object, "islandId"))) || targetUuid.equals(parseUuid(jsonValue(object, "inviterUuid")))) {
-                return inviteId;
-            }
-            index = objectEnd + 1;
-        }
-        return new UUID(0L, 0L);
-    }
-
     private String inviteListMessage(String body) {
         java.util.List<String> entries = new java.util.ArrayList<>();
         int index = 0;
@@ -3132,14 +3052,6 @@ public final class VelocityRoutingController {
 
     private boolean internalRouteMaintenanceCode(String code) {
         return kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy.maintenanceCode(code);
-    }
-
-    private UUID parseUuid(String value) {
-        try {
-            return UUID.fromString(value);
-        } catch (RuntimeException ignored) {
-            return new UUID(0L, 0L);
-        }
     }
 
     private void route(Player player, RouteTicket ticket, String failureMessage) {
