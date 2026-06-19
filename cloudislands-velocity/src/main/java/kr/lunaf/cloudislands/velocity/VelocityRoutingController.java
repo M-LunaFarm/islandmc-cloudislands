@@ -39,6 +39,7 @@ import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityEventMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMigrationMessageFormatter;
+import kr.lunaf.cloudislands.velocity.message.VelocityRouteMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
@@ -69,6 +70,7 @@ public final class VelocityRoutingController {
     private final VelocityCoreStatusMessageFormatter coreStatusMessages = new VelocityCoreStatusMessageFormatter();
     private final VelocityMigrationMessageFormatter migrationMessages = new VelocityMigrationMessageFormatter();
     private final VelocityEventMessageFormatter eventMessages;
+    private final VelocityRouteMessageFormatter routeMessages;
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
     private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
@@ -117,6 +119,7 @@ public final class VelocityRoutingController {
         this.messages = messages == null ? VelocityMessages.defaults() : messages;
         this.routePrivacy = new VelocityRoutePrivacyFormatter(hideNodeNames);
         this.eventMessages = new VelocityEventMessageFormatter(routePrivacy);
+        this.routeMessages = new VelocityRouteMessageFormatter(routePrivacy);
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
         this.servers = new VelocityServerGateway(proxy, this.islandPool, hideNodeNames);
@@ -2398,35 +2401,15 @@ public final class VelocityRoutingController {
     }
 
     private String routeDebugMessage(String body) {
-        String sessions = arrayValue(body, "sessions");
-        String tickets = arrayValue(body, "tickets");
-        java.util.List<String> sessionEntries = new java.util.ArrayList<>();
-        java.util.List<String> ticketEntries = new java.util.ArrayList<>();
-        collectSessionSummaries(sessions, sessionEntries, 5);
-        collectTicketSummaries(tickets, ticketEntries, 5);
-        return playerMessage("Routes: sessions=" + countObjects(sessions)
-            + (sessionEntries.isEmpty() ? "" : " [" + String.join(" | ", sessionEntries) + "]")
-            + " tickets=" + countObjects(tickets)
-            + (ticketEntries.isEmpty() ? "" : " [" + String.join(" | ", ticketEntries) + "]"));
+        return playerMessage(routeMessages.debug(body));
     }
 
     private String routeTicketMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "Route ticket: not found";
-        }
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return playerMessage("Route ticket: failed code=" + code);
-        }
-        return playerMessage("Route ticket: " + ticketSummary(body));
+        return playerMessage(routeMessages.ticket(body));
     }
 
     private String routeClearMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "Route clear: no response";
-        }
-        String reason = jsonValue(body, "reason");
-        return playerMessage("Route clear: session=" + boolValue(body, "clearedSession") + " ticket=" + boolValue(body, "clearedTicket") + (reason.isBlank() ? "" : " reason=" + reason));
+        return playerMessage(routeMessages.clear(body));
     }
 
     private String snapshotListMessage(String body) {
@@ -2461,61 +2444,6 @@ public final class VelocityRoutingController {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(" | ", entries);
-    }
-
-    private void collectSessionSummaries(String sessions, java.util.List<String> entries, int limit) {
-        int index = 0;
-        while (index < sessions.length() && entries.size() < limit) {
-            int objectStart = sessions.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(sessions, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = sessions.substring(objectStart, objectEnd + 1);
-            String playerUuid = jsonValue(object, "playerUuid");
-            String ticketId = jsonValue(object, "ticketId");
-            String nodeId = jsonValue(object, "targetNode");
-            String serverName = jsonValue(object, "targetServerName");
-            String expiresAt = jsonValue(object, "expiresAt");
-            entries.add(shortId(playerUuid)
-                + " ticket=" + shortId(ticketId)
-                + routePrivacy.routeNodeSuffix(nodeId)
-                + routePrivacy.routeServerSuffix(serverName)
-                + (expiresAt.isBlank() ? "" : " expires=" + expiresAt));
-            index = objectEnd + 1;
-        }
-    }
-
-    private void collectTicketSummaries(String tickets, java.util.List<String> entries, int limit) {
-        int index = 0;
-        while (index < tickets.length() && entries.size() < limit) {
-            int objectStart = tickets.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(tickets, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            entries.add(ticketSummary(tickets.substring(objectStart, objectEnd + 1)));
-            index = objectEnd + 1;
-        }
-    }
-
-    private String ticketSummary(String object) {
-        String ticketId = jsonValue(object, "ticketId");
-        String action = jsonValue(object, "action");
-        String state = jsonValue(object, "state");
-        String islandId = jsonValue(object, "islandId");
-        String nodeId = jsonValue(object, "targetNode");
-        return shortId(ticketId)
-            + " " + (action.isBlank() ? "UNKNOWN" : action)
-            + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + (islandId.isBlank() ? "" : " 섬=" + shortId(islandId))
-            + routePrivacy.routeNodeSuffix(nodeId);
     }
 
     private String shortId(String value) {
