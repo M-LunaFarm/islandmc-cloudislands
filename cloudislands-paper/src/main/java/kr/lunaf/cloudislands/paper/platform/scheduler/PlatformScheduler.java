@@ -14,6 +14,8 @@ public interface PlatformScheduler extends AutoCloseable {
 
     TaskHandle repeatGlobal(Duration delay, Duration interval, Runnable task);
 
+    TaskHandle repeatAsync(Duration delay, Duration interval, Runnable task);
+
     @Override
     void close();
 }

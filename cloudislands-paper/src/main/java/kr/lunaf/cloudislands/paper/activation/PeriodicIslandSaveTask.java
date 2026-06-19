@@ -1,13 +1,16 @@
 package kr.lunaf.cloudislands.paper.activation;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.storage.StorageOutagePolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.platform.scheduler.BukkitPlatformScheduler;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
+import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 
 public final class PeriodicIslandSaveTask {
     private static final String PERIODIC_SNAPSHOT_REASON = "PERIODIC";
@@ -17,20 +20,26 @@ public final class PeriodicIslandSaveTask {
     private final IslandSaveService saveService;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
+    private final PlatformScheduler scheduler;
     private final Map<UUID, Integer> retryQueue = new ConcurrentHashMap<>();
     private final AtomicLong failuresTotal = new AtomicLong();
-    private BukkitTask task;
+    private TaskHandle task;
 
     public PeriodicIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, IslandSaveService saveService) {
         this(plugin, activeIslands, saveService, null, "");
     }
 
     public PeriodicIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, IslandSaveService saveService, CoreApiClient coreApiClient, String nodeId) {
+        this(plugin, activeIslands, saveService, coreApiClient, nodeId, new BukkitPlatformScheduler(plugin));
+    }
+
+    public PeriodicIslandSaveTask(Plugin plugin, ActiveIslandRegistry activeIslands, IslandSaveService saveService, CoreApiClient coreApiClient, String nodeId, PlatformScheduler scheduler) {
         this.plugin = plugin;
         this.activeIslands = activeIslands;
         this.saveService = saveService;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId == null ? "" : nodeId;
+        this.scheduler = scheduler == null ? new BukkitPlatformScheduler(plugin) : scheduler;
     }
 
     public void start(long intervalSeconds) {
@@ -38,8 +47,8 @@ public final class PeriodicIslandSaveTask {
         if (intervalSeconds <= 0L) {
             return;
         }
-        long intervalTicks = Math.max(20L, intervalSeconds * 20L);
-        task = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::saveAll, intervalTicks, intervalTicks);
+        Duration interval = Duration.ofSeconds(Math.max(1L, intervalSeconds));
+        task = scheduler.repeatAsync(interval, interval, this::saveAll);
     }
 
     public void stop() {

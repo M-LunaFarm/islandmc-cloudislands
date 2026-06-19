@@ -40,6 +40,13 @@ public final class BukkitPlatformScheduler implements PlatformScheduler {
     }
 
     @Override
+    public TaskHandle repeatAsync(Duration delay, Duration interval, Runnable task) {
+        long delayTicks = ticks(delay);
+        long intervalTicks = Math.max(1L, ticks(interval));
+        return handle(plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, task, delayTicks, intervalTicks));
+    }
+
+    @Override
     public void close() {
         plugin.getServer().getScheduler().cancelTasks(plugin);
     }

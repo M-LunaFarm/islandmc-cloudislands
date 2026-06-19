@@ -1,15 +1,18 @@
 package kr.lunaf.cloudislands.paper.heartbeat;
 
+import java.time.Duration;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.platform.scheduler.BukkitPlatformScheduler;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
+import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 
 public final class PaperHeartbeatService {
     private final Plugin plugin;
@@ -30,7 +33,8 @@ public final class PaperHeartbeatService {
     private final IntSupplier maxActivationQueue;
     private final DoubleSupplier chunkLoadPressure;
     private final IntSupplier recentFailurePenalty;
-    private BukkitTask task;
+    private final PlatformScheduler scheduler;
+    private TaskHandle task;
     private volatile long lastFailureLogMillis;
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName) {
@@ -54,6 +58,10 @@ public final class PaperHeartbeatService {
     }
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String nodeVersion, String supportedTemplates, Supplier<String> supportedTemplatesSupplier, BooleanSupplier storageAvailable, IntSupplier softPlayerCap, IntSupplier hardPlayerCap, IntSupplier reservedSlots, IntSupplier activeIslandCount, IntSupplier maxActiveIslands, IntSupplier activationQueue, IntSupplier maxActivationQueue, DoubleSupplier chunkLoadPressure, IntSupplier recentFailurePenalty) {
+        this(plugin, coreApiClient, nodeId, pool, velocityServerName, nodeVersion, supportedTemplates, supportedTemplatesSupplier, storageAvailable, softPlayerCap, hardPlayerCap, reservedSlots, activeIslandCount, maxActiveIslands, activationQueue, maxActivationQueue, chunkLoadPressure, recentFailurePenalty, new BukkitPlatformScheduler(plugin));
+    }
+
+    public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String nodeVersion, String supportedTemplates, Supplier<String> supportedTemplatesSupplier, BooleanSupplier storageAvailable, IntSupplier softPlayerCap, IntSupplier hardPlayerCap, IntSupplier reservedSlots, IntSupplier activeIslandCount, IntSupplier maxActiveIslands, IntSupplier activationQueue, IntSupplier maxActivationQueue, DoubleSupplier chunkLoadPressure, IntSupplier recentFailurePenalty, PlatformScheduler scheduler) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
@@ -72,12 +80,14 @@ public final class PaperHeartbeatService {
         this.maxActivationQueue = maxActivationQueue;
         this.chunkLoadPressure = chunkLoadPressure;
         this.recentFailurePenalty = recentFailurePenalty;
+        this.scheduler = scheduler == null ? new BukkitPlatformScheduler(plugin) : scheduler;
     }
 
     public void start(long intervalTicks) {
         stop();
         publish(NodeState.STARTING);
-        task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, (Runnable) this::publish, intervalTicks, intervalTicks);
+        Duration interval = Duration.ofMillis(Math.max(1L, intervalTicks) * 50L);
+        task = scheduler.repeatAsync(interval, interval, this::publish);
     }
 
     public void stop() {
