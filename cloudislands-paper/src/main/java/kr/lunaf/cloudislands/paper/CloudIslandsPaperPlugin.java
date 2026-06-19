@@ -30,31 +30,7 @@ import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.generator.IslandCropGrowthListener;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
-import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandLogMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
 import kr.lunaf.cloudislands.paper.health.PaperHealthService;
 import kr.lunaf.cloudislands.paper.heartbeat.PaperHeartbeatService;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
@@ -160,7 +136,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PaperChatListener(messages), this);
         getServer().getPluginManager().registerEvents(new PaperScoreboardListener(this, messages), this);
         if (guiEnabledForRole(role)) {
-            registerIslandGuiMenus();
+            IslandGuiMenuRegistrar.register(this, messages);
         }
         if (role == AgentRole.ISLAND_NODE) {
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), this);
@@ -624,34 +600,6 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     private static String jsonText(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
-    private void registerIslandGuiMenus() {
-        getServer().getPluginManager().registerEvents(new AdminNodeMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandBankMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandBanMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandBiomeMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandChatMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandCreateMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandDangerMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandFlagMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandHomeMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandInfoMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandInviteMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandLimitMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandLogMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandMainMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandMemberMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandMissionMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandMyIslandsMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandPermissionMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandRankingMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandRoleMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandSettingsMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandSnapshotMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandUpgradeMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandVisitMenu(messages), this);
-        getServer().getPluginManager().registerEvents(new IslandWarpMenu(messages), this);
     }
 
     private AgentRole parseAgentRole(String configuredRole) {
