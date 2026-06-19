@@ -1,0 +1,40 @@
+package kr.lunaf.cloudislands.velocity.message;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
+
+class VelocityJsonFieldsTest {
+    @Test
+    void readsStringBooleanAndNumbers() {
+        String body = "{\"name\":\"Island\",\"enabled\":true,\"count\":12,\"rate\":2.5}";
+
+        assertEquals("Island", VelocityJsonFields.jsonValue(body, "name"));
+        assertTrue(VelocityJsonFields.boolValue(body, "enabled"));
+        assertFalse(VelocityJsonFields.boolValue(body, "missing"));
+        assertEquals(12L, VelocityJsonFields.longValue(body, "count"));
+        assertEquals(2.5D, VelocityJsonFields.doubleValue(body, "rate"));
+    }
+
+    @Test
+    void extractsNestedArrayAndObjectValues() {
+        String body = "{\"items\":[{\"id\":\"a\"},{\"nested\":{\"id\":\"b\"}}],\"meta\":{\"ok\":true,\"count\":2}}";
+
+        assertEquals("[{\"id\":\"a\"},{\"nested\":{\"id\":\"b\"}}]", VelocityJsonFields.arrayValue(body, "items"));
+        assertEquals("{\"ok\":true,\"count\":2}", VelocityJsonFields.objectValue(body, "meta"));
+        assertEquals(2, VelocityJsonFields.countObjects(VelocityJsonFields.arrayValue(body, "items")));
+        assertEquals(12, VelocityJsonFields.matchingObjectEnd("{\"a\":{\"b\":1}}", 0));
+    }
+
+    @Test
+    void returnsSafeDefaultsForMissingOrInvalidInput() {
+        assertEquals("", VelocityJsonFields.jsonValue(null, "name"));
+        assertEquals("", VelocityJsonFields.arrayValue("{\"items\":[{\"id\":\"a\"}", "items"));
+        assertEquals("", VelocityJsonFields.objectValue("{\"meta\":{\"ok\":true", "meta"));
+        assertEquals(0L, VelocityJsonFields.parseLong("bad"));
+        assertEquals(0, VelocityJsonFields.countObjects(""));
+        assertEquals(-1, VelocityJsonFields.matchingObjectEnd(null, 0));
+    }
+}
