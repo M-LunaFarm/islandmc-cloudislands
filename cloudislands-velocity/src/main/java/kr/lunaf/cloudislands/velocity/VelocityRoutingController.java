@@ -8,7 +8,6 @@ import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,10 +24,10 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
-import kr.lunaf.cloudislands.velocity.event.CoreEventBatch;
 import kr.lunaf.cloudislands.velocity.event.CoreEventCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
 import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
+import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import net.kyori.adventure.bossbar.BossBar;
@@ -49,11 +48,10 @@ public final class VelocityRoutingController {
     private final boolean useBossBarLoading;
     private final VelocityMessages messages;
     private final CoreEventCodec eventCodec;
+    private final CoreEventPoller eventPoller;
     private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
-    private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> recentRouteRequests = new ConcurrentHashMap<>();
     private ScheduledTask eventPollTask;
-    private long lastEventSequence;
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer) {
         this(proxy, coreApiClient, fallbackServer, 20);
@@ -91,6 +89,7 @@ public final class VelocityRoutingController {
         this.useBossBarLoading = useBossBarLoading;
         this.messages = messages == null ? VelocityMessages.defaults() : messages;
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
+        this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
     }
 
     public void createIsland(Player player, String templateId) {
@@ -1087,7 +1086,7 @@ public final class VelocityRoutingController {
     public void startEventPolling(Object plugin) {
         stopEventPolling();
         eventPollTask = proxy.getScheduler()
-            .buildTask(plugin, this::pollCoreEvents)
+            .buildTask(plugin, eventPoller::pollOnce)
             .repeat(Duration.ofSeconds(2L))
             .schedule();
     }
@@ -2252,36 +2251,9 @@ public final class VelocityRoutingController {
         return trimmed;
     }
 
-    private void pollCoreEvents() {
-        coreApiClient.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).thenAccept(body -> {
-            CoreEventBatch batch = eventCodec.decodeBatch(body);
-            long oldestSequence = batch.oldestSequence();
-            long latestSequence = batch.latestSequence();
-            if (latestSequence > 0L && latestSequence < lastEventSequence) {
-                lastEventSequence = 0L;
-                seenEvents.clear();
-            }
-            if (lastEventSequence > 0L && oldestSequence > lastEventSequence + 1L) {
-                lastEventSequence = oldestSequence - 1L;
-                seenEvents.clear();
-            }
-            for (CoreEventEnvelope event : batch.events()) {
-                long sequence = event.sequence();
-                lastEventSequence = Math.max(lastEventSequence, sequence);
-                String type = event.type();
-                Map<String, String> fields = event.fields();
-                String key = eventKey(type, fields, event.occurredAt());
-                if (seenEvents.add(key)) {
-                    handleCoreEvent(type, fields);
-                }
-            }
-            if (seenEvents.size() > 2048) {
-                seenEvents.clear();
-            }
-        }).exceptionally(error -> null);
-    }
-
-    private void handleCoreEvent(String type, Map<String, String> fields) {
+    private void handleCoreEvent(CoreEventEnvelope event) {
+        String type = event.type();
+        Map<String, String> fields = event.fields();
         if (!type.equals("NODE_STATE_CHANGED")) {
             return;
         }
@@ -2295,24 +2267,6 @@ public final class VelocityRoutingController {
             return;
         }
         moveNodePlayersToFallback(nodeId);
-    }
-
-    private String eventKey(String type, Map<String, String> fields, String occurredAt) {
-        String identity = firstPresent(fields, "nodeId", "islandId", "ticketId", "jobId", "playerUuid");
-        if (identity.isBlank()) {
-            identity = fields.toString();
-        }
-        return type + "@" + occurredAt + "@" + identity + "@" + fields.getOrDefault("state", "");
-    }
-
-    private String firstPresent(Map<String, String> fields, String... keys) {
-        for (String key : keys) {
-            String value = fields.getOrDefault(key, "");
-            if (!value.isBlank()) {
-                return value;
-            }
-        }
-        return "";
     }
 
     private String appendLevelScanSummary(String body) {
