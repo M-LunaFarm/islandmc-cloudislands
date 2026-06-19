@@ -30,6 +30,8 @@ public record CoreServiceConfig(
     boolean setupDatabaseFallbackRequireSharedBeforeLocal,
     boolean setupDatabaseFallbackLocalLast,
     String setupDatabaseFallbackProductionSafeOrder,
+    String runtimeMode,
+    boolean setupDatabaseAllowInMemoryFallback,
     String setupDatabaseCoreApiBaseUrl,
     boolean setupDatabaseCoreApiAuthTokenConfigured,
     boolean setupDatabaseCoreApiAdminTokenConfigured,
@@ -95,6 +97,8 @@ public record CoreServiceConfig(
             bool("CI_DB_FALLBACK_REQUIRE_SHARED_BEFORE_LOCAL", configBoolean(config, "setup.database.fallback.require-shared-before-local", true)),
             bool("CI_DB_FALLBACK_LOCAL_LAST", configBoolean(config, "setup.database.fallback.local-fallback-last", true)),
             env("CI_DB_FALLBACK_PRODUCTION_SAFE_ORDER", setting(config, "setup.database.fallback.production-safe-order", setupDatabaseFallbackProductionSafeOrder(config))),
+            env("CI_RUNTIME_MODE", setting(config, "runtime.mode", "production")),
+            bool("CI_ALLOW_IN_MEMORY_FALLBACK", configBoolean(config, "setup.database.allow-in-memory-fallback", false)),
             env("CI_SETUP_CORE_API_BASE_URL", setupDatabaseCoreApiSetting(config, "base-url", setupDatabaseCoreApiSetting(config, "url", setting(config, "core-api.base-url", "")))),
             !env("CI_SETUP_CORE_API_AUTH_TOKEN", setupDatabaseCoreApiSetting(config, "auth-token", setting(config, "core-api.auth-token", env("CI_CORE_TOKEN", "")))).isBlank(),
             !env("CI_SETUP_CORE_API_ADMIN_TOKEN", setupDatabaseCoreApiSetting(config, "admin-token", setting(config, "core-api.admin-token", env("CI_ADMIN_TOKEN", "")))).isBlank(),
@@ -110,7 +114,7 @@ public record CoreServiceConfig(
             env("CI_STORAGE_BEARER_TOKEN", setting(config, "storage.auth-token", env("S3_BEARER_TOKEN", ""))),
             env("CI_CORE_TOKEN", setting(config, "security.core-token", "")),
             env("CI_ADMIN_TOKEN", setting(config, "security.admin-token", "")),
-            env("CI_ADMIN_PERMISSIONS", setting(config, "security.admin-permissions", "*")),
+            env("CI_ADMIN_PERMISSIONS", setting(config, "security.admin-permissions", "")),
             env("CI_IP_ALLOWLIST", setting(config, "security.ip-allowlist", "")),
             env("CI_UPGRADES_FILE", setting(config, "upgrades.file", "")),
             env("CI_BLOCK_VALUES_FILE", setting(config, "block-values.file", "")),
@@ -178,6 +182,9 @@ public record CoreServiceConfig(
         if ("CORE_API".equals(fallbackTarget)) {
             return "CORE_API_CLIENT_FALLBACK_FOR_" + requested;
         }
+        if (setupDatabaseInMemoryFallbackBlocked()) {
+            return "BLOCKED_NON_DURABLE_CORE_FALLBACK";
+        }
         return "SAFE_IN_MEMORY_CORE_FALLBACK";
     }
 
@@ -188,6 +195,9 @@ public record CoreServiceConfig(
         }
         if ("CORE_API".equals(requested) || "CORE_API".equals(setupDatabaseFallbackTargetForUnsupported(requested))) {
             return "CORE_API_CLIENT";
+        }
+        if (setupDatabaseInMemoryFallbackBlocked()) {
+            return "UNAVAILABLE_NON_DURABLE";
         }
         return "IN_MEMORY_FALLBACK";
     }
@@ -271,17 +281,15 @@ public record CoreServiceConfig(
     }
 
     public boolean setupDatabaseFallbackSafetyForced() {
-        return setupDatabaseFallbackActive()
-            && !setupDatabaseFallbackEnabled
-            && ("IN_MEMORY".equals(setupDatabaseFallbackTarget()) || "IN_MEMORY_FALLBACK".equals(setupDatabaseEffectiveBackend()));
+        return false;
     }
 
     public String setupDatabaseFallbackSafetyMode() {
         if (!setupDatabaseFallbackActive()) {
             return "none";
         }
-        if (setupDatabaseFallbackSafetyForced()) {
-            return "fallback-disabled-but-safe-in-memory-forced";
+        if (setupDatabaseNonDurableStorageBlocked()) {
+            return "blocked-non-durable-fallback";
         }
         if (setupDatabaseProductionDurable()) {
             return "durable-shared-backend";
@@ -310,16 +318,59 @@ public record CoreServiceConfig(
         if (setupDatabaseProductionDurable()) {
             return "production-durable";
         }
+        if (setupDatabaseNonDurableStorageBlocked()) {
+            return "blocked-non-durable-fallback";
+        }
         if (setupDatabaseCoreApiClientReady()) {
             return "core-api-client-ready";
         }
         if (setupDatabaseCoreApiClientMode()) {
             return "core-api-client-missing-url-or-token";
         }
-        if ("IN_MEMORY".equals(setupDatabaseFallbackTarget()) || "IN_MEMORY_FALLBACK".equals(setupDatabaseEffectiveBackend())) {
-            return "safe-startup-non-durable";
+        if (setupDatabaseInMemoryFallbackEffective()) {
+            return "non-durable-readiness-failed";
         }
         return "unknown";
+    }
+
+    public boolean setupDatabaseReady() {
+        return setupDatabaseProductionDurable();
+    }
+
+    public void validateStartupStorage() {
+        if (setupDatabaseNonDurableStorageBlocked()) {
+            throw new IllegalStateException("A durable database is required in production mode or when setup.database.fallback.enabled=false");
+        }
+    }
+
+    private boolean productionMode() {
+        return "production".equalsIgnoreCase(runtimeMode == null ? "" : runtimeMode.trim());
+    }
+
+    private boolean setupDatabaseInMemoryFallbackEffective() {
+        return setupDatabaseInMemoryFallbackSelected() && !setupDatabaseInMemoryFallbackBlocked();
+    }
+
+    private boolean setupDatabaseInMemoryFallbackBlocked() {
+        return setupDatabaseInMemoryFallbackSelected()
+            && (!setupDatabaseFallbackEnabled || (productionMode() && !setupDatabaseAllowInMemoryFallback));
+    }
+
+    private boolean setupDatabaseNonDurableStorageBlocked() {
+        return !setupDatabaseProductionDurable()
+            && (!setupDatabaseFallbackEnabled || (productionMode() && !setupDatabaseAllowInMemoryFallback));
+    }
+
+    private boolean setupDatabaseInMemoryFallbackSelected() {
+        if (coreJdbcSupported(jdbcUrl)) {
+            return false;
+        }
+        String requested = normalizeDatabaseType(configuredDatabaseType);
+        if ("CORE_API".equals(requested)) {
+            return false;
+        }
+        String fallbackTarget = setupDatabaseFallbackTargetForUnsupported(requested);
+        return "IN_MEMORY".equals(fallbackTarget);
     }
 
     public boolean redisJobs() {
@@ -335,7 +386,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow);
     }
 
     public static String configuredDatabaseTypeSource() {

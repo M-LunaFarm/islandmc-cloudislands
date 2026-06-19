@@ -19,7 +19,7 @@ public final class AdminEndpointGuard {
     }
 
     public AdminEndpointGuard(String adminToken, boolean adminApiEnabled) {
-        this(adminToken, adminApiEnabled, "*");
+        this(adminToken, adminApiEnabled, "");
     }
 
     public AdminEndpointGuard(String adminToken, boolean adminApiEnabled, String serverSidePermissions) {
@@ -31,7 +31,7 @@ public final class AdminEndpointGuard {
     public boolean allowed(String path, HttpExchange exchange) {
         AdminPermission required = permissionFor(path);
         if (required == null) {
-            return true;
+            return !adminApiPath(path);
         }
         if (!adminApiEnabled && adminApiPath(path)) {
             return false;
@@ -113,6 +113,9 @@ public final class AdminEndpointGuard {
             if (path.endsWith("/repair")) {
                 return AdminPermission.ISLAND_REPAIR;
             }
+            if (path.endsWith("/info") || path.endsWith("/where")) {
+                return AdminPermission.AUDIT_READ;
+            }
         }
         if (path.startsWith("/v1/admin/nodes/")) {
             if (path.endsWith("/drain")) {
@@ -129,7 +132,7 @@ public final class AdminEndpointGuard {
             }
         }
         return switch (path) {
-            case "/v1/audit", "/v1/admin/audit", "/v1/admin/audit/list", "/v1/admin/migrations/superiorskyblock2/status" -> AdminPermission.AUDIT_READ;
+            case "/v1/audit", "/v1/admin/audit", "/v1/admin/audit/list", "/v1/admin/config", "/v1/admin/addons/state/summary", "/v1/admin/protocol", "/v1/admin/migrations/superiorskyblock2/status" -> AdminPermission.AUDIT_READ;
             case "/v1/events" -> AdminPermission.AUDIT_READ;
             case "/metrics" -> AdminPermission.AUDIT_READ;
             case "/v1/jobs", "/v1/jobs/claim", "/v1/jobs/complete", "/v1/jobs/fail", "/v1/jobs/recover" -> AdminPermission.JOB_MANAGE;
@@ -157,7 +160,7 @@ public final class AdminEndpointGuard {
             case "/v1/admin/islands/delete" -> AdminPermission.ISLAND_DELETE;
             case "/v1/admin/islands/repair" -> AdminPermission.ISLAND_REPAIR;
             case "/v1/admin/block-values", "/v1/admin/block-values/list" -> AdminPermission.ECONOMY_MANAGE;
-            default -> path.startsWith("/v1/admin") ? AdminPermission.AUDIT_READ : null;
+            default -> null;
         };
     }
 

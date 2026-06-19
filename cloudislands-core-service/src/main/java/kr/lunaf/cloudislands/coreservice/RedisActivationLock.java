@@ -19,7 +19,6 @@ public final class RedisActivationLock {
     private final AtomicLong failures = new AtomicLong();
     private final Map<UUID, LocalLock> localLocks = new ConcurrentHashMap<>();
     private static final String RELEASE_IF_TOKEN_SCRIPT = "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0";
-    private static final String RELEASE_IF_PREFIX_SCRIPT = "local v = redis.call('GET', KEYS[1]); if v and string.sub(v, 1, string.len(ARGV[1])) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0";
 
     public RedisActivationLock(URI redisUri, Duration ttl) {
         this(redisUri, ttl, false);
@@ -74,21 +73,6 @@ public final class RedisActivationLock {
         }
     }
 
-    public void releaseIfOwner(UUID islandId, String owner) {
-        if (islandId == null) {
-            return;
-        }
-        String prefix = (owner == null || owner.isBlank() ? "core" : owner) + ":";
-        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("EVAL", RELEASE_IF_PREFIX_SCRIPT, "1", RedisKeys.activationLock(islandId), prefix);
-        } catch (IOException | RuntimeException ignored) {
-            failures.incrementAndGet();
-            if (localFallbackEnabled) {
-                releaseLocalIfOwner(islandId, prefix);
-            }
-        }
-    }
-
     public long failuresTotal() {
         return failures.get();
     }
@@ -130,10 +114,6 @@ public final class RedisActivationLock {
 
     private void releaseLocal(Lease lease) {
         localLocks.computeIfPresent(lease.islandId(), (_key, current) -> lease.token().equals(current.token()) ? null : current);
-    }
-
-    private void releaseLocalIfOwner(UUID islandId, String ownerPrefix) {
-        localLocks.computeIfPresent(islandId, (_key, current) -> current.token().startsWith(ownerPrefix) ? null : current);
     }
 
     private record LocalLock(String token, long expiresAt) {}

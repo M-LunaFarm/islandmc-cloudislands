@@ -8,6 +8,7 @@ import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CoreServiceConfigTest {
@@ -68,10 +69,12 @@ class CoreServiceConfigTest {
         assertEquals("core-api-is-client-facing-selection-not-core-service-self-storage", config.setupDatabaseFallbackReason());
         assertTrue(config.setupDatabaseCoreApiClientMode());
         assertTrue(config.setupDatabaseCoreApiClientReady());
-        assertEquals("core-api-client-ready", config.setupDatabaseFallbackReadiness());
+        assertFalse(config.setupDatabaseReady());
+        assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackReadiness());
         assertFalse(config.setupDatabaseFallbackSafetyForced());
-        assertEquals("core-api-client-ready", config.setupDatabaseFallbackSafetyMode());
+        assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackSafetyMode());
         assertTrue(config.setupDatabaseFallbackSummary().contains("coreApiReady=true"));
+        assertThrows(IllegalStateException.class, config::validateStartupStorage);
     }
 
     @Test
@@ -97,7 +100,7 @@ class CoreServiceConfigTest {
     }
 
     @Test
-    void disabledFallbackStillUsesSafeInMemoryForUnsupportedSetup() {
+    void disabledFallbackBlocksUnsupportedSetupInProduction() {
         CoreServiceConfig config = config("JDBC", "jdbc:sqlserver://mssql.internal:1433/cloudislands", "UNSUPPORTED_JDBC", false);
 
         assertFalse(config.jdbcRepositories());
@@ -105,17 +108,35 @@ class CoreServiceConfigTest {
         assertFalse(config.setupDatabaseProductionDurable());
         assertTrue(config.setupDatabaseFallbackActive());
         assertEquals("UNSUPPORTED_JDBC", config.setupDatabaseRequestedBackend());
-        assertEquals("IN_MEMORY_FALLBACK", config.setupDatabaseEffectiveBackend());
-        assertEquals("SAFE_IN_MEMORY_CORE_FALLBACK", config.setupDatabaseEffectiveAuthority());
+        assertEquals("UNAVAILABLE_NON_DURABLE", config.setupDatabaseEffectiveBackend());
+        assertEquals("BLOCKED_NON_DURABLE_CORE_FALLBACK", config.setupDatabaseEffectiveAuthority());
         assertEquals("IN_MEMORY", config.setupDatabaseFallbackTarget());
         assertEquals("database-fallback-disabled-for-unsupported_jdbc-setup", config.setupDatabaseFallbackReason());
         assertFalse(config.setupDatabaseCoreApiClientMode());
         assertFalse(config.setupDatabaseCoreApiClientReady());
-        assertEquals("safe-startup-non-durable", config.setupDatabaseFallbackReadiness());
-        assertTrue(config.setupDatabaseFallbackSafetyForced());
-        assertEquals("fallback-disabled-but-safe-in-memory-forced", config.setupDatabaseFallbackSafetyMode());
-        assertTrue(config.setupDatabaseFallbackSummary().contains("safetyForced=true"));
-        assertTrue(config.setupDatabaseFallbackSummary().contains("safetyMode=fallback-disabled-but-safe-in-memory-forced"));
+        assertFalse(config.setupDatabaseReady());
+        assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackReadiness());
+        assertFalse(config.setupDatabaseFallbackSafetyForced());
+        assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackSafetyMode());
+        assertTrue(config.setupDatabaseFallbackSummary().contains("safetyForced=false"));
+        assertTrue(config.setupDatabaseFallbackSummary().contains("safetyMode=blocked-non-durable-fallback"));
+        assertThrows(IllegalStateException.class, config::validateStartupStorage);
+    }
+
+    @Test
+    void developmentModeCanExplicitlyUseNonDurableInMemoryFallbackButIsNotReady() {
+        CoreServiceConfig config = config("JDBC", "jdbc:sqlserver://mssql.internal:1433/cloudislands", "UNSUPPORTED_JDBC", true, "development", true, false);
+
+        assertFalse(config.jdbcRepositories());
+        assertFalse(config.setupDatabaseProductionDurable());
+        assertTrue(config.setupDatabaseFallbackActive());
+        assertEquals("IN_MEMORY_FALLBACK", config.setupDatabaseEffectiveBackend());
+        assertEquals("SAFE_IN_MEMORY_CORE_FALLBACK", config.setupDatabaseEffectiveAuthority());
+        assertEquals("IN_MEMORY", config.setupDatabaseFallbackTarget());
+        assertFalse(config.setupDatabaseReady());
+        assertEquals("non-durable-readiness-failed", config.setupDatabaseFallbackReadiness());
+        assertEquals("safe-in-memory-non-durable", config.setupDatabaseFallbackSafetyMode());
+        config.validateStartupStorage();
     }
 
     @Test
@@ -139,6 +160,14 @@ class CoreServiceConfigTest {
     }
 
     private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled) {
+        return config(repositoryMode, jdbcUrl, databaseType, fallbackEnabled, "production", false);
+    }
+
+    private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled, String runtimeMode, boolean allowInMemoryFallback) {
+        return config(repositoryMode, jdbcUrl, databaseType, fallbackEnabled, runtimeMode, allowInMemoryFallback, true);
+    }
+
+    private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled, String runtimeMode, boolean allowInMemoryFallback, boolean coreApiReady) {
         return new CoreServiceConfig(
                 "127.0.0.1",
                 8443,
@@ -156,9 +185,11 @@ class CoreServiceConfigTest {
                 true,
                 true,
                 "POSTGRESQL,MYSQL,MARIADB,CORE_API",
-                "http://127.0.0.1:8443",
-                true,
-                true,
+                runtimeMode,
+                allowInMemoryFallback,
+                coreApiReady ? "http://127.0.0.1:8443" : "",
+                coreApiReady,
+                coreApiReady,
                 3000,
                 URI.create("redis://127.0.0.1:6379"),
                 "S3",

@@ -628,7 +628,8 @@ public final class RoutingOrchestrator {
                     "fencingToken", Long.toString(activating.fencingToken()),
                     "worldName", activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(),
                     "cellX", activating.cellX() == null ? "0" : Integer.toString(activating.cellX()),
-                    "cellZ", activating.cellZ() == null ? "0" : Integer.toString(activating.cellZ())
+                    "cellZ", activating.cellZ() == null ? "0" : Integer.toString(activating.cellZ()),
+                    "activationLockToken", lease == null ? "" : lease.token()
                 ),
                 Instant.now()
             ));

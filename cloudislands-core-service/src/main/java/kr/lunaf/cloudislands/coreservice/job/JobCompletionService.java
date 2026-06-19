@@ -30,6 +30,7 @@ public final class JobCompletionService {
     private final int snapshotKeepLatest;
     private final SnapshotRetentionPolicy snapshotRetentionPolicy;
     private final RedisActivationLock activationLock;
+    static final String ACTIVATION_LOCK_TOKEN_KEY = "activationLockToken";
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
         this(runtimes, events, snapshots, tickets, null);
@@ -363,27 +364,31 @@ public final class JobCompletionService {
     }
 
     private void releaseMigrationLock(IslandJob job) {
-        if (activationLock != null) {
-            activationLock.releaseIfOwner(job.islandId(), "migrate");
-        }
+        releaseExactJobLock(job);
     }
 
     private void releaseRestoreLock(IslandJob job) {
-        if (activationLock != null) {
-            activationLock.releaseIfOwner(job.islandId(), "restore");
-        }
+        releaseExactJobLock(job);
     }
 
     private void releaseActivationJobLock(IslandJob job) {
         if (activationLock == null) {
             return;
         }
-        if (job.type() == IslandJobType.ACTIVATE_ISLAND) {
-            activationLock.releaseIfOwner(job.islandId(), "activate");
-            activationLock.releaseIfOwner(job.islandId(), "route");
-        } else if (job.type() == IslandJobType.RESET_ISLAND) {
-            activationLock.releaseIfOwner(job.islandId(), "reset");
+        if (job.type() == IslandJobType.ACTIVATE_ISLAND || job.type() == IslandJobType.RESET_ISLAND) {
+            releaseExactJobLock(job);
         }
+    }
+
+    private void releaseExactJobLock(IslandJob job) {
+        if (activationLock == null || job == null) {
+            return;
+        }
+        String token = job.payload().getOrDefault(ACTIVATION_LOCK_TOKEN_KEY, "");
+        if (token.isBlank()) {
+            return;
+        }
+        activationLock.release(new RedisActivationLock.Lease(job.islandId(), token));
     }
 
     private void completeMigrationSourceSave(IslandJob job) {
@@ -652,6 +657,7 @@ public final class JobCompletionService {
         payload.put("sourceSnapshotReason", job.payload().getOrDefault("reason", "BEFORE_MIGRATION"));
         payload.put("sourceSnapshotChecksum", job.payload().getOrDefault("checksum", ""));
         payload.put("sourceSnapshotSizeBytes", job.payload().getOrDefault("sizeBytes", "0"));
+        payload.put(ACTIVATION_LOCK_TOKEN_KEY, job.payload().getOrDefault(ACTIVATION_LOCK_TOKEN_KEY, ""));
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, job.islandId(), targetNode, 10, Map.copyOf(payload), Instant.now()));
         events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of(
             "islandId", job.islandId().toString(),

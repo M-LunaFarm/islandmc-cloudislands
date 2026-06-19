@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JobCompletionServiceTest {
@@ -105,10 +106,11 @@ class JobCompletionServiceTest {
         islands.createOwnedIsland(ISLAND, OWNER, "default", "restore target");
         runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 42L);
         runtimes.setState(ISLAND, IslandState.RESTORING);
-        assertTrue(activationLock.acquire(ISLAND, "restore").isPresent());
+        RedisActivationLock.Lease lease = activationLock.acquire(ISLAND, "restore").orElseThrow();
 
         service.completed(job(IslandJobType.RESTORE_ISLAND, "island-2", Map.ofEntries(
             Map.entry("fencingToken", "42"),
+            Map.entry("activationLockToken", lease.token()),
             Map.entry("snapshotNo", "9"),
             Map.entry("worldName", "ci_shard_002"),
             Map.entry("cellX", "7"),
@@ -127,6 +129,35 @@ class JobCompletionServiceTest {
         assertEquals("BEFORE_RESTORE", snapshots.find(ISLAND, 10L).orElseThrow().reason());
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RESTORED.name()));
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name()));
+        assertTrue(activationLock.acquire(ISLAND, "restore").isPresent());
+    }
+
+    @Test
+    void staleRestoreCompletionCannotReleaseCurrentLockWithOwnerPrefixOnly() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        RedisActivationLock activationLock = new RedisActivationLock(URI.create("redis://127.0.0.1:1"), Duration.ofSeconds(30), true);
+        JobCompletionService service = service(runtimes, islands, events, snapshots, activationLock);
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "restore target");
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 43L);
+        runtimes.setState(ISLAND, IslandState.RESTORING);
+        RedisActivationLock.Lease current = activationLock.acquire(ISLAND, "restore").orElseThrow();
+
+        service.completed(job(IslandJobType.RESTORE_ISLAND, "island-2", Map.ofEntries(
+            Map.entry("fencingToken", "43"),
+            Map.entry("activationLockToken", "restore:expired-old-token"),
+            Map.entry("snapshotNo", "9"),
+            Map.entry("worldName", "ci_shard_002"),
+            Map.entry("cellX", "7"),
+            Map.entry("cellZ", "8"),
+            Map.entry("resetRuntimeBeforeReactivate", "true"),
+            Map.entry("reactivateAfterRestore", "true")
+        )));
+
+        assertFalse(activationLock.acquire(ISLAND, "restore").isPresent());
+        activationLock.release(current);
         assertTrue(activationLock.acquire(ISLAND, "restore").isPresent());
     }
 

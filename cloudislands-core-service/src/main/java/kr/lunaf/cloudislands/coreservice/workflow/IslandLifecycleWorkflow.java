@@ -91,7 +91,13 @@ public final class IslandLifecycleWorkflow {
         try {
             runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
             islands.setState(islandId, IslandState.ACTIVATING);
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ())), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of(
+                "fencingToken", Long.toString(runtime.fencingToken()),
+                "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(),
+                "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()),
+                "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ()),
+                "activationLockToken", lockToken(lease)
+            ), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             if (splitBrainActivationRejected(exception)) {
@@ -196,10 +202,18 @@ public final class IslandLifecycleWorkflow {
                     "worldName", migrationWorldName,
                     "cellX", migrationCellX,
                     "cellZ", migrationCellZ,
-                    "placementSource", "runtime-migration"
+                    "placementSource", "runtime-migration",
+                    "activationLockToken", lockToken(lease)
                 ), Instant.now()));
             } else {
-                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of("fencingToken", Long.toString(runtime.fencingToken()), "worldName", migrationWorldName, "cellX", migrationCellX, "cellZ", migrationCellZ, "placementSource", "runtime-migration"), Instant.now()));
+                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, islandId, targetNode, 10, Map.of(
+                    "fencingToken", Long.toString(runtime.fencingToken()),
+                    "worldName", migrationWorldName,
+                    "cellX", migrationCellX,
+                    "cellZ", migrationCellZ,
+                    "placementSource", "runtime-migration",
+                    "activationLockToken", lockToken(lease)
+                ), Instant.now()));
             }
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
@@ -297,7 +311,7 @@ public final class IslandLifecycleWorkflow {
         String cellZ = runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ());
         String placementSource = recoveryRestore ? "recovery-restore" : "snapshot-restore";
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, restoreJobPayload(snapshotNo, storagePath, runtime.fencingToken(), recoveryRestore, worldName, cellX, cellZ, placementSource, false), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, restoreJobPayload(snapshotNo, storagePath, runtime.fencingToken(), recoveryRestore, worldName, cellX, cellZ, placementSource, false, lockToken(lease)), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
@@ -342,7 +356,8 @@ public final class IslandLifecycleWorkflow {
                 "reason", safeReason,
                 "preMutationReason", BEFORE_RESET_REASON,
                 "preMutationSnapshotRequired", "true",
-                "fencingToken", Long.toString(runtime.fencingToken())
+                "fencingToken", Long.toString(runtime.fencingToken()),
+                "activationLockToken", lockToken(lease)
             ), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
@@ -378,7 +393,7 @@ public final class IslandLifecycleWorkflow {
         String cellX = current.cellX() == null ? "0" : Integer.toString(current.cellX());
         String cellZ = current.cellZ() == null ? "0" : Integer.toString(current.cellZ());
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, current.activeNode(), 30, restoreJobPayload(snapshotNo, storagePath, current.fencingToken(), false, worldName, cellX, cellZ, "active-snapshot-restore", true), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, current.activeNode(), 30, restoreJobPayload(snapshotNo, storagePath, current.fencingToken(), false, worldName, cellX, cellZ, "active-snapshot-restore", true, lockToken(lease)), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
@@ -387,11 +402,12 @@ public final class IslandLifecycleWorkflow {
         return new Result(true, "RESTORE_QUEUED", runtime);
     }
 
-    private static Map<String, String> restoreJobPayload(long snapshotNo, String storagePath, long fencingToken, boolean recoveryRestore, String worldName, String cellX, String cellZ, String placementSource, boolean activeRestore) {
+    private static Map<String, String> restoreJobPayload(long snapshotNo, String storagePath, long fencingToken, boolean recoveryRestore, String worldName, String cellX, String cellZ, String placementSource, boolean activeRestore, String activationLockToken) {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("snapshotNo", Long.toString(snapshotNo));
         payload.put("storagePath", storagePath == null ? "" : storagePath);
         payload.put("fencingToken", Long.toString(fencingToken));
+        payload.put("activationLockToken", activationLockToken == null ? "" : activationLockToken);
         payload.put("restoreManifestRequired", RESTORE_MANIFEST_REQUIRED);
         payload.put("restoreChecksumPolicy", RESTORE_CHECKSUM_POLICY);
         payload.put("restorePortableRequired", RESTORE_PORTABLE_REQUIRED);
@@ -411,6 +427,10 @@ public final class IslandLifecycleWorkflow {
             payload.put("recoveryRestore", "true");
         }
         return Map.copyOf(payload);
+    }
+
+    private static String lockToken(RedisActivationLock.Lease lease) {
+        return lease == null ? "" : lease.token();
     }
 
     private static Map<String, String> restoreRequestedEventPayload(UUID islandId, String state, long snapshotNo, String storagePath, String targetNode, long fencingToken, String worldName, String cellX, String cellZ, String placementSource, boolean activeRestore) {

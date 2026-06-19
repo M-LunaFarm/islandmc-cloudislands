@@ -200,6 +200,7 @@ public final class CloudIslandsCoreApplication {
         this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
         this.mtlsGuard = new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies());
         logSecurityPosture(config);
+        config.validateStartupStorage();
         this.deleteStorage = migrationRollbackStorage(config);
         MeteredDataSource meteredDataSource = new MeteredDataSource(new BoundedDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()), config.databasePoolSize()));
         DataSource dataSource = new JdbcDialectDataSource(meteredDataSource);
@@ -332,7 +333,9 @@ public final class CloudIslandsCoreApplication {
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
-        route("/health", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
+        route("/live", exchange -> write(exchange, 200, "{\"status\":\"UP\"}"));
+        route("/ready", exchange -> writeReadiness(exchange, config));
+        route("/health", exchange -> writeReadiness(exchange, config));
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
         route("/v1/admin/config", exchange -> write(exchange, 200, configSummaryJson(config, nodes)));
         route("/v1/admin/storage", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
@@ -2881,6 +2884,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreJdbcJobsEnabled\":" + config.jdbcJobs() + ","
             + "\"configuredDatabaseType\":\"" + escape(config.configuredDatabaseType()) + "\","
             + "\"configuredDatabaseTypeSource\":\"" + escape(CoreServiceConfig.configuredDatabaseTypeSource()) + "\","
+            + "\"runtimeMode\":\"" + escape(config.runtimeMode()) + "\","
             + "\"databaseBackend\":\"" + escape(jdbcBackend(config.jdbcUrl())) + "\","
             + "\"jdbcUrlSource\":\"" + escape(CoreServiceConfig.configuredJdbcUrlSource()) + "\","
             + "\"effectiveJdbcSettingsType\":\"" + escape(CoreServiceConfig.configuredJdbcSettingsType()) + "\","
@@ -2898,6 +2902,7 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseAutoSchemaRetryPolicy\":\"ignore-existing-schema-objects-and-mark-bootstrap-after-complete-apply\","
             + "\"coreSetupDatabaseAutoSchemaGuardPolicy\":\"generated-columns-enforce-active-unique-guards-for-mysql-mariadb\","
             + "\"coreSetupFallbackEnabled\":" + config.setupDatabaseFallbackEnabled() + ","
+            + "\"coreSetupAllowInMemoryFallback\":" + config.setupDatabaseAllowInMemoryFallback() + ","
             + "\"coreSetupFallbackEffective\":" + coreJdbcFallbackActive(config) + ","
             + "\"coreSetupFallbackSafetyForced\":" + coreSetupFallbackSafetyForced(config) + ","
             + "\"coreSetupFallbackPolicy\":\"" + escape(coreSetupFallbackPolicy(config)) + "\","
@@ -2919,14 +2924,15 @@ public final class CloudIslandsCoreApplication {
             + "\"coreSetupDatabaseFallbackDecision\":\"" + escape(coreSetupFallbackDecision(config)) + "\","
             + "\"coreSetupDatabaseDurable\":" + config.setupDatabaseDurable() + ","
             + "\"coreSetupDatabaseProductionDurable\":" + config.setupDatabaseProductionDurable() + ","
+            + "\"coreSetupDatabaseReady\":" + config.setupDatabaseReady() + ","
             + "\"coreSetupDatabaseFallbackSafetyForced\":" + config.setupDatabaseFallbackSafetyForced() + ","
             + "\"coreSetupDatabaseFallbackSafetyMode\":\"" + escape(config.setupDatabaseFallbackSafetyMode()) + "\","
             + "\"coreSetupDatabaseOperationalModes\":\"POSTGRESQL=CORE_JDBC,MYSQL=CORE_JDBC,MARIADB=CORE_JDBC,CORE_API=CLIENT_MODE_NO_CORE_SERVICE_SELF_STORAGE\","
             + "\"coreSetupDatabasePrimaryAuthority\":\"POSTGRESQL_MYSQL_MARIADB_FOR_CORE_STATE_CORE_API_FOR_CLIENT_ADDON_STATE\","
             + "\"coreSetupDatabaseMysqlPolicy\":\"native-core-jdbc-through-setup.database.mysql-or-jdbc-url\","
             + "\"coreSetupDatabaseMariadbPolicy\":\"native-core-jdbc-through-setup.database.mariadb-or-jdbc-url\","
-            + "\"coreSetupDatabaseCoreApiPolicy\":\"client-addon-state-marker-core-self-storage-requires-durable-jdbc-or-safe-in-memory-fallback\","
-            + "\"coreSetupDatabaseSafeFallbackWarning\":\"IN_MEMORY_CORE_FALLBACK_IS_STARTUP_SAFE_BUT_NOT_PRODUCTION_DURABLE\","
+            + "\"coreSetupDatabaseCoreApiPolicy\":\"client-addon-state-marker-core-self-storage-requires-durable-jdbc-or-explicit-non-production-in-memory-fallback\","
+            + "\"coreSetupDatabaseSafeFallbackWarning\":\"IN_MEMORY_CORE_FALLBACK_IS_NON_DURABLE_AND_NOT_READY_FOR_PRODUCTION\","
             + "\"coreSetupDatabaseConfigLoader\":\"yaml-nested-dotted-path\","
             + "\"coreSetupDatabaseResolvedPathExamples\":\"setup.database.type,setup.database.postgresql.jdbc-url,setup.database.postgresql.username,setup.database.mysql.host,setup.database.mysql.password,setup.database.mariadb.pool-size,setup.database.core-api.enabled\","
             + "\"coreSetupDatabaseConfigShapes\":\"setup.database.*,setup.database-*,setup.database.fallback.order(list-or-comma-string)\","
@@ -3382,15 +3388,15 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static boolean coreSetupFallbackSafetyForced(CoreServiceConfig config) {
-        return coreJdbcFallbackActive(config) && !config.setupDatabaseFallbackEnabled();
+        return config.setupDatabaseFallbackSafetyForced();
     }
 
     private static String coreSetupFallbackPolicy(CoreServiceConfig config) {
         if (!coreJdbcFallbackActive(config)) {
             return "native-" + jdbcBackend(config.jdbcUrl()).toLowerCase(Locale.ROOT) + "-jdbc";
         }
-        if (coreSetupFallbackSafetyForced(config)) {
-            return "configured-disabled-but-forced-for-startup-safety";
+        if ("blocked-non-durable-fallback".equals(config.setupDatabaseFallbackReadiness())) {
+            return "blocked-non-durable-fallback";
         }
         String reason = coreJdbcFallbackReason(config);
         if (reason.startsWith("CORE_JDBC_") && reason.contains("_FALLBACK_FOR_")) {
@@ -3404,8 +3410,8 @@ public final class CloudIslandsCoreApplication {
         if (!coreJdbcFallbackActive(config)) {
             return "NONE";
         }
-        if (coreSetupFallbackSafetyForced(config)) {
-            return "SAFETY_FORCED_IN_MEMORY_REPOSITORIES_AND_JOBS";
+        if ("blocked-non-durable-fallback".equals(config.setupDatabaseFallbackReadiness())) {
+            return "BLOCKED_NON_DURABLE_CORE_FALLBACK";
         }
         String reason = coreJdbcFallbackReason(config);
         if (reason.startsWith("CORE_JDBC_") && reason.contains("_FALLBACK_FOR_")) {
@@ -3488,8 +3494,7 @@ public final class CloudIslandsCoreApplication {
             return config.setupDatabaseCoreApiClientReady();
         }
         if ("IN_MEMORY".equals(candidate) || "UNSUPPORTED_JDBC".equals(candidate)) {
-            return "IN_MEMORY_FALLBACK".equals(config.setupDatabaseEffectiveBackend())
-                || "SAFE_IN_MEMORY_CORE_FALLBACK".equals(config.setupDatabaseEffectiveAuthority());
+            return false;
         }
         return false;
     }
@@ -3503,6 +3508,12 @@ public final class CloudIslandsCoreApplication {
             return config.setupDatabaseCoreApiClientMode() ? "core-api-url-or-token-missing" : "core-api-not-selected";
         }
         if ("IN_MEMORY".equals(candidate) || "UNSUPPORTED_JDBC".equals(candidate)) {
+            if ("UNAVAILABLE_NON_DURABLE".equals(config.setupDatabaseEffectiveBackend())) {
+                return "blocked-non-durable-fallback";
+            }
+            if ("IN_MEMORY_FALLBACK".equals(config.setupDatabaseEffectiveBackend())) {
+                return "non-durable-readiness-failed";
+            }
             return "safety-fallback-not-active";
         }
         return "unknown-backend";
@@ -3876,7 +3887,7 @@ public final class CloudIslandsCoreApplication {
                 write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
                 return;
             }
-            if (!path.equals("/health") && !coreApiAuthenticated(exchange)) {
+            if (!healthProbePath(path) && !coreApiAuthenticated(exchange)) {
                 String rejectCode = coreApiAuthRejectCode();
                 auditSecurityReject(rejectCode, path, exchange);
                 write(exchange, 401, ApiResponses.error(rejectCode, coreApiAuthRejectMessage(rejectCode)));
@@ -3935,6 +3946,22 @@ public final class CloudIslandsCoreApplication {
 
     private boolean coreApiAuthenticated(HttpExchange exchange) {
         return tokenGuard.allowed(exchange) || mtlsGuard.verified(exchange);
+    }
+
+    private static boolean healthProbePath(String path) {
+        return "/live".equals(path) || "/ready".equals(path) || "/health".equals(path);
+    }
+
+    private static void writeReadiness(HttpExchange exchange, CoreServiceConfig config) throws IOException {
+        boolean ready = config.setupDatabaseReady();
+        write(exchange, ready ? 200 : 503,
+            "{\"status\":\"" + (ready ? "UP" : "DOWN") + "\""
+                + ",\"databaseReady\":" + ready
+                + ",\"databaseDurable\":" + config.setupDatabaseProductionDurable()
+                + ",\"databaseReadiness\":\"" + escape(config.setupDatabaseFallbackReadiness()) + "\""
+                + ",\"databaseEffectiveBackend\":\"" + escape(config.setupDatabaseEffectiveBackend()) + "\""
+                + ",\"databaseEffectiveAuthority\":\"" + escape(config.setupDatabaseEffectiveAuthority()) + "\""
+                + "}");
     }
 
     private String coreApiAuthRejectCode() {

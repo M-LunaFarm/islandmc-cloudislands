@@ -129,6 +129,30 @@ class CoreSecurityControlsTest {
     }
 
     @Test
+    void adminPermissionDefaultsDoNotGrantWildcard() {
+        AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true);
+
+        assertFalse(guard.allowed("/v1/admin/audit", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret"
+        )));
+    }
+
+    @Test
+    void unknownAdminEndpointsAreDeniedByDefaultEvenWithWildcardPolicy() {
+        AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true, "*");
+
+        assertFalse(guard.allowed("/v1/admin/future-mutating-route", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret"
+        )));
+        assertTrue(guard.allowed("/v1/admin/config", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret"
+        )));
+    }
+
+    @Test
     void auditJsonEscapesControlCharactersAndAcceptsEmptyPayload() {
         InMemoryAuditLogger audit = new InMemoryAuditLogger();
 

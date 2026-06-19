@@ -1,6 +1,7 @@
 import org.gradle.api.file.FileTreeElement
 import org.gradle.jvm.tasks.Jar
 import org.gradle.api.tasks.bundling.Zip
+import java.security.MessageDigest
 
 plugins {
     `java-library`
@@ -32,7 +33,7 @@ fun isMarkdownDocElement(element: FileTreeElement): Boolean =
 
 allprojects {
     group = "kr.lunaf.cloudislands"
-    version = "1.0.0"
+    version = "1.0.1"
 }
 
 subprojects {
@@ -89,6 +90,9 @@ tasks.register<Copy>("distPlugins") {
     description = "Collects required CloudIslands plugin jars."
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+    doFirst {
+        delete(layout.buildDirectory.dir("dist/plugins"))
+    }
 
     val pluginProjects = listOf(
         "cloudislands-paper",
@@ -107,6 +111,9 @@ tasks.register<Copy>("distAddons") {
     description = "Collects optional CloudIslands addon jars."
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+    doFirst {
+        delete(layout.buildDirectory.dir("dist/addons"))
+    }
 
     val addonProjects = listOf(
         "cloudislands-satis"
@@ -125,6 +132,9 @@ tasks.register<Copy>("distAddonDescriptors") {
     description = "Collects optional CloudIslands addon descriptors separately from addon jars."
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+    doFirst {
+        delete(layout.buildDirectory.dir("dist/addon-descriptors"))
+    }
 
     val addonProjects = listOf(
         "cloudislands-satis"
@@ -143,6 +153,9 @@ tasks.register<Copy>("distServices") {
     description = "Collects CloudIslands service runtime images."
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+    doFirst {
+        delete(layout.buildDirectory.dir("dist/services"))
+    }
 
     val coreService = project(":cloudislands-core-service")
     val installTask = coreService.tasks.named("installDist")
@@ -156,6 +169,9 @@ tasks.register<Copy>("distTools") {
     description = "Collects CloudIslands migration support jars used by the Core admin API."
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+    doFirst {
+        delete(layout.buildDirectory.dir("dist/tools"))
+    }
 
     val migrationJar = project(":cloudislands-migration").tasks.named<Jar>("jar")
     dependsOn(migrationJar)
@@ -168,6 +184,9 @@ tasks.register<Copy>("distDeveloperKit") {
     description = "Collects API, client, protocol, testkit, and BOM artifacts for addon/plugin developers."
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+    doFirst {
+        delete(layout.buildDirectory.dir("dist/devkit"))
+    }
 
     val developerProjects = listOf(
         "cloudislands-api",
@@ -215,6 +234,9 @@ tasks.register<Zip>("distBundle") {
     archiveVersion.set(project.version.toString())
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+    doFirst {
+        delete(archiveFile)
+    }
     from(layout.buildDirectory.dir("dist/plugins")) {
         into("plugins")
     }
@@ -246,6 +268,9 @@ tasks.register<Zip>("distAddonBundle") {
     archiveVersion.set(project.version.toString())
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+    doFirst {
+        delete(archiveFile)
+    }
     from(layout.buildDirectory.dir("dist/addons")) {
         into("addons")
     }
@@ -253,4 +278,26 @@ tasks.register<Zip>("distAddonBundle") {
         into("addon-descriptors")
     }
     destinationDirectory.set(layout.buildDirectory.dir("dist"))
+}
+
+tasks.register("distChecksums") {
+    group = "distribution"
+    description = "Writes SHA-256 checksums for distribution archives and plugin jars."
+    dependsOn(tasks.named("distBundle"))
+    dependsOn(tasks.named("distAddonBundle"))
+    doLast {
+        val files = fileTree(layout.buildDirectory.dir("dist")) {
+            include("**/*.zip")
+            include("**/*.jar")
+        }.files.sortedBy { it.relativeTo(layout.buildDirectory.dir("dist").get().asFile).path }
+        val digest = MessageDigest.getInstance("SHA-256")
+        val distDir = layout.buildDirectory.dir("dist").get().asFile
+        val output = distDir.resolve("checksums-sha256.txt")
+        output.parentFile.mkdirs()
+        output.writeText(files.joinToString(System.lineSeparator()) { file ->
+            digest.reset()
+            val checksum = digest.digest(file.readBytes()).joinToString("") { byte: Byte -> "%02x".format(byte) }
+            "$checksum  ${file.relativeTo(distDir).path.replace('\\', '/')}"
+        } + System.lineSeparator())
+    }
 }

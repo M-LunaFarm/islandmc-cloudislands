@@ -2,6 +2,9 @@ server:
   bind: "0.0.0.0"
   port: 8443
 
+runtime:
+  mode: "production"
+
 setup:
   repository-mode: ""
   job-queue-mode: ""
@@ -33,6 +36,9 @@ setup:
     # Explicit opt-in schema bootstrap for first PostgreSQL/MySQL/MariaDB Core JDBC setup.
     # Env override: CI_DB_AUTO_SCHEMA.
     auto-schema: false
+    # Production mode refuses non-durable in-memory Core state unless this is explicitly enabled.
+    # Env override: CI_ALLOW_IN_MEMORY_FALLBACK.
+    allow-in-memory-fallback: false
     postgresql:
       # Type-specific values override the generic setup.database host/name/options values.
       # These credentials and pool values are used when the selected or fallback Core JDBC backend is PostgreSQL.
@@ -174,3 +180,4 @@ security:
   rate-limit-window-seconds: 60
   core-token: "${CI_CORE_TOKEN}"
   admin-token: "${CI_ADMIN_TOKEN}"
+  admin-permissions: "audit-read"
