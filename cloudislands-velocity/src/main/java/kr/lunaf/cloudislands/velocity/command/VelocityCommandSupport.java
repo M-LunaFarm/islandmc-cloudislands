@@ -8,6 +8,10 @@ import java.util.Locale;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.velocity.VelocityAdminActions;
+import kr.lunaf.cloudislands.velocity.VelocityPlayerMembershipActions;
+import kr.lunaf.cloudislands.velocity.VelocityPlayerProgressionActions;
+import kr.lunaf.cloudislands.velocity.VelocityPlayerRoutingActions;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.velocity.VelocityRoutingActions;
 import kr.lunaf.cloudislands.velocity.VelocityRoutingController;
@@ -17,11 +21,19 @@ import net.kyori.adventure.text.Component;
 abstract class VelocityCommandSupport {
     protected final ProxyServer proxy;
     protected final VelocityRoutingActions routingController;
+    protected final VelocityPlayerRoutingActions playerRouting;
+    protected final VelocityPlayerMembershipActions playerMembership;
+    protected final VelocityPlayerProgressionActions playerProgression;
+    protected final VelocityAdminActions adminActions;
     protected final VelocityConfig config;
 
     protected VelocityCommandSupport(ProxyServer proxy, VelocityRoutingController routingController, VelocityConfig config) {
         this.proxy = proxy;
         this.routingController = routingController.actions();
+        this.playerRouting = this.routingController.playerRouting();
+        this.playerMembership = this.routingController.playerMembership();
+        this.playerProgression = this.routingController.playerProgression();
+        this.adminActions = this.routingController.admin();
         this.config = config;
     }
 

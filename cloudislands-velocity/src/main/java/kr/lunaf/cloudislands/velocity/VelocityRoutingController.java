@@ -99,15 +99,15 @@ public final class VelocityRoutingController {
     }
 
     public void recordPlayerProfile(Player player) {
-        actions.recordPlayerProfile(player);
+        actions.playerRouting().recordPlayerProfile(player);
     }
 
     public void routePendingSession(Player player) {
-        actions.routePendingSession(player);
+        actions.playerRouting().routePendingSession(player);
     }
 
     public void clearPlayerState(UUID playerUuid) {
-        actions.clearPlayerState(playerUuid);
+        actions.playerRouting().clearPlayerState(playerUuid);
     }
 
     public String statusSummary() {
