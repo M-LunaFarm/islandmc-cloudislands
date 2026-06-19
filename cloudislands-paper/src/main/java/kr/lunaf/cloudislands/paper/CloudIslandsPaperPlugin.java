@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
 import kr.lunaf.cloudislands.paper.activation.PeriodicIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.bootstrap.LifecycleRegistry;
+import kr.lunaf.cloudislands.paper.bootstrap.PaperHealthRuntime;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperRuntimeServices;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
@@ -28,7 +29,6 @@ import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.generator.IslandCropGrowthListener;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
-import kr.lunaf.cloudislands.paper.health.PaperHealthService;
 import kr.lunaf.cloudislands.paper.heartbeat.PaperHeartbeatService;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
@@ -67,7 +67,6 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private PeriodicIslandSaveTask periodicSaveTask;
     private EmptyIslandSaveTask emptyIslandSaveTask;
     private PeriodicIslandLevelScanTask periodicLevelScanTask;
-    private PaperHealthService healthService;
     private ActiveIslandRegistry activeIslands;
     private GeneratorLevelCache generatorLevels;
     private IslandGeneratorListener generatorListener;
@@ -192,16 +191,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         );
         heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));
         lifecycle.started("heartbeat", heartbeatService::stop);
-        if (getConfig().getBoolean("health.enabled", false)) {
-            this.healthService = new PaperHealthService(
-                this,
-                getConfig().getString("health.bind-host", "127.0.0.1"),
-                getConfig().getInt("health.port", 8787),
-                () -> paperHealthJson(role, nodeId),
-                () -> paperMetricsText(role, nodeId, storage)
-            );
-            healthService.start();
-            lifecycle.started("health", healthService::stop);
+        PaperHealthRuntime healthRuntime = PaperHealthRuntime.startIfEnabled(
+            this,
+            () -> paperHealthJson(role, nodeId),
+            () -> paperMetricsText(role, nodeId, storage)
+        );
+        if (healthRuntime != null) {
+            lifecycle.started("health", healthRuntime);
         }
         if (role == AgentRole.ISLAND_NODE) {
             startIslandNodeWorker(client, nodeId, storage, limitCache);
@@ -215,7 +211,6 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             lifecycle.close();
             lifecycle = null;
         }
-        healthService = null;
         heartbeatService = null;
         jobWorker = null;
         permissionEventPoller = null;
