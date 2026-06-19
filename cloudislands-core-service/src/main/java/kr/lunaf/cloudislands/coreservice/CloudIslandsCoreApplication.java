@@ -65,6 +65,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.RouteTicketRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
@@ -154,7 +155,6 @@ import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackService.Rollbac
 import kr.lunaf.cloudislands.migration.rollback.StorageRollbackTarget;
 import kr.lunaf.cloudislands.migration.rollback.jdbc.JdbcMigrationRollbackTarget;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
-import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.LocalIslandStorage;
 import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
@@ -1334,209 +1334,7 @@ public final class CloudIslandsCoreApplication {
                 payload
             ));
         });
-        route("/v1/routes/session", exchange -> {
-            String body = readBody(exchange);
-            UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            String targetNode = JsonFields.text(body, "targetNode", "");
-            String nonce = JsonFields.text(body, "nonce", "");
-            RouteTicket ticket = tickets.find(ticketId).orElse(null);
-            if (ticket == null) {
-                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
-                    "ticketId", ticketId.toString(),
-                    "playerUuid", playerUuid.toString(),
-                    "targetNode", targetNode,
-                    "reason", "SESSION_TICKET_NOT_FOUND"
-                ));
-                write(exchange, 404, ApiResponses.error("TICKET_NOT_FOUND", "Route ticket was not found"));
-                return;
-            }
-            if (ticket.state() != kr.lunaf.cloudislands.api.model.RouteTicketState.READY) {
-                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
-                    "ticketId", ticket.ticketId().toString(),
-                    "playerUuid", ticket.playerUuid().toString(),
-                    "islandId", ticket.islandId().toString(),
-                    "action", ticket.action().name(),
-                    "targetNode", ticket.targetNode(),
-                    "reason", "SESSION_TICKET_NOT_READY"
-                ));
-                write(exchange, 409, ApiResponses.error("TICKET_NOT_READY", "Route ticket is not ready"));
-                return;
-            }
-            if (ticket.expiresAt().isBefore(java.time.Instant.now())) {
-                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
-                    "ticketId", ticket.ticketId().toString(),
-                    "playerUuid", ticket.playerUuid().toString(),
-                    "islandId", ticket.islandId().toString(),
-                    "action", ticket.action().name(),
-                    "targetNode", ticket.targetNode(),
-                    "reason", "SESSION_TICKET_EXPIRED"
-                ));
-                write(exchange, 409, ApiResponses.error("TICKET_EXPIRED", "Route ticket has expired"));
-                return;
-            }
-            if (!ticket.playerUuid().equals(playerUuid) || !ticket.targetNode().equals(targetNode) || !ticket.nonce().equals(nonce)) {
-                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
-                    "ticketId", ticket.ticketId().toString(),
-                    "playerUuid", playerUuid.toString(),
-                    "islandId", ticket.islandId().toString(),
-                    "action", ticket.action().name(),
-                    "targetNode", targetNode,
-                    "reason", "SESSION_TICKET_MISMATCH"
-                ));
-                write(exchange, 403, ApiResponses.error("TICKET_MISMATCH", "Route ticket fields do not match"));
-                return;
-            }
-            sessions.put(ticket);
-            audit.log(ticket.playerUuid(), "PLAYER", "ROUTE_SESSION_PUBLISH", "ROUTE", ticket.ticketId().toString(), Map.of(
-                "islandId", ticket.islandId().toString(),
-                "action", ticket.action().name(),
-                "targetNode", ticket.targetNode(),
-                "targetServerName", ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
-            ));
-            events.publish(CloudIslandEventType.ROUTE_SESSION_PUBLISHED.name(), Map.of(
-                "ticketId", ticket.ticketId().toString(),
-                "playerUuid", ticket.playerUuid().toString(),
-                "islandId", ticket.islandId().toString(),
-                "action", ticket.action().name(),
-                "targetNode", ticket.targetNode(),
-                "targetServerName", ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
-            ));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/routes/session/find", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            PlayerRouteSession session = sessions.find(playerUuid, nodeId).orElse(null);
-            if (session == null) {
-                PlayerRouteSession existing = sessions.findAny(playerUuid).orElse(null);
-                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), existing == null
-                    ? Map.of(
-                        "playerUuid", playerUuid.toString(),
-                        "targetNode", nodeId,
-                        "reason", "SESSION_LOOKUP_NOT_FOUND"
-                    )
-                    : Map.of(
-                        "playerUuid", playerUuid.toString(),
-                        "ticketId", existing.ticketId().toString(),
-                        "targetNode", existing.targetNode(),
-                        "requestedNode", nodeId,
-                        "reason", "SESSION_LOOKUP_NODE_MISMATCH"
-                    ));
-            }
-            write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
-        });
-        route("/v1/routes/session/find-any", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            PlayerRouteSession session = sessions.findAny(playerUuid).orElse(null);
-            write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
-        });
-        route("/v1/routes/session/consume", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            String ticketIdText = JsonFields.text(body, "ticketId", "");
-            String nonce = JsonFields.text(body, "nonce", "");
-            boolean reportMissing = JsonFields.bool(body, "reportMissing", true);
-            PlayerRouteSession session = ticketIdText.isBlank() && nonce.isBlank()
-                ? sessions.consume(playerUuid, nodeId).orElse(null)
-                : sessions.consume(playerUuid, nodeId, JsonFields.uuid(body, "ticketId", new UUID(0L, 0L)), nonce).orElse(null);
-            if (session != null) {
-                audit.log(session.playerUuid(), "PLAYER", "ROUTE_SESSION_CONSUME", "ROUTE", session.ticketId().toString(), Map.of(
-                    "targetNode", session.targetNode(),
-                    "targetServerName", session.targetServerName()
-                ));
-            }
-            if (session == null && reportMissing) {
-                PlayerRouteSession existing = sessions.findAny(playerUuid).orElse(null);
-                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), existing == null
-                    ? Map.of(
-                        "playerUuid", playerUuid.toString(),
-                        "targetNode", nodeId,
-                        "reason", "SESSION_NOT_FOUND"
-                    )
-                    : Map.of(
-                        "playerUuid", playerUuid.toString(),
-                        "ticketId", existing.ticketId().toString(),
-                        "targetNode", existing.targetNode(),
-                        "requestedNode", nodeId,
-                        "reason", ticketIdText.isBlank() && nonce.isBlank() ? "SESSION_NODE_MISMATCH" : "SESSION_EXACT_MISMATCH"
-                    ));
-                audit.log(playerUuid, "PLAYER", "ROUTE_SESSION_CONSUME_FAILED", "ROUTE", existing == null ? "" : existing.ticketId().toString(), existing == null
-                    ? Map.of("targetNode", nodeId, "reason", "SESSION_NOT_FOUND")
-                    : Map.of("targetNode", existing.targetNode(), "requestedNode", nodeId, "reason", ticketIdText.isBlank() && nonce.isBlank() ? "SESSION_NODE_MISMATCH" : "SESSION_EXACT_MISMATCH"));
-            }
-            write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
-        });
-        route("/v1/routes/ticket-status", exchange -> {
-            String body = readBody(exchange);
-            UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            String nonce = JsonFields.text(body, "nonce", "");
-            RouteTicket ticket = tickets.find(ticketId).orElse(null);
-            boolean allowed = ticket != null && ticket.playerUuid().equals(playerUuid) && ticket.nonce().equals(nonce);
-            if (!allowed) {
-                events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
-                    "ticketId", ticketId.toString(),
-                    "playerUuid", playerUuid.toString(),
-                    "islandId", ticket == null ? "" : ticket.islandId().toString(),
-                    "action", ticket == null ? "" : ticket.action().name(),
-                    "targetNode", ticket == null ? "" : ticket.targetNode(),
-                    "reason", "VERIFY_FAILED"
-                ));
-            }
-            write(exchange, allowed ? 200 : 404, allowed ? RoutingOrchestrator.toJson(ticket) : ApiResponses.error("ROUTE_TICKET_NOT_FOUND", "Route ticket was not found"));
-        });
-        route("/v1/routes/consume", exchange -> write(exchange, 200, routing.consumeTicketJson(readBody(exchange))));
-        route("/v1/admin/routes/debug", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            if (playerUuid.equals(new UUID(0L, 0L))) {
-                write(exchange, 200, "{\"sessions\":" + maskRouteNonces(routeSessionsJson(sessions)) + ",\"tickets\":" + maskRouteNonces(tickets.toJson()) + "}");
-            } else {
-                PlayerRouteSession session = findAnyRouteSession(sessions, playerUuid).orElse(null);
-                RouteTicket ticket = tickets.findLatestForPlayer(playerUuid).orElse(null);
-                boolean found = session != null || ticket != null;
-                write(exchange, found ? 200 : 404, found ? routeDebugJson(playerUuid, session, ticket) : ApiResponses.error("ROUTE_ROUTE_NOT_FOUND", "Route session or ticket was not found"));
-            }
-        });
-        route("/v1/admin/routes/ticket", exchange -> {
-            String body = readBody(exchange);
-            UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            RouteTicket ticket = ticketId.equals(new UUID(0L, 0L))
-                ? tickets.findLatestForPlayer(playerUuid).orElse(null)
-                : tickets.find(ticketId).orElse(null);
-            write(exchange, ticket == null ? 404 : 200, ticket == null ? ApiResponses.error("ROUTE_TICKET_NOT_FOUND", "Route ticket was not found") : maskRouteNonces(RoutingOrchestrator.toJson(ticket)));
-        });
-        route("/v1/admin/routes/clear", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            UUID ticketId = JsonFields.uuid(body, "ticketId", new UUID(0L, 0L));
-            String reason = JsonFields.text(body, "reason", "MANUAL_CLEAR");
-            boolean clearedSession = !playerUuid.equals(new UUID(0L, 0L)) && sessions.clear(playerUuid);
-            UUID clearTicketId = ticketId.equals(new UUID(0L, 0L)) && !playerUuid.equals(new UUID(0L, 0L))
-                ? tickets.findLatestForPlayer(playerUuid).map(RouteTicket::ticketId).orElse(new UUID(0L, 0L))
-                : ticketId;
-            boolean clearedTicket = !clearTicketId.equals(new UUID(0L, 0L)) && tickets.clear(clearTicketId);
-            String clearReason = reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason;
-            audit.log(new UUID(0L, 0L), "MANUAL_CLEAR".equals(clearReason) ? "ADMIN" : "SYSTEM", "ROUTE_CLEAR", "ROUTE", playerUuid.toString(), Map.of(
-                "ticketId", clearTicketId.toString(),
-                "reason", clearReason,
-                "clearedSession", Boolean.toString(clearedSession),
-                "clearedTicket", Boolean.toString(clearedTicket)
-            ));
-            events.publish(CloudIslandEventType.ROUTE_TICKET_CLEARED.name(), Map.of(
-                "playerUuid", playerUuid.toString(),
-                "ticketId", clearTicketId.toString(),
-                "reason", clearReason,
-                "clearedSession", Boolean.toString(clearedSession),
-                "clearedTicket", Boolean.toString(clearedTicket)
-            ));
-            write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + ",\"reason\":\"" + escape(clearReason) + "\"}");
-        });
+        new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(this::route);
         route("/v1/admin/cache/clear", exchange -> {
             int clearedSessions = sessions.clearAll();
             int clearedTickets = tickets.clearAll();
@@ -4089,56 +3887,6 @@ public final class CloudIslandsCoreApplication {
 
     private static String bankJson(kr.lunaf.cloudislands.api.model.IslandBankSnapshot bank) {
         return "{\"islandId\":\"" + bank.islandId() + "\",\"balance\":\"" + escape(bank.balance()) + "\",\"updatedAt\":\"" + bank.updatedAt() + "\"}";
-    }
-
-    private static String routeDebugJson(UUID playerUuid, PlayerRouteSession session, RouteTicket ticket) {
-        return "{\"playerUuid\":\"" + playerUuid
-            + "\",\"session\":" + (session == null ? "null" : maskRouteNonces(sessionJson(session)))
-            + ",\"ticket\":" + (ticket == null ? "null" : maskRouteNonces(RoutingOrchestrator.toJson(ticket)))
-            + "}";
-    }
-
-    private static String maskRouteNonces(String json) {
-        String needle = "\"nonce\":\"";
-        StringBuilder masked = new StringBuilder(json);
-        int start = masked.indexOf(needle);
-        while (start >= 0) {
-            int valueStart = start + needle.length();
-            int valueEnd = masked.indexOf("\"", valueStart);
-            if (valueEnd < 0) {
-                break;
-            }
-            masked.replace(valueStart, valueEnd, "hidden");
-            start = masked.indexOf(needle, valueStart + "hidden".length());
-        }
-        if (masked.length() == json.length() && masked.indexOf(needle) < 0) {
-            return json;
-        }
-        return masked.toString();
-    }
-
-    private static String routeSessionsJson(RouteSessionStore sessions) {
-        if (sessions instanceof InMemoryRouteSessionStore memorySessions) {
-            return memorySessions.toJson();
-        }
-        if (sessions instanceof RedisRouteSessionStore redisSessions) {
-            return redisSessions.toJson();
-        }
-        return "{\"sessions\":[]}";
-    }
-
-    private static java.util.Optional<PlayerRouteSession> findAnyRouteSession(RouteSessionStore sessions, UUID playerUuid) {
-        if (sessions instanceof InMemoryRouteSessionStore memorySessions) {
-            return memorySessions.findAny(playerUuid);
-        }
-        if (sessions instanceof RedisRouteSessionStore redisSessions) {
-            return redisSessions.findAny(playerUuid);
-        }
-        return java.util.Optional.empty();
-    }
-
-    private static String sessionJson(PlayerRouteSession session) {
-        return "{\"playerUuid\":\"" + session.playerUuid() + "\",\"ticketId\":\"" + session.ticketId() + "\",\"targetNode\":\"" + session.targetNode() + "\",\"targetServerName\":\"" + session.targetServerName() + "\",\"nonce\":\"" + session.nonce() + "\",\"expiresAt\":\"" + session.expiresAt() + "\"}";
     }
 
     private static String levelJson(kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot snapshot) {
