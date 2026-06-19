@@ -1,11 +1,9 @@
 package kr.lunaf.cloudislands.velocity;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.arrayValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.boolValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.countObjects;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.matchingObjectEnd;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.parseLong;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
@@ -13,7 +11,6 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import java.time.Duration;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -27,14 +24,17 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.velocity.event.CoreEventCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
 import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
+import kr.lunaf.cloudislands.velocity.event.CoreNodeStateEventHandler;
 import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityEventMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityIslandMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMigrationMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityNodeJobMessageFormatter;
+import kr.lunaf.cloudislands.velocity.message.VelocityPlayerPayloadFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRouteMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
+import kr.lunaf.cloudislands.velocity.message.VelocitySnapshotMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import kr.lunaf.cloudislands.velocity.platform.VelocityServerGateway;
@@ -66,8 +66,11 @@ public final class VelocityRoutingController {
     private final VelocityEventMessageFormatter eventMessages;
     private final VelocityIslandMessageFormatter islandMessages;
     private final VelocityNodeJobMessageFormatter nodeJobMessages;
+    private final VelocityPlayerPayloadFormatter playerPayloads = new VelocityPlayerPayloadFormatter();
     private final VelocityRouteMessageFormatter routeMessages;
+    private final VelocitySnapshotMessageFormatter snapshotMessages = new VelocitySnapshotMessageFormatter();
     private final CoreEventCodec eventCodec;
+    private final CoreNodeStateEventHandler nodeStateEvents;
     private final CoreEventPoller eventPoller;
     private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
     private final VelocityServerGateway servers;
@@ -120,6 +123,7 @@ public final class VelocityRoutingController {
         this.nodeJobMessages = new VelocityNodeJobMessageFormatter(routePrivacy);
         this.routeMessages = new VelocityRouteMessageFormatter(routePrivacy);
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
+        this.nodeStateEvents = new CoreNodeStateEventHandler(this::moveNodePlayersToFallback);
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
         this.servers = new VelocityServerGateway(proxy, this.islandPool, hideNodeNames);
         this.fallbackService = new RouteFallbackService(proxy, fallbackServer, metrics, this::playerComponent);
@@ -1333,7 +1337,7 @@ public final class VelocityRoutingController {
     }
 
     private void sendPlayerPayload(Player player, String body, String emptyMessage, String successMessage) {
-        player.sendMessage(Component.text(playerPayloadMessage(body, emptyMessage, successMessage)));
+        player.sendMessage(Component.text(playerPayloads.playerPayloadMessage(body, emptyMessage, successMessage)));
     }
 
     private void sendPlayerPayloadFuture(Player player, CompletableFuture<String> future, String emptyMessage, String successMessage) {
@@ -1358,32 +1362,11 @@ public final class VelocityRoutingController {
     }
 
     private String bodyResultMessage(String body, String emptyMessage) {
-        if (body == null || body.isBlank()) {
-            return emptyMessage;
-        }
-        String trimmed = body.trim();
-        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-            return playerPayloadMessage(trimmed, emptyMessage, emptyMessage);
-        }
-        return trimmed;
+        return playerPayloads.bodyResultMessage(body, emptyMessage);
     }
 
     private void handleCoreEvent(CoreEventEnvelope event) {
-        String type = event.type();
-        Map<String, String> fields = event.fields();
-        if (!type.equals("NODE_STATE_CHANGED")) {
-            return;
-        }
-        String state = fields.getOrDefault("state", "");
-        String operation = fields.getOrDefault("operation", "");
-        if (!state.equals("KICKALL") && !state.equals("SHUTDOWN_SAFE") && !state.equals("DOWN") && !operation.equals("SHUTDOWN_SAFE")) {
-            return;
-        }
-        String nodeId = fields.getOrDefault("nodeId", "");
-        if (nodeId.isBlank() || nodeId.equals("*")) {
-            return;
-        }
-        moveNodePlayersToFallback(nodeId);
+        nodeStateEvents.handle(event);
     }
 
     private String routeDebugMessage(String body) {
@@ -1399,44 +1382,7 @@ public final class VelocityRoutingController {
     }
 
     private String snapshotListMessage(String body) {
-        String snapshots = arrayValue(body, "snapshots");
-        if (snapshots.isBlank()) {
-            return "섬 스냅샷이 없습니다.";
-        }
-        java.util.List<String> entries = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < snapshots.length() && entries.size() < 20) {
-            int objectStart = snapshots.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(snapshots, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = snapshots.substring(objectStart, objectEnd + 1);
-            long snapshotNo = longValue(object, "snapshotNo");
-            if (snapshotNo > 0L) {
-                String reason = jsonValue(object, "reason");
-                long sizeBytes = longValue(object, "sizeBytes");
-                String createdAt = jsonValue(object, "createdAt");
-                String checksum = jsonValue(object, "checksum");
-                entries.add("#" + snapshotNo
-                    + (reason.isBlank() ? "" : " 사유=" + reason)
-                    + " 크기=" + sizeBytes
-                    + (checksum.isBlank() ? "" : " checksum=" + shortChecksum(checksum))
-                    + (createdAt.isBlank() ? "" : " 생성=" + createdAt));
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(" | ", entries);
-    }
-
-    private String shortChecksum(String checksum) {
-        if (checksum == null || checksum.isBlank()) {
-            return "";
-        }
-        return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
+        return snapshotMessages.snapshotList(body);
     }
 
     private void sendInviteActionResult(Player player, CompletableFuture<String> future, String successMessage, String failureMessage) {
@@ -1464,25 +1410,6 @@ public final class VelocityRoutingController {
             return null;
         });
     }
-    private String playerPayloadMessage(String body, String emptyMessage, String successMessage) {
-        if (body == null || body.isBlank()) {
-            return emptyMessage;
-        }
-        String trimmed = body.trim();
-        if (trimmed.startsWith("{\"error\"")) {
-            String code = jsonValue(trimmed, "code");
-            return playerErrorMessage(code, emptyMessage);
-        }
-        if (trimmed.startsWith("{") && trimmed.contains("\"accepted\":false")) {
-            String code = jsonValue(trimmed, "code");
-            return playerErrorMessage(code, emptyMessage);
-        }
-        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-            return successMessage;
-        }
-        return trimmed;
-    }
-
     private String playerErrorMessage(String code, String fallback) {
         return kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy.playerMessage(code, fallback);
     }
