@@ -38,6 +38,7 @@ import kr.lunaf.cloudislands.velocity.event.CoreEventCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
 import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
+import kr.lunaf.cloudislands.velocity.message.VelocityMigrationMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
@@ -63,6 +64,7 @@ public final class VelocityRoutingController {
     private final boolean useBossBarLoading;
     private final VelocityMessages messages;
     private final VelocityRoutePrivacyFormatter routePrivacy;
+    private final VelocityMigrationMessageFormatter migrationMessages = new VelocityMigrationMessageFormatter();
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
     private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
@@ -1114,175 +1116,7 @@ public final class VelocityRoutingController {
     }
 
     public void migrateSuperiorSkyblock2(Player player, String action, String path) {
-        sendBodyResult(player, coreApiClient.migrateSuperiorSkyblock2(action, path).thenApply(this::migrationMessage), "마이그레이션 명령을 실행하지 못했습니다.");
-    }
-
-    private String migrationMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "Migration: no response";
-        }
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            if (code.equals("MIGRATION_DISABLED")) {
-                StringBuilder disabled = new StringBuilder("SuperiorSkyblock2 migration is disabled by config.");
-                if (body.contains("\"sourcePlugin\"")) {
-                    disabled.append(" source=").append(jsonValue(body, "sourcePlugin"));
-                }
-                if (body.contains("\"migrationInputOnly\"")) {
-                    disabled.append(" inputOnly=").append(boolValue(body, "migrationInputOnly"));
-                }
-                if (body.contains("\"runtimeDependency\"")) {
-                    disabled.append(" runtimeDependency=").append(boolValue(body, "runtimeDependency"));
-                }
-                String targetRuntime = jsonValue(body, "targetRuntime");
-                if (!targetRuntime.isBlank()) {
-                    disabled.append(" targetRuntime=").append(targetRuntime);
-                }
-                return disabled.toString();
-            }
-            String message = jsonValue(body, "message");
-            return "Migration: failed code=" + code + (message.isBlank() ? "" : " message=" + message);
-        }
-        String state = jsonValue(body, "state");
-        String path = jsonValue(body, "path");
-        String manifestPath = jsonValue(body, "manifestPath");
-        String reportPath = jsonValue(body, "reportPath");
-        String approvalToken = jsonValue(body, "approvalToken");
-        String issues = arrayValue(body, "issues");
-        long manifests = longValue(body, "manifests");
-        if (manifests == 0L && body.contains("\"scanManifests\"")) {
-            manifests = longValue(body, "scanManifests");
-        }
-        long importedIslands = longValue(body, "importedIslands");
-        long removedIslands = longValue(body, "removedIslands");
-        StringBuilder builder = new StringBuilder("Migration: state=")
-            .append(state.isBlank() ? "UNKNOWN" : state)
-            .append(" manifests=")
-            .append(manifests);
-        if (!path.isBlank()) {
-            builder.append(" path=").append(path);
-        }
-        if (!manifestPath.isBlank()) {
-            builder.append(" manifest=").append(manifestPath);
-        }
-        if (!reportPath.isBlank()) {
-            builder.append(" report=").append(reportPath);
-        }
-        if (!approvalToken.isBlank()) {
-            builder.append(" approval=").append(approvalToken);
-        }
-        if (body.contains("\"sourcePlugin\"")) {
-            builder.append(" source=").append(jsonValue(body, "sourcePlugin"));
-        }
-        if (body.contains("\"migrationInputOnly\"")) {
-            builder.append(" inputOnly=").append(boolValue(body, "migrationInputOnly"));
-        }
-        if (body.contains("\"runtimeDependency\"")) {
-            builder.append(" runtimeDependency=").append(boolValue(body, "runtimeDependency"));
-        }
-        String targetRuntime = jsonValue(body, "targetRuntime");
-        if (!targetRuntime.isBlank()) {
-            builder.append(" targetRuntime=").append(targetRuntime);
-        }
-        if (body.contains("\"canImport\"")) {
-            builder.append(" canImport=").append(boolValue(body, "canImport"));
-        }
-        if (body.contains("\"planManifests\"")) {
-            builder.append(" planManifests=").append(longValue(body, "planManifests"));
-        }
-        if (body.contains("\"rollbackPlanAvailable\"")) {
-            builder.append(" rollbackPlan=").append(boolValue(body, "rollbackPlanAvailable"));
-        }
-        if (body.contains("\"approvalRequired\"")) {
-            builder.append(" approvalRequired=").append(boolValue(body, "approvalRequired"));
-        }
-        if (body.contains("\"manifestStatus\"")) {
-            builder.append(" manifestStatus=").append(jsonValue(body, "manifestStatus"))
-                .append(" conflictStatus=").append(jsonValue(body, "conflictStatus"))
-                .append(" conflicts=").append(longValue(body, "conflictIssues"));
-        }
-        if (body.contains("\"imported\"")) {
-            builder.append(" imported=").append(boolValue(body, "imported"))
-                .append(" islands=")
-                .append(importedIslands);
-        }
-        if (body.contains("\"passed\"")) {
-            builder.append(" passed=").append(boolValue(body, "passed"))
-                .append(" expected=")
-                .append(longValue(body, "expected"));
-        }
-        if (body.contains("\"activationTested\"")) {
-            builder.append(" activationTested=").append(longValue(body, "activationTested"))
-                .append(" activationPassed=")
-                .append(longValue(body, "activationTestPassed"));
-        }
-        if (body.contains("\"rolledBack\"")) {
-            builder.append(" rolledBack=").append(boolValue(body, "rolledBack"))
-                .append(" removed=")
-                .append(removedIslands);
-        }
-        if (body.contains("\"extractedBundles\"")) {
-            builder.append(" extracted=")
-                .append(longValue(body, "extractedBundles"))
-                .append(" files=")
-                .append(longValue(body, "extractedFiles"))
-                .append(" bytes=")
-                .append(longValue(body, "extractedBytes"));
-        }
-        if (body.contains("\"members\"")) {
-            builder.append(" members=").append(longValue(body, "members"))
-                .append(" roles=").append(longValue(body, "memberRoles"))
-                .append(" homes=").append(longValue(body, "homes"))
-                .append(" warps=").append(longValue(body, "warps"))
-                .append(" locations=").append(longValue(body, "islandLocations"))
-                .append(" sourceWorlds=").append(longValue(body, "sourceWorlds"))
-                .append(" sizes=").append(longValue(body, "islandSizes"))
-                .append(" levels=").append(longValue(body, "levels"))
-                .append(" worth=").append(longValue(body, "worthValues"))
-                .append(" biomes=").append(longValue(body, "biomes"))
-                .append(" bank=").append(longValue(body, "bankBalances"))
-                .append(" perms=").append(longValue(body, "permissions"));
-        }
-        if (body.contains("\"blockingIssues\"")) {
-            builder.append(" blocking=").append(longValue(body, "blockingIssues"))
-                .append(" warnings=").append(longValue(body, "warningIssues"));
-        }
-        builder.append(migrationIssuesSuffix(issues));
-        return builder.toString();
-    }
-
-    private String migrationIssuesSuffix(String issues) {
-        if (issues.isBlank()) {
-            return " issues=0";
-        }
-        int total = 0;
-        int blocking = 0;
-        java.util.List<String> samples = new java.util.ArrayList<>();
-        int index = 0;
-        while (index < issues.length()) {
-            int objectStart = issues.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(issues, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = issues.substring(objectStart, objectEnd + 1);
-            total++;
-            boolean blocked = boolValue(object, "blocking");
-            if (blocked) {
-                blocking++;
-            }
-            if (samples.size() < 5) {
-                String issueCode = jsonValue(object, "code");
-                samples.add((issueCode.isBlank() ? "UNKNOWN" : issueCode) + (blocked ? "(blocking)" : ""));
-            }
-            index = objectEnd + 1;
-        }
-        return " issues=" + total
-            + " blocking=" + blocking
-            + (samples.isEmpty() ? "" : " [" + String.join(", ", samples) + "]");
+        sendBodyResult(player, coreApiClient.migrateSuperiorSkyblock2(action, path).thenApply(migrationMessages::format), "마이그레이션 명령을 실행하지 못했습니다.");
     }
 
     private String actionResultMessage(String label, String targetId, String body) {
