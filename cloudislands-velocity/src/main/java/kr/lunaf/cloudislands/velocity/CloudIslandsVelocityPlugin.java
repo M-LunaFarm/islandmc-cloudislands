@@ -11,23 +11,19 @@ import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
-import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
-import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
+import kr.lunaf.cloudislands.velocity.bootstrap.VelocityRuntimeFactory;
+import kr.lunaf.cloudislands.velocity.bootstrap.VelocityRuntimeServices;
 import kr.lunaf.cloudislands.velocity.command.IslandCommandCatalog;
 import kr.lunaf.cloudislands.velocity.command.VelocityCommandRegistrar;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
-import kr.lunaf.cloudislands.velocity.config.VelocityConfigLoader;
 import kr.lunaf.cloudislands.velocity.health.VelocityHealthService;
 import kr.lunaf.cloudislands.velocity.health.VelocityStatusReporter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
@@ -45,52 +41,22 @@ public final class CloudIslandsVelocityPlugin {
     private final VelocityHealthService healthService;
     private final VelocityStatusReporter statusReporter;
     private final VelocityMessages messages;
-    private final PluginMessageFirewall pluginMessageFirewall = new PluginMessageFirewall();
+    private final PluginMessageFirewall pluginMessageFirewall;
 
     @Inject
     public CloudIslandsVelocityPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
         this.proxy = proxy;
         this.logger = logger;
-        VelocityConfig config = VelocityConfigLoader.load(dataDirectory, logger);
-        this.config = config;
-        String coreUrl = System.getProperty("cloudislands.core", config.coreBaseUrl());
-        String coreToken = System.getenv().getOrDefault("CI_CORE_TOKEN", config.coreToken());
-        String adminToken = System.getenv().getOrDefault("CI_ADMIN_TOKEN", config.adminToken());
-        long timeoutMs = Long.getLong("cloudislands.timeoutMs", config.timeoutMs());
-        String fallbackServer = System.getProperty("cloudislands.fallback", config.fallbackServer());
-        int routeWaitSeconds = Integer.getInteger("cloudislands.routeWaitSeconds", config.routeWaitSeconds());
-        String islandPool = System.getProperty("cloudislands.islandPool", config.islandPool());
-        int routeTicketTtlSeconds = Integer.getInteger("cloudislands.routeTicketTtlSeconds", config.routeTicketTtlSeconds());
-        logSecurityPosture(config, coreToken, adminToken);
-        CoreApiClient client = new JdkCoreApiClient(URI.create(coreUrl), coreToken, adminToken, Duration.ofMillis(Math.max(1L, timeoutMs)));
-        this.messages = VelocityMessages.from(config.language(), config.messages());
-        this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading(), config.hideNodeNames(), islandPool, routeTicketTtlSeconds, messages);
-        this.commandAliases = config.aliases();
-        this.statusReporter = new VelocityStatusReporter(proxy, config, commandAliases, routingController, pluginMessageFirewall);
-        this.healthService = new VelocityHealthService(
-            logger,
-            config.healthBindHost(),
-            config.healthPort(),
-            statusReporter::healthJson,
-            statusReporter::metricsText
-        );
+        VelocityRuntimeServices services = VelocityRuntimeFactory.create(proxy, logger, dataDirectory);
+        this.config = services.config();
+        this.messages = services.messages();
+        this.routingController = services.routingController();
+        this.commandAliases = services.commandAliases();
+        this.statusReporter = services.statusReporter();
+        this.healthService = services.healthService();
+        this.pluginMessageFirewall = services.pluginMessageFirewall();
         if (config.debug()) {
             logger.info("CloudIslands Velocity config loaded: language={}, aliases={}, health={}:{}", config.language(), commandAliases, config.healthBindHost(), config.healthPort());
-        }
-    }
-
-    private void logSecurityPosture(VelocityConfig config, String coreToken, String adminToken) {
-        if (config.requireModernForwarding() && config.forwardingSecret().isBlank()) {
-            logger.warn("CloudIslands security: Velocity modern forwarding is required but security.forwarding-secret is empty");
-        }
-        if (coreToken == null || coreToken.isBlank()) {
-            logger.warn("CloudIslands security: core-api auth token is empty");
-        }
-        if (adminToken == null || adminToken.isBlank()) {
-            logger.warn("CloudIslands security: admin token is empty, admin Core requests will be rejected");
-        }
-        if (!config.blockCloudIslandsPluginMessages()) {
-            logger.warn("CloudIslands security: cloudislands plugin messages are not blocked at Velocity");
         }
     }
 
