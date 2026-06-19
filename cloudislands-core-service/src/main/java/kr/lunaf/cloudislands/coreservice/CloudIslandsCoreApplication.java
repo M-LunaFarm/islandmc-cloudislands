@@ -20,7 +20,6 @@ import java.util.logging.Logger;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
-import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -68,6 +67,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBankRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBlockLevelRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandCatalogRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandCommunicationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandMemberRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSettingsRoutes;
@@ -373,16 +373,7 @@ public final class CloudIslandsCoreApplication {
         new IslandVisitorRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandSettingsRoutes(islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(this::route);
-        route("/v1/islands/info", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID ownerUuid = JsonFields.uuid(body, "ownerUuid", new UUID(0L, 0L));
-            String name = JsonFields.text(body, "name", "");
-            java.util.Optional<IslandSnapshot> island = islandId.equals(new UUID(0L, 0L))
-                ? ownerUuid.equals(new UUID(0L, 0L)) ? islandRepository.findByName(name) : islandRepository.findByOwner(ownerUuid)
-                : islandRepository.findById(islandId);
-            write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
-        });
+        new IslandCatalogRoutes(islandRepository, metadataRepository, createIsland, islandLogs, audit).register(this::route);
         routePrefix("/v1/islands/", exchange -> {
             String method = exchange.getRequestMethod();
             String path = exchange.getRequestURI().getPath();
@@ -747,29 +738,6 @@ public final class CloudIslandsCoreApplication {
                 islandLogs.append(islandId, actorUuid, "ISLAND_RESET", Map.of("reason", reason));
             }
             lifecycle(exchange, result);
-        });
-        route("/v1/islands/public", exchange -> {
-            String body = readBody(exchange);
-            int limit = queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 27), 1, 54);
-            java.util.List<IslandSnapshot> islands = metadataRepository.publicIslandIds(limit).stream()
-                .map(islandRepository::findById)
-                .flatMap(java.util.Optional::stream)
-                .sorted(java.util.Comparator.comparingLong(IslandSnapshot::level).reversed().thenComparing(IslandSnapshot::name))
-                .toList();
-            write(exchange, 200, islandsJson(islands));
-        });
-        route("/v1/islands", exchange -> {
-            String body = readBody(exchange);
-            UUID playerUuid = JsonFields.uuid(body, "playerUuid", new UUID(0L, 0L));
-            CreateIslandResult result = createIsland.create(playerUuid, JsonFields.text(body, "templateId", "default"));
-            if (result.accepted() && result.island() != null) {
-                metadataRepository.upsertMember(result.island().islandId(), playerUuid, IslandRole.OWNER);
-                islandLogs.append(result.island().islandId(), playerUuid, "ISLAND_CREATE", Map.of("templateId", JsonFields.text(body, "templateId", "default")));
-            }
-            audit.log(playerUuid, "PLAYER", "ISLAND_CREATE", "ISLAND", result.island() == null ? "" : result.island().islandId().toString(), Map.of("code", result.code()));
-            String ticketJson = result.ticket() == null ? "null" : RoutingOrchestrator.toJson(result.ticket());
-            String islandId = result.island() == null ? "" : result.island().islandId().toString();
-            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + islandId + "\",\"ticket\":" + ticketJson + "}");
         });
     }
 
