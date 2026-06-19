@@ -58,6 +58,7 @@ import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.http.routes.AdminIslandLifecycleRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminRuntimeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminNodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AddonRoutes;
@@ -70,6 +71,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.IslandCatalogRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandCommunicationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandMemberRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandPlayerLifecycleRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandQueryRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSettingsRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSnapshotRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandUpgradeRoutes;
@@ -375,152 +377,24 @@ public final class CloudIslandsCoreApplication {
         new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandCatalogRoutes(islandRepository, metadataRepository, createIsland, islandLogs, audit).register(this::route);
         new IslandPlayerLifecycleRoutes(islandRepository, metadataRepository, permissionRules, lifecycle, this::requestIslandDelete, islandLogs, audit, events).register(this::route);
-        routePrefix("/v1/islands/", exchange -> {
-            String method = exchange.getRequestMethod();
-            String path = exchange.getRequestURI().getPath();
-            String tail = path.substring("/v1/islands/".length());
-            if (method.equalsIgnoreCase("GET") && tail.startsWith("by-owner/")) {
-                UUID ownerUuid = uuidPath(tail.substring("by-owner/".length()));
-                java.util.Optional<IslandSnapshot> island = islandRepository.findByOwner(ownerUuid);
-                write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/members")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/members".length()));
-                write(exchange, 200, membersJson(metadataRepository.members(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/runtime")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/runtime".length()));
-                java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
-                write(exchange, runtime.isPresent() ? 200 : 404, runtime.map(CloudIslandsCoreApplication::runtimeJson).orElseGet(() -> ApiResponses.error("ISLAND_RUNTIME_NOT_FOUND", "Island runtime was not found")));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/flags")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/flags".length()));
-                write(exchange, 200, flagsJson(metadataRepository.flags(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/level")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/level".length()));
-                if (islandRepository.findById(islandId).isEmpty()) {
-                    write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
-                    return;
-                }
-                var snapshot = levelRecalculation.recalculate(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), metadataRepository.members(islandId).size());
-                write(exchange, 200, levelJson(snapshot));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/permissions")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/permissions".length()));
-                write(exchange, 200, permissionsJson(permissionRules.list(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/roles")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/roles".length()));
-                write(exchange, 200, rolesJson(roleRepository.list(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/bans")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/bans".length()));
-                write(exchange, 200, bansJson(metadataRepository.bans(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/biome")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/biome".length()));
-                write(exchange, 200, biomeJson(metadataRepository.biome(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/homes")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/homes".length()));
-                write(exchange, 200, homesJson(metadataRepository.homes(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/warps")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/warps".length()));
-                write(exchange, 200, warpsJson(metadataRepository.warps(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/limits")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/limits".length()));
-                write(exchange, 200, limitsJson(limitRepository.list(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/upgrades")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/upgrades".length()));
-                write(exchange, 200, upgradesJson(upgradeRepository.list(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/bank")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/bank".length()));
-                write(exchange, 200, bankJson(bankRepository.balance(islandId)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/missions")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/missions".length()));
-                write(exchange, 200, missionsJson(missionRepository.list(islandId, "MISSION")));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/snapshots")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/snapshots".length()));
-                write(exchange, 200, snapshotsJson(snapshotRepository.list(islandId, 20)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/logs")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/logs".length()));
-                write(exchange, 200, islandLogsJson(islandLogs.list(islandId, 30)));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && !tail.contains("/")) {
-                UUID islandId = uuidPath(tail);
-                java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
-                write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
-                return;
-            }
-            if (method.equalsIgnoreCase("DELETE") && !tail.contains("/")) {
-                UUID islandId = uuidPath(tail);
-                java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
-                UUID requesterUuid = queryUuid(exchange, "requesterUuid", island.map(IslandSnapshot::ownerUuid).orElse(new UUID(0L, 0L)));
-                boolean deleted = island.isPresent() && requestIslandDelete(islandId, requesterUuid, island.get().ownerUuid(), "api-delete");
-                audit.log(new UUID(0L, 0L), "API", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
-                write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
-                return;
-            }
-            write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
-        });
-        routePrefix("/v1/players/", exchange -> {
-            String method = exchange.getRequestMethod();
-            String path = exchange.getRequestURI().getPath();
-            String tail = path.substring("/v1/players/".length());
-            if (method.equalsIgnoreCase("GET") && !tail.contains("/")) {
-                UUID playerUuid = uuidPath(tail);
-                java.util.Optional<kr.lunaf.cloudislands.api.model.PlayerIslandProfile> profile = java.util.Optional.of(playerProfiles.find(playerUuid));
-                write(exchange, profile.isPresent() ? 200 : 404, profile.map(CloudIslandsCoreApplication::playerProfileJson).orElseGet(() -> ApiResponses.error("PLAYER_NOT_FOUND", "Player was not found")));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/profile")) {
-                UUID playerUuid = uuidPath(tail.substring(0, tail.length() - "/profile".length()));
-                java.util.Optional<kr.lunaf.cloudislands.api.model.PlayerIslandProfile> profile = java.util.Optional.of(playerProfiles.find(playerUuid));
-                write(exchange, profile.isPresent() ? 200 : 404, profile.map(CloudIslandsCoreApplication::playerProfileJson).orElseGet(() -> ApiResponses.error("PLAYER_NOT_FOUND", "Player was not found")));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/island")) {
-                UUID playerUuid = uuidPath(tail.substring(0, tail.length() - "/island".length()));
-                java.util.Optional<IslandSnapshot> island = islandRepository.findByOwner(playerUuid);
-                write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
-                return;
-            }
-            if (method.equalsIgnoreCase("GET") && tail.endsWith("/islands")) {
-                UUID playerUuid = uuidPath(tail.substring(0, tail.length() - "/islands".length()));
-                java.util.ArrayList<IslandSnapshot> islands = new java.util.ArrayList<>();
-                for (kr.lunaf.cloudislands.api.model.IslandMemberSnapshot member : metadataRepository.islandsForMember(playerUuid)) {
-                    islandRepository.findById(member.islandId()).ifPresent(islands::add);
-                }
-                write(exchange, 200, islandsJson(islands));
-                return;
-            }
-            write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
-        });
+        new IslandQueryRoutes(
+            islandRepository,
+            metadataRepository,
+            runtimeRepository,
+            levelRepository,
+            levelRecalculation,
+            permissionRules,
+            roleRepository,
+            limitRepository,
+            upgradeRepository,
+            bankRepository,
+            missionRepository,
+            snapshotRepository,
+            islandLogs,
+            playerProfiles,
+            audit,
+            this::requestIslandDelete
+        ).register(this::routePrefix);
         new RoutePreparationRoutes(routing).register(this::route);
         new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(this::route);
         new AdminRuntimeRoutes(sessions, tickets, redisCacheAdmin, audit, events).register(this::route);
@@ -529,191 +403,15 @@ public final class CloudIslandsCoreApplication {
         new TemplateRoutes(templateRepository, audit, events).register(this::route);
         new ProtocolRoutes(nodes).register(this::route);
         new AdminNodeRoutes(nodes, nodeFailureMonitor, config.heartbeatTimeout(), audit, events).register(this::route, this::routePrefix);
-        route("/v1/admin/islands/activate", exchange -> {
-            UUID islandId = JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L));
-            IslandLifecycleWorkflow.Result result = lifecycle.activate(islandId);
-            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_ACTIVATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
-            lifecycle(exchange, result);
-        });
-        route("/v1/admin/islands/deactivate", exchange -> {
-            UUID islandId = JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L));
-            IslandLifecycleWorkflow.Result result = lifecycle.deactivate(islandId);
-            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DEACTIVATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
-            lifecycle(exchange, result);
-        });
-        route("/v1/admin/islands/migrate", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String targetNode = JsonFields.text(body, "targetNode", "");
-            IslandLifecycleWorkflow.Result result = lifecycle.migrate(islandId, targetNode);
-            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_MIGRATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "targetNode", targetNode));
-            lifecycle(exchange, result);
-        });
-        routePrefix("/v1/admin/islands/", exchange -> {
-            String method = exchange.getRequestMethod();
-            String path = exchange.getRequestURI().getPath();
-            String tail = path.substring("/v1/admin/islands/".length());
-            if (!method.equalsIgnoreCase("POST")) {
-                write(exchange, 405, ApiResponses.error("METHOD_NOT_ALLOWED", "Use POST for admin island lifecycle operations"));
-                return;
-            }
-            if (tail.endsWith("/activate")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/activate".length()));
-                IslandLifecycleWorkflow.Result result = lifecycle.activate(islandId);
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_ACTIVATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
-                lifecycle(exchange, result);
-                return;
-            }
-            if (tail.endsWith("/deactivate")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/deactivate".length()));
-                IslandLifecycleWorkflow.Result result = lifecycle.deactivate(islandId);
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DEACTIVATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
-                lifecycle(exchange, result);
-                return;
-            }
-            if (tail.endsWith("/migrate")) {
-                String body = readBody(exchange);
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/migrate".length()));
-                String targetNode = JsonFields.text(body, "targetNode", "");
-                IslandLifecycleWorkflow.Result result = lifecycle.migrate(islandId, targetNode);
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_MIGRATE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "targetNode", targetNode));
-                lifecycle(exchange, result);
-                return;
-            }
-            if (tail.endsWith("/save")) {
-                String body = readBody(exchange);
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/save".length()));
-                String reason = adminSaveReason(JsonFields.text(body, "reason", "ADMIN_SAVE"));
-                IslandLifecycleWorkflow.Result result = lifecycle.snapshot(islandId, reason);
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_SAVE_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
-                lifecycle(exchange, result);
-                return;
-            }
-            if (tail.endsWith("/snapshot")) {
-                String body = readBody(exchange);
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/snapshot".length()));
-                String reason = adminSnapshotReason(JsonFields.text(body, "reason", "MANUAL"));
-                IslandLifecycleWorkflow.Result result = lifecycle.snapshot(islandId, reason);
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_SNAPSHOT_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
-                lifecycle(exchange, result);
-                return;
-            }
-            if (tail.endsWith("/restore")) {
-                String body = readBody(exchange);
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/restore".length()));
-                long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
-                restoreIslandSnapshot(exchange, audit, lifecycle, snapshotRepository, islandId, snapshotNo);
-                return;
-            }
-            if (tail.endsWith("/rollback")) {
-                String body = readBody(exchange);
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/rollback".length()));
-                long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
-                rollbackIslandSnapshot(exchange, audit, lifecycle, snapshotRepository, islandId, snapshotNo);
-                return;
-            }
-            if (tail.endsWith("/quarantine")) {
-                String body = readBody(exchange);
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/quarantine".length()));
-                String reason = JsonFields.text(body, "reason", "admin");
-                IslandLifecycleWorkflow.Result result = lifecycle.quarantine(islandId, reason);
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_QUARANTINE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
-                lifecycle(exchange, result);
-                return;
-            }
-            if (tail.endsWith("/delete")) {
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/delete".length()));
-                java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
-                boolean deleted = island.isPresent() && requestIslandDelete(islandId, island.get().ownerUuid(), island.get().ownerUuid(), "admin-delete");
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
-                write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
-                return;
-            }
-            if (tail.endsWith("/repair")) {
-                String body = readBody(exchange);
-                UUID islandId = uuidPath(tail.substring(0, tail.length() - "/repair".length()));
-                String reason = JsonFields.text(body, "reason", "admin");
-                if (islandRepository.findById(islandId).isEmpty()) {
-                    write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
-                    return;
-                }
-                var runtime = runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY);
-                islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY);
-                audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_REPAIR", "ISLAND", islandId.toString(), Map.of("reason", reason));
-                events.publish(CloudIslandEventType.ISLAND_REPAIRED.name(), Map.of("islandId", islandId.toString(), "reason", reason, "state", runtime.state().name()));
-                events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "reason", "REPAIRED"));
-                write(exchange, 202, runtimeJson(runtime));
-                return;
-            }
-            write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
-        });
-        route("/v1/admin/islands/save", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String reason = adminSaveReason(JsonFields.text(body, "reason", "ADMIN_SAVE"));
-            IslandLifecycleWorkflow.Result result = lifecycle.snapshot(islandId, reason);
-            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_SAVE_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
-            lifecycle(exchange, result);
-        });
-        route("/v1/admin/islands/snapshot", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String reason = adminSnapshotReason(JsonFields.text(body, "reason", "MANUAL"));
-            IslandLifecycleWorkflow.Result result = lifecycle.snapshot(islandId, reason);
-            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_SNAPSHOT_REQUEST", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code(), "reason", reason));
-            lifecycle(exchange, result);
-        });
-        route("/v1/admin/islands/restore", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
-            restoreIslandSnapshot(exchange, audit, lifecycle, snapshotRepository, islandId, snapshotNo);
-        });
-        route("/v1/admin/islands/rollback", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            long snapshotNo = JsonFields.longValue(body, "snapshotNo", 0L);
-            rollbackIslandSnapshot(exchange, audit, lifecycle, snapshotRepository, islandId, snapshotNo);
-        });
-        route("/v1/admin/islands/quarantine", exchange -> {
-            String body = readBody(exchange);
-            lifecycle(exchange, lifecycle.quarantine(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "reason", "admin")));
-        });
-        route("/v1/admin/islands/info", exchange -> {
-            String body = readBody(exchange);
-            UUID lookupUuid = JsonFields.uuid(body, "lookupUuid", new UUID(0L, 0L));
-            java.util.Optional<IslandSnapshot> island = islandRepository.findById(lookupUuid).or(() -> islandRepository.findByOwner(lookupUuid));
-            write(exchange, island.isPresent() ? 200 : 404, island.map(CloudIslandsCoreApplication::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
-        });
-        route("/v1/admin/islands/where", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
-            write(exchange, runtime.isPresent() ? 200 : 404, runtime.map(CloudIslandsCoreApplication::runtimeJson).orElseGet(() -> ApiResponses.error("ISLAND_RUNTIME_NOT_FOUND", "Island runtime was not found")));
-        });
-        route("/v1/admin/islands/delete", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
-            boolean deleted = island.isPresent() && requestIslandDelete(islandId, island.get().ownerUuid(), island.get().ownerUuid(), "admin-delete");
-            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
-            write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
-        });
-        route("/v1/admin/islands/repair", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String reason = JsonFields.text(body, "reason", "admin");
-            if (islandRepository.findById(islandId).isEmpty()) {
-                write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
-                return;
-            }
-            var runtime = runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY);
-            islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.INACTIVE_READY);
-            audit.log(new UUID(0L, 0L), "ADMIN", "ISLAND_REPAIR", "ISLAND", islandId.toString(), Map.of("reason", reason));
-            events.publish(CloudIslandEventType.ISLAND_REPAIRED.name(), Map.of("islandId", islandId.toString(), "reason", reason, "state", runtime.state().name()));
-            events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", runtime.state().name(), "reason", "REPAIRED"));
-            write(exchange, 202, runtimeJson(runtime));
-        });
+        new AdminIslandLifecycleRoutes(
+            lifecycle,
+            islandRepository,
+            runtimeRepository,
+            snapshotRepository,
+            audit,
+            events,
+            this::requestIslandDelete
+        ).register(this::route, this::routePrefix);
     }
 
     private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, RouteSessionStore sessions, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRoleRepository roles, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandLevelRepository levels, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandUpgradeRepository upgrades, IslandTemplateRepository templates, IslandSnapshotRepository snapshots, IslandLogRepository islandLogs, RedisCacheAdmin redisCacheAdmin, RedisActivationLock activationLock, RedisPlayerCreationLock playerCreationLock, AuditLogger audit) {
