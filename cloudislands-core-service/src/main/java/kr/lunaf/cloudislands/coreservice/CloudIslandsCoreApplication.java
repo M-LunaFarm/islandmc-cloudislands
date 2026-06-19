@@ -62,6 +62,7 @@ import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
@@ -340,39 +341,7 @@ public final class CloudIslandsCoreApplication {
         route("/health", exchange -> writeReadiness(exchange, config));
         route("/metrics", exchange -> write(exchange, 200, metrics.render(), "text/plain; version=0.0.4; charset=utf-8"));
         route("/v1/admin/config", exchange -> write(exchange, 200, configSummaryJson(config, nodes)));
-        route("/v1/admin/storage", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
-        route("/v1/nodes", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
-        route("/v1/nodes/info", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            write(exchange, nodes.find(nodeId).isPresent() ? 200 : 404, nodes.find(nodeId).map(NodeRegistry::toJson).orElseGet(() -> ApiResponses.error("NODE_NOT_FOUND", "Node was not found")));
-        });
-        route("/v1/nodes/islands", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 50), 200));
-            if (nodes.find(nodeId).isEmpty()) {
-                write(exchange, 404, ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-                return;
-            }
-            write(exchange, 200, nodeIslandsJson(nodeId, runtimeRepository.listByNode(nodeId, limit)));
-        });
-        route("/v1/admin/nodes/list", exchange -> write(exchange, 200, nodes.toJson(config.heartbeatTimeout())));
-        route("/v1/admin/nodes/info", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            write(exchange, nodes.find(nodeId).isPresent() ? 200 : 404, nodes.find(nodeId).map(NodeRegistry::toJson).orElseGet(() -> ApiResponses.error("NODE_NOT_FOUND", "Node was not found")));
-        });
-        route("/v1/admin/nodes/islands", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 50), 200));
-            if (nodes.find(nodeId).isEmpty()) {
-                write(exchange, 404, ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-                return;
-            }
-            write(exchange, 200, nodeIslandsJson(nodeId, runtimeRepository.listByNode(nodeId, limit)));
-        });
+        new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(this::route);
         route("/v1/jobs", exchange -> write(exchange, 200, jobsJson(jobs)));
         new EventRoutes(inMemoryEvents).register(this::route);
         route("/v1/audit", exchange -> {

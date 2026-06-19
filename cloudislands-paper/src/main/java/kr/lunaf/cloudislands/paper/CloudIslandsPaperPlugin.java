@@ -19,12 +19,11 @@ import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
 import kr.lunaf.cloudislands.paper.activation.PeriodicIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
-import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.bootstrap.LifecycleRegistry;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
-import kr.lunaf.cloudislands.paper.command.IslandCommandController;
+import kr.lunaf.cloudislands.paper.command.PaperCommandRegistrar;
 import kr.lunaf.cloudislands.paper.economy.VaultEconomyBridge;
 import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
@@ -86,7 +85,6 @@ import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
 import kr.lunaf.cloudislands.paper.world.export.ExternalTarIslandBundleExporter;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -189,21 +187,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         boolean requireProxySourceAllowlist = role == AgentRole.ISLAND_NODE && configBoolean("security.require-proxy-source-allowlist", true);
         this.routeSessionListener = new PaperRouteSessionListener(this, client, agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, proxySourceAllowlist, messages);
         getServer().getPluginManager().registerEvents(routeSessionListener, this);
-        PluginCommand admin = getCommand("ciadmin");
         int routeWaitSeconds = getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
-        if (admin != null) {
-            AdminCommandController adminController = new AdminCommandController(agent, client, nodeId, routeWaitSeconds, localCaches, messages);
-            admin.setExecutor(adminController);
-            admin.setTabCompleter(adminController);
-        }
-        PluginCommand island = getCommand("island");
-        if (island != null) {
-            IslandLevelScanService levelScanService = new IslandLevelScanService(this, () -> activeIslands, client);
-            IslandCommandController islandController = new IslandCommandController(this, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages);
-            island.setExecutor(islandController);
-            island.setTabCompleter(islandController);
-            getServer().getPluginManager().registerEvents(islandController, this);
-        }
+        new PaperCommandRegistrar(this).register(agent, client, nodeId, routeWaitSeconds, fallbackServerName, economyBridge, messages, localCaches, () -> activeIslands);
         MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(this, getConfig()), PaperStorageFactory.backendName(getConfig())) : null;
         this.islandStorage = storage;
         String supportedTemplates = String.join(",", getConfig().getStringList("node.supported-templates"));

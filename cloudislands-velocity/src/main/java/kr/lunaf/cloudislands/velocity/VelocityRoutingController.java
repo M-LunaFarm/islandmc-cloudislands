@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
@@ -30,6 +29,8 @@ import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
+import kr.lunaf.cloudislands.velocity.routing.RouteFallbackService;
+import kr.lunaf.cloudislands.velocity.routing.RouteRequestGuard;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
@@ -50,7 +51,8 @@ public final class VelocityRoutingController {
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
     private final VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
-    private final Map<UUID, Long> recentRouteRequests = new ConcurrentHashMap<>();
+    private final RouteFallbackService fallbackService;
+    private final RouteRequestGuard routeRequestGuard;
     private ScheduledTask eventPollTask;
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer) {
@@ -90,6 +92,8 @@ public final class VelocityRoutingController {
         this.messages = messages == null ? VelocityMessages.defaults() : messages;
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
+        this.fallbackService = new RouteFallbackService(proxy, fallbackServer, metrics, this::playerComponent);
+        this.routeRequestGuard = new RouteRequestGuard(PLAYER_ROUTE_COOLDOWN_MILLIS);
     }
 
     public void createIsland(Player player, String templateId) {
@@ -173,7 +177,7 @@ public final class VelocityRoutingController {
     }
 
     private boolean fallbackServerAvailable() {
-        return findServer(fallbackServer) != null;
+        return fallbackService.fallbackAvailable();
     }
 
     private String islandPoolServerNames() {
@@ -332,18 +336,16 @@ public final class VelocityRoutingController {
     }
 
     public void clearPlayerState(UUID playerUuid) {
-        if (playerUuid != null) {
-            recentRouteRequests.remove(playerUuid);
-        }
+        routeRequestGuard.clear(playerUuid);
     }
 
     private void connectPendingSession(Player player, PlayerRouteSession session) {
         String targetServerName = session.targetServerName() == null || session.targetServerName().isBlank() ? session.targetNode() : session.targetServerName();
-        RegisteredServer server = findServer(targetServerName);
+        RegisteredServer server = fallbackService.findServer(targetServerName);
         if (server == null) {
             metrics.pendingRouteFailure();
             coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_TARGET_NOT_FOUND").exceptionally(error -> null);
-            fallback(player, "이전 섬 이동 경로를 찾을 수 없어 로비로 이동합니다.");
+            fallbackService.transfer(player, "이전 섬 이동 경로를 찾을 수 없어 로비로 이동합니다.");
             return;
         }
         actionBar(player, "이전 섬 이동을 이어갑니다.");
@@ -351,14 +353,14 @@ public final class VelocityRoutingController {
             if (!success) {
                 metrics.pendingRouteFailure();
                 coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_FAILED").exceptionally(error -> null);
-                fallback(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
+                fallbackService.transfer(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
                 return;
             }
             metrics.pendingRouteResume();
         }).exceptionally(error -> {
             metrics.pendingRouteFailure();
             coreApiClient.clearRoute(session.playerUuid(), session.ticketId(), "PENDING_CONNECT_EXCEPTION").exceptionally(ignored -> null);
-            fallback(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
+            fallbackService.transfer(player, "이전 섬 이동을 이어가지 못해 로비로 이동합니다.");
             return null;
         });
     }
@@ -3326,10 +3328,10 @@ public final class VelocityRoutingController {
     private void route(Player player, RouteTicket ticket, String failureMessage) {
         metrics.routeAttempt();
         if (ticket == null) {
-            fallback(player, failureMessage);
+            fallbackService.transfer(player, failureMessage);
             return;
         }
-        if (!playerOnline(player)) {
+        if (!fallbackService.playerOnline(player)) {
             clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
             return;
         }
@@ -3346,7 +3348,7 @@ public final class VelocityRoutingController {
 
     private void routeFuture(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
         ticketFuture.thenAccept(ticket -> route(player, ticket, failureMessage)).exceptionally(error -> {
-            fallback(player, routeFailureMessage(error, failureMessage), routeFailureCode(error, "ROUTE_FAILED"));
+            fallbackService.transfer(player, routeFailureMessage(error, failureMessage), routeFailureCode(error, "ROUTE_FAILED"));
             return null;
         });
     }
@@ -3366,19 +3368,15 @@ public final class VelocityRoutingController {
     }
 
     private boolean allowRouteRequest(Player player) {
-        long now = System.currentTimeMillis();
-        UUID playerUuid = player.getUniqueId();
-        Long previous = recentRouteRequests.put(playerUuid, now);
-        if (previous == null || now - previous >= PLAYER_ROUTE_COOLDOWN_MILLIS) {
+        if (routeRequestGuard.allow(player.getUniqueId())) {
             return true;
         }
-        recentRouteRequests.put(playerUuid, previous);
         player.sendMessage(Component.text("섬 이동 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요."));
         return false;
     }
 
     private void waitForReadyTicket(Player player, RouteTicket ticket, String failureMessage, BossBar bossBar, int attempt) {
-        if (!playerOnline(player)) {
+        if (!fallbackService.playerOnline(player)) {
             hideBossBar(player, bossBar);
             clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
             return;
@@ -3403,20 +3401,20 @@ public final class VelocityRoutingController {
             }
             if (status.isPresent() && terminalRouteState(status.get())) {
                 hideBossBar(player, bossBar);
-                fallback(player, terminalRouteMessage(status.get(), failureMessage));
+                fallbackService.transfer(player, terminalRouteMessage(status.get(), failureMessage));
                 return;
             }
             if (attempt >= routeWaitSeconds) {
                 hideBossBar(player, bossBar);
                 clearFailedRoute(ticket, "ROUTE_READY_TIMEOUT");
-                fallback(player, failureMessage, "ROUTE_READY_TIMEOUT");
+                fallbackService.transfer(player, failureMessage, "ROUTE_READY_TIMEOUT");
                 return;
             }
             CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> waitForReadyTicket(player, ticket, failureMessage, bossBar, attempt + 1));
         }).exceptionally(error -> {
             hideBossBar(player, bossBar);
             clearFailedRoute(ticket, "ROUTE_STATUS_FAILED");
-            fallback(player, routeFailureMessage(error, failureMessage), routeFailureCode(error, "ROUTE_STATUS_FAILED"));
+            fallbackService.transfer(player, routeFailureMessage(error, failureMessage), routeFailureCode(error, "ROUTE_STATUS_FAILED"));
             return null;
         });
     }
@@ -3468,7 +3466,7 @@ public final class VelocityRoutingController {
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket) {
-        if (!playerOnline(player)) {
+        if (!fallbackService.playerOnline(player)) {
             clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
             return;
         }
@@ -3477,41 +3475,41 @@ public final class VelocityRoutingController {
             connectWithTicket(player, ticket, targetServerName);
         }).exceptionally(error -> {
             clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
-            fallback(player, "섬 이동 정보를 준비하지 못했습니다. 로비로 이동합니다.");
+            fallbackService.transfer(player, "섬 이동 정보를 준비하지 못했습니다. 로비로 이동합니다.");
             return null;
         });
     }
 
     private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
-        if (!playerOnline(player)) {
+        if (!fallbackService.playerOnline(player)) {
             clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
             return;
         }
-        RegisteredServer server = findServer(targetServerName);
+        RegisteredServer server = fallbackService.findServer(targetServerName);
         if (server == null) {
             clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
-            fallback(player, "섬 이동 경로를 찾을 수 없습니다.", "TARGET_SERVER_NOT_FOUND");
+            fallbackService.transfer(player, "섬 이동 경로를 찾을 수 없습니다.", "TARGET_SERVER_NOT_FOUND");
             return;
         }
         connect(player, ticket, server);
     }
 
     private void connect(Player player, RouteTicket ticket, RegisteredServer server) {
-        if (!playerOnline(player)) {
+        if (!fallbackService.playerOnline(player)) {
             clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
             return;
         }
         player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
             if (!success) {
                 clearFailedRoute(ticket, "CONNECT_FAILED");
-                fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.", "CONNECT_FAILED");
+                fallbackService.transfer(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.", "CONNECT_FAILED");
                 return;
             }
             metrics.routeSuccess();
             actionBar(player, arrivalMessage(ticket));
         }).exceptionally(error -> {
             clearFailedRoute(ticket, "CONNECT_EXCEPTION");
-            fallback(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.", "CONNECT_EXCEPTION");
+            fallbackService.transfer(player, "섬으로 이동하지 못했습니다. 로비로 이동합니다.", "CONNECT_EXCEPTION");
             return null;
         });
     }
@@ -3523,66 +3521,18 @@ public final class VelocityRoutingController {
         coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
     }
 
-    private boolean playerOnline(Player player) {
-        return player != null && proxy.getPlayer(player.getUniqueId()).isPresent();
-    }
-
-    private void fallback(Player player, String message) {
-        fallback(player, message, "ROUTE_FAILED");
-    }
-
-    private void fallback(Player player, String message, String code) {
-        String safeCode = safeRouteFailureCode(code, "ROUTE_FAILED");
-        metrics.routeFailure(safeCode);
-        metrics.rememberFallback(safeCode, "attempt");
-        if (!playerOnline(player)) {
-            metrics.fallbackSkippedOffline();
-            metrics.rememberFallback(safeCode, "skipped-offline");
-            return;
-        }
-        player.sendMessage(playerComponent(message));
-        RegisteredServer server = findServer(fallbackServer);
-        if (server == null) {
-            metrics.fallbackMissing();
-            metrics.rememberFallback(safeCode, "fallback-missing");
-            return;
-        }
-        player.createConnectionRequest(server).connectWithIndication().thenAccept(success -> {
-            if (success) {
-                metrics.fallbackTransfer();
-                metrics.rememberFallback(safeCode, "transferred");
-            } else {
-                metrics.fallbackFailure();
-                metrics.rememberFallback(safeCode, "transfer-failed");
-            }
-        }).exceptionally(error -> {
-            metrics.fallbackFailure();
-            metrics.rememberFallback(safeCode, "transfer-exception");
-            return null;
-        });
-    }
-
     private String routeFailureCode(Throwable error, String fallback) {
         Throwable current = error;
         while (current != null) {
             if (current instanceof CoreApiException coreError) {
-                return safeRouteFailureCode(coreError.code(), fallback);
+                return RouteFallbackService.safeFailureCode(coreError.code(), fallback);
             }
             if (current instanceof java.io.IOException) {
                 return "CORE_API_IO";
             }
             current = current.getCause();
         }
-        return safeRouteFailureCode(fallback, "ROUTE_FAILED");
-    }
-
-    private String safeRouteFailureCode(String code, String fallback) {
-        String value = code == null || code.isBlank() ? fallback : code;
-        return value == null || value.isBlank() ? "ROUTE_FAILED" : value.trim().replaceAll("[^A-Za-z0-9_.:-]", "_");
-    }
-
-    private String metricLabel(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return RouteFallbackService.safeFailureCode(fallback, "ROUTE_FAILED");
     }
 
     private String routeTargetName(RouteTicket ticket) {
@@ -3632,52 +3582,7 @@ public final class VelocityRoutingController {
     }
 
     private int moveNodePlayersToFallback(String nodeId) {
-        RegisteredServer target = findServer(nodeId);
-        RegisteredServer fallback = findServer(fallbackServer);
-        if (target == null || fallback == null) {
-            metrics.fallbackMissing();
-            return 0;
-        }
-        java.util.List<Player> players = java.util.List.copyOf(target.getPlayersConnected());
-        for (Player connected : players) {
-            connected.sendMessage(Component.text("섬 점검으로 로비로 이동합니다."));
-            connected.createConnectionRequest(fallback).connectWithIndication().thenAccept(success -> {
-                if (success) {
-                    metrics.fallbackTransfer();
-                } else {
-                    metrics.fallbackFailure();
-                }
-            }).exceptionally(error -> {
-                metrics.fallbackFailure();
-                return null;
-            });
-        }
-        return players.size();
-    }
-
-    private RegisteredServer findServer(String name) {
-        return proxy.getServer(name).or(() -> proxy.getServer(nodeIdToServerName(name))).orElse(null);
-    }
-
-    private String nodeIdToServerName(String nodeId) {
-        if (nodeId == null || nodeId.isBlank()) {
-            return "";
-        }
-        String[] parts = nodeId.split("-");
-        StringBuilder builder = new StringBuilder();
-        for (String part : parts) {
-            if (part.isBlank()) {
-                continue;
-            }
-            if (builder.length() > 0) {
-                builder.append('-');
-            }
-            builder.append(Character.toUpperCase(part.charAt(0)));
-            if (part.length() > 1) {
-                builder.append(part.substring(1));
-            }
-        }
-        return builder.toString();
+        return fallbackService.moveNodePlayersToFallback(nodeId);
     }
 
     private String messageForCreateFailure(String code) {

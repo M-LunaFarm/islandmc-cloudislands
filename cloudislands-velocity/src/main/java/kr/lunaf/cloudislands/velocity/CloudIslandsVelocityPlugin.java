@@ -1,8 +1,6 @@
 package kr.lunaf.cloudislands.velocity;
 
 import com.google.inject.Inject;
-import com.velocitypowered.api.command.CommandManager;
-import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
@@ -27,6 +25,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.velocity.command.IslandCommandCatalog;
+import kr.lunaf.cloudislands.velocity.command.VelocityCommandRegistrar;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfigLoader;
 import kr.lunaf.cloudislands.velocity.health.VelocityHealthService;
@@ -79,20 +78,6 @@ public final class CloudIslandsVelocityPlugin {
         }
     }
 
-    private static String[] commandAliasArray(List<String> aliases) {
-        List<String> result = new ArrayList<>();
-        for (String alias : aliases) {
-            String normalized = alias == null ? "" : alias.trim();
-            if (normalized.isBlank() || normalized.equalsIgnoreCase("섬")) {
-                continue;
-            }
-            if (result.stream().noneMatch(existing -> existing.equalsIgnoreCase(normalized))) {
-                result.add(normalized);
-            }
-        }
-        return result.toArray(String[]::new);
-    }
-
     private void logSecurityPosture(VelocityConfig config, String coreToken, String adminToken) {
         if (config.requireModernForwarding() && config.forwardingSecret().isBlank()) {
             logger.warn("CloudIslands security: Velocity modern forwarding is required but security.forwarding-secret is empty");
@@ -110,49 +95,15 @@ public final class CloudIslandsVelocityPlugin {
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
-        CommandManager commands = proxy.getCommandManager();
-        SimpleCommand islandCommand = new SimpleCommand() {
-            @Override
-            public void execute(SimpleCommand.Invocation invocation) {
-                if (!(invocation.source() instanceof Player player)) {
-                    invocation.source().sendMessage(messages.component("player-only"));
-                    return;
-                }
-                if (!player.hasPermission("cloudislands.player")) {
-            player.sendMessage(messages.component("no-player-permission"));
-            return;
-        }
-        dispatch(player, invocation.arguments());
-            }
-
-            @Override
-            public List<String> suggest(SimpleCommand.Invocation invocation) {
-                return playerSuggestions(invocation.arguments());
-            }
-        };
-        commands.register(commands.metaBuilder("섬").aliases(commandAliasArray(commandAliases)).build(), islandCommand);
-        commands.register(commands.metaBuilder("ciadmin").aliases("섬관리").build(), new SimpleCommand() {
-            @Override
-            public void execute(SimpleCommand.Invocation invocation) {
-                if (!(invocation.source() instanceof Player player)) {
-                    invocation.source().sendMessage(messages.component("player-only"));
-                    return;
-                }
-                if (!hasAdminAccess(player, invocation.arguments())) {
-                    player.sendMessage(messages.component("no-admin-permission"));
-                    return;
-                }
-                dispatchAdmin(player, invocation.arguments());
-            }
-
-            @Override
-            public List<String> suggest(SimpleCommand.Invocation invocation) {
-                if (!hasAdminAccess(invocation.source(), invocation.arguments())) {
-                    return List.of();
-                }
-                return adminSuggestions(invocation.arguments());
-            }
-        });
+        new VelocityCommandRegistrar(messages).register(
+            proxy.getCommandManager(),
+            commandAliases,
+            invocation -> dispatch(invocation.player(), invocation.arguments()),
+            this::playerSuggestions,
+            this::hasAdminAccess,
+            invocation -> dispatchAdmin(invocation.player(), invocation.arguments()),
+            this::adminSuggestions
+        );
         routingController.startEventPolling(this);
         if (config.healthEnabled()) {
             healthService.start();
