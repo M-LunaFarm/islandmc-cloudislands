@@ -66,6 +66,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.ProgressionRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RoutePreparationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RouteTicketRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
@@ -361,83 +362,7 @@ public final class CloudIslandsCoreApplication {
             write(exchange, 200, auditJson.apply(limit));
         });
         new AddonRoutes(addonStates, audit, events).register(this::route);
-        route("/v1/rankings/level", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, rankingsJson(rankingRepository.topByLevel(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
-        });
-        route("/v1/rankings/worth", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, rankingsJson(rankingRepository.topByWorth(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
-        });
-        route("/v1/upgrades/rules", exchange -> write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
-        route("/v1/admin/block-values/list", exchange -> write(exchange, 200, blockValuesJson(levelRepository.blockValues())));
-        route("/v1/islands/missions", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, missionsJson(missionRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "kind", "MISSION"))));
-        });
-        route("/v1/islands/missions/complete", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            String missionKey = JsonFields.text(body, "missionKey", "");
-            String kind = JsonFields.text(body, "kind", "MISSION");
-            if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
-                return;
-            }
-            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey, kind);
-            completed.ifPresent(snapshot -> {
-                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind(), "reward", snapshot.reward()));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), Map.of("islandId", islandId.toString(), "missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
-            });
-            write(exchange, completed.isPresent() ? 202 : 404, completed.map(CloudIslandsCoreApplication::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
-        });
-        route("/v1/islands/missions/progress", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            String missionKey = JsonFields.text(body, "missionKey", "");
-            String kind = JsonFields.text(body, "kind", "MISSION");
-            long amount = Math.max(0L, JsonFields.longValue(body, "amount", 1L));
-            if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
-                return;
-            }
-            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> progressed = missionRepository.progress(islandId, actorUuid, missionKey, kind, amount);
-            progressed.ifPresent(snapshot -> events.publish(CloudIslandEventType.ISLAND_MISSION_PROGRESS.name(), Map.of(
-                "islandId", islandId.toString(),
-                "missionKey", snapshot.missionKey(),
-                "kind", snapshot.kind(),
-                "progress", Long.toString(snapshot.progress()),
-                "goal", Long.toString(snapshot.goal()),
-                "amount", Long.toString(amount),
-                "completed", Boolean.toString(snapshot.completed())
-            )));
-            progressed.filter(kr.lunaf.cloudislands.api.model.IslandMissionSnapshot::completed).ifPresent(snapshot -> {
-                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind(), "reward", snapshot.reward()));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), Map.of("islandId", islandId.toString(), "missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
-            });
-            write(exchange, progressed.isPresent() ? 202 : 404, progressed.map(CloudIslandsCoreApplication::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
-        });
-        route("/v1/islands/limits", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, limitsJson(limitRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
-        });
-        route("/v1/islands/limits/set", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            String limitKey = JsonFields.text(body, "limitKey", "HOPPER");
-            long value = JsonFields.longValue(body, "value", 0L);
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_UPGRADES)) {
-                return;
-            }
-            kr.lunaf.cloudislands.api.model.IslandLimitSnapshot snapshot = limitRepository.set(islandId, limitKey, value, actorUuid);
-            audit.log(actorUuid, "PLAYER", "ISLAND_LIMIT_SET", "ISLAND", islandId.toString(), Map.of("limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
-            islandLogs.append(islandId, actorUuid, "ISLAND_LIMIT_SET", Map.of("limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
-            events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of("islandId", islandId.toString(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
-            write(exchange, 202, limitJson(snapshot));
-        });
+        new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
