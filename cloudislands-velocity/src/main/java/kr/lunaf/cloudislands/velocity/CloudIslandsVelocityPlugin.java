@@ -29,6 +29,7 @@ import kr.lunaf.cloudislands.velocity.command.VelocityCommandRegistrar;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfigLoader;
 import kr.lunaf.cloudislands.velocity.health.VelocityHealthService;
+import kr.lunaf.cloudislands.velocity.health.VelocityStatusReporter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.security.PluginMessageFirewall;
 import net.kyori.adventure.text.Component;
@@ -40,9 +41,9 @@ public final class CloudIslandsVelocityPlugin {
     private final Logger logger;
     private final VelocityRoutingController routingController;
     private final List<String> commandAliases;
-    private final boolean blockCloudIslandsPluginMessages;
     private final VelocityConfig config;
     private final VelocityHealthService healthService;
+    private final VelocityStatusReporter statusReporter;
     private final VelocityMessages messages;
     private final PluginMessageFirewall pluginMessageFirewall = new PluginMessageFirewall();
 
@@ -65,13 +66,13 @@ public final class CloudIslandsVelocityPlugin {
         this.messages = VelocityMessages.from(config.language(), config.messages());
         this.routingController = new VelocityRoutingController(proxy, client, fallbackServer, routeWaitSeconds, config.useActionBar(), config.useBossBarLoading(), config.hideNodeNames(), islandPool, routeTicketTtlSeconds, messages);
         this.commandAliases = config.aliases();
-        this.blockCloudIslandsPluginMessages = config.blockCloudIslandsPluginMessages();
+        this.statusReporter = new VelocityStatusReporter(proxy, config, commandAliases, routingController, pluginMessageFirewall);
         this.healthService = new VelocityHealthService(
             logger,
             config.healthBindHost(),
             config.healthPort(),
-            () -> velocityHealthJson(),
-            () -> velocityMetricsText()
+            statusReporter::healthJson,
+            statusReporter::metricsText
         );
         if (config.debug()) {
             logger.info("CloudIslands Velocity config loaded: language={}, aliases={}, health={}:{}", config.language(), commandAliases, config.healthBindHost(), config.healthPort());
@@ -118,65 +119,6 @@ public final class CloudIslandsVelocityPlugin {
         healthService.stop();
     }
 
-    private String velocityHealthJson() {
-        return "{"
-            + "\"status\":\"UP\","
-            + "\"onlinePlayers\":" + proxy.getPlayerCount() + ","
-            + "\"registeredServers\":" + proxy.getAllServers().size() + ","
-            + "\"language\":\"" + escapeJson(config.language()) + "\","
-            + "\"debug\":" + config.debug() + ","
-            + "\"backendAccessPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CONTRACT + "\","
-            + "\"modernForwardingModePolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.MODERN_FORWARDING_POLICY + "\","
-            + "\"modernForwardingRequired\":" + config.requireModernForwarding() + ","
-            + "\"forwardingSecretConfigured\":" + !config.forwardingSecret().isBlank() + ","
-            + "\"forwardingSecretPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.FORWARDING_SECRET_POLICY + "\","
-            + "\"backendPaperAccessPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY + "\","
-            + "\"backendInfrastructurePolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.INFRASTRUCTURE_EXPOSURE_POLICY + "\","
-            + "\"setupDatabaseMode\":\"CORE_API\","
-            + "\"setupDatabasePolicy\":\"velocity-delegates-all-persistent-writes-to-core-api\","
-            + "\"setupDatabaseFallbackPolicy\":\"configure-postgresql-mysql-mariadb-fallback-on-core-or-addon-node\","
-            + "\"pluginMessagingControlPolicy\":\"block-cloudislands-control-messages-at-proxy\","
-            + "\"pluginMessagingForwardResultPolicy\":\"cloudislands-messages-always-handled-never-forwarded\","
-            + "\"pluginMessagingAllowedUse\":\"emergency-proxy-assist-only\","
-            + "\"pluginMessagingForbiddenUse\":\"island-create-delete-save-migrate-routing-authority\","
-            + "\"cloudIslandsPluginMessagesConfiguredBlocked\":" + config.blockCloudIslandsPluginMessages() + ","
-            + "\"cloudIslandsPluginMessagesBlocked\":true,"
-            + "\"cloudIslandsPluginMessagesEnforcedBlocked\":true,"
-            + "\"hideNodeNames\":" + config.hideNodeNames() + ","
-            + "\"playerTopologyPolicy\":\"logical-island-only\","
-            + "\"playerNodeNamePolicy\":\"" + (config.hideNodeNames() ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only") + "\","
-            + "\"topologyExposureRisk\":" + !config.hideNodeNames() + ","
-            + "\"pluginMessagesBlockedTotal\":" + pluginMessageFirewall.blockedMessages() + ","
-            + "\"aliases\":\"" + escapeJson(String.join(",", commandAliases)) + "\","
-            + "\"fallbackServer\":\"" + escapeJson(config.fallbackServer()) + "\","
-            + "\"fallbackServerRegistered\":" + fallbackServerRegistered() + ","
-            + "\"routing\":\"" + escapeJson(routingController.statusSummary()) + "\""
-            + "}";
-    }
-
-    private String velocityMetricsText() {
-        return ""
-            + "cloudislands_velocity_online_players " + proxy.getPlayerCount() + "\n"
-            + "cloudislands_velocity_registered_servers " + proxy.getAllServers().size() + "\n"
-            + "cloudislands_velocity_command_aliases " + commandAliases.size() + "\n"
-            + "cloudislands_velocity_debug_enabled " + (config.debug() ? 1 : 0) + "\n"
-            + "cloudislands_velocity_plugin_message_blocking_configured " + (blockCloudIslandsPluginMessages ? 1 : 0) + "\n"
-            + "cloudislands_velocity_plugin_message_blocking 1\n"
-            + "cloudislands_velocity_plugin_message_control_channel_allowed 0\n"
-            + "cloudislands_velocity_plugin_message_control_channel_enforced_blocked 1\n"
-            + "cloudislands_velocity_plugin_messages_blocked_total " + pluginMessageFirewall.blockedMessages() + "\n"
-            + "cloudislands_velocity_modern_forwarding_required " + (config.requireModernForwarding() ? 1 : 0) + "\n"
-            + "cloudislands_velocity_forwarding_secret_configured " + (config.forwardingSecret().isBlank() ? 0 : 1) + "\n"
-            + "cloudislands_velocity_hide_node_names " + (config.hideNodeNames() ? 1 : 0) + "\n"
-            + "cloudislands_velocity_topology_exposure_risk " + (config.hideNodeNames() ? 0 : 1) + "\n"
-            + "cloudislands_velocity_fallback_server_registered " + (fallbackServerRegistered() ? 1 : 0) + "\n"
-            + routingController.routingMetricsText();
-    }
-
-    private boolean fallbackServerRegistered() {
-        return config.fallbackServer() != null && !config.fallbackServer().isBlank() && proxy.getServer(config.fallbackServer()).isPresent();
-    }
-
     private void warnIfFallbackServerMissing() {
         if (config.fallbackServer() == null || config.fallbackServer().isBlank()) {
             logger.warn("CloudIslands routing fallback server is empty; failed island routes will not have a lobby fallback");
@@ -185,13 +127,6 @@ public final class CloudIslandsVelocityPlugin {
         if (proxy.getServer(config.fallbackServer()).isEmpty()) {
             logger.warn("CloudIslands routing fallback server '{}' is not registered in Velocity", config.fallbackServer());
         }
-    }
-
-    private static String escapeJson(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @Subscribe
