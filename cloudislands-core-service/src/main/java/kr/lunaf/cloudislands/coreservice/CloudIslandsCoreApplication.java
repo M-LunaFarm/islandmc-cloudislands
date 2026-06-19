@@ -2,29 +2,19 @@ package kr.lunaf.cloudislands.coreservice;
 
 import static kr.lunaf.cloudislands.coreservice.config.CoreNetworkExposure.*;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
-import kr.lunaf.cloudislands.api.model.IslandSnapshot;
-import kr.lunaf.cloudislands.api.model.RouteTicket;
-import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
-import kr.lunaf.cloudislands.protocol.job.IslandJob;
-import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.audit.JdbcAuditLogger;
@@ -44,8 +34,7 @@ import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
-import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
-import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
+import kr.lunaf.cloudislands.coreservice.http.CoreHttpRouteRegistrar;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminIslandLifecycleRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminRuntimeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.CoreConfigRoutes;
@@ -172,31 +161,13 @@ import kr.lunaf.cloudislands.coreservice.addon.JdbcAddonStateRepository;
 public final class CloudIslandsCoreApplication {
     private static final Logger LOGGER = Logger.getLogger(CloudIslandsCoreApplication.class.getName());
     private final HttpServer server;
-    private final ApiTokenGuard tokenGuard;
-    private final FixedWindowRateLimiter rateLimiter;
-    private final AdminEndpointGuard adminGuard;
-    private final IpAllowlist ipAllowlist;
-    private final MtlsHeaderGuard mtlsGuard;
+    private final CoreHttpRouteRegistrar routeRegistrar;
     private final NodeFailureMonitor nodeFailureMonitor;
     private final RouteTicketExpiryMonitor routeTicketExpiryMonitor;
     private final JobRecoveryMonitor jobRecoveryMonitor;
-    private final IslandStorage deleteStorage;
-    private final IslandRepository islandRepository;
-    private final PlayerProfileRepository playerProfiles;
-    private final IslandRuntimeRepository runtimeRepository;
-    private final IslandJobQueue jobs;
-    private final GlobalEventPublisher events;
-    private final IslandSnapshotRepository snapshotRepository;
+    private final CoreIslandDeleteService islandDeleteService;
     private final DirtyRankingRecalculationTask rankingRecalculationTask;
     private final int snapshotKeepLatest;
-    private final kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy;
-    private final java.util.concurrent.atomic.AtomicLong securityRejectsTotal = new java.util.concurrent.atomic.AtomicLong();
-    private final java.util.concurrent.atomic.AtomicLong securityRejectsRateLimited = new java.util.concurrent.atomic.AtomicLong();
-    private final java.util.concurrent.atomic.AtomicLong securityRejectsUnauthorized = new java.util.concurrent.atomic.AtomicLong();
-    private final java.util.concurrent.atomic.AtomicLong securityRejectsMtlsRequired = new java.util.concurrent.atomic.AtomicLong();
-    private final java.util.concurrent.atomic.AtomicLong securityRejectsIpNotAllowed = new java.util.concurrent.atomic.AtomicLong();
-    private final java.util.concurrent.atomic.AtomicLong securityRejectsAdminPermissionDenied = new java.util.concurrent.atomic.AtomicLong();
-    private AuditLogger audit;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
         this(CoreServiceConfig.fromEnvironment().withPort(port));
@@ -204,14 +175,16 @@ public final class CloudIslandsCoreApplication {
 
     public CloudIslandsCoreApplication(CoreServiceConfig config) throws IOException {
         Clock clock = Clock.systemUTC();
-        this.tokenGuard = new ApiTokenGuard(config.coreToken());
-        this.rateLimiter = new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis());
-        this.adminGuard = new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.adminPermissions());
-        this.ipAllowlist = new IpAllowlist(config.ipAllowlist());
-        this.mtlsGuard = new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies());
+        CoreHttpRouteRegistrar routeRegistrar = new CoreHttpRouteRegistrar(
+            new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis()),
+            new ApiTokenGuard(config.coreToken()),
+            new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies()),
+            new IpAllowlist(config.ipAllowlist()),
+            new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.adminPermissions())
+        );
         logSecurityPosture(LOGGER, config);
         config.validateStartupStorage();
-        this.deleteStorage = migrationRollbackStorage(config);
+        IslandStorage deleteStorage = migrationRollbackStorage(config);
         MeteredDataSource meteredDataSource = new MeteredDataSource(new BoundedDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()), config.databasePoolSize()));
         DataSource dataSource = new JdbcDialectDataSource(meteredDataSource);
         boolean coreJdbcActive = config.jdbcRepositories() || config.jdbcJobs();
@@ -244,7 +217,6 @@ public final class CloudIslandsCoreApplication {
         IslandRepository islandRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandRepository(baseIslandRepository, config.redisUri())
             : baseIslandRepository;
-        this.islandRepository = islandRepository;
         IslandMetadataRepository baseMetadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
         IslandMetadataRepository metadataRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandMetadataRepository(baseMetadataRepository, config.redisUri())
@@ -253,7 +225,6 @@ public final class CloudIslandsCoreApplication {
         PlayerProfileRepository playerProfiles = config.redisEvents() || config.redisJobs()
             ? new CachingPlayerProfileRepository(basePlayerProfiles, config.redisUri())
             : basePlayerProfiles;
-        this.playerProfiles = playerProfiles;
         IslandPermissionRuleRepository basePermissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
         IslandPermissionRuleRepository permissionRules = config.redisEvents() || config.redisJobs()
             ? new CachingIslandPermissionRuleRepository(basePermissionRules, config.redisUri())
@@ -266,16 +237,12 @@ public final class CloudIslandsCoreApplication {
         IslandRuntimeRepository runtimeRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandRuntimeRepository(baseRuntimeRepository, config.redisUri())
             : baseRuntimeRepository;
-        this.runtimeRepository = runtimeRepository;
-        this.jobs = jobs;
-        this.events = events;
         IslandSnapshotRepository baseSnapshotRepository = config.jdbcRepositories() ? new JdbcIslandSnapshotRepository(dataSource) : new InMemoryIslandSnapshotRepository();
         IslandSnapshotRepository snapshotRepository = config.redisEvents() || config.redisJobs()
             ? new CachingIslandSnapshotRepository(baseSnapshotRepository, config.redisUri())
             : baseSnapshotRepository;
-        this.snapshotRepository = snapshotRepository;
         this.snapshotKeepLatest = Math.max(1, config.snapshotKeepLatest());
-        this.snapshotRetentionPolicy = config.snapshotRetentionPolicy();
+        kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy = config.snapshotRetentionPolicy();
         RankingRepository baseRankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
         RankingRepository rankingRepository = config.redisEvents() || config.redisJobs()
             ? new CachingRankingRepository(baseRankingRepository, config.redisUri())
@@ -312,7 +279,7 @@ public final class CloudIslandsCoreApplication {
         AddonStateRepository addonStates = config.jdbcRepositories() ? new JdbcAddonStateRepository(dataSource) : new InMemoryAddonStateRepository();
         AuditLogger baseAudit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         AuditLogger audit = redisEventWriter == null ? baseAudit : new RedisAuditLogger(baseAudit, redisEventWriter, RedisKeys.auditStream());
-        this.audit = audit;
+        routeRegistrar.setAudit(audit);
         IslandLogRepository baseIslandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
         IslandLogRepository islandLogs = config.redisEvents() || config.redisJobs()
             ? new CachingIslandLogRepository(baseIslandLogs, config.redisUri())
@@ -367,37 +334,40 @@ public final class CloudIslandsCoreApplication {
             inMemoryEvents,
             redisEventPublisher,
             rankingRecalculationTask,
-            securityRejectsTotal::get,
-            securityRejectsRateLimited::get,
-            securityRejectsUnauthorized::get,
-            securityRejectsMtlsRequired::get,
-            securityRejectsIpNotAllowed::get,
-            securityRejectsAdminPermissionDenied::get
+            routeRegistrar::securityRejectsTotal,
+            routeRegistrar::securityRejectsRateLimited,
+            routeRegistrar::securityRejectsUnauthorized,
+            routeRegistrar::securityRejectsMtlsRequired,
+            routeRegistrar::securityRejectsIpNotAllowed,
+            routeRegistrar::securityRejectsAdminPermissionDenied
         );
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout(), tickets, sessions, snapshotRepository, lifecycle);
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
-        new HealthRoutes(config, metrics::render).register(this::route);
-        new CoreConfigRoutes(config, nodes).register(this::route);
-        new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(this::route);
-        new JobRoutes(jobs, jobCompletion, audit).register(this::route);
-        new EventRoutes(inMemoryEvents).register(this::route);
-        new AuditRoutes(audit).register(this::route);
-        new AddonRoutes(addonStates, audit, events).register(this::route);
-        new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
-        new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(this::route);
-        new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
-        new IslandBlockLevelRoutes(levelRepository, rankingRepository, levelRecalculation, islandRepository, metadataRepository, permissionRules, audit, events).register(this::route);
-        new IslandUpgradeRoutes(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
-        new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(this::route);
-        new IslandSnapshotRoutes(snapshotRepository, runtimeRepository, snapshotRetentionPolicy, events).register(this::route);
-        new IslandMemberRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, playerProfiles, islandLogs, audit, events).register(this::route);
-        new IslandVisitorRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(this::route);
-        new IslandSettingsRoutes(islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
-        new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(this::route);
-        new IslandCatalogRoutes(islandRepository, metadataRepository, createIsland, islandLogs, audit).register(this::route);
-        new IslandPlayerLifecycleRoutes(islandRepository, metadataRepository, permissionRules, lifecycle, this::requestIslandDelete, islandLogs, audit, events).register(this::route);
+        this.routeRegistrar = routeRegistrar;
+        routeRegistrar.attach(server);
+        new HealthRoutes(config, metrics::render).register(routeRegistrar::route);
+        new CoreConfigRoutes(config, nodes).register(routeRegistrar::route);
+        new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(routeRegistrar::route);
+        new JobRoutes(jobs, jobCompletion, audit).register(routeRegistrar::route);
+        new EventRoutes(inMemoryEvents).register(routeRegistrar::route);
+        new AuditRoutes(audit).register(routeRegistrar::route);
+        new AddonRoutes(addonStates, audit, events).register(routeRegistrar::route);
+        new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
+        new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(routeRegistrar::route);
+        new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
+        new IslandBlockLevelRoutes(levelRepository, rankingRepository, levelRecalculation, islandRepository, metadataRepository, permissionRules, audit, events).register(routeRegistrar::route);
+        new IslandUpgradeRoutes(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
+        new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(routeRegistrar::route);
+        new IslandSnapshotRoutes(snapshotRepository, runtimeRepository, snapshotRetentionPolicy, events).register(routeRegistrar::route);
+        new IslandMemberRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, playerProfiles, islandLogs, audit, events).register(routeRegistrar::route);
+        new IslandVisitorRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
+        new IslandSettingsRoutes(islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
+        new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
+        new IslandCatalogRoutes(islandRepository, metadataRepository, createIsland, islandLogs, audit).register(routeRegistrar::route);
+        this.islandDeleteService = new CoreIslandDeleteService(deleteStorage, islandRepository, playerProfiles, runtimeRepository, jobs, events, snapshotRepository, snapshotRetentionPolicy);
+        new IslandPlayerLifecycleRoutes(islandRepository, metadataRepository, permissionRules, lifecycle, islandDeleteService::requestIslandDelete, islandLogs, audit, events).register(routeRegistrar::route);
         new IslandQueryRoutes(
             islandRepository,
             metadataRepository,
@@ -414,16 +384,16 @@ public final class CloudIslandsCoreApplication {
             islandLogs,
             playerProfiles,
             audit,
-            this::requestIslandDelete
-        ).register(this::routePrefix);
-        new RoutePreparationRoutes(routing).register(this::route);
-        new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(this::route);
-        new AdminRuntimeRoutes(sessions, tickets, redisCacheAdmin, audit, events).register(this::route);
-        new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), migrationAdmin, audit).register(this::route);
-        new PlayerProfileRoutes(playerProfiles, audit).register(this::route);
-        new TemplateRoutes(templateRepository, audit, events).register(this::route);
-        new ProtocolRoutes(nodes).register(this::route);
-        new AdminNodeRoutes(nodes, nodeFailureMonitor, config.heartbeatTimeout(), audit, events).register(this::route, this::routePrefix);
+            islandDeleteService::requestIslandDelete
+        ).register(routeRegistrar::routePrefix);
+        new RoutePreparationRoutes(routing).register(routeRegistrar::route);
+        new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(routeRegistrar::route);
+        new AdminRuntimeRoutes(sessions, tickets, redisCacheAdmin, audit, events).register(routeRegistrar::route);
+        new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), migrationAdmin, audit).register(routeRegistrar::route);
+        new PlayerProfileRoutes(playerProfiles, audit).register(routeRegistrar::route);
+        new TemplateRoutes(templateRepository, audit, events).register(routeRegistrar::route);
+        new ProtocolRoutes(nodes).register(routeRegistrar::route);
+        new AdminNodeRoutes(nodes, nodeFailureMonitor, config.heartbeatTimeout(), audit, events).register(routeRegistrar::route, routeRegistrar::routePrefix);
         new AdminIslandLifecycleRoutes(
             lifecycle,
             islandRepository,
@@ -431,8 +401,8 @@ public final class CloudIslandsCoreApplication {
             snapshotRepository,
             audit,
             events,
-            this::requestIslandDelete
-        ).register(this::route, this::routePrefix);
+            islandDeleteService::requestIslandDelete
+        ).register(routeRegistrar::route, routeRegistrar::routePrefix);
     }
 
     private static RollbackTarget migrationRollbackTarget(CoreServiceConfig config, DataSource dataSource) {
@@ -480,275 +450,4 @@ public final class CloudIslandsCoreApplication {
         new CloudIslandsCoreApplication(config).start();
     }
 
-    private void route(String path, HttpHandler handler) {
-        server.createContext(path, exchange -> {
-            String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
-            if (!rateLimiter.allow(key)) {
-                auditSecurityReject("RATE_LIMITED", path, exchange);
-                write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
-                return;
-            }
-            if (!healthProbePath(path) && !coreApiAuthenticated(exchange)) {
-                String rejectCode = coreApiAuthRejectCode();
-                auditSecurityReject(rejectCode, path, exchange);
-                write(exchange, 401, ApiResponses.error(rejectCode, coreApiAuthRejectMessage(rejectCode)));
-                return;
-            }
-            if (!ipAllowlist.allowed(exchange)) {
-                auditSecurityReject("IP_NOT_ALLOWED", path, exchange);
-                write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
-                return;
-            }
-            if (!adminGuard.allowed(path, exchange)) {
-                auditSecurityReject("ADMIN_PERMISSION_DENIED", path, exchange);
-                write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
-                return;
-            }
-            try {
-                handler.handle(exchange);
-            } catch (IllegalStateException exception) {
-                if (path.startsWith("/v1/addons/")) {
-                    LOGGER.warning("CloudIslands addon state endpoint failed without affecting island lifecycle: " + exception.getMessage());
-                    write(exchange, 503, ApiResponses.error("ADDON_STATE_UNAVAILABLE", "Addon state storage is temporarily unavailable"));
-                    return;
-                }
-                throw exception;
-            }
-        });
-    }
-
-    private void routePrefix(String path, HttpHandler handler) {
-        server.createContext(path, exchange -> {
-            String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
-            if (!rateLimiter.allow(key)) {
-                auditSecurityReject("RATE_LIMITED", exchange.getRequestURI().getPath(), exchange);
-                write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
-                return;
-            }
-            if (!coreApiAuthenticated(exchange)) {
-                String rejectCode = coreApiAuthRejectCode();
-                auditSecurityReject(rejectCode, exchange.getRequestURI().getPath(), exchange);
-                write(exchange, 401, ApiResponses.error(rejectCode, coreApiAuthRejectMessage(rejectCode)));
-                return;
-            }
-            if (!ipAllowlist.allowed(exchange)) {
-                auditSecurityReject("IP_NOT_ALLOWED", exchange.getRequestURI().getPath(), exchange);
-                write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
-                return;
-            }
-            if (!adminGuard.allowed(exchange.getRequestURI().getPath(), exchange)) {
-                auditSecurityReject("ADMIN_PERMISSION_DENIED", exchange.getRequestURI().getPath(), exchange);
-                write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
-                return;
-            }
-            handler.handle(exchange);
-        });
-    }
-
-    private boolean coreApiAuthenticated(HttpExchange exchange) {
-        return tokenGuard.allowed(exchange) || mtlsGuard.verified(exchange);
-    }
-
-    private static boolean healthProbePath(String path) {
-        return "/live".equals(path) || "/ready".equals(path) || "/health".equals(path);
-    }
-
-    private String coreApiAuthRejectCode() {
-        return mtlsGuard.required() ? "MTLS_REQUIRED" : "UNAUTHORIZED";
-    }
-
-    private String coreApiAuthRejectMessage(String rejectCode) {
-        return "MTLS_REQUIRED".equals(rejectCode)
-            ? "mTLS verification or API token authentication is required"
-            : "Missing or invalid API token";
-    }
-
-    private static void lifecycle(HttpExchange exchange, IslandLifecycleWorkflow.Result result) throws IOException {
-        write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
-    }
-
-    private static void restoreLifecycle(HttpExchange exchange, IslandLifecycleWorkflow.Result result, long snapshotNo, String storagePath) throws IOException {
-        write(exchange, result.accepted() ? 202 : 409,
-            "{\"accepted\":" + result.accepted()
-                + ",\"code\":\"" + result.code() + "\""
-                + ",\"snapshotNo\":" + snapshotNo
-                + ",\"storagePath\":\"" + escape(storagePath == null ? "" : storagePath) + "\""
-                + ",\"restoreManifestRequired\":" + IslandLifecycleWorkflow.RESTORE_MANIFEST_REQUIRED
-                + ",\"restoreChecksumPolicy\":\"" + IslandLifecycleWorkflow.RESTORE_CHECKSUM_POLICY + "\""
-                + ",\"restorePortableRequired\":" + IslandLifecycleWorkflow.RESTORE_PORTABLE_REQUIRED
-                + ",\"restoreSupportedFormats\":\"" + IslandLifecycleWorkflow.RESTORE_SUPPORTED_FORMATS + "\""
-                + "}");
-    }
-
-    private void auditSecurityReject(String reason, String path, HttpExchange exchange) {
-        recordSecurityReject(reason);
-        if (audit == null) {
-            return;
-        }
-        try {
-            String remote = exchange.getRemoteAddress() == null || exchange.getRemoteAddress().getAddress() == null
-                ? "unknown"
-                : exchange.getRemoteAddress().getAddress().getHostAddress();
-            audit.log(new UUID(0L, 0L), "SECURITY", "SECURITY_REJECT", "HTTP", path == null ? "" : path, Map.of(
-                "reason", reason == null ? "" : reason,
-                "method", exchange.getRequestMethod() == null ? "" : exchange.getRequestMethod(),
-                "remote", remote
-            ));
-        } catch (RuntimeException ignored) {
-            // Security rejection audit must not change the original response.
-        }
-    }
-
-    private void recordSecurityReject(String reason) {
-        securityRejectsTotal.incrementAndGet();
-        String normalized = reason == null ? "" : reason;
-        switch (normalized) {
-            case "RATE_LIMITED" -> securityRejectsRateLimited.incrementAndGet();
-            case "UNAUTHORIZED" -> securityRejectsUnauthorized.incrementAndGet();
-            case "MTLS_REQUIRED" -> securityRejectsMtlsRequired.incrementAndGet();
-            case "IP_NOT_ALLOWED" -> securityRejectsIpNotAllowed.incrementAndGet();
-            case "ADMIN_PERMISSION_DENIED" -> securityRejectsAdminPermissionDenied.incrementAndGet();
-            default -> {
-            }
-        }
-    }
-
-    private boolean requestIslandDelete(UUID islandId, UUID ownerUuid, UUID requesterUuid, String reason) {
-        java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
-        if (island.isEmpty() || !island.get().ownerUuid().equals(ownerUuid)) {
-            return false;
-        }
-        islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETE_REQUESTED);
-        boolean deletedImmediately = publishDeleteJobOrMarkDeleted(islandId, ownerUuid, reason);
-        if (deletedImmediately) {
-            playerProfiles.clearPrimaryIsland(ownerUuid);
-            events.publish(CloudIslandEventType.ISLAND_DELETED.name(), Map.of("islandId", islandId.toString(), "requesterUuid", requesterUuid.toString()));
-        }
-        return true;
-    }
-
-    private boolean publishDeleteJobOrMarkDeleted(UUID islandId, UUID ownerUuid, String reason) {
-        java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
-        String targetNode = runtime.map(kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot::activeNode).orElse("");
-        if (targetNode != null && !targetNode.isBlank()) {
-            String fencingToken = runtime.map(value -> Long.toString(value.fencingToken())).orElse("0");
-            islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
-            runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DELETE_ISLAND, islandId, targetNode, 50, Map.of("reason", "BEFORE_DELETE", "deleteReason", reason, "ownerUuid", ownerUuid.toString(), "fencingToken", fencingToken), java.time.Instant.now()));
-            events.publish(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason, "snapshotReason", "BEFORE_DELETE"));
-            return false;
-        }
-        islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.BACKUP_BEFORE_DELETE);
-        runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.BACKUP_BEFORE_DELETE);
-        if (!backupInactiveStorageBeforeDelete(islandId, reason)) {
-            islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
-            runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
-            return false;
-        }
-        islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETING);
-        runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETING);
-        return islandRepository.markDeleted(islandId, ownerUuid);
-    }
-
-    private boolean backupInactiveStorageBeforeDelete(UUID islandId, String reason) {
-        if (deleteStorage == null) {
-            return true;
-        }
-        try {
-            long snapshotNo = System.currentTimeMillis();
-            IslandStorage.StoredBundle storedBundle = deleteStorage.writeDeleteBackupFromLatest(islandId, snapshotNo, "BEFORE_DELETE");
-            String storagePath = storedBundle.storagePath() == null || storedBundle.storagePath().isBlank()
-                ? "islands/" + islandId + "/backups/delete-" + String.format("%06d", snapshotNo) + "/bundle.tar.zst"
-                : storedBundle.storagePath();
-            recordSnapshotAndPublish(islandId, snapshotNo, storagePath, "BEFORE_DELETE", storedBundle.checksum(), storedBundle.sizeBytes(), "");
-            deleteStorage.deleteLiveState(islandId);
-            return true;
-        } catch (IOException exception) {
-            events.publish(CloudIslandEventType.ISLAND_DELETE_BACKUP_FAILED.name(), Map.of("islandId", islandId.toString(), "reason", reason, "error", exception.getMessage() == null ? "" : exception.getMessage()));
-            return false;
-        }
-    }
-
-    private int recordSnapshotAndPublish(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId) {
-        return recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId, 0L);
-    }
-
-    private int recordSnapshotAndPublish(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
-        snapshotRepository.record(islandId, snapshotNo, storagePath, reason, null, checksum, sizeBytes);
-        int pruned = snapshotRepository.prune(islandId, snapshotRetentionPolicy);
-        events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of(
-            "islandId", islandId.toString(),
-            "snapshotNo", Long.toString(snapshotNo),
-            "reason", reason == null ? "" : reason,
-            "storagePath", storagePath == null ? "" : storagePath,
-            "checksum", checksum == null ? "" : checksum,
-            "sizeBytes", Long.toString(sizeBytes),
-            "nodeId", nodeId == null ? "" : nodeId,
-            "fencingToken", Long.toString(fencingToken),
-            "pruned", Integer.toString(pruned)
-        ));
-        return pruned;
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
-    private static String readBody(HttpExchange exchange) throws IOException {
-        return CoreHttpResponses.readBody(exchange);
-    }
-
-    private static int queryInteger(HttpExchange exchange, String key, int fallback, int min, int max) {
-        String query = exchange.getRequestURI().getRawQuery();
-        if (query == null || query.isBlank()) {
-            return Math.max(min, Math.min(fallback, max));
-        }
-        for (String part : query.split("&")) {
-            int separator = part.indexOf('=');
-            if (separator <= 0 || !part.substring(0, separator).equals(key)) {
-                continue;
-            }
-            try {
-                return Math.max(min, Math.min(Integer.parseInt(part.substring(separator + 1)), max));
-            } catch (NumberFormatException ignored) {
-                return Math.max(min, Math.min(fallback, max));
-            }
-        }
-        return Math.max(min, Math.min(fallback, max));
-    }
-
-    private static UUID queryUuid(HttpExchange exchange, String key, UUID fallback) {
-        String query = exchange.getRequestURI().getRawQuery();
-        if (query == null || query.isBlank()) {
-            return fallback;
-        }
-        for (String part : query.split("&")) {
-            int separator = part.indexOf('=');
-            if (separator <= 0 || !part.substring(0, separator).equals(key)) {
-                continue;
-            }
-            try {
-                return UUID.fromString(part.substring(separator + 1));
-            } catch (RuntimeException ignored) {
-                return fallback;
-            }
-        }
-        return fallback;
-    }
-
-    private static UUID uuidPath(String value) {
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException ignored) {
-            return new UUID(0L, 0L);
-        }
-    }
-
-    private static void write(HttpExchange exchange, int status, String body) throws IOException {
-        write(exchange, status, body, "application/json; charset=utf-8");
-    }
-
-    private static void write(HttpExchange exchange, int status, String body, String contentType) throws IOException {
-        CoreHttpResponses.write(exchange, status, body, contentType);
-    }
 }
