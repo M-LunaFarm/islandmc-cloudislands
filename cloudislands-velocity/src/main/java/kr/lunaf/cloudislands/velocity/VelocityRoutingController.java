@@ -38,6 +38,7 @@ import kr.lunaf.cloudislands.velocity.event.CoreEventCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventEnvelope;
 import kr.lunaf.cloudislands.velocity.event.CoreEventJsonCodec;
 import kr.lunaf.cloudislands.velocity.event.CoreEventPoller;
+import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMigrationMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
@@ -64,6 +65,7 @@ public final class VelocityRoutingController {
     private final boolean useBossBarLoading;
     private final VelocityMessages messages;
     private final VelocityRoutePrivacyFormatter routePrivacy;
+    private final VelocityCoreStatusMessageFormatter coreStatusMessages = new VelocityCoreStatusMessageFormatter();
     private final VelocityMigrationMessageFormatter migrationMessages = new VelocityMigrationMessageFormatter();
     private final CoreEventCodec eventCodec;
     private final CoreEventPoller eventPoller;
@@ -1057,7 +1059,7 @@ public final class VelocityRoutingController {
     }
 
     public void clearCache(Player player) {
-        sendBodyResult(player, coreApiClient.clearCache().thenApply(body -> maintenanceMessage("Cache clear", body)), "캐시 정리를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.clearCache().thenApply(body -> coreStatusMessages.maintenance("Cache clear", body)), "캐시 정리를 요청하지 못했습니다.");
     }
 
     public void startEventPolling(Object plugin) {
@@ -1084,7 +1086,7 @@ public final class VelocityRoutingController {
     }
 
     public void metrics(Player player) {
-        sendBodyResult(player, coreApiClient.metrics().thenApply(this::metricsMessage), "Core metrics를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.metrics().thenApply(coreStatusMessages::metrics), "Core metrics를 불러오지 못했습니다.");
     }
 
     public void coreConfig(Player player) {
@@ -1092,7 +1094,7 @@ public final class VelocityRoutingController {
     }
 
     public void addonEndpoints(Player player) {
-        sendBodyResult(player, coreApiClient.coreConfig().thenApply(this::addonEndpointMessage), "Addon endpoint 상태를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.coreConfig().thenApply(coreStatusMessages::addonEndpoints), "Addon endpoint 상태를 불러오지 못했습니다.");
     }
 
     public void storageStatus(Player player) {
@@ -1112,7 +1114,7 @@ public final class VelocityRoutingController {
     }
 
     public void reload(Player player) {
-        sendBodyResult(player, coreApiClient.reload().thenApply(body -> maintenanceMessage("Core reload", body)), "reload를 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.reload().thenApply(body -> coreStatusMessages.maintenance("Core reload", body)), "reload를 요청하지 못했습니다.");
     }
 
     public void migrateSuperiorSkyblock2(Player player, String action, String path) {
@@ -1667,39 +1669,6 @@ public final class VelocityRoutingController {
         return "업그레이드 규칙: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
-    private String maintenanceMessage(String label, String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return label + ": failed code=" + code;
-        }
-        return label + ": accepted sessions=" + longValue(body, "clearedSessions") + " tickets=" + longValue(body, "clearedTickets");
-    }
-
-    private String metricsMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "Core metrics: empty";
-        }
-        int samples = 0;
-        java.util.List<String> names = new java.util.ArrayList<>();
-        for (String line : body.split("\\R")) {
-            String trimmed = line.trim();
-            if (trimmed.isBlank() || trimmed.startsWith("#")) {
-                continue;
-            }
-            samples++;
-            if (names.size() < 6) {
-                int brace = trimmed.indexOf('{');
-                int space = trimmed.indexOf(' ');
-                int end = brace > 0 ? brace : space > 0 ? space : trimmed.length();
-                String name = trimmed.substring(0, end);
-                if (!names.contains(name)) {
-                    names.add(name);
-                }
-            }
-        }
-        return "Core metrics: samples=" + samples + (names.isEmpty() ? "" : " / " + String.join(", ", names));
-    }
-
     private String coreConfigMessage(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
@@ -1922,39 +1891,6 @@ public final class VelocityRoutingController {
             + " generatorPolicy=" + jsonValue(body, "generatorPolicy")
             + " mtls=" + boolValue(body, "requireMtls")
             + " ipAllowlist=" + boolValue(body, "ipAllowlistEnabled");
-    }
-
-    private String addonEndpointMessage(String body) {
-        return "Addon endpoints: "
-            + "bulkSave=" + boolValue(body, "addonStateBulkSaveApi")
-            + " global=" + jsonValue(body, "addonStateBulkSaveGlobalEndpoint")
-            + " island=" + jsonValue(body, "addonStateBulkSaveIslandEndpoint")
-            + " tableGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalEndpoint")
-            + " tableIsland=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandEndpoint")
-            + " tableGlobalAlias=" + jsonValue(body, "addonStateTableKeyValueBulkSaveGlobalAlias")
-            + " tableIslandAlias=" + jsonValue(body, "addonStateTableKeyValueBulkSaveIslandAlias")
-            + " tableBulkGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkGlobalEndpoint")
-            + " tableBulkIsland=" + jsonValue(body, "addonStateTableKeyValueBulkIslandEndpoint")
-            + " tableLoadGlobal=" + jsonValue(body, "addonStateTableKeyValueBulkLoadGlobalEndpoint")
-            + " tableLoadIsland=" + jsonValue(body, "addonStateTableKeyValueBulkLoadIslandEndpoint")
-            + " tableMapGlobal=" + jsonValue(body, "addonStateTableBulkGlobalEndpoint")
-            + " tableMapIsland=" + jsonValue(body, "addonStateTableBulkIslandEndpoint")
-            + " payload=" + jsonValue(body, "addonStateTableKeyValueBulkSavePayload")
-            + " loadPayload=" + jsonValue(body, "addonStateTableKeyValueBulkLoadPayload")
-            + " api=" + jsonValue(body, "addonStateTableKeyValueBulkSaveRepositoryApi")
-            + " storage=" + jsonValue(body, "addonStateTableKeyValueBulkSaveStorageMode")
-            + " tablePrefix=" + jsonValue(body, "addonStateTableKeyPrefix")
-            + " maxKeys=" + longValue(body, "addonStateMaxKeysPerAddon")
-            + " maxValue=" + longValue(body, "addonStateMaxValueLength")
-            + " globalCacheKey=" + jsonValue(body, "addonStateGlobalCacheKey")
-            + " islandCacheKey=" + jsonValue(body, "addonStateIslandCacheKey")
-            + " invalidationApi=" + jsonValue(body, "addonStateCacheInvalidationApi")
-            + " cacheEventFields=" + jsonValue(body, "cacheInvalidationEventFields")
-            + " eventTypeKeys=" + jsonValue(body, "globalEventTypeKeys")
-            + " eventRecoveryKeys=" + jsonValue(body, "globalEventRecoveryKeys")
-            + " eventAddonKeys=" + jsonValue(body, "globalEventAddonKeys")
-            + " fallback=" + jsonValue(body, "addonStateTableKeyValueBulkSaveFallback")
-            + " loadFallback=" + jsonValue(body, "addonStateTableKeyValueBulkLoadFallback");
     }
 
     public void playerInfo(Player player, UUID playerUuid) {
