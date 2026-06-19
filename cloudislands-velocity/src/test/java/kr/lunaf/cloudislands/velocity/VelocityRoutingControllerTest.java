@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.velocity;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
+import kr.lunaf.cloudislands.velocity.routing.RouteTicketRouter;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -87,7 +88,7 @@ class VelocityRoutingControllerTest {
                 )
         );
 
-        assertEquals("섬 워프", routeTargetName(controller, ticket));
+        assertEquals("섬 워프", RouteTicketRouter.routeTargetName(ticket));
     }
 
     private String privateString(VelocityRoutingController controller, String methodName, String value) throws Exception {
@@ -96,9 +97,4 @@ class VelocityRoutingControllerTest {
         return (String) method.invoke(controller, value);
     }
 
-    private String routeTargetName(VelocityRoutingController controller, RouteTicket ticket) throws Exception {
-        Method method = VelocityRoutingController.class.getDeclaredMethod("routeTargetName", RouteTicket.class);
-        method.setAccessible(true);
-        return (String) method.invoke(controller, ticket);
-    }
 }
