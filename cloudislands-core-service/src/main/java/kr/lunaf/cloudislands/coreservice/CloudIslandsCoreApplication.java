@@ -66,6 +66,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.AddonRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AuditRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandBankRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
@@ -355,6 +356,7 @@ public final class CloudIslandsCoreApplication {
         new AddonRoutes(addonStates, audit, events).register(this::route);
         new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(this::route);
+        new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -831,50 +833,6 @@ public final class CloudIslandsCoreApplication {
             }
             events.publish(CloudIslandEventType.ISLAND_CHAT_SENT.name(), payload);
             write(exchange, 202, "{\"accepted\":true,\"channel\":\"" + normalizedChannel + "\",\"message\":\"" + escape(message) + "\"}");
-        });
-        route("/v1/islands/bank", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, bankJson(bankRepository.balance(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
-        });
-        route("/v1/islands/bank/deposit", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            BigDecimal amount = amount(body);
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.DEPOSIT_BANK)) {
-                return;
-            }
-            if (amount.signum() <= 0) {
-                write(exchange, 409, "{\"accepted\":false,\"code\":\"INVALID_AMOUNT\",\"bank\":" + bankJson(bankRepository.balance(islandId)) + "}");
-                return;
-            }
-            long bankLimit = limitValue(limitRepository, islandId, "BANK", Long.MAX_VALUE);
-            var result = bankRepository.deposit(islandId, amount, bankLimit == Long.MAX_VALUE ? null : BigDecimal.valueOf(bankLimit));
-            if (!result.accepted()) {
-                write(exchange, 409, "{\"accepted\":false,\"code\":\"" + result.code() + "\",\"bank\":" + bankJson(result.snapshot()) + "}");
-                return;
-            }
-            var snapshot = result.snapshot();
-            audit.log(actorUuid, "PLAYER", "ISLAND_BANK_DEPOSIT", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
-            islandLogs.append(islandId, actorUuid, "ISLAND_BANK_DEPOSIT", Map.of("amount", amount.toPlainString(), "balance", snapshot.balance()));
-            events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "operation", "DEPOSIT", "amount", amount.toPlainString(), "balance", snapshot.balance()));
-            write(exchange, 202, bankJson(snapshot));
-        });
-        route("/v1/islands/bank/withdraw", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            BigDecimal amount = amount(body);
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.WITHDRAW_BANK)) {
-                return;
-            }
-            var result = bankRepository.withdraw(islandId, amount);
-            audit.log(actorUuid, "PLAYER", "ISLAND_BANK_WITHDRAW", "ISLAND", islandId.toString(), Map.of("amount", amount.toPlainString(), "code", result.code(), "balance", result.snapshot().balance()));
-            islandLogs.append(islandId, actorUuid, "ISLAND_BANK_WITHDRAW", Map.of("amount", amount.toPlainString(), "code", result.code(), "balance", result.snapshot().balance()));
-            if (result.accepted()) {
-                events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "operation", "WITHDRAW", "amount", amount.toPlainString(), "balance", result.snapshot().balance()));
-            }
-            write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"bank\":" + bankJson(result.snapshot()) + "}");
         });
         route("/v1/islands/delete", exchange -> {
             String body = readBody(exchange);
