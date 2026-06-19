@@ -1,5 +1,6 @@
 import org.gradle.api.file.FileTreeElement
 import org.gradle.jvm.tasks.Jar
+import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.artifacts.VersionCatalogsExtension
@@ -315,4 +316,49 @@ tasks.register("distChecksums") {
             "$checksum  ${file.relativeTo(distDir).path.replace('\\', '/')}"
         } + System.lineSeparator())
     }
+}
+
+tasks.register<Exec>("paperBootSmoke") {
+    group = "verification"
+    description = "Boots a supported Paper server and verifies the CloudIslands Paper plugin loads."
+    val paperJar = project(":cloudislands-paper").tasks.named<Jar>("shadowJar")
+    dependsOn(paperJar)
+    doFirst {
+        commandLine(
+            "python3",
+            file("scripts/ci/papermc_smoke.py").absolutePath,
+            "--project", "paper",
+            "--version", minecraftBaselineVersion,
+            "--plugin", paperJar.get().archiveFile.get().asFile.absolutePath,
+            "--work-dir", layout.buildDirectory.dir("smoke/paper-$minecraftBaselineVersion").get().asFile.absolutePath,
+            "--cache-dir", layout.buildDirectory.dir("smoke/cache").get().asFile.absolutePath,
+            "--timeout", "240"
+        )
+    }
+}
+
+tasks.register<Exec>("velocityBootSmoke") {
+    group = "verification"
+    description = "Boots a supported Velocity proxy and verifies the CloudIslands Velocity plugin loads."
+    val velocityJar = project(":cloudislands-velocity").tasks.named<Jar>("shadowJar")
+    dependsOn(velocityJar)
+    doFirst {
+        commandLine(
+            "python3",
+            file("scripts/ci/papermc_smoke.py").absolutePath,
+            "--project", "velocity",
+            "--version", versionCatalog.findVersion("velocity-api").orElseThrow().requiredVersion,
+            "--plugin", velocityJar.get().archiveFile.get().asFile.absolutePath,
+            "--work-dir", layout.buildDirectory.dir("smoke/velocity").get().asFile.absolutePath,
+            "--cache-dir", layout.buildDirectory.dir("smoke/cache").get().asFile.absolutePath,
+            "--timeout", "180"
+        )
+    }
+}
+
+tasks.register("ciBootSmoke") {
+    group = "verification"
+    description = "Runs supported Paper and Velocity boot smoke tests."
+    dependsOn(tasks.named("paperBootSmoke"))
+    dependsOn(tasks.named("velocityBootSmoke"))
 }
