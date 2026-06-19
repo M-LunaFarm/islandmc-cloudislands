@@ -101,6 +101,7 @@ import kr.lunaf.cloudislands.coreservice.limit.CachingIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.limit.JdbcIslandLimitRepository;
+import kr.lunaf.cloudislands.coreservice.metrics.CoreMetricsFactory;
 import kr.lunaf.cloudislands.coreservice.metrics.PrometheusMetricsRenderer;
 import kr.lunaf.cloudislands.coreservice.mission.CachingIslandMissionRepository;
 import kr.lunaf.cloudislands.coreservice.mission.InMemoryIslandMissionRepository;
@@ -354,7 +355,43 @@ public final class CloudIslandsCoreApplication {
             lifecycle
         );
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock);
-        PrometheusMetricsRenderer metrics = new PrometheusMetricsRenderer(nodes, jobs, tickets, runtimeRepository, inMemoryEvents, config.heartbeatTimeout(), meteredDataSource::lastQuerySeconds, meteredDataSource::activeConnections, meteredDataSource::openedConnections, meteredDataSource::connectionFailures, meteredDataSource::queryFailures, () -> redisEventPublisher == null ? 0L : redisEventPublisher.failuresTotal(), () -> redisCacheFailures(nodes, tickets, sessions, islandRepository, metadataRepository, playerProfiles, permissionRules, roleRepository, runtimeRepository, rankingRepository, levelRepository, bankRepository, limitRepository, missionRepository, upgradeRepository, templateRepository, snapshotRepository, islandLogs, redisCacheAdmin, activationLock, playerCreationLock, audit), () -> config.databasePoolSize(), () -> coreJdbcFallbackActive(config), config::setupDatabaseDurable, config::setupDatabaseRequestedBackend, config::setupDatabaseEffectiveAuthority, config::setupDatabaseFallbackTarget, () -> config.coreToken() != null && !config.coreToken().isBlank(), () -> config.adminToken() != null && !config.adminToken().isBlank(), config::adminApiEnabled, config::requireMtls, () -> config.ipAllowlist() != null && !config.ipAllowlist().isBlank(), () -> publicBind(config.bind()) && (config.ipAllowlist() == null || config.ipAllowlist().isBlank()), () -> config.redisUri() != null && !internalHost(config.redisUri().getHost()), () -> coreJdbcActive && !internalHost(jdbcHost(config.jdbcUrl())), () -> "S3".equalsIgnoreCase(config.storageType()) && config.storageEndpoint() != null && !internalHost(config.storageEndpoint().getHost()), () -> "S3".equalsIgnoreCase(config.storageType()) && config.storageEndpoint() != null && "http".equalsIgnoreCase(config.storageEndpoint().getScheme()) && !internalHost(config.storageEndpoint().getHost()), () -> config.rateLimitRequests(), () -> config.rateLimitWindow().toSeconds(), this.rankingRecalculationTask::drainedTotal, this.rankingRecalculationTask::recalculatedTotal, this.rankingRecalculationTask::failuresTotal, this.rankingRecalculationTask::lastBatchSize, securityRejectsTotal::get, securityRejectsRateLimited::get, securityRejectsUnauthorized::get, securityRejectsMtlsRequired::get, securityRejectsIpNotAllowed::get, securityRejectsAdminPermissionDenied::get);
+        PrometheusMetricsRenderer metrics = CoreMetricsFactory.create(
+            config,
+            coreJdbcActive,
+            meteredDataSource,
+            nodes,
+            jobs,
+            tickets,
+            sessions,
+            islandRepository,
+            metadataRepository,
+            playerProfiles,
+            permissionRules,
+            roleRepository,
+            runtimeRepository,
+            rankingRepository,
+            levelRepository,
+            bankRepository,
+            limitRepository,
+            missionRepository,
+            upgradeRepository,
+            templateRepository,
+            snapshotRepository,
+            islandLogs,
+            redisCacheAdmin,
+            activationLock,
+            playerCreationLock,
+            audit,
+            inMemoryEvents,
+            redisEventPublisher,
+            rankingRecalculationTask,
+            securityRejectsTotal::get,
+            securityRejectsRateLimited::get,
+            securityRejectsUnauthorized::get,
+            securityRejectsMtlsRequired::get,
+            securityRejectsIpNotAllowed::get,
+            securityRejectsAdminPermissionDenied::get
+        );
         this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout(), tickets, sessions, snapshotRepository, lifecycle);
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
@@ -414,77 +451,6 @@ public final class CloudIslandsCoreApplication {
             events,
             this::requestIslandDelete
         ).register(this::route, this::routePrefix);
-    }
-
-    private static long redisCacheFailures(NodeRegistry nodes, RouteTicketStore tickets, RouteSessionStore sessions, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandRoleRepository roles, IslandRuntimeRepository runtimes, RankingRepository rankings, IslandLevelRepository levels, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandUpgradeRepository upgrades, IslandTemplateRepository templates, IslandSnapshotRepository snapshots, IslandLogRepository islandLogs, RedisCacheAdmin redisCacheAdmin, RedisActivationLock activationLock, RedisPlayerCreationLock playerCreationLock, AuditLogger audit) {
-        long failures = 0L;
-        if (nodes instanceof CachingNodeRegistry cachingNodes) {
-            failures += cachingNodes.failuresTotal();
-        }
-        if (tickets instanceof CachingRouteTicketStore cachingTickets) {
-            failures += cachingTickets.failuresTotal();
-        }
-        if (sessions instanceof RedisRouteSessionStore redisSessions) {
-            failures += redisSessions.failuresTotal();
-        }
-        if (islands instanceof CachingIslandRepository cachingIslands) {
-            failures += cachingIslands.failuresTotal();
-        }
-        if (metadata instanceof CachingIslandMetadataRepository cachingMetadata) {
-            failures += cachingMetadata.failuresTotal();
-        }
-        if (playerProfiles instanceof CachingPlayerProfileRepository cachingProfiles) {
-            failures += cachingProfiles.failuresTotal();
-        }
-        if (permissionRules instanceof CachingIslandPermissionRuleRepository cachingPermissionRules) {
-            failures += cachingPermissionRules.failuresTotal();
-        }
-        if (roles instanceof CachingIslandRoleRepository cachingRoles) {
-            failures += cachingRoles.failuresTotal();
-        }
-        if (runtimes instanceof CachingIslandRuntimeRepository cachingRuntimes) {
-            failures += cachingRuntimes.failuresTotal();
-        }
-        if (rankings instanceof CachingRankingRepository cachingRankings) {
-            failures += cachingRankings.failuresTotal();
-        }
-        if (levels instanceof CachingIslandLevelRepository cachingLevels) {
-            failures += cachingLevels.failuresTotal();
-        }
-        if (bank instanceof CachingIslandBankRepository cachingBank) {
-            failures += cachingBank.failuresTotal();
-        }
-        if (limits instanceof CachingIslandLimitRepository cachingLimits) {
-            failures += cachingLimits.failuresTotal();
-        }
-        if (missions instanceof CachingIslandMissionRepository cachingMissions) {
-            failures += cachingMissions.failuresTotal();
-        }
-        if (upgrades instanceof CachingIslandUpgradeRepository cachingUpgrades) {
-            failures += cachingUpgrades.failuresTotal();
-        }
-        if (templates instanceof CachingIslandTemplateRepository cachingTemplates) {
-            failures += cachingTemplates.failuresTotal();
-        }
-        if (snapshots instanceof CachingIslandSnapshotRepository cachingSnapshots) {
-            failures += cachingSnapshots.failuresTotal();
-        }
-        if (islandLogs instanceof CachingIslandLogRepository cachingIslandLogs) {
-            failures += cachingIslandLogs.failuresTotal();
-        }
-        if (redisCacheAdmin != null) {
-            failures += redisCacheAdmin.failuresTotal();
-        }
-        if (activationLock != null) {
-            failures += activationLock.failuresTotal();
-        }
-        if (playerCreationLock != null) {
-            failures += playerCreationLock.failuresTotal();
-        }
-        if (audit instanceof RedisAuditLogger redisAudit) {
-            failures += redisAudit.failuresTotal();
-        }
-        return failures;
     }
 
     private static RollbackTarget migrationRollbackTarget(CoreServiceConfig config, DataSource dataSource) {
