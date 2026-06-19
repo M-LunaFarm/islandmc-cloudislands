@@ -67,6 +67,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.AuditRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBankRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandBlockLevelRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
@@ -357,6 +358,7 @@ public final class CloudIslandsCoreApplication {
         new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(this::route);
         new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
+        new IslandBlockLevelRoutes(levelRepository, rankingRepository, levelRecalculation, islandRepository, metadataRepository, permissionRules, audit, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -735,46 +737,6 @@ public final class CloudIslandsCoreApplication {
             }
             int pruned = recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId, fencingToken);
             write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"fencingToken\":" + fencingToken + ",\"pruned\":" + pruned + "}");
-        });
-        route("/v1/admin/block-values", exchange -> {
-            String body = readBody(exchange);
-            String materialKey = JsonFields.text(body, "materialKey", "minecraft:stone");
-            BigDecimal worth = new BigDecimal(JsonFields.text(body, "worth", Double.toString(JsonFields.decimal(body, "worth", 0.0D))));
-            long levelPoints = JsonFields.longValue(body, "levelPoints", 0L);
-            long limit = JsonFields.longValue(body, "limit", 0L);
-            levelRepository.putBlockValue(materialKey, new RankingRecalculationService.BlockValue(worth, levelPoints, limit));
-            audit.log(JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L)), "ADMIN", "BLOCK_VALUE_SET", "MATERIAL", materialKey, Map.of("worth", worth.toPlainString(), "levelPoints", Long.toString(levelPoints)));
-            events.publish(CloudIslandEventType.ISLAND_BLOCK_VALUE_CHANGED.name(), Map.of("materialKey", materialKey, "worth", worth.toPlainString(), "levelPoints", Long.toString(levelPoints), "limit", Long.toString(limit), "cacheTargets", "BLOCKS,LEVEL,SUMMARY"));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/blocks/delta", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String materialKey = JsonFields.text(body, "materialKey", "minecraft:air");
-            long delta = JsonFields.longValue(body, "delta", 0L);
-            levelRepository.addBlockDelta(islandId, materialKey, delta);
-            rankingRepository.markDirty(islandId);
-            events.publish(CloudIslandEventType.ISLAND_BLOCKS_CHANGED.name(), Map.of("islandId", islandId.toString(), "materialKey", materialKey, "delta", Long.toString(delta)));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/blocks/replace", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            Map<String, Long> counts = parseCountsPayload(JsonFields.text(body, "counts", ""));
-            levelRepository.replaceBlockCounts(islandId, counts);
-            rankingRepository.markDirty(islandId);
-            events.publish(CloudIslandEventType.ISLAND_BLOCKS_CHANGED.name(), Map.of("islandId", islandId.toString(), "materialKey", "*", "delta", "rescan"));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/level/recalculate", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.START_LEVEL_CALC)) {
-                return;
-            }
-            var snapshot = levelRecalculation.recalculate(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), metadataRepository.members(islandId).size());
-            write(exchange, 202, levelJson(snapshot));
         });
         route("/v1/islands/upgrades", exchange -> {
             String body = readBody(exchange);
