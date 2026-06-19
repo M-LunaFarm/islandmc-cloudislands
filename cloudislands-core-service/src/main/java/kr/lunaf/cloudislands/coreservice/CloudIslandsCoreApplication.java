@@ -69,6 +69,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.PermissionRoleRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.ProgressionRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.ProtocolRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RoutePreparationRoutes;
@@ -353,6 +354,7 @@ public final class CloudIslandsCoreApplication {
         new AuditRoutes(audit).register(this::route);
         new AddonRoutes(addonStates, audit, events).register(this::route);
         new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
+        new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -508,68 +510,6 @@ public final class CloudIslandsCoreApplication {
                 return;
             }
             write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
-        });
-        route("/v1/islands/permissions", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, permissionsJson(permissionRules.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
-        });
-        route("/v1/islands/permissions/set", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.MEMBER);
-            IslandPermission permission = JsonFields.enumValue(IslandPermission.class, body, "permission", IslandPermission.BUILD);
-            boolean allowed = JsonFields.bool(body, "allowed", false);
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
-                return;
-            }
-            permissionRules.put(islandId, role, permission, allowed);
-            audit.log(actorUuid, "PLAYER", "ISLAND_PERMISSION_SET", "ISLAND", islandId.toString(), Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
-            islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_SET", Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
-            events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/roles", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, rolesJson(roleRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
-        });
-        route("/v1/islands/roles/upsert", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.CUSTOM_1);
-            if (role == IslandRole.OWNER || !role.islandMemberRole()) {
-                write(exchange, 409, ApiResponses.error("ROLE_NOT_EDITABLE", "Only island member roles can be customized"));
-                return;
-            }
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
-                return;
-            }
-            int weight = JsonFields.integer(body, "weight", role.ordinal());
-            String displayName = JsonFields.text(body, "displayName", role.name());
-            kr.lunaf.cloudislands.api.model.IslandRoleSnapshot snapshot = roleRepository.upsert(islandId, role, weight, displayName);
-            audit.log(actorUuid, "PLAYER", "ISLAND_ROLE_UPSERT", "ISLAND", islandId.toString(), Map.of("role", role.name(), "weight", Integer.toString(weight), "displayName", displayName));
-            islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_UPSERT", Map.of("role", role.name(), "weight", Integer.toString(weight), "displayName", displayName));
-            events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_UPSERT"));
-            write(exchange, 202, roleJson(snapshot));
-        });
-        route("/v1/islands/roles/reset", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.CUSTOM_1);
-            if (role == IslandRole.OWNER || !role.islandMemberRole()) {
-                write(exchange, 409, ApiResponses.error("ROLE_NOT_EDITABLE", "Only island member roles can be reset"));
-                return;
-            }
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
-                return;
-            }
-            boolean removed = roleRepository.reset(islandId, role);
-            audit.log(actorUuid, "PLAYER", "ISLAND_ROLE_RESET", "ISLAND", islandId.toString(), Map.of("role", role.name(), "removed", Boolean.toString(removed)));
-            islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_RESET", Map.of("role", role.name(), "removed", Boolean.toString(removed)));
-            events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_RESET"));
-            write(exchange, 202, "{\"accepted\":true,\"code\":\"ROLE_RESET\",\"role\":\"" + role.name() + "\",\"removed\":" + removed + "}");
         });
         new RoutePreparationRoutes(routing).register(this::route);
         new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(this::route);
