@@ -61,6 +61,7 @@ import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminRuntimeRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.AdminNodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AddonRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AuditRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
@@ -577,117 +578,7 @@ public final class CloudIslandsCoreApplication {
         new PlayerProfileRoutes(playerProfiles, audit).register(this::route);
         new TemplateRoutes(templateRepository, audit, events).register(this::route);
         new ProtocolRoutes(nodes).register(this::route);
-        route("/v1/admin/nodes/drain", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            boolean changed = nodes.drain(nodeId);
-            if (changed) {
-                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), nodeLifecycleFields(nodeId, "DRAINING", "DRAIN"));
-            }
-            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, nodeLifecycleFields(nodeId, changed ? "DRAINING" : "NOT_FOUND", "DRAIN"));
-            write(exchange, changed ? 202 : 404, changed ? nodeLifecycleJson(nodeId, "DRAINING", "DRAIN") : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-        });
-        route("/v1/admin/nodes/undrain", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            boolean changed = nodes.undrain(nodeId);
-            if (changed) {
-                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), nodeLifecycleFields(nodeId, "READY", "UNDRAIN"));
-            }
-            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, nodeLifecycleFields(nodeId, changed ? "READY" : "NOT_FOUND", "UNDRAIN"));
-            write(exchange, changed ? 202 : 404, changed ? nodeLifecycleJson(nodeId, "READY", "UNDRAIN") : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-        });
-        route("/v1/admin/nodes/kickall", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            String reason = JsonFields.text(body, "reason", "admin-request");
-            boolean found = nodes.find(nodeId).isPresent();
-            if (found) {
-                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "KICKALL", "reason", reason));
-            }
-            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_KICKALL", "NODE", nodeId, Map.of("reason", reason));
-            write(exchange, found ? 202 : 404, found ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-        });
-        route("/v1/admin/nodes/shutdown-safe", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            String reason = JsonFields.text(body, "reason", "admin-request");
-            boolean changed = nodes.shutdownSafe(nodeId);
-            if (changed) {
-                events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "SHUTTING_DOWN", "operation", "SHUTDOWN_SAFE", "reason", reason));
-            }
-            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SHUTDOWN_SAFE", "NODE", nodeId, Map.of("reason", reason));
-            write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-        });
-        routePrefix("/v1/admin/nodes/", exchange -> {
-            String method = exchange.getRequestMethod();
-            String path = exchange.getRequestURI().getPath();
-            String tail = path.substring("/v1/admin/nodes/".length());
-            if (!method.equalsIgnoreCase("POST")) {
-                write(exchange, 405, ApiResponses.error("METHOD_NOT_ALLOWED", "Use POST for admin node lifecycle operations"));
-                return;
-            }
-            if (tail.endsWith("/drain")) {
-                String nodeId = tail.substring(0, tail.length() - "/drain".length());
-                boolean changed = nodes.drain(nodeId);
-                if (changed) {
-                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), nodeLifecycleFields(nodeId, "DRAINING", "DRAIN"));
-                }
-                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_DRAIN", "NODE", nodeId, nodeLifecycleFields(nodeId, changed ? "DRAINING" : "NOT_FOUND", "DRAIN"));
-                write(exchange, changed ? 202 : 404, changed ? nodeLifecycleJson(nodeId, "DRAINING", "DRAIN") : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-                return;
-            }
-            if (tail.endsWith("/undrain")) {
-                String nodeId = tail.substring(0, tail.length() - "/undrain".length());
-                boolean changed = nodes.undrain(nodeId);
-                if (changed) {
-                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), nodeLifecycleFields(nodeId, "READY", "UNDRAIN"));
-                }
-                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_UNDRAIN", "NODE", nodeId, nodeLifecycleFields(nodeId, changed ? "READY" : "NOT_FOUND", "UNDRAIN"));
-                write(exchange, changed ? 202 : 404, changed ? nodeLifecycleJson(nodeId, "READY", "UNDRAIN") : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-                return;
-            }
-            if (tail.endsWith("/kickall")) {
-                String body = readBody(exchange);
-                String nodeId = tail.substring(0, tail.length() - "/kickall".length());
-                String reason = JsonFields.text(body, "reason", "admin-request");
-                boolean found = nodes.find(nodeId).isPresent();
-                if (found) {
-                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "KICKALL", "reason", reason));
-                }
-                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_KICKALL", "NODE", nodeId, Map.of("reason", reason));
-                write(exchange, found ? 202 : 404, found ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-                return;
-            }
-            if (tail.endsWith("/shutdown-safe")) {
-                String body = readBody(exchange);
-                String nodeId = tail.substring(0, tail.length() - "/shutdown-safe".length());
-                String reason = JsonFields.text(body, "reason", "admin-request");
-                boolean changed = nodes.shutdownSafe(nodeId);
-                if (changed) {
-                    events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId, "state", "SHUTTING_DOWN", "operation", "SHUTDOWN_SAFE", "reason", reason));
-                }
-                audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SHUTDOWN_SAFE", "NODE", nodeId, Map.of("reason", reason));
-                write(exchange, changed ? 202 : 404, changed ? ApiResponses.ok(true) : ApiResponses.error("NODE_NOT_FOUND", "Node was not found"));
-                return;
-            }
-            write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
-        });
-        route("/v1/admin/nodes/sweep", exchange -> {
-            String body = readBody(exchange);
-            String nodeId = JsonFields.text(body, "nodeId", "");
-            int affected = 0;
-            int recoveryQueued = 0;
-            java.util.List<String> downNodes = nodeId.isBlank() ? nodes.markStaleDown(config.heartbeatTimeout()) : java.util.List.of(nodeId);
-            for (String downNode : downNodes) {
-                affected += nodeFailureMonitor.markRecoveryRequiredForNode(downNode);
-                recoveryQueued += nodeFailureMonitor.recoverOrQuarantineNodeIslands(downNode);
-            }
-            String nodesJson = "[\"" + String.join("\",\"", downNodes.stream().map(value -> value.replace("\"", "'")).toList()) + "\"]";
-            audit.log(new UUID(0L, 0L), "ADMIN", "NODE_SWEEP", "NODE", nodeId.isBlank() ? "*" : nodeId, Map.of("recoveryRequired", Integer.toString(affected), "recoveryQueued", Integer.toString(recoveryQueued), "nodes", String.join(",", downNodes)));
-            events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId.isBlank() ? "*" : nodeId, "state", "SWEEP", "recoveryRequired", Integer.toString(affected), "recoveryQueued", Integer.toString(recoveryQueued), "nodes", String.join(",", downNodes)));
-            write(exchange, 202, "{\"nodes\":" + nodesJson + ",\"recoveryRequired\":" + affected + ",\"recoveryQueued\":" + recoveryQueued + "}");
-        });
+        new AdminNodeRoutes(nodes, nodeFailureMonitor, config.heartbeatTimeout(), audit, events).register(this::route, this::routePrefix);
         route("/v1/admin/islands/activate", exchange -> {
             UUID islandId = JsonFields.uuid(readBody(exchange), "islandId", new UUID(0L, 0L));
             IslandLifecycleWorkflow.Result result = lifecycle.activate(islandId);
@@ -2877,35 +2768,6 @@ public final class CloudIslandsCoreApplication {
             builder.append(runtimeJson(runtime));
         }
         return builder.append("]}").toString();
-    }
-
-    private static java.util.Map<String, String> nodeLifecycleFields(String nodeId, String state, String operation) {
-        return Map.of(
-            "nodeId", nodeId == null ? "" : nodeId,
-            "state", state == null ? "" : state,
-            "operation", operation == null ? "" : operation,
-            "drainContract", kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.CONTRACT,
-            "newRoutePolicy", kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.NEW_ROUTE_POLICY,
-            "activeIslandPolicy", kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.ACTIVE_ISLAND_POLICY,
-            "nextStep", operation != null && operation.equals("UNDRAIN") ? kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.UNDRAIN_NEXT_STEP : kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.DRAIN_NEXT_STEP
-        );
-    }
-
-    private static String nodeLifecycleJson(String nodeId, String state, String operation) {
-        String nextStep = operation != null && operation.equals("UNDRAIN")
-            ? kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.UNDRAIN_NEXT_STEP
-            : kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.DRAIN_NEXT_STEP;
-        return "{\"accepted\":true"
-            + ",\"nodeId\":\"" + escape(nodeId == null ? "" : nodeId) + "\""
-            + ",\"state\":\"" + escape(state == null ? "" : state) + "\""
-            + ",\"operation\":\"" + escape(operation == null ? "" : operation) + "\""
-            + ",\"drainContract\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.CONTRACT) + "\""
-            + ",\"newRoutePolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.NEW_ROUTE_POLICY) + "\""
-            + ",\"activeIslandPolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.ACTIVE_ISLAND_POLICY) + "\""
-            + ",\"ownerMemberPolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.OWNER_MEMBER_POLICY) + "\""
-            + ",\"visitorPolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.NodeDrainPolicy.VISITOR_POLICY) + "\""
-            + ",\"nextStep\":\"" + escape(nextStep) + "\""
-            + "}";
     }
 
     private static String nullable(String value) {
