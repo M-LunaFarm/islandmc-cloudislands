@@ -16,6 +16,7 @@ import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
 import kr.lunaf.cloudislands.paper.activation.PeriodicIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
+import kr.lunaf.cloudislands.paper.bootstrap.PaperHeartbeatRuntime;
 import kr.lunaf.cloudislands.paper.bootstrap.LifecycleRegistry;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperHealthRuntime;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperRuntimeServices;
@@ -29,7 +30,6 @@ import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.generator.IslandCropGrowthListener;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
-import kr.lunaf.cloudislands.paper.heartbeat.PaperHeartbeatService;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
@@ -61,7 +61,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class CloudIslandsPaperPlugin extends JavaPlugin {
     private CloudIslandsPaperAgent agent;
-    private PaperHeartbeatService heartbeatService;
     private PaperIslandJobWorker jobWorker;
     private PermissionEventPoller permissionEventPoller;
     private PeriodicIslandSaveTask periodicSaveTask;
@@ -160,37 +159,21 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             supportedTemplates = getConfig().getString("node.supported-template", "*");
         }
         String templateVersions = templateVersionsMetadata();
-        int maxActivationQueue = Math.max(1, getConfig().getInt("node.max-activation-queue", getConfig().getInt("island-node.activation.max-concurrent", 4)));
-        int hardPlayerCap = Math.max(1, getConfig().getInt("node.hard-player-cap", 110));
-        int reservedSlots = Math.max(0, getConfig().getInt("node.reserved-slots", 15));
-        int reservedSoftCap = Math.max(1, hardPlayerCap - reservedSlots);
-        int softPlayerCap = getConfig().contains("node.soft-player-cap")
-            ? Math.max(1, Math.min(reservedSoftCap, getConfig().getInt("node.soft-player-cap", reservedSoftCap)))
-            : reservedSoftCap;
-        int maxActiveIslands = Math.max(1, getConfig().getInt("node.max-active-islands", 600));
         String heartbeatSupportedTemplates = templateVersions.isBlank() ? supportedTemplates : supportedTemplates + ";templateVersions=" + templateVersions;
-        this.heartbeatService = new PaperHeartbeatService(
+        PaperHeartbeatRuntime heartbeatRuntime = PaperHeartbeatRuntime.start(
             this,
             client,
             nodeId,
             pool,
             velocityServerName,
-            getDescription().getVersion(),
             supportedTemplates,
             () -> heartbeatMetadata(heartbeatSupportedTemplates, storage),
             () -> storageAvailable(storage),
-            () -> softPlayerCap,
-            () -> hardPlayerCap,
-            () -> reservedSlots,
             () -> activeIslands == null ? 0 : activeIslands.size(),
-            () -> maxActiveIslands,
             () -> jobWorker == null ? 0 : jobWorker.activationQueue(),
-            () -> maxActivationQueue,
-            () -> activeIslands == null ? 0.0D : Math.min(1.5D, (double) activeIslands.size() / maxActiveIslands),
             () -> jobWorker == null ? 0 : jobWorker.recentFailurePenalty()
         );
-        heartbeatService.start(getConfig().getLong("heartbeat.interval-ticks", 20L));
-        lifecycle.started("heartbeat", heartbeatService::stop);
+        lifecycle.started("heartbeat", heartbeatRuntime);
         PaperHealthRuntime healthRuntime = PaperHealthRuntime.startIfEnabled(
             this,
             () -> paperHealthJson(role, nodeId),
@@ -211,7 +194,6 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             lifecycle.close();
             lifecycle = null;
         }
-        heartbeatService = null;
         jobWorker = null;
         permissionEventPoller = null;
         periodicSaveTask = null;
