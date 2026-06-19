@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class IslandCommandControllerPolicyTest {
     @Test
     void playerRouteMessagesUsePlayerRouteTicketView() throws Exception {
-        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
 
         assertTrue(source.contains("import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;"));
         assertTrue(source.contains("PlayerRouteTicketView.from(ticket).destination()"));
