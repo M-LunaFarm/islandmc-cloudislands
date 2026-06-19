@@ -160,6 +160,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
         String templateVersions = templateVersionsMetadata();
         String heartbeatSupportedTemplates = templateVersions.isBlank() ? supportedTemplates : supportedTemplates + ";templateVersions=" + templateVersions;
+        PaperObservabilityFormatter observability = new PaperObservabilityFormatter(this);
         PaperHeartbeatRuntime heartbeatRuntime = PaperHeartbeatRuntime.start(
             this,
             client,
@@ -167,7 +168,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             pool,
             velocityServerName,
             supportedTemplates,
-            () -> heartbeatMetadata(heartbeatSupportedTemplates, storage),
+            () -> observability.heartbeatMetadata(heartbeatSupportedTemplates, storage),
             () -> storageAvailable(storage),
             () -> activeIslands == null ? 0 : activeIslands.size(),
             () -> jobWorker == null ? 0 : jobWorker.activationQueue(),
@@ -176,8 +177,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         lifecycle.started("heartbeat", heartbeatRuntime);
         PaperHealthRuntime healthRuntime = PaperHealthRuntime.startIfEnabled(
             this,
-            () -> paperHealthJson(role, nodeId),
-            () -> paperMetricsText(role, nodeId, storage)
+            () -> observability.healthJson(role, nodeId),
+            () -> observability.metricsText(role, nodeId, storage)
         );
         if (healthRuntime != null) {
             lifecycle.started("health", healthRuntime);
@@ -224,299 +225,51 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return jobWorker;
     }
 
-    private String paperHealthJson(AgentRole role, String nodeId) {
-        PaperRedisClient.PingResult redis = redisClient == null ? PaperRedisClient.PingResult.disabled() : redisClient.ping();
-        boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
-        boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
-        boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
-        boolean hideNodeNames = configBoolean("routing.hide-node-names", true);
-        boolean topologyExposureRisk = !hideNodeNames;
-        boolean defaultNodeIdentityRisk = defaultNodeIdentityRisk(role, nodeId, getConfig().getString("node.velocity-server-name", nodeId));
-        int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
-        boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
-        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && configBoolean("security.require-proxy-source-allowlist", true);
-        boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured && !proxySourceAllowlistRequired;
-        boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
-        boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
-        boolean bungeeConnectChannelRegistered = getServer().getMessenger().isOutgoingChannelRegistered(this, "BungeeCord");
-        boolean islandNodeRole = role == AgentRole.ISLAND_NODE;
-        boolean worldExecutionEnabled = islandNodeRole && activeIslands != null;
-        boolean activationWorkerEnabled = islandNodeRole && jobWorker != null;
-        boolean islandProtectionEnabled = islandNodeRole;
-        boolean islandSaveTasksEnabled = islandNodeRole && (periodicSaveTask != null || emptyIslandSaveTask != null);
-        boolean guiMenusEnabled = guiEnabledForRole(role);
-        PaperRouteSessionListener routeSessions = routeSessionListener;
-        RouteTicketConsumer routeTickets = agent == null ? null : agent.routeTickets();
-        PermissionEventPoller events = permissionEventPoller;
-        PeriodicIslandSaveTask saver = periodicSaveTask;
-        EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
-        ProtectionController protection = agent == null ? null : agent.protection();
-        IslandBoundaryListener boundary = boundaryListener;
-        MeteredIslandStorage storage = islandStorage;
-        boolean storageFallbackEnabled = configBoolean("storage.fallback.enabled", true);
-        int storageSaveRetryQueueTotal = (saver == null ? 0 : saver.retryQueueSize()) + (emptySaver == null ? 0 : emptySaver.retryQueueSize());
-        String storageLastFallbackReason = storage == null ? "" : storage.lastFallbackReason();
-        return "{"
-            + "\"status\":\"UP\","
-            + "\"role\":\"" + role.name() + "\","
-            + "\"nodeId\":\"" + nodeId + "\","
-            + "\"onlineMode\":" + getServer().getOnlineMode() + ","
-            + "\"onlinePlayers\":" + getServer().getOnlinePlayers().size() + ","
-            + "\"rolePolicy\":\"" + (islandNodeRole ? "island-node-runs-worlds-protection-routing-and-saves" : "lobby-runs-gui-query-and-routing-entry-only") + "\","
-            + "\"roleWorldExecutionEnabled\":" + worldExecutionEnabled + ","
-            + "\"roleActivationWorkerEnabled\":" + activationWorkerEnabled + ","
-            + "\"roleIslandProtectionEnabled\":" + islandProtectionEnabled + ","
-            + "\"roleIslandSaveTasksEnabled\":" + islandSaveTasksEnabled + ","
-            + "\"roleGuiMenusEnabled\":" + guiMenusEnabled + ","
-            + "\"roleGuiMenuPolicy\":\"configurable-paper-gui-role-gate\","
-            + "\"protectionDecisionPolicy\":\"" + (protection == null ? "unavailable" : protection.synchronousDecisionPolicy()) + "\","
-            + "\"protectionSynchronousEventsUseRemoteCalls\":false,"
-            + "\"protectionIndexedChunks\":" + (protection == null ? 0 : protection.indexedChunkCount()) + ","
-            + "\"protectionIndexedIslands\":" + (protection == null ? 0 : protection.indexedIslandCount()) + ","
-            + "\"protectionMigratingIslands\":" + (protection == null ? 0 : protection.migratingIslandCount()) + ","
-            + "\"boundaryMemberReturnsTotal\":" + (boundary == null ? 0L : boundary.memberReturns()) + ","
-            + "\"boundaryVisitorReturnsTotal\":" + (boundary == null ? 0L : boundary.visitorReturns()) + ","
-            + "\"boundaryAdminBypassesTotal\":" + (boundary == null ? 0L : boundary.adminBypasses()) + ","
-            + "\"activeIslands\":" + (activeIslands == null ? 0 : activeIslands.size()) + ","
-            + "\"activationQueue\":" + (jobWorker == null ? 0 : jobWorker.activationQueue()) + ","
-            + "\"storageBackend\":\"" + (storage == null ? "NONE" : storage.backend()) + "\","
-            + "\"storagePrimaryDegraded\":" + (storage != null && storage.primaryStorageDegraded()) + ","
-            + "\"storagePrimaryFailuresTotal\":" + (storage == null ? 0L : storage.primaryStorageFailures()) + ","
-            + "\"storageFallbackReadsTotal\":" + (storage == null ? 0L : storage.fallbackReads()) + ","
-            + "\"storageFallbackWritesTotal\":" + (storage == null ? 0L : storage.fallbackWrites()) + ","
-            + "\"storageFallbackDeletesTotal\":" + (storage == null ? 0L : storage.fallbackDeletes()) + ","
-            + "\"storageFallbackOperationsTotal\":" + (storage == null ? 0L : storage.fallbackOperations()) + ","
-            + "\"storageFallbackEnabled\":" + storageFallbackEnabled + ","
-            + "\"storageFallbackType\":\"" + jsonText(getConfig().getString("storage.fallback.type", "LOCAL")) + "\","
-            + "\"storageLastFallbackReason\":\"" + jsonText(storageLastFallbackReason) + "\","
-            + "\"storageSaveRetryQueueTotal\":" + storageSaveRetryQueueTotal + ","
-            + "\"objectStorageOutagePolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.CONTRACT + "\","
-            + "\"objectStorageActiveIslandPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.ACTIVE_ISLAND_POLICY + "\","
-            + "\"objectStorageNewActivationPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.NEW_ACTIVATION_POLICY + "\","
-            + "\"objectStorageActiveIslandLocalPlayAllowed\":" + (islandNodeRole && activeIslands != null) + ","
-            + "\"objectStorageSaveRetryPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.SAVE_RETRY_POLICY + "\","
-            + "\"objectStorageDeactivationPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.DEACTIVATION_POLICY + "\","
-            + "\"objectStorageObservabilityKeys\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.OBSERVABILITY_KEYS + "\","
-            + "\"islandBundlePortablePolicy\":\"portable-node-agnostic-shard-cell-remap\","
-            + "\"islandBundleManifestPolicy\":\"manifest-json-plus-checksums-sha256-sidecar\","
-            + "\"islandBundleRestoreVerifyPolicy\":\"verify-manifest-checksum-for-latest-snapshot-and-storage-path-when-present\","
-            + "\"islandBundlePlacementPolicy\":\"restore-to-current-active-node-world-and-cell\","
-            + "\"finalRequestFlowKeys\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowKeys() + "\","
-            + "\"finalRequestFlowIslandCreate\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("island-create") + "\","
-            + "\"finalRequestFlowIslandHome\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("island-home") + "\","
-            + "\"finalRequestFlowIslandVisit\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("island-visit") + "\","
-            + "\"finalRequestFlowSoftFullRouting\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("soft-full-routing") + "\","
-            + "\"storageUploadFailuresTotal\":" + (storage == null ? 0L : storage.uploadFailures()) + ","
-            + "\"storageDownloadFailuresTotal\":" + (storage == null ? 0L : storage.downloadFailures()) + ","
-            + "\"storageOperationFailuresTotal\":" + (storage == null ? 0L : storage.operationFailures()) + ","
-            + "\"redisAvailable\":" + redis.available() + ","
-            + "\"redisLatencySeconds\":" + redis.latencySeconds() + ","
-            + "\"redisFailuresTotal\":" + redis.failuresTotal() + ","
-            + "\"backendAccessPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CONTRACT + "\","
-            + "\"velocityForwardingModePolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.MODERN_FORWARDING_POLICY + "\","
-            + "\"velocityForwardingRequired\":" + forwardingRequired + ","
-            + "\"forwardingSecretConfigured\":" + forwardingSecretConfigured + ","
-            + "\"forwardingSecretPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.FORWARDING_SECRET_POLICY + "\","
-            + "\"paperDirectAccessPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY + "\","
-            + "\"paperOnlineModePolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_ONLINE_MODE_POLICY + "\","
-            + "\"backendFirewallPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.INFRASTRUCTURE_EXPOSURE_POLICY + "\","
-            + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
-            + "\"routeTicketOneTimeConsume\":" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ONE_TIME_CONSUME + ","
-            + "\"routeTicketNonceRequired\":" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.NONCE_REQUIRED + ","
-            + "\"routeTicketTargetNodeRequired\":" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.TARGET_NODE_REQUIRED + ","
-            + "\"routeTicketOneTimePolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ONE_TIME_POLICY + "\","
-            + "\"routeTicketNoncePolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.NONCE_POLICY + "\","
-            + "\"routeTicketArrivalConsumePolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ARRIVAL_CONSUME_POLICY + "\","
-            + "\"routeTicketDirectAccessPolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.DIRECT_ACCESS_POLICY + "\","
-            + "\"routeTicketReplayPolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.REPLAY_POLICY + "\","
-            + "\"routeTicketConsumeSequence\":\"prelogin-session-check>playerjoin-session-consume>route-ticket-consume>teleport\","
-            + "\"hideNodeNames\":" + hideNodeNames + ","
-            + "\"playerTopologyPolicy\":\"logical-island-only\","
-            + "\"playerNodeNamePolicy\":\"" + (hideNodeNames ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only") + "\","
-            + "\"playerRouteMessagePolicy\":\"no-physical-server-node-world-or-cell-names\","
-            + "\"adminTopologyDiagnosticsPolicy\":\"admin-status-and-events-only-not-player-chat\","
-            + "\"topologyExposureRisk\":" + topologyExposureRisk + ","
-            + "\"defaultNodeIdentityRisk\":" + defaultNodeIdentityRisk + ","
-            + "\"proxySourceAllowlistRequired\":" + proxySourceAllowlistRequired + ","
-            + "\"proxySourceAllowlistConfigured\":" + proxySourceAllowlistConfigured + ","
-            + "\"proxySourceAllowlistEntries\":" + proxySourceAllowlistEntries + ","
-            + "\"directAccessRisk\":" + directAccessRisk + ","
-            + "\"velocityOnlineModeMismatch\":" + velocityOnlineModeMismatch + ","
-            + "\"pluginMessagingControlPolicy\":\"forbidden-for-core-control\","
-            + "\"bungeeConnectPluginMessagingEnabled\":" + bungeeConnectPluginMessaging + ","
-            + "\"bungeeConnectChannelRegistered\":" + bungeeConnectChannelRegistered + ","
-            + "\"bungeeConnectUseCase\":\"fallback-transfer-only\","
-            + "\"proxySourceConfigurationRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.proxySourceConfigurationRejections()) + ","
-            + "\"proxySourceRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + ","
-            + "\"forwardingRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + ","
-            + "\"routeSessionRejectionsTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + ","
-            + "\"routeSessionCheckFailuresTotal\":" + (routeSessions == null ? 0L : routeSessions.routeSessionCheckFailures()) + ","
-            + "\"routeTicketConsumeRetriesTotal\":" + (routeTickets == null ? 0L : routeTickets.consumeRetries()) + ","
-            + "\"routeTicketConsumeFailuresTotal\":" + (routeTickets == null ? 0L : routeTickets.consumeFailures()) + ","
-            + "\"routeTicketWorldWaitRetriesTotal\":" + (routeTickets == null ? 0L : routeTickets.worldWaitRetries()) + ","
-            + "\"routeTicketTeleportAttemptsTotal\":" + (routeTickets == null ? 0L : routeTickets.teleportAttempts()) + ","
-            + "\"routeTicketTeleportSuccessesTotal\":" + (routeTickets == null ? 0L : routeTickets.teleportSuccesses()) + ","
-            + "\"routeTicketTeleportFailuresTotal\":" + (routeTickets == null ? 0L : routeTickets.teleportFailures()) + ","
-            + "\"routeTicketLastFailureReason\":\"" + jsonText(routeTickets == null ? "" : routeTickets.lastFailureReason()) + "\","
-            + "\"routeTicketLastTargetType\":\"" + jsonText(routeTickets == null ? "" : routeTickets.lastTargetType()) + "\","
-            + "\"routeTicketTeleportPolicy\":\"consume-ready-ticket-then-teleport-active-island-origin-plus-local-offset\","
-            + "\"chatBroadcastsTotal\":" + (events == null ? 0L : events.chatBroadcasts()) + ","
-            + "\"chatDeliveriesTotal\":" + (events == null ? 0L : events.chatDeliveries()) + ","
-            + "\"chatNoRecipientBroadcastsTotal\":" + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + ","
-            + "\"islandMutationEvacuationsTotal\":" + (events == null ? 0L : events.islandMutationEvacuations()) + ","
-            + "\"islandMutationFallbackTransfersTotal\":" + (events == null ? 0L : events.islandMutationFallbackTransfers()) + ","
-            + "\"islandMutationFallbackKicksTotal\":" + (events == null ? 0L : events.islandMutationFallbackKicks()) + ","
-            + "\"islandMutationFallbackFailuresTotal\":" + (events == null ? 0L : events.islandMutationFallbackFailures()) + ","
-            + "\"cacheEventInvalidationsTotal\":" + (events == null ? 0L : events.cacheEventInvalidations()) + ","
-            + "\"cacheGapInvalidationsTotal\":" + (events == null ? 0L : events.cacheGapInvalidations()) + ","
-            + "\"periodicSaveRetryQueue\":" + (saver == null ? 0 : saver.retryQueueSize()) + ","
-            + "\"periodicSaveFailuresTotal\":" + (saver == null ? 0L : saver.failuresTotal()) + ","
-            + "\"emptySaveRetryQueue\":" + (emptySaver == null ? 0 : emptySaver.retryQueueSize()) + ","
-            + "\"emptySaveFailuresTotal\":" + (emptySaver == null ? 0L : emptySaver.failuresTotal()) + ","
-            + "\"localCacheCount\":" + (localCaches == null ? 0 : localCaches.cacheCount()) + ","
-            + "\"localCacheInvalidationsTotal\":" + (localCaches == null ? 0 : localCaches.invalidationsTotal())
-            + "}";
+    PermissionEventPoller permissionEventPoller() {
+        return permissionEventPoller;
     }
 
-    private String paperMetricsText(AgentRole role, String nodeId, MeteredIslandStorage storage) {
-        int active = activeIslands == null ? 0 : activeIslands.size();
-        int queue = jobWorker == null ? 0 : jobWorker.activationQueue();
-        int failures = jobWorker == null ? 0 : jobWorker.recentFailurePenalty();
-        PaperRedisClient.PingResult redis = redisClient == null ? PaperRedisClient.PingResult.disabled() : redisClient.ping();
-        double storageUploadSeconds = storage == null ? 0.0D : storage.lastUploadSeconds();
-        double storageDownloadSeconds = storage == null ? 0.0D : storage.lastDownloadSeconds();
-        long storageFailures = storage == null ? 0L : storage.operationFailures();
-        long storageAttempts = storage == null ? 0L : storage.operationAttempts();
-        double storageFailureRatio = storage == null ? 0.0D : storage.operationFailureRatio();
-        String storageBackend = storage == null ? "NONE" : storage.backend();
-        boolean primaryStorageDegraded = storage != null && storage.primaryStorageDegraded();
-        long primaryStorageFailures = storage == null ? 0L : storage.primaryStorageFailures();
-        long storageFallbackReads = storage == null ? 0L : storage.fallbackReads();
-        long storageFallbackWrites = storage == null ? 0L : storage.fallbackWrites();
-        long storageFallbackDeletes = storage == null ? 0L : storage.fallbackDeletes();
-        long storageFallbackOperations = storage == null ? 0L : storage.fallbackOperations();
-        boolean forwardingRequired = configBoolean("security.require-velocity-forwarding", true);
-        boolean forwardingSecretConfigured = !resolveEnv(getConfig().getString("security.forwarding-secret", "")).isBlank();
-        boolean routeSessionEnforced = configBoolean("security.enforce-route-session", true) || configBoolean("routing.require-route-session", true);
-        boolean hideNodeNames = configBoolean("routing.hide-node-names", true);
-        boolean topologyExposureRisk = !hideNodeNames;
-        boolean defaultNodeIdentityRisk = defaultNodeIdentityRisk(role, nodeId, getConfig().getString("node.velocity-server-name", nodeId));
-        int proxySourceAllowlistEntries = proxySourceAllowlist == null ? 0 : proxySourceAllowlist.entryCount();
-        boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
-        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && configBoolean("security.require-proxy-source-allowlist", true);
-        boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !getServer().getOnlineMode() && !proxySourceAllowlistConfigured && !proxySourceAllowlistRequired;
-        boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && getServer().getOnlineMode();
-        boolean bungeeConnectPluginMessaging = configBoolean("security.allow-bungee-connect-plugin-messaging", false);
-        boolean guiMenusEnabled = guiEnabledForRole(role);
-        boolean storageFallbackEnabled = configBoolean("storage.fallback.enabled", true);
-        PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
-        PeriodicIslandSaveTask saver = periodicSaveTask;
-        EmptyIslandSaveTask emptySaver = emptyIslandSaveTask;
-        int storageSaveRetryQueueTotal = (saver == null ? 0 : saver.retryQueueSize()) + (emptySaver == null ? 0 : emptySaver.retryQueueSize());
-        IslandGeneratorListener generator = generatorListener;
-        PaperRouteSessionListener routeSessions = routeSessionListener;
-        RouteTicketConsumer routeTickets = agent.routeTickets();
-        PermissionEventPoller events = permissionEventPoller;
-        ProtectionController protection = agent.protection();
-        IslandBoundaryListener boundary = boundaryListener;
-        return ""
-            + "cloudislands_paper_online_players " + getServer().getOnlinePlayers().size() + "\n"
-            + "cloudislands_paper_online_mode " + (getServer().getOnlineMode() ? 1 : 0) + "\n"
-            + "cloudislands_paper_gui_menus_enabled{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + (guiMenusEnabled ? 1 : 0) + "\n"
-            + "cloudislands_paper_active_islands{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + active + "\n"
-            + "cloudislands_paper_activation_queue{node=\"" + nodeId + "\"} " + queue + "\n"
-            + "cloudislands_paper_recent_failure_penalty{node=\"" + nodeId + "\"} " + failures + "\n"
-            + "cloudislands_storage_upload_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
-            + "cloudislands_storage_download_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
-            + "cloudislands_storage_operations_total{node=\"" + nodeId + "\"} " + storageAttempts + "\n"
-            + "cloudislands_storage_operation_failures_total{node=\"" + nodeId + "\"} " + storageFailures + "\n"
-            + "cloudislands_storage_failure_ratio{node=\"" + nodeId + "\"} " + storageFailureRatio + "\n"
-            + "cloudislands_storage_backend{node=\"" + nodeId + "\",backend=\"" + storageBackend + "\"} " + (storage == null ? 0 : 1) + "\n"
-            + "cloudislands_storage_primary_degraded{node=\"" + nodeId + "\"} " + (primaryStorageDegraded ? 1 : 0) + "\n"
-            + "cloudislands_storage_primary_failures_total{node=\"" + nodeId + "\"} " + primaryStorageFailures + "\n"
-            + "cloudislands_storage_fallback_reads_total{node=\"" + nodeId + "\"} " + storageFallbackReads + "\n"
-            + "cloudislands_storage_fallback_writes_total{node=\"" + nodeId + "\"} " + storageFallbackWrites + "\n"
-            + "cloudislands_storage_fallback_deletes_total{node=\"" + nodeId + "\"} " + storageFallbackDeletes + "\n"
-            + "cloudislands_storage_fallback_operations_total{node=\"" + nodeId + "\"} " + storageFallbackOperations + "\n"
-            + "cloudislands_storage_fallback_enabled{node=\"" + nodeId + "\"} " + (storageFallbackEnabled ? 1 : 0) + "\n"
-            + "cloudislands_storage_save_retry_queue{node=\"" + nodeId + "\"} " + storageSaveRetryQueueTotal + "\n"
-            + "cloudislands_storage_active_island_local_play_allowed_during_outage{node=\"" + nodeId + "\"} " + (role == AgentRole.ISLAND_NODE && activeIslands != null ? 1 : 0) + "\n"
-            + "cloudislands_island_bundle_portable_policy{node=\"" + nodeId + "\",policy=\"portable_node_agnostic_shard_cell_remap\"} 1\n"
-            + "cloudislands_island_bundle_manifest_policy{node=\"" + nodeId + "\",policy=\"manifest_json_plus_checksums_sha256_sidecar\"} 1\n"
-            + "cloudislands_island_bundle_restore_verify_policy{node=\"" + nodeId + "\",policy=\"verify_manifest_checksum_for_latest_snapshot_and_storage_path_when_present\"} 1\n"
-            + "cloudislands_island_save_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
-            + "cloudislands_island_save_failures_total{node=\"" + nodeId + "\"} " + ((saver == null ? 0L : saver.failuresTotal()) + (emptySaver == null ? 0L : emptySaver.failuresTotal())) + "\n"
-            + "cloudislands_island_activation_seconds{node=\"" + nodeId + "\"} " + storageDownloadSeconds + "\n"
-            + "cloudislands_island_snapshot_seconds{node=\"" + nodeId + "\"} " + storageUploadSeconds + "\n"
-            + "cloudislands_paper_periodic_save_retry_queue{node=\"" + nodeId + "\"} " + (saver == null ? 0 : saver.retryQueueSize()) + "\n"
-            + "cloudislands_paper_periodic_save_failures_total{node=\"" + nodeId + "\"} " + (saver == null ? 0L : saver.failuresTotal()) + "\n"
-            + "cloudislands_paper_empty_save_retry_queue{node=\"" + nodeId + "\"} " + (emptySaver == null ? 0 : emptySaver.retryQueueSize()) + "\n"
-            + "cloudislands_paper_empty_save_failures_total{node=\"" + nodeId + "\"} " + (emptySaver == null ? 0L : emptySaver.failuresTotal()) + "\n"
-            + "cloudislands_paper_level_scan_running{node=\"" + nodeId + "\"} " + (scanner != null && scanner.running() ? 1 : 0) + "\n"
-            + "cloudislands_paper_level_scan_last_started_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanStartedAt()) + "\n"
-            + "cloudislands_paper_level_scan_last_finished_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFinishedAt()) + "\n"
-            + "cloudislands_paper_level_scan_last_failed_at{node=\"" + nodeId + "\"} " + (scanner == null ? 0L : scanner.lastScanFailedAt()) + "\n"
-            + "cloudislands_paper_generator_events_total{node=\"" + nodeId + "\",source=\"block_form\"} " + (generator == null ? 0L : generator.formEvents()) + "\n"
-            + "cloudislands_paper_generator_events_total{node=\"" + nodeId + "\",source=\"fluid_collision\"} " + (generator == null ? 0L : generator.fluidCollisionEvents()) + "\n"
-            + "cloudislands_paper_generator_replacements_total{node=\"" + nodeId + "\",source=\"block_form\"} " + (generator == null ? 0L : generator.formReplacements()) + "\n"
-            + "cloudislands_paper_generator_replacements_total{node=\"" + nodeId + "\",source=\"fluid_collision\"} " + (generator == null ? 0L : generator.fluidReplacements()) + "\n"
-            + "cloudislands_paper_generator_island_misses_total{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.islandMisses()) + "\n"
-            + "cloudislands_paper_generator_material_failures_total{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.materialResolveFailures()) + "\n"
-            + "cloudislands_paper_generator_keys{node=\"" + nodeId + "\"} " + (generator == null ? 0 : generator.generatorKeyCount()) + "\n"
-            + "cloudislands_paper_generator_rule_levels{node=\"" + nodeId + "\"} " + (generator == null ? 0 : generator.ruleLevelCount()) + "\n"
-            + "cloudislands_paper_generator_cache_ttl_seconds{node=\"" + nodeId + "\"} " + (generator == null ? 0L : generator.cacheTtlSeconds()) + "\n"
-            + "cloudislands_permission_checks_total{node=\"" + nodeId + "\"} " + agent.permissionCache().lookupCount() + "\n"
-            + "cloudislands_permission_cache_hits_total{node=\"" + nodeId + "\"} " + agent.permissionCache().hitCount() + "\n"
-            + "cloudislands_permission_cache_misses_total{node=\"" + nodeId + "\"} " + agent.permissionCache().missCount() + "\n"
-            + "cloudislands_permission_cache_hit_ratio{node=\"" + nodeId + "\"} " + agent.permissionCache().hitRatio() + "\n"
-            + "cloudislands_permission_cache_islands{node=\"" + nodeId + "\"} " + agent.permissionCache().cachedIslandCount() + "\n"
-            + "cloudislands_protection_indexed_chunks{node=\"" + nodeId + "\"} " + protection.indexedChunkCount() + "\n"
-            + "cloudislands_protection_indexed_islands{node=\"" + nodeId + "\"} " + protection.indexedIslandCount() + "\n"
-            + "cloudislands_protection_migrating_islands{node=\"" + nodeId + "\"} " + protection.migratingIslandCount() + "\n"
-            + "cloudislands_protection_sync_events_remote_calls{node=\"" + nodeId + "\"} 0\n"
-            + "cloudislands_boundary_returns_total{node=\"" + nodeId + "\",kind=\"member\"} " + (boundary == null ? 0L : boundary.memberReturns()) + "\n"
-            + "cloudislands_boundary_returns_total{node=\"" + nodeId + "\",kind=\"visitor\"} " + (boundary == null ? 0L : boundary.visitorReturns()) + "\n"
-            + "cloudislands_boundary_admin_bypasses_total{node=\"" + nodeId + "\"} " + (boundary == null ? 0L : boundary.adminBypasses()) + "\n"
-            + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"
-            + "cloudislands_paper_forwarding_secret_configured{node=\"" + nodeId + "\"} " + (forwardingSecretConfigured ? 1 : 0) + "\n"
-            + "cloudislands_paper_route_session_enforced{node=\"" + nodeId + "\"} " + (routeSessionEnforced ? 1 : 0) + "\n"
-            + "cloudislands_paper_hide_node_names{node=\"" + nodeId + "\"} " + (hideNodeNames ? 1 : 0) + "\n"
-            + "cloudislands_paper_topology_exposure_risk{node=\"" + nodeId + "\"} " + (topologyExposureRisk ? 1 : 0) + "\n"
-            + "cloudislands_paper_default_node_identity_risk{node=\"" + nodeId + "\"} " + (defaultNodeIdentityRisk ? 1 : 0) + "\n"
-            + "cloudislands_paper_proxy_source_allowlist_required{node=\"" + nodeId + "\"} " + (proxySourceAllowlistRequired ? 1 : 0) + "\n"
-            + "cloudislands_paper_proxy_source_allowlist_configured{node=\"" + nodeId + "\"} " + (proxySourceAllowlistConfigured ? 1 : 0) + "\n"
-            + "cloudislands_paper_proxy_source_allowlist_entries{node=\"" + nodeId + "\"} " + proxySourceAllowlistEntries + "\n"
-            + "cloudislands_paper_direct_access_risk{node=\"" + nodeId + "\"} " + (directAccessRisk ? 1 : 0) + "\n"
-            + "cloudislands_paper_velocity_online_mode_mismatch{node=\"" + nodeId + "\"} " + (velocityOnlineModeMismatch ? 1 : 0) + "\n"
-            + "cloudislands_paper_bungee_connect_plugin_messaging_enabled{node=\"" + nodeId + "\"} " + (bungeeConnectPluginMessaging ? 1 : 0) + "\n"
-            + "cloudislands_paper_proxy_source_configuration_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.proxySourceConfigurationRejections()) + "\n"
-            + "cloudislands_paper_proxy_source_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.proxySourceRejections()) + "\n"
-            + "cloudislands_paper_forwarding_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.forwardingRejections()) + "\n"
-            + "cloudislands_paper_route_session_rejections_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.routeSessionRejections()) + "\n"
-            + "cloudislands_paper_route_session_check_failures_total{node=\"" + nodeId + "\"} " + (routeSessions == null ? 0L : routeSessions.routeSessionCheckFailures()) + "\n"
-            + "cloudislands_paper_route_ticket_consume_retries_total{node=\"" + nodeId + "\"} " + routeTickets.consumeRetries() + "\n"
-            + "cloudislands_paper_route_ticket_consume_failures_total{node=\"" + nodeId + "\"} " + routeTickets.consumeFailures() + "\n"
-            + "cloudislands_paper_route_ticket_world_wait_retries_total{node=\"" + nodeId + "\"} " + routeTickets.worldWaitRetries() + "\n"
-            + "cloudislands_paper_route_ticket_teleport_attempts_total{node=\"" + nodeId + "\"} " + routeTickets.teleportAttempts() + "\n"
-            + "cloudislands_paper_route_ticket_teleport_successes_total{node=\"" + nodeId + "\"} " + routeTickets.teleportSuccesses() + "\n"
-            + "cloudislands_paper_route_ticket_teleport_failures_total{node=\"" + nodeId + "\"} " + routeTickets.teleportFailures() + "\n"
-            + "cloudislands_paper_chat_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatBroadcasts()) + "\n"
-            + "cloudislands_paper_chat_deliveries_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatDeliveries()) + "\n"
-            + "cloudislands_paper_chat_no_recipient_broadcasts_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.chatNoRecipientBroadcasts()) + "\n"
-            + "cloudislands_paper_island_mutation_evacuations_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.islandMutationEvacuations()) + "\n"
-            + "cloudislands_paper_island_mutation_fallback_transfers_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.islandMutationFallbackTransfers()) + "\n"
-            + "cloudislands_paper_island_mutation_fallback_kicks_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.islandMutationFallbackKicks()) + "\n"
-            + "cloudislands_paper_island_mutation_fallback_failures_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.islandMutationFallbackFailures()) + "\n"
-            + "cloudislands_paper_cache_event_invalidations_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.cacheEventInvalidations()) + "\n"
-            + "cloudislands_paper_cache_gap_invalidations_total{node=\"" + nodeId + "\"} " + (events == null ? 0L : events.cacheGapInvalidations()) + "\n"
-            + "cloudislands_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
-            + "cloudislands_paper_redis_available{node=\"" + nodeId + "\"} " + (redis.available() ? 1 : 0) + "\n"
-            + "cloudislands_paper_redis_latency_seconds{node=\"" + nodeId + "\"} " + redis.latencySeconds() + "\n"
-            + "cloudislands_paper_redis_failures_total{node=\"" + nodeId + "\"} " + redis.failuresTotal() + "\n"
-            + (localCaches == null ? "" : localCaches.prometheus(nodeId));
+    PeriodicIslandSaveTask periodicSaveTask() {
+        return periodicSaveTask;
     }
 
-    private boolean guiEnabledForRole(AgentRole role) {
+    EmptyIslandSaveTask emptyIslandSaveTask() {
+        return emptyIslandSaveTask;
+    }
+
+    PeriodicIslandLevelScanTask periodicLevelScanTask() {
+        return periodicLevelScanTask;
+    }
+
+    IslandGeneratorListener generatorListener() {
+        return generatorListener;
+    }
+
+    PaperRouteSessionListener routeSessionListener() {
+        return routeSessionListener;
+    }
+
+    IslandBoundaryListener boundaryListener() {
+        return boundaryListener;
+    }
+
+    PaperRedisClient redisClient() {
+        return redisClient;
+    }
+
+    LocalCacheManager localCaches() {
+        return localCaches;
+    }
+
+    ProxySourceAllowlist proxySourceAllowlist() {
+        return proxySourceAllowlist;
+    }
+
+    MeteredIslandStorage islandStorage() {
+        return islandStorage;
+    }
+
+    boolean guiEnabledForRole(AgentRole role) {
         if (!configBoolean("paper-gui.enabled", true)) {
             return false;
         }
@@ -526,11 +279,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return configBoolean("paper-gui.lobby-enabled", true);
     }
 
-    private static String jsonText(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
-    private AgentRole parseAgentRole(String configuredRole) {
+    AgentRole parseAgentRole(String configuredRole) {
         String normalized = configuredRole == null ? "" : configuredRole.trim().toUpperCase(Locale.ROOT).replace('-', '_');
         if (normalized.isBlank()) {
             return AgentRole.ISLAND_NODE;
@@ -560,27 +309,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return true;
     }
 
-    private boolean defaultNodeIdentityRisk(AgentRole role, String nodeId, String velocityServerName) {
+    boolean defaultNodeIdentityRisk(AgentRole role, String nodeId, String velocityServerName) {
         if (role != AgentRole.ISLAND_NODE) {
             return false;
         }
         String safeNodeId = nodeId == null ? "" : nodeId.trim();
         String safeVelocityServerName = velocityServerName == null ? "" : velocityServerName.trim();
         return safeNodeId.equalsIgnoreCase("island-1") || safeVelocityServerName.equalsIgnoreCase("Island-1");
-    }
-
-    private String levelScanStatus(String supportedTemplates) {
-        PeriodicIslandLevelScanTask scanner = periodicLevelScanTask;
-        if (scanner == null) {
-            return supportedTemplates;
-        }
-        java.util.UUID lastIsland = scanner.lastScannedIslandId();
-        return supportedTemplates
-            + ";levelScanRunning=" + scanner.running()
-            + ";lastLevelScanIsland=" + (lastIsland == null ? "" : lastIsland)
-            + ";lastLevelScanStartedAt=" + scanner.lastScanStartedAt()
-            + ";lastLevelScanFinishedAt=" + scanner.lastScanFinishedAt()
-            + ";lastLevelScanFailedAt=" + scanner.lastScanFailedAt();
     }
 
     private String templateVersionsMetadata() {
@@ -597,77 +332,6 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             values.add(key.trim().replace(',', '_').replace(';', '_').replace(':', '_').replace('=', '_') + ":" + version.trim().replace(',', '_').replace(';', '_'));
         }
         return String.join(",", values);
-    }
-
-    private String heartbeatMetadata(String supportedTemplates, MeteredIslandStorage storage) {
-        PaperRedisClient.PingResult redis = redisClient == null ? PaperRedisClient.PingResult.disabled() : redisClient.ping();
-        return levelScanStatus(supportedTemplates)
-            + ";localCaches=" + (localCaches == null ? "" : localCaches.namesCsv())
-            + ";localCacheInvalidations=" + (localCaches == null ? 0L : localCaches.invalidationsTotal())
-            + ";cacheEventInvalidations=" + (permissionEventPoller == null ? 0L : permissionEventPoller.cacheEventInvalidations())
-            + ";cacheGapInvalidations=" + (permissionEventPoller == null ? 0L : permissionEventPoller.cacheGapInvalidations())
-            + ";permissionCacheHitRatio=" + agent.permissionCache().hitRatio()
-            + ";permissionChecks=" + agent.permissionCache().lookupCount()
-            + ";permissionCacheHits=" + agent.permissionCache().hitCount()
-            + ";permissionCacheMisses=" + agent.permissionCache().missCount()
-            + ";permissionCacheIslands=" + agent.permissionCache().cachedIslandCount()
-            + ";storageBackend=" + (storage == null ? "NONE" : storage.backend())
-            + ";storageUploadSeconds=" + (storage == null ? 0.0D : storage.lastUploadSeconds())
-            + ";storageDownloadSeconds=" + (storage == null ? 0.0D : storage.lastDownloadSeconds())
-            + ";storageHealthCheckFailures=" + (storage == null ? 0L : storage.healthCheckFailures())
-            + ";storageUploadFailures=" + (storage == null ? 0L : storage.uploadFailures())
-            + ";storageDownloadFailures=" + (storage == null ? 0L : storage.downloadFailures())
-            + ";storageOperations=" + (storage == null ? 0L : storage.operationAttempts())
-            + ";storageOperationFailures=" + (storage == null ? 0L : storage.operationFailures())
-            + ";storageFailureRatio=" + (storage == null ? 0.0D : storage.operationFailureRatio())
-            + ";storagePrimaryDegraded=" + (storage != null && storage.primaryStorageDegraded())
-            + ";storagePrimaryFailures=" + (storage == null ? 0L : storage.primaryStorageFailures())
-            + ";storageFallbackReads=" + (storage == null ? 0L : storage.fallbackReads())
-            + ";storageFallbackWrites=" + (storage == null ? 0L : storage.fallbackWrites())
-            + ";storageFallbackDeletes=" + (storage == null ? 0L : storage.fallbackDeletes())
-            + ";storageFallbackOperations=" + (storage == null ? 0L : storage.fallbackOperations())
-            + ";objectStorageOutagePolicy=" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.CONTRACT
-            + ";objectStorageSaveRetryPolicy=" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.SAVE_RETRY_POLICY
-            + ";redisAvailable=" + redis.available()
-            + ";redisLatencySeconds=" + redis.latencySeconds()
-            + ";redisFailures=" + redis.failuresTotal()
-            + ";periodicSaveRetryQueue=" + (periodicSaveTask == null ? 0 : periodicSaveTask.retryQueueSize())
-            + ";periodicSaveFailures=" + (periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal())
-            + ";emptySaveRetryQueue=" + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize())
-            + ";emptySaveFailures=" + (emptyIslandSaveTask == null ? 0L : emptyIslandSaveTask.failuresTotal())
-            + ";storageSaveRetryQueueTotal=" + ((periodicSaveTask == null ? 0 : periodicSaveTask.retryQueueSize()) + (emptyIslandSaveTask == null ? 0 : emptyIslandSaveTask.retryQueueSize()))
-            + ";islandSaveFailures=" + ((periodicSaveTask == null ? 0L : periodicSaveTask.failuresTotal()) + (emptyIslandSaveTask == null ? 0L : emptyIslandSaveTask.failuresTotal()))
-            + ";backendAccessPolicy=" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CONTRACT
-            + ";paperDirectAccessPolicy=" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY
-            + ";generatorKeys=" + (generatorListener == null ? 0 : generatorListener.generatorKeyCount())
-            + ";generatorRuleLevels=" + (generatorListener == null ? 0 : generatorListener.ruleLevelCount())
-            + ";generatorCacheTtlSeconds=" + (generatorListener == null ? 0L : generatorListener.cacheTtlSeconds())
-            + ";generatorEventPolicy=" + (generatorListener == null ? "not-registered" : generatorListener.eventPolicy())
-            + ";generatorFormEvents=" + (generatorListener == null ? 0L : generatorListener.formEvents())
-            + ";generatorFluidCollisionEvents=" + (generatorListener == null ? 0L : generatorListener.fluidCollisionEvents())
-            + ";generatorIslandMisses=" + (generatorListener == null ? 0L : generatorListener.islandMisses())
-            + ";proxySourceRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.proxySourceRejections())
-            + ";forwardingRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.forwardingRejections())
-            + ";routeSessionRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionRejections())
-            + ";routeSessionCheckFailures=" + (routeSessionListener == null ? 0L : routeSessionListener.routeSessionCheckFailures())
-            + ";hideNodeNames=" + configBoolean("routing.hide-node-names", true)
-            + ";proxySourceAllowlistRequired=" + configBoolean("security.require-proxy-source-allowlist", true)
-            + ";proxySourceConfigurationRejections=" + (routeSessionListener == null ? 0L : routeSessionListener.proxySourceConfigurationRejections())
-            + ";playerTopologyPolicy=logical-island-only"
-            + ";playerNodeNamePolicy=" + (configBoolean("routing.hide-node-names", true) ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only")
-            + ";topologyExposureRisk=" + !configBoolean("routing.hide-node-names", true)
-            + ";nodePoolScalePolicy=count-independent-requires-unique-node-id-unique-velocity-server-name-shared-bundle-storage"
-            + ";fiveSixNodePoolPolicy=supported-when-each-island-node-registers-as-a-distinct-route-candidate"
-            + ";nodeIdentityPolicy=node.id-and-velocity-server-name-must-be-unique-per-island-node"
-            + ";defaultNodeIdentityReject=" + configBoolean("node.reject-default-identity", true)
-            + ";defaultNodeIdentityRisk=" + defaultNodeIdentityRisk(parseAgentRole(getConfig().getString("node.role", "ISLAND_NODE")), getConfig().getString("node.id", "island-1"), getConfig().getString("node.velocity-server-name", getConfig().getString("node.id", "island-1")))
-            + ";chatBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatBroadcasts())
-            + ";chatDeliveries=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatDeliveries())
-            + ";chatNoRecipientBroadcasts=" + (permissionEventPoller == null ? 0L : permissionEventPoller.chatNoRecipientBroadcasts())
-            + ";islandMutationEvacuations=" + (permissionEventPoller == null ? 0L : permissionEventPoller.islandMutationEvacuations())
-            + ";islandMutationFallbackTransfers=" + (permissionEventPoller == null ? 0L : permissionEventPoller.islandMutationFallbackTransfers())
-            + ";islandMutationFallbackKicks=" + (permissionEventPoller == null ? 0L : permissionEventPoller.islandMutationFallbackKicks())
-            + ";islandMutationFallbackFailures=" + (permissionEventPoller == null ? 0L : permissionEventPoller.islandMutationFallbackFailures());
     }
 
     private void startIslandNodeWorker(CoreApiClient client, String nodeId, IslandStorage storage, IslandLimitCache limitCache) {
@@ -756,7 +420,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
     }
 
-    private String resolveEnv(String value) {
+    String resolveEnv(String value) {
         if (value == null) {
             return "";
         }
@@ -789,7 +453,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return new SnapshotRetentionPolicy(hourly, daily, weekly, manual, compress, checksum).normalized();
     }
 
-    private boolean configBoolean(String path, boolean fallback) {
+    boolean configBoolean(String path, boolean fallback) {
         if (!getConfig().contains(path)) {
             return fallback;
         }
