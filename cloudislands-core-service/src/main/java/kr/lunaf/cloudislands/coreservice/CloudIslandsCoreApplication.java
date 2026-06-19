@@ -74,6 +74,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.IslandSettingsRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSnapshotRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandUpgradeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandVisitorRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandWarpRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.JobRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.NodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.PlayerProfileRoutes;
@@ -371,6 +372,7 @@ public final class CloudIslandsCoreApplication {
         new IslandMemberRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, playerProfiles, islandLogs, audit, events).register(this::route);
         new IslandVisitorRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(this::route);
         new IslandSettingsRoutes(islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(this::route);
+        new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(this::route);
         route("/v1/islands/info", exchange -> {
             String body = readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -745,106 +747,6 @@ public final class CloudIslandsCoreApplication {
                 islandLogs.append(islandId, actorUuid, "ISLAND_RESET", Map.of("reason", reason));
             }
             lifecycle(exchange, result);
-        });
-        route("/v1/islands/warps", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, warpsJson(metadataRepository.warps(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
-        });
-        route("/v1/islands/public-warps", exchange -> {
-            String body = readBody(exchange);
-            int limit = queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 27), 1, 54);
-            var visibleWarps = metadataRepository.publicWarps(500).stream()
-                .filter(warp -> metadataRepository.isPublicAccess(warp.islandId()))
-                .filter(warp -> !metadataRepository.isLocked(warp.islandId()))
-                .filter(warp -> islandFlagEnabled(metadataRepository, warp.islandId(), IslandFlag.PUBLIC_WARPS))
-                .limit(limit)
-                .toList();
-            write(exchange, 200, warpsJson(visibleWarps));
-        });
-        route("/v1/islands/homes", exchange -> {
-            String body = readBody(exchange);
-            write(exchange, 200, homesJson(metadataRepository.homes(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
-        });
-        route("/v1/islands/homes/set", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String name = JsonFields.text(body, "name", "default").toLowerCase();
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.SET_HOME)) {
-                return;
-            }
-            metadataRepository.upsertHome(islandId, name, location(body), actorUuid);
-            audit.log(actorUuid, "PLAYER", "ISLAND_HOME_SET", "ISLAND", islandId.toString(), Map.of("name", name));
-            islandLogs.append(islandId, actorUuid, "ISLAND_HOME_SET", Map.of("name", name));
-            events.publish(CloudIslandEventType.ISLAND_HOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/warps/set", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String name = JsonFields.text(body, "name", "default").toLowerCase();
-            boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
-                return;
-            }
-            boolean existingWarp = metadataRepository.warps(islandId).stream().anyMatch(warp -> warp.name().equalsIgnoreCase(name));
-            if (!existingWarp && metadataRepository.warps(islandId).size() >= limitValue(limitRepository, islandId, "WARPS", 1L)) {
-                write(exchange, 409, ApiResponses.error("WARP_LIMIT", "Island warp limit was reached"));
-                return;
-            }
-            IslandLocation warpLocation = location(body);
-            metadataRepository.upsertWarp(islandId, name, warpLocation, publicAccess, actorUuid);
-            audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-            islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-            if (!existingWarp) {
-                events.publish(CloudIslandEventType.ISLAND_WARP_CREATED.name(), Map.of(
-                    "islandId", islandId.toString(),
-                    "name", name,
-                    "worldName", warpLocation.worldName(),
-                    "localX", Double.toString(warpLocation.localX()),
-                    "localY", Double.toString(warpLocation.localY()),
-                    "localZ", Double.toString(warpLocation.localZ()),
-                    "yaw", Float.toString(warpLocation.yaw()),
-                    "pitch", Float.toString(warpLocation.pitch())
-                ));
-            }
-            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", existingWarp ? "WARP_UPDATE" : "WARP_CREATE"));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/warps/delete", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String name = JsonFields.text(body, "name", "default").toLowerCase();
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
-                return;
-            }
-            metadataRepository.deleteWarp(islandId, name);
-            audit.log(actorUuid, "PLAYER", "ISLAND_WARP_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
-            islandLogs.append(islandId, actorUuid, "ISLAND_WARP_DELETE", Map.of("name", name));
-            events.publish(CloudIslandEventType.ISLAND_WARP_DELETED.name(), Map.of("islandId", islandId.toString(), "name", name));
-            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "WARP_DELETE"));
-            write(exchange, 202, ApiResponses.ok(true));
-        });
-        route("/v1/islands/warps/access", exchange -> {
-            String body = readBody(exchange);
-            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
-            String name = JsonFields.text(body, "name", "default").toLowerCase();
-            boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
-            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
-            if (!requireIslandPermission(exchange, islandRepository, metadataRepository, permissionRules, events, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
-                return;
-            }
-            if (metadataRepository.warp(islandId, name).isEmpty()) {
-                write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
-                return;
-            }
-            metadataRepository.setWarpPublicAccess(islandId, name, publicAccess);
-            audit.log(actorUuid, "PLAYER", "ISLAND_WARP_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-            islandLogs.append(islandId, actorUuid, "ISLAND_WARP_ACCESS_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-            events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "WARP_ACCESS_SET", "publicAccess", Boolean.toString(publicAccess)));
-            write(exchange, 202, ApiResponses.ok(true));
         });
         route("/v1/islands/public", exchange -> {
             String body = readBody(exchange);
@@ -2489,26 +2391,6 @@ public final class CloudIslandsCoreApplication {
         }
         write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island member permission is required"));
         return false;
-    }
-
-    private static boolean islandFlagEnabled(IslandMetadataRepository metadataRepository, UUID islandId, IslandFlag flag) {
-        String value = metadataRepository.flags(islandId).values().getOrDefault(flag, "false");
-        return value.equalsIgnoreCase("true")
-            || value.equalsIgnoreCase("allow")
-            || value.equalsIgnoreCase("allowed")
-            || value.equalsIgnoreCase("enabled")
-            || value.equalsIgnoreCase("on");
-    }
-
-    private static IslandLocation location(String body) {
-        return new IslandLocation(
-            JsonFields.text(body, "worldName", ""),
-            JsonFields.decimal(body, "localX", 0.5D),
-            JsonFields.decimal(body, "localY", 100.0D),
-            JsonFields.decimal(body, "localZ", 0.5D),
-            (float) JsonFields.decimal(body, "yaw", 0.0D),
-            (float) JsonFields.decimal(body, "pitch", 0.0D)
-        );
     }
 
     private static void applyUpgradeLimit(IslandLimitRepository limits, GlobalEventPublisher events, UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {
