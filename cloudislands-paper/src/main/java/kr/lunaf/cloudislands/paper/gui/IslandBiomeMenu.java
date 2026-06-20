@@ -1,8 +1,10 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -17,6 +19,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandBiomeMenu implements Listener {
     private static final String TITLE = "섬 바이옴";
+    private static final String MENU_ID = "island.biome";
     private final MessageRenderer messages;
     private static final List<String> BIOMES = List.of(
         "minecraft:plains",
@@ -44,8 +47,8 @@ public final class IslandBiomeMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.islandBiome(islandId)
-            .thenAccept(body -> openSync(plugin, player, text(body, "biomeKey"), messages))
+        PaperGuiViews.islandBiome(client, islandId)
+            .thenAccept(currentBiome -> openSync(plugin, player, currentBiome, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다.")));
                 return null;
@@ -54,11 +57,11 @@ public final class IslandBiomeMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
         int slot = event.getRawSlot();
@@ -82,11 +85,7 @@ public final class IslandBiomeMenu implements Listener {
             GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
-            return;
-        }
-        String biomeKey = loreValue(meta, "biomeKey=");
+        String biomeKey = GuiItems.data(event.getCurrentItem()).getOrDefault("biomeKey", "");
         if (biomeKey.isBlank()) {
             return;
         }
@@ -95,7 +94,7 @@ public final class IslandBiomeMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, String currentBiome, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 27, TITLE);
+            Inventory inventory = GuiInventories.create(MENU_ID, 27, TITLE);
             int slot = 9;
             for (String biome : BIOMES) {
                 inventory.setItem(slot++, biomeItem(biome, biome.equalsIgnoreCase(currentBiome), messages));
@@ -110,7 +109,7 @@ public final class IslandBiomeMenu implements Listener {
 
     private static ItemStack biomeItem(String biome, boolean selected, MessageRenderer messages) {
         Material material = selected ? Material.LIME_DYE : Material.GRASS_BLOCK;
-        return item(material, biome, "biomeKey=" + biome, selected ? message(messages, "biome-menu-selected", "현재 적용됨") : message(messages, "biome-menu-click-to-change", "클릭하면 이 바이옴으로 변경합니다."));
+        return GuiItems.action(material, biome, "island.biome.set", Map.of("biomeKey", biome), selected ? message(messages, "biome-menu-selected", "현재 적용됨") : message(messages, "biome-menu-click-to-change", "클릭하면 이 바이옴으로 변경합니다."));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
@@ -132,23 +131,4 @@ public final class IslandBiomeMenu implements Listener {
         return item;
     }
 
-    private static String loreValue(ItemMeta meta, String prefix) {
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
 }

@@ -1,11 +1,12 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PermissionRuleView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -45,8 +46,8 @@ public final class IslandPermissionMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.listIslandPermissions(islandId)
-            .thenAccept(body -> openSync(plugin, player, rules(body), messages))
+        PaperGuiViews.islandPermissions(client, islandId)
+            .thenAccept(rules -> openSync(plugin, player, rules, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "permission-menu-load-failed", "섬 권한을 불러오지 못했습니다.")));
                 return null;
@@ -76,7 +77,7 @@ public final class IslandPermissionMenu implements Listener {
         actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Rule> rules, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<PermissionRuleView> rules, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             for (int row = 0; row < ROLES.size(); row++) {
@@ -153,8 +154,8 @@ public final class IslandPermissionMenu implements Listener {
         return builder.toString();
     }
 
-    private static Boolean allowed(List<Rule> rules, String role, String permission) {
-        for (Rule rule : rules) {
+    private static Boolean allowed(List<PermissionRuleView> rules, String role, String permission) {
+        for (PermissionRuleView rule : rules) {
             if (rule.role().equals(role) && rule.permission().equals(permission)) {
                 return rule.allowed();
             }
@@ -162,58 +163,4 @@ public final class IslandPermissionMenu implements Listener {
         return null;
     }
 
-    private static List<Rule> rules(String body) {
-        List<Rule> rules = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String role = text(object, "role");
-            String permission = text(object, "permission");
-            if (!role.isBlank() && !permission.isBlank()) {
-                rules.add(new Rule(role, permission, bool(object, "allowed")));
-            }
-            index = objectEnd + 1;
-        }
-        return rules;
-    }
-
-    private static String loreValue(ItemMeta meta, String prefix) {
-        if (meta.getLore() == null) {
-            return "";
-        }
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static boolean bool(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        return start >= 0 && body.startsWith("true", start + needle.length());
-    }
-
-    private record Rule(String role, String permission, boolean allowed) {
-    }
 }

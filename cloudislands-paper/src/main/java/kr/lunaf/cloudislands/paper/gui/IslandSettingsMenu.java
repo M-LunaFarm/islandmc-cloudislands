@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.List;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -15,6 +17,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandSettingsMenu implements Listener {
+    private static final String MENU_ID = "island.settings";
     private static final String TITLE_KEY = "settings-menu-title";
     private static final String TITLE = "섬 설정";
     private final MessageRenderer messages;
@@ -32,19 +35,19 @@ public final class IslandSettingsMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, java.util.UUID islandId, MessageRenderer messages) {
-        client.islandInfo(islandId)
-            .thenAccept(body -> openSync(plugin, player, body, messages))
+        PaperGuiViews.islandInfo(client, islandId)
+            .thenAccept(view -> openSync(plugin, player, view, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "settings-menu-load-failed", "섬 설정을 불러오지 못했습니다.")));
                 return null;
             });
     }
 
-    private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, IslandInfoView view, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            boolean publicAccess = bool(body, "publicAccess");
-            boolean locked = bool(body, "locked");
-            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
+            boolean publicAccess = view.publicAccess();
+            boolean locked = view.locked();
+            Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(10, item(publicAccess ? Material.LIME_DYE : Material.GRAY_DYE, message(messages, "settings-menu-public-name", "공개 설정"), message(messages, "settings-menu-current", "현재: ") + (publicAccess ? message(messages, "settings-menu-public", "공개") : message(messages, "settings-menu-private", "비공개")), message(messages, "settings-menu-public-left-click", "좌클릭: /섬 공개"), message(messages, "settings-menu-public-right-click", "우클릭: /섬 비공개")));
             inventory.setItem(11, item(locked ? Material.IRON_DOOR : Material.OAK_DOOR, message(messages, "settings-menu-lock-name", "잠금 설정"), message(messages, "settings-menu-current", "현재: ") + (locked ? message(messages, "settings-menu-locked", "잠김") : message(messages, "settings-menu-open", "열림")), message(messages, "settings-menu-lock-left-click", "좌클릭: /섬 잠금해제"), message(messages, "settings-menu-lock-right-click", "우클릭: /섬 잠금")));
             inventory.setItem(12, item(Material.NAME_TAG, message(messages, "settings-menu-member-name", "멤버 관리"), message(messages, "settings-menu-member-command", "/섬 멤버")));
@@ -74,7 +77,7 @@ public final class IslandSettingsMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiItems.menuClick(event, MENU_ID)) {
             return;
         }
         event.setCancelled(true);
@@ -130,9 +133,4 @@ public final class IslandSettingsMenu implements Listener {
         return item;
     }
 
-    private static boolean bool(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        return start >= 0 && body.startsWith("true", start + needle.length());
-    }
 }

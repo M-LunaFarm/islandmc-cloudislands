@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.HomeView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -19,6 +21,7 @@ import org.bukkit.plugin.Plugin;
 public final class IslandHomeMenu implements Listener {
     private static final String TITLE_KEY = "home-menu-title";
     private static final String TITLE = "섬 홈 관리";
+    private static final String MENU_ID = "island.homes";
     private final MessageRenderer messages;
 
     public IslandHomeMenu() {
@@ -34,8 +37,8 @@ public final class IslandHomeMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.listIslandHomes(islandId)
-            .thenAccept(body -> openSync(plugin, player, homes(body), messages))
+        PaperGuiViews.islandHomes(client, islandId)
+            .thenAccept(homes -> openSync(plugin, player, homes, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "home-menu-load-failed", "섬 홈을 불러오지 못했습니다.")));
                 return null;
@@ -44,11 +47,11 @@ public final class IslandHomeMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
         int slot = event.getRawSlot();
@@ -72,11 +75,7 @@ public final class IslandHomeMenu implements Listener {
             GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        String homeName = loreValue(meta, "homeName=");
+        String homeName = GuiItems.data(event.getCurrentItem()).getOrDefault("homeName", "");
         if (!homeName.isBlank()) {
             if (event.isRightClick()) {
                 GuiActionRegistry.execute(player, "island.home.set", java.util.Map.of("homeName", homeName), GuiClick.from(event));
@@ -86,12 +85,12 @@ public final class IslandHomeMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Home> homes, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<HomeView> homes, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(45, item(Material.RED_BED, message(messages, "home-menu-set-current-name", "현재 위치를 홈으로 설정"), message(messages, "home-menu-set-default-click", "좌클릭: default 홈으로 설정"), message(messages, "home-menu-set-named-click", "우클릭: ") + message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>")));
             int slot = 0;
-            for (Home home : homes.stream().limit(45).toList()) {
+            for (HomeView home : homes.stream().limit(45).toList()) {
                 inventory.setItem(slot++, homeItem(home, messages));
             }
             if (homes.isEmpty()) {
@@ -111,8 +110,13 @@ public final class IslandHomeMenu implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private static ItemStack homeItem(Home home, MessageRenderer messages) {
-        return item(Material.GREEN_BED, home.name(), "homeName=" + home.name(), message(messages, "home-menu-location", "위치: ") + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(), home.createdAt().isBlank() ? message(messages, "home-menu-no-created-info", "생성 정보 없음") : message(messages, "home-menu-created-at", "생성 시각: ") + home.createdAt(), message(messages, "home-menu-left-click", "좌클릭: 이 홈으로 이동"), message(messages, "home-menu-right-click", "우클릭: 현재 위치로 갱신"));
+    private static ItemStack homeItem(HomeView home, MessageRenderer messages) {
+        return GuiItems.action(Material.GREEN_BED, home.name(), "island.home",
+            Map.of("homeName", home.name()),
+            message(messages, "home-menu-location", "위치: ") + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(),
+            home.createdAt().isBlank() ? message(messages, "home-menu-no-created-info", "생성 정보 없음") : message(messages, "home-menu-created-at", "생성 시각: ") + home.createdAt(),
+            message(messages, "home-menu-left-click", "좌클릭: 이 홈으로 이동"),
+            message(messages, "home-menu-right-click", "우클릭: 현재 위치로 갱신"));
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
@@ -126,69 +130,4 @@ public final class IslandHomeMenu implements Listener {
         return item;
     }
 
-    private static List<Home> homes(String body) {
-        List<Home> homes = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String name = text(object, "name");
-            if (!name.isBlank()) {
-                homes.add(new Home(name, decimal(object, "localX"), decimal(object, "localY"), decimal(object, "localZ"), text(object, "createdAt")));
-            }
-            index = objectEnd + 1;
-        }
-        return homes;
-    }
-
-    private static String loreValue(ItemMeta meta, String prefix) {
-        if (meta.getLore() == null) {
-            return "";
-        }
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static double decimal(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return 0.0D;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && "-0123456789.".indexOf(body.charAt(end)) >= 0) {
-            end++;
-        }
-        try {
-            return Double.parseDouble(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0.0D;
-        }
-    }
-
-    private record Home(String name, double x, double y, double z, String createdAt) {
-    }
 }

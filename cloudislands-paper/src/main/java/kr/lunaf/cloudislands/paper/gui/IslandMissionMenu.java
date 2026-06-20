@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MissionView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -19,6 +21,8 @@ import org.bukkit.plugin.Plugin;
 public final class IslandMissionMenu implements Listener {
     private static final String MISSION_TITLE = "섬 미션";
     private static final String CHALLENGE_TITLE = "섬 챌린지";
+    private static final String MISSION_MENU_ID = "island.missions";
+    private static final String CHALLENGE_MENU_ID = "island.challenges";
     private final MessageRenderer messages;
 
     public IslandMissionMenu() {
@@ -34,8 +38,8 @@ public final class IslandMissionMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, String kind, MessageRenderer messages) {
-        client.listIslandMissions(islandId, kind)
-            .thenAccept(body -> openSync(plugin, player, kind, missions(body), messages))
+        PaperGuiViews.islandMissions(client, islandId, kind)
+            .thenAccept(missions -> openSync(plugin, player, kind, missions, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다.")));
                 return null;
@@ -44,12 +48,13 @@ public final class IslandMissionMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        String title = event.getView().getTitle();
-        if (!MISSION_TITLE.equals(title) && !CHALLENGE_TITLE.equals(title)) {
+        boolean challenge = GuiInventories.isMenu(event.getView().getTopInventory(), CHALLENGE_MENU_ID);
+        boolean mission = GuiInventories.isMenu(event.getView().getTopInventory(), MISSION_MENU_ID);
+        if (!mission && !challenge) {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
         int slot = event.getRawSlot();
@@ -66,31 +71,27 @@ public final class IslandMissionMenu implements Listener {
             return;
         }
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.missions.open", java.util.Map.of("kind", MISSION_TITLE.equals(title) ? "MISSION" : "CHALLENGE"), GuiClick.from(event));
+            GuiActionRegistry.execute(player, "island.missions.open", java.util.Map.of("kind", mission ? "MISSION" : "CHALLENGE"), GuiClick.from(event));
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
-            return;
-        }
-        String missionKey = loreValue(meta, "missionKey=");
+        String missionKey = GuiItems.data(event.getCurrentItem()).getOrDefault("missionKey", "");
         if (missionKey.isBlank()) {
             return;
         }
-        GuiActionRegistry.execute(player, "island.mission.complete", java.util.Map.of("kind", MISSION_TITLE.equals(title) ? "MISSION" : "CHALLENGE", "missionKey", missionKey, "label", MISSION_TITLE.equals(title) ? "섬 미션" : "섬 챌린지"), GuiClick.from(event));
+        GuiActionRegistry.execute(player, "island.mission.complete", java.util.Map.of("kind", mission ? "MISSION" : "CHALLENGE", "missionKey", missionKey, "label", mission ? "섬 미션" : "섬 챌린지"), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, String kind, List<Mission> missions, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, String kind, List<MissionView> missions, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, "CHALLENGE".equalsIgnoreCase(kind) ? CHALLENGE_TITLE : MISSION_TITLE);
+            boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
+            Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, 54, challenge ? CHALLENGE_TITLE : MISSION_TITLE);
             int slot = 0;
-            for (Mission mission : missions.stream().limit(45).toList()) {
+            for (MissionView mission : missions.stream().limit(45).toList()) {
                 inventory.setItem(slot++, missionItem(mission, messages));
             }
             if (missions.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "mission-menu-empty-title", "과제 없음"), message(messages, "mission-menu-empty", "현재 표시할 섬 과제가 없습니다.")));
             }
-            boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
             inventory.setItem(45, item(Material.BOOK, message(messages, "mission-menu-mission-name", "미션 보기"), message(messages, "mission-menu-mission-command", "/섬 미션")));
             inventory.setItem(49, item(Material.CLOCK, message(messages, "mission-menu-refresh-name", "새로고침"), challenge ? message(messages, "mission-menu-challenge-command", "/섬 챌린지") : message(messages, "mission-menu-mission-command", "/섬 미션")));
             inventory.setItem(53, item(Material.WRITABLE_BOOK, message(messages, "mission-menu-challenge-name", "챌린지 보기"), message(messages, "mission-menu-challenge-command", "/섬 챌린지")));
@@ -98,10 +99,14 @@ public final class IslandMissionMenu implements Listener {
         });
     }
 
-    private static ItemStack missionItem(Mission mission, MessageRenderer messages) {
+    private static ItemStack missionItem(MissionView mission, MessageRenderer messages) {
         Material material = mission.completed() ? Material.LIME_DYE : Material.BOOK;
         String title = mission.title().isBlank() ? mission.key() : mission.title();
-        return item(material, title, "missionKey=" + mission.key(), message(messages, "mission-menu-progress", "진행도: ") + mission.progress() + "/" + mission.goal(), message(messages, "mission-menu-reward", "보상: ") + (mission.reward().isBlank() ? message(messages, "mission-menu-no-reward", "없음") : mission.reward()), mission.completed() ? message(messages, "mission-menu-completed", "완료됨") : message(messages, "mission-menu-click-to-complete", "클릭하면 완료를 요청합니다."));
+        return GuiItems.action(material, title, "island.mission.complete",
+            Map.of("missionKey", mission.key()),
+            message(messages, "mission-menu-progress", "진행도: ") + mission.progress() + "/" + mission.goal(),
+            message(messages, "mission-menu-reward", "보상: ") + (mission.reward().isBlank() ? message(messages, "mission-menu-no-reward", "없음") : mission.reward()),
+            mission.completed() ? message(messages, "mission-menu-completed", "완료됨") : message(messages, "mission-menu-click-to-complete", "클릭하면 완료를 요청합니다."));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
@@ -123,72 +128,4 @@ public final class IslandMissionMenu implements Listener {
         return item;
     }
 
-    private static List<Mission> missions(String body) {
-        List<Mission> missions = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String key = text(object, "missionKey");
-            if (!key.isBlank()) {
-                missions.add(new Mission(key, text(object, "title"), number(object, "progress"), number(object, "goal"), bool(object, "completed"), text(object, "reward")));
-            }
-            index = objectEnd + 1;
-        }
-        return missions;
-    }
-
-    private static String loreValue(ItemMeta meta, String prefix) {
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static long number(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return 0L;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && Character.isDigit(body.charAt(end))) {
-            end++;
-        }
-        try {
-            return Long.parseLong(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0L;
-        }
-    }
-
-    private static boolean bool(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        return start >= 0 && body.startsWith("true", start + needle.length());
-    }
-
-    private record Mission(String key, String title, long progress, long goal, boolean completed, String reward) {
-    }
 }

@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.WarpView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -19,6 +21,8 @@ import org.bukkit.plugin.Plugin;
 public final class IslandWarpMenu implements Listener {
     private static final String TITLE = "섬 워프 관리";
     private static final String PUBLIC_TITLE = "공개 섬 워프";
+    private static final String MENU_ID = "island.warps";
+    private static final String PUBLIC_MENU_ID = "island.public-warps";
     private final MessageRenderer messages;
 
     public IslandWarpMenu() {
@@ -34,8 +38,8 @@ public final class IslandWarpMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.listIslandWarps(islandId)
-            .thenAccept(body -> openSync(plugin, player, TITLE, warps(body), false, messages))
+        PaperGuiViews.islandWarps(client, islandId)
+            .thenAccept(warps -> openSync(plugin, player, TITLE, warps, false, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다.")));
                 return null;
@@ -47,8 +51,8 @@ public final class IslandWarpMenu implements Listener {
     }
 
     public static void openPublic(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
-        client.listPublicWarps(45)
-            .thenAccept(body -> openSync(plugin, player, PUBLIC_TITLE, warps(body), true, messages))
+        PaperGuiViews.publicWarps(client, 45)
+            .thenAccept(warps -> openSync(plugin, player, PUBLIC_TITLE, warps, true, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다.")));
                 return null;
@@ -57,12 +61,12 @@ public final class IslandWarpMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        boolean publicMenu = PUBLIC_TITLE.equals(event.getView().getTitle());
-        if (!TITLE.equals(event.getView().getTitle()) && !publicMenu) {
+        boolean publicMenu = GuiInventories.isMenu(event.getView().getTopInventory(), PUBLIC_MENU_ID);
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID) && !publicMenu) {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
         int slot = event.getRawSlot();
@@ -86,15 +90,12 @@ public final class IslandWarpMenu implements Listener {
             GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        String warpName = loreValue(meta, "워프=");
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        String warpName = data.getOrDefault("warpName", "");
         if (warpName.isBlank()) {
             return;
         }
-        String islandId = loreValue(meta, "섬 ID=");
+        String islandId = data.getOrDefault("islandId", "");
         if (publicMenu && !islandId.isBlank()) {
             GuiActionRegistry.execute(player, "island.warp.teleport", java.util.Map.of("islandId", String.valueOf(islandId), "warpName", warpName), GuiClick.from(event));
             return;
@@ -104,21 +105,21 @@ public final class IslandWarpMenu implements Listener {
             return;
         }
         if (event.isRightClick()) {
-            boolean publicAccess = Boolean.parseBoolean(loreValue(meta, "warpPublic="));
+            boolean publicAccess = Boolean.parseBoolean(data.getOrDefault("publicAccess", "false"));
             GuiActionRegistry.execute(player, "island.warp.public.toggle", java.util.Map.of("warpName", warpName, "publicAccess", String.valueOf(publicAccess)), GuiClick.from(event));
             return;
         }
         GuiActionRegistry.execute(player, "island.warp.teleport", java.util.Map.of("warpName", warpName), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, String title, List<Warp> warps, boolean publicMenu, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, String title, List<WarpView> warps, boolean publicMenu, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, title);
+            Inventory inventory = GuiInventories.create(publicMenu ? PUBLIC_MENU_ID : MENU_ID, 54, title);
             inventory.setItem(45, publicMenu
                 ? item(Material.COMPASS, message(messages, "warp-menu-public-refresh-name", "공개 워프 새로고침"), message(messages, "warp-menu-public-refresh-command", "/섬 공개워프목록"))
                 : item(Material.ENDER_PEARL, message(messages, "warp-menu-set-current-name", "현재 위치를 워프로 설정"), message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>")));
             int slot = 0;
-            for (Warp warp : warps.stream().limit(45).toList()) {
+            for (WarpView warp : warps.stream().limit(45).toList()) {
                 inventory.setItem(slot++, warpItem(warp, publicMenu, messages));
             }
             inventory.setItem(49, item(Material.COMPARATOR, message(messages, "warp-menu-settings-name", "설정"), message(messages, "warp-menu-settings-command", "/섬 설정")));
@@ -135,12 +136,22 @@ public final class IslandWarpMenu implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private static ItemStack warpItem(Warp warp, boolean publicMenu, MessageRenderer messages) {
+    private static ItemStack warpItem(WarpView warp, boolean publicMenu, MessageRenderer messages) {
         Material material = warp.publicAccess() ? Material.ENDER_EYE : Material.ENDER_PEARL;
         if (publicMenu) {
-            return item(material, warp.name(), "섬 ID=" + warp.islandId(), "워프=" + warp.name(), message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), message(messages, "warp-menu-public-left-click", "좌클릭: 공개 워프로 이동"));
+            return GuiItems.action(material, warp.name(), "island.warp.teleport",
+                Map.of("islandId", warp.islandId(), "warpName", warp.name()),
+                message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(),
+                message(messages, "warp-menu-public-left-click", "좌클릭: 공개 워프로 이동"));
         }
-        return item(material, warp.name(), "워프=" + warp.name(), "warpPublic=" + warp.publicAccess(), message(messages, "warp-menu-public-state", "공개 상태: ") + (warp.publicAccess() ? message(messages, "warp-menu-public", "공개") : message(messages, "warp-menu-private", "비공개")), message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(), warp.publicAccess() ? message(messages, "warp-menu-public-label", "공개 워프") : message(messages, "warp-menu-private-label", "비공개 워프"), message(messages, "warp-menu-left-click", "좌클릭: 이동"), message(messages, "warp-menu-toggle-click", "우클릭: 공개/비공개 전환"), message(messages, "warp-menu-delete-click", "Shift+우클릭: 삭제"));
+        return GuiItems.action(material, warp.name(), "island.warp.teleport",
+            Map.of("warpName", warp.name(), "publicAccess", String.valueOf(warp.publicAccess())),
+            message(messages, "warp-menu-public-state", "공개 상태: ") + (warp.publicAccess() ? message(messages, "warp-menu-public", "공개") : message(messages, "warp-menu-private", "비공개")),
+            message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(),
+            warp.publicAccess() ? message(messages, "warp-menu-public-label", "공개 워프") : message(messages, "warp-menu-private-label", "비공개 워프"),
+            message(messages, "warp-menu-left-click", "좌클릭: 이동"),
+            message(messages, "warp-menu-toggle-click", "우클릭: 공개/비공개 전환"),
+            message(messages, "warp-menu-delete-click", "Shift+우클릭: 삭제"));
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
@@ -154,96 +165,4 @@ public final class IslandWarpMenu implements Listener {
         return item;
     }
 
-    private static List<Warp> warps(String body) {
-        List<Warp> warps = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String name = text(object, "name");
-            if (name.isBlank()) {
-                name = text(object, "warpName");
-            }
-            if (!name.isBlank()) {
-                warps.add(new Warp(text(object, "islandId"), name, decimal(object, "localX"), decimal(object, "localY"), decimal(object, "localZ"), bool(object, "publicAccess")));
-            }
-            index = objectEnd + 1;
-        }
-        return warps;
-    }
-
-    private static String loreValue(ItemMeta meta, String prefix) {
-        if (meta.getLore() == null) {
-            return "";
-        }
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = jsonStringEnd(body, start);
-        if (end < start) {
-            return "";
-        }
-        return body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static double decimal(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return 0.0D;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && "-0123456789.".indexOf(body.charAt(end)) >= 0) {
-            end++;
-        }
-        try {
-            return Double.parseDouble(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0.0D;
-        }
-    }
-
-    private static boolean bool(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        return start >= 0 && body.startsWith("true", start + needle.length());
-    }
-
-    private static int jsonStringEnd(String body, int start) {
-        boolean escaped = false;
-        for (int i = start; i < body.length(); i++) {
-            char c = body.charAt(i);
-            if (c == '"' && !escaped) {
-                return i;
-            }
-            escaped = c == '\\' && !escaped;
-            if (c != '\\') {
-                escaped = false;
-            }
-        }
-        return -1;
-    }
-
-    private record Warp(String islandId, String name, double x, double y, double z, boolean publicAccess) {
-    }
 }

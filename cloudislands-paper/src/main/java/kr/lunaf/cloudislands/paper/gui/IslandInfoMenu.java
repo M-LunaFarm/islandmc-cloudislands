@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -16,6 +18,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandInfoMenu implements Listener {
+    private static final String MENU_ID = "island.info";
     private static final String TITLE_KEY = "info-menu-title";
     private static final String TITLE = "섬 정보";
     private final MessageRenderer messages;
@@ -33,8 +36,8 @@ public final class IslandInfoMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.islandInfo(islandId)
-            .thenAccept(body -> openSync(plugin, player, body, messages))
+        PaperGuiViews.islandInfo(client, islandId)
+            .thenAccept(view -> openSync(plugin, player, view, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다.")));
                 return null;
@@ -43,7 +46,7 @@ public final class IslandInfoMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiItems.menuClick(event, MENU_ID)) {
             return;
         }
         event.setCancelled(true);
@@ -69,14 +72,14 @@ public final class IslandInfoMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, String body, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, IslandInfoView view, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
-            inventory.setItem(10, item(Material.GRASS_BLOCK, message(messages, "info-menu-basic-title", "기본 정보"), message(messages, "info-menu-island-name", "섬 이름: ") + fallback(text(body, "name"), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(text(body, "state"), message(messages, "info-menu-unknown", "알 수 없음")), message(messages, "info-menu-island-id", "섬 ID: ") + shortId(text(body, "islandId"), messages)));
-            inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, message(messages, "info-menu-level-title", "레벨"), message(messages, "info-menu-level", "레벨: ") + number(body, "level"), message(messages, "info-menu-worth", "가치: ") + fallback(text(body, "worth"), "0")));
-            inventory.setItem(12, item(Material.BARRIER, message(messages, "info-menu-access-title", "공개 상태"), message(messages, "info-menu-public-access", "공개 여부: ") + yesNo(bool(body, "publicAccess"), messages), message(messages, "info-menu-locked", "잠금 여부: ") + yesNo(bool(body, "locked"), messages)));
-            inventory.setItem(13, item(Material.MAP, message(messages, "info-menu-size-title", "크기와 경계"), message(messages, "info-menu-size", "섬 크기: ") + number(body, "size"), message(messages, "info-menu-border", "경계: ") + number(body, "border")));
-            inventory.setItem(14, item(Material.PLAYER_HEAD, message(messages, "info-menu-owner-title", "소유자"), message(messages, "info-menu-owner", "소유자: ") + shortId(text(body, "ownerUuid"), messages)));
+            Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
+            inventory.setItem(10, item(Material.GRASS_BLOCK, message(messages, "info-menu-basic-title", "기본 정보"), message(messages, "info-menu-island-name", "섬 이름: ") + fallback(view.name(), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(view.state(), message(messages, "info-menu-unknown", "알 수 없음")), message(messages, "info-menu-island-id", "섬 ID: ") + shortId(view.islandId(), messages)));
+            inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, message(messages, "info-menu-level-title", "레벨"), message(messages, "info-menu-level", "레벨: ") + view.level(), message(messages, "info-menu-worth", "가치: ") + fallback(view.worth(), "0")));
+            inventory.setItem(12, item(Material.BARRIER, message(messages, "info-menu-access-title", "공개 상태"), message(messages, "info-menu-public-access", "공개 여부: ") + yesNo(view.publicAccess(), messages), message(messages, "info-menu-locked", "잠금 여부: ") + yesNo(view.locked(), messages)));
+            inventory.setItem(13, item(Material.MAP, message(messages, "info-menu-size-title", "크기와 경계"), message(messages, "info-menu-size", "섬 크기: ") + view.size(), message(messages, "info-menu-border", "경계: ") + view.border()));
+            inventory.setItem(14, item(Material.PLAYER_HEAD, message(messages, "info-menu-owner-title", "소유자"), message(messages, "info-menu-owner", "소유자: ") + shortId(view.ownerUuid(), messages)));
             inventory.setItem(16, item(Material.REDSTONE_TORCH, message(messages, "info-menu-settings-name", "설정"), message(messages, "info-menu-settings-command", "/섬 설정")));
             inventory.setItem(21, item(Material.GOLD_BLOCK, message(messages, "info-menu-ranking-name", "섬 랭킹"), message(messages, "info-menu-ranking-command", "/섬 랭킹")));
             inventory.setItem(22, item(Material.CLOCK, message(messages, "info-menu-log-name", "섬 로그"), message(messages, "info-menu-log-command", "/섬 로그")));
@@ -105,41 +108,6 @@ public final class IslandInfoMenu implements Listener {
             item.setItemMeta(meta);
         }
         return item;
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static long number(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return 0L;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && Character.isDigit(body.charAt(end))) {
-            end++;
-        }
-        try {
-            return Long.parseLong(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0L;
-        }
-    }
-
-    private static boolean bool(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        return start >= 0 && body.startsWith("true", start + needle.length());
     }
 
     private static String fallback(String value, String fallback) {

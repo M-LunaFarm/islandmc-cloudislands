@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RoleView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -19,6 +21,7 @@ import org.bukkit.plugin.Plugin;
 public final class IslandRoleMenu implements Listener {
     private static final String TITLE_KEY = "role-menu-title";
     private static final String TITLE = "섬 역할 설정";
+    private static final String MENU_ID = "island.roles";
     private final MessageRenderer messages;
 
     public IslandRoleMenu() {
@@ -34,8 +37,8 @@ public final class IslandRoleMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.listIslandRoles(islandId)
-            .thenAccept(body -> openSync(plugin, player, roles(body), messages))
+        PaperGuiViews.islandRoles(client, islandId)
+            .thenAccept(roles -> openSync(plugin, player, roles, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "role-menu-load-failed", "섬 역할을 불러오지 못했습니다.")));
                 return null;
@@ -44,11 +47,11 @@ public final class IslandRoleMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
         int slot = event.getRawSlot();
@@ -72,21 +75,17 @@ public final class IslandRoleMenu implements Listener {
             GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        String role = loreValue(meta, "role=");
+        String role = GuiItems.data(event.getCurrentItem()).getOrDefault("role", "");
         if (!role.isBlank()) {
             player.sendMessage(message(messages, "role-menu-edit-prefix", "역할 편집: /섬 역할편집 ") + role + message(messages, "role-menu-edit-suffix", " <weight> <displayName>"));
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<RoleEntry> roles, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<RoleView> roles, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
-            for (RoleEntry role : roles.stream().limit(18).toList()) {
+            for (RoleView role : roles.stream().limit(18).toList()) {
                 inventory.setItem(slot++, roleItem(role, messages));
             }
             if (roles.isEmpty()) {
@@ -100,9 +99,9 @@ public final class IslandRoleMenu implements Listener {
         });
     }
 
-    private static ItemStack roleItem(RoleEntry role, MessageRenderer messages) {
-        return item(material(role.role()), role.displayName().isBlank() ? role.role() : role.displayName(),
-            "role=" + role.role(),
+    private static ItemStack roleItem(RoleView role, MessageRenderer messages) {
+        return GuiItems.action(material(role.role()), role.displayName().isBlank() ? role.role() : role.displayName(), "island.role.edit.help",
+            Map.of("role", role.role()),
             message(messages, "role-menu-weight", "weight=") + role.weight(),
             message(messages, "role-menu-enum", "enum=") + role.role(),
             message(messages, "role-menu-click-edit", "클릭: 편집 명령어 안내"));
@@ -140,69 +139,4 @@ public final class IslandRoleMenu implements Listener {
         return item;
     }
 
-    private static List<RoleEntry> roles(String body) {
-        List<RoleEntry> roles = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String role = text(object, "role");
-            if (!role.isBlank()) {
-                roles.add(new RoleEntry(role, integer(object, "weight"), text(object, "displayName")));
-            }
-            index = objectEnd + 1;
-        }
-        return roles;
-    }
-
-    private static String loreValue(ItemMeta meta, String prefix) {
-        if (meta.getLore() == null) {
-            return "";
-        }
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static int integer(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return 0;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && (Character.isDigit(body.charAt(end)) || body.charAt(end) == '-')) {
-            end++;
-        }
-        try {
-            return Integer.parseInt(body.substring(start, end));
-        } catch (RuntimeException ignored) {
-            return 0;
-        }
-    }
-
-    private record RoleEntry(String role, int weight, String displayName) {
-    }
 }

@@ -1,10 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MemberView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
@@ -44,8 +45,8 @@ public final class IslandMemberMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.listIslandMembers(islandId)
-            .thenAccept(body -> openSync(plugin, player, members(body), messages))
+        PaperGuiViews.islandMembers(client, islandId)
+            .thenAccept(members -> openSync(plugin, player, members, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.")));
                 return null;
@@ -89,7 +90,7 @@ public final class IslandMemberMenu implements Listener {
         actions.execute(player, actionId, data, click);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Member> members, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<MemberView> members, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
             inventory.setItem(45, GuiItems.action(Material.WRITABLE_BOOK, message(messages, "member-menu-invite-name", "멤버 초대"), "island.member.invite.help", message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));
@@ -99,14 +100,14 @@ public final class IslandMemberMenu implements Listener {
             inventory.setItem(49, GuiItems.action(Material.CLOCK, message(messages, "member-menu-refresh-name", "새로고침"), "island.members.open"));
             inventory.setItem(53, GuiItems.action(Material.COMPASS, message(messages, "member-menu-main-menu-name", "메인 메뉴"), "island.main.open"));
             int slot = 0;
-            for (Member member : members.stream().limit(45).toList()) {
+            for (MemberView member : members.stream().limit(45).toList()) {
                 inventory.setItem(slot++, memberItem(member, messages));
             }
             player.openInventory(inventory);
         });
     }
 
-    private static ItemStack memberItem(Member member, MessageRenderer messages) {
+    private static ItemStack memberItem(MemberView member, MessageRenderer messages) {
         Material material = switch (member.role()) {
             case "OWNER" -> Material.NETHER_STAR;
             case "CO_OWNER" -> Material.DIAMOND;
@@ -144,69 +145,6 @@ public final class IslandMemberMenu implements Listener {
         return item;
     }
 
-    private static List<Member> members(String body) {
-        List<Member> members = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String playerUuid = text(object, "playerUuid");
-            if (!playerUuid.isBlank()) {
-                members.add(new Member(playerUuid, text(object, "role"), text(object, "joinedAt")));
-            }
-            index = objectEnd + 1;
-        }
-        return members;
-    }
-
-    private static String loreValue(ItemMeta meta, String prefix) {
-        if (meta.getLore() == null) {
-            return "";
-        }
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = jsonStringEnd(body, start);
-        if (end < start) {
-            return "";
-        }
-        return body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static int jsonStringEnd(String body, int start) {
-        boolean escaped = false;
-        for (int i = start; i < body.length(); i++) {
-            char c = body.charAt(i);
-            if (c == '"' && !escaped) {
-                return i;
-            }
-            escaped = c == '\\' && !escaped;
-            if (c != '\\') {
-                escaped = false;
-            }
-        }
-        return -1;
-    }
-
     private static String shortUuid(String uuid) {
         return uuid.length() <= 8 ? uuid : uuid.substring(0, 8);
     }
@@ -241,6 +179,4 @@ public final class IslandMemberMenu implements Listener {
         }
     }
 
-    private record Member(String playerUuid, String role, String joinedAt) {
-    }
 }

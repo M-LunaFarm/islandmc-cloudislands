@@ -1,9 +1,10 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RankingView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -18,6 +19,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandRankingMenu implements Listener {
     private static final String TITLE = "섬 랭킹";
+    private static final String MENU_ID = "island.ranking";
     private final MessageRenderer messages;
 
     public IslandRankingMenu() {
@@ -33,10 +35,8 @@ public final class IslandRankingMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
-        CompletableFuture<String> level = client.topIslandsByLevel(10);
-        CompletableFuture<String> worth = client.topIslandsByWorth(10);
-        level.thenCombine(worth, RankingData::new)
-            .thenAccept(data -> openSync(plugin, player, rankings(data.levelBody(), "level"), rankings(data.worthBody(), "worth"), messages))
+        PaperGuiViews.rankings(client, 10)
+            .thenAccept(data -> openSync(plugin, player, data.levels(), data.worths(), messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다.")));
                 return null;
@@ -45,11 +45,11 @@ public final class IslandRankingMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, "ranking-menu-title", TITLE).equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
         int slot = event.getRawSlot();
@@ -66,27 +66,23 @@ public final class IslandRankingMenu implements Listener {
             GuiActionRegistry.execute(player, "island.ranking.open", GuiClick.from(event));
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
-            return;
-        }
-        String islandId = loreValue(meta, "섬 ID=");
+        String islandId = GuiItems.data(event.getCurrentItem()).getOrDefault("target", "");
         if (islandId.isBlank()) {
             return;
         }
         GuiActionRegistry.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Ranking> levels, List<Ranking> worths, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<RankingView> levels, List<RankingView> worths, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, message(messages, "ranking-menu-title", TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, "ranking-menu-title", TITLE));
             inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "ranking-menu-title", "섬 랭킹"), message(messages, "ranking-menu-level-side", "좌측: 레벨 TOP"), message(messages, "ranking-menu-worth-side", "우측: 가치 TOP")));
             int slot = 9;
-            for (Ranking ranking : levels) {
+            for (RankingView ranking : levels) {
                 inventory.setItem(slot++, rankingItem(Material.EXPERIENCE_BOTTLE, ranking, messages));
             }
             slot = 27;
-            for (Ranking ranking : worths) {
+            for (RankingView ranking : worths) {
                 inventory.setItem(slot++, rankingItem(Material.EMERALD, ranking, messages));
             }
             inventory.setItem(45, item(Material.COMPASS, message(messages, "ranking-menu-public-islands-name", "공개 섬"), message(messages, "ranking-menu-public-islands-command", "/섬 방문")));
@@ -96,8 +92,12 @@ public final class IslandRankingMenu implements Listener {
         });
     }
 
-    private static ItemStack rankingItem(Material material, Ranking ranking, MessageRenderer messages) {
-        return item(material, rankingLabel(ranking.label(), messages) + " #" + ranking.rank(), "섬 ID=" + ranking.islandId(), message(messages, "ranking-menu-level", "레벨: ") + ranking.level(), message(messages, "ranking-menu-worth", "가치: ") + ranking.worth(), message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다."));
+    private static ItemStack rankingItem(Material material, RankingView ranking, MessageRenderer messages) {
+        return GuiItems.action(material, rankingLabel(ranking.label(), messages) + " #" + ranking.rank(), "island.visit.target",
+            Map.of("target", ranking.islandId()),
+            message(messages, "ranking-menu-level", "레벨: ") + ranking.level(),
+            message(messages, "ranking-menu-worth", "가치: ") + ranking.worth(),
+            message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다."));
     }
 
     private static String rankingLabel(String label, MessageRenderer messages) {
@@ -123,69 +123,4 @@ public final class IslandRankingMenu implements Listener {
         return item;
     }
 
-    private static List<Ranking> rankings(String body, String label) {
-        List<Ranking> rankings = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                rankings.add(new Ranking(rankings.size() + 1, label, islandId, number(object, "level"), text(object, "worth")));
-            }
-            index = objectEnd + 1;
-        }
-        return rankings;
-    }
-
-    private static String loreValue(ItemMeta meta, String prefix) {
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static long number(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return 0L;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && Character.isDigit(body.charAt(end))) {
-            end++;
-        }
-        try {
-            return Long.parseLong(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0L;
-        }
-    }
-
-    private record RankingData(String levelBody, String worthBody) {
-    }
-
-    private record Ranking(int rank, String label, String islandId, long level, String worth) {
-    }
 }

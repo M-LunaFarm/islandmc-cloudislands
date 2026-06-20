@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.BanView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -18,6 +20,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandBanMenu implements Listener {
     private static final String TITLE = "방문자 밴 목록";
+    private static final String MENU_ID = "island.bans";
     private final MessageRenderer messages;
 
     public IslandBanMenu() {
@@ -33,8 +36,8 @@ public final class IslandBanMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.listIslandBans(islandId)
-            .thenAccept(body -> openSync(plugin, player, bans(body), messages))
+        PaperGuiViews.islandBans(client, islandId)
+            .thenAccept(bans -> openSync(plugin, player, bans, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다.")));
                 return null;
@@ -43,11 +46,11 @@ public final class IslandBanMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
         int slot = event.getRawSlot();
@@ -64,10 +67,7 @@ public final class IslandBanMenu implements Listener {
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        String bannedUuid = loreValue(meta, "대상=");
+        String bannedUuid = GuiItems.data(event.getCurrentItem()).getOrDefault("playerUuid", "");
         if (bannedUuid.isBlank()) {
             return;
         }
@@ -83,9 +83,9 @@ public final class IslandBanMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Ban> bans, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<BanView> bans, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
             if (bans.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "ban-menu-empty-title", "밴 기록 없음"), message(messages, "ban-menu-empty", "현재 밴된 방문자가 없습니다.")));
             } else {
@@ -99,9 +99,9 @@ public final class IslandBanMenu implements Listener {
         });
     }
 
-    private static ItemStack banItem(Ban ban, MessageRenderer messages) {
-        return item(Material.BARRIER, message(messages, "ban-menu-title-prefix", "밴 ") + shortUuid(ban.bannedUuid()),
-            "대상=" + ban.bannedUuid(),
+    private static ItemStack banItem(BanView ban, MessageRenderer messages) {
+        return GuiItems.action(Material.BARRIER, message(messages, "ban-menu-title-prefix", "밴 ") + shortUuid(ban.bannedUuid()), "island.ban.pardon",
+            Map.of("playerUuid", ban.bannedUuid()),
             message(messages, "ban-menu-actor", "처리자: ") + shortUuid(ban.actorUuid()),
             message(messages, "ban-menu-reason", "사유: ") + (ban.reason().isBlank() ? message(messages, "ban-menu-none", "없음") : ban.reason()),
             ban.createdAt().isBlank() ? message(messages, "ban-menu-no-created-info", "생성 정보 없음") : message(messages, "ban-menu-created-at", "생성 시각: ") + ban.createdAt(),
@@ -118,28 +118,6 @@ public final class IslandBanMenu implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private static List<Ban> bans(String body) {
-        List<Ban> bans = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String bannedUuid = text(object, "bannedUuid");
-            if (!bannedUuid.isBlank()) {
-                bans.add(new Ban(bannedUuid, text(object, "actorUuid"), text(object, "reason"), text(object, "createdAt"), text(object, "expiresAt")));
-            }
-            index = objectEnd + 1;
-        }
-        return bans;
-    }
-
     private static ItemStack item(Material material, String name, String... lore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
@@ -151,33 +129,8 @@ public final class IslandBanMenu implements Listener {
         return item;
     }
 
-    private static String loreValue(ItemMeta meta, String prefix) {
-        if (meta.getLore() == null) {
-            return "";
-        }
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
     private static String shortUuid(String uuid) {
         return uuid.length() <= 8 ? uuid : uuid.substring(0, 8);
     }
 
-    private record Ban(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt) {
-    }
 }

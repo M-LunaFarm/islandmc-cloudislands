@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.BankView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -16,6 +18,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandBankMenu implements Listener {
+    private static final String MENU_ID = "island.bank";
     private static final String TITLE_KEY = "bank-menu-title";
     private static final String TITLE = "섬 은행";
     private final MessageRenderer messages;
@@ -33,8 +36,8 @@ public final class IslandBankMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.islandBank(islandId)
-            .thenAccept(body -> openSync(plugin, player, text(body, "balance"), text(body, "updatedAt"), messages))
+        PaperGuiViews.islandBank(client, islandId)
+            .thenAccept(view -> openSync(plugin, player, view, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "bank-menu-load-failed", "섬 은행을 불러오지 못했습니다.")));
                 return null;
@@ -43,7 +46,7 @@ public final class IslandBankMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiItems.menuClick(event, MENU_ID)) {
             return;
         }
         event.setCancelled(true);
@@ -76,10 +79,10 @@ public final class IslandBankMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, String balance, String updatedAt, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, BankView view, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
-            inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "bank-menu-balance-name", "잔액"), message(messages, "bank-menu-current-balance", "현재 잔액: ") + (balance.isBlank() ? "0" : balance), updatedAt.isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + updatedAt));
+            Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
+            inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "bank-menu-balance-name", "잔액"), message(messages, "bank-menu-current-balance", "현재 잔액: ") + (view.balance().isBlank() ? "0" : view.balance()), view.updatedAt().isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + view.updatedAt()));
             inventory.setItem(10, item(Material.EMERALD, message(messages, "bank-menu-deposit-1000-name", "1,000 입금"), message(messages, "bank-menu-deposit-1000-command", "/섬 입금 1000")));
             inventory.setItem(11, item(Material.EMERALD_BLOCK, message(messages, "bank-menu-deposit-10000-name", "10,000 입금"), message(messages, "bank-menu-deposit-10000-command", "/섬 입금 10000")));
             inventory.setItem(13, item(Material.PAPER, message(messages, "bank-menu-deposit-name", "입금"), message(messages, "bank-menu-deposit-usage", "사용법: /섬 입금 <금액>")));
@@ -112,14 +115,4 @@ public final class IslandBankMenu implements Listener {
         return item;
     }
 
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
 }

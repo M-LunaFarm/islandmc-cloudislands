@@ -1,6 +1,9 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.List;
+import java.util.Map;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.NodeSummaryView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import org.bukkit.Bukkit;
@@ -14,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public final class AdminNodeMenu implements Listener {
+    private static final String MENU_ID = "admin.node";
     private static final String TITLE_KEY = "admin-node-menu-title";
     private static final String TITLE = "섬 노드 관리";
     private final MessageRenderer messages;
@@ -35,49 +39,39 @@ public final class AdminNodeMenu implements Listener {
     }
 
     public static void open(Player player, String nodeId, String nodeInfoBody, MessageRenderer messages) {
-        Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
-        inventory.setItem(4, nodeSummaryItem(nodeId, nodeInfoBody, messages));
-        inventory.setItem(10, item(Material.COMPASS, message(messages, "admin-node-menu-list-name", "노드 목록"), message(messages, "admin-node-menu-list-command", "/ciadmin node list"), message(messages, "admin-node-menu-list-description", "신규 활성화 배정 가능 여부와 차단 사유를 함께 확인합니다.")));
-        inventory.setItem(11, item(Material.ENDER_EYE, message(messages, "admin-node-menu-info-name", "현재 노드 정보"), message(messages, "admin-node-menu-info-command", "/ciadmin node info ") + nodeId, message(messages, "admin-node-menu-info-description", "선택한 노드의 활성화 배정 상태를 확인합니다.")));
-        inventory.setItem(12, item(Material.GRASS_BLOCK, message(messages, "admin-node-menu-islands-name", "현재 노드 섬 현황"), message(messages, "admin-node-menu-islands-command", "/ciadmin node islands ") + nodeId + " 50", message(messages, "admin-node-menu-islands-description", "활성 섬 UUID와 상태를 확인합니다."), message(messages, "admin-node-menu-islands-block-reason", "배정 차단 사유는 노드 정보에서 확인합니다.")));
-        inventory.setItem(13, item(Material.REDSTONE_TORCH, message(messages, "admin-node-menu-drain-name", "현재 노드 Drain"), message(messages, "admin-node-menu-drain-command", "/ciadmin node drain ") + nodeId));
-        inventory.setItem(14, item(Material.LEVER, message(messages, "admin-node-menu-undrain-name", "현재 노드 Undrain"), message(messages, "admin-node-menu-undrain-command", "/ciadmin node undrain ") + nodeId));
-        inventory.setItem(15, item(Material.HOPPER, message(messages, "admin-node-menu-sweep-name", "장애 스윕"), message(messages, "admin-node-menu-sweep-command", "/ciadmin node sweep ") + nodeId));
-        inventory.setItem(16, item(Material.MAP, message(messages, "admin-node-menu-where-name", "활성 섬 조회"), message(messages, "admin-node-menu-where-command", "/ciadmin island where <uuid>"), message(messages, "admin-node-menu-where-description", "섬 UUID로 현재 위치 노드를 확인합니다.")));
-        inventory.setItem(17, item(Material.MINECART, message(messages, "admin-node-menu-migrate-name", "부하 이동"), message(messages, "admin-node-menu-migrate-command", "/ciadmin island migrate <uuid> <node>"), message(messages, "admin-node-menu-migrate-description", "섬 UUID와 대상 노드를 입력해 이동합니다.")));
-        inventory.setItem(18, item(Material.IRON_DOOR, message(messages, "admin-node-menu-kickall-name", "현재 노드 플레이어 로비 이동"), message(messages, "admin-node-menu-kickall-command", "/ciadmin node kickall ") + nodeId, message(messages, "admin-node-menu-kickall-description", "이 노드의 접속자를 로비로 이동합니다."), message(messages, "admin-node-menu-danger-click", "Shift+우클릭해야 실행됩니다.")));
-        inventory.setItem(19, item(Material.BELL, message(messages, "admin-node-menu-shutdown-name", "현재 노드 안전 종료"), message(messages, "admin-node-menu-shutdown-command", "/ciadmin node shutdown-safe ") + nodeId, message(messages, "admin-node-menu-shutdown-description", "Drain 후 접속자를 로비로 이동합니다."), message(messages, "admin-node-menu-danger-click", "Shift+우클릭해야 실행됩니다.")));
+        Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
+        inventory.setItem(4, nodeSummaryItem(PaperGuiViews.nodeSummary(nodeId, nodeInfoBody), messages));
+        inventory.setItem(10, commandItem(Material.COMPASS, message(messages, "admin-node-menu-list-name", "노드 목록"), message(messages, "admin-node-menu-list-command", "/ciadmin node list"), message(messages, "admin-node-menu-list-description", "신규 활성화 배정 가능 여부와 차단 사유를 함께 확인합니다.")));
+        inventory.setItem(11, commandItem(Material.ENDER_EYE, message(messages, "admin-node-menu-info-name", "현재 노드 정보"), message(messages, "admin-node-menu-info-command", "/ciadmin node info ") + nodeId, message(messages, "admin-node-menu-info-description", "선택한 노드의 활성화 배정 상태를 확인합니다.")));
+        inventory.setItem(12, commandItem(Material.GRASS_BLOCK, message(messages, "admin-node-menu-islands-name", "현재 노드 섬 현황"), message(messages, "admin-node-menu-islands-command", "/ciadmin node islands ") + nodeId + " 50", message(messages, "admin-node-menu-islands-description", "활성 섬 UUID와 상태를 확인합니다."), message(messages, "admin-node-menu-islands-block-reason", "배정 차단 사유는 노드 정보에서 확인합니다.")));
+        inventory.setItem(13, commandItem(Material.REDSTONE_TORCH, message(messages, "admin-node-menu-drain-name", "현재 노드 Drain"), message(messages, "admin-node-menu-drain-command", "/ciadmin node drain ") + nodeId));
+        inventory.setItem(14, commandItem(Material.LEVER, message(messages, "admin-node-menu-undrain-name", "현재 노드 Undrain"), message(messages, "admin-node-menu-undrain-command", "/ciadmin node undrain ") + nodeId));
+        inventory.setItem(15, commandItem(Material.HOPPER, message(messages, "admin-node-menu-sweep-name", "장애 스윕"), message(messages, "admin-node-menu-sweep-command", "/ciadmin node sweep ") + nodeId));
+        inventory.setItem(16, commandItem(Material.MAP, message(messages, "admin-node-menu-where-name", "활성 섬 조회"), message(messages, "admin-node-menu-where-command", "/ciadmin island where <uuid>"), message(messages, "admin-node-menu-where-description", "섬 UUID로 현재 위치 노드를 확인합니다.")));
+        inventory.setItem(17, commandItem(Material.MINECART, message(messages, "admin-node-menu-migrate-name", "부하 이동"), message(messages, "admin-node-menu-migrate-command", "/ciadmin island migrate <uuid> <node>"), message(messages, "admin-node-menu-migrate-description", "섬 UUID와 대상 노드를 입력해 이동합니다.")));
+        inventory.setItem(18, commandItem(Material.IRON_DOOR, message(messages, "admin-node-menu-kickall-name", "현재 노드 플레이어 로비 이동"), message(messages, "admin-node-menu-kickall-command", "/ciadmin node kickall ") + nodeId, message(messages, "admin-node-menu-kickall-description", "이 노드의 접속자를 로비로 이동합니다."), message(messages, "admin-node-menu-danger-click", "Shift+우클릭해야 실행됩니다.")));
+        inventory.setItem(19, commandItem(Material.BELL, message(messages, "admin-node-menu-shutdown-name", "현재 노드 안전 종료"), message(messages, "admin-node-menu-shutdown-command", "/ciadmin node shutdown-safe ") + nodeId, message(messages, "admin-node-menu-shutdown-description", "Drain 후 접속자를 로비로 이동합니다."), message(messages, "admin-node-menu-danger-click", "Shift+우클릭해야 실행됩니다.")));
         inventory.setItem(22, item(Material.BOOK, message(messages, "admin-node-menu-help-name", "관리 명령 도움말"), message(messages, "admin-node-menu-help-status-command", "/ciadmin status"), message(messages, "admin-node-menu-help-node-list-command", "/ciadmin node list"), message(messages, "admin-node-menu-help-island-where-command", "/ciadmin island where <uuid>")));
         inventory.setItem(24, item(Material.CLOCK, message(messages, "admin-node-menu-status-name", "관리 상태"), message(messages, "admin-node-menu-status-command", "/ciadmin status")));
         inventory.setItem(26, item(Material.OAK_DOOR, message(messages, "admin-node-menu-close-name", "닫기"), message(messages, "admin-node-menu-close", "메뉴를 닫습니다.")));
         player.openInventory(inventory);
     }
 
-    private static ItemStack nodeSummaryItem(String nodeId, String body, MessageRenderer messages) {
-        String state = textValue(body, "state");
-        String pool = textValue(body, "pool");
-        long players = longValue(body, "players");
-        long softCap = longValue(body, "softPlayerCap");
-        long hardCap = longValue(body, "hardPlayerCap");
-        long activeIslands = longValue(body, "activeIslands");
-        long maxActiveIslands = longValue(body, "maxActiveIslands");
-        long queue = longValue(body, "activationQueue");
-        long maxQueue = longValue(body, "maxActivationQueue");
-        String mspt = decimalValue(body, "mspt");
+    private static ItemStack nodeSummaryItem(NodeSummaryView summary, MessageRenderer messages) {
         return item(Material.NETHER_STAR,
-            message(messages, "admin-node-menu-summary-name", "노드 요약: ") + nodeId,
-            message(messages, "admin-node-menu-summary-state", "state: ") + fallback(state, "unknown"),
-            message(messages, "admin-node-menu-summary-pool", "pool: ") + fallback(pool, "island"),
-            message(messages, "admin-node-menu-summary-players", "players: ") + players + "/" + softCap + "/" + hardCap,
-            message(messages, "admin-node-menu-summary-mspt", "mspt: ") + fallback(mspt, "0"),
-            message(messages, "admin-node-menu-summary-active-islands", "active islands: ") + activeIslands + "/" + maxActiveIslands,
-            message(messages, "admin-node-menu-summary-queue", "queue: ") + queue + "/" + maxQueue,
+            message(messages, "admin-node-menu-summary-name", "노드 요약: ") + summary.nodeId(),
+            message(messages, "admin-node-menu-summary-state", "state: ") + fallback(summary.state(), "unknown"),
+            message(messages, "admin-node-menu-summary-pool", "pool: ") + fallback(summary.pool(), "island"),
+            message(messages, "admin-node-menu-summary-players", "players: ") + summary.players() + "/" + summary.softPlayerCap() + "/" + summary.hardPlayerCap(),
+            message(messages, "admin-node-menu-summary-mspt", "mspt: ") + fallback(summary.mspt(), "0"),
+            message(messages, "admin-node-menu-summary-active-islands", "active islands: ") + summary.activeIslands() + "/" + summary.maxActiveIslands(),
+            message(messages, "admin-node-menu-summary-queue", "queue: ") + summary.activationQueue() + "/" + summary.maxActivationQueue(),
             message(messages, "admin-node-menu-summary-policy", "작업 순서: Drain -> View Islands -> Move Load -> Shutdown Safe"));
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiItems.menuClick(event, MENU_ID)) {
             return;
         }
         event.setCancelled(true);
@@ -86,10 +80,6 @@ public final class AdminNodeMenu implements Listener {
         }
         int slot = event.getRawSlot();
         if (slot >= event.getView().getTopInventory().getSize()) {
-            return;
-        }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) {
             return;
         }
         player.closeInventory();
@@ -113,24 +103,14 @@ public final class AdminNodeMenu implements Listener {
             }
             return;
         }
-        String command = firstCommand(meta);
+        String command = GuiItems.data(event.getCurrentItem()).getOrDefault("command", "");
         if (command != null && command.contains("<")) {
             player.sendMessage(message(messages, "admin-node-menu-direct-required", "직접 입력이 필요한 명령입니다: ") + command);
             return;
         }
-        if (command != null) {
-            player.getServer().dispatchCommand(player, command.substring(1));
+        if (!command.isBlank()) {
+            player.sendMessage(message(messages, "admin-node-menu-direct-required", "직접 입력이 필요한 명령입니다: ") + command);
         }
-    }
-
-    private static String firstCommand(ItemMeta meta) {
-        if (!meta.hasLore() || meta.getLore() == null) {
-            return null;
-        }
-        return meta.getLore().stream()
-            .filter(line -> line.startsWith("/"))
-            .findFirst()
-            .orElse(null);
     }
 
     private static List<String> adminHelpCommands(MessageRenderer messages) {
@@ -164,6 +144,10 @@ public final class AdminNodeMenu implements Listener {
         return item;
     }
 
+    private static ItemStack commandItem(Material material, String name, String command, String... lore) {
+        return GuiItems.action(material, name, "admin.node.command", Map.of("command", command), lore);
+    }
+
     private static String message(MessageRenderer messages, String key, String fallback) {
         if (messages == null) {
             return fallback;
@@ -176,55 +160,4 @@ public final class AdminNodeMenu implements Listener {
         return value == null || value.isBlank() ? fallback : value;
     }
 
-    private static String textValue(String body, String key) {
-        if (body == null || body.isBlank()) {
-            return "";
-        }
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static long longValue(String body, String key) {
-        if (body == null || body.isBlank()) {
-            return 0L;
-        }
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return 0L;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && (Character.isDigit(body.charAt(end)) || body.charAt(end) == '-')) {
-            end++;
-        }
-        try {
-            return Long.parseLong(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0L;
-        }
-    }
-
-    private static String decimalValue(String body, String key) {
-        if (body == null || body.isBlank()) {
-            return "";
-        }
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && (Character.isDigit(body.charAt(end)) || body.charAt(end) == '-' || body.charAt(end) == '.')) {
-            end++;
-        }
-        return body.substring(start, end);
-    }
 }

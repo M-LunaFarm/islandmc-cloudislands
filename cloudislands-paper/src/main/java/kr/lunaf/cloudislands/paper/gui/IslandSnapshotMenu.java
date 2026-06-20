@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.SnapshotView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -19,6 +21,7 @@ import org.bukkit.plugin.Plugin;
 public final class IslandSnapshotMenu implements Listener {
     private static final String TITLE_KEY = "snapshot-menu-title";
     private static final String TITLE = "섬 스냅샷";
+    private static final String MENU_ID = "island.snapshots";
     private final MessageRenderer messages;
 
     public IslandSnapshotMenu() {
@@ -34,8 +37,8 @@ public final class IslandSnapshotMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.listIslandSnapshots(islandId, 20)
-            .thenAccept(body -> openSync(plugin, player, snapshots(body), messages))
+        PaperGuiViews.islandSnapshots(client, islandId, 20)
+            .thenAccept(snapshots -> openSync(plugin, player, snapshots, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다.")));
                 return null;
@@ -44,11 +47,11 @@ public final class IslandSnapshotMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
         int slot = event.getRawSlot();
@@ -69,10 +72,7 @@ public final class IslandSnapshotMenu implements Listener {
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        String snapshotNo = loreValue(meta, "번호=");
+        String snapshotNo = GuiItems.data(event.getCurrentItem()).getOrDefault("snapshotNo", "");
         if (!snapshotNo.isBlank()) {
             if (event.isShiftClick() && event.isRightClick()) {
                 GuiActionRegistry.execute(player, "island.snapshot.restore", java.util.Map.of("snapshotNo", String.valueOf(snapshotNo)), GuiClick.from(event));
@@ -99,16 +99,16 @@ public final class IslandSnapshotMenu implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Snapshot> snapshots, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<SnapshotView> snapshots, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(45, item(Material.CHEST, message(messages, "snapshot-menu-create-name", "새 스냅샷 생성"), message(messages, "snapshot-menu-create-command", "/섬 스냅샷생성 manual")));
             inventory.setItem(49, item(Material.CLOCK, message(messages, "snapshot-menu-refresh-name", "새로고침"), message(messages, "snapshot-menu-refresh-command", "/섬 스냅샷")));
             int slot = 0;
             if (snapshots.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "snapshot-menu-empty-title", "스냅샷 없음"), message(messages, "snapshot-menu-empty", "아직 생성된 섬 스냅샷이 없습니다.")));
             } else {
-                for (Snapshot snapshot : snapshots.stream().limit(45).toList()) {
+                for (SnapshotView snapshot : snapshots.stream().limit(45).toList()) {
                     inventory.setItem(slot++, snapshotItem(snapshot, messages));
                 }
             }
@@ -117,8 +117,14 @@ public final class IslandSnapshotMenu implements Listener {
         });
     }
 
-    private static ItemStack snapshotItem(Snapshot snapshot, MessageRenderer messages) {
-        return item(Material.PAPER, message(messages, "snapshot-menu-title-prefix", "스냅샷 #") + snapshot.snapshotNo(), "번호=" + snapshot.snapshotNo(), message(messages, "snapshot-menu-reason", "사유: ") + (snapshot.reason().isBlank() ? message(messages, "snapshot-menu-none", "없음") : snapshot.reason()), message(messages, "snapshot-menu-size", "크기: ") + snapshot.sizeBytes() + message(messages, "snapshot-menu-size-unit", " bytes"), snapshot.createdAt().isBlank() ? message(messages, "snapshot-menu-no-created-info", "생성 정보 없음") : message(messages, "snapshot-menu-created-at", "생성 시각: ") + snapshot.createdAt(), message(messages, "snapshot-menu-left-click", "좌클릭: 상세 보기"), message(messages, "snapshot-menu-shift-right-click", "Shift+우클릭: 이 스냅샷 복원 요청"));
+    private static ItemStack snapshotItem(SnapshotView snapshot, MessageRenderer messages) {
+        return GuiItems.action(Material.PAPER, message(messages, "snapshot-menu-title-prefix", "스냅샷 #") + snapshot.snapshotNo(), "island.snapshot.restore",
+            Map.of("snapshotNo", String.valueOf(snapshot.snapshotNo())),
+            message(messages, "snapshot-menu-reason", "사유: ") + (snapshot.reason().isBlank() ? message(messages, "snapshot-menu-none", "없음") : snapshot.reason()),
+            message(messages, "snapshot-menu-size", "크기: ") + snapshot.sizeBytes() + message(messages, "snapshot-menu-size-unit", " bytes"),
+            snapshot.createdAt().isBlank() ? message(messages, "snapshot-menu-no-created-info", "생성 정보 없음") : message(messages, "snapshot-menu-created-at", "생성 시각: ") + snapshot.createdAt(),
+            message(messages, "snapshot-menu-left-click", "좌클릭: 상세 보기"),
+            message(messages, "snapshot-menu-shift-right-click", "Shift+우클릭: 이 스냅샷 복원 요청"));
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
@@ -132,69 +138,4 @@ public final class IslandSnapshotMenu implements Listener {
         return item;
     }
 
-    private static List<Snapshot> snapshots(String body) {
-        List<Snapshot> snapshots = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            long snapshotNo = number(object, "snapshotNo");
-            if (snapshotNo > 0L) {
-                snapshots.add(new Snapshot(snapshotNo, text(object, "reason"), number(object, "sizeBytes"), text(object, "createdAt")));
-            }
-            index = objectEnd + 1;
-        }
-        return snapshots;
-    }
-
-    private static String loreValue(ItemMeta meta, String prefix) {
-        if (meta.getLore() == null) {
-            return "";
-        }
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static long number(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return 0L;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && Character.isDigit(body.charAt(end))) {
-            end++;
-        }
-        try {
-            return Long.parseLong(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0L;
-        }
-    }
-
-    private record Snapshot(long snapshotNo, String reason, long sizeBytes, String createdAt) {
-    }
 }

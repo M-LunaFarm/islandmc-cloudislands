@@ -129,7 +129,79 @@ class PaperPlatformBoundaryTest {
         Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
         try (Stream<Path> files = javaFiles(guiSource)) {
             String violations = files
-                .filter(path -> contains(path, "performCommand("))
+                .filter(path -> containsAny(path, "performCommand(", "dispatchCommand("))
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    @Test
+    void guiClassesDoNotIdentifyMenusByTitleString() throws Exception {
+        Path root = repositoryRoot();
+        Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
+        try (Stream<Path> files = javaFiles(guiSource)) {
+            String violations = files
+                .filter(path -> contains(path, "getView().getTitle()"))
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    @Test
+    void guiClassesDoNotParseControlDataFromLore() throws Exception {
+        Path root = repositoryRoot();
+        Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
+        try (Stream<Path> files = javaFiles(guiSource)) {
+            String violations = files
+                .filter(path -> containsAny(path,
+                    "loreValue(",
+                    "templateId=",
+                    "플래그=",
+                    "role=",
+                    "permission=",
+                    "플레이어=",
+                    "대상=",
+                    "초대 ID=",
+                    "섬 ID=",
+                    "homeName=",
+                    "warpPublic=",
+                    "biomeKey=",
+                    "limitValue=",
+                    "missionKey=",
+                    "업그레이드=",
+                    "번호="))
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    @Test
+    void guiClassesDoNotParseCoreJsonResponses() throws Exception {
+        Path root = repositoryRoot();
+        Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
+        try (Stream<Path> files = javaFiles(guiSource)) {
+            String violations = files
+                .filter(path -> containsAny(path,
+                    "thenAccept(body",
+                    "String body",
+                    "(String body",
+                    "body.indexOf(",
+                    "body.substring(",
+                    "jsonStringEnd(",
+                    "objectEnd(",
+                    "rawScalar("))
                 .map(path -> root.relativize(path).toString())
                 .sorted()
                 .reduce((left, right) -> left + "\n" + right)
@@ -255,6 +327,20 @@ class PaperPlatformBoundaryTest {
     private static boolean contains(Path path, String needle) {
         try {
             return Files.readString(path).contains(needle);
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static boolean containsAny(Path path, String... needles) {
+        try {
+            String source = Files.readString(path);
+            for (String needle : needles) {
+                if (source.contains(needle)) {
+                    return true;
+                }
+            }
+            return false;
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }

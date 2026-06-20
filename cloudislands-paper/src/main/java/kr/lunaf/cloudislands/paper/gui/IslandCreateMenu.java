@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.ArrayList;
 import java.util.List;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.TemplateView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -16,6 +18,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandCreateMenu implements Listener {
+    private static final String MENU_ID = "island.create";
     private static final String TITLE_KEY = "create-menu-title";
     private static final String TITLE = "섬 템플릿 선택";
     private final MessageRenderer messages;
@@ -33,57 +36,37 @@ public final class IslandCreateMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
-        client.listTemplates()
-            .thenAccept(body -> openSync(plugin, player, templates(body), messages))
+        PaperGuiViews.templates(client)
+            .thenAccept(templates -> openSync(plugin, player, templates, messages))
             .exceptionally(error -> {
-                openSync(plugin, player, List.of(new Template("default", message(messages, "create-menu-default-template", "기본 섬"), true, "")), messages);
+                openSync(plugin, player, List.of(new TemplateView("default", message(messages, "create-menu-default-template", "기본 섬"), true, "")), messages);
                 return null;
             });
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiItems.menuClick(event, MENU_ID)) {
             return;
         }
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
-            return;
-        }
-        if (message(messages, "create-menu-refresh-name", "템플릿 새로고침").equals(meta.getDisplayName())) {
-            player.closeInventory();
-            GuiActionRegistry.execute(player, "island.create.open", GuiClick.from(event));
-            return;
-        }
-        if (message(messages, "create-menu-main-menu-name", "메인 메뉴").equals(meta.getDisplayName())) {
-            player.closeInventory();
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
-            return;
-        }
-        String templateId = "";
-        for (String line : meta.getLore()) {
-            if (line.startsWith("templateId=")) {
-                templateId = line.substring("templateId=".length());
-                break;
-            }
-        }
-        if (templateId.isBlank()) {
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (actionId.isBlank()) {
             return;
         }
         player.closeInventory();
-        GuiActionRegistry.execute(player, "island.create", java.util.Map.of("templateId", templateId), GuiClick.from(event));
+        GuiActionRegistry.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Template> templates, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<TemplateView> templates, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
-            List<Template> enabled = templates.stream().filter(Template::enabled).limit(14).toList();
+            Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
+            List<TemplateView> enabled = templates.stream().filter(TemplateView::enabled).limit(14).toList();
             if (enabled.isEmpty()) {
-                enabled = List.of(new Template("default", message(messages, "create-menu-default-template", "기본 섬"), true, ""));
+                enabled = List.of(new TemplateView("default", message(messages, "create-menu-default-template", "기본 섬"), true, ""));
             }
             int[] templateSlots = {9, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 23, 24, 25};
             for (int index = 0; index < enabled.size() && index < templateSlots.length; index++) {
@@ -95,13 +78,11 @@ public final class IslandCreateMenu implements Listener {
         });
     }
 
-    private static ItemStack item(Template template, MessageRenderer messages) {
-        ItemStack item = new ItemStack(Material.OAK_SAPLING);
+    private static ItemStack item(TemplateView template, MessageRenderer messages) {
+        ItemStack item = GuiItems.action(Material.OAK_SAPLING, template.displayName().isBlank() ? template.id() : template.displayName(), "island.create", java.util.Map.of("templateId", template.id()), message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(template.displayName().isBlank() ? template.id() : template.displayName());
             List<String> lore = new ArrayList<>();
-            lore.add("templateId=" + template.id());
             if (!template.minNodeVersion().isBlank()) {
                 lore.add(message(messages, "create-menu-required-version", "필요 플랫폼 버전: ") + template.minNodeVersion());
             }
@@ -121,81 +102,8 @@ public final class IslandCreateMenu implements Listener {
     }
 
     private static ItemStack button(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
+        String actionId = material == Material.COMPASS ? "island.main.open" : "island.create.open";
+        return GuiItems.action(material, name, actionId, lore);
     }
 
-    private static List<Template> templates(String body) {
-        List<Template> templates = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String id = text(object, "id");
-            if (!id.isBlank()) {
-                templates.add(new Template(id, text(object, "displayName"), bool(object, "enabled", true), text(object, "minNodeVersion")));
-            }
-            index = objectEnd + 1;
-        }
-        return templates;
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = jsonStringEnd(body, start);
-        if (end < start) {
-            return "";
-        }
-        return unescape(body.substring(start, end));
-    }
-
-    private static boolean bool(String body, String key, boolean fallback) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return fallback;
-        }
-        start += needle.length();
-        return body.startsWith("true", start) || (!body.startsWith("false", start) && fallback);
-    }
-
-    private static int jsonStringEnd(String body, int start) {
-        boolean escaped = false;
-        for (int i = start; i < body.length(); i++) {
-            char c = body.charAt(i);
-            if (c == '"' && !escaped) {
-                return i;
-            }
-            escaped = c == '\\' && !escaped;
-            if (c != '\\') {
-                escaped = false;
-            }
-        }
-        return -1;
-    }
-
-    private static String unescape(String value) {
-        return value.replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private record Template(String id, String displayName, boolean enabled, String minNodeVersion) {
-    }
 }

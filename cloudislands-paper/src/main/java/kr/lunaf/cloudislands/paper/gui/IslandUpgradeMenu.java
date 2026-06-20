@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.UpgradeView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -18,6 +20,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandUpgradeMenu implements Listener {
     private static final String TITLE = "섬 업그레이드";
+    private static final String MENU_ID = "island.upgrades";
     private final MessageRenderer messages;
 
     public IslandUpgradeMenu() {
@@ -33,8 +36,8 @@ public final class IslandUpgradeMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        client.listIslandUpgrades(islandId)
-            .thenAccept(body -> openSync(plugin, player, upgrades(body), messages))
+        PaperGuiViews.islandUpgrades(client, islandId)
+            .thenAccept(upgrades -> openSync(plugin, player, upgrades, messages))
             .exceptionally(error -> {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다.")));
                 return null;
@@ -43,11 +46,11 @@ public final class IslandUpgradeMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
         int slot = event.getRawSlot();
@@ -67,22 +70,18 @@ public final class IslandUpgradeMenu implements Listener {
             GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null || meta.getLore() == null) {
-            return;
-        }
-        String key = loreValue(meta, "업그레이드=");
+        String key = GuiItems.data(event.getCurrentItem()).getOrDefault("upgradeKey", "");
         if (key.isBlank()) {
             return;
         }
         GuiActionRegistry.execute(player, "island.upgrade.purchase", java.util.Map.of("upgradeKey", key), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<Upgrade> upgrades, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<UpgradeView> upgrades, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
             int slot = 0;
-            for (Upgrade upgrade : upgrades.stream().limit(45).toList()) {
+            for (UpgradeView upgrade : upgrades.stream().limit(45).toList()) {
                 inventory.setItem(slot++, upgradeItem(upgrade, messages));
             }
             if (upgrades.isEmpty()) {
@@ -95,7 +94,7 @@ public final class IslandUpgradeMenu implements Listener {
         });
     }
 
-    private static ItemStack upgradeItem(Upgrade upgrade, MessageRenderer messages) {
+    private static ItemStack upgradeItem(UpgradeView upgrade, MessageRenderer messages) {
         Material material = switch (upgrade.type()) {
             case "ISLAND_SIZE" -> Material.GRASS_BLOCK;
             case "MAX_MEMBERS" -> Material.NAME_TAG;
@@ -110,7 +109,11 @@ public final class IslandUpgradeMenu implements Listener {
             case "BANK_LIMIT" -> Material.GOLD_INGOT;
             default -> Material.BEACON;
         };
-        return item(material, upgrade.key(), "업그레이드=" + upgrade.key(), message(messages, "upgrade-menu-type", "유형: ") + upgrade.type(), message(messages, "upgrade-menu-current-level", "현재 레벨: ") + upgrade.level(), message(messages, "upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다."));
+        return GuiItems.action(material, upgrade.key(), "island.upgrade.purchase",
+            Map.of("upgradeKey", upgrade.key()),
+            message(messages, "upgrade-menu-type", "유형: ") + upgrade.type(),
+            message(messages, "upgrade-menu-current-level", "현재 레벨: ") + upgrade.level(),
+            message(messages, "upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다."));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
@@ -132,66 +135,4 @@ public final class IslandUpgradeMenu implements Listener {
         return item;
     }
 
-    private static List<Upgrade> upgrades(String body) {
-        List<Upgrade> upgrades = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String key = text(object, "upgradeKey");
-            if (!key.isBlank()) {
-                upgrades.add(new Upgrade(key, text(object, "type"), integer(object, "level")));
-            }
-            index = objectEnd + 1;
-        }
-        return upgrades;
-    }
-
-    private static String loreValue(ItemMeta meta, String prefix) {
-        for (String line : meta.getLore()) {
-            if (line.startsWith(prefix)) {
-                return line.substring(prefix.length());
-            }
-        }
-        return "";
-    }
-
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static int integer(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body.indexOf(needle);
-        if (start < 0) {
-            return 0;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && Character.isDigit(body.charAt(end))) {
-            end++;
-        }
-        try {
-            return Integer.parseInt(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0;
-        }
-    }
-
-    private record Upgrade(String key, String type, int level) {
-    }
 }
