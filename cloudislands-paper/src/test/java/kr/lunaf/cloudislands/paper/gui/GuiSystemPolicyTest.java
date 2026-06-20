@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.paper.gui;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,5 +63,12 @@ class GuiSystemPolicyTest {
         for (String action : List.of("Drain", "Undrain", "View Islands", "Move Load", "Shutdown Safe")) {
             assertTrue(GuiSystemPolicy.nodeAdminAction(action), action);
         }
+    }
+
+    @Test
+    void actionRegistryRejectsUnsupportedClicks() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionRegistry.java"));
+        assertTrue(source.contains("GuiClick.UNSUPPORTED"), "null clicks must not be treated as LEFT");
+        assertTrue(source.contains("!safeClick.supported()"), "unsupported clicks must be dropped before action execution");
     }
 }

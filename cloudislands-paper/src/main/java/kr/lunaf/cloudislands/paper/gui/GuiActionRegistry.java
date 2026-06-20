@@ -19,6 +19,10 @@ public final class GuiActionRegistry {
     }
 
     public static void execute(Player player, String actionId, Map<String, String> data, GuiClick click) {
-        EXECUTOR.get().execute(player, actionId, data == null ? Map.of() : data, click == null ? GuiClick.LEFT : click);
+        GuiClick safeClick = click == null ? GuiClick.UNSUPPORTED : click;
+        if (!safeClick.supported()) {
+            return;
+        }
+        EXECUTOR.get().execute(player, actionId, data == null ? Map.of() : data, safeClick);
     }
 }
