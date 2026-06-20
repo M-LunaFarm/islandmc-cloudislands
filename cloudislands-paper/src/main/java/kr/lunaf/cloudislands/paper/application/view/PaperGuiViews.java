@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class PaperGuiViews {
@@ -35,11 +36,14 @@ public final class PaperGuiViews {
     }
 
     public static CompletableFuture<BankView> islandBank(CoreApiClient client, UUID islandId) {
-        return client.islandBank(islandId).thenApply(body -> new BankView(text(body, "balance"), text(body, "updatedAt")));
+        return client.islandBank(islandId).thenApply(body -> {
+            Map<?, ?> root = root(body);
+            return new BankView(text(root, "balance"), text(root, "updatedAt"));
+        });
     }
 
     public static CompletableFuture<String> islandBiome(CoreApiClient client, UUID islandId) {
-        return client.islandBiome(islandId).thenApply(body -> text(body, "biomeKey"));
+        return client.islandBiome(islandId).thenApply(body -> text(root(body), "biomeKey"));
     }
 
     public static CompletableFuture<Map<IslandFlag, String>> islandFlags(CoreApiClient client, UUID islandId) {
@@ -123,39 +127,41 @@ public final class PaperGuiViews {
     }
 
     public static NodeSummaryView nodeSummary(String nodeId, String body) {
+        Map<?, ?> root = root(body);
         return new NodeSummaryView(
             nodeId,
-            text(body, "state"),
-            text(body, "pool"),
-            longValue(body, "players"),
-            longValue(body, "softPlayerCap"),
-            longValue(body, "hardPlayerCap"),
-            longValue(body, "activeIslands"),
-            longValue(body, "maxActiveIslands"),
-            longValue(body, "activationQueue"),
-            longValue(body, "maxActivationQueue"),
-            rawScalar(body, "mspt")
+            text(root, "state"),
+            text(root, "pool"),
+            longValue(root, "players"),
+            longValue(root, "softPlayerCap"),
+            longValue(root, "hardPlayerCap"),
+            longValue(root, "activeIslands"),
+            longValue(root, "maxActiveIslands"),
+            longValue(root, "activationQueue"),
+            longValue(root, "maxActivationQueue"),
+            text(root, "mspt")
         );
     }
 
     private static IslandInfoView islandInfo(String body) {
+        Map<?, ?> root = root(body);
         return new IslandInfoView(
-            text(body, "name"),
-            text(body, "state"),
-            text(body, "islandId"),
-            longValue(body, "level"),
-            text(body, "worth"),
-            bool(body, "publicAccess"),
-            bool(body, "locked"),
-            longValue(body, "size"),
-            longValue(body, "border"),
-            text(body, "ownerUuid")
+            text(root, "name"),
+            text(root, "state"),
+            text(root, "islandId"),
+            longValue(root, "level"),
+            text(root, "worth"),
+            bool(root, "publicAccess"),
+            bool(root, "locked"),
+            longValue(root, "size"),
+            longValue(root, "border"),
+            text(root, "ownerUuid")
         );
     }
 
     private static List<TemplateView> templates(String body) {
         List<TemplateView> templates = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String id = text(object, "id");
             if (!id.isBlank()) {
                 templates.add(new TemplateView(id, text(object, "displayName"), bool(object, "enabled", true), text(object, "minNodeVersion")));
@@ -166,7 +172,7 @@ public final class PaperGuiViews {
 
     private static List<RankingView> rankings(String body, String label) {
         List<RankingView> rankings = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String islandId = text(object, "islandId");
             if (!islandId.isBlank()) {
                 rankings.add(new RankingView(rankings.size() + 1, label, islandId, longValue(object, "level"), text(object, "worth")));
@@ -177,7 +183,7 @@ public final class PaperGuiViews {
 
     private static List<RankingView> reviewRankings(String body) {
         List<RankingView> rankings = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String islandId = text(object, "islandId");
             if (!islandId.isBlank()) {
                 rankings.add(new RankingView(rankings.size() + 1, "reviews", islandId, longValue(object, "reviewCount"), String.format(java.util.Locale.ROOT, "%.2f", doubleValue(object, "averageRating"))));
@@ -188,7 +194,7 @@ public final class PaperGuiViews {
 
     private static List<MemberView> members(String body) {
         List<MemberView> members = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String playerUuid = text(object, "playerUuid");
             if (!playerUuid.isBlank()) {
                 members.add(new MemberView(
@@ -207,7 +213,7 @@ public final class PaperGuiViews {
 
     private static List<InviteView> invites(String body) {
         List<InviteView> invites = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String inviteId = text(object, "inviteId");
             if (!inviteId.isBlank()) {
                 invites.add(new InviteView(inviteId, text(object, "islandId"), text(object, "inviterUuid"), text(object, "createdAt"), text(object, "expiresAt")));
@@ -218,7 +224,7 @@ public final class PaperGuiViews {
 
     private static List<PlayerIslandView> playerIslands(String body) {
         List<PlayerIslandView> islands = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String islandId = text(object, "islandId");
             if (!islandId.isBlank()) {
                 String name = text(object, "name");
@@ -231,7 +237,7 @@ public final class PaperGuiViews {
 
     private static List<PublicIslandView> publicIslands(String body) {
         List<PublicIslandView> islands = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String islandId = text(object, "islandId");
             if (!islandId.isBlank()) {
                 String name = text(object, "name");
@@ -243,7 +249,7 @@ public final class PaperGuiViews {
 
     private static List<BanView> bans(String body) {
         List<BanView> bans = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String bannedUuid = text(object, "bannedUuid");
             if (!bannedUuid.isBlank()) {
                 bans.add(new BanView(bannedUuid, text(object, "actorUuid"), text(object, "reason"), text(object, "createdAt"), text(object, "expiresAt")));
@@ -254,7 +260,7 @@ public final class PaperGuiViews {
 
     private static List<HomeView> homes(String body) {
         List<HomeView> homes = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String name = text(object, "name");
             if (!name.isBlank()) {
                 homes.add(new HomeView(name, doubleValue(object, "localX", "x"), doubleValue(object, "localY", "y"), doubleValue(object, "localZ", "z"), text(object, "createdAt")));
@@ -265,7 +271,7 @@ public final class PaperGuiViews {
 
     private static List<WarpView> warps(String body) {
         List<WarpView> warps = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String name = text(object, "name");
             if (name.isBlank()) {
                 name = text(object, "warpName");
@@ -279,7 +285,12 @@ public final class PaperGuiViews {
 
     private static Map<IslandFlag, String> flags(String body) {
         Map<IslandFlag, String> values = new EnumMap<>(IslandFlag.class);
-        for (Map.Entry<String, String> entry : objectFields(objectValue(body, "flags")).entrySet()) {
+        Map<?, ?> root = root(body);
+        Map<?, ?> flags = object(root, "flags");
+        if (flags.isEmpty()) {
+            flags = object(root, "values");
+        }
+        for (Map.Entry<String, String> entry : objectFields(flags).entrySet()) {
             try {
                 values.put(IslandFlag.valueOf(entry.getKey()), entry.getValue());
             } catch (IllegalArgumentException ignored) {
@@ -290,7 +301,7 @@ public final class PaperGuiViews {
 
     private static List<PermissionRuleView> permissionRules(String body) {
         List<PermissionRuleView> rules = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String role = text(object, "role");
             String permission = text(object, "permission");
             if (!role.isBlank() && !permission.isBlank()) {
@@ -302,7 +313,7 @@ public final class PaperGuiViews {
 
     private static List<RoleView> roles(String body) {
         List<RoleView> roles = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String role = text(object, "role");
             if (!role.isBlank()) {
                 roles.add(new RoleView(role, intValue(object, "weight"), text(object, "displayName")));
@@ -313,7 +324,7 @@ public final class PaperGuiViews {
 
     private static List<UpgradeView> upgrades(String body) {
         List<UpgradeView> upgrades = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String key = text(object, "key");
             if (key.isBlank()) {
                 key = text(object, "upgradeKey");
@@ -327,7 +338,7 @@ public final class PaperGuiViews {
 
     private static List<MissionView> missions(String body) {
         List<MissionView> missions = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String key = text(object, "key");
             if (key.isBlank()) {
                 key = text(object, "missionKey");
@@ -341,7 +352,7 @@ public final class PaperGuiViews {
 
     private static List<LimitView> limits(String body) {
         List<LimitView> limits = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String key = text(object, "key");
             if (key.isBlank()) {
                 key = text(object, "limitKey");
@@ -355,7 +366,7 @@ public final class PaperGuiViews {
 
     private static List<SnapshotView> snapshots(String body) {
         List<SnapshotView> snapshots = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             long snapshotNo = longValue(object, "snapshotNo");
             if (snapshotNo > 0) {
                 snapshots.add(new SnapshotView(snapshotNo, text(object, "reason"), longValue(object, "sizeBytes"), text(object, "createdAt")));
@@ -366,16 +377,16 @@ public final class PaperGuiViews {
 
     private static List<LogEntryView> logs(String body) {
         List<LogEntryView> entries = new ArrayList<>();
-        for (String object : objects(body)) {
+        for (Map<?, ?> object : entries(body)) {
             String action = text(object, "action");
             if (!action.isBlank()) {
-                entries.add(new LogEntryView(text(object, "actorUuid"), action, logPayload(objectValue(object, "payload")), text(object, "createdAt")));
+                entries.add(new LogEntryView(text(object, "actorUuid"), action, logPayload(object(object, "payload")), text(object, "createdAt")));
             }
         }
         return entries;
     }
 
-    private static Map<String, String> logPayload(String payload) {
+    private static Map<String, String> logPayload(Map<?, ?> payload) {
         Map<String, String> values = new LinkedHashMap<>();
         objectFields(payload).entrySet().stream()
             .filter(entry -> !INTERNAL_LOG_PAYLOAD_KEYS.contains(entry.getKey().toLowerCase(java.util.Locale.ROOT)))
@@ -383,198 +394,78 @@ public final class PaperGuiViews {
         return Map.copyOf(values);
     }
 
-    private static List<String> objects(String body) {
-        List<String> objects = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int start = body.indexOf('{', index);
-            if (start < 0) {
-                break;
-            }
-            int end = objectEnd(body, start);
-            if (end < 0) {
-                break;
-            }
-            objects.add(body.substring(start, end + 1));
-            index = start + 1;
-        }
-        return objects;
+    private static Map<?, ?> root(String body) {
+        return SimpleJson.object(SimpleJson.parse(body));
     }
 
-    private static String objectValue(String body, String key) {
-        String needle = "\"" + key + "\":{";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
+    private static List<Map<?, ?>> entries(String body) {
+        Object parsed = SimpleJson.parse(body);
+        if (parsed instanceof List<?>) {
+            return SimpleJson.list(parsed).stream()
+                .map(SimpleJson::object)
+                .filter(map -> !map.isEmpty())
+                .toList();
         }
-        start += needle.length() - 1;
-        int end = objectEnd(body, start);
-        return end < start ? "" : body.substring(start, end + 1);
+        Map<?, ?> root = SimpleJson.object(parsed);
+        for (Object value : root.values()) {
+            if (value instanceof List<?>) {
+                return SimpleJson.list(value).stream()
+                    .map(SimpleJson::object)
+                    .filter(map -> !map.isEmpty())
+                    .toList();
+            }
+        }
+        return root.isEmpty() ? List.of() : List.of(root);
     }
 
-    private static Map<String, String> objectFields(String object) {
-        if (object == null || object.isBlank()) {
+    private static Map<?, ?> object(Map<?, ?> object, String key) {
+        return SimpleJson.object(object.get(key));
+    }
+
+    private static Map<String, String> objectFields(Map<?, ?> object) {
+        if (object == null || object.isEmpty()) {
             return Map.of();
         }
         Map<String, String> values = new LinkedHashMap<>();
-        int index = 0;
-        while (index < object.length()) {
-            int keyStart = object.indexOf('"', index);
-            if (keyStart < 0) {
-                break;
-            }
-            int keyEnd = jsonStringEnd(object, keyStart + 1);
-            if (keyEnd < 0) {
-                break;
-            }
-            int colon = object.indexOf(':', keyEnd + 1);
-            if (colon < 0) {
-                break;
-            }
-            String key = unescape(object.substring(keyStart + 1, keyEnd));
-            int valueStart = colon + 1;
-            while (valueStart < object.length() && Character.isWhitespace(object.charAt(valueStart))) {
-                valueStart++;
-            }
-            if (valueStart < object.length() && object.charAt(valueStart) == '"') {
-                int valueEnd = jsonStringEnd(object, valueStart + 1);
-                if (valueEnd < 0) {
-                    break;
-                }
-                values.put(key, unescape(object.substring(valueStart + 1, valueEnd)));
-                index = valueEnd + 1;
-            } else {
-                int valueEnd = valueStart;
-                while (valueEnd < object.length() && ",}".indexOf(object.charAt(valueEnd)) < 0) {
-                    valueEnd++;
-                }
-                values.put(key, object.substring(valueStart, valueEnd).trim());
-                index = valueEnd + 1;
-            }
-        }
+        object.forEach((key, value) -> values.put(SimpleJson.text(key), SimpleJson.text(value)));
         return values;
     }
 
-    private static int objectEnd(String body, int start) {
-        int depth = 0;
-        boolean inString = false;
-        boolean escaped = false;
-        for (int index = start; index < body.length(); index++) {
-            char ch = body.charAt(index);
-            if (inString) {
-                if (ch == '"' && !escaped) {
-                    inString = false;
-                }
-                escaped = ch == '\\' && !escaped;
-                if (ch != '\\') {
-                    escaped = false;
-                }
-                continue;
-            }
-            if (ch == '"') {
-                inString = true;
-            } else if (ch == '{') {
-                depth++;
-            } else if (ch == '}') {
-                depth--;
-                if (depth == 0) {
-                    return index;
-                }
-            }
-        }
-        return -1;
+    private static String text(Map<?, ?> object, String key) {
+        return SimpleJson.text(object.get(key));
     }
 
-    private static String text(String body, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = jsonStringEnd(body, start);
-        return end < start ? "" : unescape(body.substring(start, end));
+    private static long longValue(Map<?, ?> object, String key) {
+        return SimpleJson.number(object.get(key));
     }
 
-    private static long longValue(String body, String key) {
-        String raw = rawScalar(body, key);
+    private static int intValue(Map<?, ?> object, String key) {
+        return (int) SimpleJson.number(object.get(key));
+    }
+
+    private static double doubleValue(Map<?, ?> object, String key) {
+        Object value = object.get(key);
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
         try {
-            return Long.parseLong(raw);
-        } catch (NumberFormatException exception) {
-            return 0L;
-        }
-    }
-
-    private static int intValue(String body, String key) {
-        String raw = rawScalar(body, key);
-        try {
-            return Integer.parseInt(raw);
-        } catch (NumberFormatException exception) {
-            return 0;
-        }
-    }
-
-    private static double doubleValue(String body, String key) {
-        String raw = rawScalar(body, key);
-        try {
-            return Double.parseDouble(raw);
+            return Double.parseDouble(SimpleJson.text(value));
         } catch (NumberFormatException exception) {
             return 0.0D;
         }
     }
 
-    private static double doubleValue(String body, String key, String fallbackKey) {
-        String raw = rawScalar(body, key);
-        if (raw.isBlank()) {
-            raw = rawScalar(body, fallbackKey);
-        }
-        try {
-            return Double.parseDouble(raw);
-        } catch (NumberFormatException exception) {
-            return 0.0D;
-        }
+    private static double doubleValue(Map<?, ?> object, String key, String fallbackKey) {
+        return object.containsKey(key) ? doubleValue(object, key) : doubleValue(object, fallbackKey);
     }
 
-    private static boolean bool(String body, String key) {
-        return bool(body, key, false);
+    private static boolean bool(Map<?, ?> object, String key) {
+        return bool(object, key, false);
     }
 
-    private static boolean bool(String body, String key, boolean fallback) {
-        String raw = rawScalar(body, key);
-        return raw.equals("true") || (!raw.equals("false") && fallback);
-    }
-
-    private static String rawScalar(String body, String key) {
-        String needle = "\"" + key + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && ",}".indexOf(body.charAt(end)) < 0) {
-            end++;
-        }
-        return body.substring(start, end).trim();
-    }
-
-    private static int jsonStringEnd(String body, int start) {
-        boolean escaped = false;
-        for (int index = start; index < body.length(); index++) {
-            char ch = body.charAt(index);
-            if (ch == '"' && !escaped) {
-                return index;
-            }
-            escaped = ch == '\\' && !escaped;
-            if (ch != '\\') {
-                escaped = false;
-            }
-        }
-        return -1;
-    }
-
-    private static String unescape(String value) {
-        return value.replace("\\\"", "\"").replace("\\\\", "\\");
+    private static boolean bool(Map<?, ?> object, String key, boolean fallback) {
+        Object value = object.get(key);
+        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 
     public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid) {

@@ -231,6 +231,21 @@ class PaperPlatformBoundaryTest {
 
             assertTrue(violations.isBlank(), violations);
         }
+
+        Path guiViewSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/view/PaperGuiViews.java");
+        String viewSource = Files.readString(guiViewSource);
+        String viewViolations = Stream.of(
+                "body.indexOf(",
+                "body.substring(",
+                "jsonStringEnd(",
+                "objectEnd(",
+                "rawScalar(")
+            .filter(viewSource::contains)
+            .map(token -> root.relativize(guiViewSource) + ": manual JSON parser token " + token)
+            .reduce((left, right) -> left + "\n" + right)
+            .orElse("");
+
+        assertTrue(viewViolations.isBlank(), viewViolations);
     }
 
     @Test
