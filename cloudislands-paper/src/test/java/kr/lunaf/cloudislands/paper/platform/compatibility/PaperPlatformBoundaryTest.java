@@ -256,7 +256,8 @@ class PaperPlatformBoundaryTest {
         try (Stream<Path> files = javaFiles(guiSource)) {
             String violations = files
                 .filter(path -> !path.getFileName().toString().equals("IslandConfirmationMenu.java")
-                    && !path.getFileName().toString().equals("IslandDangerMenu.java"))
+                    && !path.getFileName().toString().equals("IslandDangerMenu.java")
+                    && !path.getFileName().toString().equals("ConfirmationTokenPolicy.java"))
                 .filter(path -> containsAny(path,
                     "\"island.warp.delete.confirm\"",
                     "\"island.member.remove.confirm\"",
@@ -471,6 +472,9 @@ class PaperPlatformBoundaryTest {
         String commandBackend = Files.readString(files.get(0));
         assertTrue(commandBackend.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
         assertTrue(commandBackend.contains("DangerousGuiActionPolicy.confirmed"), "Dangerous GUI mutations must verify a confirmation token");
+        assertTrue(commandBackend.contains("ConfirmationTokenPolicy.withToken"), "General confirmation menus must attach confirmation tokens");
+        assertTrue(commandBackend.contains("confirmationAccepted(player, \"island.member.remove.confirm\""), "Member removal must verify a confirmation token");
+        assertTrue(commandBackend.contains("confirmationAccepted(player, \"island.snapshot.restore.confirm\""), "Snapshot restore must verify a confirmation token");
         assertTrue(commandBackend.contains("mutateIdempotent(\"island.bank.withdraw\""), "Bank withdraw must use an idempotency key");
         assertTrue(commandBackend.contains("CoreMutationMetadata.request"), "Paper mutations must carry request IDs and audit actions");
     }
