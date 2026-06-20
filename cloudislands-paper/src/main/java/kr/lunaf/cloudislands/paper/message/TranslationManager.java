@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -13,12 +14,14 @@ public final class TranslationManager {
     private final String serviceName;
     private final Map<String, String> translations;
     private final Map<String, List<String>> lineTranslations;
+    private final Map<String, Map<String, String>> localeTranslations;
 
-    private TranslationManager(String locale, String serviceName, Map<String, String> translations, Map<String, List<String>> lineTranslations) {
-        this.locale = locale == null || locale.isBlank() ? "ko_kr" : locale.toLowerCase(Locale.ROOT);
+    private TranslationManager(String locale, String serviceName, Map<String, String> translations, Map<String, List<String>> lineTranslations, Map<String, Map<String, String>> localeTranslations) {
+        this.locale = PlayerIslandProfile.normalizeLocale(locale);
         this.serviceName = serviceName == null || serviceName.isBlank() ? "CloudIslands" : serviceName;
         this.translations = Map.copyOf(translations);
         this.lineTranslations = copyLines(lineTranslations);
+        this.localeTranslations = copyLocaleTranslations(localeTranslations);
     }
 
     public static TranslationManager fromConfig(FileConfiguration config, String serviceName) {
@@ -38,19 +41,41 @@ public final class TranslationManager {
         if (!configuredScoreboard.isEmpty()) {
             lines.put("scoreboard-lines", configuredScoreboard);
         }
-        return new TranslationManager(config.getString("plugin.language", "ko_kr"), serviceName, values, lines);
+        String configuredLocale = config.getString("plugin.language", "ko_kr");
+        Map<String, Map<String, String>> localeValues = bundledLocales();
+        String normalizedLocale = PlayerIslandProfile.normalizeLocale(configuredLocale);
+        Map<String, String> configuredValues = new HashMap<>(localeValues.getOrDefault(normalizedLocale, Map.of()));
+        configuredValues.putAll(values);
+        localeValues.put(normalizedLocale, configuredValues);
+        return new TranslationManager(configuredLocale, serviceName, values, lines, localeValues);
     }
 
     public String text(String key, String... variables) {
         String template = translations.getOrDefault(normalize(key), "");
-        return render(template, variables);
+        return render(template, locale, variables);
+    }
+
+    public String textForLocale(String requestedLocale, String key, String... variables) {
+        String normalizedLocale = PlayerIslandProfile.normalizeLocale(requestedLocale);
+        String template = localizedText(normalizedLocale, key);
+        return render(template, normalizedLocale, variables);
     }
 
     public List<String> lines(String key, String... variables) {
         List<String> templates = lineTranslations.getOrDefault(normalize(key), List.of());
         List<String> rendered = new ArrayList<>(templates.size());
         for (String template : templates) {
-            rendered.add(render(template, variables));
+            rendered.add(render(template, locale, variables));
+        }
+        return rendered;
+    }
+
+    public List<String> linesForLocale(String requestedLocale, String key, String... variables) {
+        List<String> templates = lineTranslations.getOrDefault(normalize(key), List.of());
+        String normalizedLocale = PlayerIslandProfile.normalizeLocale(requestedLocale);
+        List<String> rendered = new ArrayList<>(templates.size());
+        for (String template : templates) {
+            rendered.add(render(template, normalizedLocale, variables));
         }
         return rendered;
     }
@@ -59,13 +84,26 @@ public final class TranslationManager {
         return locale;
     }
 
-    private String render(String template, String... variables) {
+    private String render(String template, String activeLocale, String... variables) {
         String rendered = template == null ? "" : template;
-        rendered = rendered.replace("{service}", serviceName).replace("{locale}", locale);
+        rendered = rendered.replace("{service}", serviceName).replace("{locale}", PlayerIslandProfile.normalizeLocale(activeLocale));
         for (int index = 0; index + 1 < variables.length; index += 2) {
             rendered = rendered.replace("{" + variables[index] + "}", variables[index + 1] == null ? "" : variables[index + 1]);
         }
         return rendered;
+    }
+
+    private String localizedText(String requestedLocale, String key) {
+        String normalizedKey = normalize(key);
+        Map<String, String> requested = localeTranslations.get(PlayerIslandProfile.normalizeLocale(requestedLocale));
+        if (requested != null && requested.containsKey(normalizedKey)) {
+            return requested.get(normalizedKey);
+        }
+        Map<String, String> languageMatch = localeTranslations.get(languageFallback(requestedLocale));
+        if (languageMatch != null && languageMatch.containsKey(normalizedKey)) {
+            return languageMatch.get(normalizedKey);
+        }
+        return translations.getOrDefault(normalizedKey, "");
     }
 
     private static Map<String, String> defaults(String serviceName) {
@@ -1028,10 +1066,35 @@ public final class TranslationManager {
         return key == null ? "" : key.toLowerCase(Locale.ROOT).replace('_', '-');
     }
 
+    private static Map<String, Map<String, String>> bundledLocales() {
+        return LocaleMessageCatalog.bundledTranslations();
+    }
+
+    private static String languageFallback(String requestedLocale) {
+        String normalized = PlayerIslandProfile.normalizeLocale(requestedLocale);
+        int separator = normalized.indexOf('_');
+        String language = separator < 0 ? normalized : normalized.substring(0, separator);
+        if (language.equals("en")) {
+            return "en_us";
+        }
+        if (language.equals("ko")) {
+            return "ko_kr";
+        }
+        return normalized;
+    }
+
     private static Map<String, List<String>> copyLines(Map<String, List<String>> source) {
         Map<String, List<String>> copy = new HashMap<>();
         for (Map.Entry<String, List<String>> entry : source.entrySet()) {
             copy.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return Map.copyOf(copy);
+    }
+
+    private static Map<String, Map<String, String>> copyLocaleTranslations(Map<String, Map<String, String>> source) {
+        Map<String, Map<String, String>> copy = new HashMap<>();
+        for (Map.Entry<String, Map<String, String>> entry : source.entrySet()) {
+            copy.put(PlayerIslandProfile.normalizeLocale(entry.getKey()), Map.copyOf(entry.getValue()));
         }
         return Map.copyOf(copy);
     }

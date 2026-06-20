@@ -53,9 +53,10 @@ public final class PaperScoreboardListener implements Listener {
             return;
         }
         Scoreboard scoreboard = manager.getNewScoreboard();
-        Objective objective = scoreboard.registerNewObjective("cloudislands", "dummy", messages.plain("scoreboard-title"));
+        String locale = player.getLocale();
+        Objective objective = scoreboard.registerNewObjective("cloudislands", "dummy", messages.plainForLocale(locale, "scoreboard-title"));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        List<String> lines = messages.lines("scoreboard-lines",
+        List<String> lines = messages.linesForLocale(locale, "scoreboard-lines",
             "player", player.getName(),
             "online", Integer.toString(Bukkit.getOnlinePlayers().size()),
             "world", player.getWorld().getName()

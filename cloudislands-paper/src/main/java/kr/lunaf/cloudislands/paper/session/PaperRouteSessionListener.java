@@ -187,7 +187,7 @@ public final class PaperRouteSessionListener implements Listener {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                     var player = players.onlinePlayer(playerUuid);
                     if (player != null) {
-                        player.sendActionBar(Component.text(playerMessage("route-session-check-failed", "섬 입장 준비를 확인하지 못했습니다.")));
+                        player.sendActionBar(Component.text(playerMessage(player, "route-session-check-failed", "섬 입장 준비를 확인하지 못했습니다.")));
                     }
                 });
             }
@@ -206,7 +206,7 @@ public final class PaperRouteSessionListener implements Listener {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             var player = players.onlinePlayer(playerUuid);
             if (player != null) {
-                player.sendActionBar(Component.text(playerMessage("route-session-preparing", "섬 입장을 준비하는 중입니다...")));
+                player.sendActionBar(Component.text(playerMessage(player, "route-session-preparing", "섬 입장을 준비하는 중입니다...")));
             }
         });
     }
@@ -216,12 +216,12 @@ public final class PaperRouteSessionListener implements Listener {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             var player = players.onlinePlayer(playerUuid);
             if (player != null) {
-                player.sendActionBar(Component.text(playerMessage("route-session-missing-fallback", "섬 입장 요청이 없어 로비로 이동합니다.")));
+                player.sendActionBar(Component.text(playerMessage(player, "route-session-missing-fallback", "섬 입장 요청이 없어 로비로 이동합니다.")));
                 sendToFallback(player);
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> {
                     var stillHere = players.onlinePlayer(playerUuid);
                     if (stillHere != null) {
-                        stillHere.kick(Component.text(playerMessage("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
+                        stillHere.kick(Component.text(playerMessage(stillHere, "route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
                     }
                 }, 40L);
             }
@@ -230,7 +230,7 @@ public final class PaperRouteSessionListener implements Listener {
 
     private void sendToFallback(org.bukkit.entity.Player player) {
         if (!plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "BungeeCord")) {
-            player.kick(Component.text(playerMessage("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
+            player.kick(Component.text(playerMessage(player, "route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
             return;
         }
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream(); DataOutputStream output = new DataOutputStream(bytes)) {
@@ -238,7 +238,7 @@ public final class PaperRouteSessionListener implements Listener {
             output.writeUTF(fallbackServerName);
             player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
         } catch (IOException | RuntimeException ignored) {
-            player.kick(Component.text(playerMessage("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
+            player.kick(Component.text(playerMessage(player, "route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
         }
     }
 
@@ -246,11 +246,23 @@ public final class PaperRouteSessionListener implements Listener {
         return sanitizePlayerMessage(message(key, fallback));
     }
 
+    private String playerMessage(org.bukkit.entity.Player player, String key, String fallback) {
+        return sanitizePlayerMessage(message(player, key, fallback));
+    }
+
     private String message(String key, String fallback) {
         if (messages == null) {
             return fallback;
         }
         String rendered = messages.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
+    }
+
+    private String message(org.bukkit.entity.Player player, String key, String fallback) {
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plainForLocale(player == null ? "" : player.getLocale(), key);
         return rendered.isBlank() ? fallback : rendered;
     }
 

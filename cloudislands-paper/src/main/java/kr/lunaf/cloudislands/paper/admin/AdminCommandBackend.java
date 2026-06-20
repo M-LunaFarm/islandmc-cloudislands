@@ -558,9 +558,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length > 1 && args[1].equalsIgnoreCase("menu")) {
             if (sender instanceof Player player) {
                 coreApiClient.nodeInfo(nodeId)
-                    .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, body, messages)))
+                    .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, body, messagesFor(player))))
                     .exceptionally(error -> {
-                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, messages));
+                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, messagesFor(player)));
                         return null;
                     });
             } else {
@@ -613,6 +613,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin node shutdown-safe [node]"
         ));
         return true;
+    }
+
+    private MessageRenderer messagesFor(Player player) {
+        return messages == null || player == null ? messages : messages.forLocale(player.getLocale());
     }
 
     private boolean handleIsland(CommandSender sender, String[] args) {

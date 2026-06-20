@@ -134,7 +134,7 @@ public final class RouteTicketConsumer {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(preVisit);
             if (preVisit.isCancelled()) {
                 recordTeleportFailure("VISIT_CANCELLED");
-                player.sendActionBar(Component.text(playerMessage("route-visit-cancelled", "섬 방문이 취소되었습니다.")));
+                player.sendActionBar(Component.text(playerMessage(player, "route-visit-cancelled", "섬 방문이 취소되었습니다.")));
                 failRoute(playerUuid, ticket.ticketId(), "VISIT_CANCELLED", true);
                 return;
             }
@@ -151,7 +151,7 @@ public final class RouteTicketConsumer {
         if (players.teleport(player, target)) {
             teleportSuccesses.incrementAndGet();
             hideLoading(player);
-            player.sendActionBar(Component.text(arrivalMessage(ticket.action())));
+            player.sendActionBar(Component.text(arrivalMessage(player, ticket.action())));
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new RouteTicketConsumedEvent(
                     ticket.ticketId(),
                     ticket.islandId(),
@@ -266,22 +266,22 @@ public final class RouteTicketConsumer {
         return action == RouteAction.VISIT ? 2.5D : 0.5D;
     }
 
-    private String arrivalMessage(kr.lunaf.cloudislands.api.model.RouteAction action) {
+    private String arrivalMessage(Player player, kr.lunaf.cloudislands.api.model.RouteAction action) {
         return switch (action) {
-            case VISIT -> playerMessage("route-arrived-visit", "방문한 섬에 도착했습니다.");
-            case WARP -> playerMessage("route-arrived-warp", "섬 워프에 도착했습니다.");
-            case ADMIN_TELEPORT -> playerMessage("route-arrived-admin", "관리자 이동이 완료되었습니다.");
-            default -> playerMessage("route-arrived-home", "내 섬에 도착했습니다.");
+            case VISIT -> playerMessage(player, "route-arrived-visit", "방문한 섬에 도착했습니다.");
+            case WARP -> playerMessage(player, "route-arrived-warp", "섬 워프에 도착했습니다.");
+            case ADMIN_TELEPORT -> playerMessage(player, "route-arrived-admin", "관리자 이동이 완료되었습니다.");
+            default -> playerMessage(player, "route-arrived-home", "내 섬에 도착했습니다.");
         };
     }
 
     private void notifyPreparing(UUID playerUuid, int attempt) {
         Player player = players.onlinePlayer(playerUuid);
         if (player != null) {
-            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text(playerMessage("route-consume-loading", "섬 로딩 중")), RoutePreparationProgressPolicy.handoffProgress(0), BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
+            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text(playerMessage(player, "route-consume-loading", "섬 로딩 중")), RoutePreparationProgressPolicy.handoffProgress(0), BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
             bar.progress(RoutePreparationProgressPolicy.handoffProgress(attempt));
             player.showBossBar(bar);
-            player.sendActionBar(Component.text(playerMessage("route-consume-preparing", "섬을 준비하는 중입니다...")));
+            player.sendActionBar(Component.text(playerMessage(player, "route-consume-preparing", "섬을 준비하는 중입니다...")));
         }
     }
 
@@ -292,11 +292,15 @@ public final class RouteTicketConsumer {
             return;
         }
         hideLoading(player);
-        player.sendActionBar(Component.text(playerMessage("route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요.")));
+        player.sendActionBar(Component.text(playerMessage(player, "route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요.")));
     }
 
     private String playerMessage(String key, String fallback) {
         return sanitizePlayerMessage(message(key, fallback));
+    }
+
+    private String playerMessage(Player player, String key, String fallback) {
+        return sanitizePlayerMessage(message(player, key, fallback));
     }
 
     private String message(String key, String fallback) {
@@ -305,6 +309,15 @@ public final class RouteTicketConsumer {
             return fallback;
         }
         String rendered = renderer.plain(key);
+        return rendered.isBlank() ? fallback : rendered;
+    }
+
+    private String message(Player player, String key, String fallback) {
+        MessageRenderer renderer = messages;
+        if (renderer == null) {
+            return fallback;
+        }
+        String rendered = renderer.plainForLocale(player == null ? "" : player.getLocale(), key);
         return rendered.isBlank() ? fallback : rendered;
     }
 

@@ -1,9 +1,10 @@
 package kr.lunaf.cloudislands.paper.session;
 
-import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
@@ -16,13 +17,13 @@ public final class PaperChatListener implements Listener {
 
     @EventHandler
     public void onAsyncChat(AsyncChatEvent event) {
-        event.renderer(ChatRenderer.viewerUnaware((source, sourceDisplayName, message) ->
-            chatLine(sourceDisplayName, message)
-        ));
+        event.renderer((source, sourceDisplayName, message, viewer) ->
+            chatLine(viewerLocale(viewer), sourceDisplayName, message)
+        );
     }
 
-    private Component chatLine(Component playerName, Component chatMessage) {
-        String format = messages.plain("chat-format", "prefix", messages.plain("chat-prefix"));
+    private Component chatLine(String locale, Component playerName, Component chatMessage) {
+        String format = messages.plainForLocale(locale, "chat-format", "prefix", messages.plainForLocale(locale, "chat-prefix"));
         if (format.isBlank()) {
             format = "{prefix}{player}: {message}";
         }
@@ -50,6 +51,10 @@ public final class PaperChatListener implements Listener {
             }
         }
         return messageInserted ? line : line.append(Component.text(" ")).append(chatMessage);
+    }
+
+    private String viewerLocale(Audience viewer) {
+        return viewer instanceof Player player ? player.getLocale() : "";
     }
 
     private int nextToken(int playerToken, int messageToken) {

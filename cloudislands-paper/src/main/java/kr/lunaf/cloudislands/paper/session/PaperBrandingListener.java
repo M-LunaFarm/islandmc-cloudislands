@@ -21,19 +21,21 @@ public final class PaperBrandingListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        applyTabList(event.getPlayer());
+        Player player = event.getPlayer();
+        applyTabList(player);
         refreshTabList();
-        event.joinMessage(messages.component("join-message", "player", event.getPlayer().getName()));
-        String brand = messages.plain("server-brand");
+        event.joinMessage(messages.componentForLocale(player.getLocale(), "join-message", "player", player.getName()));
+        String brand = messages.plainForLocale(player.getLocale(), "server-brand");
         if (!brand.isBlank()) {
             kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () ->
-                event.getPlayer().sendPluginMessage(plugin, "minecraft:brand", brandPayload(brand)), 10L);
+                player.sendPluginMessage(plugin, "minecraft:brand", brandPayload(brand)), 10L);
         }
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        event.quitMessage(messages.component("quit-message", "player", event.getPlayer().getName()));
+        Player player = event.getPlayer();
+        event.quitMessage(messages.componentForLocale(player.getLocale(), "quit-message", "player", player.getName()));
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, this::refreshTabList);
     }
 
@@ -44,8 +46,9 @@ public final class PaperBrandingListener implements Listener {
     }
 
     private void applyTabList(Player player) {
-        player.sendPlayerListHeaderAndFooter(messages.component("tab-header"), messages.component("tab-footer"));
-        Component playerName = messages.component("tab-player-name", "player", player.getName());
+        String locale = player.getLocale();
+        player.sendPlayerListHeaderAndFooter(messages.componentForLocale(locale, "tab-header"), messages.componentForLocale(locale, "tab-footer"));
+        Component playerName = messages.componentForLocale(locale, "tab-player-name", "player", player.getName());
         player.playerListName(playerName);
     }
 
