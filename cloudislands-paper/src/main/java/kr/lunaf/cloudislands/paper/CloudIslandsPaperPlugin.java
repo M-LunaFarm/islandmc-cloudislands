@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.common.config.ConfigSecretResolver;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
@@ -226,6 +227,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             return "";
         }
         String trimmed = value.trim();
+        if ((trimmed.startsWith("${env:") || trimmed.startsWith("${file:")) && trimmed.endsWith("}")) {
+            ConfigSecretResolver.ResolvedSecret resolved = ConfigSecretResolver.resolve(trimmed, System.getenv()::get, getDataFolder().toPath());
+            if (!resolved.resolved()) {
+                getLogger().warning("Could not resolve config secret reference " + resolved.issue().path() + " (" + resolved.issue().code() + ").");
+            }
+            return resolved.value().trim();
+        }
         if (trimmed.startsWith("${") && trimmed.endsWith("}")) {
             return System.getenv().getOrDefault(trimmed.substring(2, trimmed.length() - 1), "");
         }

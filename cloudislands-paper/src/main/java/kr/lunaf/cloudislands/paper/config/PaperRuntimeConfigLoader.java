@@ -15,9 +15,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.common.config.ConfigIssue;
 import kr.lunaf.cloudislands.common.config.ConfigSnapshot;
 import kr.lunaf.cloudislands.common.config.ConfigSource;
+import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
 import kr.lunaf.cloudislands.common.config.ConfigV2Loader;
+import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
 import kr.lunaf.cloudislands.paper.AgentRole;
 import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
@@ -62,15 +65,40 @@ public final class PaperRuntimeConfigLoader {
     }
 
     public static PaperRuntimeConfig loadV2(List<ConfigSource> sources, FileConfiguration legacyConfig, Function<String, String> envResolver) {
+        validateV2Sources(sources);
         YamlConfiguration mapped = mapV2Sources(sources);
         if (mapped.getKeys(true).isEmpty()) {
             return load(legacyConfig, envResolver);
         }
         ConfigSnapshot snapshot = ConfigV2Loader.load(List.of(new ConfigSource("paper-config-v2-runtime", 10, mapped.saveToString())));
+        requireValidSnapshot(snapshot);
         YamlConfiguration effective = new YamlConfiguration();
         copyScalars(legacyConfig, effective);
         copyScalars(mapped, effective);
         return load(effective, envResolver, snapshot);
+    }
+
+    private static void validateV2Sources(List<ConfigSource> sources) {
+        if (sources == null || sources.isEmpty()) {
+            return;
+        }
+        List<ConfigIssue> issues = new ArrayList<>();
+        for (ConfigSource source : sources) {
+            if (source == null || source.yaml() == null || source.yaml().isBlank()) {
+                continue;
+            }
+            issues.addAll(ConfigV2Validator.validateYaml(source.name(), source.yaml()).issues());
+        }
+        ConfigValidationResult validation = new ConfigValidationResult(issues);
+        if (!validation.valid()) {
+            throw new IllegalArgumentException("Invalid Paper config-v2 sources: " + validation.summary());
+        }
+    }
+
+    private static void requireValidSnapshot(ConfigSnapshot snapshot) {
+        if (snapshot != null && !snapshot.validation().valid()) {
+            throw new IllegalArgumentException("Invalid Paper config-v2 runtime snapshot: " + snapshot.validation().summary());
+        }
     }
 
     private static PaperRuntimeConfig load(FileConfiguration config, Function<String, String> envResolver, ConfigSnapshot sourceConfig) {

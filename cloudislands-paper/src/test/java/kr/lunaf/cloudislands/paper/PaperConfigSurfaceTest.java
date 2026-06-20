@@ -118,6 +118,9 @@ class PaperConfigSurfaceTest {
         assertFalse(agent.contains("getConfig()"), "Paper agent must not expose a Bukkit config accessor");
         assertTrue(plugin.contains("reloadRuntimeConfig()"), "Paper plugin must expose one runtime snapshot reload boundary");
         assertTrue(plugin.contains("PaperRuntimeConfigLoader.load(this, this::resolveEnv)"), "runtime reload must use the same Config v2 loader as bootstrap");
+        assertTrue(plugin.contains("ConfigSecretResolver.resolve"), "Paper runtime config resolver must handle Config v2 env/file secret references");
+        assertTrue(plugin.contains("${env:"), "Paper runtime config resolver must recognize Config v2 env references");
+        assertTrue(plugin.contains("${file:"), "Paper runtime config resolver must recognize Config v2 file secret references");
     }
 
     private boolean containsPath(String config, String path) {

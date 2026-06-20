@@ -20,6 +20,9 @@ class PaperRuntimeConfigLoaderTest {
 
         assertTrue(loader.contains("public static PaperRuntimeConfig load(JavaPlugin plugin"), "Paper runtime loader must accept the plugin as the config composition root");
         assertTrue(loader.contains("paperConfigV2Sources"), "Paper runtime loader must discover bundled or data-folder config-v2 files");
+        assertTrue(loader.contains("validateV2Sources"), "Paper runtime loader must validate raw config-v2 sources before mapping");
+        assertTrue(loader.contains("ConfigV2Validator.validateYaml"), "Paper runtime loader must run schema and secret validation on config-v2 sources");
+        assertTrue(loader.contains("requireValidSnapshot"), "Paper runtime loader must reject invalid effective runtime snapshots");
         assertTrue(loader.contains("ConfigV2Loader.load"), "Paper runtime loader must create a ConfigSnapshot from mapped config-v2 sources");
         assertTrue(loader.contains("\"node.id\", \"node.id\""), "Config v2 node id must feed runtime node identity");
         assertTrue(loader.contains("\"capacity.max-active-islands\", \"node.max-active-islands\""), "Config v2 capacity must feed runtime node capacity");
