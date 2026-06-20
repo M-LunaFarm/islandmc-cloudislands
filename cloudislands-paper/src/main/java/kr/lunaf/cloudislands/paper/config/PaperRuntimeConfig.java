@@ -138,14 +138,14 @@ public record PaperRuntimeConfig(
         }
     }
 
-    public record Routing(String fallbackServerName, int waitForActivationTimeoutSeconds) {
+    public record Routing(String fallbackServerName, int waitForActivationTimeoutSeconds, boolean hideNodeNames) {
         public Routing {
             fallbackServerName = blankDefault(fallbackServerName, "Lobby");
             waitForActivationTimeoutSeconds = Math.max(1, waitForActivationTimeoutSeconds);
         }
 
         public static Routing defaults() {
-            return new Routing("Lobby", 20);
+            return new Routing("Lobby", 20, true);
         }
     }
 

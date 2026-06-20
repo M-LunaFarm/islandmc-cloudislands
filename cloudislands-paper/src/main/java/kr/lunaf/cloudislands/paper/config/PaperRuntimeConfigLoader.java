@@ -160,7 +160,8 @@ public final class PaperRuntimeConfigLoader {
     private static PaperRuntimeConfig.Routing routing(FileConfiguration config) {
         return new PaperRuntimeConfig.Routing(
             string(config, "routing.fallback-on-failure", "Lobby"),
-            config.getInt("routing.wait-for-activation-timeout-seconds", 20)
+            config.getInt("routing.wait-for-activation-timeout-seconds", 20),
+            booleanValue(config, "routing.hide-node-names", true)
         );
     }
 

@@ -73,6 +73,7 @@ class PaperConfigSurfaceTest {
         assertTrue(loader.contains("node.id"), "Paper runtime config loader must own node paths");
         assertTrue(loader.contains("redis.uri"), "Paper runtime config loader must own Redis paths");
         assertTrue(loader.contains("routing.wait-for-activation-timeout-seconds"), "Paper runtime config loader must own routing paths");
+        assertTrue(loader.contains("routing.hide-node-names"), "Paper runtime config loader must own topology exposure paths");
         assertTrue(loader.contains("messages.translations"), "Paper runtime config loader must own message paths");
         assertTrue(loader.contains("setup.storage.type"), "Paper runtime config loader must own storage paths");
         assertTrue(loader.contains("heartbeat.interval-ticks"), "Paper runtime config loader must own heartbeat paths");
@@ -82,6 +83,7 @@ class PaperConfigSurfaceTest {
         assertFalse(bootstrap.contains("getString(\"node.id\""), "node identity path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getString(\"redis.uri\""), "Redis path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getInt(\"routing.wait-for-activation-timeout-seconds\""), "routing wait path must live in PaperRuntimeConfigLoader");
+        assertFalse(bootstrap.contains("routing.hide-node-names"), "topology exposure path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("TranslationManager.fromConfig"), "message paths must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("PaperStorageFactory.create(plugin, plugin.getConfig())"), "storage paths must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getLong(\"heartbeat.interval-ticks\""), "heartbeat path must live in PaperRuntimeConfigLoader");

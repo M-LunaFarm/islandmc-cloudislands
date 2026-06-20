@@ -144,7 +144,7 @@ final class PaperPluginBootstrap {
         String supportedTemplates = config.node().supportedTemplatesCsv();
         String templateVersions = config.node().templateVersions();
         String heartbeatSupportedTemplates = templateVersions.isBlank() ? supportedTemplates : supportedTemplates + ";templateVersions=" + templateVersions;
-        PaperObservabilityFormatter observability = new PaperObservabilityFormatter(plugin);
+        PaperObservabilityFormatter observability = new PaperObservabilityFormatter(plugin, config);
         PaperHeartbeatRuntime heartbeatRuntime = PaperHeartbeatRuntime.start(
             plugin,
             client,

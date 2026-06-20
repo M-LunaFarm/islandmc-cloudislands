@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper;
 import kr.lunaf.cloudislands.paper.activation.EmptyIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.PeriodicIslandSaveTask;
 import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
 import kr.lunaf.cloudislands.paper.level.PeriodicIslandLevelScanTask;
 import kr.lunaf.cloudislands.paper.redis.PaperRedisClient;
@@ -11,25 +12,27 @@ import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
 
 final class PaperObservabilityFormatter {
     private final CloudIslandsPaperPlugin plugin;
+    private final PaperRuntimeConfig config;
 
-    PaperObservabilityFormatter(CloudIslandsPaperPlugin plugin) {
+    PaperObservabilityFormatter(CloudIslandsPaperPlugin plugin, PaperRuntimeConfig config) {
         this.plugin = plugin;
+        this.config = config;
     }
 
     String healthJson(AgentRole role, String nodeId) {
         PaperRedisClient.PingResult redis = plugin.redisClient() == null ? PaperRedisClient.PingResult.disabled() : plugin.redisClient().ping();
-        boolean forwardingRequired = plugin.configBoolean("security.require-velocity-forwarding", true);
-        boolean forwardingSecretConfigured = !plugin.resolveEnv(plugin.getConfig().getString("security.forwarding-secret", "")).isBlank();
-        boolean routeSessionEnforced = plugin.configBoolean("security.enforce-route-session", true) || plugin.configBoolean("routing.require-route-session", true);
-        boolean hideNodeNames = plugin.configBoolean("routing.hide-node-names", true);
+        boolean forwardingRequired = config.security().requireVelocityForwarding();
+        boolean forwardingSecretConfigured = !config.security().forwardingSecret().isBlank();
+        boolean routeSessionEnforced = config.security().enforceRouteSession() || config.security().requireRouteSession();
+        boolean hideNodeNames = config.routing().hideNodeNames();
         boolean topologyExposureRisk = !hideNodeNames;
-        boolean defaultNodeIdentityRisk = plugin.defaultNodeIdentityRisk(role, nodeId, plugin.getConfig().getString("node.velocity-server-name", nodeId));
+        boolean defaultNodeIdentityRisk = plugin.defaultNodeIdentityRisk(role, nodeId, config.node().velocityServerName());
         int proxySourceAllowlistEntries = plugin.proxySourceAllowlist() == null ? 0 : plugin.proxySourceAllowlist().entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
-        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && plugin.configBoolean("security.require-proxy-source-allowlist", true);
+        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && config.security().requireProxySourceAllowlist();
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !plugin.getServer().getOnlineMode() && !proxySourceAllowlistConfigured && !proxySourceAllowlistRequired;
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && plugin.getServer().getOnlineMode();
-        boolean bungeeConnectPluginMessaging = plugin.configBoolean("security.allow-bungee-connect-plugin-messaging", false);
+        boolean bungeeConnectPluginMessaging = config.security().allowBungeeConnectPluginMessaging();
         boolean bungeeConnectChannelRegistered = plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "BungeeCord");
         boolean islandNodeRole = role == AgentRole.ISLAND_NODE;
         boolean worldExecutionEnabled = islandNodeRole && plugin.activeIslands() != null;
@@ -45,7 +48,7 @@ final class PaperObservabilityFormatter {
         ProtectionController protection = plugin.agent() == null ? null : plugin.agent().protection();
         IslandBoundaryListener boundary = plugin.boundaryListener();
         MeteredIslandStorage storage = plugin.islandStorage();
-        boolean storageFallbackEnabled = plugin.configBoolean("storage.fallback.enabled", true);
+        boolean storageFallbackEnabled = config.storage().fallbackEnabled();
         int storageSaveRetryQueueTotal = (saver == null ? 0 : saver.retryQueueSize()) + (emptySaver == null ? 0 : emptySaver.retryQueueSize());
         String storageLastFallbackReason = storage == null ? "" : storage.lastFallbackReason();
         return "{"
@@ -79,7 +82,7 @@ final class PaperObservabilityFormatter {
             + "\"storageFallbackDeletesTotal\":" + (storage == null ? 0L : storage.fallbackDeletes()) + ","
             + "\"storageFallbackOperationsTotal\":" + (storage == null ? 0L : storage.fallbackOperations()) + ","
             + "\"storageFallbackEnabled\":" + storageFallbackEnabled + ","
-            + "\"storageFallbackType\":\"" + jsonText(plugin.getConfig().getString("storage.fallback.type", "LOCAL")) + "\","
+            + "\"storageFallbackType\":\"" + jsonText(config.storage().fallback().backend()) + "\","
             + "\"storageLastFallbackReason\":\"" + jsonText(storageLastFallbackReason) + "\","
             + "\"storageSaveRetryQueueTotal\":" + storageSaveRetryQueueTotal + ","
             + "\"integrationsDetected\":\"" + jsonText(integrationList(true)) + "\","
@@ -190,20 +193,20 @@ final class PaperObservabilityFormatter {
         long storageFallbackWrites = storage == null ? 0L : storage.fallbackWrites();
         long storageFallbackDeletes = storage == null ? 0L : storage.fallbackDeletes();
         long storageFallbackOperations = storage == null ? 0L : storage.fallbackOperations();
-        boolean forwardingRequired = plugin.configBoolean("security.require-velocity-forwarding", true);
-        boolean forwardingSecretConfigured = !plugin.resolveEnv(plugin.getConfig().getString("security.forwarding-secret", "")).isBlank();
-        boolean routeSessionEnforced = plugin.configBoolean("security.enforce-route-session", true) || plugin.configBoolean("routing.require-route-session", true);
-        boolean hideNodeNames = plugin.configBoolean("routing.hide-node-names", true);
+        boolean forwardingRequired = config.security().requireVelocityForwarding();
+        boolean forwardingSecretConfigured = !config.security().forwardingSecret().isBlank();
+        boolean routeSessionEnforced = config.security().enforceRouteSession() || config.security().requireRouteSession();
+        boolean hideNodeNames = config.routing().hideNodeNames();
         boolean topologyExposureRisk = !hideNodeNames;
-        boolean defaultNodeIdentityRisk = plugin.defaultNodeIdentityRisk(role, nodeId, plugin.getConfig().getString("node.velocity-server-name", nodeId));
+        boolean defaultNodeIdentityRisk = plugin.defaultNodeIdentityRisk(role, nodeId, config.node().velocityServerName());
         int proxySourceAllowlistEntries = plugin.proxySourceAllowlist() == null ? 0 : plugin.proxySourceAllowlist().entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
-        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && plugin.configBoolean("security.require-proxy-source-allowlist", true);
+        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && config.security().requireProxySourceAllowlist();
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !plugin.getServer().getOnlineMode() && !proxySourceAllowlistConfigured && !proxySourceAllowlistRequired;
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && plugin.getServer().getOnlineMode();
-        boolean bungeeConnectPluginMessaging = plugin.configBoolean("security.allow-bungee-connect-plugin-messaging", false);
+        boolean bungeeConnectPluginMessaging = config.security().allowBungeeConnectPluginMessaging();
         boolean guiMenusEnabled = plugin.guiEnabledForRole(role);
-        boolean storageFallbackEnabled = plugin.configBoolean("storage.fallback.enabled", true);
+        boolean storageFallbackEnabled = config.storage().fallbackEnabled();
         PeriodicIslandLevelScanTask scanner = plugin.periodicLevelScanTask();
         PeriodicIslandSaveTask saver = plugin.periodicSaveTask();
         EmptyIslandSaveTask emptySaver = plugin.emptyIslandSaveTask();
@@ -383,17 +386,17 @@ final class PaperObservabilityFormatter {
             + ";forwardingRejections=" + (plugin.routeSessionListener() == null ? 0L : plugin.routeSessionListener().forwardingRejections())
             + ";routeSessionRejections=" + (plugin.routeSessionListener() == null ? 0L : plugin.routeSessionListener().routeSessionRejections())
             + ";routeSessionCheckFailures=" + (plugin.routeSessionListener() == null ? 0L : plugin.routeSessionListener().routeSessionCheckFailures())
-            + ";hideNodeNames=" + plugin.configBoolean("routing.hide-node-names", true)
-            + ";proxySourceAllowlistRequired=" + plugin.configBoolean("security.require-proxy-source-allowlist", true)
+            + ";hideNodeNames=" + config.routing().hideNodeNames()
+            + ";proxySourceAllowlistRequired=" + config.security().requireProxySourceAllowlist()
             + ";proxySourceConfigurationRejections=" + (plugin.routeSessionListener() == null ? 0L : plugin.routeSessionListener().proxySourceConfigurationRejections())
             + ";playerTopologyPolicy=logical-island-only"
-            + ";playerNodeNamePolicy=" + (plugin.configBoolean("routing.hide-node-names", true) ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only")
-            + ";topologyExposureRisk=" + !plugin.configBoolean("routing.hide-node-names", true)
+            + ";playerNodeNamePolicy=" + (config.routing().hideNodeNames() ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only")
+            + ";topologyExposureRisk=" + !config.routing().hideNodeNames()
             + ";nodePoolScalePolicy=count-independent-requires-unique-node-id-unique-velocity-server-name-shared-bundle-storage"
             + ";fiveSixNodePoolPolicy=supported-when-each-island-node-registers-as-a-distinct-route-candidate"
             + ";nodeIdentityPolicy=node.id-and-velocity-server-name-must-be-unique-per-island-node"
-            + ";defaultNodeIdentityReject=" + plugin.configBoolean("node.reject-default-identity", true)
-            + ";defaultNodeIdentityRisk=" + plugin.defaultNodeIdentityRisk(plugin.parseAgentRole(plugin.getConfig().getString("node.role", "ISLAND_NODE")), plugin.getConfig().getString("node.id", "island-1"), plugin.getConfig().getString("node.velocity-server-name", plugin.getConfig().getString("node.id", "island-1")))
+            + ";defaultNodeIdentityReject=" + config.node().rejectDefaultIdentity()
+            + ";defaultNodeIdentityRisk=" + plugin.defaultNodeIdentityRisk(config.node().role(), config.node().id(), config.node().velocityServerName())
             + ";chatBroadcasts=" + (plugin.permissionEventPoller() == null ? 0L : plugin.permissionEventPoller().chatBroadcasts())
             + ";chatDeliveries=" + (plugin.permissionEventPoller() == null ? 0L : plugin.permissionEventPoller().chatDeliveries())
             + ";chatNoRecipientBroadcasts=" + (plugin.permissionEventPoller() == null ? 0L : plugin.permissionEventPoller().chatNoRecipientBroadcasts())
