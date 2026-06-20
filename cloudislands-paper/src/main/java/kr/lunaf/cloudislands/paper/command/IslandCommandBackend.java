@@ -96,7 +96,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         "fly", "비행", "keepinventory", "keepinv", "인벤보존", "pvp", "피빕", "publicwarps", "공개워프",
         "visit", "randomvisit", "random-visit", "public-islands", "publicislands", "visit-list", "방문", "랜덤방문", "공개섬", "방문목록",
         "reviews", "review-list", "rate", "review", "평가", "후기", "평가목록", "후기목록",
-        "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "worthrank", "valuerank", "랭킹", "랭킹목록", "가치랭킹", "levelcalc", "recalculate", "레벨계산",
+        "level", "레벨", "worth", "value", "가치", "blocks", "block-details", "block-counts", "블록상세", "블록목록", "rank", "ranking", "rank-list", "worthrank", "valuerank", "랭킹", "랭킹목록", "가치랭킹", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
         "warehouse", "warehouse-list", "warehouse-deposit", "warehouse-withdraw", "storage-box", "창고", "창고목록", "창고입금", "창고출금",
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "buyupgrade", "upgrade-buy", "업그레이드", "업그레이드목록", "업그레이드구매",
@@ -157,6 +157,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         "섬 레벨",
         "섬 레벨계산",
         "섬 가치",
+        "섬 블록상세 [limit]",
         "섬 크기",
         "섬 경계",
         "섬 바이옴 [biomeKey]",
@@ -282,6 +283,9 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             }
             if (first.equals("rank") || first.equals("ranking") || first.equals("랭킹")) {
                 return literalMatches(List.of("worth", "value", "10", "25", "50"), args[1]);
+            }
+            if (first.equals("blocks") || first.equals("block-details") || first.equals("block-counts") || first.equals("블록상세") || first.equals("블록목록")) {
+                return literalMatches(List.of("10", "25", "50", "100"), args[1]);
             }
             if (first.equals("reviews") || first.equals("review-list") || first.equals("후기") || first.equals("후기목록")) {
                 return literalMatches(List.of("5", "10", "20", "50"), args[1]);
@@ -612,6 +616,10 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         }
         if (subcommand.equals("worth") || subcommand.equals("value") || subcommand.equals("가치")) {
             showIslandWorth(player);
+            return true;
+        }
+        if (subcommand.equals("blocks") || subcommand.equals("block-details") || subcommand.equals("block-counts") || subcommand.equals("블록상세") || subcommand.equals("블록목록")) {
+            showIslandBlockDetails(player, args.length > 1 ? integer(args[1], 10) : 10);
             return true;
         }
         if (subcommand.equals("rank") || subcommand.equals("ranking") || subcommand.equals("랭킹")) {
@@ -1846,6 +1854,17 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         });
     }
 
+    private void showIslandBlockDetails(Player player, int limit) {
+        currentIsland(player, "섬 안에서만 블록 상세를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.islandBlockDetails(islandId, Math.max(1, Math.min(limit, 100)))
+                .thenAccept(body -> message(player, blockDetailsMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 블록 상세를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private void listIslandRanking(Player player, boolean worthRanking) {
         listIslandRanking(player, worthRanking, 10);
     }
@@ -2911,6 +2930,38 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? label + ": 기록이 없습니다." : label + ": " + String.join(" | ", entries);
+    }
+
+    private String blockDetailsMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "섬 블록 기록이 없습니다.";
+        }
+        String totalWorth = text(body, "totalWorth");
+        long totalLevelPoints = (long) decimal(body, "totalLevelPoints");
+        List<String> entries = new ArrayList<>();
+        int index = body.indexOf("\"blocks\"");
+        while (index >= 0 && index < body.length() && entries.size() < 20) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String materialKey = text(object, "materialKey");
+            long count = (long) decimal(object, "count");
+            String worth = text(object, "totalWorth");
+            long points = (long) decimal(object, "levelPoints");
+            if (!materialKey.isBlank()) {
+                entries.add(materialKey + " x" + count + " 가치=" + (worth.isBlank() ? "0" : worth) + " 점수=" + points);
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty()
+            ? "섬 블록 기록이 없습니다."
+            : "섬 블록상세: 총가치=" + (totalWorth.isBlank() ? "0" : totalWorth) + " 총점수=" + totalLevelPoints + " | " + String.join(" | ", entries);
     }
 
     private String publicIslandListMessage(String body) {

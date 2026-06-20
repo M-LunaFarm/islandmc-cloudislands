@@ -441,6 +441,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> islandBlockDetails(UUID islandId, int limit) {
+        return post("/v1/islands/blocks", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
+    }
+
+    @Override
     public CompletableFuture<String> recalculateIslandLevel(UUID islandId, UUID actorUuid) {
         return post("/v1/islands/level/recalculate", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\"}");
     }

@@ -59,6 +59,8 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
     @Override
     public void register(CoreRouteRegistry registry) {
         registry.route("/v1/admin/block-values", this::setBlockValue);
+        registry.route("/v1/admin/block-values/list", this::blockValues);
+        registry.route("/v1/islands/blocks", this::blocks);
         registry.route("/v1/islands/blocks/delta", this::blockDelta);
         registry.route("/v1/islands/blocks/replace", this::replaceBlocks);
         registry.route("/v1/islands/level/recalculate", this::recalculateLevel);
@@ -74,6 +76,18 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
         audit.log(JsonFields.uuid(body, "actorUuid", EMPTY_UUID), "ADMIN", "BLOCK_VALUE_SET", "MATERIAL", materialKey, Map.of("worth", worth.toPlainString(), "levelPoints", Long.toString(levelPoints)));
         events.publish(CloudIslandEventType.ISLAND_BLOCK_VALUE_CHANGED.name(), Map.of("materialKey", materialKey, "worth", worth.toPlainString(), "levelPoints", Long.toString(levelPoints), "limit", Long.toString(limit), "cacheTargets", "BLOCKS,LEVEL,SUMMARY"));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+    }
+
+    private void blockValues(HttpExchange exchange) throws IOException {
+        CoreHttpResponses.readBody(exchange);
+        CoreHttpResponses.write(exchange, 200, blockValuesJson(levelRepository.blockValues()));
+    }
+
+    private void blocks(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 50), 200));
+        CoreHttpResponses.write(exchange, 200, blockDetailsJson(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), limit));
     }
 
     private void blockDelta(HttpExchange exchange) throws IOException {
@@ -153,5 +167,61 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
 
     static String levelJson(IslandRankSnapshot snapshot) {
         return "{\"islandId\":\"" + snapshot.islandId() + "\",\"level\":" + snapshot.level() + ",\"worth\":\"" + snapshot.worth().toPlainString() + "\",\"calculatedAt\":\"" + snapshot.updatedAt() + "\"}";
+    }
+
+    static String blockDetailsJson(UUID islandId, Map<String, Long> counts, Map<String, RankingRecalculationService.BlockValue> values, int limit) {
+        StringBuilder builder = new StringBuilder("{\"islandId\":\"").append(islandId).append("\",\"blocks\":[");
+        final BigDecimal[] totalWorth = {BigDecimal.ZERO};
+        final long[] totalLevelPoints = {0L};
+        boolean[] first = {true};
+        counts.entrySet().stream()
+            .filter(entry -> entry.getValue() != null && entry.getValue() > 0L)
+            .sorted((left, right) -> Long.compare(right.getValue(), left.getValue()))
+            .limit(Math.max(1, Math.min(limit, 200)))
+            .forEach(entry -> {
+                RankingRecalculationService.BlockValue value = values.getOrDefault(entry.getKey(), new RankingRecalculationService.BlockValue(BigDecimal.ZERO, 0L, 0L));
+                BigDecimal rowWorth = value.worth().multiply(BigDecimal.valueOf(entry.getValue()));
+                long rowLevelPoints = Math.multiplyExact(value.levelPoints(), entry.getValue());
+                totalWorth[0] = totalWorth[0].add(rowWorth);
+                totalLevelPoints[0] += rowLevelPoints;
+                if (!first[0]) {
+                    builder.append(',');
+                }
+                first[0] = false;
+                builder.append("{\"materialKey\":\"").append(escape(entry.getKey())).append("\",")
+                    .append("\"count\":").append(entry.getValue()).append(',')
+                    .append("\"unitWorth\":\"").append(value.worth().toPlainString()).append("\",")
+                    .append("\"totalWorth\":\"").append(rowWorth.toPlainString()).append("\",")
+                    .append("\"levelPoints\":").append(rowLevelPoints).append(',')
+                    .append("\"limit\":").append(value.limit())
+                    .append('}');
+            });
+        return builder.append("],\"summary\":{\"totalWorth\":\"")
+            .append(totalWorth[0].toPlainString())
+            .append("\",\"totalLevelPoints\":")
+            .append(totalLevelPoints[0])
+            .append("}}")
+            .toString();
+    }
+
+    static String blockValuesJson(Map<String, RankingRecalculationService.BlockValue> values) {
+        StringBuilder builder = new StringBuilder("{\"values\":[");
+        boolean first = true;
+        for (var entry : values.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"materialKey\":\"").append(escape(entry.getKey())).append("\",")
+                .append("\"worth\":\"").append(entry.getValue().worth().toPlainString()).append("\",")
+                .append("\"levelPoints\":").append(entry.getValue().levelPoints()).append(',')
+                .append("\"limit\":").append(entry.getValue().limit())
+                .append('}');
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
