@@ -169,21 +169,28 @@ class PaperPlatformBoundaryTest {
     void adminNodeGuiActionsCallCoreUsecases() throws Exception {
         Path root = repositoryRoot();
         String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String adminHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
         String homeWarpHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
         String tokens = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/ConfirmationTokenPolicy.java"));
 
-        assertTrue(backend.contains("case \"admin.node.list\" -> listAdminNodes(player);"), "Admin node list GUI action must call the Core usecase path");
-        assertTrue(backend.contains("case \"admin.node.info\" -> refreshAdminNodeInfo(player, adminNodeId(data));"), "Admin node info GUI action must refresh from Core");
-        assertTrue(backend.contains("case \"admin.node.drain\" -> drainAdminNode(player, adminNodeId(data));"), "Admin node drain GUI action must call Core");
-        assertTrue(backend.contains("case \"admin.node.undrain\" -> undrainAdminNode(player, adminNodeId(data));"), "Admin node undrain GUI action must call Core");
-        assertTrue(backend.contains("case \"admin.node.sweep\" -> sweepAdminNode(player, adminNodeId(data));"), "Admin node sweep GUI action must call Core");
-        assertTrue(backend.contains("coreApiClient.kickAllNode("), "Admin node kickall confirmation must call Core");
-        assertTrue(backend.contains("coreApiClient.shutdownNodeSafely("), "Admin node shutdown confirmation must call Core");
-        assertTrue(backend.contains("confirmationAccepted(player, \"admin.node.kickall.confirm\""), "Admin node kickall must verify a confirmation token");
-        assertTrue(backend.contains("confirmationAccepted(player, \"admin.node.shutdown-safe.confirm\""), "Admin node shutdown-safe must verify a confirmation token");
+        assertTrue(backend.contains("adminCommands.handleGuiAction(player, actionId"), "Admin node GUI actions must route through the admin handler");
+        assertTrue(adminHandler.contains("case \"admin.node.list\""), "Admin node list GUI action must call the Core usecase path");
+        assertTrue(adminHandler.contains("coreApiClient.listNodes()"), "Admin node list GUI action must call Core");
+        assertTrue(adminHandler.contains("case \"admin.node.info\""), "Admin node info GUI action must refresh from Core");
+        assertTrue(adminHandler.contains("coreApiClient.nodeInfo(nodeId)"), "Admin node info GUI action must refresh from Core");
+        assertTrue(adminHandler.contains("case \"admin.node.drain\""), "Admin node drain GUI action must call Core");
+        assertTrue(adminHandler.contains("coreApiClient.drainNode(nodeId)"), "Admin node drain GUI action must call Core");
+        assertTrue(adminHandler.contains("case \"admin.node.undrain\""), "Admin node undrain GUI action must call Core");
+        assertTrue(adminHandler.contains("coreApiClient.undrainNode(nodeId)"), "Admin node undrain GUI action must call Core");
+        assertTrue(adminHandler.contains("case \"admin.node.sweep\""), "Admin node sweep GUI action must call Core");
+        assertTrue(adminHandler.contains("coreApiClient.sweepNode(nodeId)"), "Admin node sweep GUI action must call Core");
+        assertTrue(adminHandler.contains("coreApiClient.kickAllNode("), "Admin node kickall confirmation must call Core");
+        assertTrue(adminHandler.contains("coreApiClient.shutdownNodeSafely("), "Admin node shutdown confirmation must call Core");
+        assertTrue(adminHandler.contains("confirmationAccepted(player, \"admin.node.kickall.confirm\""), "Admin node kickall must verify a confirmation token");
+        assertTrue(adminHandler.contains("confirmationAccepted(player, \"admin.node.shutdown-safe.confirm\""), "Admin node shutdown-safe must verify a confirmation token");
         assertTrue(tokens.contains("\"admin.node.kickall.confirm\""), "Admin node kickall must require a confirmation token");
         assertTrue(tokens.contains("\"admin.node.shutdown-safe.confirm\""), "Admin node shutdown-safe must require a confirmation token");
-        assertTrue(!backend.contains("case \"admin.node.list\",\n                \"admin.node.info\""), "Admin node GUI actions must not fall through to direct command guidance");
+        assertTrue(!adminHandler.contains("case \"admin.node.list\",\n                \"admin.node.info\""), "Admin node GUI actions must not fall through to direct command guidance");
     }
 
     @Test

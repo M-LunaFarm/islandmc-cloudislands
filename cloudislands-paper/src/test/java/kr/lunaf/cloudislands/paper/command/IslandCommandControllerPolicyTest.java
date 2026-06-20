@@ -246,4 +246,21 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("subcommand.equals(\"members\")"));
         assertTrue(membershipHandler.contains("case \"island.permissions.open\""));
     }
+
+    @Test
+    void adminNodeCommandsRouteOutsideCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String adminHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandAdminNodeCommandHandler adminCommands;"));
+        assertTrue(backend.contains("adminCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("case \"admin.node.list\""), "admin node GUI routing belongs in IslandAdminNodeCommandHandler");
+        assertFalse(backend.contains("openAdminNodeMenu("), "admin menu opening belongs in IslandAdminNodeCommandHandler");
+        assertFalse(backend.contains("drainAdminNode("), "admin node mutations belong in IslandAdminNodeCommandHandler");
+        assertFalse(backend.contains("shutdownAdminNodeSafely("), "admin danger mutations belong in IslandAdminNodeCommandHandler");
+        assertTrue(adminHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click)"));
+        assertTrue(adminHandler.contains("case \"admin.node.list\""));
+        assertTrue(adminHandler.contains("coreApiClient.drainNode(nodeId)"));
+        assertTrue(adminHandler.contains("coreApiClient.shutdownNodeSafely("));
+    }
 }
