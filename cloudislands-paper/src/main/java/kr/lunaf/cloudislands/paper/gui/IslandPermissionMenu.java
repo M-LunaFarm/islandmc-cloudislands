@@ -99,7 +99,7 @@ public final class IslandPermissionMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<PermissionRuleView> rules, List<RoleView> roleViews, MessageRenderer messages, int page, int rolePage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
             List<String> roles = roleNames(roleViews);
             int safePage = safePage(page);
             int safeRolePage = safeRolePage(rolePage, roles);

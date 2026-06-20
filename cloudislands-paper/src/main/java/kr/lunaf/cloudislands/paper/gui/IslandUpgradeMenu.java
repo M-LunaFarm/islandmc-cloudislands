@@ -87,7 +87,7 @@ public final class IslandUpgradeMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<UpgradeView> upgrades, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, TITLE);
             int slot = 0;
             for (UpgradeView upgrade : upgrades.stream().limit(45).toList()) {
                 inventory.setItem(slot++, upgradeItem(upgrade, messages));

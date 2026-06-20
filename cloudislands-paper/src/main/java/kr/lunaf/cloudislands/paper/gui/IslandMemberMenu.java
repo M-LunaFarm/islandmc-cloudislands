@@ -101,7 +101,7 @@ public final class IslandMemberMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<MemberView> members, MessageRenderer messages, int page) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, TITLE);
             int maxPage = maxPage(members.size());
             int safePage = Math.max(0, Math.min(maxPage, page));
             inventory.setItem(45, GuiItems.action(Material.WRITABLE_BOOK, message(messages, "member-menu-invite-name", "멤버 초대"), "island.member.invite.help", message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));

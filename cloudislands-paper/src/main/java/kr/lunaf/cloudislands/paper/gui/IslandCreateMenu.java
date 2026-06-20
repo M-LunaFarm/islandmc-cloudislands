@@ -71,7 +71,7 @@ public final class IslandCreateMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<TemplateView> templates, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 27, message(messages, TITLE_KEY, TITLE));
             List<TemplateView> enabled = templates.stream().filter(TemplateView::enabled).limit(14).toList();
             if (enabled.isEmpty()) {
                 enabled = List.of(new TemplateView("default", message(messages, "create-menu-default-template", "기본 섬"), true, ""));

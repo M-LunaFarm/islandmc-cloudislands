@@ -124,7 +124,7 @@ public final class IslandWarpMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String title, List<WarpView> warps, boolean publicMenu, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(publicMenu ? PUBLIC_MENU_ID : MENU_ID, 54, title);
+            Inventory inventory = GuiInventories.create(publicMenu ? PUBLIC_MENU_ID : MENU_ID, session, 54, title);
             inventory.setItem(45, publicMenu
                 ? item(Material.COMPASS, message(messages, "warp-menu-public-refresh-name", "공개 워프 새로고침"), message(messages, "warp-menu-public-refresh-command", "/섬 공개워프목록"))
                 : item(Material.ENDER_PEARL, message(messages, "warp-menu-set-current-name", "현재 위치를 워프로 설정"), message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>")));

@@ -83,7 +83,7 @@ public final class IslandFlagMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, Map<IslandFlag, String> values, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
             for (IslandFlag flag : java.util.Arrays.stream(IslandFlag.values()).limit(49).toList()) {
                 inventory.setItem(slot++, flagItem(flag, values.get(flag), messages));

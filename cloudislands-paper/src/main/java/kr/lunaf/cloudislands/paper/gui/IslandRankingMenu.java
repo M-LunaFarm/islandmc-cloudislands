@@ -83,7 +83,7 @@ public final class IslandRankingMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, "ranking-menu-title", TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, "ranking-menu-title", TITLE));
             inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "ranking-menu-title", "섬 랭킹"), message(messages, "ranking-menu-level-side", "레벨 TOP"), message(messages, "ranking-menu-worth-side", "가치 TOP"), message(messages, "ranking-menu-review-side", "후기 TOP")));
             int slot = 9;
             for (RankingView ranking : levels.stream().limit(9).toList()) {

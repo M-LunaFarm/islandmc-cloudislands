@@ -55,7 +55,7 @@ public final class IslandSettingsMenu implements Listener {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             boolean publicAccess = view.publicAccess();
             boolean locked = view.locked();
-            Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(10, item(publicAccess ? Material.LIME_DYE : Material.GRAY_DYE, message(messages, "settings-menu-public-name", "공개 설정"), message(messages, "settings-menu-current", "현재: ") + (publicAccess ? message(messages, "settings-menu-public", "공개") : message(messages, "settings-menu-private", "비공개")), message(messages, "settings-menu-public-left-click", "좌클릭: /섬 공개"), message(messages, "settings-menu-public-right-click", "우클릭: /섬 비공개")));
             inventory.setItem(11, item(locked ? Material.IRON_DOOR : Material.OAK_DOOR, message(messages, "settings-menu-lock-name", "잠금 설정"), message(messages, "settings-menu-current", "현재: ") + (locked ? message(messages, "settings-menu-locked", "잠김") : message(messages, "settings-menu-open", "열림")), message(messages, "settings-menu-lock-left-click", "좌클릭: /섬 잠금해제"), message(messages, "settings-menu-lock-right-click", "우클릭: /섬 잠금")));
             inventory.setItem(12, item(Material.NAME_TAG, message(messages, "settings-menu-member-name", "멤버 관리"), message(messages, "settings-menu-member-command", "/섬 멤버")));

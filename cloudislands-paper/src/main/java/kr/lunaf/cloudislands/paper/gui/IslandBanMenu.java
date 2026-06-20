@@ -92,7 +92,7 @@ public final class IslandBanMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<BanView> bans, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, TITLE);
             if (bans.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "ban-menu-empty-title", "밴 기록 없음"), message(messages, "ban-menu-empty", "현재 밴된 방문자가 없습니다.")));
             } else {

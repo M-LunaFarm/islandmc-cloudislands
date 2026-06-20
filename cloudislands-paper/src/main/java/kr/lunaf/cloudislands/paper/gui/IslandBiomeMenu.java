@@ -102,7 +102,7 @@ public final class IslandBiomeMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String currentBiome, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 27, TITLE);
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 27, TITLE);
             int slot = 9;
             for (String biome : BIOMES.stream().limit(13).toList()) {
                 inventory.setItem(slot++, biomeItem(biome, biome.equalsIgnoreCase(currentBiome), messages));

@@ -23,6 +23,10 @@ public final class GuiInventories {
         return inventory;
     }
 
+    public static Inventory create(String menuId, GuiSession session, int size, String title) {
+        return create(menuId, session == null ? null : session.sessionId(), size, title);
+    }
+
     public static boolean isMenu(Inventory inventory, String menuId) {
         if (inventory == null) {
             return false;

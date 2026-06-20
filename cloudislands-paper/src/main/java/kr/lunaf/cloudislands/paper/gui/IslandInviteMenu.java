@@ -87,7 +87,7 @@ public final class IslandInviteMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<InviteView> invites, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
             if (invites.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "invite-menu-empty-title", "대기 중인 초대 없음"), message(messages, "invite-menu-empty", "받은 섬 초대가 없습니다.")));
             } else {

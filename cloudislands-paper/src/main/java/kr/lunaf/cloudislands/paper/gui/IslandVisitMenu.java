@@ -86,7 +86,7 @@ public final class IslandVisitMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<PublicIslandView> islands, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(4, item(Material.COMPASS, message(messages, "visit-menu-random-name", "랜덤 공개 섬"), message(messages, "visit-menu-random-description", "공개된 섬 중 하나로 이동합니다.")));
             if (islands.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "visit-menu-empty-title", "공개 섬 없음"), message(messages, "visit-menu-empty", "방문 가능한 공개 섬이 없습니다.")));

@@ -90,7 +90,7 @@ public final class IslandMyIslandsMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<PlayerIslandView> islands, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
             if (islands.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "my-islands-menu-empty-title", "섬 없음"), message(messages, "my-islands-menu-empty", "속한 섬이 없습니다.")));
             } else {

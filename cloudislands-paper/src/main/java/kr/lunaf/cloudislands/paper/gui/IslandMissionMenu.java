@@ -93,7 +93,7 @@ public final class IslandMissionMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, GuiSession session, String kind, List<MissionView> missions, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
-            Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, 54, challenge ? CHALLENGE_TITLE : MISSION_TITLE);
+            Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, session, 54, challenge ? CHALLENGE_TITLE : MISSION_TITLE);
             int slot = 0;
             for (MissionView mission : missions.stream().limit(45).toList()) {
                 inventory.setItem(slot++, missionItem(mission, messages));

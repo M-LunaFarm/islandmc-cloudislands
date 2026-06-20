@@ -97,7 +97,7 @@ public final class IslandLogMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<LogEntryView> entries, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 36, TITLE);
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 36, TITLE);
             if (entries.isEmpty()) {
                 inventory.setItem(13, item(Material.BARRIER, message(messages, "log-menu-empty-title", "로그 없음"), message(messages, "log-menu-empty", "아직 기록된 섬 로그가 없습니다.")));
             } else {

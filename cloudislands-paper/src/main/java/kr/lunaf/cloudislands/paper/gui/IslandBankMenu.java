@@ -89,7 +89,7 @@ public final class IslandBankMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, BankView view, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "bank-menu-balance-name", "잔액"), message(messages, "bank-menu-current-balance", "현재 잔액: ") + (view.balance().isBlank() ? "0" : view.balance()), view.updatedAt().isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + view.updatedAt()));
             inventory.setItem(10, item(Material.EMERALD, message(messages, "bank-menu-deposit-1000-name", "1,000 입금"), message(messages, "bank-menu-deposit-1000-command", "/섬 입금 1000")));
             inventory.setItem(11, item(Material.EMERALD_BLOCK, message(messages, "bank-menu-deposit-10000-name", "10,000 입금"), message(messages, "bank-menu-deposit-10000-command", "/섬 입금 10000")));

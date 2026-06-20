@@ -82,7 +82,7 @@ public final class IslandInfoMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, IslandInfoView view, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, session, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(10, item(Material.GRASS_BLOCK, message(messages, "info-menu-basic-title", "기본 정보"), message(messages, "info-menu-island-name", "섬 이름: ") + fallback(view.name(), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(view.state(), message(messages, "info-menu-unknown", "알 수 없음")), message(messages, "info-menu-island-id", "섬 ID: ") + shortId(view.islandId(), messages)));
             inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, message(messages, "info-menu-level-title", "레벨"), message(messages, "info-menu-level", "레벨: ") + view.level(), message(messages, "info-menu-worth", "가치: ") + fallback(view.worth(), "0")));
             inventory.setItem(12, item(Material.BARRIER, message(messages, "info-menu-access-title", "공개 상태"), message(messages, "info-menu-public-access", "공개 여부: ") + yesNo(view.publicAccess(), messages), message(messages, "info-menu-locked", "잠금 여부: ") + yesNo(view.locked(), messages)));
