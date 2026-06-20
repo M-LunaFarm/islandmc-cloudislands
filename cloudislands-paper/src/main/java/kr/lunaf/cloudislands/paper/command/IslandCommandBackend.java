@@ -39,7 +39,6 @@ import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
@@ -48,7 +47,6 @@ import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -215,6 +213,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandProgressionCommandHandler progressionCommands;
     private final IslandEnvironmentCommandHandler environmentCommands;
     private final IslandSettingsCommandHandler settingsCommands;
+    private final IslandHomeWarpCommandHandler homeWarpCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -541,6 +540,102 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 return IslandCommandBackend.this.messagesFor(player);
             }
         });
+        this.homeWarpCommands = new IslandHomeWarpCommandHandler(plugin, coreApiClient, new IslandHomeWarpCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public boolean allowed(Player player, IslandPermission permission) {
+                return IslandCommandBackend.this.allowed(player, permission);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public String actionResultMessage(String label, String targetId, String body) {
+                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
+            }
+
+            @Override
+            public String coreWriteFailureMessage(Throwable error, String fallback) {
+                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+
+            @Override
+            public IslandLocation location(Location location) {
+                return IslandCommandBackend.this.location(location);
+            }
+
+            @Override
+            public String pointListMessage(String body, String label, String emptyMessage) {
+                return IslandCommandBackend.this.pointListMessage(body, label, emptyMessage);
+            }
+
+            @Override
+            public IslandHomeWarpCommandHandler.Point point(String body, String requestedName, String fallbackWorldName) {
+                return IslandCommandBackend.this.point(body, requestedName, fallbackWorldName);
+            }
+
+            @Override
+            public void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
+                IslandCommandBackend.this.moveToPoint(player, point, missingMessage, successMessage);
+            }
+
+            @Override
+            public boolean teleportLocalDefaultHome(Player player) {
+                return IslandCommandBackend.this.teleportLocalDefaultHome(player);
+            }
+
+            @Override
+            public boolean coreUnavailable(Throwable error) {
+                return IslandCommandBackend.this.coreUnavailable(error);
+            }
+
+            @Override
+            public boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, String islandInfo) {
+                return IslandCommandBackend.this.publicWarpAllowed(player, point, islandInfo);
+            }
+
+            @Override
+            public void routeWarp(Player player, UUID islandId, String warpName) {
+                IslandCommandBackend.this.routeWarp(player, islandId, warpName);
+            }
+
+            @Override
+            public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
+                IslandCommandBackend.this.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
+            }
+
+            @Override
+            public boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click) {
+                return IslandCommandBackend.this.confirmationAccepted(player, actionId, data, click);
+            }
+        });
         this.messages = messages;
         this.locales = locales;
         this.configuredNodeId = configuredNodeId == null || configuredNodeId.isBlank() ? "island-1" : configuredNodeId;
@@ -612,110 +707,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             IslandDangerMenu.open(player, messagesFor(player));
             return true;
         }
-        if (subcommand.equals("sethome") || subcommand.equals("셋홈")) {
-            setHome(player, args.length > 1 ? args[1] : "default");
-            return true;
-        }
-        if (subcommand.equals("homes") || subcommand.equals("home-menu") || subcommand.equals("홈관리")) {
-            openIslandHomeMenu(player);
-            return true;
-        }
-        if (subcommand.equals("home-list") || subcommand.equals("홈목록")) {
-            listHomes(player);
-            return true;
-        }
-        if (subcommand.equals("home") || subcommand.equals("홈")) {
-            teleportHome(player, args.length > 1 ? args[1] : "default");
-            return true;
-        }
-        if (subcommand.equals("warps") || subcommand.equals("warp-menu") || subcommand.equals("워프") || subcommand.equals("워프관리")) {
-            if (args.length > 2) {
-                UUID islandId = uuid(args[1]);
-                if (islandId != null) {
-                    routeWarp(player, islandId, args[2]);
-                    return true;
-                }
-            }
-            if (args.length == 2) {
-                UUID islandId = uuid(args[1]);
-                if (islandId != null) {
-                    routeWarp(player, islandId, "default");
-                    return true;
-                }
-            }
-            if (args.length > 1) {
-                teleportWarp(player, args[1]);
-            } else {
-                openIslandWarpMenu(player);
-            }
-            return true;
-        }
-        if (subcommand.equals("warp-list") || subcommand.equals("워프목록")) {
-            listWarps(player);
-            return true;
-        }
-        if (subcommand.equals("public-warps") || subcommand.equals("publicwarplist") || subcommand.equals("공개워프목록")) {
-            if (args.length > 1) {
-                listPublicWarps(player, args[1], args.length > 2 ? joined(args, 2) : "");
-            } else {
-                IslandWarpMenu.openPublic(plugin, coreApiClient, player, messages);
-            }
-            return true;
-        }
-        if (subcommand.equals("warp")) {
-            if (args.length > 2) {
-                UUID islandId = uuid(args[1]);
-                if (islandId == null) {
-                    message(player, routeMessage("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
-                    return true;
-                }
-                routeWarp(player, islandId, args[2]);
-                return true;
-            }
-            if (args.length == 2) {
-                UUID islandId = uuid(args[1]);
-                if (islandId != null) {
-                    routeWarp(player, islandId, "default");
-                    return true;
-                }
-            }
-            if (args.length < 2) {
-                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
-                return true;
-            }
-            teleportWarp(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("setwarp") || subcommand.equals("워프설정")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
-                return true;
-            }
-            setWarp(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("delwarp") || subcommand.equals("deletewarp") || subcommand.equals("워프삭제")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
-                return true;
-            }
-            deleteWarp(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("warp-public") || subcommand.equals("publicwarp") || subcommand.equals("워프공개")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
-                return true;
-            }
-            setWarpPublicAccess(player, args[1], true);
-            return true;
-        }
-        if (subcommand.equals("warp-private") || subcommand.equals("privatewarp") || subcommand.equals("워프비공개")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
-                return true;
-            }
-            setWarpPublicAccess(player, args[1], false);
+        if (homeWarpCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (settingsCommands.handleCommand(player, subcommand, args)) {
@@ -998,49 +990,15 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (settingsCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click.right())) {
             return;
         }
+        if (homeWarpCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
+            return;
+        }
         switch (actionId) {
             case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
             case "island.create.open" -> IslandCreateMenu.open(plugin, coreApiClient, player, messagesFor(player));
             case "island.create" -> createIsland(player, data.getOrDefault("templateId", "default"));
             case "island.info.open" -> openIslandInfoMenu(player);
             case "island.list.open" -> IslandMyIslandsMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            case "island.home" -> {
-                if (click.right()) {
-                    openIslandHomeMenu(player);
-                } else {
-                    teleportHome(player, data.getOrDefault("homeName", "default"));
-                }
-            }
-            case "island.homes.open" -> openIslandHomeMenu(player);
-            case "island.home.set" -> setHome(player, data.getOrDefault("homeName", "default"));
-            case "island.warps.open" -> openIslandWarpMenu(player);
-            case "island.warp.teleport" -> {
-                String islandId = data.getOrDefault("islandId", "");
-                String warpName = data.getOrDefault("warpName", "default");
-                UUID uuid = uuid(islandId);
-                if (uuid != null) {
-                    routeWarp(player, uuid, warpName);
-                } else {
-                    teleportWarp(player, warpName);
-                }
-            }
-            case "island.warp.delete.prepare" -> openConfirmation(player,
-                routeMessage("warp-delete-confirm-title", "워프 삭제 확인"),
-                routeMessage("warp-delete-confirm-description", "워프를 삭제하면 해당 이름으로 이동할 수 없습니다."),
-                Material.ENDER_PEARL,
-                routeMessage("warp-delete-confirm-name", "워프 삭제"),
-                "island.warp.delete.confirm",
-                Map.of("warpName", data.getOrDefault("warpName", "default")),
-                routeMessage("warp-delete-confirm-lore", "클릭하면 Core에 워프 삭제를 요청합니다."),
-                "island.warps.open");
-            case "island.warp.delete.confirm" -> {
-                if (confirmationAccepted(player, "island.warp.delete.confirm", data, click)) {
-                    deleteWarp(player, data.getOrDefault("warpName", "default"));
-                }
-            }
-            case "island.warp.public" -> setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), true);
-            case "island.warp.private" -> setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), false);
-            case "island.warp.public.toggle" -> setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), !Boolean.parseBoolean(data.getOrDefault("publicAccess", "false")));
             case "island.visit.open" -> IslandVisitMenu.open(plugin, coreApiClient, player, messagesFor(player));
             case "island.visit.random" -> routeRandomVisit(player);
             case "island.visit.public.open" -> listPublicIslands(player, 10);
@@ -1391,141 +1349,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         });
     }
 
-    private void setHome(Player player, String name) {
-        currentIsland(player, "섬 안에서만 홈을 설정할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.SET_HOME)) {
-                message(player, routeMessage("home-set-denied", "섬 홈을 설정할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.home.set", () -> coreApiClient.setIslandHomeResult(islandId, player.getUniqueId(), name, location(player.getLocation())))
-                .thenAccept(body -> message(player, actionResultMessage("섬 홈 설정 " + name, name, body)))
-                .exceptionally(error -> {
-                    message(player, "섬 홈을 설정하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void setWarp(Player player, String name) {
-        currentIsland(player, "섬 안에서만 워프를 설정할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
-                message(player, routeMessage("warp-set-denied", "섬 워프를 설정할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.warp.set", () -> coreApiClient.setIslandWarpResult(islandId, player.getUniqueId(), name, location(player.getLocation()), false))
-                .thenAccept(body -> message(player, actionResultMessage("섬 워프 설정 " + name, name, body)))
-                .exceptionally(error -> {
-                    message(player, "섬 워프를 설정하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void listHomes(Player player) {
-        currentIsland(player, "섬 안에서만 홈 목록을 볼 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandHomes(islandId)
-                .thenAccept(body -> message(player, pointListMessage(body, "섬 홈", "섬 홈이 없습니다.")))
-                .exceptionally(error -> {
-                    message(player, "섬 홈을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void listWarps(Player player) {
-        currentIsland(player, "섬 안에서만 워프 목록을 볼 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandWarps(islandId)
-                .thenAccept(body -> message(player, pointListMessage(body, "섬 워프", "섬 워프가 없습니다.")))
-                .exceptionally(error -> {
-                    message(player, "섬 워프를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void openIslandHomeMenu(Player player) {
-        currentIsland(player, "섬 안에서만 홈 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandHomeMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void openIslandWarpMenu(Player player) {
-        currentIsland(player, "섬 안에서만 워프 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandWarpMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void teleportHome(Player player, String name) {
-        currentIsland(player, "섬 안에서만 홈으로 이동할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.INTERACT)) {
-                message(player, routeMessage("home-teleport-denied", "섬 홈으로 이동할 권한이 없습니다."));
-                return;
-            }
-            coreApiClient.listIslandHomes(islandId)
-                .thenAccept(body -> teleport(player, point(body, name, player.getWorld().getName()), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
-                .exceptionally(error -> {
-                    if (coreUnavailable(error) && teleportLocalDefaultHome(player)) {
-                        return null;
-                    }
-                    message(player, "섬 홈을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void teleportWarp(Player player, String name) {
-        currentIsland(player, "섬 안에서만 워프로 이동할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandWarps(islandId)
-                .thenAccept(body -> {
-                    Point point = point(body, name, player.getWorld().getName());
-                    if (point == null) {
-                        teleport(player, null, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
-                        return;
-                    }
-                    coreApiClient.islandInfo(islandId).thenAccept(info -> {
-                        if (!publicWarpAllowed(player, point, info) && !allowed(player, IslandPermission.INTERACT)) {
-                            message(player, routeMessage("warp-teleport-denied", "섬 워프로 이동할 권한이 없습니다."));
-                            return;
-                        }
-                        teleport(player, point, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
-                    }).exceptionally(error -> {
-                        message(player, "섬 정보를 불러오지 못했습니다.");
-                        return null;
-                    });
-                })
-                .exceptionally(error -> {
-                    message(player, "섬 워프를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void deleteWarp(Player player, String name) {
-        currentIsland(player, "섬 안에서만 워프를 삭제할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
-                message(player, routeMessage("warp-delete-denied", "섬 워프를 삭제할 권한이 없습니다."));
-                return;
-            }
-            mutateIdempotent("island.warp.delete", () -> coreApiClient.deleteIslandWarpResult(islandId, player.getUniqueId(), name))
-                .thenAccept(body -> message(player, actionResultMessage("섬 워프 삭제 " + name, name, body)))
-                .exceptionally(error -> {
-                    message(player, "섬 워프를 삭제하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void setWarpPublicAccess(Player player, String name, boolean publicAccess) {
-        currentIsland(player, "섬 안에서만 워프 공개 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_WARPS)) {
-                message(player, routeMessage("warp-access-denied", "섬 워프 공개 상태를 변경할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.warp.public-access.set", () -> coreApiClient.setIslandWarpPublicAccessResult(islandId, player.getUniqueId(), name, publicAccess))
-                .thenAccept(body -> message(player, actionResultMessage(publicAccess ? "섬 워프 공개 " + name : "섬 워프 비공개 " + name, name, body)))
-                .exceptionally(error -> {
-                    message(player, "섬 워프 공개 상태를 변경하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
     private void routeVisitTarget(Player player, String target) {
         UUID islandId = uuid(target);
         if (islandId != null) {
@@ -1572,15 +1395,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             .thenAccept(body -> message(player, publicIslandListMessage(body)))
             .exceptionally(error -> {
                 message(player, "공개 섬 목록을 불러오지 못했습니다.");
-                return null;
-            });
-    }
-
-    private void listPublicWarps(Player player, String category, String query) {
-        coreApiClient.listPublicWarps(20, category, query)
-            .thenAccept(body -> message(player, publicWarpListMessage(body, category, query)))
-            .exceptionally(error -> {
-                message(player, "공개 워프 목록을 불러오지 못했습니다.");
                 return null;
             });
     }
@@ -2408,7 +2222,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         ).allowed();
     }
 
-    private boolean publicWarpAllowed(Player player, Point point, String islandInfo) {
+    private boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, String islandInfo) {
         return point.publicAccess()
             && bool(islandInfo, "publicAccess")
             && protection.checkSystemFlag(player.getLocation().getBlock(), IslandFlag.PUBLIC_WARPS).allowed();
@@ -2460,35 +2274,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
-    }
-
-    private String publicWarpListMessage(String body, String category, String query) {
-        if (body == null || body.isBlank()) {
-            return "공개 워프가 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = body.indexOf("\"warps\"");
-        while (index >= 0 && index < body.length() && entries.size() < 20) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String name = text(object, "name");
-            String islandId = text(object, "islandId");
-            if (!name.isBlank() && !islandId.isBlank()) {
-                String warpCategory = text(object, "category");
-                entries.add((entries.size() + 1) + ". " + name + " (섬=" + compactId(islandId) + ", 카테고리=" + (warpCategory.isBlank() ? "default" : warpCategory) + ")");
-            }
-            index = objectEnd + 1;
-        }
-        String suffix = (category == null || category.isBlank() ? "" : " category=" + category)
-            + (query == null || query.isBlank() ? "" : " query=" + query);
-        return entries.isEmpty() ? "공개 워프가 없습니다." + suffix : "공개 워프" + suffix + ": " + String.join(" | ", entries);
     }
 
     private String reviewListMessage(String body) {
@@ -2798,7 +2583,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             || value.equals("허용");
     }
 
-    private Point point(String body, String requestedName, String fallbackWorldName) {
+    private IslandHomeWarpCommandHandler.Point point(String body, String requestedName, String fallbackWorldName) {
         if (body == null || body.isBlank()) {
             return null;
         }
@@ -2815,7 +2600,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             }
             String object = body.substring(objectStart, objectEnd + 1);
             if (target.equalsIgnoreCase(text(object, "name"))) {
-                return new Point(
+                return new IslandHomeWarpCommandHandler.Point(
                     text(object, "worldName").isBlank() ? fallbackWorldName : text(object, "worldName"),
                     decimal(object, "localX"),
                     decimal(object, "localY"),
@@ -2830,7 +2615,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return null;
     }
 
-    private void teleport(Player player, Point point, String missingMessage, String successMessage) {
+    private void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             if (point == null) {
                 player.sendMessage(missingMessage);
@@ -2856,9 +2641,9 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             return false;
         }
         IslandRegion current = region.get();
-        teleport(
+        moveToPoint(
             player,
-            new Point(current.world(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F, false),
+            new IslandHomeWarpCommandHandler.Point(current.world(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F, false),
             routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."),
             routeMessage("core-service-home-fallback", CoreApiDegradedModePolicy.HOME_FALLBACK_MESSAGE)
         );
@@ -3035,6 +2820,4 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             || current instanceof java.net.http.HttpTimeoutException
             || current instanceof java.net.http.HttpConnectTimeoutException;
     }
-
-    private record Point(String worldName, double x, double y, double z, float yaw, float pitch, boolean publicAccess) {}
 }

@@ -151,4 +151,25 @@ class IslandCommandControllerPolicyTest {
         assertTrue(settingsHandler.contains("coreApiClient.setIslandFlagResult"));
         assertTrue(settingsHandler.contains("coreApiClient.setIslandNameResult"));
     }
+
+    @Test
+    void homeWarpCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String homeWarpHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandHomeWarpCommandHandler homeWarpCommands;"));
+        assertTrue(backend.contains("homeWarpCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("homeWarpCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("setHome("), "home mutation logic belongs in IslandHomeWarpCommandHandler");
+        assertFalse(backend.contains("setWarp("), "warp mutation logic belongs in IslandHomeWarpCommandHandler");
+        assertFalse(backend.contains("teleportHome("), "home teleport logic belongs in IslandHomeWarpCommandHandler");
+        assertFalse(backend.contains("teleportWarp("), "warp teleport logic belongs in IslandHomeWarpCommandHandler");
+        assertFalse(backend.contains("listPublicWarps("), "public warp listing belongs in IslandHomeWarpCommandHandler");
+        assertTrue(homeWarpHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(homeWarpHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click)"));
+        assertTrue(homeWarpHandler.contains("coreApiClient.setIslandHomeResult"));
+        assertTrue(homeWarpHandler.contains("coreApiClient.setIslandWarpResult"));
+        assertTrue(homeWarpHandler.contains("coreApiClient.deleteIslandWarpResult"));
+        assertTrue(homeWarpHandler.contains("coreApiClient.listPublicWarps"));
+    }
 }
