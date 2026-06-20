@@ -14,9 +14,16 @@ class CoreConfigRoutesProductionReadinessTest {
         assertTrue(source.contains("\\\"productionGaDrillContract\\\""));
         assertTrue(source.contains("\\\"productionGaDrillEvidence\\\""));
         assertTrue(source.contains("\\\"productionGaFailureInjectionScenarios\\\""));
+        assertTrue(source.contains("\\\"versionCompatibilityMatrix\\\""));
+        assertTrue(source.contains("\\\"versionRollingUpgradeOrder\\\""));
+        assertTrue(source.contains("\\\"versionSupportedPaper\\\""));
+        assertTrue(source.contains("\\\"versionSupportedVelocity\\\""));
+        assertTrue(source.contains("\\\"versionProtocolChangePolicy\\\""));
         assertTrue(source.contains("ProductionGaDrillMatrix.CONTRACT"));
         assertTrue(source.contains("ProductionGaDrillMatrix.evidenceSummary()"));
         assertTrue(source.contains("ProductionGaDrillMatrix.failureInjectionSummary()"));
+        assertTrue(source.contains("VersionCompatibilityPolicy.matrixSummary()"));
+        assertTrue(source.contains("VersionCompatibilityPolicy.rollingUpgradeOrderSummary()"));
     }
 
     private static Path repositoryRoot() {

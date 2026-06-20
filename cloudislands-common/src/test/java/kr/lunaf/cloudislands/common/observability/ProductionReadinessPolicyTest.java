@@ -85,6 +85,31 @@ class ProductionReadinessPolicyTest {
     }
 
     @Test
+    void versionCompatibilityMatrixPinsPaperVelocityProtocolAndRollingUpgradeContracts() {
+        assertEquals("1.21.11", VersionCompatibilityPolicy.SUPPORTED_PAPER_VERSION);
+        assertEquals("21", VersionCompatibilityPolicy.SUPPORTED_JAVA_VERSION);
+        assertEquals("3.5.0-SNAPSHOT", VersionCompatibilityPolicy.SUPPORTED_VELOCITY_VERSION);
+        assertTrue(VersionCompatibilityPolicy.FOLIA_SUPPORT_POLICY.contains("not-supported"));
+        assertTrue(VersionCompatibilityPolicy.MINECRAFT_UPDATE_POLICY.contains("paper-minor-updates"));
+        assertTrue(VersionCompatibilityPolicy.PROTOCOL_CHANGE_POLICY.contains("n-minus-one"));
+        assertTrue(VersionCompatibilityPolicy.MINOR_COMPATIBILITY_POLICY.contains("one-minor-window"));
+
+        String matrix = VersionCompatibilityPolicy.matrixSummary();
+        assertTrue(matrix.contains("core-1.1-to-paper-agent-1.0=compatible-with-write-fencing"));
+        assertTrue(matrix.contains("core-1.1-to-velocity-1.0=compatible"));
+        assertTrue(matrix.contains("protocol-schema-n-to-n-minus-one=compatible-for-one-minor-window"));
+        assertTrue(matrix.contains("paper-agent-newer-than-core=blocked-for-authority-writes"));
+        assertTrue(matrix.contains("folia-runtime=unsupported"));
+        assertTrue(VersionCompatibilityPolicy.compatible("core-1.1-to-paper-agent-1.0"));
+        assertFalse(VersionCompatibilityPolicy.compatible("paper-agent-newer-than-core"));
+
+        assertEquals(
+            "preflight-version-matrix>core-compatible-first>verify-core-schema-and-protocol-n-minus-one>upgrade-velocity>drain-one-paper-node>upgrade-drained-paper-node>post-node-route-save-smoke>repeat-paper-drain-upgrade>post-upgrade-multi-node-smoke",
+            VersionCompatibilityPolicy.rollingUpgradeOrderSummary()
+        );
+    }
+
+    @Test
     void shipsSeparateComposeAndHelmDeploymentTemplates() throws Exception {
         Path root = repositoryRoot();
         String compose = Files.readString(root.resolve("deploy/compose/docker-compose.yml"));
