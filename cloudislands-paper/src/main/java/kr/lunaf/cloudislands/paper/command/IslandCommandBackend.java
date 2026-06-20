@@ -363,8 +363,8 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             }
 
             @Override
-            public boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click) {
-                return IslandCommandBackend.this.confirmationAccepted(player, actionId, data, click);
+            public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
+                return IslandCommandBackend.this.confirmationAccepted(player, action, click);
             }
         });
         this.warehouseCommands = new IslandWarehouseCommandHandler(coreApiClient, new IslandWarehouseCommandHandler.Runtime() {
@@ -654,8 +654,8 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             }
 
             @Override
-            public boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click) {
-                return IslandCommandBackend.this.confirmationAccepted(player, actionId, data, click);
+            public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
+                return IslandCommandBackend.this.confirmationAccepted(player, action, click);
             }
         });
         this.visitReviewCommands = new IslandVisitReviewCommandHandler(plugin, coreApiClient, new IslandVisitReviewCommandHandler.Runtime() {
@@ -963,8 +963,8 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             }
 
             @Override
-            public boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click) {
-                return IslandCommandBackend.this.confirmationAccepted(player, actionId, data, click);
+            public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
+                return IslandCommandBackend.this.confirmationAccepted(player, action, click);
             }
         });
         this.adminCommands = new IslandAdminNodeCommandHandler(plugin, coreApiClient, configuredNodeId, new IslandAdminNodeCommandHandler.Runtime() {
@@ -999,8 +999,8 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             }
 
             @Override
-            public boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click) {
-                return IslandCommandBackend.this.confirmationAccepted(player, actionId, data, click);
+            public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
+                return IslandCommandBackend.this.confirmationAccepted(player, action, click);
             }
 
             @Override
@@ -1146,8 +1146,8 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         ));
     }
 
-    private boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click) {
-        if (ConfirmationTokenPolicy.confirmed(actionId, data, click)) {
+    private boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
+        if (action != null && ConfirmationTokenPolicy.confirmed(action.actionId(), action.data(), click)) {
             return true;
         }
         message(player, routeMessage("confirmation-token-invalid", "확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));

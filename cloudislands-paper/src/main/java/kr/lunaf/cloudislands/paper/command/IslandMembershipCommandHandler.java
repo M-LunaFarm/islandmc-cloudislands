@@ -274,7 +274,7 @@ final class IslandMembershipCommandHandler {
                 yield true;
             }
             case "island.member.promote" -> {
-                if (runtime.confirmationAccepted(player, "island.member.promote", data, click)) {
+                if (runtime.confirmationAccepted(player, action, click)) {
                     runtime.setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
                 }
                 yield true;
@@ -292,7 +292,7 @@ final class IslandMembershipCommandHandler {
                 yield true;
             }
             case "island.member.demote" -> {
-                if (runtime.confirmationAccepted(player, "island.member.demote", data, click)) {
+                if (runtime.confirmationAccepted(player, action, click)) {
                     runtime.setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
                 }
                 yield true;
@@ -310,7 +310,7 @@ final class IslandMembershipCommandHandler {
                 yield true;
             }
             case "island.member.remove.confirm" -> {
-                if (runtime.confirmationAccepted(player, "island.member.remove.confirm", data, click)) {
+                if (runtime.confirmationAccepted(player, action, click)) {
                     runtime.removeIslandMember(player, data.getOrDefault("playerUuid", ""));
                 }
                 yield true;
@@ -348,7 +348,7 @@ final class IslandMembershipCommandHandler {
                 yield true;
             }
             case "island.ban.pardon.confirm" -> {
-                if (runtime.confirmationAccepted(player, "island.ban.pardon.confirm", data, click)) {
+                if (runtime.confirmationAccepted(player, action, click)) {
                     runtime.pardonIslandVisitor(player, data.getOrDefault("playerUuid", ""));
                 }
                 yield true;
@@ -474,6 +474,6 @@ final class IslandMembershipCommandHandler {
 
         void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction);
 
-        boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click);
+        boolean confirmationAccepted(Player player, GuiAction action, GuiClick click);
     }
 }

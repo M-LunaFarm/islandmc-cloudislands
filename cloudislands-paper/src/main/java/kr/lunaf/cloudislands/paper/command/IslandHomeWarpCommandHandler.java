@@ -187,7 +187,7 @@ final class IslandHomeWarpCommandHandler {
                 yield true;
             }
             case "island.warp.delete.confirm" -> {
-                if (runtime.confirmationAccepted(player, "island.warp.delete.confirm", data, click)) {
+                if (runtime.confirmationAccepted(player, action, click)) {
                     deleteWarp(player, data.getOrDefault("warpName", "default"));
                 }
                 yield true;
@@ -512,6 +512,6 @@ final class IslandHomeWarpCommandHandler {
 
         void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction);
 
-        boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click);
+        boolean confirmationAccepted(Player player, GuiAction action, GuiClick click);
     }
 }

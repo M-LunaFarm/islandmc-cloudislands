@@ -66,14 +66,14 @@ final class IslandAdminNodeCommandHandler {
                 yield true;
             }
             case "admin.node.kickall.confirm" -> {
-                if (runtime.confirmationAccepted(player, "admin.node.kickall.confirm", data, click)) {
+                if (runtime.confirmationAccepted(player, action, click)) {
                     String nodeId = adminNodeId(data);
                     kickAllAdminNode(player, nodeId, data.getOrDefault("reason", "admin-gui"));
                 }
                 yield true;
             }
             case "admin.node.shutdown-safe.confirm" -> {
-                if (runtime.confirmationAccepted(player, "admin.node.shutdown-safe.confirm", data, click)) {
+                if (runtime.confirmationAccepted(player, action, click)) {
                     String nodeId = adminNodeId(data);
                     shutdownAdminNodeSafely(player, nodeId, data.getOrDefault("reason", "admin-gui"));
                 }
@@ -216,7 +216,7 @@ final class IslandAdminNodeCommandHandler {
 
         void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction);
 
-        boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click);
+        boolean confirmationAccepted(Player player, GuiAction action, GuiClick click);
 
         MessageRenderer messagesFor(Player player);
     }

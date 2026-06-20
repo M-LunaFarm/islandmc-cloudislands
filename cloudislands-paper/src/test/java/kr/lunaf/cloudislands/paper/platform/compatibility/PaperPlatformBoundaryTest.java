@@ -186,8 +186,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(adminHandler.contains("coreApiClient.sweepNode(nodeId)"), "Admin node sweep GUI action must call Core");
         assertTrue(adminHandler.contains("coreApiClient.kickAllNode("), "Admin node kickall confirmation must call Core");
         assertTrue(adminHandler.contains("coreApiClient.shutdownNodeSafely("), "Admin node shutdown confirmation must call Core");
-        assertTrue(adminHandler.contains("confirmationAccepted(player, \"admin.node.kickall.confirm\""), "Admin node kickall must verify a confirmation token");
-        assertTrue(adminHandler.contains("confirmationAccepted(player, \"admin.node.shutdown-safe.confirm\""), "Admin node shutdown-safe must verify a confirmation token");
+        assertTrue(adminHandler.contains("confirmationAccepted(player, action, click)"), "Admin node danger actions must verify a typed confirmation token");
         assertTrue(tokens.contains("\"admin.node.kickall.confirm\""), "Admin node kickall must require a confirmation token");
         assertTrue(tokens.contains("\"admin.node.shutdown-safe.confirm\""), "Admin node shutdown-safe must require a confirmation token");
         assertTrue(!adminHandler.contains("case \"admin.node.list\",\n                \"admin.node.info\""), "Admin node GUI actions must not fall through to direct command guidance");
@@ -676,8 +675,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(commandActions.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
         assertTrue(commandActions.contains("DangerousGuiActionPolicy.confirmed"), "Dangerous GUI mutations must verify a confirmation token");
         assertTrue(commandBackend.contains("ConfirmationTokenPolicy.withToken"), "General confirmation menus must attach confirmation tokens");
-        assertTrue(commandActions.contains("confirmationAccepted(player, \"island.member.remove.confirm\""), "Member removal must verify a confirmation token");
-        assertTrue(commandActions.contains("confirmationAccepted(player, \"island.snapshot.restore.confirm\""), "Snapshot restore must verify a confirmation token");
+        assertTrue(commandActions.contains("confirmationAccepted(player, action, click)"), "Dangerous GUI actions must verify typed confirmation tokens");
         assertTrue(commandActions.contains("mutateIdempotent(\"island.bank.withdraw\""), "Bank withdraw must use an idempotency key");
         assertTrue(commandActions.contains("CoreMutationMetadata.request"), "Paper mutations must carry request IDs and audit actions");
     }

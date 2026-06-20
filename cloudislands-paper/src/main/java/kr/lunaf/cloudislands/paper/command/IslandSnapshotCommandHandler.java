@@ -90,7 +90,7 @@ final class IslandSnapshotCommandHandler {
                 yield true;
             }
             case "island.snapshot.restore.confirm" -> {
-                if (runtime.confirmationAccepted(player, "island.snapshot.restore.confirm", data, click)) {
+                if (runtime.confirmationAccepted(player, action, click)) {
                     restoreSnapshot(player, longValue(data.getOrDefault("snapshotNo", "0"), 0L));
                 }
                 yield true;
@@ -280,6 +280,6 @@ final class IslandSnapshotCommandHandler {
 
         void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction);
 
-        boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click);
+        boolean confirmationAccepted(Player player, GuiAction action, GuiClick click);
     }
 }
