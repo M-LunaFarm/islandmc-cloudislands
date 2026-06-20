@@ -204,6 +204,19 @@ class PaperIntegrationRegistryTest {
         assertTrue(registry.contains("RoseStacker\", \"WildStacker\", \"AdvancedSpawners"));
     }
 
+    @Test
+    void registryExposesGuardedAdapterLifecycleSurface() {
+        String registrySource = readRegistrySource();
+
+        assertTrue(registrySource.contains("public IntegrationResult onIslandActivate"));
+        assertTrue(registrySource.contains("public IntegrationResult onIslandDeactivate"));
+        assertTrue(registrySource.contains("public IntegrationResult exportState"));
+        assertTrue(registrySource.contains("public IntegrationResult restoreState"));
+        assertTrue(registrySource.contains("private IntegrationResult execute"));
+        assertTrue(registrySource.contains("pluginEnabled(integration.pluginName())"));
+        assertTrue(registrySource.contains("IntegrationResult.skipped(integration.pluginName() + \" is not enabled\")"));
+    }
+
     private String readRegistrySource() {
         try {
             return java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java"));

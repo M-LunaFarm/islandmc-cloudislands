@@ -14,6 +14,8 @@ import kr.lunaf.cloudislands.paper.integration.permission.LuckPermsIntegration;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.CloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.spi.PolicyBackedCloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
 import org.bukkit.Server;
@@ -41,7 +43,7 @@ public final class PaperIntegrationRegistry {
 
     public IntegrationStatus status(String pluginName) {
         CloudIntegration integration = integrations.getOrDefault(pluginName, genericIntegration(pluginName));
-        boolean enabled = server.getPluginManager().isPluginEnabled(pluginName);
+        boolean enabled = pluginEnabled(pluginName);
         return new IntegrationStatus(
             pluginName,
             integration.category(),
@@ -54,6 +56,26 @@ public final class PaperIntegrationRegistry {
 
     public CloudIntegration integration(String pluginName) {
         return integrations.getOrDefault(pluginName, genericIntegration(pluginName));
+    }
+
+    public IntegrationResult validateVersion(String pluginName, IntegrationContext context) {
+        return execute(pluginName, integration -> integration.validateVersion(context));
+    }
+
+    public IntegrationResult onIslandActivate(String pluginName, IntegrationContext context) {
+        return execute(pluginName, integration -> integration.onIslandActivate(context));
+    }
+
+    public IntegrationResult onIslandDeactivate(String pluginName, IntegrationContext context) {
+        return execute(pluginName, integration -> integration.onIslandDeactivate(context));
+    }
+
+    public IntegrationResult exportState(String pluginName, IntegrationContext context) {
+        return execute(pluginName, integration -> integration.exportState(context));
+    }
+
+    public IntegrationResult restoreState(String pluginName, IntegrationContext context) {
+        return execute(pluginName, integration -> integration.restoreState(context));
     }
 
     public CloudIntegrationPolicy.HookDecision validateHookContext(CloudIntegrationPolicy.HookContext context) {
@@ -109,6 +131,18 @@ public final class PaperIntegrationRegistry {
             ? Set.of(IntegrationCapability.DETECT, IntegrationCapability.RUNTIME_AUTHORITY)
             : Set.of(IntegrationCapability.DETECT);
         return new PolicyBackedCloudIntegration(pluginName, capabilities);
+    }
+
+    private IntegrationResult execute(String pluginName, Function<CloudIntegration, IntegrationResult> operation) {
+        CloudIntegration integration = integration(pluginName);
+        if (!pluginEnabled(integration.pluginName())) {
+            return IntegrationResult.skipped(integration.pluginName() + " is not enabled");
+        }
+        return operation.apply(integration);
+    }
+
+    private boolean pluginEnabled(String pluginName) {
+        return server != null && server.getPluginManager().isPluginEnabled(pluginName);
     }
 
     public record IntegrationStatus(
