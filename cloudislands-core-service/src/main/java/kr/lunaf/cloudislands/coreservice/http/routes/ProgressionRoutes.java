@@ -75,7 +75,6 @@ public final class ProgressionRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 200, rankingsJson(rankingRepository.topByWorth(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
         });
         registry.route("/v1/upgrades/rules", exchange -> CoreHttpResponses.write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
-        registry.route("/v1/admin/block-values/list", exchange -> CoreHttpResponses.write(exchange, 200, blockValuesJson(levelRepository.blockValues())));
         registry.route("/v1/islands/missions", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             CoreHttpResponses.write(exchange, 200, missionsJson(missionRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "kind", "MISSION"))));
