@@ -60,6 +60,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRegionSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -1996,6 +1997,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<List<IslandReviewRankSnapshot>> getTopByReviews(int limit) {
+            return client.topIslandsByReviews(limit).thenApply(PaperCloudIslandsApi::reviewRankings);
+        }
+
+        @Override
         public CompletableFuture<List<IslandSnapshot>> getPublicIslands(int limit) {
             return client.listPublicIslands(limit).thenApply(PaperCloudIslandsApi::islands);
         }
@@ -3022,6 +3028,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 longValue(object, "level", 0L),
                 text(object, "worth", "0"),
                 instant(text(object, "calculatedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return rankings;
+    }
+
+    private static List<IslandReviewRankSnapshot> reviewRankings(String json) {
+        List<IslandReviewRankSnapshot> rankings = new ArrayList<>();
+        for (String object : objects(json, "rankings")) {
+            rankings.add(new IslandReviewRankSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                decimal(object, "averageRating", 0.0D),
+                integer(object, "reviewCount", 0),
+                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
             ));
         }
         return rankings;

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
@@ -40,6 +41,13 @@ public final class IslandReviewRoutes implements RouteGroup {
         registry.route("/v1/islands/reviews", this::listReviews);
         registry.route("/v1/islands/reviews/set", this::setReview);
         registry.route("/v1/islands/reviews/delete", this::deleteReview);
+        registry.route("/v1/rankings/reviews", this::reviewRankings);
+    }
+
+    private void reviewRankings(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 10), 100));
+        CoreHttpResponses.write(exchange, 200, reviewRankingsJson(reviews.topByRating(limit)));
     }
 
     private void listReviews(HttpExchange exchange) throws IOException {
@@ -132,6 +140,24 @@ public final class IslandReviewRoutes implements RouteGroup {
             + "\"comment\":\"" + escape(review.comment()) + "\","
             + "\"createdAt\":\"" + review.createdAt() + "\","
             + "\"updatedAt\":\"" + review.updatedAt() + "\"}";
+    }
+
+    static String reviewRankingsJson(List<IslandReviewRankSnapshot> rankings) {
+        StringBuilder builder = new StringBuilder("{\"rankings\":[");
+        boolean first = true;
+        for (IslandReviewRankSnapshot ranking : rankings) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"islandId\":\"").append(ranking.islandId()).append("\",")
+                .append("\"averageRating\":").append(String.format(java.util.Locale.ROOT, "%.2f", ranking.averageRating())).append(',')
+                .append("\"reviewCount\":").append(ranking.reviewCount()).append(',')
+                .append("\"updatedAt\":\"").append(ranking.updatedAt()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
     }
 
     private static String escape(String value) {

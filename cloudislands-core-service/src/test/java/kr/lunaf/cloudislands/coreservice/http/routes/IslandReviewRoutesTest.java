@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 import org.junit.jupiter.api.Test;
 
@@ -19,10 +20,11 @@ class IslandReviewRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(3, paths.size());
+        assertEquals(4, paths.size());
         assertTrue(paths.contains("/v1/islands/reviews"));
         assertTrue(paths.contains("/v1/islands/reviews/set"));
         assertTrue(paths.contains("/v1/islands/reviews/delete"));
+        assertTrue(paths.contains("/v1/rankings/reviews"));
     }
 
     @Test
@@ -45,6 +47,10 @@ class IslandReviewRoutesTest {
         assertEquals(
             "{\"reviews\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"reviewerUuid\":\"00000000-0000-0000-0000-000000000002\",\"rating\":5,\"comment\":\"great \\\"shop\\\"\",\"createdAt\":\"2026-01-02T03:04:05Z\",\"updatedAt\":\"2026-01-03T04:05:06Z\"}],\"summary\":{\"count\":1,\"average\":5.00}}",
             IslandReviewRoutes.reviewsJson(List.of(review))
+        );
+        assertEquals(
+            "{\"rankings\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"averageRating\":4.50,\"reviewCount\":2,\"updatedAt\":\"2026-01-03T04:05:06Z\"}]}",
+            IslandReviewRoutes.reviewRankingsJson(List.of(new IslandReviewRankSnapshot(islandId, 4.5D, 2, Instant.parse("2026-01-03T04:05:06Z"))))
         );
     }
 }

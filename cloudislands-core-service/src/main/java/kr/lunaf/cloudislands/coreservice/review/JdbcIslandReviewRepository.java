@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
+import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 
 public final class JdbcIslandReviewRepository implements IslandReviewRepository {
@@ -78,6 +79,29 @@ public final class JdbcIslandReviewRepository implements IslandReviewRepository 
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to delete island review", exception);
+        }
+    }
+
+    @Override
+    public List<IslandReviewRankSnapshot> topByRating(int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, 100));
+        List<IslandReviewRankSnapshot> rows = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, AVG(rating) AS average_rating, COUNT(*) AS review_count, MAX(updated_at) AS updated_at FROM island_reviews GROUP BY island_id ORDER BY average_rating DESC, review_count DESC, updated_at DESC LIMIT ?")) {
+            statement.setInt(1, cappedLimit);
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new IslandReviewRankSnapshot(
+                        uuid(rs, "island_id"),
+                        rs.getDouble("average_rating"),
+                        rs.getInt("review_count"),
+                        instant(rs, "updated_at")
+                    ));
+                }
+            }
+            return rows;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island review rankings", exception);
         }
     }
 

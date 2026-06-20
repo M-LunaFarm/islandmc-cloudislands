@@ -53,7 +53,9 @@ public final class PaperGuiViews {
     public static CompletableFuture<RankingData> rankings(CoreApiClient client, int limit) {
         CompletableFuture<String> level = client.topIslandsByLevel(limit);
         CompletableFuture<String> worth = client.topIslandsByWorth(limit);
-        return level.thenCombine(worth, (levelBody, worthBody) -> new RankingData(rankings(levelBody, "level"), rankings(worthBody, "worth")));
+        CompletableFuture<String> reviews = client.topIslandsByReviews(limit);
+        return level.thenCombine(worth, (levelBody, worthBody) -> new RankingData(rankings(levelBody, "level"), rankings(worthBody, "worth"), List.of()))
+            .thenCombine(reviews, (data, reviewBody) -> new RankingData(data.levels(), data.worths(), reviewRankings(reviewBody)));
     }
 
     public static CompletableFuture<List<MemberView>> islandMembers(CoreApiClient client, UUID islandId) {
@@ -168,6 +170,17 @@ public final class PaperGuiViews {
             String islandId = text(object, "islandId");
             if (!islandId.isBlank()) {
                 rankings.add(new RankingView(rankings.size() + 1, label, islandId, longValue(object, "level"), text(object, "worth")));
+            }
+        }
+        return rankings;
+    }
+
+    private static List<RankingView> reviewRankings(String body) {
+        List<RankingView> rankings = new ArrayList<>();
+        for (String object : objects(body)) {
+            String islandId = text(object, "islandId");
+            if (!islandId.isBlank()) {
+                rankings.add(new RankingView(rankings.size() + 1, "reviews", islandId, longValue(object, "reviewCount"), String.format(java.util.Locale.ROOT, "%.2f", doubleValue(object, "averageRating"))));
             }
         }
         return rankings;
@@ -565,7 +578,7 @@ public final class PaperGuiViews {
     public record TemplateView(String id, String displayName, boolean enabled, String minNodeVersion) {
     }
 
-    public record RankingData(List<RankingView> levels, List<RankingView> worths) {
+    public record RankingData(List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews) {
     }
 
     public record RankingView(int rank, String label, String islandId, long level, String worth) {

@@ -97,7 +97,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         "public", "공개", "private", "비공개", "lock", "잠금", "unlock", "잠금해제",
         "fly", "비행", "keepinventory", "keepinv", "인벤보존", "pvp", "피빕", "publicwarps", "공개워프",
         "visit", "randomvisit", "random-visit", "public-islands", "publicislands", "visit-list", "방문", "랜덤방문", "공개섬", "방문목록",
-        "reviews", "review-list", "rate", "review", "평가", "후기", "평가목록", "후기목록",
+        "reviews", "review-list", "rate", "review", "reviewrank", "평가", "후기", "평가목록", "후기목록", "평가랭킹", "후기랭킹",
         "level", "레벨", "worth", "value", "가치", "blocks", "block-details", "block-counts", "블록상세", "블록목록", "rank", "ranking", "rank-list", "worthrank", "valuerank", "랭킹", "랭킹목록", "가치랭킹", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
         "warehouse", "warehouse-list", "warehouse-deposit", "warehouse-withdraw", "storage-box", "창고", "창고목록", "창고입금", "창고출금",
@@ -647,6 +647,11 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         }
         if (subcommand.equals("rank") || subcommand.equals("ranking") || subcommand.equals("랭킹")) {
             if (args.length > 1) {
+                boolean reviewRanking = reviewRankingArg(args[1]);
+                if (reviewRanking) {
+                    listIslandReviewRanking(player, rankingLimit(args, 2));
+                    return true;
+                }
                 boolean worthRanking = args[1].equalsIgnoreCase("worth") || args[1].equals("가치");
                 listIslandRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
             } else {
@@ -655,8 +660,16 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             return true;
         }
         if (subcommand.equals("rank-list") || subcommand.equals("랭킹목록")) {
+            if (args.length > 1 && reviewRankingArg(args[1])) {
+                listIslandReviewRanking(player, rankingLimit(args, 2));
+                return true;
+            }
             boolean worthRanking = args.length > 1 && (args[1].equalsIgnoreCase("worth") || args[1].equals("가치"));
             listIslandRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
+            return true;
+        }
+        if (subcommand.equals("reviewrank") || subcommand.equals("평가랭킹") || subcommand.equals("후기랭킹")) {
+            listIslandReviewRanking(player, rankingLimit(args, 1));
             return true;
         }
         if (subcommand.equals("worthrank") || subcommand.equals("valuerank") || subcommand.equals("가치랭킹")) {
@@ -1943,6 +1956,20 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             });
     }
 
+    private void listIslandReviewRanking(Player player, int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, 100));
+        coreApiClient.topIslandsByReviews(cappedLimit)
+            .thenAccept(body -> message(player, reviewRankingMessage(body)))
+            .exceptionally(error -> {
+                message(player, "섬 후기 랭킹을 불러오지 못했습니다.");
+                return null;
+            });
+    }
+
+    private boolean reviewRankingArg(String value) {
+        return value.equalsIgnoreCase("review") || value.equalsIgnoreCase("reviews") || value.equalsIgnoreCase("rating") || value.equals("후기") || value.equals("평가");
+    }
+
     private int rankingLimit(String[] args, int index) {
         if (args.length <= index) {
             return 10;
@@ -3183,6 +3210,33 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? label + ": 기록이 없습니다." : label + ": " + String.join(" | ", entries);
+    }
+
+    private String reviewRankingMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "섬 후기 랭킹: 기록이 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        int index = 0;
+        while (index < body.length() && entries.size() < 10) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String islandId = text(object, "islandId");
+            if (!islandId.isBlank()) {
+                String rating = String.format(java.util.Locale.ROOT, "%.2f", decimal(object, "averageRating"));
+                long count = (long) decimal(object, "reviewCount");
+                entries.add((entries.size() + 1) + ". ID=" + compactId(islandId) + " 평점=" + rating + "/5 후기=" + count);
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 후기 랭킹: 기록이 없습니다." : "섬 후기 랭킹: " + String.join(" | ", entries);
     }
 
     private String blockDetailsMessage(String body) {

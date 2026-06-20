@@ -738,10 +738,14 @@ public final class TranslationManager {
         values.put("ranking-menu-title", "섬 랭킹");
         values.put("ranking-menu-level-side", "좌측: 레벨 TOP");
         values.put("ranking-menu-worth-side", "우측: 가치 TOP");
+        values.put("ranking-menu-review-side", "후기 TOP");
         values.put("ranking-menu-level-label", "레벨");
         values.put("ranking-menu-worth-label", "가치");
+        values.put("ranking-menu-review-label", "후기");
         values.put("ranking-menu-level", "레벨: ");
         values.put("ranking-menu-worth", "가치: ");
+        values.put("ranking-menu-review-rating", "평점: ");
+        values.put("ranking-menu-review-count", "후기: ");
         values.put("ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다.");
         values.put("ranking-menu-public-islands-name", "공개 섬");
         values.put("ranking-menu-public-islands-command", "/섬 방문");

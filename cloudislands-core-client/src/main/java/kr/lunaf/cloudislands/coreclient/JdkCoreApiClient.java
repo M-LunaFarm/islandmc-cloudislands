@@ -471,6 +471,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> topIslandsByReviews(int limit) {
+        return post("/v1/rankings/reviews", "{\"limit\":" + limit + "}");
+    }
+
+    @Override
     public CompletableFuture<String> listPublicIslands(int limit) {
         return post("/v1/islands/public", "{\"limit\":" + limit + "}");
     }

@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRegionSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSizeSnapshot;
@@ -62,6 +63,7 @@ public interface IslandQueryService {
     CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId);
     CompletableFuture<List<IslandRankSnapshot>> getTopByLevel(int limit);
     CompletableFuture<List<IslandRankSnapshot>> getTopByWorth(int limit);
+    CompletableFuture<List<IslandReviewRankSnapshot>> getTopByReviews(int limit);
     CompletableFuture<List<IslandSnapshot>> getPublicIslands(int limit);
     CompletableFuture<IslandRuntimeSnapshot> getRuntime(UUID islandId);
     CompletableFuture<List<BlockValueSnapshot>> getBlockValues();

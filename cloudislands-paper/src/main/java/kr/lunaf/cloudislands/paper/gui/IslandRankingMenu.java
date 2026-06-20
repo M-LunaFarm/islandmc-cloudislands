@@ -37,7 +37,7 @@ public final class IslandRankingMenu implements Listener {
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         GuiStateMenus.openLoading(plugin, player, messages, TITLE);
         PaperGuiViews.rankings(client, 10)
-            .thenAccept(data -> openSync(plugin, player, data.levels(), data.worths(), messages))
+            .thenAccept(data -> openSync(plugin, player, data.levels(), data.worths(), data.reviews(), messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다."), "island.ranking.open", "island.main.open");
                 return null;
@@ -74,17 +74,21 @@ public final class IslandRankingMenu implements Listener {
         GuiActionRegistry.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<RankingView> levels, List<RankingView> worths, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, "ranking-menu-title", TITLE));
-            inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "ranking-menu-title", "섬 랭킹"), message(messages, "ranking-menu-level-side", "좌측: 레벨 TOP"), message(messages, "ranking-menu-worth-side", "우측: 가치 TOP")));
+            inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "ranking-menu-title", "섬 랭킹"), message(messages, "ranking-menu-level-side", "레벨 TOP"), message(messages, "ranking-menu-worth-side", "가치 TOP"), message(messages, "ranking-menu-review-side", "후기 TOP")));
             int slot = 9;
-            for (RankingView ranking : levels.stream().limit(18).toList()) {
+            for (RankingView ranking : levels.stream().limit(9).toList()) {
                 inventory.setItem(slot++, rankingItem(Material.EXPERIENCE_BOTTLE, ranking, messages));
             }
-            slot = 27;
-            for (RankingView ranking : worths.stream().limit(18).toList()) {
+            slot = 18;
+            for (RankingView ranking : worths.stream().limit(9).toList()) {
                 inventory.setItem(slot++, rankingItem(Material.EMERALD, ranking, messages));
+            }
+            slot = 27;
+            for (RankingView ranking : reviews.stream().limit(9).toList()) {
+                inventory.setItem(slot++, rankingItem(Material.WRITABLE_BOOK, ranking, messages));
             }
             inventory.setItem(45, item(Material.COMPASS, message(messages, "ranking-menu-public-islands-name", "공개 섬"), message(messages, "ranking-menu-public-islands-command", "/섬 방문")));
             inventory.setItem(49, item(Material.CLOCK, message(messages, "ranking-menu-refresh-name", "새로고침"), message(messages, "ranking-menu-refresh-command", "/섬 랭킹")));
@@ -94,6 +98,13 @@ public final class IslandRankingMenu implements Listener {
     }
 
     private static ItemStack rankingItem(Material material, RankingView ranking, MessageRenderer messages) {
+        if ("reviews".equals(ranking.label())) {
+            return GuiItems.action(material, rankingLabel(ranking.label(), messages) + " #" + ranking.rank(), "island.visit.target",
+                Map.of("target", ranking.islandId()),
+                message(messages, "ranking-menu-review-rating", "평점: ") + ranking.worth() + "/5",
+                message(messages, "ranking-menu-review-count", "후기: ") + ranking.level(),
+                message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다."));
+        }
         return GuiItems.action(material, rankingLabel(ranking.label(), messages) + " #" + ranking.rank(), "island.visit.target",
             Map.of("target", ranking.islandId()),
             message(messages, "ranking-menu-level", "레벨: ") + ranking.level(),
@@ -102,6 +113,9 @@ public final class IslandRankingMenu implements Listener {
     }
 
     private static String rankingLabel(String label, MessageRenderer messages) {
+        if ("reviews".equals(label)) {
+            return message(messages, "ranking-menu-review-label", "후기");
+        }
         return "worth".equals(label) ? message(messages, "ranking-menu-worth-label", "가치") : message(messages, "ranking-menu-level-label", "레벨");
     }
 
