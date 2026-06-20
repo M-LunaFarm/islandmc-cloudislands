@@ -44,6 +44,9 @@ val developerKitProjectNames = listOf(
     "cloudislands-migration",
     "cloudislands-testkit"
 )
+val exampleAddonProjectNames = listOf(
+    "cloudislands-example-addon"
+)
 
 fun isMarkdownDocPath(path: String): Boolean =
     path.replace('\\', '/') != "README.md" && markdownDocExtensions.any { path.lowercase().endsWith(it) }
@@ -282,6 +285,14 @@ tasks.register<Copy>("distDeveloperKit") {
     }
     from(layout.buildDirectory.dir("devkit-maven")) {
         into("maven")
+    }
+    exampleAddonProjectNames.forEach { projectName ->
+        val exampleProject = project(":$projectName")
+        dependsOn(exampleProject.tasks.named("test"))
+        from(exampleProject.layout.projectDirectory) {
+            into("examples/$projectName")
+            exclude("build/**", ".gradle/**")
+        }
     }
     into(layout.buildDirectory.dir("dist/devkit"))
 }

@@ -17,6 +17,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         "cloudislands-storage",
         "cloudislands-migration",
         "cloudislands-testkit",
+        "cloudislands-example-addon",
         "cloudislands-bom"
     );
 
@@ -104,6 +105,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         modules.put("cloudislands-storage", List.of("s3-minio-backend", "local-filesystem-backend", "bundle-manifest", "snapshot-compression", "checksum", "restore-pipeline"));
         modules.put("cloudislands-migration", List.of("superiorskyblock2-importer", "dry-run-validator", "world-extractor", "report-generator"));
         modules.put("cloudislands-testkit", List.of("fixtures", "fake-repositories", "integration-test-helpers", "api-contract-verifier", "addon-certification-fixtures"));
+        modules.put("cloudislands-example-addon", List.of("developer-kit-reference-addon", "paper-bootstrap", "api-contract-certification-test"));
         modules.put("cloudislands-bom", List.of("dependency-alignment", "published-version-coordinates", "developer-kit-bom"));
         modules.put("cloudislands-satis", List.of("satismc-feature-bridge", "config-gated-addon-runtime", "legacy-feature-migration", "addon-descriptor-sidecar"));
         return Collections.unmodifiableMap(modules);
@@ -118,6 +120,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         artifacts.put("sources", List.of("cloudislands-api-sources", "cloudislands-common-sources", "cloudislands-protocol-sources", "cloudislands-core-client-sources", "cloudislands-storage-sources", "cloudislands-migration-sources", "cloudislands-testkit-sources"));
         artifacts.put("javadocs", List.of("cloudislands-api-javadoc", "cloudislands-common-javadoc", "cloudislands-protocol-javadoc", "cloudislands-core-client-javadoc", "cloudislands-storage-javadoc", "cloudislands-migration-javadoc", "cloudislands-testkit-javadoc"));
         artifacts.put("maven-repository", List.of("module-poms", "gradle-module-metadata", "runtime-jars", "sources-jars", "javadoc-jars"));
+        artifacts.put("examples", List.of("cloudislands-example-addon"));
         artifacts.put("platform", List.of("cloudislands-bom", "cloudislands-testkit"));
         return Collections.unmodifiableMap(artifacts);
     }
@@ -129,7 +132,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         tasks.put("distAddonDescriptors", List.of("cloudislands-satis-descriptor"));
         tasks.put("distServices", List.of("cloudislands-core-service"));
         tasks.put("distTools", List.of("cloudislands-migration"));
-        tasks.put("distDeveloperKit", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration", "cloudislands-testkit", "sources-jars", "javadoc-jars", "maven-repository", "cloudislands-bom"));
+        tasks.put("distDeveloperKit", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration", "cloudislands-testkit", "sources-jars", "javadoc-jars", "maven-repository", "cloudislands-bom", "example-addon"));
         tasks.put("distBundle", List.of("plugins", "addons", "services", "tools", "devkit"));
         tasks.put("distAddonBundle", List.of("addons", "addon-descriptors"));
         return Collections.unmodifiableMap(tasks);

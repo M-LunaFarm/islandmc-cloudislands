@@ -1,0 +1,12 @@
+name: CloudIslandsExampleAddon
+main: kr.lunaf.cloudislands.exampleaddon.ExampleCloudIslandsAddonPlugin
+version: ${projectVersion}
+description: CloudIslands developer kit example addon
+api-version: "${paperApiBaseline}"
+load: POSTWORLD
+prefix: CloudIslandsExample
+depend: [CloudIslands]
+author: LeeSeungmin
+permissions:
+  cloudislands.example:
+    default: true

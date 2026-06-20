@@ -20,6 +20,7 @@ dependencies {
         api(project(":cloudislands-storage"))
         api(project(":cloudislands-migration"))
         api(project(":cloudislands-testkit"))
+        api(project(":cloudislands-example-addon"))
     }
 }
 

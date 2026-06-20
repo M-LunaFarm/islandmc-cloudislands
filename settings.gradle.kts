@@ -29,5 +29,6 @@ include(
     "cloudislands-storage",
     "cloudislands-migration",
     "cloudislands-testkit",
+    "cloudislands-example-addon",
     "cloudislands-bom"
 )

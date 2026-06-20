@@ -22,6 +22,7 @@ class CloudIslandsModuleLayoutPolicyTest {
                 "cloudislands-storage",
                 "cloudislands-migration",
                 "cloudislands-testkit",
+                "cloudislands-example-addon",
                 "cloudislands-bom"
             ),
             CloudIslandsModuleLayoutPolicy.requiredModules()
@@ -62,6 +63,10 @@ class CloudIslandsModuleLayoutPolicyTest {
             List.of("fixtures", "fake-repositories", "integration-test-helpers", "api-contract-verifier", "addon-certification-fixtures"),
             CloudIslandsModuleLayoutPolicy.moduleResponsibilities().get("cloudislands-testkit")
         );
+        assertEquals(
+            List.of("developer-kit-reference-addon", "paper-bootstrap", "api-contract-certification-test"),
+            CloudIslandsModuleLayoutPolicy.moduleResponsibilities().get("cloudislands-example-addon")
+        );
     }
 
     @Test
@@ -86,8 +91,13 @@ class CloudIslandsModuleLayoutPolicyTest {
             List.of("module-poms", "gradle-module-metadata", "runtime-jars", "sources-jars", "javadoc-jars"),
             CloudIslandsModuleLayoutPolicy.distributionArtifacts().get("maven-repository")
         );
+        assertEquals(
+            List.of("cloudislands-example-addon"),
+            CloudIslandsModuleLayoutPolicy.distributionArtifacts().get("examples")
+        );
         assertTrue(CloudIslandsModuleLayoutPolicy.distributionTasks().get("distDeveloperKit").contains("javadoc-jars"));
         assertTrue(CloudIslandsModuleLayoutPolicy.distributionTasks().get("distDeveloperKit").contains("maven-repository"));
+        assertTrue(CloudIslandsModuleLayoutPolicy.distributionTasks().get("distDeveloperKit").contains("example-addon"));
     }
 
     @Test
