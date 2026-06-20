@@ -146,6 +146,26 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void guiClassesDoNotStoreCommandStringsAsControlData() throws Exception {
+        Path root = repositoryRoot();
+        Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
+        try (Stream<Path> files = javaFiles(guiSource)) {
+            String violations = files
+                .filter(path -> containsAny(path,
+                    "Map.of(\"command\"",
+                    "admin.node.command",
+                    "commandItem(",
+                    "GuiItems.action(" + System.lineSeparator() + "command"))
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    @Test
     void paperRuntimeDoesNotReenterCommandsThroughPlayerCommandStrings() throws Exception {
         Path root = repositoryRoot();
         Path paperSource = root.resolve("cloudislands-paper/src/main/java");

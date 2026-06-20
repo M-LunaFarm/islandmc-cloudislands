@@ -1374,7 +1374,17 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 }
             }
             case "admin.node.open" -> AdminNodeMenu.open(player, plugin.getConfig().getString("node.id", "island-1"), messagesFor(player));
-            case "admin.node.command" -> message(player, routeMessage("admin-node-direct-required", "관리 명령은 메뉴 안내를 확인한 뒤 직접 입력합니다."));
+            case "admin.node.list",
+                "admin.node.info",
+                "admin.node.islands",
+                "admin.node.drain",
+                "admin.node.undrain",
+                "admin.node.sweep",
+                "admin.node.kickall.prepare",
+                "admin.node.shutdown-safe.prepare",
+                "admin.island.where.prompt",
+                "admin.island.migrate.prompt" ->
+                message(player, routeMessage("admin-node-direct-required", "관리 명령은 메뉴 안내를 확인한 뒤 직접 입력합니다."));
             case "gui.close" -> player.closeInventory();
             default -> message(player, routeMessage("gui-action-unknown", "알 수 없는 GUI 작업입니다: ") + actionId);
         }
