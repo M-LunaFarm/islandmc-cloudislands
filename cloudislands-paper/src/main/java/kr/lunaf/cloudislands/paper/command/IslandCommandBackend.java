@@ -35,6 +35,7 @@ import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
+import kr.lunaf.cloudislands.paper.gui.DangerousGuiActionPolicy;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
@@ -1337,8 +1338,16 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.danger.open" -> IslandDangerMenu.open(player, messages);
             case "island.danger.reset.prepare" -> IslandDangerMenu.openResetConfirm(player, messages);
             case "island.danger.delete.prepare" -> IslandDangerMenu.openDeleteConfirm(player, messages);
-            case "island.danger.reset.confirm" -> resetIsland(player, data.getOrDefault("reason", "player-reset"));
-            case "island.danger.delete.confirm" -> deleteIsland(player);
+            case "island.danger.reset.confirm" -> {
+                if (dangerConfirmed(player, data, click, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN)) {
+                    resetIsland(player, data.getOrDefault("reason", "player-reset"));
+                }
+            }
+            case "island.danger.delete.confirm" -> {
+                if (dangerConfirmed(player, data, click, DangerousGuiActionPolicy.DELETE_OPERATION, DangerousGuiActionPolicy.DELETE_TOKEN)) {
+                    deleteIsland(player);
+                }
+            }
             case "admin.node.open" -> AdminNodeMenu.open(player, plugin.getConfig().getString("node.id", "island-1"), messages);
             case "admin.node.command" -> message(player, routeMessage("admin-node-direct-required", "관리 명령은 메뉴 안내를 확인한 뒤 직접 입력합니다."));
             case "gui.close" -> player.closeInventory();
@@ -1357,6 +1366,14 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             confirmLore,
             cancelAction
         ));
+    }
+
+    private boolean dangerConfirmed(Player player, Map<String, String> data, GuiClick click, String operation, String token) {
+        if (DangerousGuiActionPolicy.confirmed(data, click, operation, token)) {
+            return true;
+        }
+        message(player, routeMessage("danger-confirm-token-invalid", "위험 작업 확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));
+        return false;
     }
 
     private void sendCommandList(Player player, String title, List<String> commands, int page) {

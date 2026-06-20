@@ -470,6 +470,7 @@ class PaperPlatformBoundaryTest {
 
         String commandBackend = Files.readString(files.get(0));
         assertTrue(commandBackend.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
+        assertTrue(commandBackend.contains("DangerousGuiActionPolicy.confirmed"), "Dangerous GUI mutations must verify a confirmation token");
         assertTrue(commandBackend.contains("mutateIdempotent(\"island.bank.withdraw\""), "Bank withdraw must use an idempotency key");
         assertTrue(commandBackend.contains("CoreMutationMetadata.request"), "Paper mutations must carry request IDs and audit actions");
     }

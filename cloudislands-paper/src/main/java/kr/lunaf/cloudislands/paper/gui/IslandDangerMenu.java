@@ -1,16 +1,12 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.List;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 public final class IslandDangerMenu implements Listener {
     private static final String TITLE_KEY = "danger-menu-title";
@@ -52,7 +48,7 @@ public final class IslandDangerMenu implements Listener {
     public static void openResetConfirm(Player player, MessageRenderer messages) {
         Inventory inventory = GuiInventories.create(RESET_CONFIRM_MENU_ID, 27, RESET_CONFIRM_TITLE);
         inventory.setItem(11, GuiItems.action(Material.OAK_DOOR, message(messages, "danger-confirm-cancel-name", "취소"), "island.danger.open"));
-        inventory.setItem(15, GuiItems.action(Material.TNT, message(messages, "danger-reset-confirm-name", "리셋 실행"), "island.danger.reset.confirm",
+        inventory.setItem(15, GuiItems.action(Material.TNT, message(messages, "danger-reset-confirm-name", "리셋 실행"), "island.danger.reset.confirm", DangerousGuiActionPolicy.resetConfirmationData(),
             message(messages, "danger-reset-confirm-line-1", "월드 블록과 엔티티가 초기화됩니다."),
             message(messages, "danger-reset-confirm-line-2", "멤버·은행·권한은 유지됩니다.")));
         player.openInventory(inventory);
@@ -61,7 +57,7 @@ public final class IslandDangerMenu implements Listener {
     public static void openDeleteConfirm(Player player, MessageRenderer messages) {
         Inventory inventory = GuiInventories.create(DELETE_CONFIRM_MENU_ID, 27, DELETE_CONFIRM_TITLE);
         inventory.setItem(11, GuiItems.action(Material.OAK_DOOR, message(messages, "danger-confirm-cancel-name", "취소"), "island.danger.open"));
-        inventory.setItem(15, GuiItems.action(Material.LAVA_BUCKET, message(messages, "danger-delete-confirm-name", "삭제 요청"), "island.danger.delete.confirm",
+        inventory.setItem(15, GuiItems.action(Material.LAVA_BUCKET, message(messages, "danger-delete-confirm-name", "삭제 요청"), "island.danger.delete.confirm", DangerousGuiActionPolicy.deleteConfirmationData(),
             message(messages, "danger-delete-confirm-line-1", "섬을 삭제 요청 상태로 전환합니다."),
             message(messages, "danger-delete-confirm-line-2", "복구 유예와 감사 로그는 Core 정책을 따릅니다.")));
         player.openInventory(inventory);
@@ -96,16 +92,5 @@ public final class IslandDangerMenu implements Listener {
         }
         String rendered = messages.plain(key);
         return rendered.isBlank() ? fallback : rendered;
-    }
-
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
     }
 }
