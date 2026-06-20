@@ -101,10 +101,11 @@ public final class IslandPermissionMenu implements Listener {
             inventory.setItem(45, GuiItems.action(Material.BOOK, message(messages, "permission-menu-all-names-name", "전체 권한 이름"), "island.permissions.list", message(messages, "permission-menu-matrix-policy", "전체 API 권한을 페이지로 표시합니다."), permissionSummary()));
             inventory.setItem(46, GuiItems.action(Material.ARROW, message(messages, "permission-menu-prev-page-name", "이전 페이지"), "island.permissions.page", Map.of("page", String.valueOf(Math.max(0, safePage - 1))), pageLine(safePage)));
             inventory.setItem(47, GuiItems.action(Material.ARROW, message(messages, "permission-menu-next-page-name", "다음 페이지"), "island.permissions.page", Map.of("page", String.valueOf(Math.min(maxPage(), safePage + 1))), pageLine(safePage)));
-            inventory.setItem(48, GuiItems.action(Material.PAPER, message(messages, "permission-menu-list-name", "권한 목록"), "island.permissions.list"));
-            inventory.setItem(49, GuiItems.action(Material.CLOCK, message(messages, "permission-menu-refresh-name", "새로고침"), "island.permissions.page", Map.of("page", String.valueOf(safePage))));
+            inventory.setItem(48, GuiItems.action(Material.EMERALD_BLOCK, message(messages, "permission-menu-save-name", "변경 저장"), "island.permissions.save", message(messages, "permission-menu-save-lore", "임시 변경 사항을 한 번에 저장합니다.")));
+            inventory.setItem(49, GuiItems.action(Material.CLOCK, message(messages, "permission-menu-reset-name", "변경 취소"), "island.permissions.reset", message(messages, "permission-menu-reset-lore", "임시 변경 사항을 버리고 다시 불러옵니다.")));
             inventory.setItem(50, GuiItems.action(Material.NAME_TAG, message(messages, "permission-menu-role-name", "역할 설정"), "island.roles.open"));
             inventory.setItem(51, GuiItems.action(Material.MAP, message(messages, "permission-menu-page-name", "페이지"), "island.permissions.list", pageLine(safePage)));
+            inventory.setItem(52, GuiItems.action(Material.PAPER, message(messages, "permission-menu-list-name", "권한 목록"), "island.permissions.list"));
             inventory.setItem(53, GuiItems.action(Material.OAK_DOOR, message(messages, "permission-menu-settings-name", "뒤로"), "island.settings.open"));
             player.openInventory(inventory);
         });
@@ -117,7 +118,7 @@ public final class IslandPermissionMenu implements Listener {
             Map.of("role", role, "permission", permission),
             message(messages, "permission-menu-current-state", "현재 상태: ") + state,
             message(messages, "permission-menu-matrix-cell", "Matrix: ") + role + " / " + permissionLabel(permission),
-            message(messages, "permission-menu-click-actions", "좌클릭: 허용, 우클릭: 차단"));
+            message(messages, "permission-menu-click-actions", "좌클릭: 허용으로 임시 변경, 우클릭: 차단으로 임시 변경"));
     }
 
     private static String permissionLabel(String permission) {

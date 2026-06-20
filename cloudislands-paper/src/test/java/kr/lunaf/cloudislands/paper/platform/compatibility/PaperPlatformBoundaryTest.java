@@ -540,6 +540,23 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void permissionGuiStagesChangesBeforeSaving() throws Exception {
+        Path root = repositoryRoot();
+        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
+
+        assertTrue(backend.contains("case \"island.permissions.set\" -> stageIslandPermission"), "Permission cells must stage edits instead of immediately writing Core state");
+        assertTrue(backend.contains("case \"island.permissions.save\" -> saveStagedIslandPermissions"), "Permission save must be the only GUI save action");
+        assertTrue(backend.contains("stagedPermissionChanges"), "Permission edits must have a dirty session store");
+        assertTrue(backend.contains("GuiStateMenus.openSaving"), "Permission save must show a Saving state");
+        assertTrue(backend.contains("GuiStateMenus.openSuccess"), "Permission save must show a Success state");
+        assertTrue(backend.contains("GuiStateMenus.openConflict"), "Permission save failures must show Conflict/Error recovery state");
+        assertTrue(menu.contains("\"island.permissions.save\""), "Permission menu must expose an explicit save button");
+        assertTrue(menu.contains("\"island.permissions.reset\""), "Permission menu must expose a reset/cancel button");
+        assertTrue(!backend.contains("case \"island.permissions.set\" -> setIslandPermission"), "Permission cell clicks must not call the immediate mutation path");
+    }
+
+    @Test
     void paperCoreMutationCallsCarryRequestMetadata() throws Exception {
         Path root = repositoryRoot();
         List<Path> files = List.of(

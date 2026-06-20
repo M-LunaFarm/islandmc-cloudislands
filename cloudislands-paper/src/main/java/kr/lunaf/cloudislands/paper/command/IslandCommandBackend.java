@@ -37,6 +37,7 @@ import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
 import kr.lunaf.cloudislands.paper.gui.DangerousGuiActionPolicy;
+import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
@@ -221,6 +222,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     private final int routeWaitSeconds;
     private final String fallbackServerName;
     private final Map<UUID, BossBar> routeBossBars = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<String, StagedPermissionChange>> stagedPermissionChanges = new ConcurrentHashMap<>();
     private final IslandLevelScanService levelScanService;
     private final EconomyBridge economyBridge;
     private final MessageRenderer messages;
@@ -1302,9 +1304,9 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.permissions.open" -> openIslandPermissionMenu(player);
             case "island.permissions.page" -> openIslandPermissionMenu(player, (int) longValue(data.getOrDefault("page", "0"), 0L));
             case "island.permissions.list" -> listIslandPermissions(player);
-            case "island.permissions.save" -> listIslandPermissions(player);
-            case "island.permissions.reset" -> openIslandPermissionMenu(player);
-            case "island.permissions.set" -> setIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true");
+            case "island.permissions.save" -> saveStagedIslandPermissions(player);
+            case "island.permissions.reset" -> resetStagedIslandPermissions(player);
+            case "island.permissions.set" -> stageIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true");
             case "island.roles.open" -> openIslandRoleMenu(player);
             case "island.role.edit.help" -> message(player, routeMessage("role-edit-help", "역할 편집은 /섬 역할편집 <역할> <weight> <displayName> 으로 요청합니다."));
             case "island.roles.list" -> listIslandRoles(player);
@@ -3264,6 +3266,63 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         currentIsland(player, "섬 안에서만 역할 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandRoleMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
     }
 
+    private void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
+        currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(_islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
+                message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
+                return;
+            }
+            IslandRole role = islandRole(roleName);
+            IslandPermission permission = islandPermission(permissionName);
+            if (role == null || permission == null) {
+                message(player, routeMessage("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
+                return;
+            }
+            boolean allowed = booleanValue(allowedValue);
+            StagedPermissionChange change = new StagedPermissionChange(role, permission, allowed);
+            stagedPermissionChanges.computeIfAbsent(player.getUniqueId(), _uuid -> new ConcurrentHashMap<>()).put(change.key(), change);
+            message(player, routeMessage("permission-stage-success-prefix", "권한 변경을 임시 저장했습니다. 저장 버튼을 눌러 반영하세요: ")
+                + role.name() + ":" + permission.name() + "=" + allowed);
+        });
+    }
+
+    private void resetStagedIslandPermissions(Player player) {
+        stagedPermissionChanges.remove(player.getUniqueId());
+        message(player, routeMessage("permission-stage-reset", "임시 권한 변경을 취소했습니다."));
+        openIslandPermissionMenu(player);
+    }
+
+    private void saveStagedIslandPermissions(Player player) {
+        Map<String, StagedPermissionChange> staged = stagedPermissionChanges.getOrDefault(player.getUniqueId(), Map.of());
+        if (staged.isEmpty()) {
+            message(player, routeMessage("permission-stage-empty", "저장할 권한 변경이 없습니다."));
+            return;
+        }
+        currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
+                message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
+                return;
+            }
+            List<CompletableFuture<String>> writes = staged.values().stream()
+                .map(change -> mutate("island.permission.batch-save", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), change.role(), change.permission(), change.allowed())))
+                .toList();
+            GuiStateMenus.openSaving(plugin, player, messagesFor(player), routeMessage("permission-save-title", "권한 저장"));
+            CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new))
+                .thenAccept(_ignored -> {
+                    stagedPermissionChanges.remove(player.getUniqueId());
+                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+                        GuiStateMenus.openSuccess(plugin, player, messagesFor(player), routeMessage("permission-save-title", "권한 저장"), routeMessage("permission-save-success", "권한 변경을 저장했습니다."), "island.permissions.open");
+                    });
+                })
+                .exceptionally(error -> {
+                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+                        GuiStateMenus.openConflict(plugin, player, messagesFor(player), routeMessage("permission-save-title", "권한 저장"), coreWriteFailureMessage(error, routeMessage("permission-save-failed", "권한 변경을 저장하지 못했습니다.")), "island.permissions.save", "island.permissions.open");
+                    });
+                    return null;
+                });
+        });
+    }
+
     private void upsertIslandRole(Player player, IslandRole role, int weight, String displayName) {
         currentIsland(player, "섬 안에서만 역할을 편집할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
@@ -3337,6 +3396,12 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                     });
             });
         });
+    }
+
+    private record StagedPermissionChange(IslandRole role, IslandPermission permission, boolean allowed) {
+        private String key() {
+            return role.name() + ":" + permission.name();
+        }
     }
 
     private void openIslandSettings(Player player) {
