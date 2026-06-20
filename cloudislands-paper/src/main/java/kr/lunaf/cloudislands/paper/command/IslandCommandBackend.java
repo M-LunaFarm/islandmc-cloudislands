@@ -66,6 +66,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
@@ -226,6 +227,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     private final IslandLevelScanService levelScanService;
     private final EconomyBridge economyBridge;
     private final MessageRenderer messages;
+    private final PlayerLocaleCache locales;
     private final PaperPlayerGateway players;
     private final PaperWorldGateway worlds;
 
@@ -250,10 +252,18 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages) {
-        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, new BukkitPlayerGateway(), new BukkitWorldGateway(plugin));
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, null);
+    }
+
+    IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, new BukkitPlayerGateway(), new BukkitWorldGateway(plugin));
     }
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PaperPlayerGateway players, PaperWorldGateway worlds) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, null, players, worlds);
+    }
+
+    IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
@@ -262,6 +272,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         this.levelScanService = levelScanService;
         this.economyBridge = economyBridge;
         this.messages = messages;
+        this.locales = locales;
         this.players = players;
         this.worlds = worlds;
     }
@@ -1989,7 +2000,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private MessageRenderer messagesFor(Player player) {
-        return messages == null || player == null ? messages : messages.forLocale(player.getLocale());
+        return messages == null || player == null ? messages : messages.forLocale(locales == null ? player.getLocale() : locales.locale(player));
     }
 
     private String routeMessage(String key, String fallback, String... variables) {

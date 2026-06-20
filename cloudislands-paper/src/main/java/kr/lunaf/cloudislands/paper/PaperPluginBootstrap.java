@@ -49,6 +49,7 @@ import kr.lunaf.cloudislands.paper.session.PaperChatListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
 import kr.lunaf.cloudislands.paper.session.PaperScoreboardListener;
 import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
@@ -97,6 +98,7 @@ final class PaperPluginBootstrap {
         plugin.localCaches.registerStats("permissions", plugin.agent.permissionCache()::invalidateAll, plugin.agent.permissionCache()::lookupCount, plugin.agent.permissionCache()::hitRatio);
         String serviceName = plugin.getConfig().getString("plugin.service-name", "CloudIslands");
         plugin.messages = new MessageRenderer(TranslationManager.fromConfig(plugin.getConfig(), serviceName));
+        plugin.playerLocales = new PlayerLocaleCache();
         plugin.agent.routeTickets().setMessages(plugin.messages);
         plugin.redisClient = PaperRedisClient.create(
             plugin.resolveEnv(plugin.getConfig().getString("redis.uri", "redis://redis.internal:6379")),
@@ -109,15 +111,15 @@ final class PaperPluginBootstrap {
         plugin.localCaches.register("limits", limitCache::invalidateAll);
         long denyMessageCooldownMs = plugin.getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(plugin, client);
-        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperPlayerProfileListener(client));
-        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperBrandingListener(plugin, plugin.messages));
-        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperChatListener(plugin.messages));
-        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperScoreboardListener(plugin, plugin.messages));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperPlayerProfileListener(client, plugin.playerLocales));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperBrandingListener(plugin, plugin.messages, plugin.playerLocales));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperChatListener(plugin.messages, plugin.playerLocales));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperScoreboardListener(plugin, plugin.messages, plugin.playerLocales));
         if (role == AgentRole.ISLAND_NODE) {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandProtectionListener(plugin.agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()));
             plugin.boundaryListener = new IslandBoundaryListener(plugin.agent.protection(), plugin.messages);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.boundaryListener);
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales));
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandLimitListener(plugin.agent.protection(), limitCache, plugin.messages));
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandEntityLimitListener(plugin.agent.protection(), limitCache, plugin.messages));
             plugin.generatorLevels = new GeneratorLevelCache(client, plugin.getConfig().getString("generators.default-key", "default"));
@@ -136,10 +138,10 @@ final class PaperPluginBootstrap {
             || !plugin.resolveEnv(plugin.getConfig().getString("security.forwarding-secret", "")).isBlank();
         plugin.proxySourceAllowlist = new ProxySourceAllowlist(plugin.getConfig().getStringList("security.proxy-source-allowlist"));
         boolean requireProxySourceAllowlist = role == AgentRole.ISLAND_NODE && plugin.configBoolean("security.require-proxy-source-allowlist", true);
-        plugin.routeSessionListener = new PaperRouteSessionListener(plugin, client, plugin.agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, plugin.proxySourceAllowlist, plugin.messages);
+        plugin.routeSessionListener = new PaperRouteSessionListener(plugin, client, plugin.agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, plugin.proxySourceAllowlist, plugin.messages, plugin.playerLocales);
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.routeSessionListener);
         int routeWaitSeconds = plugin.getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
-        GuiActionExecutor guiActions = new PaperCommandRegistrar(plugin).register(plugin.agent, client, nodeId, routeWaitSeconds, fallbackServerName, economyBridge, plugin.messages, plugin.localCaches, () -> plugin.activeIslands);
+        GuiActionExecutor guiActions = new PaperCommandRegistrar(plugin).register(plugin.agent, client, nodeId, routeWaitSeconds, fallbackServerName, economyBridge, plugin.messages, plugin.localCaches, plugin.playerLocales, () -> plugin.activeIslands);
         if (plugin.guiEnabledForRole(role)) {
             IslandGuiMenuRegistrar.register(plugin, plugin.messages, guiActions);
         }

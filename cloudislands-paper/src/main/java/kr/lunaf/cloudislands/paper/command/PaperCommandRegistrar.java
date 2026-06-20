@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import org.bukkit.command.PluginCommand;
 
 public final class PaperCommandRegistrar {
@@ -29,6 +30,7 @@ public final class PaperCommandRegistrar {
         EconomyBridge economyBridge,
         MessageRenderer messages,
         LocalCacheManager localCaches,
+        PlayerLocaleCache locales,
         Supplier<ActiveIslandRegistry> activeIslands
     ) {
         PluginCommand admin = plugin.getCommand("ciadmin");
@@ -40,7 +42,7 @@ public final class PaperCommandRegistrar {
         PluginCommand island = plugin.getCommand("island");
         if (island != null) {
             IslandLevelScanService levelScanService = new IslandLevelScanService(plugin, activeIslands, client);
-            IslandCommandController islandController = new IslandCommandController(plugin, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages);
+            IslandCommandController islandController = new IslandCommandController(plugin, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales);
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, islandController);

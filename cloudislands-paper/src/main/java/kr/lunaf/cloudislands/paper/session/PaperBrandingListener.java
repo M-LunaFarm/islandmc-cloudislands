@@ -13,10 +13,16 @@ import org.bukkit.plugin.Plugin;
 public final class PaperBrandingListener implements Listener {
     private final Plugin plugin;
     private final MessageRenderer messages;
+    private final PlayerLocaleCache locales;
 
     public PaperBrandingListener(Plugin plugin, MessageRenderer messages) {
+        this(plugin, messages, null);
+    }
+
+    public PaperBrandingListener(Plugin plugin, MessageRenderer messages, PlayerLocaleCache locales) {
         this.plugin = plugin;
         this.messages = messages;
+        this.locales = locales;
     }
 
     @EventHandler
@@ -24,8 +30,8 @@ public final class PaperBrandingListener implements Listener {
         Player player = event.getPlayer();
         applyTabList(player);
         refreshTabList();
-        event.joinMessage(messages.componentForLocale(player.getLocale(), "join-message", "player", player.getName()));
-        String brand = messages.plainForLocale(player.getLocale(), "server-brand");
+        event.joinMessage(messages.componentForLocale(locale(player), "join-message", "player", player.getName()));
+        String brand = messages.plainForLocale(locale(player), "server-brand");
         if (!brand.isBlank()) {
             kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () ->
                 player.sendPluginMessage(plugin, "minecraft:brand", brandPayload(brand)), 10L);
@@ -35,7 +41,7 @@ public final class PaperBrandingListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        event.quitMessage(messages.componentForLocale(player.getLocale(), "quit-message", "player", player.getName()));
+        event.quitMessage(messages.componentForLocale(locale(player), "quit-message", "player", player.getName()));
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, this::refreshTabList);
     }
 
@@ -46,10 +52,14 @@ public final class PaperBrandingListener implements Listener {
     }
 
     private void applyTabList(Player player) {
-        String locale = player.getLocale();
+        String locale = locale(player);
         player.sendPlayerListHeaderAndFooter(messages.componentForLocale(locale, "tab-header"), messages.componentForLocale(locale, "tab-footer"));
         Component playerName = messages.componentForLocale(locale, "tab-player-name", "player", player.getName());
         player.playerListName(playerName);
+    }
+
+    private String locale(Player player) {
+        return locales == null ? player.getLocale() : locales.locale(player);
     }
 
     private byte[] brandPayload(String brand) {

@@ -583,6 +583,25 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void paperPresentationUsesCoreProfileLocaleCache() throws Exception {
+        Path root = repositoryRoot();
+        String bootstrap = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"));
+        String profileListener = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/session/PaperPlayerProfileListener.java"));
+        String commandBackend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String branding = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/session/PaperBrandingListener.java"));
+        String scoreboard = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/session/PaperScoreboardListener.java"));
+        String chat = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
+
+        assertTrue(bootstrap.contains("plugin.playerLocales = new PlayerLocaleCache()"), "Paper runtime must create a player locale cache");
+        assertTrue(bootstrap.contains("new PaperPlayerProfileListener(client, plugin.playerLocales)"), "Core profile touch must feed the locale cache");
+        assertTrue(profileListener.contains("PlayerLocaleCache.profileLocale(body, playerLocale)"), "Paper profile listener must use the Core profile locale returned by touch");
+        assertTrue(commandBackend.contains("messages.forLocale(locales == null ? player.getLocale() : locales.locale(player))"), "Command and GUI messages must prefer the Core profile locale cache");
+        assertTrue(branding.contains("locales == null ? player.getLocale() : locales.locale(player)"), "Tab and join messages must prefer the Core profile locale cache");
+        assertTrue(scoreboard.contains("locales == null ? player.getLocale() : locales.locale(player)"), "Scoreboard messages must prefer the Core profile locale cache");
+        assertTrue(chat.contains("locales == null ? player.getLocale() : locales.locale(player)"), "Chat renderer must prefer the Core profile locale cache");
+    }
+
+    @Test
     void paperCoreMutationCallsCarryRequestMetadata() throws Exception {
         Path root = repositoryRoot();
         List<Path> files = List.of(

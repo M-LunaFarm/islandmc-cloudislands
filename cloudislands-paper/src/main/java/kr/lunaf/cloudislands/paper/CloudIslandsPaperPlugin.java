@@ -48,6 +48,7 @@ import kr.lunaf.cloudislands.paper.session.PaperChatListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
 import kr.lunaf.cloudislands.paper.session.PaperScoreboardListener;
 import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
@@ -79,6 +80,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     MeteredIslandStorage islandStorage;
     PaperIntegrationRegistry integrationRegistry;
     LifecycleRegistry lifecycle;
+    PlayerLocaleCache playerLocales;
 
     @Override
     public void onEnable() {
@@ -108,6 +110,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
         integrationRegistry = null;
         messages = null;
+        if (playerLocales != null) {
+            playerLocales.clear();
+            playerLocales = null;
+        }
     }
 
     public CloudIslandsPaperAgent agent() {

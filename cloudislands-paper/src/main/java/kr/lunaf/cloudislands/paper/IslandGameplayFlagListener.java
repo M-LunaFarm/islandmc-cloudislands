@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper;
 
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.block.Block;
@@ -26,14 +27,20 @@ import org.bukkit.event.player.PlayerToggleFlightEvent;
 public final class IslandGameplayFlagListener implements Listener {
     private final ProtectionController protection;
     private final MessageRenderer messages;
+    private final PlayerLocaleCache locales;
 
     public IslandGameplayFlagListener(ProtectionController protection) {
         this(protection, null);
     }
 
     public IslandGameplayFlagListener(ProtectionController protection, MessageRenderer messages) {
+        this(protection, messages, null);
+    }
+
+    public IslandGameplayFlagListener(ProtectionController protection, MessageRenderer messages, PlayerLocaleCache locales) {
         this.protection = protection;
         this.messages = messages;
+        this.locales = locales;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -154,7 +161,7 @@ public final class IslandGameplayFlagListener implements Listener {
         if (messages == null) {
             return fallback;
         }
-        String rendered = messages.plainForLocale(player == null ? "" : player.getLocale(), key);
+        String rendered = messages.plainForLocale(player == null ? "" : locales == null ? player.getLocale() : locales.locale(player), key);
         return rendered.isBlank() ? fallback : rendered;
     }
 

@@ -17,14 +17,20 @@ import org.bukkit.scoreboard.ScoreboardManager;
 public final class PaperScoreboardListener implements Listener {
     private final MessageRenderer messages;
     private final Plugin plugin;
+    private final PlayerLocaleCache locales;
 
     public PaperScoreboardListener(MessageRenderer messages) {
         this(null, messages);
     }
 
     public PaperScoreboardListener(Plugin plugin, MessageRenderer messages) {
+        this(plugin, messages, null);
+    }
+
+    public PaperScoreboardListener(Plugin plugin, MessageRenderer messages, PlayerLocaleCache locales) {
         this.plugin = plugin;
         this.messages = messages;
+        this.locales = locales;
     }
 
     @EventHandler
@@ -53,7 +59,7 @@ public final class PaperScoreboardListener implements Listener {
             return;
         }
         Scoreboard scoreboard = manager.getNewScoreboard();
-        String locale = player.getLocale();
+        String locale = locales == null ? player.getLocale() : locales.locale(player);
         Objective objective = scoreboard.registerNewObjective("cloudislands", "dummy", messages.plainForLocale(locale, "scoreboard-title"));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         List<String> lines = messages.linesForLocale(locale, "scoreboard-lines",

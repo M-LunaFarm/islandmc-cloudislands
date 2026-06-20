@@ -36,6 +36,7 @@ public final class PaperRouteSessionListener implements Listener {
     private final String fallbackServerName;
     private final ProxySourceAllowlist proxySourceAllowlist;
     private final MessageRenderer messages;
+    private final PlayerLocaleCache locales;
     private final PaperPlayerGateway players;
     private final Map<UUID, PlayerRouteSession> verifiedSessions = new ConcurrentHashMap<>();
     private final AtomicLong proxySourceRejections = new AtomicLong();
@@ -69,10 +70,18 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, boolean requireProxySourceAllowlist, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist, MessageRenderer messages) {
-        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, proxySourceAllowlist, messages, new BukkitPlayerGateway());
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, proxySourceAllowlist, messages, (PlayerLocaleCache) null);
+    }
+
+    public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, boolean requireProxySourceAllowlist, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist, MessageRenderer messages, PlayerLocaleCache locales) {
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, proxySourceAllowlist, messages, locales, new BukkitPlayerGateway());
     }
 
     PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, boolean requireProxySourceAllowlist, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist, MessageRenderer messages, PaperPlayerGateway players) {
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, proxySourceAllowlist, messages, null, players);
+    }
+
+    PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, boolean requireProxySourceAllowlist, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.ticketConsumer = ticketConsumer;
@@ -83,6 +92,7 @@ public final class PaperRouteSessionListener implements Listener {
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
         this.proxySourceAllowlist = proxySourceAllowlist == null ? new ProxySourceAllowlist(java.util.List.of()) : proxySourceAllowlist;
         this.messages = messages;
+        this.locales = locales;
         this.players = players;
     }
 
@@ -262,7 +272,7 @@ public final class PaperRouteSessionListener implements Listener {
         if (messages == null) {
             return fallback;
         }
-        String rendered = messages.plainForLocale(player == null ? "" : player.getLocale(), key);
+        String rendered = messages.plainForLocale(player == null ? "" : locales == null ? player.getLocale() : locales.locale(player), key);
         return rendered.isBlank() ? fallback : rendered;
     }
 

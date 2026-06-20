@@ -10,9 +10,15 @@ import org.bukkit.event.Listener;
 
 public final class PaperChatListener implements Listener {
     private final MessageRenderer messages;
+    private final PlayerLocaleCache locales;
 
     public PaperChatListener(MessageRenderer messages) {
+        this(messages, null);
+    }
+
+    public PaperChatListener(MessageRenderer messages, PlayerLocaleCache locales) {
         this.messages = messages;
+        this.locales = locales;
     }
 
     @EventHandler
@@ -54,7 +60,10 @@ public final class PaperChatListener implements Listener {
     }
 
     private String viewerLocale(Audience viewer) {
-        return viewer instanceof Player player ? player.getLocale() : "";
+        if (!(viewer instanceof Player player)) {
+            return "";
+        }
+        return locales == null ? player.getLocale() : locales.locale(player);
     }
 
     private int nextToken(int playerToken, int messageToken) {
