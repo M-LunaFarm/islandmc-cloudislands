@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.api.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
@@ -57,5 +58,11 @@ class RoleIdSnapshotTest {
         assertThrows(IllegalArgumentException.class, () -> new IslandMemberSnapshot(islandId, playerUuid, null, joinedAt, null, " "));
         assertThrows(IllegalArgumentException.class, () -> new IslandRoleSnapshot(islandId, null, 10, "Broken", ""));
         assertThrows(IllegalArgumentException.class, () -> new IslandPermissionRuleSnapshot(islandId, null, IslandPermission.BUILD, true, ""));
+    }
+
+    @Test
+    void customEnumSlotsAreDeprecatedCompatibilityOnly() throws Exception {
+        assertNotNull(IslandRole.class.getField("CUSTOM_1").getAnnotation(Deprecated.class));
+        assertNotNull(IslandRole.class.getField("CUSTOM_5").getAnnotation(Deprecated.class));
     }
 }

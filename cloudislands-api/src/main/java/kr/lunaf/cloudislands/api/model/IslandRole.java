@@ -6,10 +6,15 @@ public enum IslandRole {
     MODERATOR,
     MEMBER,
     TRUSTED,
+    @Deprecated(forRemoval = false, since = "1.0.0")
     CUSTOM_1,
+    @Deprecated(forRemoval = false, since = "1.0.0")
     CUSTOM_2,
+    @Deprecated(forRemoval = false, since = "1.0.0")
     CUSTOM_3,
+    @Deprecated(forRemoval = false, since = "1.0.0")
     CUSTOM_4,
+    @Deprecated(forRemoval = false, since = "1.0.0")
     CUSTOM_5,
     VISITOR,
     BANNED;

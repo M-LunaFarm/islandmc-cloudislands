@@ -24,6 +24,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
 
 public final class PermissionRoleRoutes implements RouteGroup {
+    private static final String DEFAULT_CUSTOM_ROLE_KEY = "BUILDER";
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
 
     private final IslandRepository islandRepository;
@@ -110,7 +111,7 @@ public final class PermissionRoleRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
-        String roleKey = roleKey(body, IslandRole.CUSTOM_1.name());
+        String roleKey = roleKey(body, DEFAULT_CUSTOM_ROLE_KEY);
         if (!IslandRoleRepository.editableRoleKey(roleKey)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_NOT_EDITABLE", "Only island member roles can be customized"));
             return;
@@ -131,7 +132,7 @@ public final class PermissionRoleRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
-        String roleKey = roleKey(body, IslandRole.CUSTOM_1.name());
+        String roleKey = roleKey(body, DEFAULT_CUSTOM_ROLE_KEY);
         if (!IslandRoleRepository.editableRoleKey(roleKey)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_NOT_EDITABLE", "Only island member roles can be reset"));
             return;

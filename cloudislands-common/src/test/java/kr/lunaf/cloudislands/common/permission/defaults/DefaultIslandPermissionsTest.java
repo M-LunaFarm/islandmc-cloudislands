@@ -63,4 +63,22 @@ class DefaultIslandPermissionsTest {
             assertFalse(permissions.allowed(IslandRole.MEMBER, permission), permission.name());
         }
     }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void legacyCustomSlotsDoNotReceiveDefaultMemberPermissions() {
+        CachedPermissionSet permissions = DefaultIslandPermissions.create();
+
+        for (IslandRole role : EnumSet.of(
+            IslandRole.CUSTOM_1,
+            IslandRole.CUSTOM_2,
+            IslandRole.CUSTOM_3,
+            IslandRole.CUSTOM_4,
+            IslandRole.CUSTOM_5
+        )) {
+            assertFalse(permissions.allowed(role, IslandPermission.BUILD), role.name());
+            assertFalse(permissions.allowed(role, IslandPermission.OPEN_CONTAINER), role.name());
+            assertFalse(permissions.allowed(role, IslandPermission.DEPOSIT_BANK), role.name());
+        }
+    }
 }
