@@ -37,11 +37,12 @@ public final class IslandLimitMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandLimits(client, islandId)
-            .thenAccept(limits -> openSync(plugin, player, limits, messages))
+            .thenAccept(limits -> openSync(plugin, player, session, limits, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "limit-menu-load-failed", "섬 제한을 불러오지 못했습니다."), "island.limits.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "limit-menu-load-failed", "섬 제한을 불러오지 못했습니다."), "island.limits.open", "island.settings.open");
                 return null;
             });
     }
@@ -83,8 +84,8 @@ public final class IslandLimitMenu implements Listener {
         GuiActionRegistry.execute(player, "island.limit.set", java.util.Map.of("limitKey", limitKey, "value", String.valueOf(nextValue)), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<LimitView> limits, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<LimitView> limits, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
             for (LimitView limit : limits.stream().limit(45).toList()) {

@@ -36,11 +36,12 @@ public final class IslandBankMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandBank(client, islandId)
-            .thenAccept(view -> openSync(plugin, player, view, messages))
+            .thenAccept(view -> openSync(plugin, player, session, view, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "bank-menu-load-failed", "섬 은행을 불러오지 못했습니다."), "island.bank.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "bank-menu-load-failed", "섬 은행을 불러오지 못했습니다."), "island.bank.open", "island.settings.open");
                 return null;
             });
     }
@@ -80,8 +81,8 @@ public final class IslandBankMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, BankView view, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, BankView view, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "bank-menu-balance-name", "잔액"), message(messages, "bank-menu-current-balance", "현재 잔액: ") + (view.balance().isBlank() ? "0" : view.balance()), view.updatedAt().isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + view.updatedAt()));
             inventory.setItem(10, item(Material.EMERALD, message(messages, "bank-menu-deposit-1000-name", "1,000 입금"), message(messages, "bank-menu-deposit-1000-command", "/섬 입금 1000")));

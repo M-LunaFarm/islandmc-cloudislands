@@ -36,11 +36,12 @@ public final class IslandInfoMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandInfo(client, islandId)
-            .thenAccept(view -> openSync(plugin, player, view, messages))
+            .thenAccept(view -> openSync(plugin, player, session, view, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다."), "island.info.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다."), "island.info.open", "island.main.open");
                 return null;
             });
     }
@@ -73,8 +74,8 @@ public final class IslandInfoMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, IslandInfoView view, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, IslandInfoView view, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(10, item(Material.GRASS_BLOCK, message(messages, "info-menu-basic-title", "기본 정보"), message(messages, "info-menu-island-name", "섬 이름: ") + fallback(view.name(), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(view.state(), message(messages, "info-menu-unknown", "알 수 없음")), message(messages, "info-menu-island-id", "섬 ID: ") + shortId(view.islandId(), messages)));
             inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, message(messages, "info-menu-level-title", "레벨"), message(messages, "info-menu-level", "레벨: ") + view.level(), message(messages, "info-menu-worth", "가치: ") + fallback(view.worth(), "0")));

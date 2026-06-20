@@ -6,12 +6,17 @@ import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
 
 public final class CloudIslandsMenuHolder implements InventoryHolder {
-    private final UUID sessionId = UUID.randomUUID();
+    private final UUID sessionId;
     private final String menuId;
     private Inventory inventory;
 
     public CloudIslandsMenuHolder(String menuId) {
+        this(menuId, UUID.randomUUID());
+    }
+
+    public CloudIslandsMenuHolder(String menuId, UUID sessionId) {
         this.menuId = menuId == null ? "" : menuId;
+        this.sessionId = sessionId == null ? UUID.randomUUID() : sessionId;
     }
 
     public UUID sessionId() {

@@ -59,12 +59,13 @@ public final class IslandPermissionMenu implements Listener {
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page, int rolePage) {
         int safePage = safePage(page);
         int safeRolePage = Math.max(0, rolePage);
-        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandPermissions(client, islandId)
             .thenCombine(PaperGuiViews.islandRoles(client, islandId), (rules, roles) -> new PermissionMenuData(rules, roles))
-            .thenAccept(data -> openSync(plugin, player, data.rules(), data.roles(), messages, safePage, safeRolePage))
+            .thenAccept(data -> openSync(plugin, player, session, data.rules(), data.roles(), messages, safePage, safeRolePage))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "permission-menu-load-failed", "섬 권한을 불러오지 못했습니다."), "island.permissions.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "permission-menu-load-failed", "섬 권한을 불러오지 못했습니다."), "island.permissions.open", "island.settings.open");
                 return null;
             });
     }
@@ -92,8 +93,8 @@ public final class IslandPermissionMenu implements Listener {
         actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<PermissionRuleView> rules, List<RoleView> roleViews, MessageRenderer messages, int page, int rolePage) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<PermissionRuleView> rules, List<RoleView> roleViews, MessageRenderer messages, int page, int rolePage) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             List<String> roles = roleNames(roleViews);
             int safePage = safePage(page);

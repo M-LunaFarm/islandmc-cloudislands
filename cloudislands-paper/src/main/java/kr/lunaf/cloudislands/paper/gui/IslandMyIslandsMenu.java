@@ -36,11 +36,12 @@ public final class IslandMyIslandsMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.playerIslands(client, player.getUniqueId())
-            .thenAccept(islands -> openSync(plugin, player, islands, messages))
+            .thenAccept(islands -> openSync(plugin, player, session, islands, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "my-islands-menu-load-failed", "내 섬 목록을 불러오지 못했습니다."), "island.list.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "my-islands-menu-load-failed", "내 섬 목록을 불러오지 못했습니다."), "island.list.open", "island.main.open");
                 return null;
             });
     }
@@ -81,8 +82,8 @@ public final class IslandMyIslandsMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<PlayerIslandView> islands, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<PlayerIslandView> islands, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             if (islands.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "my-islands-menu-empty-title", "섬 없음"), message(messages, "my-islands-menu-empty", "속한 섬이 없습니다.")));

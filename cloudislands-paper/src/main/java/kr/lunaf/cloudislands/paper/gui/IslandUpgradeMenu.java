@@ -36,11 +36,12 @@ public final class IslandUpgradeMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
         PaperGuiViews.islandUpgrades(client, islandId)
-            .thenAccept(upgrades -> openSync(plugin, player, upgrades, messages))
+            .thenAccept(upgrades -> openSync(plugin, player, session, upgrades, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다."), "island.upgrades.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다."), "island.upgrades.open", "island.settings.open");
                 return null;
             });
     }
@@ -78,8 +79,8 @@ public final class IslandUpgradeMenu implements Listener {
         GuiActionRegistry.execute(player, "island.upgrade.purchase", java.util.Map.of("upgradeKey", key), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<UpgradeView> upgrades, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<UpgradeView> upgrades, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
             int slot = 0;
             for (UpgradeView upgrade : upgrades.stream().limit(45).toList()) {

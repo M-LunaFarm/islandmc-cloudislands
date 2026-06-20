@@ -36,11 +36,12 @@ public final class IslandLogMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
         PaperGuiViews.islandLogs(client, islandId, 27)
-            .thenAccept(entries -> openSync(plugin, player, entries, messages))
+            .thenAccept(entries -> openSync(plugin, player, session, entries, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다."), "island.logs.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다."), "island.logs.open", "island.settings.open");
                 return null;
             });
     }
@@ -88,8 +89,8 @@ public final class IslandLogMenu implements Listener {
         player.sendMessage("- " + message(messages, "log-menu-payload", "payload: ") + fallback(data.get("payload"), message(messages, "log-menu-payload-empty", "없음")));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<LogEntryView> entries, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<LogEntryView> entries, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 36, TITLE);
             if (entries.isEmpty()) {
                 inventory.setItem(13, item(Material.BARRIER, message(messages, "log-menu-empty-title", "로그 없음"), message(messages, "log-menu-empty", "아직 기록된 섬 로그가 없습니다.")));

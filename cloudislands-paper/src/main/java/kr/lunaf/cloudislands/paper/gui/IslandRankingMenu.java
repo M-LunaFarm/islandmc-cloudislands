@@ -35,11 +35,12 @@ public final class IslandRankingMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
         PaperGuiViews.rankings(client, 10)
-            .thenAccept(data -> openSync(plugin, player, data.levels(), data.worths(), data.reviews(), messages))
+            .thenAccept(data -> openSync(plugin, player, session, data.levels(), data.worths(), data.reviews(), messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다."), "island.ranking.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다."), "island.ranking.open", "island.main.open");
                 return null;
             });
     }
@@ -74,8 +75,8 @@ public final class IslandRankingMenu implements Listener {
         GuiActionRegistry.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, "ranking-menu-title", TITLE));
             inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "ranking-menu-title", "섬 랭킹"), message(messages, "ranking-menu-level-side", "레벨 TOP"), message(messages, "ranking-menu-worth-side", "가치 TOP"), message(messages, "ranking-menu-review-side", "후기 TOP")));
             int slot = 9;

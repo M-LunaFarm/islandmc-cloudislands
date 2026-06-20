@@ -35,11 +35,12 @@ public final class IslandBanMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
         PaperGuiViews.islandBans(client, islandId)
-            .thenAccept(bans -> openSync(plugin, player, bans, messages))
+            .thenAccept(bans -> openSync(plugin, player, session, bans, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다."), "island.bans.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다."), "island.bans.open", "island.settings.open");
                 return null;
             });
     }
@@ -83,8 +84,8 @@ public final class IslandBanMenu implements Listener {
         player.sendMessage("- " + message(messages, "ban-menu-expires-at", "만료 시각: ") + fallback(data.get("expiresAt"), message(messages, "ban-menu-no-expire", "만료 없음")));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<BanView> bans, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<BanView> bans, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
             if (bans.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "ban-menu-empty-title", "밴 기록 없음"), message(messages, "ban-menu-empty", "현재 밴된 방문자가 없습니다.")));

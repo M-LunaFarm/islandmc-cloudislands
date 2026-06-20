@@ -46,11 +46,12 @@ public final class IslandMemberMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
         int safePage = Math.max(0, page);
-        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
         PaperGuiViews.islandMembers(client, islandId)
-            .thenAccept(members -> openSync(plugin, player, members, messages, safePage))
+            .thenAccept(members -> openSync(plugin, player, session, members, messages, safePage))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다."), "island.members.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다."), "island.members.open", "island.main.open");
                 return null;
             });
     }
@@ -94,8 +95,8 @@ public final class IslandMemberMenu implements Listener {
         actions.execute(player, actionId, data, click);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<MemberView> members, MessageRenderer messages, int page) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<MemberView> members, MessageRenderer messages, int page) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
             int maxPage = maxPage(members.size());
             int safePage = Math.max(0, Math.min(maxPage, page));

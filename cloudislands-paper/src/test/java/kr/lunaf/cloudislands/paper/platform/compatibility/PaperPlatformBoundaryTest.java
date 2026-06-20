@@ -553,6 +553,33 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void asyncGuiResponsesAreBoundToCurrentSessionRevision() throws Exception {
+        Path root = repositoryRoot();
+        Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
+        try (Stream<Path> files = javaFiles(guiSource)) {
+            String violations = files
+                .flatMap(path -> asyncGuiSessionViolations(root, path).stream())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+
+        String session = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSession.java"));
+        assertTrue(session.contains("UUID sessionId"), "GUI sessions must carry a session id");
+        assertTrue(session.contains("UUID playerId"), "GUI sessions must carry a player id");
+        assertTrue(session.contains("String menuId"), "GUI sessions must carry a menu id");
+        assertTrue(session.contains("long revision"), "GUI sessions must carry a revision");
+        String sessions = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
+        assertTrue(sessions.contains("isCurrent("), "GUI session registry must expose current-session checks");
+        assertTrue(sessions.contains("runIfCurrent("), "GUI session registry must guard main-thread rendering");
+        String states = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiStateMenus.java"));
+        assertTrue(states.contains("InventoryCloseEvent"), "GUI sessions must be invalidated when menus close");
+        assertTrue(states.contains("GuiSessions.invalidate"), "GUI state listener must invalidate stale sessions");
+    }
+
+    @Test
     void permissionGuiStagesChangesBeforeSaving() throws Exception {
         Path root = repositoryRoot();
         String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
@@ -1147,6 +1174,40 @@ class PaperPlatformBoundaryTest {
             }
             if (!source.contains("GuiStateMenus.openError(")) {
                 violations.add(relative + ": async load failure must open an Error state with Retry/Back actions");
+            }
+            return violations;
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static List<String> asyncGuiSessionViolations(Path root, Path path) {
+        try {
+            String source = Files.readString(path);
+            if (!source.contains(".thenAccept(") || !source.contains("openSync(plugin, player")) {
+                return List.of();
+            }
+            List<String> violations = new ArrayList<>();
+            String relative = root.relativize(path).toString();
+            if (!source.contains("GuiSession session = GuiSessions.begin(player,")) {
+                violations.add(relative + ": async menu must create a current GUI session while opening Loading");
+            }
+            if (!source.contains("GuiStateMenus.openLoading(plugin, player, session")) {
+                violations.add(relative + ": async menu must bind Loading state to the GUI session");
+            }
+            if (!source.contains("openSync(plugin, player, session")) {
+                violations.add(relative + ": async success path must pass the GUI session into openSync");
+            }
+            if (!source.contains("private static void openSync(Plugin plugin, Player player, GuiSession session")) {
+                violations.add(relative + ": async renderer must receive the GUI session");
+            }
+            if (!source.contains("GuiSessions.runIfCurrent(plugin, player, session")) {
+                violations.add(relative + ": async renderer must discard stale session responses");
+            }
+            if (source.contains(".exceptionally(")
+                && source.contains("load-failed")
+                && !source.contains("GuiStateMenus.openError(plugin, player, session")) {
+                violations.add(relative + ": async error path must discard stale session errors");
             }
             return violations;
         } catch (Exception exception) {

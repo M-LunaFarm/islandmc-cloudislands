@@ -36,11 +36,12 @@ public final class IslandSnapshotMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandSnapshots(client, islandId, 20)
-            .thenAccept(snapshots -> openSync(plugin, player, snapshots, messages))
+            .thenAccept(snapshots -> openSync(plugin, player, session, snapshots, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다."), "island.snapshots.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다."), "island.snapshots.open", "island.settings.open");
                 return null;
             });
     }
@@ -98,8 +99,8 @@ public final class IslandSnapshotMenu implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private static void openSync(Plugin plugin, Player player, List<SnapshotView> snapshots, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<SnapshotView> snapshots, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(45, item(Material.CHEST, message(messages, "snapshot-menu-create-name", "새 스냅샷 생성"), message(messages, "snapshot-menu-create-command", "/섬 스냅샷생성 manual")));
             inventory.setItem(49, item(Material.CLOCK, message(messages, "snapshot-menu-refresh-name", "새로고침"), message(messages, "snapshot-menu-refresh-command", "/섬 스냅샷")));

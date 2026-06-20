@@ -47,11 +47,12 @@ public final class IslandBiomeMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
         PaperGuiViews.islandBiome(client, islandId)
-            .thenAccept(currentBiome -> openSync(plugin, player, currentBiome, messages))
+            .thenAccept(currentBiome -> openSync(plugin, player, session, currentBiome, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다."), "island.biome.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다."), "island.biome.open", "island.settings.open");
                 return null;
             });
     }
@@ -93,8 +94,8 @@ public final class IslandBiomeMenu implements Listener {
         GuiActionRegistry.execute(player, "island.biome.set", java.util.Map.of("biomeKey", biomeKey), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, String currentBiome, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, String currentBiome, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 27, TITLE);
             int slot = 9;
             for (String biome : BIOMES.stream().limit(13).toList()) {

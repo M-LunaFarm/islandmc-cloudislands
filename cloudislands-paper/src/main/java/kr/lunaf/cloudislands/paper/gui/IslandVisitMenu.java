@@ -36,11 +36,12 @@ public final class IslandVisitMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.publicIslands(client, 45)
-            .thenAccept(islands -> openSync(plugin, player, islands, messages))
+            .thenAccept(islands -> openSync(plugin, player, session, islands, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다."), "island.visit.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다."), "island.visit.open", "island.main.open");
                 return null;
             });
     }
@@ -77,8 +78,8 @@ public final class IslandVisitMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, List<PublicIslandView> islands, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<PublicIslandView> islands, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             inventory.setItem(4, item(Material.COMPASS, message(messages, "visit-menu-random-name", "랜덤 공개 섬"), message(messages, "visit-menu-random-description", "공개된 섬 중 하나로 이동합니다.")));
             if (islands.isEmpty()) {

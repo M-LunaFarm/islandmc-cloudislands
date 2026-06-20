@@ -36,11 +36,12 @@ public final class IslandFlagMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandFlags(client, islandId)
-            .thenAccept(values -> openSync(plugin, player, values, messages))
+            .thenAccept(values -> openSync(plugin, player, session, values, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "flag-menu-load-failed", "섬 플래그를 불러오지 못했습니다."), "island.flags.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "flag-menu-load-failed", "섬 플래그를 불러오지 못했습니다."), "island.flags.open", "island.settings.open");
                 return null;
             });
     }
@@ -74,8 +75,8 @@ public final class IslandFlagMenu implements Listener {
         GuiActionRegistry.execute(player, "island.flag.set", java.util.Map.of("flag", flag), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, Map<IslandFlag, String> values, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, Map<IslandFlag, String> values, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
             for (IslandFlag flag : java.util.Arrays.stream(IslandFlag.values()).limit(49).toList()) {

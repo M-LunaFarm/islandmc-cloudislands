@@ -36,11 +36,12 @@ public final class IslandInviteMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.pendingInvites(client, player.getUniqueId())
-            .thenAccept(invites -> openSync(plugin, player, invites, messages))
+            .thenAccept(invites -> openSync(plugin, player, session, invites, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "invite-menu-load-failed", "섬 초대 목록을 불러오지 못했습니다."), "island.invites.open", "island.members.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "invite-menu-load-failed", "섬 초대 목록을 불러오지 못했습니다."), "island.invites.open", "island.members.open");
                 return null;
             });
     }
@@ -78,8 +79,8 @@ public final class IslandInviteMenu implements Listener {
         GuiActionRegistry.execute(player, event.isRightClick() ? "island.invite.decline" : "island.invite.accept", java.util.Map.of("inviteId", inviteId), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, List<InviteView> invites, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<InviteView> invites, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             if (invites.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "invite-menu-empty-title", "대기 중인 초대 없음"), message(messages, "invite-menu-empty", "받은 섬 초대가 없습니다.")));

@@ -38,11 +38,12 @@ public final class IslandWarpMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
         PaperGuiViews.islandWarps(client, islandId)
-            .thenAccept(warps -> openSync(plugin, player, TITLE, warps, false, messages))
+            .thenAccept(warps -> openSync(plugin, player, session, TITLE, warps, false, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다."), "island.warps.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다."), "island.warps.open", "island.settings.open");
                 return null;
             });
     }
@@ -52,11 +53,12 @@ public final class IslandWarpMenu implements Listener {
     }
 
     public static void openPublic(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
-        GuiStateMenus.openLoading(plugin, player, messages, PUBLIC_TITLE);
+        GuiSession session = GuiSessions.begin(player, PUBLIC_MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, PUBLIC_TITLE);
         PaperGuiViews.publicWarps(client, 45)
-            .thenAccept(warps -> openSync(plugin, player, PUBLIC_TITLE, warps, true, messages))
+            .thenAccept(warps -> openSync(plugin, player, session, PUBLIC_TITLE, warps, true, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, PUBLIC_TITLE, message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다."), "island.visit.public.open", "island.visit.open");
+                GuiStateMenus.openError(plugin, player, session, messages, PUBLIC_TITLE, message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다."), "island.visit.public.open", "island.visit.open");
                 return null;
             });
     }
@@ -114,8 +116,8 @@ public final class IslandWarpMenu implements Listener {
         GuiActionRegistry.execute(player, "island.warp.teleport", java.util.Map.of("warpName", warpName), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, String title, List<WarpView> warps, boolean publicMenu, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, String title, List<WarpView> warps, boolean publicMenu, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(publicMenu ? PUBLIC_MENU_ID : MENU_ID, 54, title);
             inventory.setItem(45, publicMenu
                 ? item(Material.COMPASS, message(messages, "warp-menu-public-refresh-name", "공개 워프 새로고침"), message(messages, "warp-menu-public-refresh-command", "/섬 공개워프목록"))

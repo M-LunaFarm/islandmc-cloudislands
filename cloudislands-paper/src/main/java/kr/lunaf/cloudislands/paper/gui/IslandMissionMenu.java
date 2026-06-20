@@ -39,11 +39,12 @@ public final class IslandMissionMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, String kind, MessageRenderer messages) {
         boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
-        GuiStateMenus.openLoading(plugin, player, messages, challenge ? CHALLENGE_TITLE : MISSION_TITLE);
+        GuiSession session = GuiSessions.begin(player, challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, challenge ? CHALLENGE_TITLE : MISSION_TITLE);
         PaperGuiViews.islandMissions(client, islandId, kind)
-            .thenAccept(missions -> openSync(plugin, player, kind, missions, messages))
+            .thenAccept(missions -> openSync(plugin, player, session, kind, missions, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, messages, challenge ? CHALLENGE_TITLE : MISSION_TITLE, message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다."), "island.missions.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, challenge ? CHALLENGE_TITLE : MISSION_TITLE, message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다."), "island.missions.open", "island.main.open");
                 return null;
             });
     }
@@ -83,8 +84,8 @@ public final class IslandMissionMenu implements Listener {
         GuiActionRegistry.execute(player, "island.mission.complete", java.util.Map.of("kind", mission ? "MISSION" : "CHALLENGE", "missionKey", missionKey, "label", mission ? "섬 미션" : "섬 챌린지"), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, String kind, List<MissionView> missions, MessageRenderer messages) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, String kind, List<MissionView> missions, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
             Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, 54, challenge ? CHALLENGE_TITLE : MISSION_TITLE);
             int slot = 0;
