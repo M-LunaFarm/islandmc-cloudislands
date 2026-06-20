@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CoreConfigSurfaceTest {
@@ -27,6 +28,9 @@ class CoreConfigSurfaceTest {
             assertTrue(config.contains("migration-policy: \"INACTIVE_ONLY_AUTOMATIC\""));
             assertTrue(config.contains("require-mtls: true"));
             assertTrue(config.contains("admin-api-enabled: true"));
+            assertFalse(config.contains("database: \"\""), "Core default config must not expose setup.database.database aliases next to setup.database.name");
+            assertFalse(config.contains("database-type: \"\""), "Core default config must not expose flat setup.database-type aliases next to setup.database.type");
+            assertFalse(config.contains("database-password: \"\""), "Core default config must not expose flat setup.database-password aliases next to setup.database.password");
         }
     }
 

@@ -26,9 +26,8 @@ setup:
     jdbc-url: ""
     host: ""
     port: 0
-    # name is the database/schema name. database is accepted as an alias by the loader.
+    # name is the database/schema name.
     name: ""
-    database: ""
     options: ""
     username: ""
     password: ""
@@ -47,7 +46,6 @@ setup:
       host: ""
       port: 0
       name: ""
-      database: ""
       options: ""
       username: ""
       password: ""
@@ -59,7 +57,6 @@ setup:
       host: ""
       port: 0
       name: ""
-      database: ""
       options: ""
       username: ""
       password: ""
@@ -71,7 +68,6 @@ setup:
       host: ""
       port: 0
       name: ""
-      database: ""
       options: ""
       username: ""
       password: ""
@@ -100,23 +96,6 @@ setup:
         - MARIADB
         - CORE_API
         - UNSUPPORTED_JDBC
-  # Empty jdbc-url inherits database.jdbc-url only for POSTGRESQL unless a typed setup.database.<backend> block is configured.
-  # MYSQL/MARIADB can use setup.database.mysql|mariadb.host/name or CI_JDBC_URL.
-  # CORE_API alone leaves Core JDBC disabled and reports dbBackend=NONE; with a configured durable fallback, Core uses that JDBC backend safely.
-  jdbc-url: ""
-  # database-type accepts POSTGRESQL, MYSQL, MARIADB, or CORE_API.
-  # Accepted aliases: POSTGRES/PG -> POSTGRESQL, MARIA -> MARIADB,
-  # CORE/COREAPI/CLOUDISLANDS/CLOUDISLANDS_API -> CORE_API, MEMORY/LOCAL/LOCAL_SQLITE -> IN_MEMORY.
-  # Core service JDBC repositories support POSTGRESQL, MYSQL, and MARIADB. CORE_API is not used as Core self-storage.
-  # If repository-mode/job-queue-mode is forced to JDBC with an unsupported JDBC URL, Core keeps the safe fallback active and reports jdbcFallbackActive=true.
-  database-type: ""
-  database-host: ""
-  database-port: 0
-  database-name: ""
-  database-options: ""
-  database-username: ""
-  database-password: ""
-  database-pool-size: 0
   redis-uri: ""
   storage-type: ""
   storage-endpoint: ""
