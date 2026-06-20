@@ -115,4 +115,22 @@ class IslandCommandControllerPolicyTest {
         assertTrue(progressionHandler.contains("coreApiClient.purchaseIslandUpgrade"));
         assertTrue(progressionHandler.contains("coreApiClient.completeIslandMission"));
     }
+
+    @Test
+    void environmentCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String environmentHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandEnvironmentCommandHandler environmentCommands;"));
+        assertTrue(backend.contains("environmentCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("environmentCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("setIslandBiome("), "biome mutation logic belongs in IslandEnvironmentCommandHandler");
+        assertFalse(backend.contains("setIslandLimit("), "limit mutation logic belongs in IslandEnvironmentCommandHandler");
+        assertFalse(backend.contains("applyIslandBorder("), "border UI logic belongs in IslandEnvironmentCommandHandler");
+        assertTrue(environmentHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(environmentHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data)"));
+        assertTrue(environmentHandler.contains("coreApiClient.setIslandBiomeResult"));
+        assertTrue(environmentHandler.contains("coreApiClient.setIslandLimit"));
+        assertTrue(environmentHandler.contains("coreApiClient.setIslandFlagResult"));
+    }
 }

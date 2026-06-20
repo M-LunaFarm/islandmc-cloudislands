@@ -36,7 +36,6 @@ import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
 import kr.lunaf.cloudislands.paper.gui.DangerousGuiActionPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
@@ -44,7 +43,6 @@ import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
@@ -63,11 +61,9 @@ import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.WorldBorder;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -219,6 +215,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandWarehouseCommandHandler warehouseCommands;
     private final IslandChatLogCommandHandler chatLogCommands;
     private final IslandProgressionCommandHandler progressionCommands;
+    private final IslandEnvironmentCommandHandler environmentCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -441,6 +438,57 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
                 return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+        });
+        this.environmentCommands = new IslandEnvironmentCommandHandler(plugin, coreApiClient, protection, new IslandEnvironmentCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public boolean allowed(Player player, IslandPermission permission) {
+                return IslandCommandBackend.this.allowed(player, permission);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public String playerCodeMessage(String code, String fallback) {
+                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+            }
+
+            @Override
+            public String actionResultMessage(String label, UUID targetId, String body) {
+                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
+            }
+
+            @Override
+            public String actionResultMessage(String label, String targetId, String body) {
+                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
+            }
+
+            @Override
+            public String coreWriteFailureMessage(Throwable error, String fallback) {
+                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
             }
 
             @Override
@@ -683,82 +731,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (chatLogCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
-        if (subcommand.equals("biome") || subcommand.equals("바이옴")) {
-            if (args.length > 1) {
-                setIslandBiome(player, args[1]);
-            } else {
-                openIslandBiomeMenu(player);
-            }
-            return true;
-        }
-        if (subcommand.equals("biome-menu")) {
-            openIslandBiomeMenu(player);
-            return true;
-        }
-        if (subcommand.equals("biome-info") || subcommand.equals("바이옴정보")) {
-            showIslandBiome(player);
-            return true;
-        }
-        if (subcommand.equals("size") || subcommand.equals("크기")) {
-            showIslandSize(player);
-            return true;
-        }
-        if (subcommand.equals("border") || subcommand.equals("border-ui") || subcommand.equals("경계")) {
-            handleIslandBorder(player, args);
-            return true;
-        }
-        if (subcommand.equals("border-color") || subcommand.equals("경계색상")) {
-            if (args.length < 2) {
-                message(player, "경계 색상을 입력해주세요. 예: /섬 경계색상 blue");
-                return true;
-            }
-            setIslandBorderFlag(player, IslandFlag.BORDER_COLOR, normalizeBorderColor(args[1]), true);
-            return true;
-        }
-        if (subcommand.equals("border-visible") || subcommand.equals("경계표시")) {
-            if (args.length < 2) {
-                message(player, "경계 표시 여부를 입력해주세요. 예: /섬 경계표시 켜기");
-                return true;
-            }
-            setIslandBorderFlag(player, IslandFlag.BORDER_VISIBLE, flagToggleValue(args, 1), true);
-            return true;
-        }
-        if (subcommand.equals("limit") || subcommand.equals("limits") || subcommand.equals("limit-list") || subcommand.equals("제한") || subcommand.equals("제한목록")) {
-            if (args.length > 2) {
-                setIslandLimit(player, args[1], longValue(args[2], 0L));
-            } else if (subcommand.equals("limit-list") || subcommand.equals("제한목록")) {
-                listIslandLimits(player);
-            } else {
-                openIslandLimitMenu(player);
-            }
-            return true;
-        }
-        if (subcommand.equals("limit-menu")) {
-            openIslandLimitMenu(player);
-            return true;
-        }
-        if (subcommand.equals("setlimit") || subcommand.equals("limit-set") || subcommand.equals("제한설정")) {
-            if (args.length < 3) {
-                message(player, routeMessage("input-limit-key-value-required", "제한 키와 값을 입력해주세요."));
-                return true;
-            }
-            setIslandLimit(player, args[1], longValue(args[2], 0L));
-            return true;
-        }
-        if (subcommand.equals("hoppers") || subcommand.equals("호퍼")) {
-            setNamedIslandLimit(player, "HOPPER", args);
-            return true;
-        }
-        if (subcommand.equals("spawners") || subcommand.equals("스포너")) {
-            setNamedIslandLimit(player, "SPAWNER", args);
-            return true;
-        }
-        if (subcommand.equals("entities") || subcommand.equals("엔티티")) {
-            setNamedIslandLimit(player, "ENTITY", args);
-            return true;
-        }
-        if (subcommand.equals("redstone") || subcommand.equals("레드스톤")) {
-            setNamedIslandLimit(player, "REDSTONE", args);
+        if (environmentCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (snapshotCommands.handleCommand(player, subcommand, args)) {
@@ -1035,6 +1008,9 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (progressionCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
             return;
         }
+        if (environmentCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+            return;
+        }
         switch (actionId) {
             case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
             case "island.create.open" -> IslandCreateMenu.open(plugin, coreApiClient, player, messagesFor(player));
@@ -1170,12 +1146,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             case "island.flags.open" -> openIslandFlagMenu(player);
             case "island.flags.list" -> listIslandFlags(player);
             case "island.flag.set" -> setIslandFlag(player, data.getOrDefault("flag", ""), click.right() ? "false" : "true");
-            case "island.biome.open" -> openIslandBiomeMenu(player);
-            case "island.biome.show" -> showIslandBiome(player);
-            case "island.biome.set" -> setIslandBiome(player, data.getOrDefault("biomeKey", ""));
-            case "island.limits.open" -> openIslandLimitMenu(player);
-            case "island.limits.list" -> listIslandLimits(player);
-            case "island.limit.set" -> setIslandLimit(player, data.getOrDefault("limitKey", ""), longValue(data.getOrDefault("value", "0"), 0L));
             case "island.danger.open" -> IslandDangerMenu.open(player, messagesFor(player));
             case "island.danger.reset.prepare" -> IslandDangerMenu.openResetConfirm(player, messagesFor(player));
             case "island.danger.delete.prepare" -> IslandDangerMenu.openDeleteConfirm(player, messagesFor(player));
@@ -1936,255 +1906,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         currentIsland(player, "섬 안에서만 정보를 확인할 수 있습니다.").ifPresent(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
     }
 
-    private void showIslandBiome(Player player) {
-        currentIsland(player, "섬 안에서만 바이옴을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandBiome(islandId)
-                .thenAccept(body -> message(player, "섬 바이옴: " + text(body, "biomeKey")))
-                .exceptionally(error -> {
-                    message(player, "섬 바이옴을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void openIslandBiomeMenu(Player player) {
-        currentIsland(player, "섬 안에서만 바이옴 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandBiomeMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void setIslandBiome(Player player, String biomeKey) {
-        currentIsland(player, "섬 안에서만 바이옴을 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.SET_BIOME)) {
-                message(player, routeMessage("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.biome.set", () -> coreApiClient.setIslandBiomeResult(islandId, player.getUniqueId(), biomeKey))
-                .thenAccept(body -> message(player, actionResultMessage("섬 바이옴 변경 " + biomeKey, biomeKey, body)))
-                .exceptionally(error -> {
-                    message(player, "섬 바이옴을 변경하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void showIslandSize(Player player) {
-        currentIsland(player, "섬 안에서만 크기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandInfo(islandId)
-                .thenAccept(body -> message(player, "섬 크기: " + (long) decimal(body, "size")))
-                .exceptionally(error -> {
-                    message(player, "섬 크기를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void showIslandBorder(Player player) {
-        currentIsland(player, "섬 안에서만 경계를 확인할 수 있습니다.").ifPresent(islandId -> {
-            CompletableFuture<String> info = coreApiClient.islandInfo(islandId);
-            CompletableFuture<String> flags = coreApiClient.listIslandFlags(islandId);
-            info.thenCombine(flags, (infoBody, flagBody) -> borderSummary(infoBody, flagBody))
-                .thenAccept(summary -> message(player, summary))
-                .exceptionally(error -> {
-                    message(player, "섬 경계를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void handleIslandBorder(Player player, String[] args) {
-        if (args.length < 2) {
-            showIslandBorder(player);
-            applyIslandBorder(player, false);
-            return;
-        }
-        String mode = args[1].toLowerCase(Locale.ROOT);
-        if (mode.equals("apply") || mode.equals("적용")) {
-            applyIslandBorder(player, true);
-            return;
-        }
-        if (mode.equals("hide") || mode.equals("hidden") || mode.equals("숨김")) {
-            setIslandBorderFlag(player, IslandFlag.BORDER_VISIBLE, "false", true);
-            return;
-        }
-        if (mode.equals("show") || mode.equals("visible") || mode.equals("표시")) {
-            String value = args.length > 2 ? flagToggleValue(args, 2) : "true";
-            setIslandBorderFlag(player, IslandFlag.BORDER_VISIBLE, value, true);
-            return;
-        }
-        if (mode.equals("color") || mode.equals("색상")) {
-            if (args.length < 3) {
-                message(player, "경계 색상을 입력해주세요. 예: /섬 경계 색상 blue");
-                return;
-            }
-            setIslandBorderFlag(player, IslandFlag.BORDER_COLOR, normalizeBorderColor(args[2]), true);
-            return;
-        }
-        if (mode.equals("warning") || mode.equals("경고")) {
-            if (args.length < 3) {
-                message(player, "경계 경고 거리를 입력해주세요. 예: /섬 경계 경고 8");
-                return;
-            }
-            setIslandBorderFlag(player, IslandFlag.BORDER_WARNING_BLOCKS, Long.toString(Math.max(0L, longValue(args[2], 0L))), true);
-            return;
-        }
-        if (mode.equals("policy") || mode.equals("정책")) {
-            if (args.length < 3) {
-                message(player, "경계 정책을 입력해주세요. 예: /섬 경계 정책 visible");
-                return;
-            }
-            setIslandBorderFlag(player, IslandFlag.BORDER_POLICY, normalizeBorderPolicy(args[2]), true);
-            return;
-        }
-        showIslandBorder(player);
-    }
-
-    private void setIslandBorderFlag(Player player, IslandFlag flag, String value, boolean applyAfterSave) {
-        currentIsland(player, "섬 안에서만 경계 정책을 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                message(player, routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.flag.set", () -> coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value))
-                .thenAccept(body -> {
-                    message(player, actionResultMessage("섬 경계 정책 변경 " + flag.name() + "=" + value, flag.name(), body));
-                    if (applyAfterSave && !resultRejected(body)) {
-                        applyIslandBorder(player, true);
-                    }
-                })
-                .exceptionally(error -> {
-                    message(player, coreWriteFailureMessage(error, "섬 경계 정책을 변경하지 못했습니다."));
-                    return null;
-                });
-        });
-    }
-
-    private void applyIslandBorder(Player player, boolean announce) {
-        currentIsland(player, "섬 안에서만 경계를 적용할 수 있습니다.").ifPresent(islandId -> {
-            java.util.Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
-            if (region.isEmpty()) {
-                message(player, "섬 경계 위치를 확인하지 못했습니다.");
-                return;
-            }
-            CompletableFuture<String> info = coreApiClient.islandInfo(islandId);
-            CompletableFuture<String> flags = coreApiClient.listIslandFlags(islandId);
-            info.thenCombine(flags, (infoBody, flagBody) -> new BorderView(infoBody, flagBody, region.get()))
-                .thenAccept(view -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> applyIslandBorderSync(player, view, announce)))
-                .exceptionally(error -> {
-                    message(player, "섬 경계 UI를 적용하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void applyIslandBorderSync(Player player, BorderView view, boolean announce) {
-        boolean visible = borderVisible(view.flags());
-        String policy = flagValue(view.flags(), IslandFlag.BORDER_POLICY, visible ? "visible" : "hidden");
-        if (!visible || policy.equalsIgnoreCase("hidden")) {
-            player.setWorldBorder(null);
-            if (announce) {
-                message(player, "섬 경계 UI를 숨겼습니다.");
-            }
-            return;
-        }
-        WorldBorder border = Bukkit.createWorldBorder();
-        border.setCenter(view.region().originX(), view.region().originZ());
-        border.setSize(Math.max(1.0D, decimal(view.info(), "border")));
-        border.setWarningDistance(Math.max(0, (int) longValue(flagValue(view.flags(), IslandFlag.BORDER_WARNING_BLOCKS, "8"), 8L)));
-        border.setWarningTime(5);
-        player.setWorldBorder(border);
-        if (announce) {
-            message(player, "섬 경계 UI 적용: 색상=" + flagValue(view.flags(), IslandFlag.BORDER_COLOR, "blue") + ", 정책=" + policy + ", 크기=" + (long) decimal(view.info(), "border"));
-        }
-    }
-
-    private String borderSummary(String infoBody, String flagBody) {
-        return "섬 경계: 크기=" + (long) decimal(infoBody, "border")
-            + ", 표시=" + (borderVisible(flagBody) ? "켜짐" : "꺼짐")
-            + ", 색상=" + flagValue(flagBody, IslandFlag.BORDER_COLOR, "blue")
-            + ", 정책=" + flagValue(flagBody, IslandFlag.BORDER_POLICY, "visible")
-            + ", 경고거리=" + flagValue(flagBody, IslandFlag.BORDER_WARNING_BLOCKS, "8");
-    }
-
-    private boolean borderVisible(String flagBody) {
-        String value = flagValue(flagBody, IslandFlag.BORDER_VISIBLE, "true");
-        return !value.equalsIgnoreCase("false")
-            && !value.equalsIgnoreCase("off")
-            && !value.equals("0")
-            && !value.equalsIgnoreCase("hide")
-            && !value.equalsIgnoreCase("hidden")
-            && !value.equals("숨김");
-    }
-
-    private String flagValue(String body, IslandFlag flag, String fallback) {
-        String value = text(body, flag.name());
-        return value.isBlank() ? fallback : value;
-    }
-
-    private String normalizeBorderColor(String value) {
-        return switch (value.toLowerCase(Locale.ROOT)) {
-            case "red", "빨강" -> "red";
-            case "green", "초록" -> "green";
-            case "aqua", "cyan", "하늘" -> "aqua";
-            case "yellow", "노랑" -> "yellow";
-            case "purple", "보라" -> "purple";
-            default -> "blue";
-        };
-    }
-
-    private String normalizeBorderPolicy(String value) {
-        String normalized = value.toLowerCase(Locale.ROOT);
-        if (normalized.equals("hidden") || normalized.equals("hide") || normalized.equals("숨김")) {
-            return "hidden";
-        }
-        if (normalized.equals("warning") || normalized.equals("warn") || normalized.equals("경고")) {
-            return "warning";
-        }
-        return "visible";
-    }
-
-    private void listIslandLimits(Player player) {
-        currentIsland(player, "섬 안에서만 제한을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandLimits(islandId)
-                .thenAccept(body -> message(player, limitListMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 제한을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void openIslandLimitMenu(Player player) {
-        currentIsland(player, "섬 안에서만 제한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandLimitMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void setNamedIslandLimit(Player player, String limitKey, String[] args) {
-        if (args.length < 2) {
-            message(player, routeMessage("input-limit-value-required", "제한 값을 입력해주세요."));
-            return;
-        }
-        setIslandLimit(player, limitKey, longValue(args[1], 0L));
-    }
-
-    private void setIslandLimit(Player player, String limitKey, long value) {
-        currentIsland(player, "섬 안에서만 제한을 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_UPGRADES)) {
-                message(player, routeMessage("limit-set-denied", "섬 제한을 변경할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.limit.set", () -> coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value))
-                .thenAccept(body -> {
-                    if (resultRejected(body)) {
-                        message(player, playerCodeMessage(text(body, "code"), "섬 제한을 변경하지 못했습니다."));
-                        return;
-                    }
-                    message(player, "섬 제한 변경 완료: " + text(body, "limitKey") + " = " + (long) decimal(body, "value"));
-                })
-                .exceptionally(error -> {
-                    message(player, "섬 제한을 변경하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
     private void listIslandMembers(Player player) {
         currentIsland(player, "섬 안에서만 멤버를 확인할 수 있습니다.").ifPresent(islandId -> {
             coreApiClient.listIslandMembers(islandId)
@@ -2934,28 +2655,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return "섬 후기: 평균=" + average + " 개수=" + count + " | " + String.join(" | ", entries);
     }
 
-    private String limitListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String key = text(object, "limitKey");
-            if (!key.isBlank()) {
-                entries.add(key + " 값=" + (long) decimal(object, "value"));
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "섬 제한이 없습니다." : "섬 제한: " + String.join(", ", entries);
-    }
-
     private String memberListMessage(String body) {
         List<String> entries = new ArrayList<>();
         int index = 0;
@@ -3511,5 +3210,4 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     }
 
     private record Point(String worldName, double x, double y, double z, float yaw, float pitch, boolean publicAccess) {}
-    private record BorderView(String info, String flags, IslandRegion region) {}
 }
