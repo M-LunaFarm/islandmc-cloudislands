@@ -84,6 +84,10 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
         sendActionResult(player, coreApiClient.setIslandMember(islandId, player.getUniqueId(), targetUuid, role), "섬 멤버 역할을 변경했습니다.", "섬 멤버 역할을 변경하지 못했습니다.");
     }
 
+    public void setRole(Player player, UUID islandId, UUID targetUuid, String roleKey) {
+        sendBodyResult(player, coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), targetUuid, roleKey).thenApply(body -> "섬 멤버 역할을 변경했습니다: " + jsonValue(body, "roleKey")), "섬 멤버 역할을 변경하지 못했습니다.");
+    }
+
     public void setRoleTarget(Player player, UUID islandId, String target, IslandRole role) {
         targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
             if (targetUuid.equals(new UUID(0L, 0L))) {
@@ -91,6 +95,19 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
                 return;
             }
             setRole(player, islandId, targetUuid, role);
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+            return null;
+        });
+    }
+
+    public void setRoleTarget(Player player, UUID islandId, String target, String roleKey) {
+        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
+            if (targetUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            setRole(player, islandId, targetUuid, roleKey);
         }).exceptionally(error -> {
             player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
             return null;
@@ -245,6 +262,10 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
         sendActionResult(player, coreApiClient.setIslandPermission(islandId, player.getUniqueId(), role, permission, allowed), "섬 권한을 변경했습니다.", "섬 권한을 변경하지 못했습니다.");
     }
 
+    public void setPermission(Player player, UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
+        sendBodyResult(player, coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), roleKey, permission, allowed).thenApply(body -> "섬 권한을 변경했습니다: " + jsonValue(body, "roleKey")), "섬 권한을 변경하지 못했습니다.");
+    }
+
     public void listRoles(Player player, UUID islandId) {
         if (rejectExplicitIslandLookup(player, islandId)) {
             return;
@@ -257,8 +278,16 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
         sendBodyResult(player, coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), role, weight, displayName).thenApply(body -> "섬 역할 저장 완료: " + jsonValue(body, "role") + " weight=" + longValue(body, "weight") + " name=" + jsonValue(body, "displayName")), "섬 역할을 저장하지 못했습니다.");
     }
 
+    public void upsertRole(Player player, UUID islandId, String roleKey, int weight, String displayName) {
+        sendBodyResult(player, coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), roleKey, weight, displayName).thenApply(body -> "섬 역할 저장 완료: " + jsonValue(body, "roleKey") + " weight=" + longValue(body, "weight") + " name=" + jsonValue(body, "displayName")), "섬 역할을 저장하지 못했습니다.");
+    }
+
     public void resetRole(Player player, UUID islandId, IslandRole role) {
         sendBodyResult(player, coreApiClient.resetIslandRole(islandId, player.getUniqueId(), role).thenApply(body -> "섬 역할 초기화 완료: " + jsonValue(body, "role")), "섬 역할을 초기화하지 못했습니다.");
+    }
+
+    public void resetRole(Player player, UUID islandId, String roleKey) {
+        sendBodyResult(player, coreApiClient.resetIslandRole(islandId, player.getUniqueId(), roleKey).thenApply(body -> "섬 역할 초기화 완료: " + jsonValue(body, "roleKey")), "섬 역할을 초기화하지 못했습니다.");
     }
 
     public void listIslandLogs(Player player, UUID islandId) {

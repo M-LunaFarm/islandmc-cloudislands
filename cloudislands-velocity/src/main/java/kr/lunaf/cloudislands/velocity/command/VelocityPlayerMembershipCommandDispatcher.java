@@ -5,6 +5,8 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.RoleId;
+import kr.lunaf.cloudislands.api.model.SystemRole;
 import kr.lunaf.cloudislands.velocity.VelocityRoutingController;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 import net.kyori.adventure.text.Component;
@@ -56,12 +58,12 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             UUID islandId = optionalIslandIdArgument(args, 1);
             String target = argumentAfterOptionalIsland(args, 1, "");
             int roleIndex = indexAfterOptionalIslandValue(args, 1);
-            IslandRole role = args.length > roleIndex ? parseRoleOrNull(args[roleIndex]) : null;
-            if (role == null || !role.islandMemberRole() || role == IslandRole.OWNER) {
-                player.sendMessage(Component.text("올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, TRUSTED"));
+            String roleKey = args.length > roleIndex ? roleKeyOrBlank(args[roleIndex]) : "";
+            if (!memberAssignableRoleKey(roleKey)) {
+                player.sendMessage(Component.text("올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, BUILDER"));
                 return true;
             }
-            playerMembership.setRoleTarget(player, islandId, target, role);
+            playerMembership.setRoleTarget(player, islandId, target, roleKey);
             return true;
         }
         if (args[0].equalsIgnoreCase("roles") || args[0].equalsIgnoreCase("role-list") || args[0].equals("역할목록")) {
@@ -72,27 +74,27 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
         if (args[0].equalsIgnoreCase("role-upsert") || args[0].equalsIgnoreCase("role-edit") || args[0].equals("역할편집")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
-            IslandRole role = args.length > roleIndex ? parseRoleOrNull(args[roleIndex]) : null;
-            if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
-                player.sendMessage(Component.text("편집 가능한 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, TRUSTED"));
+            String roleKey = args.length > roleIndex ? roleKeyOrBlank(args[roleIndex]) : "";
+            if (!editableRoleKey(roleKey)) {
+                player.sendMessage(Component.text("편집 가능한 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, BUILDER"));
                 return true;
             }
             int weightIndex = roleIndex + 1;
             int displayIndex = roleIndex + 2;
-            int weight = args.length > weightIndex ? (int) parseLongOrZero(args[weightIndex]) : role.ordinal();
-            String displayName = args.length > displayIndex ? joinArgs(args, displayIndex) : role.name();
-            playerMembership.upsertRole(player, islandId, role, weight, displayName.isBlank() ? role.name() : displayName);
+            int weight = args.length > weightIndex ? (int) parseLongOrZero(args[weightIndex]) : defaultRoleWeight(roleKey);
+            String displayName = args.length > displayIndex ? joinArgs(args, displayIndex) : roleKey;
+            playerMembership.upsertRole(player, islandId, roleKey, weight, displayName.isBlank() ? roleKey : displayName);
             return true;
         }
         if (args[0].equalsIgnoreCase("role-reset") || args[0].equals("역할초기화")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
-            IslandRole role = args.length > roleIndex ? parseRoleOrNull(args[roleIndex]) : null;
-            if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
-                player.sendMessage(Component.text("초기화 가능한 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, TRUSTED"));
+            String roleKey = args.length > roleIndex ? roleKeyOrBlank(args[roleIndex]) : "";
+            if (!editableRoleKey(roleKey)) {
+                player.sendMessage(Component.text("초기화 가능한 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, BUILDER"));
                 return true;
             }
-            playerMembership.resetRole(player, islandId, role);
+            playerMembership.resetRole(player, islandId, roleKey);
             return true;
         }
         if (args[0].equalsIgnoreCase("transfer") || args[0].equals("양도")) {
@@ -195,10 +197,14 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
         if (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
-            IslandRole role = args.length > roleIndex ? parseRole(args[roleIndex]) : IslandRole.MEMBER;
+            String roleKey = args.length > roleIndex ? roleKeyOrBlank(args[roleIndex]) : IslandRole.MEMBER.name();
             IslandPermission permission = args.length > roleIndex + 1 ? parsePermission(args[roleIndex + 1]) : IslandPermission.BUILD;
             boolean allowed = parseToggle(args, roleIndex + 2, false);
-            playerMembership.setPermission(player, islandId, role, permission, allowed);
+            if (roleKey.isBlank()) {
+                player.sendMessage(Component.text("권한을 설정할 역할을 입력해주세요. 예: MEMBER, VISITOR, BUILDER"));
+                return true;
+            }
+            playerMembership.setPermission(player, islandId, roleKey, permission, allowed);
             return true;
         }
         if (args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("log") || args[0].equalsIgnoreCase("log-list") || args[0].equalsIgnoreCase("log-menu") || args[0].equals("로그") || args[0].equals("로그목록")) {
@@ -207,5 +213,36 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             return true;
         }
         return false;
+    }
+
+    private static String roleKeyOrBlank(String value) {
+        try {
+            return RoleId.of(value).value();
+        } catch (IllegalArgumentException exception) {
+            return "";
+        }
+    }
+
+    private static boolean memberAssignableRoleKey(String roleKey) {
+        return editableRoleKey(roleKey);
+    }
+
+    private static boolean editableRoleKey(String roleKey) {
+        SystemRole systemRole = SystemRole.from(roleKey);
+        return roleKey != null
+            && !roleKey.isBlank()
+            && systemRole != SystemRole.OWNER
+            && systemRole != SystemRole.VISITOR
+            && systemRole != SystemRole.BANNED;
+    }
+
+    private static int defaultRoleWeight(String roleKey) {
+        IslandRole role = null;
+        try {
+            role = IslandRole.valueOf(roleKey);
+        } catch (IllegalArgumentException ignored) {
+            // Dynamic role keys are weighted after built-in member roles by default.
+        }
+        return role == null ? 100 : role.ordinal();
     }
 }

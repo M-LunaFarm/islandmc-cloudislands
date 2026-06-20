@@ -29,10 +29,10 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
                 addLiteralSuggestions(matches, args[1], List.of("25", "50", "100", "250"));
             }
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
-                addLiteralSuggestions(matches, args[1], List.of("MEMBER", "TRUSTED", "MODERATOR", "CO_OWNER", "VISITOR"));
+                addLiteralSuggestions(matches, args[1], roleKeyExamples(true));
             }
             if (first.equals("role-upsert") || first.equals("role-edit") || first.equals("역할편집")) {
-                addLiteralSuggestions(matches, args[1], memberRoleNames());
+                addLiteralSuggestions(matches, args[1], roleKeyExamples(false));
             }
             if (first.equals("setflag") || first.equals("flag-set") || first.equals("플래그설정")) {
                 addLiteralSuggestions(matches, args[1], flagNames());
@@ -45,10 +45,10 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             }
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정")) && !isUuid(args[1])) {
-            addLiteralSuggestions(matches, args[2], memberRoleNames());
+            addLiteralSuggestions(matches, args[2], roleKeyExamples(false));
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정")) && isUuid(args[1])) {
-            addLiteralSuggestions(matches, args[3], memberRoleNames());
+            addLiteralSuggestions(matches, args[3], roleKeyExamples(false));
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
             addLiteralSuggestions(matches, args[2], permissionNames());
@@ -70,6 +70,13 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             addLiteralSuggestions(matches, args[3], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
         }
         return matches;
+    }
+
+    private static List<String> roleKeyExamples(boolean includeVisitor) {
+        if (includeVisitor) {
+            return List.of("MEMBER", "TRUSTED", "MODERATOR", "CO_OWNER", "VISITOR", "BUILDER");
+        }
+        return List.of("MEMBER", "TRUSTED", "MODERATOR", "CO_OWNER", "BUILDER");
     }
 
     public List<String> adminSuggestions(String[] args) {
