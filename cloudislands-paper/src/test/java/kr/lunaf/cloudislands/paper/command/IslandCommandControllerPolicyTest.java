@@ -34,4 +34,20 @@ class IslandCommandControllerPolicyTest {
         assertTrue(completer.contains("IslandCommandBackend.SUBCOMMANDS"));
         assertTrue(completer.contains("IslandCommandBackend.HELP_COMMANDS.size()"));
     }
+
+    @Test
+    void bankCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String bankHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandBankCommandHandler bankCommands;"));
+        assertTrue(backend.contains("bankCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("bankCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("depositIslandBank("), "bank deposit logic belongs in IslandBankCommandHandler");
+        assertFalse(backend.contains("withdrawIslandBank("), "bank withdraw logic belongs in IslandBankCommandHandler");
+        assertTrue(bankHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(bankHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data)"));
+        assertTrue(bankHandler.contains("coreApiClient.depositIslandBank"));
+        assertTrue(bankHandler.contains("coreApiClient.withdrawIslandBank"));
+    }
 }

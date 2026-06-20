@@ -436,7 +436,7 @@ class PaperPlatformBoundaryTest {
     @Test
     void configV2MenuLayoutsDoNotCollideAndUseRegisteredActions() throws Exception {
         Path root = repositoryRoot();
-        Set<String> registeredActions = registeredGuiActions(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        Set<String> registeredActions = registeredGuiActions(commandActionSources(root));
         try (Stream<Path> files = yamlFiles(root.resolve("cloudislands-paper/src/main/resources/config-v2/ui/menus"))) {
             String violations = files
                 .flatMap(path -> menuConfigViolations(root, path, registeredActions).stream())
@@ -465,7 +465,7 @@ class PaperPlatformBoundaryTest {
     @Test
     void guiJavaActionIdsAreRegistered() throws Exception {
         Path root = repositoryRoot();
-        Set<String> registeredActions = registeredGuiActions(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        Set<String> registeredActions = registeredGuiActions(commandActionSources(root));
         try (Stream<Path> files = javaFiles(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui"))) {
             String violations = files
                 .flatMap(path -> javaGuiActionViolations(root, path, registeredActions).stream())
@@ -638,6 +638,7 @@ class PaperPlatformBoundaryTest {
         Path root = repositoryRoot();
         List<Path> files = List.of(
             root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"),
+            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"),
             root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java")
         );
         String violations = files.stream()
@@ -649,13 +650,14 @@ class PaperPlatformBoundaryTest {
         assertTrue(violations.isBlank(), violations);
 
         String commandBackend = Files.readString(files.get(0));
+        String commandActions = commandBackend + "\n" + Files.readString(files.get(1));
         assertTrue(commandBackend.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
         assertTrue(commandBackend.contains("DangerousGuiActionPolicy.confirmed"), "Dangerous GUI mutations must verify a confirmation token");
         assertTrue(commandBackend.contains("ConfirmationTokenPolicy.withToken"), "General confirmation menus must attach confirmation tokens");
         assertTrue(commandBackend.contains("confirmationAccepted(player, \"island.member.remove.confirm\""), "Member removal must verify a confirmation token");
         assertTrue(commandBackend.contains("confirmationAccepted(player, \"island.snapshot.restore.confirm\""), "Snapshot restore must verify a confirmation token");
-        assertTrue(commandBackend.contains("mutateIdempotent(\"island.bank.withdraw\""), "Bank withdraw must use an idempotency key");
-        assertTrue(commandBackend.contains("CoreMutationMetadata.request"), "Paper mutations must carry request IDs and audit actions");
+        assertTrue(commandActions.contains("mutateIdempotent(\"island.bank.withdraw\""), "Bank withdraw must use an idempotency key");
+        assertTrue(commandActions.contains("CoreMutationMetadata.request"), "Paper mutations must carry request IDs and audit actions");
     }
 
     private static Stream<Path> javaFiles(Path root) {
@@ -1007,28 +1009,37 @@ class PaperPlatformBoundaryTest {
         }
     }
 
-    private static Set<String> registeredGuiActions(Path backend) {
+    private static List<Path> commandActionSources(Path root) {
+        return List.of(
+            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"),
+            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java")
+        );
+    }
+
+    private static Set<String> registeredGuiActions(List<Path> sources) {
         try {
             Set<String> actions = new HashSet<>();
-            for (String line : Files.readAllLines(backend)) {
-                if (!line.contains("case \"")) {
-                    continue;
-                }
-                int offset = 0;
-                while (offset < line.length()) {
-                    int start = line.indexOf('"', offset);
-                    if (start < 0) {
-                        break;
+            for (Path source : sources) {
+                for (String line : Files.readAllLines(source)) {
+                    if (!line.contains("case \"")) {
+                        continue;
                     }
-                    int end = line.indexOf('"', start + 1);
-                    if (end < 0) {
-                        break;
+                    int offset = 0;
+                    while (offset < line.length()) {
+                        int start = line.indexOf('"', offset);
+                        if (start < 0) {
+                            break;
+                        }
+                        int end = line.indexOf('"', start + 1);
+                        if (end < 0) {
+                            break;
+                        }
+                        String value = line.substring(start + 1, end);
+                        if (isGuiActionId(value)) {
+                            actions.add(value);
+                        }
+                        offset = end + 1;
                     }
-                    String value = line.substring(start + 1, end);
-                    if (isGuiActionId(value)) {
-                        actions.add(value);
-                    }
-                    offset = end + 1;
                 }
             }
             return actions;
