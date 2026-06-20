@@ -97,4 +97,22 @@ class IslandCommandControllerPolicyTest {
         assertTrue(chatLogHandler.contains("coreApiClient.sendIslandChat"));
         assertTrue(chatLogHandler.contains("coreApiClient.listIslandLogs"));
     }
+
+    @Test
+    void progressionCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String progressionHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandProgressionCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandProgressionCommandHandler progressionCommands;"));
+        assertTrue(backend.contains("progressionCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("progressionCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("recalculateIslandLevel("), "level recalculation logic belongs in IslandProgressionCommandHandler");
+        assertFalse(backend.contains("purchaseIslandUpgrade("), "upgrade purchase logic belongs in IslandProgressionCommandHandler");
+        assertFalse(backend.contains("completeIslandTask("), "mission completion logic belongs in IslandProgressionCommandHandler");
+        assertTrue(progressionHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(progressionHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data)"));
+        assertTrue(progressionHandler.contains("coreApiClient.recalculateIslandLevel"));
+        assertTrue(progressionHandler.contains("coreApiClient.purchaseIslandUpgrade"));
+        assertTrue(progressionHandler.contains("coreApiClient.completeIslandMission"));
+    }
 }

@@ -47,13 +47,10 @@ import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -221,6 +218,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandSnapshotCommandHandler snapshotCommands;
     private final IslandWarehouseCommandHandler warehouseCommands;
     private final IslandChatLogCommandHandler chatLogCommands;
+    private final IslandProgressionCommandHandler progressionCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -407,6 +405,42 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
                 return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+        });
+        this.progressionCommands = new IslandProgressionCommandHandler(plugin, coreApiClient, levelScanService, new IslandProgressionCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public boolean allowed(Player player, IslandPermission permission) {
+                return IslandCommandBackend.this.allowed(player, permission);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public String playerCodeMessage(String code, String fallback) {
+                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
             }
 
             @Override
@@ -637,117 +671,13 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             rateIslandReview(player, args[1], integer(args[2], 0), args.length > 3 ? joined(args, 3) : "");
             return true;
         }
-        if (subcommand.equals("level") || subcommand.equals("레벨")) {
-            showIslandLevel(player);
-            return true;
-        }
-        if (subcommand.equals("worth") || subcommand.equals("value") || subcommand.equals("가치")) {
-            showIslandWorth(player);
-            return true;
-        }
-        if (subcommand.equals("blocks") || subcommand.equals("block-details") || subcommand.equals("block-counts") || subcommand.equals("블록상세") || subcommand.equals("블록목록")) {
-            showIslandBlockDetails(player, args.length > 1 ? integer(args[1], 10) : 10);
-            return true;
-        }
-        if (subcommand.equals("rank") || subcommand.equals("ranking") || subcommand.equals("랭킹")) {
-            if (args.length > 1) {
-                boolean reviewRanking = reviewRankingArg(args[1]);
-                if (reviewRanking) {
-                    listIslandReviewRanking(player, rankingLimit(args, 2));
-                    return true;
-                }
-                boolean worthRanking = args[1].equalsIgnoreCase("worth") || args[1].equals("가치");
-                listIslandRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
-            } else {
-                IslandRankingMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            }
-            return true;
-        }
-        if (subcommand.equals("rank-list") || subcommand.equals("랭킹목록")) {
-            if (args.length > 1 && reviewRankingArg(args[1])) {
-                listIslandReviewRanking(player, rankingLimit(args, 2));
-                return true;
-            }
-            boolean worthRanking = args.length > 1 && (args[1].equalsIgnoreCase("worth") || args[1].equals("가치"));
-            listIslandRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
-            return true;
-        }
-        if (subcommand.equals("reviewrank") || subcommand.equals("평가랭킹") || subcommand.equals("후기랭킹")) {
-            listIslandReviewRanking(player, rankingLimit(args, 1));
-            return true;
-        }
-        if (subcommand.equals("worthrank") || subcommand.equals("valuerank") || subcommand.equals("가치랭킹")) {
-            listIslandRanking(player, true, rankingLimit(args, 1));
-            return true;
-        }
-        if (subcommand.equals("levelcalc") || subcommand.equals("recalculate") || subcommand.equals("레벨계산")) {
-            recalculateIslandLevel(player);
+        if (progressionCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (bankCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (warehouseCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (subcommand.equals("upgrade") || subcommand.equals("upgrades") || subcommand.equals("업그레이드")) {
-            if (args.length > 1) {
-                purchaseIslandUpgrade(player, args[1]);
-            } else {
-                openIslandUpgradeMenu(player);
-            }
-            return true;
-        }
-        if (subcommand.equals("upgrade-menu")) {
-            openIslandUpgradeMenu(player);
-            return true;
-        }
-        if (subcommand.equals("upgrade-list") || subcommand.equals("업그레이드목록")) {
-            listIslandUpgrades(player);
-            return true;
-        }
-        if (subcommand.equals("buyupgrade") || subcommand.equals("upgrade-buy") || subcommand.equals("업그레이드구매")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-upgrade-key-required", "구매할 업그레이드 키를 입력해주세요."));
-                return true;
-            }
-            purchaseIslandUpgrade(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("generator") || subcommand.equals("generator-info") || subcommand.equals("생성기") || subcommand.equals("생성기정보")) {
-            showIslandGenerator(player);
-            return true;
-        }
-        if (subcommand.equals("mission") || subcommand.equals("missions") || subcommand.equals("미션")) {
-            if (args.length > 1) {
-                completeIslandMission(player, args[1]);
-            } else {
-                openIslandMissionMenu(player, "MISSION");
-            }
-            return true;
-        }
-        if (subcommand.equals("mission-menu")) {
-            openIslandMissionMenu(player, "MISSION");
-            return true;
-        }
-        if (subcommand.equals("mission-list") || subcommand.equals("미션목록")) {
-            listIslandMissions(player, "MISSION", "섬 미션");
-            return true;
-        }
-        if (subcommand.equals("challenge") || subcommand.equals("challenges") || subcommand.equals("챌린지")) {
-            if (args.length > 1) {
-                completeIslandChallenge(player, args[1]);
-            } else {
-                openIslandMissionMenu(player, "CHALLENGE");
-            }
-            return true;
-        }
-        if (subcommand.equals("challenge-menu")) {
-            openIslandMissionMenu(player, "CHALLENGE");
-            return true;
-        }
-        if (subcommand.equals("challenge-list") || subcommand.equals("챌린지목록")) {
-            listIslandMissions(player, "CHALLENGE", "섬 챌린지");
             return true;
         }
         if (chatLogCommands.handleCommand(player, subcommand, args)) {
@@ -1102,6 +1032,9 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (chatLogCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
             return;
         }
+        if (progressionCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+            return;
+        }
         switch (actionId) {
             case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
             case "island.create.open" -> IslandCreateMenu.open(plugin, coreApiClient, player, messagesFor(player));
@@ -1237,22 +1170,12 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             case "island.flags.open" -> openIslandFlagMenu(player);
             case "island.flags.list" -> listIslandFlags(player);
             case "island.flag.set" -> setIslandFlag(player, data.getOrDefault("flag", ""), click.right() ? "false" : "true");
-            case "island.ranking.open" -> IslandRankingMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            case "island.ranking.list" -> listIslandRanking(player, data.getOrDefault("kind", "").equalsIgnoreCase("worth"), 10);
-            case "island.level.recalculate" -> recalculateIslandLevel(player);
-            case "island.level.show" -> showIslandLevel(player);
-            case "island.worth.show" -> showIslandWorth(player);
-            case "island.missions.open" -> openIslandMissionMenu(player, data.getOrDefault("kind", "MISSION"));
-            case "island.mission.complete" -> completeIslandTask(player, data.getOrDefault("missionKey", ""), data.getOrDefault("kind", "MISSION"), data.getOrDefault("label", "섬 미션"));
             case "island.biome.open" -> openIslandBiomeMenu(player);
             case "island.biome.show" -> showIslandBiome(player);
             case "island.biome.set" -> setIslandBiome(player, data.getOrDefault("biomeKey", ""));
             case "island.limits.open" -> openIslandLimitMenu(player);
             case "island.limits.list" -> listIslandLimits(player);
             case "island.limit.set" -> setIslandLimit(player, data.getOrDefault("limitKey", ""), longValue(data.getOrDefault("value", "0"), 0L));
-            case "island.upgrades.open" -> openIslandUpgradeMenu(player);
-            case "island.upgrades.list" -> listIslandUpgrades(player);
-            case "island.upgrade.purchase" -> purchaseIslandUpgrade(player, data.getOrDefault("upgradeKey", ""));
             case "island.danger.open" -> IslandDangerMenu.open(player, messagesFor(player));
             case "island.danger.reset.prepare" -> IslandDangerMenu.openResetConfirm(player, messagesFor(player));
             case "island.danger.delete.prepare" -> IslandDangerMenu.openDeleteConfirm(player, messagesFor(player));
@@ -2009,199 +1932,8 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "BungeeCord");
     }
 
-    private void showIslandLevel(Player player) {
-        currentIsland(player, "섬 안에서만 레벨을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandInfo(islandId)
-                .thenAccept(body -> message(player, "섬 레벨: " + (long) decimal(body, "level")))
-                .exceptionally(error -> {
-                    message(player, "섬 레벨을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
     private void openIslandInfoMenu(Player player) {
         currentIsland(player, "섬 안에서만 정보를 확인할 수 있습니다.").ifPresent(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void showIslandWorth(Player player) {
-        currentIsland(player, "섬 안에서만 가치를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandInfo(islandId)
-                .thenAccept(body -> {
-                    String worth = text(body, "worth");
-                    message(player, "섬 가치: " + (worth.isBlank() ? "0" : worth));
-                })
-                .exceptionally(error -> {
-                    message(player, "섬 가치를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void showIslandBlockDetails(Player player, int limit) {
-        currentIsland(player, "섬 안에서만 블록 상세를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandBlockDetails(islandId, Math.max(1, Math.min(limit, 100)))
-                .thenAccept(body -> message(player, blockDetailsMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 블록 상세를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void listIslandRanking(Player player, boolean worthRanking) {
-        listIslandRanking(player, worthRanking, 10);
-    }
-
-    private void listIslandRanking(Player player, boolean worthRanking, int limit) {
-        int cappedLimit = Math.max(1, Math.min(limit, 100));
-        if (worthRanking) {
-            coreApiClient.topIslandsByWorth(cappedLimit)
-                .thenAccept(body -> message(player, rankingMessage(body, "섬 가치 랭킹", "worth")))
-                .exceptionally(error -> {
-                    message(player, "섬 가치 랭킹을 불러오지 못했습니다.");
-                    return null;
-                });
-            return;
-        }
-        coreApiClient.topIslandsByLevel(cappedLimit)
-            .thenAccept(body -> message(player, rankingMessage(body, "섬 레벨 랭킹", "level")))
-            .exceptionally(error -> {
-                message(player, "섬 레벨 랭킹을 불러오지 못했습니다.");
-                return null;
-            });
-    }
-
-    private void listIslandReviewRanking(Player player, int limit) {
-        int cappedLimit = Math.max(1, Math.min(limit, 100));
-        coreApiClient.topIslandsByReviews(cappedLimit)
-            .thenAccept(body -> message(player, reviewRankingMessage(body)))
-            .exceptionally(error -> {
-                message(player, "섬 후기 랭킹을 불러오지 못했습니다.");
-                return null;
-            });
-    }
-
-    private boolean reviewRankingArg(String value) {
-        return value.equalsIgnoreCase("review") || value.equalsIgnoreCase("reviews") || value.equalsIgnoreCase("rating") || value.equals("후기") || value.equals("평가");
-    }
-
-    private int rankingLimit(String[] args, int index) {
-        if (args.length <= index) {
-            return 10;
-        }
-        return (int) number(args[index], 10L);
-    }
-
-    private void recalculateIslandLevel(Player player) {
-        currentIsland(player, "섬 안에서만 레벨을 계산할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.START_LEVEL_CALC)) {
-                message(player, routeMessage("level-recalculate-denied", "섬 레벨을 계산할 권한이 없습니다."));
-                return;
-            }
-            player.sendActionBar(Component.text(routeMessage("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
-            CompletableFuture<Void> rescan = levelScanService == null ? CompletableFuture.completedFuture(null) : levelScanService.rescanIsland(islandId);
-            rescan.thenCompose(ignored -> coreApiClient.recalculateIslandLevel(islandId, player.getUniqueId()))
-                .thenAccept(body -> {
-                    String worth = text(body, "worth");
-                    message(player, "섬 레벨 계산 완료: 레벨 " + (long) decimal(body, "level") + " / 가치 " + (worth.isBlank() ? "0" : worth));
-                })
-                .exceptionally(error -> {
-                    message(player, "섬 레벨을 계산하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void listIslandUpgrades(Player player) {
-        currentIsland(player, "섬 안에서만 업그레이드를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandUpgrades(islandId)
-                .thenAccept(body -> message(player, upgradeListMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 업그레이드를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void showIslandGenerator(Player player) {
-        currentIsland(player, "섬 안에서만 생성기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandUpgrades(islandId)
-                .thenAccept(body -> message(player, generatorInfoMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 생성기를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void openIslandUpgradeMenu(Player player) {
-        currentIsland(player, "섬 안에서만 업그레이드 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandUpgradeMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void purchaseIslandUpgrade(Player player, String upgradeKey) {
-        currentIsland(player, "섬 안에서만 업그레이드를 구매할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_UPGRADES)) {
-                message(player, routeMessage("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다."));
-                return;
-            }
-            mutateIdempotent("island.upgrade.purchase", () -> coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey))
-                .thenAccept(body -> {
-                    String key = text(body, "upgradeKey");
-                    String cost = text(body, "cost");
-                    if (body.contains("\"accepted\":false")) {
-                        message(player, playerCodeMessage(text(body, "code"), "섬 업그레이드를 구매하지 못했습니다."));
-                        return;
-                    }
-                    message(player, "섬 업그레이드 구매 완료: " + (key.isBlank() ? upgradeKey : key) + " Lv." + (long) decimal(body, "level") + " / 비용 " + (cost.isBlank() ? "0" : cost));
-                })
-                .exceptionally(error -> {
-                    message(player, "섬 업그레이드를 구매하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void listIslandMissions(Player player, String kind, String label) {
-        currentIsland(player, "섬 안에서만 " + label + "을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandMissions(islandId, kind)
-                .thenAccept(body -> message(player, missionListMessage(body, label)))
-                .exceptionally(error -> {
-                    message(player, label + "을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void openIslandMissionMenu(Player player, String kind) {
-        currentIsland(player, "섬 안에서만 과제 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMissionMenu.open(plugin, coreApiClient, player, islandId, kind, messagesFor(player)));
-    }
-
-    private void completeIslandMission(Player player, String missionKey) {
-        completeIslandTask(player, missionKey, "MISSION", "섬 미션");
-    }
-
-    private void completeIslandChallenge(Player player, String missionKey) {
-        completeIslandTask(player, missionKey, "CHALLENGE", "섬 챌린지");
-    }
-
-    private void completeIslandTask(Player player, String missionKey, String kind, String label) {
-        currentIsland(player, "섬 안에서만 " + label + "을 완료할 수 있습니다.").ifPresent(islandId -> {
-            mutateIdempotent("island.mission.complete", () -> coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, kind))
-                .thenAccept(body -> {
-                    if (resultRejected(body)) {
-                        message(player, playerCodeMessage(text(body, "code"), label + "을 완료하지 못했습니다."));
-                        return;
-                    }
-                    String title = text(body, "title");
-                    String reward = text(body, "reward");
-                    message(player, label + " 완료: " + (title.isBlank() ? missionKey : title) + (reward.isBlank() ? "" : " / 보상 " + reward));
-                })
-                .exceptionally(error -> {
-                    message(player, label + "을 완료하지 못했습니다.");
-                    return null;
-                });
-        });
     }
 
     private void showIslandBiome(Player player) {
@@ -3110,93 +2842,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return names.isEmpty() ? emptyMessage : label + ": " + String.join(", ", names);
     }
 
-    private String rankingMessage(String body, String label, String valueKey) {
-        if (body == null || body.isBlank()) {
-            return label + ": 기록이 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < body.length() && entries.size() < 10) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = text(object, "name");
-                String value = valueKey.equals("worth") ? text(object, valueKey) : Long.toString((long) decimal(object, valueKey));
-                String valueLabel = valueKey.equals("worth") ? "가치" : "레벨";
-                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? "이름 없는 섬" : name) + " (ID=" + compactId(islandId) + ", " + valueLabel + "=" + value + ")");
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? label + ": 기록이 없습니다." : label + ": " + String.join(" | ", entries);
-    }
-
-    private String reviewRankingMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "섬 후기 랭킹: 기록이 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < body.length() && entries.size() < 10) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                String rating = String.format(java.util.Locale.ROOT, "%.2f", decimal(object, "averageRating"));
-                long count = (long) decimal(object, "reviewCount");
-                entries.add((entries.size() + 1) + ". ID=" + compactId(islandId) + " 평점=" + rating + "/5 후기=" + count);
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "섬 후기 랭킹: 기록이 없습니다." : "섬 후기 랭킹: " + String.join(" | ", entries);
-    }
-
-    private String blockDetailsMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "섬 블록 기록이 없습니다.";
-        }
-        String totalWorth = text(body, "totalWorth");
-        long totalLevelPoints = (long) decimal(body, "totalLevelPoints");
-        List<String> entries = new ArrayList<>();
-        int index = body.indexOf("\"blocks\"");
-        while (index >= 0 && index < body.length() && entries.size() < 20) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String materialKey = text(object, "materialKey");
-            long count = (long) decimal(object, "count");
-            String worth = text(object, "totalWorth");
-            long points = (long) decimal(object, "levelPoints");
-            if (!materialKey.isBlank()) {
-                entries.add(materialKey + " x" + count + " 가치=" + (worth.isBlank() ? "0" : worth) + " 점수=" + points);
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty()
-            ? "섬 블록 기록이 없습니다."
-            : "섬 블록상세: 총가치=" + (totalWorth.isBlank() ? "0" : totalWorth) + " 총점수=" + totalLevelPoints + " | " + String.join(" | ", entries);
-    }
-
     private String publicIslandListMessage(String body) {
         if (body == null || body.isBlank()) {
             return "공개 섬이 없습니다.";
@@ -3287,85 +2932,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             return "섬 후기가 없습니다.";
         }
         return "섬 후기: 평균=" + average + " 개수=" + count + " | " + String.join(" | ", entries);
-    }
-
-    private String generatorInfoMessage(String body) {
-        String generatorKey = "default";
-        long level = 1L;
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String upgradeKey = text(object, "upgradeKey");
-            String normalized = upgradeKey.toLowerCase(Locale.ROOT);
-            if (normalized.equals("generator") || normalized.startsWith("generator:")) {
-                long currentLevel = Math.max(1L, (long) decimal(object, "level"));
-                String currentKey = text(object, "generatorKey");
-                if (currentKey.isBlank()) {
-                    int separator = upgradeKey.indexOf(':');
-                    currentKey = separator < 0 ? "default" : upgradeKey.substring(separator + 1);
-                }
-                if (currentLevel > level || (currentLevel == level && generatorKey.equals("default") && !currentKey.equalsIgnoreCase("default"))) {
-                    level = currentLevel;
-                    generatorKey = currentKey.isBlank() ? "default" : currentKey;
-                }
-            }
-            index = objectEnd + 1;
-        }
-        return "섬 생성기: key=" + generatorKey + " level=" + level + " / 업그레이드: /섬 업그레이드구매 generator";
-    }
-
-    private String upgradeListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String key = text(object, "upgradeKey");
-            if (!key.isBlank()) {
-                entries.add(key + " Lv." + (long) decimal(object, "level"));
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "섬 업그레이드가 없습니다." : "섬 업그레이드: " + String.join(", ", entries);
-    }
-
-    private String missionListMessage(String body, String label) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String key = text(object, "missionKey");
-            if (!key.isBlank()) {
-                String title = text(object, "title");
-                String state = bool(object, "completed") ? "완료" : ((long) decimal(object, "progress") + "/" + (long) decimal(object, "goal"));
-                entries.add(key + "(" + (title.isBlank() ? key : title) + ", " + state + ")");
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? label + "이 없습니다." : label + ": " + String.join(", ", entries);
     }
 
     private String limitListMessage(String body) {
@@ -3575,6 +3141,13 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
 
     private long number(String value, long fallback) {
         return longValue(value, fallback);
+    }
+
+    private int rankingLimit(String[] args, int index) {
+        if (args.length <= index) {
+            return 10;
+        }
+        return (int) number(args[index], 10L);
     }
 
     private long parseDurationSeconds(String value, long fallback) {
