@@ -20,13 +20,19 @@ public final class AdminNodeMenu implements Listener {
     private static final String TITLE_KEY = "admin-node-menu-title";
     private static final String TITLE = "섬 노드 관리";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public AdminNodeMenu() {
         this(null);
     }
 
     public AdminNodeMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public AdminNodeMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Player player, String nodeId) {
@@ -104,7 +110,7 @@ public final class AdminNodeMenu implements Listener {
         }
         String actionId = GuiItems.actionId(event.getCurrentItem());
         if (!actionId.isBlank()) {
-            GuiActionRegistry.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
+            actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
         }
     }
 

@@ -24,13 +24,19 @@ public final class IslandWarpMenu implements Listener {
     private static final String MENU_ID = "island.warps";
     private static final String PUBLIC_MENU_ID = "island.public-warps";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandWarpMenu() {
         this(null);
     }
 
     public IslandWarpMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandWarpMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -83,15 +89,15 @@ public final class IslandWarpMenu implements Listener {
             return;
         }
         if (publicMenu && slot == 45) {
-            GuiActionRegistry.execute(player, "island.visit.public.open", GuiClick.from(event));
+            actions.execute(player, "island.visit.public.open", GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
@@ -101,19 +107,19 @@ public final class IslandWarpMenu implements Listener {
         }
         String islandId = data.getOrDefault("islandId", "");
         if (publicMenu && !islandId.isBlank()) {
-            GuiActionRegistry.execute(player, "island.warp.teleport", java.util.Map.of("islandId", String.valueOf(islandId), "warpName", warpName), GuiClick.from(event));
+            actions.execute(player, "island.warp.teleport", java.util.Map.of("islandId", String.valueOf(islandId), "warpName", warpName), GuiClick.from(event));
             return;
         }
         if (event.isShiftClick() && event.isRightClick()) {
-            GuiActionRegistry.execute(player, "island.warp.delete.prepare", java.util.Map.of("warpName", warpName), GuiClick.from(event));
+            actions.execute(player, "island.warp.delete.prepare", java.util.Map.of("warpName", warpName), GuiClick.from(event));
             return;
         }
         if (event.isRightClick()) {
             boolean publicAccess = Boolean.parseBoolean(data.getOrDefault("publicAccess", "false"));
-            GuiActionRegistry.execute(player, "island.warp.public.toggle", java.util.Map.of("warpName", warpName, "publicAccess", String.valueOf(publicAccess)), GuiClick.from(event));
+            actions.execute(player, "island.warp.public.toggle", java.util.Map.of("warpName", warpName, "publicAccess", String.valueOf(publicAccess)), GuiClick.from(event));
             return;
         }
-        GuiActionRegistry.execute(player, "island.warp.teleport", java.util.Map.of("warpName", warpName), GuiClick.from(event));
+        actions.execute(player, "island.warp.teleport", java.util.Map.of("warpName", warpName), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String title, List<WarpView> warps, boolean publicMenu, MessageRenderer messages) {

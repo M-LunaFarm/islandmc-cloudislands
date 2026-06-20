@@ -22,13 +22,19 @@ public final class IslandMyIslandsMenu implements Listener {
     private static final String TITLE = "내 섬 목록";
     private static final String MENU_ID = "island.my-islands";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandMyIslandsMenu() {
         this(null);
     }
 
     public IslandMyIslandsMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandMyIslandsMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player) {
@@ -61,24 +67,24 @@ public final class IslandMyIslandsMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.list.open", GuiClick.from(event));
+            actions.execute(player, "island.list.open", GuiClick.from(event));
             return;
         }
         if (slot == 48) {
-            GuiActionRegistry.execute(player, "island.create.open", GuiClick.from(event));
+            actions.execute(player, "island.create.open", GuiClick.from(event));
             return;
         }
         if (slot == 45) {
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.visit.open", GuiClick.from(event));
+            actions.execute(player, "island.visit.open", GuiClick.from(event));
             return;
         }
         String islandId = GuiItems.data(event.getCurrentItem()).getOrDefault("target", "");
         if (!islandId.isBlank()) {
-            GuiActionRegistry.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
+            actions.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
         }
     }
 

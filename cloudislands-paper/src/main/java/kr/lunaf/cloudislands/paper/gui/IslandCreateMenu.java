@@ -22,13 +22,19 @@ public final class IslandCreateMenu implements Listener {
     private static final String TITLE_KEY = "create-menu-title";
     private static final String TITLE = "섬 템플릿 선택";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandCreateMenu() {
         this(null);
     }
 
     public IslandCreateMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandCreateMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player) {
@@ -60,7 +66,7 @@ public final class IslandCreateMenu implements Listener {
             return;
         }
         player.closeInventory();
-        GuiActionRegistry.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
+        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<TemplateView> templates, MessageRenderer messages) {

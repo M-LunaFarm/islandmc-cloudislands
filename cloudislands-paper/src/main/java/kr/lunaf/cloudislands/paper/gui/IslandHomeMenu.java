@@ -23,13 +23,19 @@ public final class IslandHomeMenu implements Listener {
     private static final String TITLE = "섬 홈 관리";
     private static final String MENU_ID = "island.homes";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandHomeMenu() {
         this(null);
     }
 
     public IslandHomeMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandHomeMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -66,24 +72,24 @@ public final class IslandHomeMenu implements Listener {
                 player.sendMessage(message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>"));
                 return;
             }
-            GuiActionRegistry.execute(player, "island.home.set", java.util.Map.of("homeName", "default"), GuiClick.from(event));
+            actions.execute(player, "island.home.set", java.util.Map.of("homeName", "default"), GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         String homeName = GuiItems.data(event.getCurrentItem()).getOrDefault("homeName", "");
         if (!homeName.isBlank()) {
             if (event.isRightClick()) {
-                GuiActionRegistry.execute(player, "island.home.set", java.util.Map.of("homeName", homeName), GuiClick.from(event));
+                actions.execute(player, "island.home.set", java.util.Map.of("homeName", homeName), GuiClick.from(event));
                 return;
             }
-            GuiActionRegistry.execute(player, "island.home", java.util.Map.of("homeName", homeName), GuiClick.from(event));
+            actions.execute(player, "island.home", java.util.Map.of("homeName", homeName), GuiClick.from(event));
         }
     }
 

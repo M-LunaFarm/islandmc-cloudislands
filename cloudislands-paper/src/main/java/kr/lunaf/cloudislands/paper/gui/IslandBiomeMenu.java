@@ -21,6 +21,7 @@ public final class IslandBiomeMenu implements Listener {
     private static final String TITLE = "섬 바이옴";
     private static final String MENU_ID = "island.biome";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
     private static final List<String> BIOMES = List.of(
         "minecraft:plains",
         "minecraft:forest",
@@ -39,7 +40,12 @@ public final class IslandBiomeMenu implements Listener {
     }
 
     public IslandBiomeMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandBiomeMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -72,26 +78,26 @@ public final class IslandBiomeMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 4) {
-            GuiActionRegistry.execute(player, "island.biome.show", GuiClick.from(event));
+            actions.execute(player, "island.biome.show", GuiClick.from(event));
             return;
         }
         if (slot == 22) {
-            GuiActionRegistry.execute(player, "island.biome.open", GuiClick.from(event));
+            actions.execute(player, "island.biome.open", GuiClick.from(event));
             return;
         }
         if (slot == 24) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         if (slot == 26) {
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         String biomeKey = GuiItems.data(event.getCurrentItem()).getOrDefault("biomeKey", "");
         if (biomeKey.isBlank()) {
             return;
         }
-        GuiActionRegistry.execute(player, "island.biome.set", java.util.Map.of("biomeKey", biomeKey), GuiClick.from(event));
+        actions.execute(player, "island.biome.set", java.util.Map.of("biomeKey", biomeKey), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String currentBiome, MessageRenderer messages) {

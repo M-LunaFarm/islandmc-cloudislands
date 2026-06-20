@@ -24,13 +24,19 @@ public final class IslandMissionMenu implements Listener {
     private static final String MISSION_MENU_ID = "island.missions";
     private static final String CHALLENGE_MENU_ID = "island.challenges";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandMissionMenu() {
         this(null);
     }
 
     public IslandMissionMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandMissionMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, String kind) {
@@ -66,22 +72,22 @@ public final class IslandMissionMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 45) {
-            GuiActionRegistry.execute(player, "island.missions.open", java.util.Map.of("kind", "MISSION"), GuiClick.from(event));
+            actions.execute(player, "island.missions.open", java.util.Map.of("kind", "MISSION"), GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.missions.open", java.util.Map.of("kind", "CHALLENGE"), GuiClick.from(event));
+            actions.execute(player, "island.missions.open", java.util.Map.of("kind", "CHALLENGE"), GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.missions.open", java.util.Map.of("kind", mission ? "MISSION" : "CHALLENGE"), GuiClick.from(event));
+            actions.execute(player, "island.missions.open", java.util.Map.of("kind", mission ? "MISSION" : "CHALLENGE"), GuiClick.from(event));
             return;
         }
         String missionKey = GuiItems.data(event.getCurrentItem()).getOrDefault("missionKey", "");
         if (missionKey.isBlank()) {
             return;
         }
-        GuiActionRegistry.execute(player, "island.mission.complete", java.util.Map.of("kind", mission ? "MISSION" : "CHALLENGE", "missionKey", missionKey, "label", mission ? "섬 미션" : "섬 챌린지"), GuiClick.from(event));
+        actions.execute(player, "island.mission.complete", java.util.Map.of("kind", mission ? "MISSION" : "CHALLENGE", "missionKey", missionKey, "label", mission ? "섬 미션" : "섬 챌린지"), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String kind, List<MissionView> missions, MessageRenderer messages) {

@@ -22,13 +22,19 @@ public final class IslandInfoMenu implements Listener {
     private static final String TITLE_KEY = "info-menu-title";
     private static final String TITLE = "섬 정보";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandInfoMenu() {
         this(null);
     }
 
     public IslandInfoMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandInfoMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -58,17 +64,17 @@ public final class IslandInfoMenu implements Listener {
         int slot = event.getRawSlot();
         player.closeInventory();
         if (slot == 23) {
-            GuiActionRegistry.execute(player, "island.level.recalculate", GuiClick.from(event));
+            actions.execute(player, "island.level.recalculate", GuiClick.from(event));
         } else if (slot == 21) {
-            GuiActionRegistry.execute(player, "island.ranking.open", GuiClick.from(event));
+            actions.execute(player, "island.ranking.open", GuiClick.from(event));
         } else if (slot == 22) {
-            GuiActionRegistry.execute(player, "island.logs.open", GuiClick.from(event));
+            actions.execute(player, "island.logs.open", GuiClick.from(event));
         } else if (slot == 16) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
         } else if (slot == 25) {
-            GuiActionRegistry.execute(player, "island.info.open", GuiClick.from(event));
+            actions.execute(player, "island.info.open", GuiClick.from(event));
         } else if (slot == 24) {
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
         } else if (slot == 26) {
             return;
         }

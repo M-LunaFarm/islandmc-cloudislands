@@ -15,12 +15,18 @@ import org.bukkit.plugin.Plugin;
 
 public final class GuiStateMenus implements Listener {
     public static final String MENU_ID = "gui.state";
+    private final GuiActionRegistry actions;
 
-    private GuiStateMenus() {
+    private GuiStateMenus(GuiActionRegistry actions) {
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static GuiStateMenus listener() {
-        return new GuiStateMenus();
+        return listener(new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public static GuiStateMenus listener(GuiActionRegistry actions) {
+        return new GuiStateMenus(actions);
     }
 
     public static GuiSession openLoading(Plugin plugin, Player player, MessageRenderer messages, String title) {
@@ -101,7 +107,7 @@ public final class GuiStateMenus implements Listener {
             return;
         }
         player.closeInventory();
-        GuiActionRegistry.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
+        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
     }
 
     @EventHandler

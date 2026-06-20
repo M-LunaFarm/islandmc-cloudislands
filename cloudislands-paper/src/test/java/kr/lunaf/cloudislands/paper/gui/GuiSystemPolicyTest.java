@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GuiSystemPolicyTest {
@@ -70,5 +71,16 @@ class GuiSystemPolicyTest {
         assertTrue(source.contains("GuiClick.UNSUPPORTED"), "null clicks must not be treated as LEFT");
         assertTrue(source.contains("!safeClick.supported()"), "unsupported clicks must be dropped before action execution");
         assertTrue(source.contains("GuiActionParser.parse(actionId, data)"), "GUI actions must pass through typed parser before execution");
+        assertTrue(source.contains("private final GuiActionExecutor executor"), "GUI action executor must be constructor-injected");
+        assertFalse(source.contains("AtomicReference"), "GUI action registry must not keep global mutable executor state");
+        assertFalse(source.contains("static void configure"), "GUI action registry must not be reconfigured globally");
+    }
+
+    @Test
+    void menuRegistrarInjectsGuiActionRegistry() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandGuiMenuRegistrar.java"));
+        assertTrue(source.contains("new GuiActionRegistry(executor)"), "menu bootstrap must create the action registry instance");
+        assertTrue(source.contains("GuiStateMenus.listener(registry)"), "state menus must share the injected action registry");
+        assertFalse(source.contains("GuiActionRegistry.configure"), "menu bootstrap must not configure global registry state");
     }
 }

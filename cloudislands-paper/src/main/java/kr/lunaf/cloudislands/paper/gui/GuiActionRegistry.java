@@ -1,29 +1,25 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import org.bukkit.entity.Player;
 
 public final class GuiActionRegistry {
-    private static final AtomicReference<GuiActionExecutor> EXECUTOR = new AtomicReference<>(GuiActionExecutor.noop());
+    private final GuiActionExecutor executor;
 
-    private GuiActionRegistry() {
+    public GuiActionRegistry(GuiActionExecutor executor) {
+        this.executor = executor == null ? GuiActionExecutor.noop() : executor;
     }
 
-    public static void configure(GuiActionExecutor executor) {
-        EXECUTOR.set(executor == null ? GuiActionExecutor.noop() : executor);
-    }
-
-    public static void execute(Player player, String actionId, GuiClick click) {
+    public void execute(Player player, String actionId, GuiClick click) {
         execute(player, actionId, Map.of(), click);
     }
 
-    public static void execute(Player player, String actionId, Map<String, String> data, GuiClick click) {
+    public void execute(Player player, String actionId, Map<String, String> data, GuiClick click) {
         GuiClick safeClick = click == null ? GuiClick.UNSUPPORTED : click;
         if (!safeClick.supported()) {
             return;
         }
         GuiActionParser.parse(actionId, data)
-            .ifPresent(action -> EXECUTOR.get().execute(player, action.actionId(), action.data(), safeClick));
+            .ifPresent(action -> executor.execute(player, action.actionId(), action.data(), safeClick));
     }
 }

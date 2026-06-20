@@ -23,13 +23,19 @@ public final class IslandLimitMenu implements Listener {
     private static final String TITLE = "섬 제한";
     private static final String MENU_ID = "island.limits";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandLimitMenu() {
         this(null);
     }
 
     public IslandLimitMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandLimitMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -62,15 +68,15 @@ public final class IslandLimitMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 45) {
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.limits.open", GuiClick.from(event));
+            actions.execute(player, "island.limits.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
@@ -81,7 +87,7 @@ public final class IslandLimitMenu implements Listener {
         long value = number(data.getOrDefault("value", "0"));
         long step = event.isShiftClick() ? 10L : 1L;
         long nextValue = event.isRightClick() ? Math.max(0L, value - step) : value + step;
-        GuiActionRegistry.execute(player, "island.limit.set", java.util.Map.of("limitKey", limitKey, "value", String.valueOf(nextValue)), GuiClick.from(event));
+        actions.execute(player, "island.limit.set", java.util.Map.of("limitKey", limitKey, "value", String.valueOf(nextValue)), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<LimitView> limits, MessageRenderer messages) {

@@ -22,13 +22,19 @@ public final class IslandRoleMenu implements Listener {
     private static final String TITLE = "섬 역할 설정";
     private static final String MENU_ID = "island.roles";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandRoleMenu() {
         this(null);
     }
 
     public IslandRoleMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandRoleMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -64,7 +70,7 @@ public final class IslandRoleMenu implements Listener {
             return;
         }
         player.closeInventory();
-        GuiActionRegistry.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
+        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<RoleView> roles, MessageRenderer messages) {

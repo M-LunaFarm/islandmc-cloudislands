@@ -22,13 +22,19 @@ public final class IslandFlagMenu implements Listener {
     private static final String TITLE_KEY = "flag-menu-title";
     private static final String TITLE = "섬 플래그 설정";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandFlagMenu() {
         this(null);
     }
 
     public IslandFlagMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandFlagMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -61,18 +67,18 @@ public final class IslandFlagMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.flags.open", GuiClick.from(event));
+            actions.execute(player, "island.flags.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         String flag = GuiItems.data(event.getCurrentItem()).getOrDefault("flag", "");
         if (flag.isBlank()) {
             return;
         }
-        GuiActionRegistry.execute(player, "island.flag.set", java.util.Map.of("flag", flag), GuiClick.from(event));
+        actions.execute(player, "island.flag.set", java.util.Map.of("flag", flag), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, Map<IslandFlag, String> values, MessageRenderer messages) {

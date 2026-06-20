@@ -17,13 +17,19 @@ public final class IslandChatMenu implements Listener {
     private static final String TITLE_KEY = "chat-menu-title";
     private static final String TITLE = "섬 채팅";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandChatMenu() {
         this(null);
     }
 
     public IslandChatMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandChatMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Player player) {
@@ -60,11 +66,11 @@ public final class IslandChatMenu implements Listener {
         } else if (slot == 12) {
             player.sendMessage(message(messages, "chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>"));
         } else if (slot == 14) {
-            GuiActionRegistry.execute(player, "island.logs.open", GuiClick.from(event));
+            actions.execute(player, "island.logs.open", GuiClick.from(event));
         } else if (slot == 15) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
         } else if (slot == 16) {
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
         }
     }
 

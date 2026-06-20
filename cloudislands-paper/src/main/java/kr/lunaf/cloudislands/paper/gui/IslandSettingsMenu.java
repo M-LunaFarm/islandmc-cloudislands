@@ -21,13 +21,19 @@ public final class IslandSettingsMenu implements Listener {
     private static final String TITLE_KEY = "settings-menu-title";
     private static final String TITLE = "섬 설정";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandSettingsMenu() {
         this(null);
     }
 
     public IslandSettingsMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandSettingsMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, java.util.UUID islandId) {
@@ -92,35 +98,35 @@ public final class IslandSettingsMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 10) {
-            GuiActionRegistry.execute(player, "island.public.toggle", GuiClick.from(event));
+            actions.execute(player, "island.public.toggle", GuiClick.from(event));
         } else if (slot == 11) {
-            GuiActionRegistry.execute(player, "island.lock.toggle", GuiClick.from(event));
+            actions.execute(player, "island.lock.toggle", GuiClick.from(event));
         } else if (slot == 12) {
-            GuiActionRegistry.execute(player, "island.members.open", GuiClick.from(event));
+            actions.execute(player, "island.members.open", GuiClick.from(event));
         } else if (slot == 13) {
-            GuiActionRegistry.execute(player, "island.permissions.open", GuiClick.from(event));
+            actions.execute(player, "island.permissions.open", GuiClick.from(event));
         } else if (slot == 14) {
-            GuiActionRegistry.execute(player, "island.flags.open", GuiClick.from(event));
+            actions.execute(player, "island.flags.open", GuiClick.from(event));
         } else if (slot == 15) {
-            GuiActionRegistry.execute(player, "island.warps.open", GuiClick.from(event));
+            actions.execute(player, "island.warps.open", GuiClick.from(event));
         } else if (slot == 16) {
-            GuiActionRegistry.execute(player, "island.bans.open", GuiClick.from(event));
+            actions.execute(player, "island.bans.open", GuiClick.from(event));
         } else if (slot == 17) {
-            GuiActionRegistry.execute(player, "island.roles.open", GuiClick.from(event));
+            actions.execute(player, "island.roles.open", GuiClick.from(event));
         } else if (slot == 18) {
-            GuiActionRegistry.execute(player, "island.bank.open", GuiClick.from(event));
+            actions.execute(player, "island.bank.open", GuiClick.from(event));
         } else if (slot == 19) {
-            GuiActionRegistry.execute(player, "island.upgrades.open", GuiClick.from(event));
+            actions.execute(player, "island.upgrades.open", GuiClick.from(event));
         } else if (slot == 20) {
-            GuiActionRegistry.execute(player, "island.biome.open", GuiClick.from(event));
+            actions.execute(player, "island.biome.open", GuiClick.from(event));
         } else if (slot == 21) {
-            GuiActionRegistry.execute(player, "island.limits.open", GuiClick.from(event));
+            actions.execute(player, "island.limits.open", GuiClick.from(event));
         } else if (slot == 22) {
-            GuiActionRegistry.execute(player, "island.snapshots.open", GuiClick.from(event));
+            actions.execute(player, "island.snapshots.open", GuiClick.from(event));
         } else if (slot == 23) {
-            GuiActionRegistry.execute(player, "island.info.open", GuiClick.from(event));
+            actions.execute(player, "island.info.open", GuiClick.from(event));
         } else if (slot == 26) {
-            GuiActionRegistry.execute(player, "island.danger.open", GuiClick.from(event));
+            actions.execute(player, "island.danger.open", GuiClick.from(event));
         }
     }
 

@@ -22,13 +22,19 @@ public final class IslandBankMenu implements Listener {
     private static final String TITLE_KEY = "bank-menu-title";
     private static final String TITLE = "섬 은행";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandBankMenu() {
         this(null);
     }
 
     public IslandBankMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandBankMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -63,21 +69,21 @@ public final class IslandBankMenu implements Listener {
         if (slot == 13) {
             player.sendMessage(message(messages, "bank-menu-deposit-usage", "사용법: /섬 입금 <금액>"));
         } else if (slot == 10) {
-            GuiActionRegistry.execute(player, "island.bank.deposit", java.util.Map.of("amount", "1000"), GuiClick.from(event));
+            actions.execute(player, "island.bank.deposit", java.util.Map.of("amount", "1000"), GuiClick.from(event));
         } else if (slot == 11) {
-            GuiActionRegistry.execute(player, "island.bank.deposit", java.util.Map.of("amount", "10000"), GuiClick.from(event));
+            actions.execute(player, "island.bank.deposit", java.util.Map.of("amount", "10000"), GuiClick.from(event));
         } else if (slot == 17) {
             player.sendMessage(message(messages, "bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>"));
         } else if (slot == 15) {
-            GuiActionRegistry.execute(player, "island.bank.withdraw", java.util.Map.of("amount", "1000"), GuiClick.from(event));
+            actions.execute(player, "island.bank.withdraw", java.util.Map.of("amount", "1000"), GuiClick.from(event));
         } else if (slot == 16) {
-            GuiActionRegistry.execute(player, "island.bank.withdraw", java.util.Map.of("amount", "10000"), GuiClick.from(event));
+            actions.execute(player, "island.bank.withdraw", java.util.Map.of("amount", "10000"), GuiClick.from(event));
         } else if (slot == 22) {
-            GuiActionRegistry.execute(player, "island.bank.open", GuiClick.from(event));
+            actions.execute(player, "island.bank.open", GuiClick.from(event));
         } else if (slot == 18) {
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
         } else if (slot == 26) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
         }
     }
 

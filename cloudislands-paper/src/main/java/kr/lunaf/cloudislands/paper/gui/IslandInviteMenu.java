@@ -22,13 +22,19 @@ public final class IslandInviteMenu implements Listener {
     private static final String TITLE = "섬 초대 목록";
     private static final String MENU_ID = "island.invites";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandInviteMenu() {
         this(null);
     }
 
     public IslandInviteMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandInviteMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player) {
@@ -61,22 +67,22 @@ public final class IslandInviteMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.invites.open", GuiClick.from(event));
+            actions.execute(player, "island.invites.open", GuiClick.from(event));
             return;
         }
         if (slot == 45) {
-            GuiActionRegistry.execute(player, "island.members.open", GuiClick.from(event));
+            actions.execute(player, "island.members.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         String inviteId = GuiItems.data(event.getCurrentItem()).getOrDefault("inviteId", "");
         if (inviteId.isBlank()) {
             return;
         }
-        GuiActionRegistry.execute(player, event.isRightClick() ? "island.invite.decline" : "island.invite.accept", java.util.Map.of("inviteId", inviteId), GuiClick.from(event));
+        actions.execute(player, event.isRightClick() ? "island.invite.decline" : "island.invite.accept", java.util.Map.of("inviteId", inviteId), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<InviteView> invites, MessageRenderer messages) {

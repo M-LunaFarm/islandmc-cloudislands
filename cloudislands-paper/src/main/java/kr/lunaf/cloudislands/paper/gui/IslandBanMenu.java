@@ -21,13 +21,19 @@ public final class IslandBanMenu implements Listener {
     private static final String TITLE = "방문자 밴 목록";
     private static final String MENU_ID = "island.bans";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandBanMenu() {
         this(null);
     }
 
     public IslandBanMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandBanMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -60,11 +66,11 @@ public final class IslandBanMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.bans.open", GuiClick.from(event));
+            actions.execute(player, "island.bans.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
@@ -73,7 +79,7 @@ public final class IslandBanMenu implements Listener {
             return;
         }
         if (event.isRightClick()) {
-            GuiActionRegistry.execute(player, "island.ban.pardon.prepare", java.util.Map.of("playerUuid", bannedUuid), GuiClick.from(event));
+            actions.execute(player, "island.ban.pardon.prepare", java.util.Map.of("playerUuid", bannedUuid), GuiClick.from(event));
             return;
         }
         player.sendMessage(message(messages, "ban-menu-detail-title", "방문자 밴 상세"));

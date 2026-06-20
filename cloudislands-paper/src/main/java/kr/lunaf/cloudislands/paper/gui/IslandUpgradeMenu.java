@@ -22,13 +22,19 @@ public final class IslandUpgradeMenu implements Listener {
     private static final String TITLE = "섬 업그레이드";
     private static final String MENU_ID = "island.upgrades";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandUpgradeMenu() {
         this(null);
     }
 
     public IslandUpgradeMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandUpgradeMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -61,22 +67,22 @@ public final class IslandUpgradeMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 45) {
-            GuiActionRegistry.execute(player, "island.bank.open", GuiClick.from(event));
+            actions.execute(player, "island.bank.open", GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.upgrades.open", GuiClick.from(event));
+            actions.execute(player, "island.upgrades.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         String key = GuiItems.data(event.getCurrentItem()).getOrDefault("upgradeKey", "");
         if (key.isBlank()) {
             return;
         }
-        GuiActionRegistry.execute(player, "island.upgrade.purchase", java.util.Map.of("upgradeKey", key), GuiClick.from(event));
+        actions.execute(player, "island.upgrade.purchase", java.util.Map.of("upgradeKey", key), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<UpgradeView> upgrades, MessageRenderer messages) {

@@ -22,13 +22,19 @@ public final class IslandLogMenu implements Listener {
     private static final String MENU_ID = "island.logs";
     private static final String TITLE = "섬 로그";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandLogMenu() {
         this(null);
     }
 
     public IslandLogMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandLogMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -61,17 +67,17 @@ public final class IslandLogMenu implements Listener {
         }
         if (slot == 31) {
             player.closeInventory();
-            GuiActionRegistry.execute(player, "island.logs.open", GuiClick.from(event));
+            actions.execute(player, "island.logs.open", GuiClick.from(event));
             return;
         }
         if (slot == 30) {
             player.closeInventory();
-            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         if (slot == 32) {
             player.closeInventory();
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         if (slot == 35) {

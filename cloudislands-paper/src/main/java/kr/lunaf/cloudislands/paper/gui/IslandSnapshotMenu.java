@@ -22,13 +22,19 @@ public final class IslandSnapshotMenu implements Listener {
     private static final String TITLE = "섬 스냅샷";
     private static final String MENU_ID = "island.snapshots";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandSnapshotMenu() {
         this(null);
     }
 
     public IslandSnapshotMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandSnapshotMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -61,22 +67,22 @@ public final class IslandSnapshotMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 45) {
-            GuiActionRegistry.execute(player, "island.snapshot.create", java.util.Map.of("reason", "manual"), GuiClick.from(event));
+            actions.execute(player, "island.snapshot.create", java.util.Map.of("reason", "manual"), GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.snapshots.open", GuiClick.from(event));
+            actions.execute(player, "island.snapshots.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
         String snapshotNo = data.getOrDefault("snapshotNo", "");
         if (!snapshotNo.isBlank()) {
             if (event.isShiftClick() && event.isRightClick()) {
-                GuiActionRegistry.execute(player, "island.snapshot.restore.prepare", java.util.Map.of("snapshotNo", String.valueOf(snapshotNo)), GuiClick.from(event));
+                actions.execute(player, "island.snapshot.restore.prepare", java.util.Map.of("snapshotNo", String.valueOf(snapshotNo)), GuiClick.from(event));
                 return;
             }
             if (event.isRightClick()) {

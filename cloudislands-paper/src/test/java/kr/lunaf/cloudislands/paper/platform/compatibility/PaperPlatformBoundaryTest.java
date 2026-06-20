@@ -536,7 +536,7 @@ class PaperPlatformBoundaryTest {
         }
 
         String registrar = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandGuiMenuRegistrar.java"));
-        assertTrue(registrar.contains("GuiStateMenus.listener()"), "GUI state menu listener must be registered");
+        assertTrue(registrar.contains("GuiStateMenus.listener(registry)"), "GUI state menu listener must be registered with the injected action registry");
         String states = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiState.java"));
         assertTrue(states.contains("LOADING"), "GUI states must include Loading");
         assertTrue(states.contains("READY"), "GUI states must include Ready");

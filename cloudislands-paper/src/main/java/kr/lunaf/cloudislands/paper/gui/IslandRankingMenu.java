@@ -21,13 +21,19 @@ public final class IslandRankingMenu implements Listener {
     private static final String TITLE = "섬 랭킹";
     private static final String MENU_ID = "island.ranking";
     private final MessageRenderer messages;
+    private final GuiActionRegistry actions;
 
     public IslandRankingMenu() {
         this(null);
     }
 
     public IslandRankingMenu(MessageRenderer messages) {
+        this(messages, new GuiActionRegistry(GuiActionExecutor.noop()));
+    }
+
+    public IslandRankingMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player) {
@@ -57,22 +63,22 @@ public final class IslandRankingMenu implements Listener {
         int slot = event.getRawSlot();
         player.closeInventory();
         if (slot == 45) {
-            GuiActionRegistry.execute(player, "island.visit.open", GuiClick.from(event));
+            actions.execute(player, "island.visit.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            GuiActionRegistry.execute(player, "island.visit.random", GuiClick.from(event));
+            actions.execute(player, "island.visit.random", GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            GuiActionRegistry.execute(player, "island.ranking.open", GuiClick.from(event));
+            actions.execute(player, "island.ranking.open", GuiClick.from(event));
             return;
         }
         String islandId = GuiItems.data(event.getCurrentItem()).getOrDefault("target", "");
         if (islandId.isBlank()) {
             return;
         }
-        GuiActionRegistry.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
+        actions.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, MessageRenderer messages) {
