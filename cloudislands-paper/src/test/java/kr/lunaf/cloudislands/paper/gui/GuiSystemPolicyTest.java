@@ -82,6 +82,8 @@ class GuiSystemPolicyTest {
         String click = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiClick.java"));
         String registry = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionRegistry.java"));
 
+        assertTrue(click.contains("static GuiClick fromClickType(ClickType click)"), "click-type mapping must stay isolated for policy verification");
+        assertTrue(click.contains("if (click == null)"), "null click events must be treated as unsupported");
         assertTrue(click.contains("default -> UNSUPPORTED"), "number-key, drop, double-click, and offhand clicks must stay unsupported by default");
         assertFalse(click.contains("case NUMBER_KEY"), "hotbar number-key swaps must not execute GUI actions");
         assertFalse(click.contains("case DROP"), "drop clicks must not execute GUI actions");

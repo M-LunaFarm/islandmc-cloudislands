@@ -11,7 +11,13 @@ public enum GuiClick {
     UNSUPPORTED;
 
     public static GuiClick from(InventoryClickEvent event) {
-        ClickType click = event.getClick();
+        return fromClickType(event == null ? null : event.getClick());
+    }
+
+    static GuiClick fromClickType(ClickType click) {
+        if (click == null) {
+            return UNSUPPORTED;
+        }
         return switch (click) {
             case LEFT -> LEFT;
             case RIGHT -> RIGHT;
