@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.stream.Stream;
+import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
 import org.junit.jupiter.api.Test;
 
 class PaperPlatformBoundaryTest {
@@ -304,7 +305,8 @@ class PaperPlatformBoundaryTest {
                 root.resolve("cloudislands-velocity/src/main/resources/config-v2")
             ).flatMap(PaperPlatformBoundaryTest::yamlFiles)) {
             String violations = files
-                .flatMap(path -> plaintextSecretViolations(root, path).stream())
+                .map(path -> configValidationViolation(root, path))
+                .filter(value -> !value.isBlank())
                 .sorted()
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("");
@@ -494,51 +496,13 @@ class PaperPlatformBoundaryTest {
         return source.lines().filter(value -> value.equals(line)).count();
     }
 
-    private static List<String> plaintextSecretViolations(Path root, Path path) {
+    private static String configValidationViolation(Path root, Path path) {
         try {
-            return Files.readAllLines(path).stream()
-                .map(String::trim)
-                .filter(line -> !line.isBlank() && !line.startsWith("#"))
-                .filter(PaperPlatformBoundaryTest::looksLikeSecretLine)
-                .filter(line -> !usesSecretReference(line))
-                .map(line -> root.relativize(path) + ": " + line)
-                .toList();
+            var result = ConfigV2Validator.validateYaml(root.relativize(path).toString(), Files.readString(path));
+            return result.valid() ? "" : root.relativize(path) + ": " + result.summary();
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }
-    }
-
-    private static boolean looksLikeSecretLine(String line) {
-        int separator = line.indexOf(':');
-        if (separator <= 0 || separator == line.length() - 1) {
-            return false;
-        }
-        String key = line.substring(0, separator).trim().toLowerCase(java.util.Locale.ROOT);
-        return key.equals("password")
-            || key.endsWith("-password")
-            || key.endsWith("_password")
-            || key.endsWith("token")
-            || key.endsWith("-token")
-            || key.endsWith("_token")
-            || key.equals("secret")
-            || key.endsWith("-secret")
-            || key.endsWith("_secret")
-            || key.equals("access-key")
-            || key.equals("secret-key")
-            || key.equals("bearer-token")
-            || key.equals("auth-token")
-            || key.equals("admin-token");
-    }
-
-    private static boolean usesSecretReference(String line) {
-        String value = line.substring(line.indexOf(':') + 1).trim();
-        return value.equals("\"\"")
-            || value.equals("''")
-            || value.isBlank()
-            || value.startsWith("\"${")
-            || value.startsWith("${")
-            || value.startsWith("\"<")
-            || value.startsWith("<");
     }
 
     private static List<String> menuConfigViolations(Path root, Path path, Set<String> registeredActions) {
