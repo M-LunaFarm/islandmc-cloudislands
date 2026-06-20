@@ -27,6 +27,27 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void configOperationsAreFirstClassAdminCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+
+        assertTrue(source.contains("CONFIG_COMMANDS"), "Config subcommands must be registered for completion");
+        assertTrue(source.contains("ciadmin config validate"), "Config validate must be listed in help");
+        assertTrue(source.contains("ciadmin config diff"), "Config diff must be listed in help");
+        assertTrue(source.contains("ciadmin config reload"), "Config reload must be listed in help");
+        assertTrue(source.contains("ciadmin config effective"), "Config effective must be listed in help");
+        assertTrue(source.contains("ciadmin config sources"), "Config sources must be listed in help");
+        assertTrue(source.contains("handleConfig"), "Config command must have a local operation handler");
+        assertTrue(source.contains("ConfigV2Validator.validateYaml"), "Config validate must run schema and secret validation");
+        assertTrue(source.contains("ConfigV2Validator.redactYaml"), "Effective config output must redact secrets");
+        assertTrue(source.contains("if (!validation.valid())"), "Config reload must keep the current config when validation fails");
+        assertTrue(source.contains("agent.plugin().reloadConfig()"), "Config reload must apply only after validation passes");
+        assertTrue(source.contains("ConfigDiff.between"), "Config diff must report changed and restart-required paths");
+        assertTrue(source.contains("currentConfigYaml"), "Config diff must compare against the current runtime config when available");
+        assertTrue(plugin.contains("cloudislands.admin.config"), "Config command must have a plugin permission");
+    }
+
+    @Test
     void integrationsCommandCoversMajorHookPlugins() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
