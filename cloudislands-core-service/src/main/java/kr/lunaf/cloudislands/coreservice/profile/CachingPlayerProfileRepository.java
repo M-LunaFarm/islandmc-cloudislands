@@ -49,6 +49,16 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
     }
 
     @Override
+    public PlayerIslandProfile touch(UUID playerUuid, String lastName, String locale) {
+        return cache(delegate.touch(playerUuid, lastName, locale));
+    }
+
+    @Override
+    public PlayerIslandProfile setLocale(UUID playerUuid, String locale) {
+        return cache(delegate.setLocale(playerUuid, locale));
+    }
+
+    @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         return cache(delegate.setPrimaryIsland(playerUuid, islandId));
     }
@@ -116,19 +126,21 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
         return profile.playerUuid()
             + "|" + encodeText(profile.lastName())
             + "|" + profile.primaryIslandId().map(UUID::toString).orElse("")
-            + "|" + profile.lastSeenAt();
+            + "|" + profile.lastSeenAt()
+            + "|" + encodeText(profile.locale());
     }
 
     private static PlayerIslandProfile profileFromJson(String value) {
         String[] parts = value.split("\\|", -1);
-        if (parts.length != 4) {
+        if (parts.length != 4 && parts.length != 5) {
             throw new IllegalArgumentException("invalid cached player profile");
         }
         return new PlayerIslandProfile(
             UUID.fromString(parts[0]),
             decodeText(parts[1]),
             parts[2].isBlank() ? Optional.empty() : Optional.of(UUID.fromString(parts[2])),
-            instant(parts[3])
+            instant(parts[3]),
+            parts.length == 5 ? decodeText(parts[4]) : "ko_kr"
         );
     }
 

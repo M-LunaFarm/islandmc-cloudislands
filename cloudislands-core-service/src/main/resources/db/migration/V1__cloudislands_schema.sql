@@ -2,6 +2,7 @@ CREATE TABLE player_profiles (
     uuid UUID PRIMARY KEY,
     last_name VARCHAR(16),
     primary_island_id UUID,
+    locale VARCHAR(16) NOT NULL DEFAULT 'ko_kr',
     last_seen_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

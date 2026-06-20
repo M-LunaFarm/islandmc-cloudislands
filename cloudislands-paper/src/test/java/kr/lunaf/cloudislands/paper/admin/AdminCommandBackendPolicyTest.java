@@ -22,4 +22,28 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.listAuditLogs(25)"), "Diagnostics export must include bounded audit context");
         assertTrue(plugin.contains("cloudislands.admin.diagnostics"), "Diagnostics command must have a plugin permission");
     }
+
+    @Test
+    void integrationsCommandCoversMajorHookPlugins() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+
+        assertTrue(source.contains("\"integrations\""), "Integrations root command must be registered");
+        assertTrue(source.contains("ciadmin integrations"), "Integrations command must be listed in help");
+        assertTrue(source.contains("integrationStatusMessage"), "Integrations command must have a status handler");
+        assertTrue(source.contains("isPluginEnabled(pluginName)"), "Integrations command must inspect Bukkit plugin state");
+        assertTrue(source.contains("LuckPerms"), "LuckPerms must be covered by integration status");
+        assertTrue(source.contains("CoreProtect"), "CoreProtect must be covered by integration status");
+        assertTrue(source.contains("FastAsyncWorldEdit"), "FAWE must be covered by integration status");
+        assertTrue(plugin.contains("cloudislands.admin.integrations"), "Integrations command must have a plugin permission");
+        assertTrue(plugin.contains("LuckPerms"), "LuckPerms must be declared as a soft dependency");
+        assertTrue(plugin.contains("CoreProtect"), "CoreProtect must be declared as a soft dependency");
+        assertTrue(plugin.contains("FastAsyncWorldEdit"), "FAWE must be declared as a soft dependency");
+        assertTrue(plugin.contains("ItemsAdder"), "ItemsAdder must be declared as a soft dependency");
+        assertTrue(plugin.contains("Oraxen"), "Oraxen must be declared as a soft dependency");
+        assertTrue(plugin.contains("Nexo"), "Nexo must be declared as a soft dependency");
+        assertTrue(plugin.contains("RoseStacker"), "RoseStacker must be declared as a soft dependency");
+        assertTrue(plugin.contains("AdvancedSpawners"), "AdvancedSpawners must be declared as a soft dependency");
+        assertTrue(plugin.contains("Plan"), "Plan must be declared as a soft dependency");
+    }
 }

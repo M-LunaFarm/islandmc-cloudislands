@@ -72,7 +72,8 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V51__island_ban_value_guard.sql",
         "/db/migration/V52__island_member_custom_role_guard.sql",
         "/db/migration/V53__island_role_catalog_member_guard.sql",
-        "/db/migration/V54__route_ticket_node_failure_index.sql"
+        "/db/migration/V54__route_ticket_node_failure_index.sql",
+        "/db/migration/V55__player_profile_locale.sql"
     };
 
     private enum Dialect {

@@ -23,11 +23,15 @@ CREATE TABLE IF NOT EXISTS player_profiles (
     uuid CHAR(36) PRIMARY KEY,
     last_name VARCHAR(16),
     primary_island_id CHAR(36),
+    locale VARCHAR(16) NOT NULL DEFAULT 'ko_kr',
     last_seen_at DATETIME(6),
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT chk_player_profiles_last_name_trimmed CHECK (last_name IS NULL OR last_name = trim(last_name)),
-    CONSTRAINT chk_player_profiles_last_name_not_blank CHECK (last_name IS NULL OR trim(last_name) <> '')
+    CONSTRAINT chk_player_profiles_last_name_not_blank CHECK (last_name IS NULL OR trim(last_name) <> ''),
+    CONSTRAINT chk_player_profiles_locale_trimmed CHECK (locale = trim(locale)),
+    CONSTRAINT chk_player_profiles_locale_not_blank CHECK (trim(locale) <> ''),
+    CONSTRAINT chk_player_profiles_locale_lowercase CHECK (locale = lower(locale))
 );
 
 CREATE TABLE IF NOT EXISTS islands (

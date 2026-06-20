@@ -28,7 +28,23 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     @Override
     public PlayerIslandProfile touch(UUID playerUuid, String lastName) {
         PlayerIslandProfile current = find(playerUuid);
-        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now());
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), current.locale());
+        profiles.put(playerUuid, updated);
+        return updated;
+    }
+
+    @Override
+    public PlayerIslandProfile touch(UUID playerUuid, String lastName, String locale) {
+        PlayerIslandProfile current = find(playerUuid);
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), locale);
+        profiles.put(playerUuid, updated);
+        return updated;
+    }
+
+    @Override
+    public PlayerIslandProfile setLocale(UUID playerUuid, String locale) {
+        PlayerIslandProfile current = find(playerUuid);
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), locale);
         profiles.put(playerUuid, updated);
         return updated;
     }
@@ -36,7 +52,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         PlayerIslandProfile current = find(playerUuid);
-        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), Optional.of(islandId), current.lastSeenAt());
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), Optional.of(islandId), current.lastSeenAt(), current.locale());
         profiles.put(playerUuid, updated);
         return updated;
     }
@@ -44,7 +60,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     @Override
     public PlayerIslandProfile clearPrimaryIsland(UUID playerUuid) {
         PlayerIslandProfile current = find(playerUuid);
-        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), Optional.empty(), current.lastSeenAt());
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), Optional.empty(), current.lastSeenAt(), current.locale());
         profiles.put(playerUuid, updated);
         return updated;
     }

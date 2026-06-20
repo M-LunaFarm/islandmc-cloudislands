@@ -28,6 +28,7 @@ public final class PlayerProfileRoutes implements RouteGroup {
         registry.route("/v1/admin/players/info", this::adminInfo);
         registry.route("/v1/players/info", this::info);
         registry.route("/v1/players/touch", this::touch);
+        registry.route("/v1/players/locale", this::locale);
         registry.route("/v1/admin/players/setisland", this::setIsland);
         registry.route("/v1/admin/players/clearisland", this::clearIsland);
     }
@@ -51,7 +52,19 @@ public final class PlayerProfileRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         String lastName = JsonFields.text(body, "lastName", "");
-        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.touch(playerUuid, lastName)));
+        String locale = JsonFields.text(body, "locale", "");
+        PlayerIslandProfile profile = locale.isBlank()
+            ? playerProfiles.touch(playerUuid, lastName)
+            : playerProfiles.touch(playerUuid, lastName, locale);
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(profile));
+    }
+
+    private void locale(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        String locale = JsonFields.text(body, "locale", "");
+        audit.log(playerUuid, "PLAYER", "PLAYER_LOCALE_SET", "PLAYER", playerUuid.toString(), Map.of("locale", PlayerIslandProfile.normalizeLocale(locale)));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setLocale(playerUuid, locale)));
     }
 
     private void setIsland(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
@@ -74,6 +87,7 @@ public final class PlayerProfileRoutes implements RouteGroup {
             + "\",\"lastName\":\"" + escape(profile.lastName())
             + "\",\"primaryIslandId\":" + profile.primaryIslandId().map(value -> "\"" + value + "\"").orElse("null")
             + ",\"lastSeenAt\":\"" + profile.lastSeenAt()
+            + "\",\"locale\":\"" + escape(profile.locale())
             + "\"}";
     }
 

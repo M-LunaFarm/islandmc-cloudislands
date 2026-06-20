@@ -425,6 +425,8 @@ public interface CoreApiClient {
     CompletableFuture<String> playerInfo(UUID playerUuid);
     CompletableFuture<String> playerInfoByName(String lastName);
     CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName);
+    CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName, String locale);
+    CompletableFuture<String> setPlayerLocale(UUID playerUuid, String locale);
     CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId);
     CompletableFuture<String> clearPlayerIsland(UUID playerUuid);
     CompletableFuture<String> listTemplates();

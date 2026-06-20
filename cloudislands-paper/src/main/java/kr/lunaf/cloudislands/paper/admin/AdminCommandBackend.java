@@ -32,7 +32,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 final class AdminCommandBackend implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
     private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state", "route-events");
@@ -47,6 +47,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
     private static final List<String> MIGRATION_COMMANDS = List.of("scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "verify-no-legacy-provider", "rollback");
+    private static final List<String> INTEGRATION_PLUGINS = List.of("Vault", "PlaceholderAPI", "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit", "ItemsAdder", "Oraxen", "Nexo", "RoseStacker", "WildStacker", "AdvancedSpawners", "Plan", "ProtocolLib", "SkinsRestorer", "Slimefun", "CMI");
     private static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviders();
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     private static final List<String> HELP_COMMANDS = List.of(
@@ -65,6 +66,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         "ciadmin addons state",
         "ciadmin addons state-summary",
         "ciadmin addons endpoints",
+        "ciadmin integrations",
         "ciadmin node menu",
         "ciadmin node list",
         "ciadmin node info <node>",
@@ -192,6 +194,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args[0].equalsIgnoreCase("addons")) {
             return handleAddons(sender, args);
+        }
+        if (args[0].equalsIgnoreCase("integrations")) {
+            sender.sendMessage(integrationStatusMessage());
+            return true;
         }
         if (args[0].equalsIgnoreCase("reload")) {
             run(sender, "Core reload", coreApiClient.reload().thenApply(body -> maintenanceMessage("Core reload", body)));
@@ -537,6 +543,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return value
             .replaceAll("(?i)(token|secret|password|authorization|accessKey|secretKey)\\\"?\\s*[:=]\\s*\\\"?[^,\\n\\r\\\"]+", "$1=***")
             .replaceAll("ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+", "***");
+    }
+
+    private String integrationStatusMessage() {
+        List<String> entries = new ArrayList<>();
+        for (String pluginName : INTEGRATION_PLUGINS) {
+            boolean enabled = agent.plugin().getServer().getPluginManager().isPluginEnabled(pluginName);
+            entries.add(pluginName + "=" + (enabled ? "enabled" : "missing"));
+        }
+        return adminText("admin-command-integrations-prefix", "Integrations: ") + String.join(", ", entries);
     }
 
     private boolean handleNode(CommandSender sender, String[] args) {
@@ -2909,7 +2924,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "";
         }
         return switch (root) {
-            case "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }

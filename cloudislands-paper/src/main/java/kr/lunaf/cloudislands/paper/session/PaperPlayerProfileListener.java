@@ -14,7 +14,7 @@ public final class PaperPlayerProfileListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        coreApiClient.touchPlayerProfile(event.getPlayer().getUniqueId(), event.getPlayer().getName())
+        coreApiClient.touchPlayerProfile(event.getPlayer().getUniqueId(), event.getPlayer().getName(), event.getPlayer().getLocale())
             .exceptionally(error -> null);
     }
 }

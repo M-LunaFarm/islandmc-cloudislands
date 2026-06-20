@@ -3,7 +3,7 @@ main: kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin
 version: '${projectVersion}'
 api-version: '${paperApiBaseline}'
 author: LeeSeungmin
-softdepend: [Vault, PlaceholderAPI]
+softdepend: [Vault, PlaceholderAPI, LuckPerms, CoreProtect, WorldEdit, FastAsyncWorldEdit, ItemsAdder, Oraxen, Nexo, RoseStacker, WildStacker, AdvancedSpawners, Plan, ProtocolLib, SkinsRestorer, Slimefun, CMI]
 commands:
   island:
     description: CloudIslands player island command
@@ -31,6 +31,8 @@ permissions:
   cloudislands.admin.cache:
     default: op
   cloudislands.admin.addons:
+    default: op
+  cloudislands.admin.integrations:
     default: op
   cloudislands.admin.node:
     default: op

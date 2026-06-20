@@ -1384,6 +1384,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName, String locale) {
+        return postWithResultBody("/v1/players/touch", "{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"" + escape(lastName) + "\",\"locale\":\"" + escape(locale) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> setPlayerLocale(UUID playerUuid, String locale) {
+        return postWithResultBody("/v1/players/locale", "{\"playerUuid\":\"" + playerUuid + "\",\"locale\":\"" + escape(locale) + "\"}");
+    }
+
+    @Override
     public CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId) {
         return postWithResultBody("/v1/admin/players/setisland", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}");
     }

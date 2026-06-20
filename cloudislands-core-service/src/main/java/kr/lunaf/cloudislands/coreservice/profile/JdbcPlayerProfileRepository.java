@@ -21,7 +21,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     public PlayerIslandProfile find(UUID playerUuid) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at FROM player_profiles WHERE uuid = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale FROM player_profiles WHERE uuid = ?")) {
             statement.setObject(1, playerUuid);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? profile(rs) : new PlayerIslandProfile(playerUuid, "", Optional.empty(), Instant.EPOCH);
@@ -37,7 +37,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             return Optional.empty();
         }
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY CASE WHEN last_seen_at IS NULL THEN 1 ELSE 0 END, last_seen_at DESC LIMIT 1")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY CASE WHEN last_seen_at IS NULL THEN 1 ELSE 0 END, last_seen_at DESC LIMIT 1")) {
             statement.setString(1, lastName);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? Optional.of(profile(rs)) : Optional.empty();
@@ -57,6 +57,34 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             return find(playerUuid);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to touch player profile", exception);
+        }
+    }
+
+    @Override
+    public PlayerIslandProfile touch(UUID playerUuid, String lastName, String locale) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(touchWithLocaleSql(connection))) {
+            statement.setObject(1, playerUuid);
+            statement.setString(2, lastName == null ? "" : lastName);
+            statement.setString(3, PlayerIslandProfile.normalizeLocale(locale));
+            statement.executeUpdate();
+            return find(playerUuid);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to touch player profile locale", exception);
+        }
+    }
+
+    @Override
+    public PlayerIslandProfile setLocale(UUID playerUuid, String locale) {
+        ensure(playerUuid);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET locale = ?, updated_at = now() WHERE uuid = ?")) {
+            statement.setString(1, PlayerIslandProfile.normalizeLocale(locale));
+            statement.setObject(2, playerUuid);
+            statement.executeUpdate();
+            return find(playerUuid);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to set player profile locale", exception);
         }
     }
 
@@ -104,6 +132,13 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
         return "INSERT INTO player_profiles(uuid, last_name, last_seen_at) VALUES (?, ?, now()) ON CONFLICT (uuid) DO UPDATE SET last_name = EXCLUDED.last_name, last_seen_at = now(), updated_at = now()";
     }
 
+    private String touchWithLocaleSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO player_profiles(uuid, last_name, locale, last_seen_at) VALUES (?, ?, ?, now()) ON DUPLICATE KEY UPDATE last_name = VALUES(last_name), locale = VALUES(locale), last_seen_at = now(), updated_at = now()";
+        }
+        return "INSERT INTO player_profiles(uuid, last_name, locale, last_seen_at) VALUES (?, ?, ?, now()) ON CONFLICT (uuid) DO UPDATE SET last_name = EXCLUDED.last_name, locale = EXCLUDED.locale, last_seen_at = now(), updated_at = now()";
+    }
+
     private String ensureSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
             return "INSERT IGNORE INTO player_profiles(uuid) VALUES (?)";
@@ -123,7 +158,8 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             (UUID) rs.getObject("uuid"),
             rs.getString("last_name") == null ? "" : rs.getString("last_name"),
             Optional.ofNullable(primaryIslandId),
-            rs.getTimestamp("last_seen_at") == null ? Instant.EPOCH : rs.getTimestamp("last_seen_at").toInstant()
+            rs.getTimestamp("last_seen_at") == null ? Instant.EPOCH : rs.getTimestamp("last_seen_at").toInstant(),
+            rs.getString("locale")
         );
     }
 }

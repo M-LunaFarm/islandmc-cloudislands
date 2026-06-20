@@ -2732,7 +2732,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             uuid(json, "playerUuid", new UUID(0L, 0L)),
             text(json, "lastName", ""),
             primaryIslandId == null || primaryIslandId.isBlank() ? Optional.empty() : Optional.of(uuid(json, "primaryIslandId", new UUID(0L, 0L))),
-            instant(text(json, "lastSeenAt", Instant.EPOCH.toString()))
+            instant(text(json, "lastSeenAt", Instant.EPOCH.toString())),
+            text(json, "locale", "ko_kr")
         ));
     }
 
