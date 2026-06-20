@@ -172,4 +172,25 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("coreApiClient.deleteIslandWarpResult"));
         assertTrue(homeWarpHandler.contains("coreApiClient.listPublicWarps"));
     }
+
+    @Test
+    void visitReviewCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String visitReviewHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandVisitReviewCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandVisitReviewCommandHandler visitReviewCommands;"));
+        assertTrue(backend.contains("visitReviewCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("visitReviewCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("routeVisitTarget("), "visit target resolution belongs in IslandVisitReviewCommandHandler");
+        assertFalse(backend.contains("routeRandomVisit("), "random visit routing belongs in IslandVisitReviewCommandHandler");
+        assertFalse(backend.contains("listPublicIslands("), "public island listing belongs in IslandVisitReviewCommandHandler");
+        assertFalse(backend.contains("listIslandReviews("), "review listing belongs in IslandVisitReviewCommandHandler");
+        assertFalse(backend.contains("rateIslandReview("), "review mutation logic belongs in IslandVisitReviewCommandHandler");
+        assertTrue(visitReviewHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(visitReviewHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data)"));
+        assertTrue(visitReviewHandler.contains("coreApiClient.createVisitTicket"));
+        assertTrue(visitReviewHandler.contains("coreApiClient.createRandomVisitTicket"));
+        assertTrue(visitReviewHandler.contains("coreApiClient.listPublicIslands"));
+        assertTrue(visitReviewHandler.contains("coreApiClient.setIslandReview"));
+    }
 }

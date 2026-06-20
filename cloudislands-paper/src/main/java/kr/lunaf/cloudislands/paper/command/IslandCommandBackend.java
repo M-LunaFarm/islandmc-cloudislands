@@ -46,7 +46,6 @@ import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -214,6 +213,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandEnvironmentCommandHandler environmentCommands;
     private final IslandSettingsCommandHandler settingsCommands;
     private final IslandHomeWarpCommandHandler homeWarpCommands;
+    private final IslandVisitReviewCommandHandler visitReviewCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -636,6 +636,52 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 return IslandCommandBackend.this.confirmationAccepted(player, actionId, data, click);
             }
         });
+        this.visitReviewCommands = new IslandVisitReviewCommandHandler(plugin, coreApiClient, new IslandVisitReviewCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public String playerCodeMessage(String code, String fallback) {
+                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+            }
+
+            @Override
+            public String coreWriteFailureMessage(Throwable error, String fallback) {
+                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+
+            @Override
+            public void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
+                IslandCommandBackend.this.routeTicket(player, ticketFuture, failureMessage);
+            }
+        });
         this.messages = messages;
         this.locales = locales;
         this.configuredNodeId = configuredNodeId == null || configuredNodeId.isBlank() ? "island-1" : configuredNodeId;
@@ -713,34 +759,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (settingsCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
-        if (subcommand.equals("visit") || subcommand.equals("방문")) {
-            if (args.length < 2) {
-                IslandVisitMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            } else if (args[1].equalsIgnoreCase("random") || args[1].equals("랜덤")) {
-                routeRandomVisit(player);
-            } else {
-                routeVisitTarget(player, args[1]);
-            }
-            return true;
-        }
-        if (subcommand.equals("randomvisit") || subcommand.equals("random-visit") || subcommand.equals("랜덤방문")) {
-            routeRandomVisit(player);
-            return true;
-        }
-        if (subcommand.equals("public-islands") || subcommand.equals("publicislands") || subcommand.equals("visit-list") || subcommand.equals("공개섬") || subcommand.equals("방문목록")) {
-            listPublicIslands(player, rankingLimit(args, 1));
-            return true;
-        }
-        if (subcommand.equals("reviews") || subcommand.equals("review-list") || subcommand.equals("후기") || subcommand.equals("후기목록")) {
-            listIslandReviews(player, args.length > 1 ? integer(args[1], 10) : 10);
-            return true;
-        }
-        if (subcommand.equals("rate") || subcommand.equals("review") || subcommand.equals("평가")) {
-            if (args.length < 3) {
-                message(player, routeMessage("input-review-required", "평가할 섬과 1~5점 평점을 입력해주세요."));
-                return true;
-            }
-            rateIslandReview(player, args[1], integer(args[2], 0), args.length > 3 ? joined(args, 3) : "");
+        if (visitReviewCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (progressionCommands.handleCommand(player, subcommand, args)) {
@@ -993,16 +1012,15 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (homeWarpCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
             return;
         }
+        if (visitReviewCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+            return;
+        }
         switch (actionId) {
             case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
             case "island.create.open" -> IslandCreateMenu.open(plugin, coreApiClient, player, messagesFor(player));
             case "island.create" -> createIsland(player, data.getOrDefault("templateId", "default"));
             case "island.info.open" -> openIslandInfoMenu(player);
             case "island.list.open" -> IslandMyIslandsMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            case "island.visit.open" -> IslandVisitMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            case "island.visit.random" -> routeRandomVisit(player);
-            case "island.visit.public.open" -> listPublicIslands(player, 10);
-            case "island.visit.target" -> routeVisitTarget(player, data.getOrDefault("target", ""));
             case "island.members.open" -> openIslandMemberMenu(player);
             case "island.member.detail" -> {
                 message(player, routeMessage("member-detail-title", "멤버 상세"));
@@ -1349,98 +1367,8 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         });
     }
 
-    private void routeVisitTarget(Player player, String target) {
-        UUID islandId = uuid(target);
-        if (islandId != null) {
-            routeVisit(player, islandId);
-            return;
-        }
-        coreApiClient.playerInfoByName(target).thenAccept(body -> {
-            UUID primaryIslandId = uuid(text(body, "primaryIslandId"));
-            if (primaryIslandId != null) {
-                UUID ownerUuid = uuid(text(body, "playerUuid"));
-                if (ownerUuid != null) {
-                    routeTicket(player, mutate("route.ticket.visit.owner", () -> coreApiClient.createVisitTicketForOwner(player.getUniqueId(), ownerUuid)), "해당 섬에 방문할 수 없습니다.");
-                } else {
-                    routeVisit(player, primaryIslandId);
-                }
-                return;
-            }
-            routeVisitName(player, target);
-        }).exceptionally(error -> {
-            routeVisitName(player, target);
-            return null;
-        });
-    }
-
-    private void routeVisitName(Player player, String islandName) {
-        routeTicket(player, mutate("route.ticket.visit.name", () -> coreApiClient.createVisitTicket(player.getUniqueId(), islandName)), "해당 섬에 방문할 수 없습니다.");
-    }
-
-    private void routeVisit(Player player, UUID islandId) {
-        routeTicket(player, mutate("route.ticket.visit", () -> coreApiClient.createVisitTicket(player.getUniqueId(), islandId)), "해당 섬에 방문할 수 없습니다.");
-    }
-
     private void routeWarp(Player player, UUID islandId, String warpName) {
         routeTicket(player, mutate("route.ticket.warp", () -> coreApiClient.createWarpTicket(player.getUniqueId(), islandId, warpName)), "해당 워프로 이동할 수 없습니다.");
-    }
-
-    private void routeRandomVisit(Player player) {
-        routeTicket(player, mutate("route.ticket.random-visit", () -> coreApiClient.createRandomVisitTicket(player.getUniqueId())), "방문 가능한 공개 섬을 찾지 못했습니다.");
-    }
-
-    private void listPublicIslands(Player player, int limit) {
-        int cappedLimit = Math.max(1, Math.min(limit, 100));
-        coreApiClient.listPublicIslands(cappedLimit)
-            .thenAccept(body -> message(player, publicIslandListMessage(body)))
-            .exceptionally(error -> {
-                message(player, "공개 섬 목록을 불러오지 못했습니다.");
-                return null;
-            });
-    }
-
-    private void listIslandReviews(Player player, int limit) {
-        currentIsland(player, "섬 안에서만 후기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandReviews(islandId, Math.max(1, Math.min(limit, 100)))
-                .thenAccept(body -> message(player, reviewListMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 후기를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void rateIslandReview(Player player, String target, int rating, String comment) {
-        if (rating < 1 || rating > 5) {
-            message(player, routeMessage("input-review-rating-invalid", "평점은 1~5 사이여야 합니다."));
-            return;
-        }
-        UUID islandId = uuid(target);
-        if (islandId == null && (target.equalsIgnoreCase("current") || target.equals("현재"))) {
-            currentIsland(player, "섬 안에서만 현재 섬을 평가할 수 있습니다.").ifPresent(current -> submitIslandReview(player, current, rating, comment));
-            return;
-        }
-        if (islandId == null) {
-            message(player, routeMessage("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
-            return;
-        }
-        submitIslandReview(player, islandId, rating, comment);
-    }
-
-    private void submitIslandReview(Player player, UUID islandId, int rating, String comment) {
-        mutateIdempotent("island.review.set", () -> coreApiClient.setIslandReview(islandId, player.getUniqueId(), rating, comment))
-            .thenAccept(body -> {
-                String code = text(body, "code");
-                if (!code.isBlank()) {
-                    message(player, playerCodeMessage(code, "섬 평가를 저장하지 못했습니다."));
-                    return;
-                }
-                message(player, "섬 평가 저장 완료: " + rating + "/5");
-            })
-            .exceptionally(error -> {
-                message(player, coreWriteFailureMessage(error, "섬 평가를 저장하지 못했습니다."));
-                return null;
-            });
     }
 
     private void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
@@ -2245,69 +2173,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return names.isEmpty() ? emptyMessage : label + ": " + String.join(", ", names);
     }
 
-    private String publicIslandListMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "공개 섬이 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = body.indexOf("\"islands\"");
-        while (index >= 0 && index < body.length() && entries.size() < 20) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = text(object, "name");
-                long level = (long) decimal(object, "level");
-                String worth = text(object, "worth");
-                if (worth.isBlank()) {
-                    worth = Long.toString((long) decimal(object, "worth"));
-                }
-                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? "이름 없는 섬" : name) + " (ID=" + compactId(islandId) + ", 레벨=" + level + ", 가치=" + worth + ")");
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
-    }
-
-    private String reviewListMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "섬 후기가 없습니다.";
-        }
-        long count = (long) decimal(body, "count");
-        String average = String.format(Locale.ROOT, "%.2f", decimal(body, "average"));
-        List<String> entries = new ArrayList<>();
-        int index = body.indexOf("\"reviews\"");
-        while (index >= 0 && index < body.length() && entries.size() < 10) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String reviewerUuid = text(object, "reviewerUuid");
-            long rating = (long) decimal(object, "rating");
-            String comment = text(object, "comment");
-            if (!reviewerUuid.isBlank()) {
-                entries.add(compactId(reviewerUuid) + "=" + rating + "/5" + (comment.isBlank() ? "" : " " + comment));
-            }
-            index = objectEnd + 1;
-        }
-        if (entries.isEmpty()) {
-            return "섬 후기가 없습니다.";
-        }
-        return "섬 후기: 평균=" + average + " 개수=" + count + " | " + String.join(" | ", entries);
-    }
-
     private String memberListMessage(String body) {
         List<String> entries = new ArrayList<>();
         int index = 0;
@@ -2460,13 +2325,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
 
     private long number(String value, long fallback) {
         return longValue(value, fallback);
-    }
-
-    private int rankingLimit(String[] args, int index) {
-        if (args.length <= index) {
-            return 10;
-        }
-        return (int) number(args[index], 10L);
     }
 
     private long parseDurationSeconds(String value, long fallback) {
