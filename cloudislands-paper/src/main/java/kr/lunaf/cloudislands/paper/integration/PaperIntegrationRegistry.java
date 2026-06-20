@@ -2,18 +2,29 @@ package kr.lunaf.cloudislands.paper.integration;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
+import kr.lunaf.cloudislands.paper.integration.coreprotect.CoreProtectIntegration;
+import kr.lunaf.cloudislands.paper.integration.spi.CloudIntegration;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
+import kr.lunaf.cloudislands.paper.integration.spi.PolicyBackedCloudIntegration;
+import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
 import org.bukkit.Server;
 
 public final class PaperIntegrationRegistry {
     private final Server server;
+    private final Map<String, CloudIntegration> integrations;
 
-    private PaperIntegrationRegistry(Server server) {
+    private PaperIntegrationRegistry(Server server, List<CloudIntegration> integrations) {
         this.server = server;
+        this.integrations = integrations.stream().collect(Collectors.toUnmodifiableMap(CloudIntegration::pluginName, Function.identity()));
     }
 
     public static PaperIntegrationRegistry discover(Server server) {
-        return new PaperIntegrationRegistry(server);
+        return new PaperIntegrationRegistry(server, defaultIntegrations());
     }
 
     public List<IntegrationStatus> snapshot() {
@@ -25,15 +36,20 @@ public final class PaperIntegrationRegistry {
     }
 
     public IntegrationStatus status(String pluginName) {
+        CloudIntegration integration = integrations.getOrDefault(pluginName, genericIntegration(pluginName));
         boolean enabled = server.getPluginManager().isPluginEnabled(pluginName);
-        String category = CloudIntegrationPolicy.category(pluginName);
         return new IntegrationStatus(
             pluginName,
-            category,
-            enabled,
+            integration.category(),
+            integration.detect(enabled),
             CloudIntegrationPolicy.requiresRuntimeAuthority(pluginName, false),
-            CloudIntegrationPolicy.requiredRuntimeClaims()
+            CloudIntegrationPolicy.requiredRuntimeClaims(),
+            integration.capabilities()
         );
+    }
+
+    public CloudIntegration integration(String pluginName) {
+        return integrations.getOrDefault(pluginName, genericIntegration(pluginName));
     }
 
     public CloudIntegrationPolicy.HookDecision validateHookContext(CloudIntegrationPolicy.HookContext context) {
@@ -58,9 +74,33 @@ public final class PaperIntegrationRegistry {
                 .append(":enabled=").append(status.enabled())
                 .append(",category=").append(status.category())
                 .append(",runtimeAuthorityRequired=").append(status.runtimeAuthorityRequired())
+                .append(",capabilities=").append(status.capabilities())
                 .append('\n');
         }
         return builder.toString();
+    }
+
+    private static List<CloudIntegration> defaultIntegrations() {
+        List<CloudIntegration> integrations = new ArrayList<>();
+        for (String pluginName : CloudIntegrationPolicy.knownPlugins()) {
+            integrations.add(specificIntegration(pluginName));
+        }
+        return List.copyOf(integrations);
+    }
+
+    private static CloudIntegration specificIntegration(String pluginName) {
+        return switch (pluginName) {
+            case "CoreProtect" -> new CoreProtectIntegration();
+            case "WorldEdit", "FastAsyncWorldEdit" -> new WorldEditIntegration(pluginName);
+            default -> genericIntegration(pluginName);
+        };
+    }
+
+    private static CloudIntegration genericIntegration(String pluginName) {
+        Set<IntegrationCapability> capabilities = CloudIntegrationPolicy.requiresRuntimeAuthority(pluginName, false)
+            ? Set.of(IntegrationCapability.DETECT, IntegrationCapability.RUNTIME_AUTHORITY)
+            : Set.of(IntegrationCapability.DETECT);
+        return new PolicyBackedCloudIntegration(pluginName, capabilities);
     }
 
     public record IntegrationStatus(
@@ -68,10 +108,12 @@ public final class PaperIntegrationRegistry {
         String category,
         boolean enabled,
         boolean runtimeAuthorityRequired,
-        List<String> requiredRuntimeClaims
+        List<String> requiredRuntimeClaims,
+        Set<IntegrationCapability> capabilities
     ) {
         public IntegrationStatus {
             requiredRuntimeClaims = List.copyOf(requiredRuntimeClaims);
+            capabilities = capabilities == null ? Set.of() : Set.copyOf(capabilities);
         }
     }
 }
