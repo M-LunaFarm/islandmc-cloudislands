@@ -3,7 +3,7 @@ main: kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin
 version: '${projectVersion}'
 api-version: '${paperApiBaseline}'
 author: LeeSeungmin
-softdepend: [Vault, PlaceholderAPI, LuckPerms, CoreProtect, WorldEdit, FastAsyncWorldEdit, ItemsAdder, Oraxen, Nexo, RoseStacker, WildStacker, AdvancedSpawners, Plan, ProtocolLib, SkinsRestorer, Slimefun, CMI]
+softdepend: [Vault, PlaceholderAPI, LuckPerms, CoreProtect, WorldEdit, FastAsyncWorldEdit, ItemsAdder, Oraxen, Nexo, RoseStacker, WildStacker, AdvancedSpawners, Plan, ProtocolLib, SkinsRestorer, SuperVanish, PremiumVanish, SlimeWorldManager, Slimefun, CMI]
 commands:
   island:
     description: CloudIslands player island command

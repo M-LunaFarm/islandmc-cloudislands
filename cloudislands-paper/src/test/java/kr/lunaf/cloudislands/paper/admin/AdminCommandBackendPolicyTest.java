@@ -2,6 +2,9 @@ package kr.lunaf.cloudislands.paper.admin;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -48,6 +51,13 @@ class AdminCommandBackendPolicyTest {
         assertTrue(plugin.contains("RoseStacker"), "RoseStacker must be declared as a soft dependency");
         assertTrue(plugin.contains("AdvancedSpawners"), "AdvancedSpawners must be declared as a soft dependency");
         assertTrue(plugin.contains("Plan"), "Plan must be declared as a soft dependency");
+        assertTrue(plugin.contains("SuperVanish"), "Vanish hooks must be declared as soft dependencies");
+        assertTrue(plugin.contains("PremiumVanish"), "Vanish hooks must be declared as soft dependencies");
+        assertTrue(plugin.contains("SlimeWorldManager"), "SlimeWorldManager hooks must be declared as soft dependencies");
+        Set<String> softDependencies = Arrays.stream(plugin.substring(plugin.indexOf("softdepend: [") + "softdepend: [".length(), plugin.indexOf("]", plugin.indexOf("softdepend: ["))).split(","))
+            .map(String::trim)
+            .collect(Collectors.toSet());
+        assertTrue(softDependencies.containsAll(kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.knownPlugins()), "plugin.yml soft dependencies must cover the shared hook policy");
     }
 
     @Test
