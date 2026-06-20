@@ -23,6 +23,13 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.storageStatus()"), "Diagnostics export must include storage health");
         assertTrue(source.contains("coreApiClient.metrics()"), "Diagnostics export must include metrics");
         assertTrue(source.contains("coreApiClient.listAuditLogs(25)"), "Diagnostics export must include bounded audit context");
+        assertTrue(source.contains("configValidationDiagnosticSection"), "Diagnostics export must include local config validation");
+        assertTrue(source.contains("effectiveConfigDiagnosticSection"), "Diagnostics export must include redacted effective config");
+        assertTrue(source.contains("## config-validation"), "Diagnostics bundle must have a config validation section");
+        assertTrue(source.contains("## effective-config-redacted"), "Diagnostics bundle must have a redacted effective config section");
+        assertTrue(source.contains("pluginVersion="), "Diagnostics bundle must include runtime version context");
+        assertTrue(source.contains("validateConfigV2Bundle()"), "Diagnostics config validation must use the same validator as config reload");
+        assertTrue(source.contains("effectiveConfigV2Yaml(true)"), "Diagnostics effective config must be redacted");
         assertTrue(plugin.contains("cloudislands.admin.diagnostics"), "Diagnostics command must have a plugin permission");
     }
 

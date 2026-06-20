@@ -687,8 +687,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<String> nodes = diagnosticSection("nodes", coreApiClient.listNodes().thenApply(Object::toString));
         CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.listJobs().thenApply(Object::toString));
         CompletableFuture<String> audit = diagnosticSection("audit", coreApiClient.listAuditLogs(25));
-        run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, jobs, audit)
-            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), audit.join(), integrationsDiagnosticSection()))));
+        CompletableFuture<String> configValidation = CompletableFuture.completedFuture(configValidationDiagnosticSection());
+        CompletableFuture<String> effectiveConfig = CompletableFuture.completedFuture(effectiveConfigDiagnosticSection());
+        run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, jobs, audit, configValidation, effectiveConfig)
+            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), audit.join(), configValidation.join(), effectiveConfig.join(), integrationsDiagnosticSection()))));
         return true;
     }
 
@@ -716,6 +718,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             builder.append("generatedAt=").append(Instant.now()).append('\n');
             builder.append("nodeId=").append(nodeId).append('\n');
             builder.append("agentRole=").append(agent.role()).append('\n');
+            builder.append("pluginVersion=").append(agent.plugin().getPluginMeta().getVersion()).append('\n');
             builder.append("onlinePlayers=").append(agent.plugin().getServer().getOnlinePlayers().size()).append("\n\n");
             for (String section : sections) {
                 builder.append(section).append('\n');
@@ -724,6 +727,21 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return adminText("admin-command-diagnostics-exported-prefix", "Diagnostics exported: ") + report;
         } catch (IOException exception) {
             return adminText("admin-command-diagnostics-export-failed", "Diagnostics export failed: ") + exception.getMessage();
+        }
+    }
+
+    private String configValidationDiagnosticSection() {
+        ConfigValidationResult validation = validateConfigV2Bundle();
+        return "## config-validation\n"
+            + "valid=" + validation.valid() + '\n'
+            + "summary=" + redactDiagnostic(validation.summary()) + '\n';
+    }
+
+    private String effectiveConfigDiagnosticSection() {
+        try {
+            return "## effective-config-redacted\n" + redactDiagnostic(effectiveConfigV2Yaml(true)) + '\n';
+        } catch (RuntimeException exception) {
+            return "## effective-config-redacted\nerror=" + exception.getClass().getSimpleName() + ':' + exception.getMessage() + '\n';
         }
     }
 
