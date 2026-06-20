@@ -58,7 +58,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             int roleIndex = indexAfterOptionalIslandValue(args, 1);
             IslandRole role = args.length > roleIndex ? parseRoleOrNull(args[roleIndex]) : null;
             if (role == null || !role.islandMemberRole() || role == IslandRole.OWNER) {
-                player.sendMessage(Component.text("올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, CUSTOM_1"));
+                player.sendMessage(Component.text("올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, TRUSTED"));
                 return true;
             }
             playerMembership.setRoleTarget(player, islandId, target, role);
@@ -74,7 +74,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
             IslandRole role = args.length > roleIndex ? parseRoleOrNull(args[roleIndex]) : null;
             if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
-                player.sendMessage(Component.text("편집 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1"));
+                player.sendMessage(Component.text("편집 가능한 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, TRUSTED"));
                 return true;
             }
             int weightIndex = roleIndex + 1;
@@ -89,7 +89,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
             IslandRole role = args.length > roleIndex ? parseRoleOrNull(args[roleIndex]) : null;
             if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
-                player.sendMessage(Component.text("초기화 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1"));
+                player.sendMessage(Component.text("초기화 가능한 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, TRUSTED"));
                 return true;
             }
             playerMembership.resetRole(player, islandId, role);

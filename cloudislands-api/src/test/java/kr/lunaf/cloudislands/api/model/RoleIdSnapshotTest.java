@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.api.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
@@ -61,8 +60,9 @@ class RoleIdSnapshotTest {
     }
 
     @Test
-    void customEnumSlotsAreDeprecatedCompatibilityOnly() throws Exception {
-        assertNotNull(IslandRole.class.getField("CUSTOM_1").getAnnotation(Deprecated.class));
-        assertNotNull(IslandRole.class.getField("CUSTOM_5").getAnnotation(Deprecated.class));
+    void customEnumSlotsAreNotExposedAsRoleIdentities() {
+        assertThrows(IllegalArgumentException.class, () -> IslandRole.valueOf("CUSTOM_1"));
+        assertThrows(IllegalArgumentException.class, () -> IslandRole.valueOf("CUSTOM_5"));
+        assertEquals("CUSTOM_1", RoleId.of("custom-1").value());
     }
 }

@@ -29,7 +29,7 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
                 addLiteralSuggestions(matches, args[1], List.of("25", "50", "100", "250"));
             }
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
-                addLiteralSuggestions(matches, args[1], List.of("MEMBER", "TRUSTED", "MODERATOR", "CO_OWNER", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5"));
+                addLiteralSuggestions(matches, args[1], List.of("MEMBER", "TRUSTED", "MODERATOR", "CO_OWNER", "VISITOR"));
             }
             if (first.equals("role-upsert") || first.equals("role-edit") || first.equals("역할편집")) {
                 addLiteralSuggestions(matches, args[1], memberRoleNames());
