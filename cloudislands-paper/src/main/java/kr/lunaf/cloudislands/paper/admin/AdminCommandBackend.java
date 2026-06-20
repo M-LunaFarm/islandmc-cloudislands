@@ -47,7 +47,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     private static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
     private static final List<String> MIGRATION_COMMANDS = List.of("scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "verify-no-legacy-provider", "rollback");
-    private static final List<String> INTEGRATION_PLUGINS = List.of("Vault", "PlaceholderAPI", "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit", "ItemsAdder", "Oraxen", "Nexo", "RoseStacker", "WildStacker", "AdvancedSpawners", "Plan", "ProtocolLib", "SkinsRestorer", "Slimefun", "CMI");
     private static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviders();
     private static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     private static final List<String> HELP_COMMANDS = List.of(
@@ -548,9 +547,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private String integrationStatusMessage() {
         List<String> entries = new ArrayList<>();
-        for (String pluginName : INTEGRATION_PLUGINS) {
+        for (String pluginName : kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.knownPlugins()) {
             boolean enabled = agent.plugin().getServer().getPluginManager().isPluginEnabled(pluginName);
-            entries.add(pluginName + "=" + (enabled ? "enabled" : "missing"));
+            entries.add(pluginName + "=" + (enabled ? "enabled" : "missing") + ":" + kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.category(pluginName));
         }
         return adminText("admin-command-integrations-prefix", "Integrations: ") + String.join(", ", entries);
     }

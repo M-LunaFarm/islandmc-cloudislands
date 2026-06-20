@@ -27,14 +27,17 @@ class AdminCommandBackendPolicyTest {
     void integrationsCommandCoversMajorHookPlugins() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String policy = Files.readString(Path.of("../cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/integration/CloudIntegrationPolicy.java"));
 
         assertTrue(source.contains("\"integrations\""), "Integrations root command must be registered");
         assertTrue(source.contains("ciadmin integrations"), "Integrations command must be listed in help");
         assertTrue(source.contains("integrationStatusMessage"), "Integrations command must have a status handler");
         assertTrue(source.contains("isPluginEnabled(pluginName)"), "Integrations command must inspect Bukkit plugin state");
-        assertTrue(source.contains("LuckPerms"), "LuckPerms must be covered by integration status");
-        assertTrue(source.contains("CoreProtect"), "CoreProtect must be covered by integration status");
-        assertTrue(source.contains("FastAsyncWorldEdit"), "FAWE must be covered by integration status");
+        assertTrue(source.contains("CloudIntegrationPolicy.knownPlugins()"), "Integrations command must use the shared integration policy");
+        assertTrue(policy.contains("LuckPerms"), "LuckPerms must be covered by integration status");
+        assertTrue(policy.contains("CoreProtect"), "CoreProtect must be covered by integration status");
+        assertTrue(policy.contains("FastAsyncWorldEdit"), "FAWE must be covered by integration status");
+        assertTrue(policy.contains("DISTRIBUTED_HOOK_POLICY"), "Integrations must publish the distributed hook policy");
         assertTrue(plugin.contains("cloudislands.admin.integrations"), "Integrations command must have a plugin permission");
         assertTrue(plugin.contains("LuckPerms"), "LuckPerms must be declared as a soft dependency");
         assertTrue(plugin.contains("CoreProtect"), "CoreProtect must be declared as a soft dependency");

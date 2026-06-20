@@ -1560,7 +1560,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 .thenAccept(body -> {
                     message(player, actionResultMessage(publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId, body));
                     if (!resultRejected(body)) {
-                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.performCommand("섬 설정"));
+                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> openIslandSettings(player));
                     }
                 })
                 .exceptionally(error -> {
@@ -1580,7 +1580,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 .thenAccept(body -> {
                     message(player, actionResultMessage(locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId, body));
                     if (!resultRejected(body)) {
-                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.performCommand("섬 설정"));
+                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> openIslandSettings(player));
                     }
                 })
                 .exceptionally(error -> {
@@ -3130,7 +3130,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 .thenAccept(body -> {
                     message(player, actionResultMessage("섬 이름 변경", name, body));
                     if (!resultRejected(body)) {
-                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.performCommand("섬 설정"));
+                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> openIslandSettings(player));
                     }
                 })
                 .exceptionally(error -> {
