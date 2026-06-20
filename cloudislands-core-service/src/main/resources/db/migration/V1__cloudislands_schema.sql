@@ -31,6 +31,7 @@ CREATE TABLE island_members (
     player_uuid UUID NOT NULL,
     role VARCHAR(32) NOT NULL,
     joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    trusted_expires_at TIMESTAMPTZ,
     PRIMARY KEY (island_id, player_uuid)
 );
 

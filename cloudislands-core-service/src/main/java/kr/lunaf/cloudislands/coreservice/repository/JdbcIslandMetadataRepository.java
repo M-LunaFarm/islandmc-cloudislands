@@ -33,12 +33,12 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public List<IslandMemberSnapshot> members(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT island_id, player_uuid, role, joined_at FROM island_members WHERE island_id = ? ORDER BY joined_at")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, player_uuid, role, joined_at, trusted_expires_at FROM island_members WHERE island_id = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP) ORDER BY joined_at")) {
             statement.setObject(1, islandId);
             try (ResultSet rs = statement.executeQuery()) {
                 List<IslandMemberSnapshot> result = new ArrayList<>();
                 while (rs.next()) {
-                    result.add(new IslandMemberSnapshot((UUID) rs.getObject("island_id"), (UUID) rs.getObject("player_uuid"), IslandRole.valueOf(rs.getString("role")), rs.getTimestamp("joined_at").toInstant()));
+                    result.add(member(rs));
                 }
                 return result;
             }
@@ -50,12 +50,12 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public List<IslandMemberSnapshot> islandsForMember(UUID playerUuid) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT island_id, player_uuid, role, joined_at FROM island_members WHERE player_uuid = ? ORDER BY joined_at")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, player_uuid, role, joined_at, trusted_expires_at FROM island_members WHERE player_uuid = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP) ORDER BY joined_at")) {
             statement.setObject(1, playerUuid);
             try (ResultSet rs = statement.executeQuery()) {
                 List<IslandMemberSnapshot> result = new ArrayList<>();
                 while (rs.next()) {
-                    result.add(new IslandMemberSnapshot((UUID) rs.getObject("island_id"), (UUID) rs.getObject("player_uuid"), IslandRole.valueOf(rs.getString("role")), rs.getTimestamp("joined_at").toInstant()));
+                    result.add(member(rs));
                 }
                 return result;
             }
@@ -67,7 +67,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public boolean isMember(UUID islandId, UUID playerUuid) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM island_members WHERE island_id = ? AND player_uuid = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM island_members WHERE island_id = ? AND player_uuid = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP)")) {
             statement.setObject(1, islandId);
             statement.setObject(2, playerUuid);
             try (ResultSet rs = statement.executeQuery()) {
@@ -80,11 +80,17 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
+        upsertMember(islandId, playerUuid, role, null);
+    }
+
+    @Override
+    public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, Instant expiresAt) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(upsertMemberSql(connection))) {
             statement.setObject(1, islandId);
             statement.setObject(2, playerUuid);
             statement.setString(3, role.name());
+            statement.setObject(4, expiresAt == null ? null : java.sql.Timestamp.from(expiresAt));
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to upsert island member", exception);
@@ -550,16 +556,27 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     private String upsertMemberSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
-            return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role)";
+            return "INSERT INTO island_members(island_id, player_uuid, role, trusted_expires_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role), trusted_expires_at = VALUES(trusted_expires_at)";
         }
-        return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, ?) ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role";
+        return "INSERT INTO island_members(island_id, player_uuid, role, trusted_expires_at) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role, trusted_expires_at = EXCLUDED.trusted_expires_at";
+    }
+
+    private IslandMemberSnapshot member(ResultSet rs) throws SQLException {
+        java.sql.Timestamp expiresAt = rs.getTimestamp("trusted_expires_at");
+        return new IslandMemberSnapshot(
+            (UUID) rs.getObject("island_id"),
+            (UUID) rs.getObject("player_uuid"),
+            IslandRole.valueOf(rs.getString("role")),
+            rs.getTimestamp("joined_at").toInstant(),
+            expiresAt == null ? null : expiresAt.toInstant()
+        );
     }
 
     private String acceptInviteMemberSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
-            return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'MEMBER') ON DUPLICATE KEY UPDATE role = VALUES(role)";
+            return "INSERT INTO island_members(island_id, player_uuid, role, trusted_expires_at) VALUES (?, ?, 'MEMBER', NULL) ON DUPLICATE KEY UPDATE role = VALUES(role), trusted_expires_at = NULL";
         }
-        return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'MEMBER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role";
+        return "INSERT INTO island_members(island_id, player_uuid, role, trusted_expires_at) VALUES (?, ?, 'MEMBER', NULL) ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role, trusted_expires_at = NULL";
     }
 
     private String banVisitorSql(Connection connection) throws SQLException {

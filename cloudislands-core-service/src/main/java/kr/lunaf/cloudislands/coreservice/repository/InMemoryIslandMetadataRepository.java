@@ -32,7 +32,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public List<IslandMemberSnapshot> members(UUID islandId) {
-        return new ArrayList<>(members.getOrDefault(islandId, Map.of()).values());
+        return activeMembers(members.getOrDefault(islandId, Map.of()));
     }
 
     @Override
@@ -40,7 +40,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
         List<IslandMemberSnapshot> result = new ArrayList<>();
         for (Map<UUID, IslandMemberSnapshot> islandMembers : members.values()) {
             IslandMemberSnapshot member = islandMembers.get(playerUuid);
-            if (member != null) {
+            if (member != null && !expired(member)) {
                 result.add(member);
             }
         }
@@ -50,13 +50,19 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public boolean isMember(UUID islandId, UUID playerUuid) {
-        return members.getOrDefault(islandId, Map.of()).containsKey(playerUuid);
+        IslandMemberSnapshot member = members.getOrDefault(islandId, Map.of()).get(playerUuid);
+        return member != null && !expired(member);
     }
 
     @Override
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
+        upsertMember(islandId, playerUuid, role, null);
+    }
+
+    @Override
+    public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, Instant expiresAt) {
         members.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
-            .compute(playerUuid, (ignored, current) -> new IslandMemberSnapshot(islandId, playerUuid, role, current == null ? Instant.now() : current.joinedAt()));
+            .compute(playerUuid, (ignored, current) -> new IslandMemberSnapshot(islandId, playerUuid, role, current == null ? Instant.now() : current.joinedAt(), expiresAt));
     }
 
     @Override
@@ -261,5 +267,19 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
             .map(Map.Entry::getKey)
             .limit(Math.max(0, limit))
             .toList();
+    }
+
+    private List<IslandMemberSnapshot> activeMembers(Map<UUID, IslandMemberSnapshot> islandMembers) {
+        List<IslandMemberSnapshot> result = new ArrayList<>();
+        for (IslandMemberSnapshot member : islandMembers.values()) {
+            if (!expired(member)) {
+                result.add(member);
+            }
+        }
+        return result;
+    }
+
+    private boolean expired(IslandMemberSnapshot member) {
+        return member.expiresAt() != null && !member.expiresAt().isAfter(Instant.now());
     }
 }

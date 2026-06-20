@@ -19,6 +19,9 @@ public interface IslandMetadataRepository {
     List<IslandMemberSnapshot> islandsForMember(UUID playerUuid);
     boolean isMember(UUID islandId, UUID playerUuid);
     void upsertMember(UUID islandId, UUID playerUuid, IslandRole role);
+    default void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, java.time.Instant expiresAt) {
+        upsertMember(islandId, playerUuid, role);
+    }
     void removeMember(UUID islandId, UUID playerUuid);
     IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     List<IslandInviteSnapshot> pendingInvites(UUID targetUuid);

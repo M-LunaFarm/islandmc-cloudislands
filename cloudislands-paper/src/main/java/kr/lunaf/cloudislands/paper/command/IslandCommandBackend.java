@@ -338,6 +338,9 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         if (args.length == 3 && (args[0].equalsIgnoreCase("warehouse-deposit") || args[0].equalsIgnoreCase("warehouse-withdraw") || args[0].equals("창고입금") || args[0].equals("창고출금"))) {
             return literalMatches(List.of("1", "16", "32", "64", "128"), args[2]);
         }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("trust") || args[0].equals("신뢰"))) {
+            return literalMatches(List.of("10m", "30m", "1h", "6h", "1d", "7d"), args[2]);
+        }
         if (args.length == 2 && (args[0].equalsIgnoreCase("border") || args[0].equalsIgnoreCase("border-ui") || args[0].equals("경계"))) {
             return literalMatches(List.of("apply", "visible", "hidden", "show", "hide", "color", "warning", "적용", "표시", "숨김", "색상", "경고"), args[1]);
         }
@@ -946,7 +949,11 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("input-trust-player-required", "신뢰할 플레이어를 입력해주세요."));
                 return true;
             }
-            setIslandMemberRole(player, args[1], IslandRole.TRUSTED, "섬 신뢰 멤버로 설정했습니다.");
+            if (args.length > 2) {
+                trustIslandMemberTemporary(player, args[1], args[2]);
+            } else {
+                setIslandMemberRole(player, args[1], IslandRole.TRUSTED, "섬 신뢰 멤버로 설정했습니다.");
+            }
             return true;
         }
         if (subcommand.equals("untrust") || subcommand.equals("신뢰해제")) {
@@ -2765,6 +2772,28 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         });
     }
 
+    private void trustIslandMemberTemporary(Player player, String target, String duration) {
+        long seconds = parseDurationSeconds(duration, 3600L);
+        if (seconds <= 0L) {
+            message(player, "신뢰 기간을 올바르게 입력해주세요. 예: 30m, 2h, 1d");
+            return;
+        }
+        currentIsland(player, "섬 안에서만 임시 신뢰를 설정할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
+                message(player, routeMessage("member-role-denied", "섬 멤버 역할을 변경할 권한이 없습니다."));
+                return;
+            }
+            resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                mutate("island.member.temp-trust", () -> coreApiClient.trustIslandMemberTemporary(islandId, player.getUniqueId(), targetUuid, seconds))
+                    .thenAccept(body -> message(player, actionResultMessage("섬 임시 신뢰 설정 " + formatDuration(seconds), targetUuid, body) + " 만료=" + text(body, "expiresAt")))
+                    .exceptionally(error -> {
+                        message(player, "섬 임시 신뢰를 설정하지 못했습니다.");
+                        return null;
+                    });
+            });
+        });
+    }
+
     private void transferIslandOwnership(Player player, String target) {
         currentIsland(player, "섬 안에서만 소유권을 양도할 수 있습니다.").ifPresent(islandId -> {
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
@@ -3441,8 +3470,9 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             String object = body.substring(objectStart, objectEnd + 1);
             String playerUuid = text(object, "playerUuid");
             String role = text(object, "role");
+            String expiresAt = text(object, "expiresAt");
             if (!playerUuid.isBlank()) {
-                entries.add(compactId(playerUuid) + (role.isBlank() ? "" : " 역할=" + role));
+                entries.add(compactId(playerUuid) + (role.isBlank() ? "" : " 역할=" + role) + (expiresAt.isBlank() ? "" : " 만료=" + expiresAt));
             }
             index = objectEnd + 1;
         }
@@ -3603,6 +3633,42 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
 
     private long number(String value, long fallback) {
         return longValue(value, fallback);
+    }
+
+    private long parseDurationSeconds(String value, long fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        long multiplier = 1L;
+        if (normalized.endsWith("m")) {
+            multiplier = 60L;
+            normalized = normalized.substring(0, normalized.length() - 1);
+        } else if (normalized.endsWith("h")) {
+            multiplier = 3600L;
+            normalized = normalized.substring(0, normalized.length() - 1);
+        } else if (normalized.endsWith("d")) {
+            multiplier = 86400L;
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        long amount = longValue(normalized, -1L);
+        if (amount <= 0L) {
+            return -1L;
+        }
+        return Math.max(60L, Math.min(amount * multiplier, 2_592_000L));
+    }
+
+    private String formatDuration(long seconds) {
+        if (seconds % 86400L == 0L) {
+            return (seconds / 86400L) + "d";
+        }
+        if (seconds % 3600L == 0L) {
+            return (seconds / 3600L) + "h";
+        }
+        if (seconds % 60L == 0L) {
+            return (seconds / 60L) + "m";
+        }
+        return seconds + "s";
     }
 
     private UUID uuid(String value) {

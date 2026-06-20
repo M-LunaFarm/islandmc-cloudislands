@@ -31,7 +31,7 @@ class JdbcSchemaBootstrapTest {
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:58", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:59", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
     }
 }

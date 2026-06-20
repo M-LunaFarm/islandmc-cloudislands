@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         registry.route("/v1/islands/members", this::members);
         registry.route("/v1/players/islands", this::playerIslands);
         registry.route("/v1/islands/members/set", this::setMember);
+        registry.route("/v1/islands/members/trust-temporary", this::trustTemporary);
         registry.route("/v1/islands/transfer", this::transferOwnership);
         registry.route("/v1/islands/members/remove", this::removeMember);
     }
@@ -113,6 +115,47 @@ public final class IslandMemberRoutes implements RouteGroup {
             : Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
         events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", role.name()));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+    }
+
+    private void trustTemporary(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
+        long seconds = Math.max(60L, Math.min(JsonFields.longValue(body, "durationSeconds", 3600L), 2_592_000L));
+        if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
+            return;
+        }
+        List<IslandMemberSnapshot> members = metadataRepository.members(islandId);
+        IslandRole currentRole = memberRole(members, playerUuid);
+        if (currentRole == IslandRole.OWNER) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be temporary trusted"));
+            return;
+        }
+        boolean existingMember = currentRole != null;
+        if (!existingMember && members.size() >= limitValue(islandId, "MEMBERS", 3L)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
+            return;
+        }
+        Instant expiresAt = Instant.now().plusSeconds(seconds);
+        metadataRepository.upsertMember(islandId, playerUuid, IslandRole.TRUSTED, expiresAt);
+        Map<String, String> fields = Map.of(
+            "playerUuid", playerUuid.toString(),
+            "role", IslandRole.TRUSTED.name(),
+            "expiresAt", expiresAt.toString(),
+            "durationSeconds", Long.toString(seconds)
+        );
+        audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_TEMP_TRUST", "ISLAND", islandId.toString(), fields);
+        islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_TEMP_TRUST", fields);
+        events.publish(CloudIslandEventType.ISLAND_MEMBER_ROLE_CHANGED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "playerUuid", playerUuid.toString(),
+            "oldRole", currentRole == null ? IslandRole.VISITOR.name() : currentRole.name(),
+            "newRole", IslandRole.TRUSTED.name(),
+            "expiresAt", expiresAt.toString()
+        ));
+        events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", IslandRole.TRUSTED.name(), "expiresAt", expiresAt.toString()));
+        CoreHttpResponses.write(exchange, 202, "{\"accepted\":true,\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\",\"role\":\"TRUSTED\",\"expiresAt\":\"" + expiresAt + "\",\"durationSeconds\":" + seconds + "}");
     }
 
     private void transferOwnership(HttpExchange exchange) throws IOException {
@@ -208,7 +251,8 @@ public final class IslandMemberRoutes implements RouteGroup {
                 .append("\"islandId\":\"").append(member.islandId()).append("\",")
                 .append("\"playerUuid\":\"").append(member.playerUuid()).append("\",")
                 .append("\"role\":\"").append(member.role()).append("\",")
-                .append("\"joinedAt\":\"").append(member.joinedAt()).append("\"")
+                .append("\"joinedAt\":\"").append(member.joinedAt()).append("\",")
+                .append("\"expiresAt\":").append(member.expiresAt() == null ? "null" : "\"" + member.expiresAt() + "\"")
                 .append('}');
         }
         return builder.append("]}").toString();

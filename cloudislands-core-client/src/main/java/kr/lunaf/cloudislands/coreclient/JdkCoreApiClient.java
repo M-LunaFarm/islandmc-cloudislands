@@ -156,6 +156,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> trustIslandMemberTemporary(UUID islandId, UUID actorUuid, UUID playerUuid, long durationSeconds) {
+        return postWithResultBody("/v1/islands/members/trust-temporary", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"durationSeconds\":" + durationSeconds + "}");
+    }
+
+    @Override
     public CompletableFuture<Void> transferIslandOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) {
         return transferIslandOwnershipResult(islandId, actorUuid, targetUuid).thenApply(_body -> null);
     }

@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS island_members (
     player_uuid CHAR(36) NOT NULL,
     role VARCHAR(32) NOT NULL,
     joined_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    trusted_expires_at DATETIME(6) NULL,
     owner_island_id CHAR(36) GENERATED ALWAYS AS (IF(role = 'OWNER', island_id, NULL)) STORED,
     PRIMARY KEY (island_id, player_uuid),
     CONSTRAINT fk_island_members_island FOREIGN KEY (island_id) REFERENCES islands(id),

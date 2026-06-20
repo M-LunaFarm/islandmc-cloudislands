@@ -23,10 +23,11 @@ class IslandMemberRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(5, paths.size());
+        assertEquals(6, paths.size());
         assertTrue(paths.contains("/v1/islands/members"));
         assertTrue(paths.contains("/v1/players/islands"));
         assertTrue(paths.contains("/v1/islands/members/set"));
+        assertTrue(paths.contains("/v1/islands/members/trust-temporary"));
         assertTrue(paths.contains("/v1/islands/transfer"));
         assertTrue(paths.contains("/v1/islands/members/remove"));
     }
@@ -37,12 +38,13 @@ class IslandMemberRoutesTest {
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
         IslandMemberSnapshot member = new IslandMemberSnapshot(islandId, playerUuid, IslandRole.CO_OWNER, Instant.parse("2026-01-02T03:04:05Z"));
+        IslandMemberSnapshot temporary = new IslandMemberSnapshot(islandId, UUID.fromString("00000000-0000-0000-0000-000000000004"), IslandRole.TRUSTED, Instant.parse("2026-01-02T04:04:05Z"), Instant.parse("2026-01-02T05:04:05Z"));
 
         assertEquals(IslandRole.CO_OWNER, IslandMemberRoutes.memberRole(List.of(member), playerUuid));
         assertNull(IslandMemberRoutes.memberRole(List.of(member), UUID.fromString("00000000-0000-0000-0000-000000000003")));
         assertEquals(
-            "{\"members\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"role\":\"CO_OWNER\",\"joinedAt\":\"2026-01-02T03:04:05Z\"}]}",
-            IslandMemberRoutes.membersJson(List.of(member))
+            "{\"members\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"role\":\"CO_OWNER\",\"joinedAt\":\"2026-01-02T03:04:05Z\",\"expiresAt\":null},{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000004\",\"role\":\"TRUSTED\",\"joinedAt\":\"2026-01-02T04:04:05Z\",\"expiresAt\":\"2026-01-02T05:04:05Z\"}]}",
+            IslandMemberRoutes.membersJson(List.of(member, temporary))
         );
     }
 

@@ -288,7 +288,8 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
                     JsonFields.uuid(object, "islandId", islandId),
                     JsonFields.uuid(object, "playerUuid", new UUID(0L, 0L)),
                     JsonFields.enumValue(IslandRole.class, object, "role", IslandRole.VISITOR),
-                    instant(JsonFields.text(object, "joinedAt", ""))
+                    instant(JsonFields.text(object, "joinedAt", "")),
+                    nullableInstant(JsonFields.text(object, "expiresAt", ""))
                 ));
             }
             return Optional.of(List.copyOf(members));
@@ -447,7 +448,8 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
                 .append("\"islandId\":\"").append(member.islandId()).append("\",")
                 .append("\"playerUuid\":\"").append(member.playerUuid()).append("\",")
                 .append("\"role\":\"").append(member.role().name()).append("\",")
-                .append("\"joinedAt\":\"").append(member.joinedAt()).append("\"")
+                .append("\"joinedAt\":\"").append(member.joinedAt()).append("\",")
+                .append("\"expiresAt\":\"").append(member.expiresAt() == null ? "" : member.expiresAt()).append("\"")
                 .append('}');
         }
         return builder.append(']').toString();
