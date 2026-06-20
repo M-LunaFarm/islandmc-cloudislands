@@ -213,4 +213,20 @@ class IslandCommandControllerPolicyTest {
         assertTrue(lifecycleHandler.contains("coreApiClient.resetIslandResult"));
         assertTrue(lifecycleHandler.contains("DangerousGuiActionPolicy.confirmed"));
     }
+
+    @Test
+    void overviewCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String overviewHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandOverviewCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandOverviewCommandHandler overviewCommands;"));
+        assertTrue(backend.contains("overviewCommands.handleCommand(player, subcommand)"));
+        assertTrue(backend.contains("overviewCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("openIslandInfoMenu("), "info menu routing belongs in IslandOverviewCommandHandler");
+        assertFalse(backend.contains("IslandMyIslandsMenu.open("), "my islands menu routing belongs in IslandOverviewCommandHandler");
+        assertTrue(overviewHandler.contains("boolean handleCommand(Player player, String subcommand)"));
+        assertTrue(overviewHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data)"));
+        assertTrue(overviewHandler.contains("IslandInfoMenu.open"));
+        assertTrue(overviewHandler.contains("IslandMyIslandsMenu.open"));
+    }
 }

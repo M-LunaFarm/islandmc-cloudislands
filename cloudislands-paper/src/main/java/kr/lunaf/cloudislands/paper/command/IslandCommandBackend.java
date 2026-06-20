@@ -36,11 +36,9 @@ import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -212,6 +210,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandHomeWarpCommandHandler homeWarpCommands;
     private final IslandVisitReviewCommandHandler visitReviewCommands;
     private final IslandLifecycleCommandHandler lifecycleCommands;
+    private final IslandOverviewCommandHandler overviewCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -726,6 +725,17 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 return IslandCommandBackend.this.messagesFor(player);
             }
         });
+        this.overviewCommands = new IslandOverviewCommandHandler(plugin, coreApiClient, new IslandOverviewCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+        });
         this.messages = messages;
         this.locales = locales;
         this.configuredNodeId = configuredNodeId == null || configuredNodeId.isBlank() ? "island-1" : configuredNodeId;
@@ -761,12 +771,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
             return true;
         }
-        if (subcommand.equals("info") || subcommand.equals("정보")) {
-            openIslandInfoMenu(player);
-            return true;
-        }
-        if (subcommand.equals("list") || subcommand.equals("my") || subcommand.equals("my-islands") || subcommand.equals("목록") || subcommand.equals("내섬")) {
-            IslandMyIslandsMenu.open(plugin, coreApiClient, player, messagesFor(player));
+        if (overviewCommands.handleCommand(player, subcommand)) {
             return true;
         }
         if (lifecycleCommands.handleCommand(player, subcommand, args)) {
@@ -1037,10 +1042,11 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (lifecycleCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
             return;
         }
+        if (overviewCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+            return;
+        }
         switch (actionId) {
             case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
-            case "island.info.open" -> openIslandInfoMenu(player);
-            case "island.list.open" -> IslandMyIslandsMenu.open(plugin, coreApiClient, player, messagesFor(player));
             case "island.members.open" -> openIslandMemberMenu(player);
             case "island.member.detail" -> {
                 message(player, routeMessage("member-detail-title", "멤버 상세"));
@@ -1539,10 +1545,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
 
     private boolean canUseBungeeConnect() {
         return plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "BungeeCord");
-    }
-
-    private void openIslandInfoMenu(Player player) {
-        currentIsland(player, "섬 안에서만 정보를 확인할 수 있습니다.").ifPresent(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
     }
 
     private void listIslandMembers(Player player) {
