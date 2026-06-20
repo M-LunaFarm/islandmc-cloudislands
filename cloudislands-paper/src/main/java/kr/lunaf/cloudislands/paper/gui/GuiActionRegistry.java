@@ -23,6 +23,7 @@ public final class GuiActionRegistry {
         if (!safeClick.supported()) {
             return;
         }
-        EXECUTOR.get().execute(player, actionId, data == null ? Map.of() : data, safeClick);
+        GuiActionParser.parse(actionId, data)
+            .ifPresent(action -> EXECUTOR.get().execute(player, action.actionId(), action.data(), safeClick));
     }
 }

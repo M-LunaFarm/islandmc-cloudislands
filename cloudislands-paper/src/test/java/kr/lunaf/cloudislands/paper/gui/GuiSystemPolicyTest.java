@@ -69,5 +69,6 @@ class GuiSystemPolicyTest {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionRegistry.java"));
         assertTrue(source.contains("GuiClick.UNSUPPORTED"), "null clicks must not be treated as LEFT");
         assertTrue(source.contains("!safeClick.supported()"), "unsupported clicks must be dropped before action execution");
+        assertTrue(source.contains("GuiActionParser.parse(actionId, data)"), "GUI actions must pass through typed parser before execution");
     }
 }
