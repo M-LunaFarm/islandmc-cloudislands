@@ -61,6 +61,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRegionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -70,6 +71,8 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.api.model.IslandTemplateSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandVisitorStatsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandWarehouseItemSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWorthSnapshot;
 import kr.lunaf.cloudislands.api.model.JobRecoveryResult;
@@ -2002,6 +2005,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<List<IslandReviewSnapshot>> getReviews(UUID islandId, int limit) {
+            return client.listIslandReviews(islandId, limit).thenApply(PaperCloudIslandsApi::reviews);
+        }
+
+        @Override
+        public CompletableFuture<IslandVisitorStatsSnapshot> getVisitorStats(UUID islandId, int limit) {
+            return client.islandVisitorStats(islandId, limit).thenApply(PaperCloudIslandsApi::visitorStats);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandWarehouseItemSnapshot>> getWarehouse(UUID islandId, int limit) {
+            return client.islandWarehouse(islandId, limit).thenApply(PaperCloudIslandsApi::warehouseItems);
+        }
+
+        @Override
         public CompletableFuture<List<IslandSnapshot>> getPublicIslands(int limit) {
             return client.listPublicIslands(limit).thenApply(PaperCloudIslandsApi::islands);
         }
@@ -3044,6 +3062,50 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return rankings;
+    }
+
+    private static List<IslandReviewSnapshot> reviews(String json) {
+        List<IslandReviewSnapshot> reviews = new ArrayList<>();
+        for (String object : objects(json, "reviews")) {
+            reviews.add(new IslandReviewSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                uuid(object, "reviewerUuid", new UUID(0L, 0L)),
+                integer(object, "rating", 1),
+                text(object, "comment", ""),
+                instant(text(object, "createdAt", Instant.EPOCH.toString())),
+                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return reviews;
+    }
+
+    private static IslandVisitorStatsSnapshot visitorStats(String json) {
+        List<IslandVisitorStatsSnapshot.RecentVisitor> recentVisitors = new ArrayList<>();
+        for (String object : objects(json, "recentVisitors")) {
+            recentVisitors.add(new IslandVisitorStatsSnapshot.RecentVisitor(
+                text(object, "visitorUuid", ""),
+                instant(text(object, "lastVisitedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return new IslandVisitorStatsSnapshot(
+            uuid(json, "islandId", new UUID(0L, 0L)),
+            longValue(json, "totalVisits", 0L),
+            longValue(json, "uniqueVisitors", 0L),
+            recentVisitors
+        );
+    }
+
+    private static List<IslandWarehouseItemSnapshot> warehouseItems(String json) {
+        List<IslandWarehouseItemSnapshot> items = new ArrayList<>();
+        for (String object : objects(json, "items")) {
+            items.add(new IslandWarehouseItemSnapshot(
+                uuid(object, "islandId", new UUID(0L, 0L)),
+                text(object, "materialKey", ""),
+                longValue(object, "amount", 0L),
+                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
+            ));
+        }
+        return items;
     }
 
     private static List<IslandUpgradeSnapshot> upgrades(String json) {

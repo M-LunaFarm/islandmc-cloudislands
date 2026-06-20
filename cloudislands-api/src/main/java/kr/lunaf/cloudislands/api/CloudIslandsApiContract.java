@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 public final class CloudIslandsApiContract {
     public static final String CONTRACT_VERSION = "1";
-    public static final String RUNTIME_API_VERSION = "1.0.1";
+    public static final String RUNTIME_API_VERSION = "1.1.0";
     public static final String READ_POLICY = "query-services-use-core-api-or-local-cache-snapshots-no-direct-storage-access";
     public static final String WRITE_AUTHORITY = "all-island-writes-go-through-core-api-transaction-endpoints";
     public static final String SYNC_EVENT_POLICY = "synchronous-paper-events-must-use-local-protection-permission-caches";

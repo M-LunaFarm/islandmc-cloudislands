@@ -21,11 +21,14 @@ import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRegionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSizeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
+import kr.lunaf.cloudislands.api.model.IslandVisitorStatsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandWarehouseItemSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWorthSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
@@ -64,6 +67,15 @@ public interface IslandQueryService {
     CompletableFuture<List<IslandRankSnapshot>> getTopByLevel(int limit);
     CompletableFuture<List<IslandRankSnapshot>> getTopByWorth(int limit);
     CompletableFuture<List<IslandReviewRankSnapshot>> getTopByReviews(int limit);
+    default CompletableFuture<List<IslandReviewSnapshot>> getReviews(UUID islandId, int limit) {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("Island review queries require CloudIslands API 1.1.0 or newer"));
+    }
+    default CompletableFuture<IslandVisitorStatsSnapshot> getVisitorStats(UUID islandId, int limit) {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("Island visitor stats queries require CloudIslands API 1.1.0 or newer"));
+    }
+    default CompletableFuture<List<IslandWarehouseItemSnapshot>> getWarehouse(UUID islandId, int limit) {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("Island warehouse queries require CloudIslands API 1.1.0 or newer"));
+    }
     CompletableFuture<List<IslandSnapshot>> getPublicIslands(int limit);
     CompletableFuture<IslandRuntimeSnapshot> getRuntime(UUID islandId);
     CompletableFuture<List<BlockValueSnapshot>> getBlockValues();

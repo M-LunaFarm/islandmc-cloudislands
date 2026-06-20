@@ -34,7 +34,7 @@ class CloudIslandsApiContractTest {
         assertEquals("distAddons-and-distAddonBundle-package-addon-jars-and-descriptor-sidecars-separately-from-required-core", CloudIslandsApiContract.ADDON_DISTRIBUTION_POLICY);
         assertEquals("missing-disabled-or-removed-addon-must-not-block-core-island-create-route-save-restore", CloudIslandsApiContract.ADDON_REMOVAL_POLICY);
         assertEquals("reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid", CloudIslandsApiContract.ADDON_RECONNECT_POLICY);
-        assertEquals("1.0.1", CloudIslandsApiContract.RUNTIME_API_VERSION);
+        assertEquals("1.1.0", CloudIslandsApiContract.RUNTIME_API_VERSION);
         assertEquals("major-version-breaks-binary-api-minor-adds-compatible-api-patch-fixes-only", CloudIslandsApiContract.SEMANTIC_VERSION_POLICY);
         assertEquals("deprecated-api-remains-for-at-least-one-minor-release-before-removal", CloudIslandsApiContract.DEPRECATION_POLICY);
         assertEquals("compatible,runtime-too-old,major-version-mismatch,invalid-version", CloudIslandsApiContract.COMPATIBILITY_LEVELS);
