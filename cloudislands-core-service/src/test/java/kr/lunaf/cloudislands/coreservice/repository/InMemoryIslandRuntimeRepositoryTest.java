@@ -78,6 +78,21 @@ class InMemoryIslandRuntimeRepositoryTest {
     }
 
     @Test
+    void runningIslandCannotStartDuplicateActivationOnSameNode() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        runtimes.markActivating(ISLAND, "island-4", "ci_shard_004", 3, 5);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> runtimes.markActivating(ISLAND, "island-4", "ci_shard_004", 3, 5));
+
+        assertEquals("ACTIVATION_LOCKED", exception.getMessage());
+        IslandRuntimeSnapshot current = runtimes.find(ISLAND).orElseThrow();
+        assertEquals(IslandState.ACTIVATING, current.state());
+        assertEquals("island-4", current.activeNode());
+        assertEquals(1L, current.fencingToken());
+    }
+
+    @Test
     void genericStateSetterRejectsLifecycleBypass() {
         InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
 

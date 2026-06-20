@@ -76,6 +76,7 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             IslandRuntimeSnapshot current = findForUpdate(connection, islandId).orElse(null);
+            rejectDuplicateActivation(current);
             rejectSplitBrainActivation(current, targetNode);
             long token = IslandRuntimeStatePolicy.nextFencingToken(current);
             IslandRuntimeSnapshot runtime = upsert(connection, islandId, IslandState.ACTIVATING, targetNode, targetWorld, cellX, cellZ, targetNode, token, null);
@@ -229,6 +230,12 @@ public final class JdbcIslandRuntimeRepository implements IslandRuntimeRepositor
         }
         throw new IllegalStateException("split-brain activation rejected for island " + current.islandId()
             + ": activeNode=" + activeNode + ", targetNode=" + targetNode + ", state=" + current.state());
+    }
+
+    private void rejectDuplicateActivation(IslandRuntimeSnapshot current) {
+        if (runningOnNode(current)) {
+            throw new IllegalStateException("ACTIVATION_LOCKED");
+        }
     }
 
     private void rejectIllegalTransition(UUID islandId, IslandState from, IslandState to) {

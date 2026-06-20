@@ -45,6 +45,7 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
     @Override
     public synchronized IslandRuntimeSnapshot markActivating(UUID islandId, String targetNode, String targetWorld, int cellX, int cellZ) {
         IslandRuntimeSnapshot current = find(islandId).orElse(null);
+        rejectDuplicateActivation(current);
         rejectSplitBrainActivation(current, targetNode);
         long nextToken = IslandRuntimeStatePolicy.nextFencingToken(current);
         return put(new IslandRuntimeSnapshot(islandId, IslandState.ACTIVATING, targetNode, targetWorld, cellX, cellZ, targetNode, nextToken, null, Instant.now()));
@@ -156,6 +157,12 @@ public final class InMemoryIslandRuntimeRepository implements IslandRuntimeRepos
         }
         throw new IllegalStateException("split-brain activation rejected for island " + current.islandId()
             + ": activeNode=" + activeNode + ", targetNode=" + targetNode + ", state=" + current.state());
+    }
+
+    private void rejectDuplicateActivation(IslandRuntimeSnapshot current) {
+        if (runningOnNode(current)) {
+            throw new IllegalStateException("ACTIVATION_LOCKED");
+        }
     }
 
     private void rejectIllegalTransition(UUID islandId, IslandState from, IslandState to) {
