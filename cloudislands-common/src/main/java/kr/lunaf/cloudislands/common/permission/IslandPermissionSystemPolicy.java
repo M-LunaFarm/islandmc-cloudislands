@@ -88,7 +88,11 @@ public final class IslandPermissionSystemPolicy {
             IslandFlag.VISITOR_PVP,
             IslandFlag.FLY,
             IslandFlag.KEEP_INVENTORY,
-            IslandFlag.PUBLIC_WARPS
+            IslandFlag.PUBLIC_WARPS,
+            IslandFlag.BORDER_VISIBLE,
+            IslandFlag.BORDER_COLOR,
+            IslandFlag.BORDER_WARNING_BLOCKS,
+            IslandFlag.BORDER_POLICY
     );
 
     private IslandPermissionSystemPolicy() {

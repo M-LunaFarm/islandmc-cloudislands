@@ -69,9 +69,11 @@ import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.WorldBorder;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -104,7 +106,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
         "challenge", "challenges", "challenge-menu", "challenge-list", "챌린지", "챌린지목록",
         "chat", "chat-menu", "islandchat", "채팅", "teamchat", "team-chat", "팀채팅", "log", "logs", "log-menu", "log-list", "로그", "로그목록",
-        "biome", "biome-menu", "biome-info", "바이옴", "바이옴정보", "size", "크기", "border", "경계",
+        "biome", "biome-menu", "biome-info", "바이옴", "바이옴정보", "size", "크기", "border", "border-ui", "border-color", "border-visible", "경계", "경계표시", "경계색상",
         "limit", "limits", "limit-menu", "limit-list", "제한", "제한목록", "setlimit", "limit-set", "제한설정",
         "hoppers", "호퍼", "spawners", "스포너", "entities", "엔티티", "redstone", "레드스톤",
         "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "스냅샷", "스냅샷목록", "snapshot-create", "snapshot-request", "스냅샷생성",
@@ -335,6 +337,15 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("warehouse-deposit") || args[0].equalsIgnoreCase("warehouse-withdraw") || args[0].equals("창고입금") || args[0].equals("창고출금"))) {
             return literalMatches(List.of("1", "16", "32", "64", "128"), args[2]);
+        }
+        if (args.length == 2 && (args[0].equalsIgnoreCase("border") || args[0].equalsIgnoreCase("border-ui") || args[0].equals("경계"))) {
+            return literalMatches(List.of("apply", "visible", "hidden", "show", "hide", "color", "warning", "적용", "표시", "숨김", "색상", "경고"), args[1]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("border-color") || args[0].equalsIgnoreCase("경계색상") || ((args[0].equalsIgnoreCase("border") || args[0].equals("경계")) && (args[1].equalsIgnoreCase("color") || args[1].equals("색상"))))) {
+            return literalMatches(List.of("blue", "green", "red", "aqua", "yellow", "purple", "파랑", "초록", "빨강", "하늘", "노랑", "보라"), args[2]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("border-visible") || args[0].equalsIgnoreCase("경계표시") || ((args[0].equalsIgnoreCase("border") || args[0].equals("경계")) && (args[1].equalsIgnoreCase("visible") || args[1].equals("표시"))))) {
+            return literalMatches(List.of("true", "false", "on", "off", "show", "hide", "켜기", "끄기", "표시", "숨김"), args[2]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정"))) {
             return literalMatches(List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"), args[2]);
@@ -796,8 +807,24 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             showIslandSize(player);
             return true;
         }
-        if (subcommand.equals("border") || subcommand.equals("경계")) {
-            showIslandBorder(player);
+        if (subcommand.equals("border") || subcommand.equals("border-ui") || subcommand.equals("경계")) {
+            handleIslandBorder(player, args);
+            return true;
+        }
+        if (subcommand.equals("border-color") || subcommand.equals("경계색상")) {
+            if (args.length < 2) {
+                message(player, "경계 색상을 입력해주세요. 예: /섬 경계색상 blue");
+                return true;
+            }
+            setIslandBorderFlag(player, IslandFlag.BORDER_COLOR, normalizeBorderColor(args[1]), true);
+            return true;
+        }
+        if (subcommand.equals("border-visible") || subcommand.equals("경계표시")) {
+            if (args.length < 2) {
+                message(player, "경계 표시 여부를 입력해주세요. 예: /섬 경계표시 켜기");
+                return true;
+            }
+            setIslandBorderFlag(player, IslandFlag.BORDER_VISIBLE, flagToggleValue(args, 1), true);
             return true;
         }
         if (subcommand.equals("limit") || subcommand.equals("limits") || subcommand.equals("limit-list") || subcommand.equals("제한") || subcommand.equals("제한목록")) {
@@ -2284,13 +2311,166 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
 
     private void showIslandBorder(Player player) {
         currentIsland(player, "섬 안에서만 경계를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandInfo(islandId)
-                .thenAccept(body -> message(player, "섬 경계: " + (long) decimal(body, "border")))
+            CompletableFuture<String> info = coreApiClient.islandInfo(islandId);
+            CompletableFuture<String> flags = coreApiClient.listIslandFlags(islandId);
+            info.thenCombine(flags, (infoBody, flagBody) -> borderSummary(infoBody, flagBody))
+                .thenAccept(summary -> message(player, summary))
                 .exceptionally(error -> {
                     message(player, "섬 경계를 불러오지 못했습니다.");
                     return null;
                 });
         });
+    }
+
+    private void handleIslandBorder(Player player, String[] args) {
+        if (args.length < 2) {
+            showIslandBorder(player);
+            applyIslandBorder(player, false);
+            return;
+        }
+        String mode = args[1].toLowerCase(Locale.ROOT);
+        if (mode.equals("apply") || mode.equals("적용")) {
+            applyIslandBorder(player, true);
+            return;
+        }
+        if (mode.equals("hide") || mode.equals("hidden") || mode.equals("숨김")) {
+            setIslandBorderFlag(player, IslandFlag.BORDER_VISIBLE, "false", true);
+            return;
+        }
+        if (mode.equals("show") || mode.equals("visible") || mode.equals("표시")) {
+            String value = args.length > 2 ? flagToggleValue(args, 2) : "true";
+            setIslandBorderFlag(player, IslandFlag.BORDER_VISIBLE, value, true);
+            return;
+        }
+        if (mode.equals("color") || mode.equals("색상")) {
+            if (args.length < 3) {
+                message(player, "경계 색상을 입력해주세요. 예: /섬 경계 색상 blue");
+                return;
+            }
+            setIslandBorderFlag(player, IslandFlag.BORDER_COLOR, normalizeBorderColor(args[2]), true);
+            return;
+        }
+        if (mode.equals("warning") || mode.equals("경고")) {
+            if (args.length < 3) {
+                message(player, "경계 경고 거리를 입력해주세요. 예: /섬 경계 경고 8");
+                return;
+            }
+            setIslandBorderFlag(player, IslandFlag.BORDER_WARNING_BLOCKS, Long.toString(Math.max(0L, longValue(args[2], 0L))), true);
+            return;
+        }
+        if (mode.equals("policy") || mode.equals("정책")) {
+            if (args.length < 3) {
+                message(player, "경계 정책을 입력해주세요. 예: /섬 경계 정책 visible");
+                return;
+            }
+            setIslandBorderFlag(player, IslandFlag.BORDER_POLICY, normalizeBorderPolicy(args[2]), true);
+            return;
+        }
+        showIslandBorder(player);
+    }
+
+    private void setIslandBorderFlag(Player player, IslandFlag flag, String value, boolean applyAfterSave) {
+        currentIsland(player, "섬 안에서만 경계 정책을 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
+                message(player, routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
+                return;
+            }
+            mutate("island.flag.set", () -> coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value))
+                .thenAccept(body -> {
+                    message(player, actionResultMessage("섬 경계 정책 변경 " + flag.name() + "=" + value, flag.name(), body));
+                    if (applyAfterSave && !resultRejected(body)) {
+                        applyIslandBorder(player, true);
+                    }
+                })
+                .exceptionally(error -> {
+                    message(player, coreWriteFailureMessage(error, "섬 경계 정책을 변경하지 못했습니다."));
+                    return null;
+                });
+        });
+    }
+
+    private void applyIslandBorder(Player player, boolean announce) {
+        currentIsland(player, "섬 안에서만 경계를 적용할 수 있습니다.").ifPresent(islandId -> {
+            java.util.Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
+            if (region.isEmpty()) {
+                message(player, "섬 경계 위치를 확인하지 못했습니다.");
+                return;
+            }
+            CompletableFuture<String> info = coreApiClient.islandInfo(islandId);
+            CompletableFuture<String> flags = coreApiClient.listIslandFlags(islandId);
+            info.thenCombine(flags, (infoBody, flagBody) -> new BorderView(infoBody, flagBody, region.get()))
+                .thenAccept(view -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> applyIslandBorderSync(player, view, announce)))
+                .exceptionally(error -> {
+                    message(player, "섬 경계 UI를 적용하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void applyIslandBorderSync(Player player, BorderView view, boolean announce) {
+        boolean visible = borderVisible(view.flags());
+        String policy = flagValue(view.flags(), IslandFlag.BORDER_POLICY, visible ? "visible" : "hidden");
+        if (!visible || policy.equalsIgnoreCase("hidden")) {
+            player.setWorldBorder(null);
+            if (announce) {
+                message(player, "섬 경계 UI를 숨겼습니다.");
+            }
+            return;
+        }
+        WorldBorder border = Bukkit.createWorldBorder();
+        border.setCenter(view.region().originX(), view.region().originZ());
+        border.setSize(Math.max(1.0D, decimal(view.info(), "border")));
+        border.setWarningDistance(Math.max(0, (int) longValue(flagValue(view.flags(), IslandFlag.BORDER_WARNING_BLOCKS, "8"), 8L)));
+        border.setWarningTime(5);
+        player.setWorldBorder(border);
+        if (announce) {
+            message(player, "섬 경계 UI 적용: 색상=" + flagValue(view.flags(), IslandFlag.BORDER_COLOR, "blue") + ", 정책=" + policy + ", 크기=" + (long) decimal(view.info(), "border"));
+        }
+    }
+
+    private String borderSummary(String infoBody, String flagBody) {
+        return "섬 경계: 크기=" + (long) decimal(infoBody, "border")
+            + ", 표시=" + (borderVisible(flagBody) ? "켜짐" : "꺼짐")
+            + ", 색상=" + flagValue(flagBody, IslandFlag.BORDER_COLOR, "blue")
+            + ", 정책=" + flagValue(flagBody, IslandFlag.BORDER_POLICY, "visible")
+            + ", 경고거리=" + flagValue(flagBody, IslandFlag.BORDER_WARNING_BLOCKS, "8");
+    }
+
+    private boolean borderVisible(String flagBody) {
+        String value = flagValue(flagBody, IslandFlag.BORDER_VISIBLE, "true");
+        return !value.equalsIgnoreCase("false")
+            && !value.equalsIgnoreCase("off")
+            && !value.equals("0")
+            && !value.equalsIgnoreCase("hide")
+            && !value.equalsIgnoreCase("hidden")
+            && !value.equals("숨김");
+    }
+
+    private String flagValue(String body, IslandFlag flag, String fallback) {
+        String value = text(body, flag.name());
+        return value.isBlank() ? fallback : value;
+    }
+
+    private String normalizeBorderColor(String value) {
+        return switch (value.toLowerCase(Locale.ROOT)) {
+            case "red", "빨강" -> "red";
+            case "green", "초록" -> "green";
+            case "aqua", "cyan", "하늘" -> "aqua";
+            case "yellow", "노랑" -> "yellow";
+            case "purple", "보라" -> "purple";
+            default -> "blue";
+        };
+    }
+
+    private String normalizeBorderPolicy(String value) {
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (normalized.equals("hidden") || normalized.equals("hide") || normalized.equals("숨김")) {
+            return "hidden";
+        }
+        if (normalized.equals("warning") || normalized.equals("warn") || normalized.equals("경고")) {
+            return "warning";
+        }
+        return "visible";
     }
 
     private void listIslandLimits(Player player) {
@@ -3733,4 +3913,5 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private record Point(String worldName, double x, double y, double z, float yaw, float pitch, boolean publicAccess) {}
+    private record BorderView(String info, String flags, IslandRegion region) {}
 }
