@@ -2,6 +2,9 @@ package kr.lunaf.cloudislands.api;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import kr.lunaf.cloudislands.api.model.CloudIslandsStatusSnapshot;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -19,6 +22,8 @@ class CloudIslandsApiContractTest {
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("event-delivery-policy"));
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("threading-policy"));
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("core-failure-policy"));
+        assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("timeout-retry-policy"));
+        assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("compatibility-testkit-policy"));
 
         assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", CloudIslandsApiContract.ADDON_SUPPORTED_PACKAGING);
         assertEquals("addons-may-run-as-external-plugins-or-built-in-feature-packs-through-the-same-spi", CloudIslandsApiContract.ADDON_PACKAGING_POLICY);
@@ -31,6 +36,8 @@ class CloudIslandsApiContractTest {
         assertEquals("global-events-are-at-least-once-delivered-and-consumers-must-deduplicate-by-event-id", CloudIslandsApiContract.EVENT_DELIVERY_POLICY);
         assertEquals("api-futures-complete-off-main-thread-paper-callers-must-schedule-bukkit-world-and-player-access", CloudIslandsApiContract.THREADING_POLICY);
         assertEquals("core-unavailable-fails-closed-for-writes-and-may-return-marked-stale-snapshots-for-reads", CloudIslandsApiContract.CORE_FAILURE_POLICY);
+        assertEquals("typed-core-client-uses-bounded-timeouts-and-retries-read-requests-only-unless-idempotency-key-is-present", CloudIslandsApiContract.TIMEOUT_RETRY_POLICY);
+        assertEquals("addons-validate-against-cloudislands-testkit-contract-fixtures-before-certification", CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY);
     }
 
     @Test
@@ -46,5 +53,30 @@ class CloudIslandsApiContractTest {
         assertEquals(CloudIslandsApiContract.EVENT_DELIVERY_POLICY, CloudIslandsApiContract.metadata().get("event-delivery-policy"));
         assertEquals(CloudIslandsApiContract.THREADING_POLICY, CloudIslandsApiContract.metadata().get("threading-policy"));
         assertEquals(CloudIslandsApiContract.CORE_FAILURE_POLICY, CloudIslandsApiContract.metadata().get("core-failure-policy"));
+        assertEquals(CloudIslandsApiContract.TIMEOUT_RETRY_POLICY, CloudIslandsApiContract.metadata().get("timeout-retry-policy"));
+        assertEquals(CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY, CloudIslandsApiContract.metadata().get("compatibility-testkit-policy"));
+    }
+
+    @Test
+    void statusSnapshotMetadataMatchesTheRequiredKeySet() {
+        CloudIslandsStatusSnapshot snapshot = new CloudIslandsStatusSnapshot(
+            "paper",
+            "ISLAND_NODE",
+            "island-1",
+            "1.0.0",
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            1,
+            2,
+            0,
+            Instant.parse("2026-01-01T00:00:00Z")
+        );
+
+        assertTrue(snapshot.contractCompatible(), snapshot.missingContractMetadataKeys().toString());
+        assertEquals("compatible", snapshot.contractCompatibilityStatus());
     }
 }

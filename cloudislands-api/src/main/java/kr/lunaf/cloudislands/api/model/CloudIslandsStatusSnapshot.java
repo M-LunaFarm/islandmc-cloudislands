@@ -187,6 +187,15 @@ public record CloudIslandsStatusSnapshot(
         metadata.put("addon-supported-packaging", CloudIslandsApiContract.ADDON_SUPPORTED_PACKAGING);
         metadata.put("addon-descriptor-policy", CloudIslandsApiContract.ADDON_DESCRIPTOR_POLICY);
         metadata.put("addon-distribution-policy", CloudIslandsApiContract.ADDON_DISTRIBUTION_POLICY);
+        metadata.put("addon-removal-policy", CloudIslandsApiContract.ADDON_REMOVAL_POLICY);
+        metadata.put("addon-reconnect-policy", CloudIslandsApiContract.ADDON_RECONNECT_POLICY);
+        metadata.put("semantic-version-policy", CloudIslandsApiContract.SEMANTIC_VERSION_POLICY);
+        metadata.put("deprecation-policy", CloudIslandsApiContract.DEPRECATION_POLICY);
+        metadata.put("event-delivery-policy", CloudIslandsApiContract.EVENT_DELIVERY_POLICY);
+        metadata.put("threading-policy", CloudIslandsApiContract.THREADING_POLICY);
+        metadata.put("core-failure-policy", CloudIslandsApiContract.CORE_FAILURE_POLICY);
+        metadata.put("timeout-retry-policy", CloudIslandsApiContract.TIMEOUT_RETRY_POLICY);
+        metadata.put("compatibility-testkit-policy", CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY);
         metadata.put("java-plugin-api-policy", safe(javaPluginApiPolicy));
         metadata.put("internal-api-policy", safe(internalApiPolicy));
         metadata.put("event-api-policy", safe(eventApiPolicy));

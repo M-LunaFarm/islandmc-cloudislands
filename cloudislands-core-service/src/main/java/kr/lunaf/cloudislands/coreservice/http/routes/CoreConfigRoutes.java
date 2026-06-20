@@ -263,6 +263,8 @@ public final class CoreConfigRoutes implements RouteGroup {
             + "\"addonJavaPluginApiPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.JAVA_PLUGIN_API_POLICY) + "\","
             + "\"addonInternalApiPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.INTERNAL_API_POLICY) + "\","
             + "\"addonEventApiPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.EVENT_API_POLICY) + "\","
+            + "\"addonTimeoutRetryPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.TIMEOUT_RETRY_POLICY) + "\","
+            + "\"addonCompatibilityTestkitPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY) + "\","
             + "\"addonCoreAuthPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.CORE_AUTH_POLICY) + "\","
             + "\"addonAdminEndpointPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY) + "\","
             + "\"addonNetworkExposurePolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY) + "\","
