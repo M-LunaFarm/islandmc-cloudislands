@@ -112,6 +112,7 @@ import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
+import kr.lunaf.cloudislands.paper.config.PaperAddonConfigFile;
 import kr.lunaf.cloudislands.paper.config.PaperAddonConfigStore;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
@@ -228,7 +229,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             this.coreClient = coreClient;
             this.plugin = plugin;
             this.runtimeConfig = runtimeConfig == null ? PaperRuntimeConfig.defaults() : runtimeConfig;
-            this.addonConfig = new PaperAddonConfigStore(plugin);
+            this.addonConfig = new PaperAddonConfigStore(PaperAddonConfigFile.fromPlugin(plugin));
             this.events = events;
         }
 

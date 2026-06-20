@@ -62,6 +62,8 @@ class PaperConfigSurfaceTest {
         String api = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"), StandardCharsets.UTF_8);
         String loader = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfigLoader.java"), StandardCharsets.UTF_8);
         String snapshot = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfig.java"), StandardCharsets.UTF_8);
+        String addonStore = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperAddonConfigStore.java"), StandardCharsets.UTF_8);
+        String addonFile = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperAddonConfigFile.java"), StandardCharsets.UTF_8);
 
         assertTrue(bootstrap.contains("PaperRuntimeConfigLoader.load"), "Paper bootstrap must create a runtime config snapshot");
         assertTrue(snapshot.contains("record PaperRuntimeConfig"), "Paper runtime config must be immutable snapshot data");
@@ -102,6 +104,10 @@ class PaperConfigSurfaceTest {
         assertFalse(api.contains("boolean configBoolean("), "Paper API services must not keep duplicate runtime boolean parsers");
         assertFalse(api.contains("config.getString(\"node.id\""), "status API must use the runtime snapshot for node identity");
         assertFalse(api.contains("plugin.getConfig()"), "Paper API services must use runtime config snapshots or dedicated config adapters");
+        assertTrue(api.contains("PaperAddonConfigFile.fromPlugin(plugin)"), "Paper API addon service must use the dedicated addon config adapter");
+        assertFalse(addonStore.contains("plugin.getConfig()"), "Paper addon config store must read addon settings from a snapshot");
+        assertTrue(addonStore.contains("PaperAddonConfigSnapshot"), "Paper addon config store must keep addon settings snapshot-backed");
+        assertTrue(addonFile.contains("plugin.getConfig()"), "Bukkit config access must be isolated to the dedicated addon config file adapter");
     }
 
     private boolean containsPath(String config, String path) {

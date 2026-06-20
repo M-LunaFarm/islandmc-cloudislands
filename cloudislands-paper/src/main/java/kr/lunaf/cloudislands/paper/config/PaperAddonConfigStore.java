@@ -4,27 +4,30 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
 
 public final class PaperAddonConfigStore {
-    private final Plugin plugin;
+    private final PaperAddonConfigFile configFile;
+    private PaperAddonConfigSnapshot snapshot;
 
     public PaperAddonConfigStore(Plugin plugin) {
-        this.plugin = plugin;
+        this(PaperAddonConfigFile.fromPlugin(plugin));
+    }
+
+    public PaperAddonConfigStore(PaperAddonConfigFile configFile) {
+        if (configFile == null) {
+            throw new IllegalArgumentException("configFile is required");
+        }
+        this.configFile = configFile;
+        this.snapshot = configFile.snapshot();
     }
 
     public boolean addonEnabled(String id, List<String> parentAliases) {
         boolean enabled = true;
         String addonPath = "addons." + id + ".enabled";
-        if (plugin.getConfig().contains(addonPath)) {
-            enabled = plugin.getConfig().getBoolean(addonPath, true);
-        }
+        enabled = snapshot.enabled(parentPath(addonPath), enabled);
         for (String alias : safeAliases(parentAliases)) {
-            String aliasPath = alias + ".enabled";
-            if (plugin.getConfig().contains(aliasPath)) {
-                enabled = enabled && plugin.getConfig().getBoolean(aliasPath, true);
-            }
+            enabled = enabled && snapshot.enabled(parentPath(alias + ".enabled"), true);
         }
         return enabled;
     }
@@ -32,19 +35,19 @@ public final class PaperAddonConfigStore {
     public Map<String, Boolean> addonFeatures(String id, List<String> parentAliases, Map<String, Boolean> defaults) {
         Map<String, Boolean> effective = new HashMap<>(defaults == null ? Map.of() : defaults);
         for (String alias : safeAliases(parentAliases)) {
-            applyFeatureSection(effective, plugin.getConfig().getConfigurationSection(alias + ".features"));
+            applyFeatures(effective, snapshot.features(alias));
         }
-        applyFeatureSection(effective, plugin.getConfig().getConfigurationSection("addons." + id + ".features"));
+        applyFeatures(effective, snapshot.features("addons." + id));
         return effective;
     }
 
     public List<String> configuredParentPaths(String id, List<String> parentAliases) {
         List<String> parentPaths = new ArrayList<>();
-        if (plugin.getConfig().contains("addons." + id)) {
+        if (snapshot.contains("addons." + id)) {
             parentPaths.add("addons." + id);
         }
         for (String alias : safeAliases(parentAliases)) {
-            if (plugin.getConfig().contains(alias)) {
+            if (snapshot.contains(alias)) {
                 parentPaths.add(alias);
             }
         }
@@ -52,43 +55,43 @@ public final class PaperAddonConfigStore {
     }
 
     public void setEnabled(String id, List<String> parentAliases, boolean enabled) {
-        plugin.getConfig().set("addons." + id + ".enabled", enabled);
+        configFile.set("addons." + id + ".enabled", enabled);
         for (String alias : safeAliases(parentAliases)) {
-            plugin.getConfig().set(alias + ".enabled", enabled);
+            configFile.set(alias + ".enabled", enabled);
         }
         saveAndReload();
     }
 
     public void setFeature(String id, List<String> parentAliases, String feature, boolean enabled) {
-        plugin.getConfig().set("addons." + id + ".features." + feature, enabled);
+        configFile.set("addons." + id + ".features." + feature, enabled);
         for (String alias : safeAliases(parentAliases)) {
-            plugin.getConfig().set(alias + ".features." + feature, enabled);
+            configFile.set(alias + ".features." + feature, enabled);
         }
     }
 
     public void clearFeatureAliases(String id, List<String> parentAliases, List<String> featureAliases) {
         for (String alias : safeAliases(featureAliases)) {
-            plugin.getConfig().set("addons." + id + ".features." + alias, null);
+            configFile.set("addons." + id + ".features." + alias, null);
             for (String parentAlias : safeAliases(parentAliases)) {
-                plugin.getConfig().set(parentAlias + ".features." + alias, null);
+                configFile.set(parentAlias + ".features." + alias, null);
             }
         }
     }
 
     public void saveAndReload() {
-        plugin.saveConfig();
-        plugin.reloadConfig();
+        configFile.saveAndReload();
+        snapshot = configFile.snapshot();
     }
 
-    private void applyFeatureSection(Map<String, Boolean> effective, ConfigurationSection section) {
-        if (section == null) {
-            return;
+    private void applyFeatures(Map<String, Boolean> effective, Map<String, Boolean> features) {
+        for (Map.Entry<String, Boolean> entry : features.entrySet()) {
+            effective.put(entry.getKey(), effective.getOrDefault(entry.getKey(), true) && entry.getValue());
         }
-        for (String key : section.getKeys(false)) {
-            if (section.isBoolean(key)) {
-                effective.put(key, effective.getOrDefault(key, true) && section.getBoolean(key, true));
-            }
-        }
+    }
+
+    private String parentPath(String settingPath) {
+        int lastDot = settingPath.lastIndexOf('.');
+        return lastDot < 0 ? settingPath : settingPath.substring(0, lastDot);
     }
 
     private List<String> safeAliases(List<String> aliases) {
