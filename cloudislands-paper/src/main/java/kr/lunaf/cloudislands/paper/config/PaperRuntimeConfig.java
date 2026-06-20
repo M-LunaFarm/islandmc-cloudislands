@@ -46,6 +46,10 @@ public record PaperRuntimeConfig(
         return gui.enabledForRole(role);
     }
 
+    public static PaperRuntimeConfig defaults() {
+        return new PaperRuntimeConfig(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    }
+
     private static String blankDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
     }

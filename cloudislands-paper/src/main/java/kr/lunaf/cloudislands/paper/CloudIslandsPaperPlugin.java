@@ -24,6 +24,7 @@ import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.command.PaperCommandRegistrar;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
@@ -81,6 +82,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     PaperIntegrationRegistry integrationRegistry;
     LifecycleRegistry lifecycle;
     PlayerLocaleCache playerLocales;
+    PaperRuntimeConfig runtimeConfig;
 
     @Override
     public void onEnable() {
@@ -114,6 +116,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             playerLocales.clear();
             playerLocales = null;
         }
+        runtimeConfig = null;
     }
 
     public CloudIslandsPaperAgent agent() {
@@ -179,14 +182,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return integrationRegistry;
     }
 
+    PaperRuntimeConfig runtimeConfig() {
+        return runtimeConfig == null ? PaperRuntimeConfig.defaults() : runtimeConfig;
+    }
+
     boolean guiEnabledForRole(AgentRole role) {
-        if (!configBoolean("paper-gui.enabled", true)) {
-            return false;
-        }
-        if (role == AgentRole.ISLAND_NODE) {
-            return configBoolean("paper-gui.island-node-enabled", true);
-        }
-        return configBoolean("paper-gui.lobby-enabled", true);
+        return runtimeConfig().guiEnabledForRole(role);
     }
 
     AgentRole parseAgentRole(String configuredRole) {
@@ -220,24 +221,6 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             return System.getenv().getOrDefault(trimmed.substring(2, trimmed.length() - 1), "");
         }
         return trimmed;
-    }
-
-    boolean configBoolean(String path, boolean fallback) {
-        if (!getConfig().contains(path)) {
-            return fallback;
-        }
-        Object raw = getConfig().get(path);
-        if (raw instanceof Boolean value) {
-            return value;
-        }
-        String normalized = String.valueOf(raw).trim().toLowerCase(Locale.ROOT);
-        if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled") || normalized.equals("켜기") || normalized.equals("허용") || normalized.equals("활성")) {
-            return true;
-        }
-        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled") || normalized.equals("끄기") || normalized.equals("거부") || normalized.equals("비활성")) {
-            return false;
-        }
-        return fallback;
     }
 
 }

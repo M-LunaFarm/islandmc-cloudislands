@@ -70,6 +70,7 @@ final class PaperPluginBootstrap {
         plugin.lifecycle = new LifecycleRegistry(plugin.getLogger());
         plugin.saveDefaultConfig();
         PaperRuntimeConfig config = PaperRuntimeConfigLoader.load(plugin.getConfig(), plugin::resolveEnv);
+        plugin.runtimeConfig = config;
         logSecurityPosture(config);
         plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, "minecraft:brand");
         if (config.security().allowBungeeConnectPluginMessaging()) {

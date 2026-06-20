@@ -57,6 +57,8 @@ class PaperConfigSurfaceTest {
     @Test
     void paperBootstrapDelegatesRuntimeConfigPathsToSnapshotLoader() throws Exception {
         String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"), StandardCharsets.UTF_8);
+        String plugin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/CloudIslandsPaperPlugin.java"), StandardCharsets.UTF_8);
+        String commands = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"), StandardCharsets.UTF_8);
         String loader = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfigLoader.java"), StandardCharsets.UTF_8);
         String snapshot = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfig.java"), StandardCharsets.UTF_8);
 
@@ -89,6 +91,9 @@ class PaperConfigSurfaceTest {
         assertFalse(bootstrap.contains("getLong(\"heartbeat.interval-ticks\""), "heartbeat path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getBoolean(\"health.enabled\""), "health path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getInt(\"island-node.shard-count\""), "island worker paths must live in PaperRuntimeConfigLoader");
+        assertTrue(plugin.contains("PaperRuntimeConfig runtimeConfig"), "Paper plugin must retain the active runtime config snapshot");
+        assertFalse(plugin.contains("boolean configBoolean("), "Paper plugin helpers must not parse runtime booleans from Bukkit config");
+        assertFalse(commands.contains("plugin.getConfig().getString(\"node.id\""), "commands must use the runtime snapshot for node identity");
     }
 
     private boolean containsPath(String config, String path) {

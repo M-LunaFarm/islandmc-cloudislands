@@ -228,6 +228,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     private final EconomyBridge economyBridge;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
+    private final String configuredNodeId;
     private final PaperPlayerGateway players;
     private final PaperWorldGateway worlds;
 
@@ -264,6 +265,10 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, players, worlds, "island-1");
+    }
+
+    IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds, String configuredNodeId) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
@@ -273,6 +278,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         this.economyBridge = economyBridge;
         this.messages = messages;
         this.locales = locales;
+        this.configuredNodeId = configuredNodeId == null || configuredNodeId.isBlank() ? "island-1" : configuredNodeId;
         this.players = players;
         this.worlds = worlds;
     }
@@ -1451,7 +1457,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private String adminNodeId(Map<String, String> data) {
-        String configured = plugin.getConfig().getString("node.id", "island-1");
+        String configured = configuredNodeId;
         String nodeId = data == null ? configured : data.getOrDefault("nodeId", configured);
         return nodeId == null || nodeId.isBlank() ? configured : nodeId;
     }
