@@ -14,6 +14,10 @@ public interface CloudIntegration {
         return pluginEnabled;
     }
 
+    default IntegrationResult validateVersion(IntegrationContext context) {
+        return IntegrationResult.skipped(pluginName() + " version validation hook is not implemented");
+    }
+
     default CloudIntegrationPolicy.HookDecision validateRuntimeAuthority(IntegrationContext context, boolean coreStateMutation) {
         return CloudIntegrationPolicy.validateHookContext(new CloudIntegrationPolicy.HookContext(
             pluginName(),

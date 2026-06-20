@@ -7,7 +7,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
+import kr.lunaf.cloudislands.paper.integration.analytics.PlanIntegration;
 import kr.lunaf.cloudislands.paper.integration.coreprotect.CoreProtectIntegration;
+import kr.lunaf.cloudislands.paper.integration.customitem.CustomItemIntegration;
+import kr.lunaf.cloudislands.paper.integration.permission.LuckPermsIntegration;
+import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.CloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
 import kr.lunaf.cloudislands.paper.integration.spi.PolicyBackedCloudIntegration;
@@ -92,6 +96,10 @@ public final class PaperIntegrationRegistry {
         return switch (pluginName) {
             case "CoreProtect" -> new CoreProtectIntegration();
             case "WorldEdit", "FastAsyncWorldEdit" -> new WorldEditIntegration(pluginName);
+            case "ItemsAdder", "Oraxen", "Nexo", "Slimefun" -> new CustomItemIntegration(pluginName);
+            case "RoseStacker", "WildStacker", "AdvancedSpawners" -> new StackerIntegration(pluginName);
+            case "LuckPerms" -> new LuckPermsIntegration();
+            case "Plan" -> new PlanIntegration();
             default -> genericIntegration(pluginName);
         };
     }

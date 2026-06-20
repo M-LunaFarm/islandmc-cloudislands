@@ -34,6 +34,18 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
         if (!decision.allowed()) {
             return IntegrationResult.failed(pluginName + " " + operation + " denied: " + String.join(",", decision.violations()));
         }
+        return guardedMetadataHook(operation, context, requiredMetadata);
+    }
+
+    protected IntegrationResult guardedObservationHook(String operation, IntegrationContext context, String... requiredMetadata) {
+        CloudIntegrationPolicy.HookDecision decision = validateRuntimeAuthority(context, false);
+        if (!decision.allowed()) {
+            return IntegrationResult.failed(pluginName + " " + operation + " denied: " + String.join(",", decision.violations()));
+        }
+        return guardedMetadataHook(operation, context, requiredMetadata);
+    }
+
+    protected IntegrationResult guardedMetadataHook(String operation, IntegrationContext context, String... requiredMetadata) {
         Set<String> missingMetadata = context == null ? Set.of("context") : context.missingMetadata(requiredMetadata);
         if (!missingMetadata.isEmpty()) {
             return IntegrationResult.failed(pluginName + " " + operation + " missing metadata: " + String.join(",", missingMetadata));
