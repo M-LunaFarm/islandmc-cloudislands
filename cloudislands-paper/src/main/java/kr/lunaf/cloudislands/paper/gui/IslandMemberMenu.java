@@ -79,9 +79,11 @@ public final class IslandMemberMenu implements Listener {
         }
         if (actionId.equals("island.member.role")) {
             if (click == GuiClick.LEFT) {
-                actionId = "island.member.promote";
+                actionId = "island.member.detail";
             } else if (click == GuiClick.RIGHT) {
-                actionId = "island.member.demote";
+                actionId = "island.member.demote.prepare";
+            } else if (click == GuiClick.SHIFT_LEFT) {
+                actionId = "island.member.promote.prepare";
             } else if (click == GuiClick.SHIFT_RIGHT) {
                 actionId = "island.member.remove.prepare";
             } else {
@@ -131,13 +133,20 @@ public final class IslandMemberMenu implements Listener {
             default -> Material.PLAYER_HEAD;
         };
         return GuiItems.action(material, displayName(member), "island.member.role",
-            Map.of("playerUuid", member.playerUuid()),
+            Map.of(
+                "playerUuid", member.playerUuid(),
+                "playerName", displayName(member),
+                "role", member.role(),
+                "lastSeenAt", member.lastSeenAt() == null ? "" : member.lastSeenAt(),
+                "presenceState", member.presenceState() == null ? "" : member.presenceState()
+            ),
             roleLine(member, messages),
             statusLine(member, messages),
             lastSeenLine(member, messages),
             member.joinedAt().isBlank() ? message(messages, "member-menu-no-join-info", "가입 정보 없음") : message(messages, "member-menu-joined-at", "가입 시각: ") + member.joinedAt(),
-            message(messages, "member-menu-left-click", "좌클릭: 승급"),
-            message(messages, "member-menu-right-click", "우클릭: 강등"),
+            message(messages, "member-menu-left-click", "좌클릭: 상세 관리"),
+            message(messages, "member-menu-right-click", "우클릭: 강등 확인"),
+            message(messages, "member-menu-shift-left-click", "Shift+좌클릭: 승급 확인"),
             message(messages, "member-menu-shift-right-click", "Shift+우클릭: 추방 확인"),
             message(messages, "member-menu-transfer-line", "소유권 이전은 별도 확인 경로에서 처리됩니다."),
             message(messages, "member-menu-debug-uuid", "UUID: ") + shortUuid(member.playerUuid()));

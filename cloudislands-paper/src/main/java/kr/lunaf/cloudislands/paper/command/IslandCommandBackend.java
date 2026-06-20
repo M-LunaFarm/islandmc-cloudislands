@@ -1221,12 +1221,36 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.visit.public.open" -> listPublicIslands(player, 10);
             case "island.visit.target" -> routeVisitTarget(player, data.getOrDefault("target", ""));
             case "island.members.open" -> openIslandMemberMenu(player);
-            case "island.member.detail" -> listIslandMembers(player);
+            case "island.member.detail" -> {
+                message(player, routeMessage("member-detail-title", "멤버 상세"));
+                message(player, "- " + routeMessage("member-detail-player", "플레이어: ") + data.getOrDefault("playerName", data.getOrDefault("playerUuid", "")));
+                message(player, "- " + routeMessage("member-detail-role", "역할: ") + data.getOrDefault("role", "unknown"));
+                message(player, "- " + routeMessage("member-detail-presence", "네트워크 상태: ") + data.getOrDefault("presenceState", "UNKNOWN"));
+                message(player, "- " + routeMessage("member-detail-last-seen", "마지막 활동: ") + data.getOrDefault("lastSeenAt", routeMessage("member-detail-last-seen-empty", "기록 없음")));
+            }
             case "island.member.role" -> listIslandMembers(player);
             case "island.members.page" -> openIslandMemberMenu(player, (int) longValue(data.getOrDefault("page", "0"), 0L));
             case "island.member.invite", "island.member.invite.help" -> message(player, routeMessage("member-invite-help", "멤버 초대는 /섬 초대 <플레이어> 로 요청합니다."));
             case "island.member.list" -> listIslandMembers(player);
+            case "island.member.promote.prepare" -> openConfirmation(player,
+                routeMessage("member-promote-confirm-title", "멤버 승급 확인"),
+                routeMessage("member-promote-confirm-description", "선택한 플레이어를 MODERATOR 역할로 변경합니다."),
+                Material.EMERALD,
+                routeMessage("member-promote-confirm-name", "승급 확인"),
+                "island.member.promote",
+                Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
+                routeMessage("member-promote-confirm-lore", "클릭하면 Core에 역할 변경을 요청합니다."),
+                "island.members.open");
             case "island.member.promote" -> setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
+            case "island.member.demote.prepare" -> openConfirmation(player,
+                routeMessage("member-demote-confirm-title", "멤버 강등 확인"),
+                routeMessage("member-demote-confirm-description", "선택한 플레이어를 MEMBER 역할로 변경합니다."),
+                Material.IRON_INGOT,
+                routeMessage("member-demote-confirm-name", "강등 확인"),
+                "island.member.demote",
+                Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
+                routeMessage("member-demote-confirm-lore", "클릭하면 Core에 역할 변경을 요청합니다."),
+                "island.members.open");
             case "island.member.demote" -> setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
             case "island.member.remove.prepare" -> openConfirmation(player,
                 routeMessage("member-remove-confirm-title", "멤버 추방 확인"),
