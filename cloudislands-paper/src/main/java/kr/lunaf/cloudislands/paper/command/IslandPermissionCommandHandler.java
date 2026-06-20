@@ -70,6 +70,10 @@ final class IslandPermissionCommandHandler {
     }
 
     void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
+        stageIslandPermission(player, roleName, permissionName, allowedValue, "");
+    }
+
+    void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue, String expectedVersion) {
         runtime.currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(_islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
                 runtime.message(player, runtime.routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
@@ -82,7 +86,7 @@ final class IslandPermissionCommandHandler {
                 return;
             }
             boolean allowed = booleanValue(allowedValue);
-            StagedPermissionChange change = new StagedPermissionChange(roleKey, permission, allowed);
+            StagedPermissionChange change = new StagedPermissionChange(roleKey, permission, allowed, expectedVersion);
             stagedPermissionChanges.computeIfAbsent(player.getUniqueId(), _uuid -> new ConcurrentHashMap<>()).put(change.key(), change);
             runtime.message(player, runtime.routeMessage("permission-stage-success-prefix", "권한 변경을 임시 저장했습니다. 저장 버튼을 눌러 반영하세요: ")
                 + roleKey + ":" + permission.name() + "=" + allowed);
@@ -106,11 +110,9 @@ final class IslandPermissionCommandHandler {
                 runtime.message(player, runtime.routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
                 return;
             }
-            List<CompletableFuture<String>> writes = staged.values().stream()
-                .map(change -> runtime.mutate("island.permission.batch-save", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), change.roleKey(), change.permission(), change.allowed())))
-                .toList();
+            List<StagedPermissionChange> changes = new ArrayList<>(staged.values());
             GuiStateMenus.openSaving(plugin, player, runtime.messagesFor(player), runtime.routeMessage("permission-save-title", "권한 저장"));
-            CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new))
+            saveStagedChangesSequentially(islandId, player, changes)
                 .thenAccept(_ignored -> {
                     stagedPermissionChanges.remove(player.getUniqueId());
                     kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
@@ -124,6 +126,18 @@ final class IslandPermissionCommandHandler {
                     return null;
                 });
         });
+    }
+
+    private CompletableFuture<String> saveStagedChangesSequentially(UUID islandId, Player player, List<StagedPermissionChange> changes) {
+        CompletableFuture<String> chain = CompletableFuture.completedFuture("");
+        for (StagedPermissionChange change : changes) {
+            chain = chain.thenCompose(previousBody -> {
+                String previousVersion = text(previousBody, "version");
+                String expectedVersion = previousVersion.isBlank() ? change.expectedVersion() : previousVersion;
+                return runtime.mutate("island.permission.batch-save", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), change.roleKey(), change.permission(), change.allowed(), expectedVersion));
+            });
+        }
+        return chain;
     }
 
     void upsertIslandRole(Player player, String roleKey, int weight, String displayName) {
@@ -410,7 +424,11 @@ final class IslandPermissionCommandHandler {
         return builder.toString();
     }
 
-    private record StagedPermissionChange(String roleKey, IslandPermission permission, boolean allowed) {
+    private record StagedPermissionChange(String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
+        private StagedPermissionChange {
+            expectedVersion = expectedVersion == null ? "" : expectedVersion.trim();
+        }
+
         private String key() {
             return roleKey + ":" + permission.name();
         }

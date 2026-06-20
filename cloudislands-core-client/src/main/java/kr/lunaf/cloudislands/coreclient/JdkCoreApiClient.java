@@ -323,8 +323,14 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed) {
+        return setIslandPermissionResult(islandId, actorUuid, roleKey, permission, allowed, "");
+    }
+
+    @Override
+    public CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
         String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return postWithResultBody("/v1/islands/permissions/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"" + escape(normalizedRoleKey) + "\",\"roleKey\":\"" + escape(normalizedRoleKey) + "\",\"permission\":\"" + permission.name() + "\",\"allowed\":" + allowed + "}");
+        String versionField = expectedVersion == null || expectedVersion.isBlank() ? "" : ",\"expectedVersion\":\"" + escape(expectedVersion) + "\"";
+        return postWithResultBody("/v1/islands/permissions/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"" + escape(normalizedRoleKey) + "\",\"roleKey\":\"" + escape(normalizedRoleKey) + "\",\"permission\":\"" + permission.name() + "\",\"allowed\":" + allowed + versionField + "}");
     }
 
     @Override

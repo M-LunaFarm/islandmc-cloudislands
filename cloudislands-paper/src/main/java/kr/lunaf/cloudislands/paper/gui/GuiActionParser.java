@@ -31,7 +31,8 @@ public final class GuiActionParser {
                 ));
                 case "island.permissions.set" -> Optional.of(new GuiAction.ChangePermission(
                     new RoleId(required(safeData, "role")),
-                    IslandPermission.valueOf(required(safeData, "permission").toUpperCase(java.util.Locale.ROOT).replace('-', '_'))
+                    IslandPermission.valueOf(required(safeData, "permission").toUpperCase(java.util.Locale.ROOT).replace('-', '_')),
+                    safeData.getOrDefault("expectedVersion", "")
                 ));
                 default -> Optional.of(new GuiAction.Raw(safeAction, safeData));
             };

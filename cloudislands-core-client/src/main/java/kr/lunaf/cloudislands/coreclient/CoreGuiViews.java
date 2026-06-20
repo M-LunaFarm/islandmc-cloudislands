@@ -98,7 +98,11 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<PermissionRuleView>> islandPermissions(CoreApiClient client, UUID islandId) {
-        return client.listIslandPermissions(islandId).thenApply(CoreGuiViews::permissionRules);
+        return islandPermissionRules(client, islandId).thenApply(PermissionRulesView::rules);
+    }
+
+    public static CompletableFuture<PermissionRulesView> islandPermissionRules(CoreApiClient client, UUID islandId) {
+        return client.listIslandPermissions(islandId).thenApply(CoreGuiViews::permissionRulesView);
     }
 
     public static CompletableFuture<List<RoleView>> islandRoles(CoreApiClient client, UUID islandId) {
@@ -299,15 +303,21 @@ public final class CoreGuiViews {
     }
 
     private static List<PermissionRuleView> permissionRules(String body) {
+        return permissionRulesView(body).rules();
+    }
+
+    private static PermissionRulesView permissionRulesView(String body) {
+        Map<?, ?> root = root(body);
+        String version = text(root, "version");
         List<PermissionRuleView> rules = new ArrayList<>();
         for (Map<?, ?> object : entries(body)) {
             String role = text(object, "role");
             String permission = text(object, "permission");
             if (!role.isBlank() && !permission.isBlank()) {
-                rules.add(new PermissionRuleView(role, permission, bool(object, "allowed")));
+                rules.add(new PermissionRuleView(role, permission, bool(object, "allowed"), version));
             }
         }
-        return rules;
+        return new PermissionRulesView(version, List.copyOf(rules));
     }
 
     private static List<RoleView> roles(String body) {
@@ -506,7 +516,13 @@ public final class CoreGuiViews {
         }
     }
 
-    public record PermissionRuleView(String role, String permission, boolean allowed) {
+    public record PermissionRulesView(String version, List<PermissionRuleView> rules) {
+    }
+
+    public record PermissionRuleView(String role, String permission, boolean allowed, String version) {
+        public PermissionRuleView {
+            version = version == null ? "" : version;
+        }
     }
 
     public record RoleView(String role, int weight, String displayName) {

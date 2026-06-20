@@ -32,7 +32,7 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.PermissionPag
         }
     }
 
-    record ChangePermission(RoleId roleId, IslandPermission permission) implements GuiAction {
+    record ChangePermission(RoleId roleId, IslandPermission permission, String expectedVersion) implements GuiAction {
         public ChangePermission {
             if (roleId == null) {
                 throw new IllegalArgumentException("roleId is required");
@@ -40,6 +40,7 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.PermissionPag
             if (permission == null) {
                 throw new IllegalArgumentException("permission is required");
             }
+            expectedVersion = expectedVersion == null ? "" : expectedVersion.trim();
         }
 
         @Override
@@ -49,7 +50,10 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.PermissionPag
 
         @Override
         public Map<String, String> data() {
-            return Map.of("role", roleId.value(), "permission", permission.name());
+            if (expectedVersion.isBlank()) {
+                return Map.of("role", roleId.value(), "permission", permission.name());
+            }
+            return Map.of("role", roleId.value(), "permission", permission.name(), "expectedVersion", expectedVersion);
         }
     }
 

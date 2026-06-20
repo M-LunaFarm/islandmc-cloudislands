@@ -841,6 +841,11 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             }
 
             @Override
+            public void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue, String expectedVersion) {
+                permissionCommands.stageIslandPermission(player, roleName, permissionName, allowedValue, expectedVersion);
+            }
+
+            @Override
             public void resetStagedIslandPermissions(Player player) {
                 permissionCommands.resetStagedIslandPermissions(player);
             }

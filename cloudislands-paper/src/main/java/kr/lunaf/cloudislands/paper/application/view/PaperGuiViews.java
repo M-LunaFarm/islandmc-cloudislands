@@ -73,7 +73,12 @@ public final class PaperGuiViews {
     }
 
     public static CompletableFuture<List<PermissionRuleView>> islandPermissions(CoreApiClient client, UUID islandId) {
-        return CoreGuiViews.islandPermissions(client, islandId).thenApply(views -> views.stream().map(PaperGuiViews::permissionRule).toList());
+        return islandPermissionRules(client, islandId).thenApply(PermissionRulesView::rules);
+    }
+
+    public static CompletableFuture<PermissionRulesView> islandPermissionRules(CoreApiClient client, UUID islandId) {
+        return CoreGuiViews.islandPermissionRules(client, islandId)
+            .thenApply(view -> new PermissionRulesView(view.version(), view.rules().stream().map(PaperGuiViews::permissionRule).toList()));
     }
 
     public static CompletableFuture<List<RoleView>> islandRoles(CoreApiClient client, UUID islandId) {
@@ -153,7 +158,7 @@ public final class PaperGuiViews {
     }
 
     private static PermissionRuleView permissionRule(CoreGuiViews.PermissionRuleView view) {
-        return new PermissionRuleView(view.role(), view.permission(), view.allowed());
+        return new PermissionRuleView(view.role(), view.permission(), view.allowed(), view.version());
     }
 
     private static RoleView role(CoreGuiViews.RoleView view) {
@@ -223,7 +228,10 @@ public final class PaperGuiViews {
         }
     }
 
-    public record PermissionRuleView(String role, String permission, boolean allowed) {
+    public record PermissionRulesView(String version, List<PermissionRuleView> rules) {
+    }
+
+    public record PermissionRuleView(String role, String permission, boolean allowed, String version) {
     }
 
     public record RoleView(String role, int weight, String displayName) {

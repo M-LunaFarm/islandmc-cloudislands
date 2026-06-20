@@ -374,7 +374,7 @@ final class IslandMembershipCommandHandler {
                 yield true;
             }
             case "island.permissions.set" -> {
-                runtime.stageIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true");
+                runtime.stageIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true", data.getOrDefault("expectedVersion", ""));
                 yield true;
             }
             case "island.roles.open" -> {
@@ -453,6 +453,8 @@ final class IslandMembershipCommandHandler {
         void openIslandPermissionMenu(Player player, int page, int rolePage);
 
         void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue);
+
+        void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue, String expectedVersion);
 
         void resetStagedIslandPermissions(Player player);
 

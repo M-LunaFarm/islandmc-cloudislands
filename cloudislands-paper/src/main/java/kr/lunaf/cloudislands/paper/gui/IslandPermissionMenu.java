@@ -65,9 +65,9 @@ public final class IslandPermissionMenu implements Listener {
         int safeRolePage = Math.max(0, rolePage);
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
-        PaperGuiViews.islandPermissions(client, islandId)
-            .thenCombine(PaperGuiViews.islandRoles(client, islandId), (rules, roles) -> new PermissionMenuData(rules, roles))
-            .thenAccept(data -> openSync(plugin, player, session, data.rules(), data.roles(), messages, safePage, safeRolePage))
+        PaperGuiViews.islandPermissionRules(client, islandId)
+            .thenCombine(PaperGuiViews.islandRoles(client, islandId), (rules, roles) -> new PermissionMenuData(rules.version(), rules.rules(), roles))
+            .thenAccept(data -> openSync(plugin, player, session, data.version(), data.rules(), data.roles(), messages, safePage, safeRolePage))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "permission-menu-load-failed", "섬 권한을 불러오지 못했습니다."), "island.permissions.open", "island.settings.open");
                 return null;
@@ -97,7 +97,7 @@ public final class IslandPermissionMenu implements Listener {
         actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<PermissionRuleView> rules, List<RoleView> roleViews, MessageRenderer messages, int page, int rolePage) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, String version, List<PermissionRuleView> rules, List<RoleView> roleViews, MessageRenderer messages, int page, int rolePage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
             List<String> roles = roleNames(roleViews);
@@ -112,7 +112,7 @@ public final class IslandPermissionMenu implements Listener {
                 inventory.setItem(row * 9, GuiItems.action(Material.NAME_TAG, role, "island.permissions.list", message(messages, "permission-menu-role-row", "역할 권한 행")));
                 for (int column = 0; column < visiblePermissions.size(); column++) {
                     String permission = visiblePermissions.get(column);
-                    inventory.setItem(row * 9 + column + 1, ruleItem(role, permission, allowed(rules, role, permission), messages));
+                    inventory.setItem(row * 9 + column + 1, ruleItem(role, permission, allowed(rules, role, permission), version, messages));
                 }
             }
             inventory.setItem(45, GuiItems.action(Material.ARROW, message(messages, "permission-menu-prev-role-page-name", "이전 역할"), "island.permissions.page", Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.max(0, safeRolePage - 1))), rolePageLine(safeRolePage, roles)));
@@ -128,11 +128,11 @@ public final class IslandPermissionMenu implements Listener {
         });
     }
 
-    private static ItemStack ruleItem(String role, String permission, Boolean allowed, MessageRenderer messages) {
+    private static ItemStack ruleItem(String role, String permission, Boolean allowed, String version, MessageRenderer messages) {
         Material material = allowed == null ? Material.GRAY_DYE : allowed ? Material.LIME_DYE : Material.RED_DYE;
         String state = allowed == null ? message(messages, "permission-menu-default", "기본값") : allowed ? message(messages, "permission-menu-allow", "허용") : message(messages, "permission-menu-deny", "차단");
         return GuiItems.action(material, role + " " + permissionLabel(permission), "island.permissions.set",
-            Map.of("role", role, "permission", permission),
+            Map.of("role", role, "permission", permission, "expectedVersion", version == null ? "" : version),
             message(messages, "permission-menu-current-state", "현재 상태: ") + state,
             message(messages, "permission-menu-matrix-cell", "Matrix: ") + role + " / " + permissionLabel(permission),
             message(messages, "permission-menu-click-actions", "좌클릭: 허용으로 임시 변경, 우클릭: 차단으로 임시 변경"));
@@ -220,5 +220,5 @@ public final class IslandPermissionMenu implements Listener {
         return null;
     }
 
-    private record PermissionMenuData(List<PermissionRuleView> rules, List<RoleView> roles) {}
+    private record PermissionMenuData(String version, List<PermissionRuleView> rules, List<RoleView> roles) {}
 }
