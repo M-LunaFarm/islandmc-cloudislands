@@ -687,7 +687,7 @@ final class MigrationAdminBackend {
     private boolean permissionsMatch(MigrationManifest manifest) {
         Map<String, Boolean> current = new java.util.HashMap<>();
         for (kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot rule : permissionRules.list(manifest.islandId())) {
-            current.put(rule.role().name() + ":" + rule.permission().name(), rule.allowed());
+            current.put(rule.effectiveRoleKey() + ":" + rule.permission().name(), rule.allowed());
         }
         return manifest.permissions().stream().allMatch(permission -> Boolean.valueOf(permission.allowed()).equals(current.get(permission.roleName() + ":" + permission.permissionName())));
     }

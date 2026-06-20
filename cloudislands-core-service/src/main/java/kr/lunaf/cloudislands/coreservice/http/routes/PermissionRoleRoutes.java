@@ -70,17 +70,17 @@ public final class PermissionRoleRoutes implements RouteGroup {
     private void setPermission(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.MEMBER);
+        String roleKey = roleKey(body, IslandRole.MEMBER.name());
         IslandPermission permission = JsonFields.enumValue(IslandPermission.class, body, "permission", IslandPermission.BUILD);
         boolean allowed = JsonFields.bool(body, "allowed", false);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
             return;
         }
-        permissionRules.put(islandId, role, permission, allowed);
-        audit.log(actorUuid, "PLAYER", "ISLAND_PERMISSION_SET", "ISLAND", islandId.toString(), Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
-        islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_SET", Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
-        events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
+        permissionRules.putRoleKey(islandId, roleKey, permission, allowed);
+        audit.log(actorUuid, "PLAYER", "ISLAND_PERMISSION_SET", "ISLAND", islandId.toString(), Map.of("role", roleKey, "roleKey", roleKey, "permission", permission.name(), "allowed", Boolean.toString(allowed)));
+        islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_SET", Map.of("role", roleKey, "roleKey", roleKey, "permission", permission.name(), "allowed", Boolean.toString(allowed)));
+        events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", roleKey, "roleKey", roleKey, "permission", permission.name(), "allowed", Boolean.toString(allowed)));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 
@@ -110,20 +110,20 @@ public final class PermissionRoleRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
-        IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.CUSTOM_1);
-        if (role == IslandRole.OWNER || !role.islandMemberRole()) {
+        String roleKey = roleKey(body, IslandRole.CUSTOM_1.name());
+        if (!IslandRoleRepository.editableRoleKey(roleKey)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_NOT_EDITABLE", "Only island member roles can be customized"));
             return;
         }
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
             return;
         }
-        int weight = JsonFields.integer(body, "weight", role.ordinal());
-        String displayName = JsonFields.text(body, "displayName", role.name());
-        IslandRoleSnapshot snapshot = roleRepository.upsert(islandId, role, weight, displayName);
-        audit.log(actorUuid, "PLAYER", "ISLAND_ROLE_UPSERT", "ISLAND", islandId.toString(), Map.of("role", role.name(), "weight", Integer.toString(weight), "displayName", displayName));
-        islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_UPSERT", Map.of("role", role.name(), "weight", Integer.toString(weight), "displayName", displayName));
-        events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_UPSERT"));
+        int weight = JsonFields.integer(body, "weight", defaultWeight(roleKey));
+        String displayName = JsonFields.text(body, "displayName", roleKey);
+        IslandRoleSnapshot snapshot = roleRepository.upsertKey(islandId, roleKey, weight, displayName);
+        audit.log(actorUuid, "PLAYER", "ISLAND_ROLE_UPSERT", "ISLAND", islandId.toString(), Map.of("role", roleKey, "roleKey", roleKey, "weight", Integer.toString(weight), "displayName", displayName));
+        islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_UPSERT", Map.of("role", roleKey, "roleKey", roleKey, "weight", Integer.toString(weight), "displayName", displayName));
+        events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", roleKey, "roleKey", roleKey, "operation", "ROLE_UPSERT"));
         CoreHttpResponses.write(exchange, 202, roleJson(snapshot));
     }
 
@@ -131,19 +131,19 @@ public final class PermissionRoleRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
-        IslandRole role = JsonFields.enumValue(IslandRole.class, body, "role", IslandRole.CUSTOM_1);
-        if (role == IslandRole.OWNER || !role.islandMemberRole()) {
+        String roleKey = roleKey(body, IslandRole.CUSTOM_1.name());
+        if (!IslandRoleRepository.editableRoleKey(roleKey)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_NOT_EDITABLE", "Only island member roles can be reset"));
             return;
         }
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
             return;
         }
-        boolean removed = roleRepository.reset(islandId, role);
-        audit.log(actorUuid, "PLAYER", "ISLAND_ROLE_RESET", "ISLAND", islandId.toString(), Map.of("role", role.name(), "removed", Boolean.toString(removed)));
-        islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_RESET", Map.of("role", role.name(), "removed", Boolean.toString(removed)));
-        events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "operation", "ROLE_RESET"));
-        CoreHttpResponses.write(exchange, 202, "{\"accepted\":true,\"code\":\"ROLE_RESET\",\"role\":\"" + role.name() + "\",\"removed\":" + removed + "}");
+        boolean removed = roleRepository.resetKey(islandId, roleKey);
+        audit.log(actorUuid, "PLAYER", "ISLAND_ROLE_RESET", "ISLAND", islandId.toString(), Map.of("role", roleKey, "roleKey", roleKey, "removed", Boolean.toString(removed)));
+        islandLogs.append(islandId, actorUuid, "ISLAND_ROLE_RESET", Map.of("role", roleKey, "roleKey", roleKey, "removed", Boolean.toString(removed)));
+        events.publish(CloudIslandEventType.ISLAND_ROLE_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", roleKey, "roleKey", roleKey, "operation", "ROLE_RESET"));
+        CoreHttpResponses.write(exchange, 202, "{\"accepted\":true,\"code\":\"ROLE_RESET\",\"role\":\"" + roleKey + "\",\"roleKey\":\"" + roleKey + "\",\"removed\":" + removed + "}");
     }
 
     private boolean requireIslandPermission(HttpExchange exchange, UUID islandId, UUID actorUuid, IslandPermission permission) throws IOException {
@@ -180,7 +180,8 @@ public final class PermissionRoleRoutes implements RouteGroup {
             first = false;
             builder.append('{')
                 .append("\"islandId\":\"").append(rule.islandId()).append("\",")
-                .append("\"role\":\"").append(rule.role().name()).append("\",")
+                .append("\"role\":\"").append(rule.effectiveRoleKey()).append("\",")
+                .append("\"roleKey\":\"").append(rule.effectiveRoleKey()).append("\",")
                 .append("\"permission\":\"").append(rule.permission().name()).append("\",")
                 .append("\"allowed\":").append(rule.allowed())
                 .append('}');
@@ -217,10 +218,27 @@ public final class PermissionRoleRoutes implements RouteGroup {
 
     static String roleJson(IslandRoleSnapshot role) {
         return "{\"islandId\":\"" + role.islandId()
-            + "\",\"role\":\"" + role.role().name()
+            + "\",\"role\":\"" + role.effectiveRoleKey()
+            + "\",\"roleKey\":\"" + role.effectiveRoleKey()
             + "\",\"weight\":" + role.weight()
             + ",\"displayName\":\"" + escape(role.displayName())
             + "\"}";
+    }
+
+    private static String roleKey(String body, String fallback) {
+        String value = JsonFields.text(body, "roleKey", "");
+        if (value.isBlank()) {
+            value = JsonFields.text(body, "role", fallback);
+        }
+        return IslandRoleRepository.normalizeRoleKey(value);
+    }
+
+    private static int defaultWeight(String roleKey) {
+        try {
+            return IslandRole.valueOf(roleKey).ordinal();
+        } catch (IllegalArgumentException exception) {
+            return 100;
+        }
     }
 
     private static String escape(String value) {

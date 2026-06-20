@@ -31,8 +31,22 @@ public final class CachingIslandRoleRepository implements IslandRoleRepository {
     }
 
     @Override
+    public IslandRoleSnapshot upsertKey(UUID islandId, String roleKey, int weight, String displayName) {
+        IslandRoleSnapshot snapshot = delegate.upsertKey(islandId, roleKey, weight, displayName);
+        cache(islandId, delegate.list(islandId));
+        return snapshot;
+    }
+
+    @Override
     public boolean reset(UUID islandId, IslandRole role) {
         boolean removed = delegate.reset(islandId, role);
+        cache(islandId, delegate.list(islandId));
+        return removed;
+    }
+
+    @Override
+    public boolean resetKey(UUID islandId, String roleKey) {
+        boolean removed = delegate.resetKey(islandId, roleKey);
         cache(islandId, delegate.list(islandId));
         return removed;
     }
@@ -70,7 +84,7 @@ public final class CachingIslandRoleRepository implements IslandRoleRepository {
             for (String object : objects(json)) {
                 roles.add(new IslandRoleSnapshot(
                     JsonFields.uuid(object, "islandId", islandId),
-                    JsonFields.enumValue(IslandRole.class, object, "role", IslandRole.MEMBER),
+                    roleKey(object),
                     JsonFields.integer(object, "weight", 0),
                     JsonFields.text(object, "displayName", "")
                 ));
@@ -92,7 +106,8 @@ public final class CachingIslandRoleRepository implements IslandRoleRepository {
             first = false;
             builder.append('{')
                 .append("\"islandId\":\"").append(role.islandId()).append("\",")
-                .append("\"role\":\"").append(role.role().name()).append("\",")
+                .append("\"role\":\"").append(role.effectiveRoleKey()).append("\",")
+                .append("\"roleKey\":\"").append(role.effectiveRoleKey()).append("\",")
                 .append("\"weight\":").append(role.weight()).append(',')
                 .append("\"displayName\":\"").append(escape(role.displayName())).append("\"")
                 .append('}');
@@ -102,6 +117,14 @@ public final class CachingIslandRoleRepository implements IslandRoleRepository {
 
     private static String escape(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static String roleKey(String object) {
+        String roleKey = JsonFields.text(object, "roleKey", "");
+        if (roleKey.isBlank()) {
+            roleKey = JsonFields.text(object, "role", IslandRole.MEMBER.name());
+        }
+        return IslandRoleRepository.normalizeRoleKey(roleKey);
     }
 
     private static List<String> objects(String json) {

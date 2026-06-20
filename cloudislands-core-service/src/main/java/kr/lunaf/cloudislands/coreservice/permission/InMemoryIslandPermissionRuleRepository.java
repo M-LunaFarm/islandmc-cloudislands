@@ -17,14 +17,20 @@ public final class InMemoryIslandPermissionRuleRepository implements IslandPermi
 
     @Override
     public void put(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
+        putRoleKey(islandId, role.name(), permission, allowed);
+    }
+
+    @Override
+    public void putRoleKey(UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
         rules.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
-            .put(key(role, permission), new IslandPermissionRuleSnapshot(islandId, role, permission, allowed));
+            .put(key(normalizedRoleKey, permission), new IslandPermissionRuleSnapshot(islandId, normalizedRoleKey, permission, allowed));
     }
 
     @Override
     public List<IslandPermissionRuleSnapshot> list(UUID islandId) {
         List<IslandPermissionRuleSnapshot> snapshots = new ArrayList<>(rules.getOrDefault(islandId, Map.of()).values());
-        snapshots.sort(Comparator.comparing((IslandPermissionRuleSnapshot rule) -> rule.role().name()).thenComparing(rule -> rule.permission().name()));
+        snapshots.sort(Comparator.comparing(IslandPermissionRuleSnapshot::effectiveRoleKey).thenComparing(rule -> rule.permission().name()));
         return List.copyOf(snapshots);
     }
 
@@ -42,7 +48,11 @@ public final class InMemoryIslandPermissionRuleRepository implements IslandPermi
     }
 
     private String key(IslandRole role, IslandPermission permission) {
-        return role.name() + ":" + permission.name();
+        return key(role.name(), permission);
+    }
+
+    private String key(String roleKey, IslandPermission permission) {
+        return roleKey + ":" + permission.name();
     }
 
     private String playerKey(UUID playerUuid, IslandPermission permission) {

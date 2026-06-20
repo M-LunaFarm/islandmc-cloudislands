@@ -20,14 +20,20 @@ public final class JdbcIslandRoleRepository implements IslandRoleRepository {
 
     @Override
     public IslandRoleSnapshot upsert(UUID islandId, IslandRole role, int weight, String displayName) {
+        return upsertKey(islandId, role.name(), weight, displayName);
+    }
+
+    @Override
+    public IslandRoleSnapshot upsertKey(UUID islandId, String roleKey, int weight, String displayName) {
+        String normalizedRoleKey = IslandRoleRepository.normalizeRoleKey(roleKey);
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(upsertRoleSql(connection))) {
             statement.setObject(1, islandId);
-            statement.setString(2, role.name());
+            statement.setString(2, normalizedRoleKey);
             statement.setInt(3, weight);
             statement.setString(4, displayName == null ? "" : displayName);
             statement.executeUpdate();
-            return new IslandRoleSnapshot(islandId, role, weight, displayName == null ? "" : displayName);
+            return new IslandRoleSnapshot(islandId, normalizedRoleKey, weight, displayName == null ? "" : displayName);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to write island role", exception);
         }
@@ -35,10 +41,16 @@ public final class JdbcIslandRoleRepository implements IslandRoleRepository {
 
     @Override
     public boolean reset(UUID islandId, IslandRole role) {
+        return resetKey(islandId, role.name());
+    }
+
+    @Override
+    public boolean resetKey(UUID islandId, String roleKey) {
+        String normalizedRoleKey = IslandRoleRepository.normalizeRoleKey(roleKey);
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM island_roles WHERE island_id = ? AND role = ?")) {
             statement.setObject(1, islandId);
-            statement.setString(2, role.name());
+            statement.setString(2, normalizedRoleKey);
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to reset island role", exception);
@@ -55,7 +67,7 @@ public final class JdbcIslandRoleRepository implements IslandRoleRepository {
                 while (rs.next()) {
                     result.add(new IslandRoleSnapshot(
                         (UUID) rs.getObject("island_id"),
-                        IslandRole.valueOf(rs.getString("role")),
+                        rs.getString("role"),
                         rs.getInt("weight"),
                         rs.getString("display_name") == null ? "" : rs.getString("display_name")
                     ));

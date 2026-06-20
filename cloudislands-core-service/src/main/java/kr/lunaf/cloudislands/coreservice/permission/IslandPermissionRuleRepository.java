@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.common.permission.defaults.DefaultIslandPermissions
 
 public interface IslandPermissionRuleRepository {
     void put(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed);
+    void putRoleKey(UUID islandId, String roleKey, IslandPermission permission, boolean allowed);
     List<IslandPermissionRuleSnapshot> list(UUID islandId);
     void putPlayerOverride(UUID islandId, UUID playerUuid, IslandPermission permission, boolean allowed);
     List<IslandPermissionOverrideSnapshot> listPlayerOverrides(UUID islandId);
@@ -30,7 +31,9 @@ public interface IslandPermissionRuleRepository {
         }
         CachedPermissionSet permissions = DefaultIslandPermissions.create();
         for (IslandPermissionRuleSnapshot rule : list(islandId)) {
-            permissions.put(rule.role(), rule.permission(), rule.allowed());
+            if (rule.role() != null) {
+                permissions.put(rule.role(), rule.permission(), rule.allowed());
+            }
         }
         return permissions.allowed(role, permission);
     }

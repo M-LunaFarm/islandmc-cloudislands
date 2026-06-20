@@ -37,12 +37,16 @@ class PermissionRoleRoutesTest {
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
         assertEquals(
-            "{\"rules\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"MEMBER\",\"permission\":\"BUILD\",\"allowed\":true}],\"overrides\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"permission\":\"BREAK\",\"allowed\":false}]}",
+            "{\"rules\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"MEMBER\",\"roleKey\":\"MEMBER\",\"permission\":\"BUILD\",\"allowed\":true}],\"overrides\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"permission\":\"BREAK\",\"allowed\":false}]}",
             PermissionRoleRoutes.permissionsJson(List.of(new IslandPermissionRuleSnapshot(islandId, IslandRole.MEMBER, IslandPermission.BUILD, true)), List.of(new IslandPermissionOverrideSnapshot(islandId, playerUuid, IslandPermission.BREAK, false)))
         );
         assertEquals(
-            "{\"roles\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"CUSTOM_1\",\"weight\":7,\"displayName\":\"Builder \\\"A\\\"\"}]}",
+            "{\"roles\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"CUSTOM_1\",\"roleKey\":\"CUSTOM_1\",\"weight\":7,\"displayName\":\"Builder \\\"A\\\"\"}]}",
             PermissionRoleRoutes.rolesJson(List.of(new IslandRoleSnapshot(islandId, IslandRole.CUSTOM_1, 7, "Builder \"A\"")))
+        );
+        assertEquals(
+            "{\"roles\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\",\"weight\":20,\"displayName\":\"Builder\"}]}",
+            PermissionRoleRoutes.rolesJson(List.of(new IslandRoleSnapshot(islandId, "builder", 20, "Builder")))
         );
     }
 }

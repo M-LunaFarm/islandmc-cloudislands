@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS island_roles (
     display_name VARCHAR(64),
     PRIMARY KEY (island_id, role),
     CONSTRAINT fk_island_roles_island FOREIGN KEY (island_id) REFERENCES islands(id),
-    CONSTRAINT chk_island_roles_role_known CHECK (role IN ('CO_OWNER', 'MODERATOR', 'MEMBER', 'TRUSTED', 'CUSTOM_1', 'CUSTOM_2', 'CUSTOM_3', 'CUSTOM_4', 'CUSTOM_5')),
+    CONSTRAINT chk_island_roles_role_key_format CHECK (role = trim(role) AND role = upper(role) AND role <> '' AND role REGEXP '^[A-Z0-9_]+$' AND role NOT IN ('OWNER', 'VISITOR', 'BANNED')),
     CONSTRAINT chk_island_roles_display_name_trimmed CHECK (display_name IS NULL OR display_name = trim(display_name)),
     CONSTRAINT chk_island_roles_display_name_not_blank CHECK (display_name IS NULL OR trim(display_name) <> '')
 );
@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS island_permissions (
     value BOOLEAN NOT NULL,
     PRIMARY KEY (island_id, role, permission_key),
     CONSTRAINT fk_island_permissions_island FOREIGN KEY (island_id) REFERENCES islands(id),
-    CONSTRAINT chk_island_permissions_role_known CHECK (role IN ('OWNER', 'CO_OWNER', 'MODERATOR', 'MEMBER', 'TRUSTED', 'CUSTOM_1', 'CUSTOM_2', 'CUSTOM_3', 'CUSTOM_4', 'CUSTOM_5', 'VISITOR', 'BANNED')),
+    CONSTRAINT chk_island_permissions_role_key_format CHECK (role = trim(role) AND role = upper(role) AND role <> '' AND role REGEXP '^[A-Z0-9_]+$'),
     CONSTRAINT chk_island_permissions_key_not_blank CHECK (trim(permission_key) <> ''),
     CONSTRAINT chk_island_permissions_key_trimmed CHECK (permission_key = trim(permission_key))
 );

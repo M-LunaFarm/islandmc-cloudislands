@@ -22,10 +22,16 @@ public final class JdbcIslandPermissionRuleRepository implements IslandPermissio
 
     @Override
     public void put(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
+        putRoleKey(islandId, role.name(), permission, allowed);
+    }
+
+    @Override
+    public void putRoleKey(UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(upsertPermissionSql(connection))) {
             statement.setObject(1, islandId);
-            statement.setString(2, role.name());
+            statement.setString(2, normalizedRoleKey);
             statement.setString(3, permission.name());
             statement.setBoolean(4, allowed);
             statement.executeUpdate();
@@ -44,7 +50,7 @@ public final class JdbcIslandPermissionRuleRepository implements IslandPermissio
                 while (rs.next()) {
                     result.add(new IslandPermissionRuleSnapshot(
                         (UUID) rs.getObject("island_id"),
-                        IslandRole.valueOf(rs.getString("role")),
+                        rs.getString("role"),
                         IslandPermission.valueOf(rs.getString("permission_key")),
                         rs.getBoolean("value")
                     ));

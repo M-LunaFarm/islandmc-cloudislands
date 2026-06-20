@@ -32,6 +32,12 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
     }
 
     @Override
+    public void putRoleKey(UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
+        delegate.putRoleKey(islandId, roleKey, permission, allowed);
+        cache(islandId, delegate.list(islandId), delegate.listPlayerOverrides(islandId));
+    }
+
+    @Override
     public List<IslandPermissionRuleSnapshot> list(UUID islandId) {
         Optional<CachedRules> cached = cachedRules(islandId);
         if (cached.isPresent()) {
@@ -82,7 +88,7 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
             for (String object : objects(arrayBody(json, "rules"))) {
                 rules.add(new IslandPermissionRuleSnapshot(
                     JsonFields.uuid(object, "islandId", islandId),
-                    JsonFields.enumValue(IslandRole.class, object, "role", IslandRole.VISITOR),
+                    roleKey(object),
                     JsonFields.enumValue(IslandPermission.class, object, "permission", IslandPermission.INTERACT),
                     JsonFields.bool(object, "allowed", false)
                 ));
@@ -113,7 +119,8 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
             first = false;
             builder.append('{')
                 .append("\"islandId\":\"").append(rule.islandId()).append("\",")
-                .append("\"role\":\"").append(rule.role().name()).append("\",")
+                .append("\"role\":\"").append(rule.effectiveRoleKey()).append("\",")
+                .append("\"roleKey\":\"").append(rule.effectiveRoleKey()).append("\",")
                 .append("\"permission\":\"").append(rule.permission().name()).append("\",")
                 .append("\"allowed\":").append(rule.allowed())
                 .append('}');
@@ -133,6 +140,14 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
                 .append('}');
         }
         return builder.append("]}").toString();
+    }
+
+    private static String roleKey(String object) {
+        String roleKey = JsonFields.text(object, "roleKey", "");
+        if (roleKey.isBlank()) {
+            roleKey = JsonFields.text(object, "role", IslandRole.VISITOR.name());
+        }
+        return kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
     }
 
     private static String arrayBody(String json, String field) {
