@@ -58,7 +58,6 @@ import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
@@ -224,6 +223,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final Map<UUID, Map<String, StagedPermissionChange>> stagedPermissionChanges = new ConcurrentHashMap<>();
     private final IslandLevelScanService levelScanService;
     private final IslandBankCommandHandler bankCommands;
+    private final IslandSnapshotCommandHandler snapshotCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -307,6 +307,52 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             @Override
             public MessageRenderer messagesFor(Player player) {
                 return IslandCommandBackend.this.messagesFor(player);
+            }
+        });
+        this.snapshotCommands = new IslandSnapshotCommandHandler(plugin, coreApiClient, new IslandSnapshotCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+            }
+
+            @Override
+            public String actionResultMessage(String action, UUID id, String body) {
+                return IslandCommandBackend.this.actionResultMessage(action, id, body);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+
+            @Override
+            public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
+                IslandCommandBackend.this.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
+            }
+
+            @Override
+            public boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click) {
+                return IslandCommandBackend.this.confirmationAccepted(player, actionId, data, click);
             }
         });
         this.messages = messages;
@@ -768,32 +814,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             setNamedIslandLimit(player, "REDSTONE", args);
             return true;
         }
-        if (subcommand.equals("snapshot") || subcommand.equals("스냅샷")) {
-            if (args.length > 1) {
-                requestIslandSnapshot(player, joined(args, 1));
-            } else {
-                openIslandSnapshotMenu(player);
-            }
-            return true;
-        }
-        if (subcommand.equals("snapshots") || subcommand.equals("snapshot-menu")) {
-            openIslandSnapshotMenu(player);
-            return true;
-        }
-        if (subcommand.equals("snapshot-list") || subcommand.equals("스냅샷목록")) {
-            listIslandSnapshots(player, args.length > 1 ? integer(args[1], 10) : 10);
-            return true;
-        }
-        if (subcommand.equals("snapshot-create") || subcommand.equals("snapshot-request") || subcommand.equals("스냅샷생성")) {
-            requestIslandSnapshot(player, args.length > 1 ? joined(args, 1) : "manual");
-            return true;
-        }
-        if (subcommand.equals("snapshot-restore") || subcommand.equals("restore") || subcommand.equals("rollback") || subcommand.equals("스냅샷복원") || subcommand.equals("복원") || subcommand.equals("롤백")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-snapshot-number-required", "복원할 스냅샷 번호를 입력해주세요."));
-                return true;
-            }
-            restoreIslandSnapshot(player, longValue(args[1], 0L));
+        if (snapshotCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (subcommand.equals("members") || subcommand.equals("member-menu") || subcommand.equals("멤버") || subcommand.equals("멤버관리")) {
@@ -1058,6 +1079,9 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (bankCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
             return;
         }
+        if (snapshotCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
+            return;
+        }
         switch (actionId) {
             case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
             case "island.create.open" -> IslandCreateMenu.open(plugin, coreApiClient, player, messagesFor(player));
@@ -1216,23 +1240,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             case "island.limits.open" -> openIslandLimitMenu(player);
             case "island.limits.list" -> listIslandLimits(player);
             case "island.limit.set" -> setIslandLimit(player, data.getOrDefault("limitKey", ""), longValue(data.getOrDefault("value", "0"), 0L));
-            case "island.snapshots.open" -> openIslandSnapshotMenu(player);
-            case "island.snapshots.list" -> listIslandSnapshots(player, 10);
-            case "island.snapshot.create" -> requestIslandSnapshot(player, data.getOrDefault("reason", "manual"));
-            case "island.snapshot.restore.prepare" -> openConfirmation(player,
-                routeMessage("snapshot-restore-confirm-title", "스냅샷 복원 확인"),
-                routeMessage("snapshot-restore-confirm-description", "현재 월드 상태를 선택한 스냅샷으로 복원합니다."),
-                Material.CHEST,
-                routeMessage("snapshot-restore-confirm-name", "스냅샷 복원"),
-                "island.snapshot.restore.confirm",
-                Map.of("snapshotNo", data.getOrDefault("snapshotNo", "0")),
-                routeMessage("snapshot-restore-confirm-lore", "클릭하면 Core에 스냅샷 복원을 요청합니다."),
-                "island.snapshots.open");
-            case "island.snapshot.restore.confirm" -> {
-                if (confirmationAccepted(player, "island.snapshot.restore.confirm", data, click)) {
-                    restoreIslandSnapshot(player, longValue(data.getOrDefault("snapshotNo", "0"), 0L));
-                }
-            }
             case "island.upgrades.open" -> openIslandUpgradeMenu(player);
             case "island.upgrades.list" -> listIslandUpgrades(player);
             case "island.upgrade.purchase" -> purchaseIslandUpgrade(player, data.getOrDefault("upgradeKey", ""));
@@ -2569,55 +2576,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         });
     }
 
-    private void listIslandSnapshots(Player player, int limit) {
-        currentIsland(player, "섬 안에서만 스냅샷을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandSnapshots(islandId, Math.max(1, Math.min(limit, 20)))
-                .thenAccept(body -> message(player, snapshotListMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 스냅샷을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void openIslandSnapshotMenu(Player player) {
-        currentIsland(player, "섬 안에서만 스냅샷 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSnapshotMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void requestIslandSnapshot(Player player, String reason) {
-        currentIsland(player, "섬 안에서만 스냅샷을 생성할 수 있습니다.").ifPresent(islandId -> {
-            if (!player.isOp()) {
-                message(player, routeMessage("snapshot-create-denied", "섬 스냅샷을 생성할 관리자 권한이 없습니다."));
-                return;
-            }
-            mutate("island.snapshot.create", () -> coreApiClient.requestIslandSnapshotResult(islandId, reason))
-                .thenAccept(body -> message(player, actionResultMessage("섬 스냅샷 생성 요청", islandId, body)))
-                .exceptionally(error -> {
-                    message(player, "섬 스냅샷 생성을 요청하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void restoreIslandSnapshot(Player player, long snapshotNo) {
-        currentIsland(player, "섬 안에서만 스냅샷을 복원할 수 있습니다.").ifPresent(islandId -> {
-            if (!player.isOp()) {
-                message(player, routeMessage("snapshot-restore-denied", "섬 스냅샷을 복원할 관리자 권한이 없습니다."));
-                return;
-            }
-            if (snapshotNo <= 0L) {
-                message(player, routeMessage("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요."));
-                return;
-            }
-            mutateIdempotent("island.snapshot.restore", () -> coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo))
-                .thenAccept(body -> message(player, actionResultMessage("섬 스냅샷 복원 요청 #" + snapshotNo, islandId, body)))
-                .exceptionally(error -> {
-                    message(player, "섬 스냅샷 복원을 요청하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
     private void listIslandMembers(Player player) {
         currentIsland(player, "섬 안에서만 멤버를 확인할 수 있습니다.").ifPresent(islandId -> {
             coreApiClient.listIslandMembers(islandId)
@@ -3602,41 +3560,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "섬 제한이 없습니다." : "섬 제한: " + String.join(", ", entries);
-    }
-
-    private String snapshotListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            long snapshotNo = (long) decimal(object, "snapshotNo");
-            if (snapshotNo > 0L) {
-                String reason = text(object, "reason");
-                String checksum = text(object, "checksum");
-                long sizeBytes = (long) decimal(object, "sizeBytes");
-                entries.add("#" + snapshotNo
-                    + (reason.isBlank() ? "" : " 사유=" + reason)
-                    + (sizeBytes <= 0L ? "" : " 크기=" + sizeBytes)
-                    + (checksum.isBlank() ? "" : " checksum=" + shortChecksum(checksum)));
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(", ", entries);
-    }
-
-    private String shortChecksum(String checksum) {
-        if (checksum == null || checksum.isBlank()) {
-            return "";
-        }
-        return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
     }
 
     private String memberListMessage(String body) {

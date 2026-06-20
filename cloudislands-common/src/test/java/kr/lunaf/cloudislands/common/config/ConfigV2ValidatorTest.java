@@ -176,10 +176,12 @@ class ConfigV2ValidatorTest {
     }
 
     private static Set<String> registeredGuiActions(Path root) {
-        List<Path> sources = List.of(
-            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"),
-            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java")
-        );
+        List<Path> sources;
+        try (Stream<Path> files = Files.walk(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command"))) {
+            sources = files.filter(path -> path.toString().endsWith(".java")).sorted().toList();
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
         Pattern pattern = Pattern.compile("\"(island\\.[a-z0-9.-]+|admin\\.[a-z0-9.-]+)\"");
         Set<String> actions = new TreeSet<>();
         for (Path source : sources) {

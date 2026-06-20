@@ -636,11 +636,9 @@ class PaperPlatformBoundaryTest {
     @Test
     void paperCoreMutationCallsCarryRequestMetadata() throws Exception {
         Path root = repositoryRoot();
-        List<Path> files = List.of(
-            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"),
-            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"),
-            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java")
-        );
+        List<Path> commandSources = commandActionSources(root);
+        List<Path> files = new ArrayList<>(commandSources);
+        files.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"));
         String violations = files.stream()
             .flatMap(path -> mutationMetadataViolations(root, path).stream())
             .sorted()
@@ -649,13 +647,22 @@ class PaperPlatformBoundaryTest {
 
         assertTrue(violations.isBlank(), violations);
 
-        String commandBackend = Files.readString(files.get(0));
-        String commandActions = commandBackend + "\n" + Files.readString(files.get(1));
+        String commandBackend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String commandActions = commandSources.stream()
+            .map(path -> {
+                try {
+                    return Files.readString(path);
+                } catch (Exception exception) {
+                    throw new IllegalStateException(exception);
+                }
+            })
+            .reduce((left, right) -> left + "\n" + right)
+            .orElse("");
         assertTrue(commandBackend.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
         assertTrue(commandBackend.contains("DangerousGuiActionPolicy.confirmed"), "Dangerous GUI mutations must verify a confirmation token");
         assertTrue(commandBackend.contains("ConfirmationTokenPolicy.withToken"), "General confirmation menus must attach confirmation tokens");
         assertTrue(commandBackend.contains("confirmationAccepted(player, \"island.member.remove.confirm\""), "Member removal must verify a confirmation token");
-        assertTrue(commandBackend.contains("confirmationAccepted(player, \"island.snapshot.restore.confirm\""), "Snapshot restore must verify a confirmation token");
+        assertTrue(commandActions.contains("confirmationAccepted(player, \"island.snapshot.restore.confirm\""), "Snapshot restore must verify a confirmation token");
         assertTrue(commandActions.contains("mutateIdempotent(\"island.bank.withdraw\""), "Bank withdraw must use an idempotency key");
         assertTrue(commandActions.contains("CoreMutationMetadata.request"), "Paper mutations must carry request IDs and audit actions");
     }
@@ -1010,10 +1017,9 @@ class PaperPlatformBoundaryTest {
     }
 
     private static List<Path> commandActionSources(Path root) {
-        return List.of(
-            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"),
-            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java")
-        );
+        try (Stream<Path> files = javaFiles(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command"))) {
+            return files.sorted().toList();
+        }
     }
 
     private static Set<String> registeredGuiActions(List<Path> sources) {

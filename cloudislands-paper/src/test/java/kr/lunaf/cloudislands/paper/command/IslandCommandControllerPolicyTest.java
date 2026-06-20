@@ -50,4 +50,20 @@ class IslandCommandControllerPolicyTest {
         assertTrue(bankHandler.contains("coreApiClient.depositIslandBank"));
         assertTrue(bankHandler.contains("coreApiClient.withdrawIslandBank"));
     }
+
+    @Test
+    void snapshotCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String snapshotHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSnapshotCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandSnapshotCommandHandler snapshotCommands;"));
+        assertTrue(backend.contains("snapshotCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("snapshotCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("requestIslandSnapshot("), "snapshot create logic belongs in IslandSnapshotCommandHandler");
+        assertFalse(backend.contains("restoreIslandSnapshot("), "snapshot restore logic belongs in IslandSnapshotCommandHandler");
+        assertTrue(snapshotHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(snapshotHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click)"));
+        assertTrue(snapshotHandler.contains("coreApiClient.requestIslandSnapshotResult"));
+        assertTrue(snapshotHandler.contains("coreApiClient.restoreIslandSnapshotResult"));
+    }
 }
