@@ -1,6 +1,8 @@
 import org.gradle.api.file.FileTreeElement
 import org.gradle.jvm.tasks.Jar
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.javadoc.Javadoc
@@ -61,6 +63,9 @@ allprojects {
 subprojects {
     if (name != "cloudislands-bom") {
         apply(plugin = "java-library")
+        if (name in developerKitProjectNames) {
+            apply(plugin = "maven-publish")
+        }
 
         java {
             toolchain {
@@ -90,6 +95,23 @@ subprojects {
         tasks.withType<Jar>().configureEach {
             exclude(markdownDocPatterns)
             exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
+        }
+
+        if (name in developerKitProjectNames) {
+            extensions.configure<PublishingExtension> {
+                publications {
+                    create<MavenPublication>("mavenJava") {
+                        from(components["java"])
+                        artifactId = project.name
+                    }
+                }
+                repositories {
+                    maven {
+                        name = "developerKit"
+                        url = rootProject.layout.buildDirectory.dir("devkit-maven").get().asFile.toURI()
+                    }
+                }
+            }
         }
     }
 }
@@ -214,22 +236,32 @@ tasks.register<Copy>("distTools") {
     into(layout.buildDirectory.dir("dist/tools"))
 }
 
+val cleanDeveloperKitMaven = tasks.register<Delete>("cleanDeveloperKitMaven") {
+    delete(layout.buildDirectory.dir("devkit-maven"))
+}
+
 tasks.register<Copy>("distDeveloperKit") {
     group = "distribution"
-    description = "Collects API, client, protocol, testkit, and BOM artifacts for addon/plugin developers."
+    description = "Collects API, client, protocol, testkit, BOM, Javadocs, and Maven-consumable artifacts for addon/plugin developers."
     exclude(markdownDocPatterns)
     exclude { element: FileTreeElement -> isMarkdownDocElement(element) }
     doFirst {
         delete(layout.buildDirectory.dir("dist/devkit"))
     }
+    dependsOn(cleanDeveloperKitMaven)
 
     developerKitProjectNames.forEach { projectName ->
         val jarTask = project(":$projectName").tasks.named<Jar>("jar")
         val sourcesJarTask = project(":$projectName").tasks.named<Jar>("sourcesJar")
         val javadocJarTask = project(":$projectName").tasks.named<Jar>("javadocJar")
+        val publishTask = project(":$projectName").tasks.named("publishMavenJavaPublicationToDeveloperKitRepository")
+        publishTask.configure {
+            mustRunAfter(cleanDeveloperKitMaven)
+        }
         dependsOn(jarTask)
         dependsOn(sourcesJarTask)
         dependsOn(javadocJarTask)
+        dependsOn(publishTask)
         from(jarTask.flatMap { it.archiveFile }) {
             into("libs")
         }
@@ -247,6 +279,9 @@ tasks.register<Copy>("distDeveloperKit") {
     from(bomProject.layout.buildDirectory.file("publications/cloudIslandsBom/pom-default.xml")) {
         rename { "cloudislands-bom-${project.version}.pom" }
         into("bom")
+    }
+    from(layout.buildDirectory.dir("devkit-maven")) {
+        into("maven")
     }
     into(layout.buildDirectory.dir("dist/devkit"))
 }

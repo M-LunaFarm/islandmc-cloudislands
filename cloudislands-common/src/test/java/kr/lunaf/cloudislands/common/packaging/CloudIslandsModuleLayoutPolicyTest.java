@@ -82,7 +82,12 @@ class CloudIslandsModuleLayoutPolicyTest {
             List.of("cloudislands-api-javadoc", "cloudislands-common-javadoc", "cloudislands-protocol-javadoc", "cloudislands-core-client-javadoc", "cloudislands-storage-javadoc", "cloudislands-migration-javadoc", "cloudislands-testkit-javadoc"),
             CloudIslandsModuleLayoutPolicy.distributionArtifacts().get("javadocs")
         );
+        assertEquals(
+            List.of("module-poms", "gradle-module-metadata", "runtime-jars", "sources-jars", "javadoc-jars"),
+            CloudIslandsModuleLayoutPolicy.distributionArtifacts().get("maven-repository")
+        );
         assertTrue(CloudIslandsModuleLayoutPolicy.distributionTasks().get("distDeveloperKit").contains("javadoc-jars"));
+        assertTrue(CloudIslandsModuleLayoutPolicy.distributionTasks().get("distDeveloperKit").contains("maven-repository"));
     }
 
     @Test

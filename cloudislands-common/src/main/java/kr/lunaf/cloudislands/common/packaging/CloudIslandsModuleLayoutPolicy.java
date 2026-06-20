@@ -117,6 +117,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         artifacts.put("libraries", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration"));
         artifacts.put("sources", List.of("cloudislands-api-sources", "cloudislands-common-sources", "cloudislands-protocol-sources", "cloudislands-core-client-sources", "cloudislands-storage-sources", "cloudislands-migration-sources", "cloudislands-testkit-sources"));
         artifacts.put("javadocs", List.of("cloudislands-api-javadoc", "cloudislands-common-javadoc", "cloudislands-protocol-javadoc", "cloudislands-core-client-javadoc", "cloudislands-storage-javadoc", "cloudislands-migration-javadoc", "cloudislands-testkit-javadoc"));
+        artifacts.put("maven-repository", List.of("module-poms", "gradle-module-metadata", "runtime-jars", "sources-jars", "javadoc-jars"));
         artifacts.put("platform", List.of("cloudislands-bom", "cloudislands-testkit"));
         return Collections.unmodifiableMap(artifacts);
     }
@@ -128,7 +129,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         tasks.put("distAddonDescriptors", List.of("cloudislands-satis-descriptor"));
         tasks.put("distServices", List.of("cloudislands-core-service"));
         tasks.put("distTools", List.of("cloudislands-migration"));
-        tasks.put("distDeveloperKit", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration", "cloudislands-testkit", "sources-jars", "javadoc-jars", "cloudislands-bom"));
+        tasks.put("distDeveloperKit", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration", "cloudislands-testkit", "sources-jars", "javadoc-jars", "maven-repository", "cloudislands-bom"));
         tasks.put("distBundle", List.of("plugins", "addons", "services", "tools", "devkit"));
         tasks.put("distAddonBundle", List.of("addons", "addon-descriptors"));
         return Collections.unmodifiableMap(tasks);
