@@ -359,6 +359,29 @@ class PaperPlatformBoundaryTest {
         }
     }
 
+    @Test
+    void asyncGuiLoadFailuresUseInventoryStateScreens() throws Exception {
+        Path root = repositoryRoot();
+        Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
+        try (Stream<Path> files = javaFiles(guiSource)) {
+            String violations = files
+                .flatMap(path -> asyncGuiStateViolations(root, path).stream())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+
+        String registrar = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandGuiMenuRegistrar.java"));
+        assertTrue(registrar.contains("GuiStateMenus.listener()"), "GUI state menu listener must be registered");
+        String states = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiState.java"));
+        assertTrue(states.contains("LOADING"), "GUI states must include Loading");
+        assertTrue(states.contains("READY"), "GUI states must include Ready");
+        assertTrue(states.contains("EMPTY"), "GUI states must include Empty");
+        assertTrue(states.contains("ERROR"), "GUI states must include Error");
+    }
+
     private static Stream<Path> javaFiles(Path root) {
         try {
             if (Files.notExists(root)) {
@@ -703,6 +726,31 @@ class PaperPlatformBoundaryTest {
             offset = end + 1;
         }
         return values;
+    }
+
+    private static List<String> asyncGuiStateViolations(Path root, Path path) {
+        try {
+            String source = Files.readString(path);
+            if (!source.contains(".exceptionally(") || !source.contains("load-failed")) {
+                return List.of();
+            }
+            List<String> violations = new ArrayList<>();
+            String relative = root.relativize(path).toString();
+            boolean chatOnlyLoadFailure = source.lines()
+                .anyMatch(line -> line.contains("load-failed") && line.contains("player.sendMessage("));
+            if (chatOnlyLoadFailure) {
+                violations.add(relative + ": async load failure must not fall back to chat-only errors");
+            }
+            if (!source.contains("GuiStateMenus.openLoading(")) {
+                violations.add(relative + ": async menu must open a Loading state before Core response");
+            }
+            if (!source.contains("GuiStateMenus.openError(")) {
+                violations.add(relative + ": async load failure must open an Error state with Retry/Back actions");
+            }
+            return violations;
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 
     private static Integer yamlInt(List<String> lines, String key) {

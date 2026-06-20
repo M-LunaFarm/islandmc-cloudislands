@@ -36,10 +36,11 @@ public final class IslandCreateMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.templates(client)
             .thenAccept(templates -> openSync(plugin, player, templates, messages))
             .exceptionally(error -> {
-                openSync(plugin, player, List.of(new TemplateView("default", message(messages, "create-menu-default-template", "기본 섬"), true, "")), messages);
+                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "create-menu-load-failed", "섬 템플릿을 불러오지 못했습니다."), "island.create.open", "island.main.open");
                 return null;
             });
     }

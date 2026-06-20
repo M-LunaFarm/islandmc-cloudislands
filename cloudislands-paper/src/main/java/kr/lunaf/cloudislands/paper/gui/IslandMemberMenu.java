@@ -45,10 +45,11 @@ public final class IslandMemberMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
         PaperGuiViews.islandMembers(client, islandId)
             .thenAccept(members -> openSync(plugin, player, members, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다."), "island.members.open", "island.main.open");
                 return null;
             });
     }

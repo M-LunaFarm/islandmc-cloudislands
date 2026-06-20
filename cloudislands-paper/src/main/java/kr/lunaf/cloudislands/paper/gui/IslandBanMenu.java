@@ -36,10 +36,11 @@ public final class IslandBanMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
         PaperGuiViews.islandBans(client, islandId)
             .thenAccept(bans -> openSync(plugin, player, bans, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다."), "island.bans.open", "island.settings.open");
                 return null;
             });
     }

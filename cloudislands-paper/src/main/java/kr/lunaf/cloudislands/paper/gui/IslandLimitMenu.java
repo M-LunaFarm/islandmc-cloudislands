@@ -37,10 +37,11 @@ public final class IslandLimitMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandLimits(client, islandId)
             .thenAccept(limits -> openSync(plugin, player, limits, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "limit-menu-load-failed", "섬 제한을 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "limit-menu-load-failed", "섬 제한을 불러오지 못했습니다."), "island.limits.open", "island.settings.open");
                 return null;
             });
     }

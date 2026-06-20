@@ -35,10 +35,11 @@ public final class IslandRankingMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
         PaperGuiViews.rankings(client, 10)
             .thenAccept(data -> openSync(plugin, player, data.levels(), data.worths(), messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다."), "island.ranking.open", "island.main.open");
                 return null;
             });
     }

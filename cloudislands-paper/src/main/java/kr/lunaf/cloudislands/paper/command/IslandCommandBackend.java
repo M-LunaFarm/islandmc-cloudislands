@@ -1042,6 +1042,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                     teleportHome(player, data.getOrDefault("homeName", "default"));
                 }
             }
+            case "island.homes.open" -> openIslandHomeMenu(player);
             case "island.home.set" -> setHome(player, data.getOrDefault("homeName", "default"));
             case "island.warps.open" -> openIslandWarpMenu(player);
             case "island.warp.teleport" -> {

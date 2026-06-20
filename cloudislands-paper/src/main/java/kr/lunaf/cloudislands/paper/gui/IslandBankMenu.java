@@ -36,10 +36,11 @@ public final class IslandBankMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandBank(client, islandId)
             .thenAccept(view -> openSync(plugin, player, view, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "bank-menu-load-failed", "섬 은행을 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "bank-menu-load-failed", "섬 은행을 불러오지 못했습니다."), "island.bank.open", "island.settings.open");
                 return null;
             });
     }

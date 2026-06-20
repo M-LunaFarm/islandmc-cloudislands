@@ -37,10 +37,11 @@ public final class IslandLogMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
         PaperGuiViews.islandLogs(client, islandId, 27)
             .thenAccept(entries -> openSync(plugin, player, entries, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다."), "island.logs.open", "island.settings.open");
                 return null;
             });
     }

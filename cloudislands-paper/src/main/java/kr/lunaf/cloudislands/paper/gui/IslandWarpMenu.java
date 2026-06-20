@@ -38,10 +38,11 @@ public final class IslandWarpMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
         PaperGuiViews.islandWarps(client, islandId)
             .thenAccept(warps -> openSync(plugin, player, TITLE, warps, false, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다."), "island.warps.open", "island.settings.open");
                 return null;
             });
     }
@@ -51,10 +52,11 @@ public final class IslandWarpMenu implements Listener {
     }
 
     public static void openPublic(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, PUBLIC_TITLE);
         PaperGuiViews.publicWarps(client, 45)
             .thenAccept(warps -> openSync(plugin, player, PUBLIC_TITLE, warps, true, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, PUBLIC_TITLE, message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다."), "island.visit.public.open", "island.visit.open");
                 return null;
             });
     }

@@ -14,6 +14,7 @@ public final class IslandGuiMenuRegistrar {
     public static void register(JavaPlugin plugin, MessageRenderer messages, GuiActionExecutor actions) {
         GuiActionExecutor executor = actions == null ? GuiActionExecutor.noop() : actions;
         GuiActionRegistry.configure(executor);
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, GuiStateMenus.listener());
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new AdminNodeMenu(messages));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandBankMenu(messages));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandBanMenu(messages));

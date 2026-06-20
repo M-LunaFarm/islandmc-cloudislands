@@ -38,10 +38,12 @@ public final class IslandMissionMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, String kind, MessageRenderer messages) {
+        boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
+        GuiStateMenus.openLoading(plugin, player, messages, challenge ? CHALLENGE_TITLE : MISSION_TITLE);
         PaperGuiViews.islandMissions(client, islandId, kind)
             .thenAccept(missions -> openSync(plugin, player, kind, missions, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, challenge ? CHALLENGE_TITLE : MISSION_TITLE, message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다."), "island.missions.open", "island.main.open");
                 return null;
             });
     }

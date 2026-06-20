@@ -36,10 +36,11 @@ public final class IslandUpgradeMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, TITLE);
         PaperGuiViews.islandUpgrades(client, islandId)
             .thenAccept(upgrades -> openSync(plugin, player, upgrades, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다."), "island.upgrades.open", "island.settings.open");
                 return null;
             });
     }

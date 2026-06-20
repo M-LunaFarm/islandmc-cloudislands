@@ -36,10 +36,11 @@ public final class IslandInfoMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandInfo(client, islandId)
             .thenAccept(view -> openSync(plugin, player, view, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다."), "island.info.open", "island.main.open");
                 return null;
             });
     }

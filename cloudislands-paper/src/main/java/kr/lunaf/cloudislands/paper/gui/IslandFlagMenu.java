@@ -36,10 +36,11 @@ public final class IslandFlagMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandFlags(client, islandId)
             .thenAccept(values -> openSync(plugin, player, values, messages))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(message(messages, "flag-menu-load-failed", "섬 플래그를 불러오지 못했습니다.")));
+                GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "flag-menu-load-failed", "섬 플래그를 불러오지 못했습니다."), "island.flags.open", "island.settings.open");
                 return null;
             });
     }
