@@ -33,11 +33,17 @@ class GuiActionParserTest {
     }
 
     @Test
-    void preservesUnknownActionsForCompatibility() {
+    void preservesRegisteredRawActions() {
         GuiAction action = GuiActionParser.parse("island.bank.deposit", Map.of("amount", "1000")).orElseThrow();
 
         assertTrue(action instanceof GuiAction.Raw);
         assertEquals("island.bank.deposit", action.actionId());
         assertEquals(Map.of("amount", "1000"), action.data());
+    }
+
+    @Test
+    void rejectsUnregisteredActionIdsInsteadOfExecutingRawMaps() {
+        assertTrue(GuiActionParser.parse("island.member.remvoe", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.unknown.open", Map.of()).isEmpty());
     }
 }

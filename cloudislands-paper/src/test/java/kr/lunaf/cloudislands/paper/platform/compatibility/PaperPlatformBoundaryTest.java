@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.Set;
 import java.util.stream.Stream;
 import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
+import kr.lunaf.cloudislands.paper.gui.GuiActionSchema;
 import org.junit.jupiter.api.Test;
 
 class PaperPlatformBoundaryTest {
@@ -327,7 +328,8 @@ class PaperPlatformBoundaryTest {
             String violations = files
                 .filter(path -> !path.getFileName().toString().equals("IslandConfirmationMenu.java")
                     && !path.getFileName().toString().equals("IslandDangerMenu.java")
-                    && !path.getFileName().toString().equals("ConfirmationTokenPolicy.java"))
+                    && !path.getFileName().toString().equals("ConfirmationTokenPolicy.java")
+                    && !path.getFileName().toString().equals("GuiActionSchema.java"))
                 .filter(path -> containsAny(path,
                     "\"island.warp.delete.confirm\"",
                     "\"island.member.remove.confirm\"",
@@ -443,7 +445,7 @@ class PaperPlatformBoundaryTest {
     @Test
     void configV2MenuLayoutsDoNotCollideAndUseRegisteredActions() throws Exception {
         Path root = repositoryRoot();
-        Set<String> registeredActions = registeredGuiActions(commandActionSources(root));
+        Set<String> registeredActions = GuiActionSchema.registeredActionIds();
         try (Stream<Path> files = yamlFiles(root.resolve("cloudislands-paper/src/main/resources/config-v2/ui/menus"))) {
             String violations = files
                 .flatMap(path -> menuConfigViolations(root, path, registeredActions).stream())
@@ -472,7 +474,7 @@ class PaperPlatformBoundaryTest {
     @Test
     void guiJavaActionIdsAreRegistered() throws Exception {
         Path root = repositoryRoot();
-        Set<String> registeredActions = registeredGuiActions(commandActionSources(root));
+        Set<String> registeredActions = GuiActionSchema.registeredActionIds();
         try (Stream<Path> files = javaFiles(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui"))) {
             String violations = files
                 .flatMap(path -> javaGuiActionViolations(root, path, registeredActions).stream())
@@ -1034,38 +1036,6 @@ class PaperPlatformBoundaryTest {
     private static List<Path> commandActionSources(Path root) {
         try (Stream<Path> files = javaFiles(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command"))) {
             return files.sorted().toList();
-        }
-    }
-
-    private static Set<String> registeredGuiActions(List<Path> sources) {
-        try {
-            Set<String> actions = new HashSet<>();
-            for (Path source : sources) {
-                for (String line : Files.readAllLines(source)) {
-                    if (!line.contains("case \"")) {
-                        continue;
-                    }
-                    int offset = 0;
-                    while (offset < line.length()) {
-                        int start = line.indexOf('"', offset);
-                        if (start < 0) {
-                            break;
-                        }
-                        int end = line.indexOf('"', start + 1);
-                        if (end < 0) {
-                            break;
-                        }
-                        String value = line.substring(start + 1, end);
-                        if (isGuiActionId(value)) {
-                            actions.add(value);
-                        }
-                        offset = end + 1;
-                    }
-                }
-            }
-            return actions;
-        } catch (Exception exception) {
-            throw new IllegalStateException(exception);
         }
     }
 

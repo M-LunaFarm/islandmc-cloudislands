@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
 import kr.lunaf.cloudislands.common.config.ConfigV2Loader;
 import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
 import kr.lunaf.cloudislands.paper.AgentRole;
+import kr.lunaf.cloudislands.paper.gui.GuiActionSchema;
 import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.configuration.ConfigurationSection;
@@ -42,6 +43,10 @@ public final class PaperRuntimeConfigLoader {
         "gameplay.yml",
         "migration.yml",
         "ui/scoreboard.yml",
+        "ui/menus/main.yml",
+        "ui/menus/members.yml",
+        "ui/menus/permissions.yml",
+        "ui/menus/danger.yml",
         "ui/messages/ko_kr.yml"
     );
 
@@ -87,12 +92,19 @@ public final class PaperRuntimeConfigLoader {
             if (source == null || source.yaml() == null || source.yaml().isBlank()) {
                 continue;
             }
-            issues.addAll(ConfigV2Validator.validateYaml(source.name(), source.yaml()).issues());
+            issues.addAll(validateV2Source(source).issues());
         }
         ConfigValidationResult validation = new ConfigValidationResult(issues);
         if (!validation.valid()) {
             throw new IllegalArgumentException("Invalid Paper config-v2 sources: " + validation.summary());
         }
+    }
+
+    private static ConfigValidationResult validateV2Source(ConfigSource source) {
+        if (source.name().contains("/ui/menus/")) {
+            return ConfigV2Validator.validateMenuYaml(source.name(), source.yaml(), GuiActionSchema.registeredActionIds());
+        }
+        return ConfigV2Validator.validateYaml(source.name(), source.yaml());
     }
 
     private static void requireValidSnapshot(ConfigSnapshot snapshot) {

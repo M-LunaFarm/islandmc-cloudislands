@@ -27,6 +27,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
+import kr.lunaf.cloudislands.paper.gui.GuiActionSchema;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
@@ -473,11 +474,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             files
                 .filter(Files::isRegularFile)
                 .filter(path -> path.toString().endsWith(".yml") || path.toString().endsWith(".yaml"))
-                .forEach(path -> issues.addAll(ConfigV2Validator.validateYaml(root.relativize(path).toString(), readConfigFile(path)).issues()));
+                .forEach(path -> issues.addAll(validateConfigV2File(root, path).issues()));
         } catch (IOException exception) {
             issues.add(new ConfigIssue("CONFIG_V2_READ_FAILED", root.toString(), exception.getMessage()));
         }
         return new ConfigValidationResult(issues);
+    }
+
+    private ConfigValidationResult validateConfigV2File(Path root, Path path) {
+        String relative = root.relativize(path).toString();
+        String yaml = readConfigFile(path);
+        if (relative.contains("ui/menus/")) {
+            return ConfigV2Validator.validateMenuYaml(relative, yaml, GuiActionSchema.registeredActionIds());
+        }
+        return ConfigV2Validator.validateYaml(relative, yaml);
     }
 
     private String configValidationMessage(ConfigValidationResult validation) {

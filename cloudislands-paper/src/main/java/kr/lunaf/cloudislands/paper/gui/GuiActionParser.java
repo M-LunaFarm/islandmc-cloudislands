@@ -34,7 +34,9 @@ public final class GuiActionParser {
                     IslandPermission.valueOf(required(safeData, "permission").toUpperCase(java.util.Locale.ROOT).replace('-', '_')),
                     safeData.getOrDefault("expectedVersion", "")
                 ));
-                default -> Optional.of(new GuiAction.Raw(safeAction, safeData));
+                default -> GuiActionSchema.registered(safeAction)
+                    ? Optional.of(new GuiAction.Raw(safeAction, safeData))
+                    : Optional.empty();
             };
         } catch (RuntimeException exception) {
             return Optional.empty();

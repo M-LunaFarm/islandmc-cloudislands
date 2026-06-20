@@ -22,6 +22,9 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("paperConfigV2Sources"), "Paper runtime loader must discover bundled or data-folder config-v2 files");
         assertTrue(loader.contains("validateV2Sources"), "Paper runtime loader must validate raw config-v2 sources before mapping");
         assertTrue(loader.contains("ConfigV2Validator.validateYaml"), "Paper runtime loader must run schema and secret validation on config-v2 sources");
+        assertTrue(loader.contains("ConfigV2Validator.validateMenuYaml"), "Paper runtime loader must validate config-v2 menu action schemas");
+        assertTrue(loader.contains("GuiActionSchema.registeredActionIds()"), "Paper runtime menu validation must use the runtime GUI action registry");
+        assertTrue(loader.contains("\"ui/menus/main.yml\""), "Paper runtime loader must discover bundled config-v2 menu files");
         assertTrue(loader.contains("requireValidSnapshot"), "Paper runtime loader must reject invalid effective runtime snapshots");
         assertTrue(loader.contains("ConfigV2Loader.load"), "Paper runtime loader must create a ConfigSnapshot from mapped config-v2 sources");
         assertTrue(loader.contains("\"node.id\", \"node.id\""), "Config v2 node id must feed runtime node identity");
