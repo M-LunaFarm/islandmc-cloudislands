@@ -23,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class IslandCommandController implements CommandExecutor, TabCompleter, Listener, GuiActionExecutor {
     private final IslandCommandBackend backend;
+    private final IslandCommandTabCompleter tabCompleter;
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
@@ -54,11 +55,12 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, String nodeId) {
         this.backend = new IslandCommandBackend(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, new kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway(), new kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway(plugin), nodeId);
+        this.tabCompleter = new IslandCommandTabCompleter(plugin);
     }
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        return backend.onTabComplete(sender, command, alias, args);
+        return tabCompleter.onTabComplete(sender, command, alias, args);
     }
 
     @Override
