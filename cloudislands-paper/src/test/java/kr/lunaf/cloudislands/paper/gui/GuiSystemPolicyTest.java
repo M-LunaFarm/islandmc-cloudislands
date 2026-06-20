@@ -78,6 +78,31 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void unsupportedInventoryClickModesDoNotExecuteGuiActions() throws Exception {
+        String click = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiClick.java"));
+        String registry = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionRegistry.java"));
+
+        assertTrue(click.contains("default -> UNSUPPORTED"), "number-key, drop, double-click, and offhand clicks must stay unsupported by default");
+        assertFalse(click.contains("case NUMBER_KEY"), "hotbar number-key swaps must not execute GUI actions");
+        assertFalse(click.contains("case DROP"), "drop clicks must not execute GUI actions");
+        assertFalse(click.contains("case SWAP_OFFHAND"), "offhand swaps must not execute GUI actions");
+        assertTrue(registry.contains("!safeClick.supported()"), "unsupported clicks must be dropped before action parsing");
+    }
+
+    @Test
+    void menuDragEventsCannotWriteIntoTopInventory() throws Exception {
+        String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));
+        String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandGuiMenuRegistrar.java"));
+
+        assertTrue(registrar.contains("new GuiEventGuard()"), "GUI event guard must be registered with menu listeners");
+        assertTrue(guard.contains("InventoryDragEvent"), "drag events must be guarded globally");
+        assertTrue(guard.contains("top.getHolder() instanceof CloudIslandsMenuHolder"), "drag guard must only apply to CloudIslands menus");
+        assertTrue(guard.contains("touchesTopInventory(event.getRawSlots(), top.getSize())"), "drag guard must inspect raw slots against the top inventory");
+        assertTrue(guard.contains("event.setCancelled(true)"), "dragging into a GUI top inventory must be cancelled");
+        assertTrue(guard.contains("rawSlot >= 0 && rawSlot < topSize"), "top inventory slot detection must use raw slot bounds");
+    }
+
+    @Test
     void executorBoundaryUsesTypedActions() throws Exception {
         String executor = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionExecutor.java"));
         String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));
