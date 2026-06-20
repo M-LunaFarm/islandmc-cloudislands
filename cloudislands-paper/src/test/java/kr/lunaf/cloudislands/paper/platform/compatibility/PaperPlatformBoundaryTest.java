@@ -360,6 +360,30 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void permissionMenuCoversFullApiPermissionEnum() throws Exception {
+        Path root = repositoryRoot();
+        String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
+        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+
+        assertTrue(menu.contains("IslandPermission.values()"), "Permission GUI must render from the API permission enum");
+        assertTrue(menu.contains("PERMISSIONS_PER_PAGE"), "Permission GUI must paginate the full permission matrix");
+        assertTrue(!menu.contains("List.of(\"BUILD\", \"BREAK\", \"INTERACT\""), "Permission GUI must not hard-code the legacy 8-permission subset");
+        assertTrue(backend.contains("case \"island.permissions.page\""), "Permission GUI page action must be registered");
+    }
+
+    @Test
+    void memberMenuPaginatesBeyondFirstInventoryPage() throws Exception {
+        Path root = repositoryRoot();
+        String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMemberMenu.java"));
+        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+
+        assertTrue(menu.contains("MEMBERS_PER_PAGE"), "Member GUI must declare a page size");
+        assertTrue(menu.contains(".skip((long) safePage * MEMBERS_PER_PAGE)"), "Member GUI must page through members instead of truncating to the first 45");
+        assertTrue(menu.contains("\"island.members.page\""), "Member GUI must expose page navigation actions");
+        assertTrue(backend.contains("case \"island.members.page\""), "Member GUI page action must be registered");
+    }
+
+    @Test
     void asyncGuiLoadFailuresUseInventoryStateScreens() throws Exception {
         Path root = repositoryRoot();
         Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
@@ -1051,6 +1075,12 @@ class PaperPlatformBoundaryTest {
     }
 
     private static Integer parseInteger(String value) {
+        if ("MEMBERS_PER_PAGE".equals(value)) {
+            return 45;
+        }
+        if ("PERMISSIONS_PER_PAGE".equals(value)) {
+            return 8;
+        }
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException exception) {

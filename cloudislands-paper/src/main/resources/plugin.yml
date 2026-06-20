@@ -52,6 +52,8 @@ permissions:
     default: op
   cloudislands.admin.storage:
     default: op
+  cloudislands.admin.diagnostics:
+    default: op
   cloudislands.admin.block-values:
     default: op
   cloudislands.admin.upgrade-rules:

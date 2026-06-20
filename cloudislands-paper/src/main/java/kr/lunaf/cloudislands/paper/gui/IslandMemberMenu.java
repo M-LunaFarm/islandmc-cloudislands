@@ -23,6 +23,7 @@ import org.bukkit.plugin.Plugin;
 public final class IslandMemberMenu implements Listener {
     private static final String TITLE = "섬 멤버 관리";
     private static final String MENU_ID = "island.members";
+    private static final int MEMBERS_PER_PAGE = 45;
     private static final PaperPlayerGateway PLAYERS = new BukkitPlayerGateway();
     private final MessageRenderer messages;
     private final GuiActionExecutor actions;
@@ -45,9 +46,14 @@ public final class IslandMemberMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
+        int safePage = Math.max(0, page);
         GuiStateMenus.openLoading(plugin, player, messages, TITLE);
         PaperGuiViews.islandMembers(client, islandId)
-            .thenAccept(members -> openSync(plugin, player, members, messages))
+            .thenAccept(members -> openSync(plugin, player, members, messages, safePage))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, messages, TITLE, message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다."), "island.members.open", "island.main.open");
                 return null;
@@ -91,21 +97,34 @@ public final class IslandMemberMenu implements Listener {
         actions.execute(player, actionId, data, click);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<MemberView> members, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<MemberView> members, MessageRenderer messages, int page) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
+            int maxPage = maxPage(members.size());
+            int safePage = Math.max(0, Math.min(maxPage, page));
             inventory.setItem(45, GuiItems.action(Material.WRITABLE_BOOK, message(messages, "member-menu-invite-name", "멤버 초대"), "island.member.invite.help", message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));
-            inventory.setItem(46, GuiItems.action(Material.PAPER, message(messages, "member-menu-invite-list-name", "초대 목록"), "island.invites.open"));
+            inventory.setItem(46, GuiItems.action(Material.ARROW, message(messages, "member-menu-prev-page-name", "이전 페이지"), "island.members.page", Map.of("page", String.valueOf(Math.max(0, safePage - 1))), pageLine(safePage, maxPage, members.size())));
             inventory.setItem(47, GuiItems.action(Material.COMPARATOR, message(messages, "member-menu-permission-name", "권한 설정"), "island.permissions.open"));
-            inventory.setItem(48, GuiItems.action(Material.REDSTONE_TORCH, message(messages, "member-menu-settings-name", "설정"), "island.settings.open"));
+            inventory.setItem(48, GuiItems.action(Material.ARROW, message(messages, "member-menu-next-page-name", "다음 페이지"), "island.members.page", Map.of("page", String.valueOf(Math.min(maxPage, safePage + 1))), pageLine(safePage, maxPage, members.size())));
             inventory.setItem(49, GuiItems.action(Material.CLOCK, message(messages, "member-menu-refresh-name", "새로고침"), "island.members.open"));
+            inventory.setItem(50, GuiItems.action(Material.PAPER, message(messages, "member-menu-invite-list-name", "초대 목록"), "island.invites.open"));
+            inventory.setItem(51, GuiItems.action(Material.MAP, message(messages, "member-menu-page-name", "페이지"), "island.member.list", pageLine(safePage, maxPage, members.size())));
+            inventory.setItem(52, GuiItems.action(Material.REDSTONE_TORCH, message(messages, "member-menu-settings-name", "설정"), "island.settings.open"));
             inventory.setItem(53, GuiItems.action(Material.COMPASS, message(messages, "member-menu-main-menu-name", "메인 메뉴"), "island.main.open"));
             int slot = 0;
-            for (MemberView member : members.stream().limit(45).toList()) {
+            for (MemberView member : members.stream().skip((long) safePage * MEMBERS_PER_PAGE).limit(MEMBERS_PER_PAGE).toList()) {
                 inventory.setItem(slot++, memberItem(member, messages));
             }
             player.openInventory(inventory);
         });
+    }
+
+    private static int maxPage(int size) {
+        return Math.max(0, (Math.max(0, size) - 1) / MEMBERS_PER_PAGE);
+    }
+
+    private static String pageLine(int page, int maxPage, int memberCount) {
+        return "Page " + (page + 1) + "/" + (maxPage + 1) + " (" + memberCount + " members)";
     }
 
     private static ItemStack memberItem(MemberView member, MessageRenderer messages) {

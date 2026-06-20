@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,7 +17,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandPermissionMenu implements Listener {
@@ -24,7 +24,8 @@ public final class IslandPermissionMenu implements Listener {
     private static final String TITLE = "섬 권한 설정";
     private static final String MENU_ID = "island.permissions";
     private static final List<String> ROLES = List.of("CO_OWNER", "MODERATOR", "MEMBER", "TRUSTED", "VISITOR");
-    private static final List<String> PERMISSIONS = List.of("BUILD", "BREAK", "INTERACT", "OPEN_CONTAINER", "USE_DOOR", "USE_REDSTONE", "ATTACK_PLAYER", "ATTACK_MOB");
+    private static final int PERMISSIONS_PER_PAGE = 8;
+    private static final List<String> PERMISSIONS = Arrays.stream(IslandPermission.values()).map(Enum::name).toList();
     private final MessageRenderer messages;
     private final GuiActionExecutor actions;
 
@@ -46,9 +47,14 @@ public final class IslandPermissionMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
+        int safePage = safePage(page);
         GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandPermissions(client, islandId)
-            .thenAccept(rules -> openSync(plugin, player, rules, messages))
+            .thenAccept(rules -> openSync(plugin, player, rules, messages, safePage))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "permission-menu-load-failed", "섬 권한을 불러오지 못했습니다."), "island.permissions.open", "island.settings.open");
                 return null;
@@ -78,23 +84,27 @@ public final class IslandPermissionMenu implements Listener {
         actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<PermissionRuleView> rules, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, List<PermissionRuleView> rules, MessageRenderer messages, int page) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
+            int safePage = safePage(page);
+            int start = safePage * PERMISSIONS_PER_PAGE;
+            List<String> visiblePermissions = PERMISSIONS.subList(start, Math.min(PERMISSIONS.size(), start + PERMISSIONS_PER_PAGE));
             for (int row = 0; row < ROLES.size(); row++) {
                 String role = ROLES.get(row);
                 inventory.setItem(row * 9, GuiItems.action(Material.NAME_TAG, role, "island.permissions.list", message(messages, "permission-menu-role-row", "역할 권한 행")));
-                for (int column = 0; column < PERMISSIONS.size(); column++) {
-                    String permission = PERMISSIONS.get(column);
+                for (int column = 0; column < visiblePermissions.size(); column++) {
+                    String permission = visiblePermissions.get(column);
                     inventory.setItem(row * 9 + column + 1, ruleItem(role, permission, allowed(rules, role, permission), messages));
                 }
             }
-            inventory.setItem(45, GuiItems.action(Material.BOOK, message(messages, "permission-menu-all-names-name", "전체 권한 이름"), "island.permissions.list", message(messages, "permission-menu-matrix-policy", "표시 권한: BUILD/BREAK/INTERACT/CHEST/DOOR/REDSTONE/PVP/MOB"), permissionSummary()));
-            inventory.setItem(46, GuiItems.action(Material.CLOCK, message(messages, "permission-menu-refresh-name", "새로고침"), "island.permissions.open"));
-            inventory.setItem(47, GuiItems.action(Material.BARRIER, message(messages, "permission-menu-reset-name", "되돌리기"), "island.permissions.open"));
+            inventory.setItem(45, GuiItems.action(Material.BOOK, message(messages, "permission-menu-all-names-name", "전체 권한 이름"), "island.permissions.list", message(messages, "permission-menu-matrix-policy", "전체 API 권한을 페이지로 표시합니다."), permissionSummary()));
+            inventory.setItem(46, GuiItems.action(Material.ARROW, message(messages, "permission-menu-prev-page-name", "이전 페이지"), "island.permissions.page", Map.of("page", String.valueOf(Math.max(0, safePage - 1))), pageLine(safePage)));
+            inventory.setItem(47, GuiItems.action(Material.ARROW, message(messages, "permission-menu-next-page-name", "다음 페이지"), "island.permissions.page", Map.of("page", String.valueOf(Math.min(maxPage(), safePage + 1))), pageLine(safePage)));
             inventory.setItem(48, GuiItems.action(Material.PAPER, message(messages, "permission-menu-list-name", "권한 목록"), "island.permissions.list"));
-            inventory.setItem(49, GuiItems.action(Material.LIME_DYE, message(messages, "permission-menu-save-name", "저장"), "island.permissions.list", message(messages, "permission-menu-save-batch-note", "개별 셀 변경은 즉시 Core에 요청됩니다.")));
+            inventory.setItem(49, GuiItems.action(Material.CLOCK, message(messages, "permission-menu-refresh-name", "새로고침"), "island.permissions.page", Map.of("page", String.valueOf(safePage))));
             inventory.setItem(50, GuiItems.action(Material.NAME_TAG, message(messages, "permission-menu-role-name", "역할 설정"), "island.roles.open"));
+            inventory.setItem(51, GuiItems.action(Material.MAP, message(messages, "permission-menu-page-name", "페이지"), "island.permissions.list", pageLine(safePage)));
             inventory.setItem(53, GuiItems.action(Material.OAK_DOOR, message(messages, "permission-menu-settings-name", "뒤로"), "island.settings.open"));
             player.openInventory(inventory);
         });
@@ -129,17 +139,6 @@ public final class IslandPermissionMenu implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
     private static String permissionSummary() {
         StringBuilder builder = new StringBuilder();
         for (IslandPermission permission : IslandPermission.values()) {
@@ -153,6 +152,18 @@ public final class IslandPermissionMenu implements Listener {
             }
         }
         return builder.toString();
+    }
+
+    private static String pageLine(int page) {
+        return "Page " + (safePage(page) + 1) + "/" + (maxPage() + 1) + " (" + PERMISSIONS.size() + " permissions)";
+    }
+
+    private static int safePage(int page) {
+        return Math.max(0, Math.min(maxPage(), page));
+    }
+
+    private static int maxPage() {
+        return Math.max(0, (PERMISSIONS.size() - 1) / PERMISSIONS_PER_PAGE);
     }
 
     private static Boolean allowed(List<PermissionRuleView> rules, String role, String permission) {

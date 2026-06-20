@@ -3,6 +3,9 @@ package kr.lunaf.cloudislands.paper.admin;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -29,7 +32,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 final class AdminCommandBackend implements CommandExecutor, TabCompleter {
-    private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    private static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     private static final List<String> CACHE_COMMANDS = List.of("clear");
     private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
     private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state", "route-events");
@@ -38,6 +41,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
+    private static final List<String> DIAGNOSTICS_COMMANDS = List.of("export");
     private static final List<String> RANKING_COMMANDS = List.of("level", "worth");
     private static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
     private static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
@@ -100,6 +104,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         "ciadmin audit",
         "ciadmin metrics",
         "ciadmin storage",
+        "ciadmin diagnostics export",
         "ciadmin block-values list",
         "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
         "ciadmin upgrade-rules",
@@ -230,6 +235,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Storage status", coreApiClient.storageStatus().thenApply(this::storageStatusMessage));
             return true;
         }
+        if (args[0].equalsIgnoreCase("diagnostics")) {
+            return handleDiagnostics(sender, args);
+        }
         if (args[0].equalsIgnoreCase("block-values")) {
             return handleBlockValues(sender, args);
         }
@@ -299,6 +307,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("route")) {
             return matches(ROUTE_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("diagnostics")) {
+            return matches(DIAGNOSTICS_COMMANDS, args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("rankings")) {
             return matches(RANKING_COMMANDS, args[1]);
@@ -466,6 +477,66 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin addons endpoints"
         ));
         return true;
+    }
+
+    private boolean handleDiagnostics(CommandSender sender, String[] args) {
+        if (args.length < 2 || !args[1].equalsIgnoreCase("export")) {
+            sender.sendMessage(adminText("admin-command-diagnostics-usage", "사용법: /ciadmin diagnostics export"));
+            return true;
+        }
+        CompletableFuture<String> config = diagnosticSection("core-config", coreApiClient.coreConfig());
+        CompletableFuture<String> metrics = diagnosticSection("metrics", coreApiClient.metrics());
+        CompletableFuture<String> storage = diagnosticSection("storage", coreApiClient.storageStatus());
+        CompletableFuture<String> nodes = diagnosticSection("nodes", coreApiClient.listNodes().thenApply(Object::toString));
+        CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.listJobs().thenApply(Object::toString));
+        CompletableFuture<String> audit = diagnosticSection("audit", coreApiClient.listAuditLogs(25));
+        run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, jobs, audit)
+            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), audit.join()))));
+        return true;
+    }
+
+    private CompletableFuture<String> diagnosticSection(String name, CompletableFuture<String> future) {
+        return future.handle((body, error) -> {
+            StringBuilder builder = new StringBuilder();
+            builder.append("## ").append(name).append('\n');
+            if (error != null) {
+                builder.append("error=").append(error.getClass().getSimpleName()).append(':').append(error.getMessage()).append('\n');
+            } else {
+                builder.append(redactDiagnostic(body)).append('\n');
+            }
+            return builder.toString();
+        });
+    }
+
+    private String writeDiagnostics(List<String> sections) {
+        try {
+            Path directory = agent.plugin().getDataFolder().toPath().resolve("diagnostics");
+            Files.createDirectories(directory);
+            String timestamp = Instant.now().toString().replace(':', '-');
+            Path report = directory.resolve("cloudislands-diagnostics-" + timestamp + ".txt");
+            StringBuilder builder = new StringBuilder();
+            builder.append("CloudIslands diagnostics export\n");
+            builder.append("generatedAt=").append(Instant.now()).append('\n');
+            builder.append("nodeId=").append(nodeId).append('\n');
+            builder.append("agentRole=").append(agent.role()).append('\n');
+            builder.append("onlinePlayers=").append(agent.plugin().getServer().getOnlinePlayers().size()).append("\n\n");
+            for (String section : sections) {
+                builder.append(section).append('\n');
+            }
+            Files.writeString(report, builder.toString());
+            return adminText("admin-command-diagnostics-exported-prefix", "Diagnostics exported: ") + report;
+        } catch (IOException exception) {
+            return adminText("admin-command-diagnostics-export-failed", "Diagnostics export failed: ") + exception.getMessage();
+        }
+    }
+
+    private static String redactDiagnostic(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value
+            .replaceAll("(?i)(token|secret|password|authorization|accessKey|secretKey)\\\"?\\s*[:=]\\s*\\\"?[^,\\n\\r\\\"]+", "$1=***")
+            .replaceAll("ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+", "***");
     }
 
     private boolean handleNode(CommandSender sender, String[] args) {
@@ -2838,7 +2909,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "";
         }
         return switch (root) {
-            case "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }

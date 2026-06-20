@@ -19,6 +19,11 @@ public final class CloudIslandsApiContract {
     public static final String JAVA_PLUGIN_API_POLICY = "paper-plugins-use-cloudislands-api-services-and-never-core-internals";
     public static final String INTERNAL_API_POLICY = "http-admin-and-runtime-endpoints-are-token-or-mtls-protected-core-boundaries";
     public static final String EVENT_API_POLICY = "global-events-are-append-only-cache-invalidation-and-addon-lifecycle-contract";
+    public static final String SEMANTIC_VERSION_POLICY = "major-version-breaks-binary-api-minor-adds-compatible-api-patch-fixes-only";
+    public static final String DEPRECATION_POLICY = "deprecated-api-remains-for-at-least-one-minor-release-before-removal";
+    public static final String EVENT_DELIVERY_POLICY = "global-events-are-at-least-once-delivered-and-consumers-must-deduplicate-by-event-id";
+    public static final String THREADING_POLICY = "api-futures-complete-off-main-thread-paper-callers-must-schedule-bukkit-world-and-player-access";
+    public static final String CORE_FAILURE_POLICY = "core-unavailable-fails-closed-for-writes-and-may-return-marked-stale-snapshots-for-reads";
     public static final String CORE_AUTH_POLICY = "core-api-requires-api-token-or-mtls-for-non-health-requests";
     public static final String ADMIN_ENDPOINT_POLICY = "admin-endpoints-use-separate-admin-token-and-per-command-permissions";
     public static final String NETWORK_EXPOSURE_POLICY = "bind-public-only-with-ip-allowlist-mtls-and-token-controls";
@@ -47,6 +52,11 @@ public final class CloudIslandsApiContract {
             "java-plugin-api-policy",
             "internal-api-policy",
             "event-api-policy",
+            "semantic-version-policy",
+            "deprecation-policy",
+            "event-delivery-policy",
+            "threading-policy",
+            "core-failure-policy",
             "core-auth-policy",
             "admin-endpoint-policy",
             "network-exposure-policy",
@@ -115,6 +125,11 @@ public final class CloudIslandsApiContract {
             Map.entry("java-plugin-api-policy", JAVA_PLUGIN_API_POLICY),
             Map.entry("internal-api-policy", INTERNAL_API_POLICY),
             Map.entry("event-api-policy", EVENT_API_POLICY),
+            Map.entry("semantic-version-policy", SEMANTIC_VERSION_POLICY),
+            Map.entry("deprecation-policy", DEPRECATION_POLICY),
+            Map.entry("event-delivery-policy", EVENT_DELIVERY_POLICY),
+            Map.entry("threading-policy", THREADING_POLICY),
+            Map.entry("core-failure-policy", CORE_FAILURE_POLICY),
             Map.entry("core-auth-policy", CORE_AUTH_POLICY),
             Map.entry("admin-endpoint-policy", ADMIN_ENDPOINT_POLICY),
             Map.entry("network-exposure-policy", NETWORK_EXPOSURE_POLICY),

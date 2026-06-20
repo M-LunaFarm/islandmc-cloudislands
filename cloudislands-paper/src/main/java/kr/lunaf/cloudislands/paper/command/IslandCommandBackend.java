@@ -1086,6 +1086,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.members.open" -> openIslandMemberMenu(player);
             case "island.member.detail" -> listIslandMembers(player);
             case "island.member.role" -> listIslandMembers(player);
+            case "island.members.page" -> openIslandMemberMenu(player, (int) longValue(data.getOrDefault("page", "0"), 0L));
             case "island.member.invite", "island.member.invite.help" -> message(player, routeMessage("member-invite-help", "멤버 초대는 /섬 초대 <플레이어> 로 요청합니다."));
             case "island.member.list" -> listIslandMembers(player);
             case "island.member.promote" -> setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
@@ -1116,6 +1117,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 "island.bans.open");
             case "island.ban.pardon.confirm" -> pardonIslandVisitor(player, data.getOrDefault("playerUuid", ""));
             case "island.permissions.open" -> openIslandPermissionMenu(player);
+            case "island.permissions.page" -> openIslandPermissionMenu(player, (int) longValue(data.getOrDefault("page", "0"), 0L));
             case "island.permissions.list" -> listIslandPermissions(player);
             case "island.permissions.save" -> listIslandPermissions(player);
             case "island.permissions.reset" -> openIslandPermissionMenu(player);
@@ -2220,7 +2222,11 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void openIslandMemberMenu(Player player) {
-        currentIsland(player, "섬 안에서만 멤버 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMemberMenu.open(plugin, coreApiClient, player, islandId, messages));
+        openIslandMemberMenu(player, 0);
+    }
+
+    private void openIslandMemberMenu(Player player, int page) {
+        currentIsland(player, "섬 안에서만 멤버 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMemberMenu.open(plugin, coreApiClient, player, islandId, messages, page));
     }
 
     private void inviteIslandMember(Player player, String target) {
@@ -2591,7 +2597,11 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void openIslandPermissionMenu(Player player) {
-        currentIsland(player, "섬 안에서만 권한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId, messages));
+        openIslandPermissionMenu(player, 0);
+    }
+
+    private void openIslandPermissionMenu(Player player, int page) {
+        currentIsland(player, "섬 안에서만 권한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId, messages, page));
     }
 
     private void openIslandRoleMenu(Player player) {
