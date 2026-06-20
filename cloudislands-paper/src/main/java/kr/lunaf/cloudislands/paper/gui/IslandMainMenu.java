@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 public final class IslandMainMenu implements Listener {
     private static final String TITLE_KEY = "main-menu-title";
     private static final String TITLE = "섬 메뉴";
+    private static final String MENU_ID = "island.main";
     private final MessageRenderer messages;
     private final GuiActionExecutor actions;
 
@@ -36,7 +37,7 @@ public final class IslandMainMenu implements Listener {
     }
 
     public static void open(Player player, MessageRenderer messages) {
-        Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
+        Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
         inventory.setItem(10, GuiItems.action(Material.GRASS_BLOCK, message(messages, "main-menu-home-name", "내 섬으로 이동"), "island.home", message(messages, "main-menu-home-left", "좌클릭: 홈 이동"), message(messages, "main-menu-home-right", "우클릭: 홈 관리")));
         inventory.setItem(11, GuiItems.action(Material.OAK_SAPLING, message(messages, "main-menu-create-name", "섬 생성"), "island.create.open", message(messages, "main-menu-create-command", "섬 생성 화면")));
         inventory.setItem(12, GuiItems.action(Material.ENDER_PEARL, message(messages, "main-menu-warp-name", "섬 워프"), "island.warps.open", message(messages, "main-menu-warp-command", "섬 워프 화면")));
@@ -61,7 +62,7 @@ public final class IslandMainMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);

@@ -21,6 +21,7 @@ import org.bukkit.plugin.Plugin;
 public final class IslandPermissionMenu implements Listener {
     private static final String TITLE_KEY = "permission-menu-title";
     private static final String TITLE = "섬 권한 설정";
+    private static final String MENU_ID = "island.permissions";
     private static final List<String> ROLES = List.of("CO_OWNER", "MODERATOR", "MEMBER", "TRUSTED", "VISITOR");
     private static final List<String> PERMISSIONS = List.of("BUILD", "BREAK", "INTERACT", "OPEN_CONTAINER", "USE_DOOR", "USE_REDSTONE", "ATTACK_PLAYER", "ATTACK_MOB");
     private final MessageRenderer messages;
@@ -54,7 +55,7 @@ public final class IslandPermissionMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!message(messages, TITLE_KEY, TITLE).equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);
@@ -77,7 +78,7 @@ public final class IslandPermissionMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, List<Rule> rules, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             for (int row = 0; row < ROLES.size(); row++) {
                 String role = ROLES.get(row);
                 inventory.setItem(row * 9, GuiItems.action(Material.NAME_TAG, role, "island.permissions.list", message(messages, "permission-menu-role-row", "역할 권한 행")));

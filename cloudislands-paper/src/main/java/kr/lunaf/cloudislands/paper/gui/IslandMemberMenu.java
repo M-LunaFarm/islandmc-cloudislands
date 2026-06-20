@@ -21,6 +21,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandMemberMenu implements Listener {
     private static final String TITLE = "섬 멤버 관리";
+    private static final String MENU_ID = "island.members";
     private static final PaperPlayerGateway PLAYERS = new BukkitPlayerGateway();
     private final MessageRenderer messages;
     private final GuiActionExecutor actions;
@@ -53,7 +54,7 @@ public final class IslandMemberMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!TITLE.equals(event.getView().getTitle())) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)) {
             return;
         }
         event.setCancelled(true);
@@ -90,7 +91,7 @@ public final class IslandMemberMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, List<Member> members, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
+            Inventory inventory = GuiInventories.create(MENU_ID, 54, TITLE);
             inventory.setItem(45, GuiItems.action(Material.WRITABLE_BOOK, message(messages, "member-menu-invite-name", "멤버 초대"), "island.member.invite.help", message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));
             inventory.setItem(46, GuiItems.action(Material.PAPER, message(messages, "member-menu-invite-list-name", "초대 목록"), "island.invites.open"));
             inventory.setItem(47, GuiItems.action(Material.COMPARATOR, message(messages, "member-menu-permission-name", "권한 설정"), "island.permissions.open"));

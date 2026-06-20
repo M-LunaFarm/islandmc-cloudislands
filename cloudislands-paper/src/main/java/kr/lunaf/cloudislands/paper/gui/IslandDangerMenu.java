@@ -15,6 +15,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 public final class IslandDangerMenu implements Listener {
     private static final String TITLE_KEY = "danger-menu-title";
     private static final String TITLE = "섬 위험 작업";
+    private static final String MENU_ID = "island.danger";
+    private static final String RESET_CONFIRM_MENU_ID = "island.danger.reset-confirm";
+    private static final String DELETE_CONFIRM_MENU_ID = "island.danger.delete-confirm";
     private static final String RESET_CONFIRM_TITLE = "섬 리셋 확인";
     private static final String DELETE_CONFIRM_TITLE = "섬 삭제 확인";
     private final MessageRenderer messages;
@@ -38,7 +41,7 @@ public final class IslandDangerMenu implements Listener {
     }
 
     public static void open(Player player, MessageRenderer messages) {
-        Inventory inventory = Bukkit.createInventory(null, 27, message(messages, TITLE_KEY, TITLE));
+        Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
         inventory.setItem(10, GuiItems.action(Material.CHEST, message(messages, "danger-menu-snapshot-name", "스냅샷 확인"), "island.snapshots.open", message(messages, "danger-menu-snapshot-description", "위험 작업 전에 복구 지점을 확인합니다.")));
         inventory.setItem(12, GuiItems.action(Material.TNT, message(messages, "danger-menu-reset-name", "섬 리셋"), "island.danger.reset.prepare", message(messages, "danger-menu-reset-description", "월드 초기화 범위를 확인한 뒤 실행합니다.")));
         inventory.setItem(14, GuiItems.action(Material.LAVA_BUCKET, message(messages, "danger-menu-delete-name", "섬 삭제"), "island.danger.delete.prepare", message(messages, "danger-menu-delete-description", "삭제 영향을 확인한 뒤 요청합니다.")));
@@ -47,7 +50,7 @@ public final class IslandDangerMenu implements Listener {
     }
 
     public static void openResetConfirm(Player player, MessageRenderer messages) {
-        Inventory inventory = Bukkit.createInventory(null, 27, RESET_CONFIRM_TITLE);
+        Inventory inventory = GuiInventories.create(RESET_CONFIRM_MENU_ID, 27, RESET_CONFIRM_TITLE);
         inventory.setItem(11, GuiItems.action(Material.OAK_DOOR, message(messages, "danger-confirm-cancel-name", "취소"), "island.danger.open"));
         inventory.setItem(15, GuiItems.action(Material.TNT, message(messages, "danger-reset-confirm-name", "리셋 실행"), "island.danger.reset.confirm",
             message(messages, "danger-reset-confirm-line-1", "월드 블록과 엔티티가 초기화됩니다."),
@@ -56,7 +59,7 @@ public final class IslandDangerMenu implements Listener {
     }
 
     public static void openDeleteConfirm(Player player, MessageRenderer messages) {
-        Inventory inventory = Bukkit.createInventory(null, 27, DELETE_CONFIRM_TITLE);
+        Inventory inventory = GuiInventories.create(DELETE_CONFIRM_MENU_ID, 27, DELETE_CONFIRM_TITLE);
         inventory.setItem(11, GuiItems.action(Material.OAK_DOOR, message(messages, "danger-confirm-cancel-name", "취소"), "island.danger.open"));
         inventory.setItem(15, GuiItems.action(Material.LAVA_BUCKET, message(messages, "danger-delete-confirm-name", "삭제 요청"), "island.danger.delete.confirm",
             message(messages, "danger-delete-confirm-line-1", "섬을 삭제 요청 상태로 전환합니다."),
@@ -66,8 +69,9 @@ public final class IslandDangerMenu implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        String title = event.getView().getTitle();
-        if (!message(messages, TITLE_KEY, TITLE).equals(title) && !RESET_CONFIRM_TITLE.equals(title) && !DELETE_CONFIRM_TITLE.equals(title)) {
+        if (!GuiInventories.isMenu(event.getView().getTopInventory(), MENU_ID)
+            && !GuiInventories.isMenu(event.getView().getTopInventory(), RESET_CONFIRM_MENU_ID)
+            && !GuiInventories.isMenu(event.getView().getTopInventory(), DELETE_CONFIRM_MENU_ID)) {
             return;
         }
         event.setCancelled(true);

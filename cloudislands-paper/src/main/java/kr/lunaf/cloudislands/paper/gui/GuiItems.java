@@ -61,6 +61,10 @@ public final class GuiItems {
             && event.getRawSlot() < event.getView().getTopInventory().getSize();
     }
 
+    public static boolean menuClick(InventoryClickEvent event, String menuId) {
+        return topInventoryClick(event) && GuiInventories.isMenu(event.getView().getTopInventory(), menuId);
+    }
+
     private static String encode(Map<String, String> data) {
         StringBuilder builder = new StringBuilder();
         data.entrySet().stream()
