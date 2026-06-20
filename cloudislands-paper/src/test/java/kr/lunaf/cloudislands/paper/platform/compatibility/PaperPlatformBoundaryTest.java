@@ -235,6 +235,7 @@ class PaperPlatformBoundaryTest {
         Path guiViewSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/view/PaperGuiViews.java");
         String viewSource = Files.readString(guiViewSource);
         String viewViolations = Stream.of(
+                "SimpleJson",
                 "body.indexOf(",
                 "body.substring(",
                 "jsonStringEnd(",

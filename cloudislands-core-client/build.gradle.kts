@@ -2,6 +2,7 @@ plugins { `java-library` }
 
 dependencies {
     api(project(":cloudislands-api"))
+    implementation(project(":cloudislands-common"))
     api(project(":cloudislands-protocol"))
     testImplementation(libs.junit.jupiter)
 }
