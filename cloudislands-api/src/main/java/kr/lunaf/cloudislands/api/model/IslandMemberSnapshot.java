@@ -4,31 +4,34 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record IslandMemberSnapshot(UUID islandId, UUID playerUuid, IslandRole role, Instant joinedAt, Instant expiresAt, String roleKey) {
+    public IslandMemberSnapshot {
+        roleKey = RoleId.normalize(roleKey, role == null ? IslandRole.VISITOR.name() : role.name());
+        if (role == null) {
+            role = parseRole(roleKey);
+        }
+    }
+
     public IslandMemberSnapshot(UUID islandId, UUID playerUuid, IslandRole role, Instant joinedAt) {
         this(islandId, playerUuid, role, joinedAt, null);
     }
 
     public IslandMemberSnapshot(UUID islandId, UUID playerUuid, IslandRole role, Instant joinedAt, Instant expiresAt) {
-        this(islandId, playerUuid, role, joinedAt, expiresAt, role == null ? "" : role.name());
+        this(islandId, playerUuid, role, joinedAt, expiresAt, RoleId.of(role, IslandRole.VISITOR.name()).value());
     }
 
     public IslandMemberSnapshot(UUID islandId, UUID playerUuid, String roleKey, Instant joinedAt, Instant expiresAt) {
-        this(islandId, playerUuid, parseRole(roleKey), joinedAt, expiresAt, normalizedRoleKey(roleKey));
+        this(islandId, playerUuid, parseRole(roleKey), joinedAt, expiresAt, RoleId.normalize(roleKey, IslandRole.VISITOR.name()));
     }
 
     public String effectiveRoleKey() {
-        return roleKey == null || roleKey.isBlank() ? role.name() : roleKey;
+        return roleKey;
     }
 
     private static IslandRole parseRole(String roleKey) {
         try {
-            return IslandRole.valueOf(normalizedRoleKey(roleKey));
+            return IslandRole.valueOf(RoleId.normalize(roleKey, IslandRole.VISITOR.name()));
         } catch (IllegalArgumentException exception) {
             return null;
         }
-    }
-
-    private static String normalizedRoleKey(String roleKey) {
-        return roleKey == null ? "" : roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 }

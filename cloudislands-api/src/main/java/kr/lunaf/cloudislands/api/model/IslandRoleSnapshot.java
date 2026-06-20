@@ -9,27 +9,30 @@ public record IslandRoleSnapshot(
     String displayName,
     String roleKey
 ) {
+    public IslandRoleSnapshot {
+        roleKey = RoleId.normalize(roleKey, role == null ? IslandRole.MEMBER.name() : role.name());
+        if (role == null) {
+            role = parseRole(roleKey);
+        }
+    }
+
     public IslandRoleSnapshot(UUID islandId, IslandRole role, int weight, String displayName) {
-        this(islandId, role, weight, displayName, role == null ? "" : role.name());
+        this(islandId, role, weight, displayName, RoleId.of(role, IslandRole.MEMBER.name()).value());
     }
 
     public IslandRoleSnapshot(UUID islandId, String roleKey, int weight, String displayName) {
-        this(islandId, parseRole(roleKey), weight, displayName, normalizedRoleKey(roleKey));
+        this(islandId, parseRole(roleKey), weight, displayName, RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
     }
 
     public String effectiveRoleKey() {
-        return roleKey == null || roleKey.isBlank() ? role.name() : roleKey;
+        return roleKey;
     }
 
     private static IslandRole parseRole(String roleKey) {
         try {
-            return IslandRole.valueOf(normalizedRoleKey(roleKey));
+            return IslandRole.valueOf(RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
         } catch (IllegalArgumentException exception) {
             return null;
         }
-    }
-
-    private static String normalizedRoleKey(String roleKey) {
-        return roleKey == null ? "" : roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 }

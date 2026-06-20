@@ -9,27 +9,30 @@ public record IslandPermissionRuleSnapshot(
     boolean allowed,
     String roleKey
 ) {
+    public IslandPermissionRuleSnapshot {
+        roleKey = RoleId.normalize(roleKey, role == null ? IslandRole.MEMBER.name() : role.name());
+        if (role == null) {
+            role = parseRole(roleKey);
+        }
+    }
+
     public IslandPermissionRuleSnapshot(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
-        this(islandId, role, permission, allowed, role == null ? "" : role.name());
+        this(islandId, role, permission, allowed, RoleId.of(role, IslandRole.MEMBER.name()).value());
     }
 
     public IslandPermissionRuleSnapshot(UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
-        this(islandId, parseRole(roleKey), permission, allowed, normalizedRoleKey(roleKey));
+        this(islandId, parseRole(roleKey), permission, allowed, RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
     }
 
     public String effectiveRoleKey() {
-        return roleKey == null || roleKey.isBlank() ? role.name() : roleKey;
+        return roleKey;
     }
 
     private static IslandRole parseRole(String roleKey) {
         try {
-            return IslandRole.valueOf(normalizedRoleKey(roleKey));
+            return IslandRole.valueOf(RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
         } catch (IllegalArgumentException exception) {
             return null;
         }
-    }
-
-    private static String normalizedRoleKey(String roleKey) {
-        return roleKey == null ? "" : roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 }
