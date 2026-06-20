@@ -94,7 +94,7 @@ public final class CloudIslandsModuleLayoutPolicy {
 
     private static Map<String, List<String>> responsibilities() {
         LinkedHashMap<String, List<String>> modules = new LinkedHashMap<>();
-        modules.put("cloudislands-api", List.of("interfaces", "events", "dto-snapshots", "permission-enums", "service-contracts"));
+        modules.put("cloudislands-api", List.of("interfaces", "events", "dto-snapshots", "permission-enums", "service-contracts", "published-javadocs"));
         modules.put("cloudislands-common", List.of("config", "serialization", "messages", "utils", "result-types", "exceptions"));
         modules.put("cloudislands-protocol", List.of("request-response-dto", "event-dto", "job-dto", "route-ticket-dto", "version-negotiation"));
         modules.put("cloudislands-core-client", List.of("typed-core-api-client", "timeouts", "auth", "json-transport"));
@@ -103,8 +103,8 @@ public final class CloudIslandsModuleLayoutPolicy {
         modules.put("cloudislands-paper", List.of("lobby-role", "island-node-role", "protection", "world-shard-cell-manager", "teleport-manager", "gui", "events"));
         modules.put("cloudislands-storage", List.of("s3-minio-backend", "local-filesystem-backend", "bundle-manifest", "snapshot-compression", "checksum", "restore-pipeline"));
         modules.put("cloudislands-migration", List.of("superiorskyblock2-importer", "dry-run-validator", "world-extractor", "report-generator"));
-        modules.put("cloudislands-testkit", List.of("fixtures", "fake-repositories", "integration-test-helpers"));
-        modules.put("cloudislands-bom", List.of("dependency-alignment", "published-version-coordinates"));
+        modules.put("cloudislands-testkit", List.of("fixtures", "fake-repositories", "integration-test-helpers", "api-contract-verifier", "addon-certification-fixtures"));
+        modules.put("cloudislands-bom", List.of("dependency-alignment", "published-version-coordinates", "developer-kit-bom"));
         modules.put("cloudislands-satis", List.of("satismc-feature-bridge", "config-gated-addon-runtime", "legacy-feature-migration", "addon-descriptor-sidecar"));
         return Collections.unmodifiableMap(modules);
     }
@@ -115,6 +115,8 @@ public final class CloudIslandsModuleLayoutPolicy {
         artifacts.put("addons", List.of("cloudislands-satis"));
         artifacts.put("services", List.of("cloudislands-core-service"));
         artifacts.put("libraries", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration"));
+        artifacts.put("sources", List.of("cloudislands-api-sources", "cloudislands-common-sources", "cloudislands-protocol-sources", "cloudislands-core-client-sources", "cloudislands-storage-sources", "cloudislands-migration-sources", "cloudislands-testkit-sources"));
+        artifacts.put("javadocs", List.of("cloudislands-api-javadoc", "cloudislands-common-javadoc", "cloudislands-protocol-javadoc", "cloudislands-core-client-javadoc", "cloudislands-storage-javadoc", "cloudislands-migration-javadoc", "cloudislands-testkit-javadoc"));
         artifacts.put("platform", List.of("cloudislands-bom", "cloudislands-testkit"));
         return Collections.unmodifiableMap(artifacts);
     }
@@ -126,7 +128,7 @@ public final class CloudIslandsModuleLayoutPolicy {
         tasks.put("distAddonDescriptors", List.of("cloudislands-satis-descriptor"));
         tasks.put("distServices", List.of("cloudislands-core-service"));
         tasks.put("distTools", List.of("cloudislands-migration"));
-        tasks.put("distDeveloperKit", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration", "cloudislands-testkit", "cloudislands-bom"));
+        tasks.put("distDeveloperKit", List.of("cloudislands-api", "cloudislands-common", "cloudislands-protocol", "cloudislands-core-client", "cloudislands-storage", "cloudislands-migration", "cloudislands-testkit", "sources-jars", "javadoc-jars", "cloudislands-bom"));
         tasks.put("distBundle", List.of("plugins", "addons", "services", "tools", "devkit"));
         tasks.put("distAddonBundle", List.of("addons", "addon-descriptors"));
         return Collections.unmodifiableMap(tasks);

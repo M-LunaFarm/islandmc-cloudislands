@@ -39,7 +39,7 @@ class CloudIslandsModuleLayoutPolicyTest {
     @Test
     void recordsModuleResponsibilitiesFromThePackagePlan() {
         assertEquals(
-            List.of("interfaces", "events", "dto-snapshots", "permission-enums", "service-contracts"),
+            List.of("interfaces", "events", "dto-snapshots", "permission-enums", "service-contracts", "published-javadocs"),
             CloudIslandsModuleLayoutPolicy.moduleResponsibilities().get("cloudislands-api")
         );
         assertEquals(
@@ -58,6 +58,10 @@ class CloudIslandsModuleLayoutPolicyTest {
             List.of("satismc-feature-bridge", "config-gated-addon-runtime", "legacy-feature-migration", "addon-descriptor-sidecar"),
             CloudIslandsModuleLayoutPolicy.moduleResponsibilities().get("cloudislands-satis")
         );
+        assertEquals(
+            List.of("fixtures", "fake-repositories", "integration-test-helpers", "api-contract-verifier", "addon-certification-fixtures"),
+            CloudIslandsModuleLayoutPolicy.moduleResponsibilities().get("cloudislands-testkit")
+        );
     }
 
     @Test
@@ -74,6 +78,11 @@ class CloudIslandsModuleLayoutPolicyTest {
             List.of("addons", "addon-descriptors"),
             CloudIslandsModuleLayoutPolicy.distributionTasks().get("distAddonBundle")
         );
+        assertEquals(
+            List.of("cloudislands-api-javadoc", "cloudislands-common-javadoc", "cloudislands-protocol-javadoc", "cloudislands-core-client-javadoc", "cloudislands-storage-javadoc", "cloudislands-migration-javadoc", "cloudislands-testkit-javadoc"),
+            CloudIslandsModuleLayoutPolicy.distributionArtifacts().get("javadocs")
+        );
+        assertTrue(CloudIslandsModuleLayoutPolicy.distributionTasks().get("distDeveloperKit").contains("javadoc-jars"));
     }
 
     @Test

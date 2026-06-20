@@ -1,7 +1,9 @@
 import org.gradle.api.file.FileTreeElement
 import org.gradle.jvm.tasks.Jar
+import org.gradle.external.javadoc.StandardJavadocDocletOptions
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.bundling.Zip
+import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import java.security.MessageDigest
@@ -31,6 +33,15 @@ val versionCatalog = extensions.getByType<VersionCatalogsExtension>().named("lib
 val cloudislandsVersion = versionCatalog.findVersion("cloudislands").orElseThrow().requiredVersion
 val javaCurrentVersion = versionCatalog.findVersion("java-current").orElseThrow().requiredVersion.toInt()
 val minecraftBaselineVersion = versionCatalog.findVersion("minecraft-baseline").orElseThrow().requiredVersion
+val developerKitProjectNames = listOf(
+    "cloudislands-api",
+    "cloudislands-common",
+    "cloudislands-protocol",
+    "cloudislands-core-client",
+    "cloudislands-storage",
+    "cloudislands-migration",
+    "cloudislands-testkit"
+)
 
 fun isMarkdownDocPath(path: String): Boolean =
     path.replace('\\', '/') != "README.md" && markdownDocExtensions.any { path.lowercase().endsWith(it) }
@@ -56,11 +67,19 @@ subprojects {
                 languageVersion.set(JavaLanguageVersion.of(javaCurrentVersion))
             }
             withSourcesJar()
+            if (name in developerKitProjectNames) {
+                withJavadocJar()
+            }
         }
 
         tasks.withType<JavaCompile>().configureEach {
             options.encoding = "UTF-8"
             options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:-processing"))
+        }
+
+        tasks.withType<Javadoc>().configureEach {
+            options.encoding = "UTF-8"
+            (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
         }
 
         tasks.withType<Test>().configureEach {
@@ -204,25 +223,21 @@ tasks.register<Copy>("distDeveloperKit") {
         delete(layout.buildDirectory.dir("dist/devkit"))
     }
 
-    val developerProjects = listOf(
-        "cloudislands-api",
-        "cloudislands-common",
-        "cloudislands-protocol",
-        "cloudislands-core-client",
-        "cloudislands-storage",
-        "cloudislands-migration",
-        "cloudislands-testkit"
-    )
-    developerProjects.forEach { projectName ->
+    developerKitProjectNames.forEach { projectName ->
         val jarTask = project(":$projectName").tasks.named<Jar>("jar")
         val sourcesJarTask = project(":$projectName").tasks.named<Jar>("sourcesJar")
+        val javadocJarTask = project(":$projectName").tasks.named<Jar>("javadocJar")
         dependsOn(jarTask)
         dependsOn(sourcesJarTask)
+        dependsOn(javadocJarTask)
         from(jarTask.flatMap { it.archiveFile }) {
             into("libs")
         }
         from(sourcesJarTask.flatMap { it.archiveFile }) {
             into("sources")
+        }
+        from(javadocJarTask.flatMap { it.archiveFile }) {
+            into("javadocs")
         }
     }
 
