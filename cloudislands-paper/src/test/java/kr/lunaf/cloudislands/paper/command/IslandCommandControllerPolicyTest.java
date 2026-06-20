@@ -81,4 +81,20 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("coreApiClient.depositIslandWarehouse"));
         assertTrue(warehouseHandler.contains("coreApiClient.withdrawIslandWarehouse"));
     }
+
+    @Test
+    void chatAndLogCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String chatLogHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandChatLogCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandChatLogCommandHandler chatLogCommands;"));
+        assertTrue(backend.contains("chatLogCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("chatLogCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("sendIslandChat("), "chat send logic belongs in IslandChatLogCommandHandler");
+        assertFalse(backend.contains("listIslandLogs("), "log list logic belongs in IslandChatLogCommandHandler");
+        assertTrue(chatLogHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(chatLogHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data)"));
+        assertTrue(chatLogHandler.contains("coreApiClient.sendIslandChat"));
+        assertTrue(chatLogHandler.contains("coreApiClient.listIslandLogs"));
+    }
 }

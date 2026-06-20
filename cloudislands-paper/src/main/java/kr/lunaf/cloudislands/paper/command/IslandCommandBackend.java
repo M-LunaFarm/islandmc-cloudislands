@@ -5,11 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,7 +37,6 @@ import kr.lunaf.cloudislands.paper.gui.DangerousGuiActionPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
@@ -48,7 +45,6 @@ import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandLogMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
@@ -224,6 +220,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandBankCommandHandler bankCommands;
     private final IslandSnapshotCommandHandler snapshotCommands;
     private final IslandWarehouseCommandHandler warehouseCommands;
+    private final IslandChatLogCommandHandler chatLogCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -389,6 +386,32 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
                 return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+            }
+        });
+        this.chatLogCommands = new IslandChatLogCommandHandler(plugin, coreApiClient, new IslandChatLogCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
             }
         });
         this.messages = messages;
@@ -727,32 +750,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             listIslandMissions(player, "CHALLENGE", "섬 챌린지");
             return true;
         }
-        if (subcommand.equals("chat") || subcommand.equals("islandchat") || subcommand.equals("채팅")) {
-            if (args.length < 2) {
-                IslandChatMenu.open(player, messagesFor(player));
-                return true;
-            }
-            sendIslandChat(player, "ISLAND", joined(args, 1), "섬 채팅");
-            return true;
-        }
-        if (subcommand.equals("chat-menu")) {
-            IslandChatMenu.open(player, messagesFor(player));
-            return true;
-        }
-        if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("팀채팅")) {
-            if (args.length < 2) {
-                IslandChatMenu.open(player, messagesFor(player));
-                return true;
-            }
-            sendIslandChat(player, "TEAM", joined(args, 1), "팀 채팅");
-            return true;
-        }
-        if (subcommand.equals("log") || subcommand.equals("log-menu") || subcommand.equals("로그")) {
-            openIslandLogMenu(player);
-            return true;
-        }
-        if (subcommand.equals("logs") || subcommand.equals("log-list") || subcommand.equals("로그목록")) {
-            listIslandLogs(player, args.length > 1 ? integer(args[1], 10) : 10);
+        if (chatLogCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (subcommand.equals("biome") || subcommand.equals("바이옴")) {
@@ -1101,6 +1099,9 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (snapshotCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
             return;
         }
+        if (chatLogCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+            return;
+        }
         switch (actionId) {
             case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
             case "island.create.open" -> IslandCreateMenu.open(plugin, coreApiClient, player, messagesFor(player));
@@ -1243,16 +1244,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             case "island.worth.show" -> showIslandWorth(player);
             case "island.missions.open" -> openIslandMissionMenu(player, data.getOrDefault("kind", "MISSION"));
             case "island.mission.complete" -> completeIslandTask(player, data.getOrDefault("missionKey", ""), data.getOrDefault("kind", "MISSION"), data.getOrDefault("label", "섬 미션"));
-            case "island.chat.open" -> IslandChatMenu.open(player, messagesFor(player));
-            case "island.logs.open" -> openIslandLogMenu(player);
-            case "island.logs.list" -> listIslandLogs(player, 10);
-            case "island.log.detail" -> {
-                message(player, routeMessage("log-menu-detail-title", "섬 로그 상세"));
-                message(player, "- " + routeMessage("log-menu-action", "작업: ") + data.getOrDefault("action", "unknown"));
-                message(player, "- " + routeMessage("log-menu-time", "시간: ") + data.getOrDefault("createdAt", "unknown"));
-                message(player, "- " + routeMessage("log-menu-actor", "처리자: ") + data.getOrDefault("actorUuid", "unknown"));
-                message(player, "- " + routeMessage("log-menu-payload", "payload: ") + data.getOrDefault("payload", routeMessage("log-menu-payload-empty", "없음")));
-            }
             case "island.biome.open" -> openIslandBiomeMenu(player);
             case "island.biome.show" -> showIslandBiome(player);
             case "island.biome.set" -> setIslandBiome(player, data.getOrDefault("biomeKey", ""));
@@ -2211,87 +2202,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                     return null;
                 });
         });
-    }
-
-    private void sendIslandChat(Player player, String channel, String chatMessage, String label) {
-        currentIsland(player, "섬 안에서만 " + label + "을 사용할 수 있습니다.").ifPresent(islandId -> {
-            mutate("island.chat.send", () -> coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, chatMessage))
-                .thenAccept(body -> {
-                    if (body == null || body.isBlank() || !body.contains("\"accepted\":true")) {
-                        message(player, label + "을 전송하지 못했습니다.");
-                        return;
-                    }
-                    message(player, label + "을 전송했습니다.");
-                })
-                .exceptionally(error -> {
-                    message(player, label + "을 전송하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void broadcastIslandChat(Player sender, UUID islandId, String channel, String chatMessage, Set<UUID> teamRecipients) {
-        boolean teamChannel = channel.equalsIgnoreCase("TEAM");
-        String normalizedChannel = teamChannel ? "팀" : "섬";
-        String message = "[" + normalizedChannel + "] " + sender.getName() + ": " + chatMessage;
-        boolean delivered = false;
-        for (Player online : plugin.getServer().getOnlinePlayers()) {
-            if (teamChannel) {
-                if (teamRecipients.contains(online.getUniqueId())) {
-                    online.sendMessage(message);
-                    delivered = true;
-                }
-                continue;
-            }
-            UUID currentIslandId = protection.islandAt(online.getLocation().getBlock()).orElse(null);
-            if (islandId.equals(currentIslandId)) {
-                online.sendMessage(message);
-                delivered = true;
-            }
-        }
-        if (!delivered) {
-            sender.sendMessage(message);
-        }
-    }
-
-    private Set<UUID> memberUuids(String body) {
-        Set<UUID> members = new HashSet<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String playerUuid = text(body.substring(objectStart, objectEnd + 1), "playerUuid");
-            if (!playerUuid.isBlank()) {
-                try {
-                    members.add(UUID.fromString(playerUuid));
-                } catch (IllegalArgumentException ignored) {
-                    // Ignore malformed member entries from stale or partial responses.
-                }
-            }
-            index = objectEnd + 1;
-        }
-        return members;
-    }
-
-    private void listIslandLogs(Player player, int limit) {
-        currentIsland(player, "섬 안에서만 로그를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandLogs(islandId, Math.max(1, Math.min(limit, 30)))
-                .thenAccept(body -> message(player, logListMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 로그를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void openIslandLogMenu(Player player) {
-        currentIsland(player, "섬 안에서만 로그를 확인할 수 있습니다.").ifPresent(islandId -> IslandLogMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
     }
 
     private void showIslandBiome(Player player) {
@@ -3456,29 +3366,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? label + "이 없습니다." : label + ": " + String.join(", ", entries);
-    }
-
-    private String logListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String action = text(object, "action");
-            if (!action.isBlank()) {
-                String actor = text(object, "actorUuid");
-                entries.add(action + (actor.isBlank() ? "" : " by " + actor));
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "섬 로그가 없습니다." : "섬 로그: " + String.join(" | ", entries);
     }
 
     private String limitListMessage(String body) {
