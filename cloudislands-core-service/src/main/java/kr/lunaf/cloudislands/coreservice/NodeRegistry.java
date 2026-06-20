@@ -276,6 +276,11 @@ public interface NodeRegistry {
             .append("\"downloadFailures\":").append(longMetadata(metadata, "storageDownloadFailures")).append(',')
             .append("\"operationFailures\":").append(longMetadata(metadata, "storageOperationFailures"))
             .append("},")
+            .append("\"integrations\":{")
+            .append("\"detected\":\"").append(jsonText(metadata.getOrDefault("integrationsDetected", ""))).append("\",")
+            .append("\"missing\":\"").append(jsonText(metadata.getOrDefault("integrationsMissing", ""))).append("\",")
+            .append("\"policy\":\"").append(jsonText(metadata.getOrDefault("integrationPolicy", ""))).append("\"")
+            .append("},")
             .append("\"lastHeartbeat\":\"").append(node.lastHeartbeat()).append("\",")
             .append("\"eligibleForNewActivation\":").append(allocationBlockReason.isBlank()).append(',')
             .append("\"allocationBlockReason\":\"").append(allocationBlockReason).append("\",")
@@ -312,5 +317,12 @@ public interface NodeRegistry {
         } catch (NumberFormatException ignored) {
             return 0.0D;
         }
+    }
+
+    private static String jsonText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

@@ -10,6 +10,26 @@ import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
 import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
 
 final class PaperObservabilityFormatter {
+    private static final java.util.List<String> INTEGRATION_PLUGINS = java.util.List.of(
+        "Vault",
+        "PlaceholderAPI",
+        "LuckPerms",
+        "CoreProtect",
+        "WorldEdit",
+        "FastAsyncWorldEdit",
+        "ItemsAdder",
+        "Oraxen",
+        "Nexo",
+        "RoseStacker",
+        "WildStacker",
+        "AdvancedSpawners",
+        "Plan",
+        "ProtocolLib",
+        "SkinsRestorer",
+        "Slimefun",
+        "CMI"
+    );
+
     private final CloudIslandsPaperPlugin plugin;
 
     PaperObservabilityFormatter(CloudIslandsPaperPlugin plugin) {
@@ -82,6 +102,9 @@ final class PaperObservabilityFormatter {
             + "\"storageFallbackType\":\"" + jsonText(plugin.getConfig().getString("storage.fallback.type", "LOCAL")) + "\","
             + "\"storageLastFallbackReason\":\"" + jsonText(storageLastFallbackReason) + "\","
             + "\"storageSaveRetryQueueTotal\":" + storageSaveRetryQueueTotal + ","
+            + "\"integrationsDetected\":\"" + jsonText(integrationList(true)) + "\","
+            + "\"integrationsMissing\":\"" + jsonText(integrationList(false)) + "\","
+            + "\"integrationPolicy\":\"distributed-aware-paper-hooks-report-node-local-plugin-presence-to-core-heartbeat\","
             + "\"objectStorageOutagePolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.CONTRACT + "\","
             + "\"objectStorageActiveIslandPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.ACTIVE_ISLAND_POLICY + "\","
             + "\"objectStorageNewActivationPolicy\":\"" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.NEW_ACTIVATION_POLICY + "\","
@@ -353,6 +376,9 @@ final class PaperObservabilityFormatter {
             + ";storageFallbackWrites=" + (storage == null ? 0L : storage.fallbackWrites())
             + ";storageFallbackDeletes=" + (storage == null ? 0L : storage.fallbackDeletes())
             + ";storageFallbackOperations=" + (storage == null ? 0L : storage.fallbackOperations())
+            + ";integrationsDetected=" + integrationList(true)
+            + ";integrationsMissing=" + integrationList(false)
+            + ";integrationPolicy=distributed-aware-paper-hooks-report-node-local-plugin-presence-to-core-heartbeat"
             + ";objectStorageOutagePolicy=" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.CONTRACT
             + ";objectStorageSaveRetryPolicy=" + kr.lunaf.cloudislands.common.storage.StorageOutagePolicy.SAVE_RETRY_POLICY
             + ";redisAvailable=" + redis.available()
@@ -395,5 +421,11 @@ final class PaperObservabilityFormatter {
             + ";islandMutationFallbackTransfers=" + (plugin.permissionEventPoller() == null ? 0L : plugin.permissionEventPoller().islandMutationFallbackTransfers())
             + ";islandMutationFallbackKicks=" + (plugin.permissionEventPoller() == null ? 0L : plugin.permissionEventPoller().islandMutationFallbackKicks())
             + ";islandMutationFallbackFailures=" + (plugin.permissionEventPoller() == null ? 0L : plugin.permissionEventPoller().islandMutationFallbackFailures());
+    }
+
+    private String integrationList(boolean enabled) {
+        return INTEGRATION_PLUGINS.stream()
+            .filter(pluginName -> plugin.getServer().getPluginManager().isPluginEnabled(pluginName) == enabled)
+            .collect(java.util.stream.Collectors.joining(","));
     }
 }
