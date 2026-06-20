@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record IslandMemberSnapshot(UUID islandId, UUID playerUuid, IslandRole role, Instant joinedAt, Instant expiresAt, String roleKey) {
     public IslandMemberSnapshot {
-        roleKey = RoleId.normalize(roleKey, role == null ? IslandRole.VISITOR.name() : role.name());
+        roleKey = role == null ? RoleId.of(roleKey).value() : RoleId.of(roleKey, role.name()).value();
         if (role == null) {
             role = parseRole(roleKey);
         }

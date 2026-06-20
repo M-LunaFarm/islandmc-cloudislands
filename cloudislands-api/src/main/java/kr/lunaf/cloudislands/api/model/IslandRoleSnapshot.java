@@ -10,7 +10,7 @@ public record IslandRoleSnapshot(
     String roleKey
 ) {
     public IslandRoleSnapshot {
-        roleKey = RoleId.normalize(roleKey, role == null ? IslandRole.MEMBER.name() : role.name());
+        roleKey = role == null ? RoleId.of(roleKey).value() : RoleId.of(roleKey, role.name()).value();
         if (role == null) {
             role = parseRole(roleKey);
         }

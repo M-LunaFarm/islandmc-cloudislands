@@ -24,7 +24,7 @@ class RoleIdSnapshotTest {
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
         Instant joinedAt = Instant.parse("2026-01-02T03:04:05Z");
 
-        IslandMemberSnapshot fallback = new IslandMemberSnapshot(islandId, playerUuid, null, joinedAt, null, " ");
+        IslandMemberSnapshot fallback = new IslandMemberSnapshot(islandId, playerUuid, (IslandRole) null, joinedAt, null);
         assertEquals("VISITOR", fallback.effectiveRoleKey());
         assertEquals(RoleId.of("VISITOR"), fallback.roleId());
         assertEquals(IslandRole.VISITOR, fallback.role());
@@ -41,16 +41,21 @@ class RoleIdSnapshotTest {
     void roleAndPermissionSnapshotsAlwaysExposeCanonicalRoleKey() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
-        IslandRoleSnapshot role = new IslandRoleSnapshot(islandId, null, 10, "Broken", "");
-        assertEquals("MEMBER", role.effectiveRoleKey());
-        assertEquals(RoleId.of("MEMBER"), role.roleId());
-        assertEquals(IslandRole.MEMBER, role.role());
-        assertNull(role.systemRole());
-
         IslandPermissionRuleSnapshot permission = new IslandPermissionRuleSnapshot(islandId, "builder", IslandPermission.BUILD, true);
         assertEquals("BUILDER", permission.effectiveRoleKey());
         assertEquals(RoleId.of("BUILDER"), permission.roleId());
         assertNull(permission.role());
         assertNull(permission.systemRole());
+    }
+
+    @Test
+    void allArgsSnapshotsRejectMissingCanonicalRoleId() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        Instant joinedAt = Instant.parse("2026-01-02T03:04:05Z");
+
+        assertThrows(IllegalArgumentException.class, () -> new IslandMemberSnapshot(islandId, playerUuid, null, joinedAt, null, " "));
+        assertThrows(IllegalArgumentException.class, () -> new IslandRoleSnapshot(islandId, null, 10, "Broken", ""));
+        assertThrows(IllegalArgumentException.class, () -> new IslandPermissionRuleSnapshot(islandId, null, IslandPermission.BUILD, true, ""));
     }
 }
