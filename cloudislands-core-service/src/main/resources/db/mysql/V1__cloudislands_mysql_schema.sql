@@ -248,6 +248,21 @@ CREATE TABLE IF NOT EXISTS island_reviews (
 CREATE INDEX idx_island_reviews_recent ON island_reviews(island_id, updated_at DESC);
 CREATE INDEX idx_island_reviews_rating_recent ON island_reviews(island_id, rating DESC, updated_at DESC);
 
+CREATE TABLE IF NOT EXISTS island_warehouse (
+    island_id CHAR(36) NOT NULL,
+    material_key VARCHAR(96) NOT NULL,
+    amount BIGINT NOT NULL DEFAULT 0,
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (island_id, material_key),
+    CONSTRAINT fk_island_warehouse_island FOREIGN KEY (island_id) REFERENCES islands(id),
+    CONSTRAINT chk_island_warehouse_material_not_blank CHECK (trim(material_key) <> ''),
+    CONSTRAINT chk_island_warehouse_material_trimmed CHECK (material_key = trim(material_key)),
+    CONSTRAINT chk_island_warehouse_material_lowercase CHECK (material_key = lower(material_key)),
+    CONSTRAINT chk_island_warehouse_amount_non_negative CHECK (amount >= 0)
+);
+
+CREATE INDEX idx_island_warehouse_amount ON island_warehouse(island_id, amount DESC, material_key);
+
 CREATE TABLE IF NOT EXISTS island_biomes (
     island_id CHAR(36) PRIMARY KEY,
     biome_key VARCHAR(96) NOT NULL,

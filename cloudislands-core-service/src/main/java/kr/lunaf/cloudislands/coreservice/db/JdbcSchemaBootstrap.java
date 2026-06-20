@@ -75,7 +75,8 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V54__route_ticket_node_failure_index.sql",
         "/db/migration/V55__player_profile_locale.sql",
         "/db/migration/V56__island_warp_category.sql",
-        "/db/migration/V57__island_reviews.sql"
+        "/db/migration/V57__island_reviews.sql",
+        "/db/migration/V58__island_warehouse.sql"
     };
 
     private enum Dialect {

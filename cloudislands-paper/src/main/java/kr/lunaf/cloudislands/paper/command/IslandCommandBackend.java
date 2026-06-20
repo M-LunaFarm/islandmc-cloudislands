@@ -98,6 +98,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         "reviews", "review-list", "rate", "review", "평가", "후기", "평가목록", "후기목록",
         "level", "레벨", "worth", "value", "가치", "rank", "ranking", "rank-list", "worthrank", "valuerank", "랭킹", "랭킹목록", "가치랭킹", "levelcalc", "recalculate", "레벨계산",
         "bank", "bank-balance", "은행", "은행잔액", "deposit", "bank-deposit", "입금", "withdraw", "bank-withdraw", "출금",
+        "warehouse", "warehouse-list", "warehouse-deposit", "warehouse-withdraw", "storage-box", "창고", "창고목록", "창고입금", "창고출금",
         "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "buyupgrade", "upgrade-buy", "업그레이드", "업그레이드목록", "업그레이드구매",
         "generator", "generator-info", "생성기", "생성기정보",
         "mission", "missions", "mission-menu", "mission-list", "미션", "미션목록",
@@ -162,6 +163,9 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         "섬 은행",
         "섬 입금 <amount>",
         "섬 출금 <amount>",
+        "섬 창고",
+        "섬 창고입금 <material> <amount>",
+        "섬 창고출금 <material> <amount>",
         "섬 업그레이드",
         "섬 업그레이드목록",
         "섬 업그레이드구매 <upgradeKey>",
@@ -294,6 +298,12 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             if (first.equals("hoppers") || first.equals("호퍼") || first.equals("spawners") || first.equals("스포너") || first.equals("entities") || first.equals("엔티티") || first.equals("redstone") || first.equals("레드스톤")) {
                 return literalMatches(List.of("25", "50", "100", "250"), args[1]);
             }
+            if (first.equals("warehouse") || first.equals("warehouse-list") || first.equals("창고") || first.equals("창고목록")) {
+                return literalMatches(List.of("10", "27", "54", "100"), args[1]);
+            }
+            if (first.equals("warehouse-deposit") || first.equals("warehouse-withdraw") || first.equals("창고입금") || first.equals("창고출금")) {
+                return literalMatches(List.of("minecraft:cobblestone", "minecraft:dirt", "minecraft:oak_log", "minecraft:iron_ingot"), args[1]);
+            }
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
                 return literalMatches(List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5"), args[1]);
             }
@@ -318,6 +328,9 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("role-upsert") || args[0].equalsIgnoreCase("role-edit") || args[0].equals("역할편집"))) {
             return literalMatches(List.of("1", "2", "3", "4", "5", "10"), args[2]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("warehouse-deposit") || args[0].equalsIgnoreCase("warehouse-withdraw") || args[0].equals("창고입금") || args[0].equals("창고출금"))) {
+            return literalMatches(List.of("1", "16", "32", "64", "128"), args[2]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정"))) {
             return literalMatches(List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"), args[2]);
@@ -645,6 +658,26 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 return true;
             }
             withdrawIslandBank(player, args[1]);
+            return true;
+        }
+        if (subcommand.equals("warehouse") || subcommand.equals("warehouse-list") || subcommand.equals("storage-box") || subcommand.equals("창고") || subcommand.equals("창고목록")) {
+            listIslandWarehouse(player, args.length > 1 ? integer(args[1], 27) : 27);
+            return true;
+        }
+        if (subcommand.equals("warehouse-deposit") || subcommand.equals("창고입금")) {
+            if (args.length < 3) {
+                message(player, routeMessage("input-warehouse-deposit-required", "창고에 넣을 재료와 수량을 입력해주세요."));
+                return true;
+            }
+            changeIslandWarehouse(player, args[1], longValue(args[2], 0L), true);
+            return true;
+        }
+        if (subcommand.equals("warehouse-withdraw") || subcommand.equals("창고출금")) {
+            if (args.length < 3) {
+                message(player, routeMessage("input-warehouse-withdraw-required", "창고에서 뺄 재료와 수량을 입력해주세요."));
+                return true;
+            }
+            changeIslandWarehouse(player, args[1], longValue(args[2], 0L), false);
             return true;
         }
         if (subcommand.equals("upgrade") || subcommand.equals("upgrades") || subcommand.equals("업그레이드")) {
@@ -1623,6 +1656,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "VISITOR_BAN_DENIED" -> "섬 멤버는 방문자 밴으로 처리할 수 없습니다.";
             case "REVIEW_OWNER_DENIED" -> "자기 섬은 평가할 수 없습니다.";
             case "REVIEW_RATING_INVALID" -> "평점은 1~5 사이여야 합니다.";
+            case "INSUFFICIENT_ITEMS" -> "섬 창고 수량이 부족합니다.";
             default -> fallback;
         };
     }
@@ -1951,6 +1985,46 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 })
                 .exceptionally(error -> {
                     message(player, "섬 은행에서 출금하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listIslandWarehouse(Player player, int limit) {
+        currentIsland(player, "섬 안에서만 창고를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.islandWarehouse(islandId, Math.max(1, Math.min(limit, 100)))
+                .thenAccept(body -> message(player, warehouseListMessage(body)))
+                .exceptionally(error -> {
+                    message(player, "섬 창고를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void changeIslandWarehouse(Player player, String materialKey, long amount, boolean deposit) {
+        currentIsland(player, deposit ? "섬 안에서만 창고에 입금할 수 있습니다." : "섬 안에서만 창고에서 출금할 수 있습니다.").ifPresent(islandId -> {
+            IslandPermission permission = deposit ? IslandPermission.OPEN_CONTAINER : IslandPermission.WITHDRAW_BANK;
+            if (!allowed(player, permission)) {
+                message(player, deposit ? routeMessage("warehouse-deposit-denied", "섬 창고에 넣을 권한이 없습니다.") : routeMessage("warehouse-withdraw-denied", "섬 창고에서 뺄 권한이 없습니다."));
+                return;
+            }
+            if (amount <= 0L) {
+                message(player, playerCodeMessage("INVALID_AMOUNT", routeMessage("input-amount-invalid", "올바른 수량을 입력해주세요.")));
+                return;
+            }
+            CompletableFuture<String> request = deposit
+                ? mutateIdempotent("island.warehouse.deposit", () -> coreApiClient.depositIslandWarehouse(islandId, player.getUniqueId(), materialKey, amount))
+                : mutateIdempotent("island.warehouse.withdraw", () -> coreApiClient.withdrawIslandWarehouse(islandId, player.getUniqueId(), materialKey, amount));
+            request.thenAccept(body -> {
+                    String code = text(body, "code");
+                    if (body.contains("\"accepted\":false")) {
+                        message(player, playerCodeMessage(code, deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
+                        return;
+                    }
+                    message(player, (deposit ? "섬 창고 입금 완료: " : "섬 창고 출금 완료: ") + text(body, "materialKey") + " x" + (long) decimal(body, "amount"));
+                })
+                .exceptionally(error -> {
+                    message(player, coreWriteFailureMessage(error, deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
                     return null;
                 });
         });
@@ -2929,6 +3003,32 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             return "섬 후기가 없습니다.";
         }
         return "섬 후기: 평균=" + average + " 개수=" + count + " | " + String.join(" | ", entries);
+    }
+
+    private String warehouseListMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "섬 창고가 비어 있습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        int index = body.indexOf("\"items\"");
+        while (index >= 0 && index < body.length() && entries.size() < 20) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String materialKey = text(object, "materialKey");
+            long amount = (long) decimal(object, "amount");
+            if (!materialKey.isBlank() && amount > 0L) {
+                entries.add(materialKey + " x" + amount);
+            }
+            index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "섬 창고가 비어 있습니다." : "섬 창고: " + String.join(", ", entries);
     }
 
     private String bankBalance(String body) {
