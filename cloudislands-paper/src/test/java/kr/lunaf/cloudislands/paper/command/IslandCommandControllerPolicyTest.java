@@ -133,4 +133,22 @@ class IslandCommandControllerPolicyTest {
         assertTrue(environmentHandler.contains("coreApiClient.setIslandLimit"));
         assertTrue(environmentHandler.contains("coreApiClient.setIslandFlagResult"));
     }
+
+    @Test
+    void settingsCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String settingsHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSettingsCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandSettingsCommandHandler settingsCommands;"));
+        assertTrue(backend.contains("settingsCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("settingsCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("setIslandPublicAccess("), "public access logic belongs in IslandSettingsCommandHandler");
+        assertFalse(backend.contains("setIslandFlag("), "flag mutation logic belongs in IslandSettingsCommandHandler");
+        assertFalse(backend.contains("setIslandName("), "name mutation logic belongs in IslandSettingsCommandHandler");
+        assertTrue(settingsHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(settingsHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data, boolean rightClick)"));
+        assertTrue(settingsHandler.contains("coreApiClient.setIslandPublicAccessResult"));
+        assertTrue(settingsHandler.contains("coreApiClient.setIslandFlagResult"));
+        assertTrue(settingsHandler.contains("coreApiClient.setIslandNameResult"));
+    }
 }

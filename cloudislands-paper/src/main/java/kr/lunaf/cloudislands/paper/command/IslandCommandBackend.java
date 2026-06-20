@@ -39,7 +39,6 @@ import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
@@ -48,7 +47,6 @@ import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -216,6 +214,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandChatLogCommandHandler chatLogCommands;
     private final IslandProgressionCommandHandler progressionCommands;
     private final IslandEnvironmentCommandHandler environmentCommands;
+    private final IslandSettingsCommandHandler settingsCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -496,6 +495,52 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 return IslandCommandBackend.this.messagesFor(player);
             }
         });
+        this.settingsCommands = new IslandSettingsCommandHandler(plugin, coreApiClient, new IslandSettingsCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public boolean allowed(Player player, IslandPermission permission) {
+                return IslandCommandBackend.this.allowed(player, permission);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public String actionResultMessage(String label, UUID targetId, String body) {
+                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
+            }
+
+            @Override
+            public String actionResultMessage(String label, String targetId, String body) {
+                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
+            }
+
+            @Override
+            public String coreWriteFailureMessage(Throwable error, String fallback) {
+                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+        });
         this.messages = messages;
         this.locales = locales;
         this.configuredNodeId = configuredNodeId == null || configuredNodeId.isBlank() ? "island-1" : configuredNodeId;
@@ -673,20 +718,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             setWarpPublicAccess(player, args[1], false);
             return true;
         }
-        if (subcommand.equals("public") || subcommand.equals("공개")) {
-            setIslandPublicAccess(player, true);
-            return true;
-        }
-        if (subcommand.equals("private") || subcommand.equals("비공개")) {
-            setIslandPublicAccess(player, false);
-            return true;
-        }
-        if (subcommand.equals("lock") || subcommand.equals("잠금")) {
-            setIslandLocked(player, true);
-            return true;
-        }
-        if (subcommand.equals("unlock") || subcommand.equals("잠금해제")) {
-            setIslandLocked(player, false);
+        if (settingsCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (subcommand.equals("visit") || subcommand.equals("방문")) {
@@ -908,54 +940,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             listIslandBans(player);
             return true;
         }
-        if (subcommand.equals("settings") || subcommand.equals("setting") || subcommand.equals("설정")) {
-            openIslandSettings(player);
-            return true;
-        }
-        if (subcommand.equals("name") || subcommand.equals("setname") || subcommand.equals("rename") || subcommand.equals("이름") || subcommand.equals("이름설정")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-island-name-required", "새 섬 이름을 입력해주세요."));
-                return true;
-            }
-            setIslandName(player, joined(args, 1));
-            return true;
-        }
-        if (subcommand.equals("fly") || subcommand.equals("비행")) {
-            setIslandFlag(player, "FLY", flagToggleValue(args, 1));
-            return true;
-        }
-        if (subcommand.equals("keepinventory") || subcommand.equals("keepinv") || subcommand.equals("인벤보존")) {
-            setIslandFlag(player, "KEEP_INVENTORY", flagToggleValue(args, 1));
-            return true;
-        }
-        if (subcommand.equals("pvp") || subcommand.equals("피빕")) {
-            setIslandFlag(player, "PVP", flagToggleValue(args, 1));
-            return true;
-        }
-        if (subcommand.equals("publicwarps") || subcommand.equals("공개워프")) {
-            setIslandFlag(player, "PUBLIC_WARPS", flagToggleValue(args, 1));
-            return true;
-        }
-        if (subcommand.equals("flags") || subcommand.equals("flag-menu") || subcommand.equals("flag") || subcommand.equals("플래그")) {
-            if (args.length > 2) {
-                setIslandFlag(player, args[1], args[2]);
-            } else {
-                openIslandFlagMenu(player);
-            }
-            return true;
-        }
-        if (subcommand.equals("flag-list") || subcommand.equals("플래그목록")) {
-            listIslandFlags(player);
-            return true;
-        }
-        if (subcommand.equals("setflag") || subcommand.equals("flag-set") || subcommand.equals("플래그설정")) {
-            if (args.length < 3) {
-                message(player, routeMessage("input-flag-value-required", "플래그와 값을 입력해주세요."));
-                return true;
-            }
-            setIslandFlag(player, args[1], args[2]);
-            return true;
-        }
         if (subcommand.equals("permissions") || subcommand.equals("permission-menu") || subcommand.equals("permission") || subcommand.equals("perms") || subcommand.equals("권한")) {
             if (args.length > 3) {
                 setIslandPermission(player, args[1], args[2], args[3]);
@@ -1009,6 +993,9 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             return;
         }
         if (environmentCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+            return;
+        }
+        if (settingsCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click.right())) {
             return;
         }
         switch (actionId) {
@@ -1140,12 +1127,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             case "island.roles.open" -> openIslandRoleMenu(player);
             case "island.role.weight.adjust" -> adjustIslandRoleWeight(player, data.getOrDefault("role", ""), data.getOrDefault("weight", "0"), data.getOrDefault("displayName", ""), click);
             case "island.roles.list" -> listIslandRoles(player);
-            case "island.settings.open" -> openIslandSettings(player);
-            case "island.public.toggle" -> setIslandPublicAccess(player, !click.right());
-            case "island.lock.toggle" -> setIslandLocked(player, click.right());
-            case "island.flags.open" -> openIslandFlagMenu(player);
-            case "island.flags.list" -> listIslandFlags(player);
-            case "island.flag.set" -> setIslandFlag(player, data.getOrDefault("flag", ""), click.right() ? "false" : "true");
             case "island.danger.open" -> IslandDangerMenu.open(player, messagesFor(player));
             case "island.danger.reset.prepare" -> IslandDangerMenu.openResetConfirm(player, messagesFor(player));
             case "island.danger.delete.prepare" -> IslandDangerMenu.openDeleteConfirm(player, messagesFor(player));
@@ -1540,46 +1521,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 .thenAccept(body -> message(player, actionResultMessage(publicAccess ? "섬 워프 공개 " + name : "섬 워프 비공개 " + name, name, body)))
                 .exceptionally(error -> {
                     message(player, "섬 워프 공개 상태를 변경하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void setIslandPublicAccess(Player player, boolean publicAccess) {
-        currentIsland(player, "섬 안에서만 공개 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                message(player, routeMessage("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.public-access.set", () -> coreApiClient.setIslandPublicAccessResult(islandId, player.getUniqueId(), publicAccess))
-                .thenAccept(body -> {
-                    message(player, actionResultMessage(publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId, body));
-                    if (!resultRejected(body)) {
-                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> openIslandSettings(player));
-                    }
-                })
-                .exceptionally(error -> {
-                    message(player, "섬 공개 상태를 변경하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void setIslandLocked(Player player, boolean locked) {
-        currentIsland(player, "섬 안에서만 잠금 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                message(player, routeMessage("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.locked.set", () -> coreApiClient.setIslandLockedResult(islandId, player.getUniqueId(), locked))
-                .thenAccept(body -> {
-                    message(player, actionResultMessage(locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId, body));
-                    if (!resultRejected(body)) {
-                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> openIslandSettings(player));
-                    }
-                })
-                .exceptionally(error -> {
-                    message(player, "섬 잠금 상태를 변경하지 못했습니다.");
                     return null;
                 });
         });
@@ -2247,55 +2188,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> IslandBanMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
     }
 
-    private String flagToggleValue(String[] args, int index) {
-        if (args.length <= index) {
-            return "true";
-        }
-        String value = args[index].toLowerCase(Locale.ROOT);
-        if (value.equals("on") || value.equals("true") || value.equals("yes") || value.equals("1") || value.equals("enable") || value.equals("enabled") || value.equals("켜기") || value.equals("허용") || value.equals("활성")) {
-            return "true";
-        }
-        if (value.equals("off") || value.equals("false") || value.equals("no") || value.equals("0") || value.equals("disable") || value.equals("disabled") || value.equals("끄기") || value.equals("거부") || value.equals("비활성")) {
-            return "false";
-        }
-        return args[index];
-    }
-
-    private void listIslandFlags(Player player) {
-        currentIsland(player, "섬 안에서만 플래그를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandFlags(islandId)
-                .thenAccept(body -> message(player, flagListMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 플래그를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void openIslandFlagMenu(Player player) {
-        currentIsland(player, "섬 안에서만 플래그 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandFlagMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void setIslandFlag(Player player, String flagName, String value) {
-        currentIsland(player, "섬 안에서만 플래그를 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                message(player, routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
-                return;
-            }
-            IslandFlag flag = islandFlag(flagName);
-            if (flag == null) {
-                message(player, routeMessage("input-flag-invalid", "올바른 섬 플래그를 입력해주세요."));
-                return;
-            }
-            mutate("island.flag.set", () -> coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value))
-                .thenAccept(body -> message(player, actionResultMessage("섬 플래그 변경 " + flag.name() + "=" + value, flag.name(), body)))
-                .exceptionally(error -> {
-                    message(player, coreWriteFailureMessage(error, "섬 플래그를 변경하지 못했습니다."));
-                    return null;
-                });
-        });
-    }
-
     private void listIslandPermissions(Player player) {
         currentIsland(player, "섬 안에서만 권한을 확인할 수 있습니다.").ifPresent(islandId -> {
             coreApiClient.listIslandPermissions(islandId)
@@ -2493,30 +2385,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         private String key() {
             return roleKey + ":" + permission.name();
         }
-    }
-
-    private void openIslandSettings(Player player) {
-        currentIsland(player, "섬 안에서만 설정 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSettingsMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void setIslandName(Player player, String name) {
-        currentIsland(player, "섬 안에서만 이름을 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                message(player, routeMessage("name-change-denied", "섬 이름을 변경할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.name.set", () -> coreApiClient.setIslandNameResult(islandId, player.getUniqueId(), name))
-                .thenAccept(body -> {
-                    message(player, actionResultMessage("섬 이름 변경", name, body));
-                    if (!resultRejected(body)) {
-                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> openIslandSettings(player));
-                    }
-                })
-                .exceptionally(error -> {
-                    message(player, "섬 이름을 변경하지 못했습니다.");
-                    return null;
-                });
-        });
     }
 
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
@@ -2726,39 +2594,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return entries.isEmpty() ? "섬 밴 목록이 비어 있습니다." : "섬 밴 목록: " + String.join(", ", entries);
     }
 
-    private String flagListMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "섬 플래그가 없습니다.";
-        }
-        int flagsStart = body.indexOf("\"flags\":{");
-        if (flagsStart < 0) {
-            return "섬 플래그가 없습니다.";
-        }
-        int objectStart = body.indexOf('{', flagsStart);
-        int objectEnd = body.indexOf('}', objectStart);
-        if (objectStart < 0 || objectEnd < 0) {
-            return "섬 플래그가 없습니다.";
-        }
-        String flags = body.substring(objectStart + 1, objectEnd);
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < flags.length()) {
-            int keyStart = flags.indexOf('"', index);
-            if (keyStart < 0) {
-                break;
-            }
-            int keyEnd = flags.indexOf('"', keyStart + 1);
-            int valueStart = flags.indexOf('"', keyEnd + 1);
-            int valueEnd = valueStart < 0 ? -1 : flags.indexOf('"', valueStart + 1);
-            if (keyEnd < 0 || valueStart < 0 || valueEnd < 0) {
-                break;
-            }
-            entries.add(flags.substring(keyStart + 1, keyEnd) + "=" + unescape(flags.substring(valueStart + 1, valueEnd)));
-            index = valueEnd + 1;
-        }
-        return entries.isEmpty() ? "섬 플래그가 없습니다." : "섬 플래그: " + String.join(", ", entries);
-    }
-
     private String permissionListMessage(String body) {
         List<String> entries = new ArrayList<>();
         List<String> overrides = new ArrayList<>();
@@ -2920,14 +2755,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 return profileUuid == null ? plugin.getServer().getOfflinePlayer(value).getUniqueId() : profileUuid;
             })
             .exceptionally(error -> plugin.getServer().getOfflinePlayer(value).getUniqueId());
-    }
-
-    private IslandFlag islandFlag(String value) {
-        try {
-            return IslandFlag.valueOf(value.toUpperCase().replace('-', '_'));
-        } catch (RuntimeException ignored) {
-            return null;
-        }
     }
 
     private IslandRole islandRole(String value) {
