@@ -1,0 +1,73 @@
+name: Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  core-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cloudislands
+          POSTGRES_USER: cloudislands
+          POSTGRES_PASSWORD: cloudislands
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cloudislands -d cloudislands"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+          - 9000:9000
+          - 9001:9001
+        options: >-
+          --health-cmd "curl -f http://127.0.0.1:9000/minio/health/ready || exit 1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+        command: server /data --console-address ":9001"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Create MinIO bucket
+        run: |
+          docker run --rm --network host --entrypoint /bin/sh minio/mc -c 'mc alias set local http://127.0.0.1:9000 minioadmin minioadmin && mc mb --ignore-existing local/cloudislands'
+
+      - name: Core integration smoke
+        env:
+          CI_JDBC_URL: jdbc:postgresql://127.0.0.1:5432/cloudislands
+          CI_DB_USERNAME: cloudislands
+          CI_DB_PASSWORD: cloudislands
+          CI_REDIS_URI: redis://127.0.0.1:6379
+          CI_STORAGE_ENDPOINT: http://127.0.0.1:9000
+          CI_STORAGE_BUCKET: cloudislands
+          CI_STORAGE_ACCESS_KEY: minioadmin
+          CI_STORAGE_SECRET_KEY: minioadmin
+        run: ./gradlew ciIntegrationSmoke --no-daemon

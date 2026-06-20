@@ -362,3 +362,31 @@ tasks.register("ciBootSmoke") {
     dependsOn(tasks.named("paperBootSmoke"))
     dependsOn(tasks.named("velocityBootSmoke"))
 }
+
+tasks.register<Exec>("coreIntegrationSmoke") {
+    group = "verification"
+    description = "Runs Core API integration smoke against PostgreSQL, Redis, and S3-compatible object storage."
+    val coreService = project(":cloudislands-core-service")
+    val installTask = coreService.tasks.named("installDist")
+    dependsOn(installTask)
+    doFirst {
+        commandLine(
+            "python3",
+            file("scripts/ci/core_integration_smoke.py").absolutePath,
+            "--core-bin",
+            coreService.layout.buildDirectory.file("install/cloudislands-core-service/bin/cloudislands-core-service").get().asFile.absolutePath,
+            "--work-dir",
+            layout.buildDirectory.dir("smoke/core-integration").get().asFile.absolutePath,
+            "--port",
+            "18443",
+            "--timeout",
+            "90"
+        )
+    }
+}
+
+tasks.register("ciIntegrationSmoke") {
+    group = "verification"
+    description = "Runs Core API real-infrastructure integration smoke tests."
+    dependsOn(tasks.named("coreIntegrationSmoke"))
+}

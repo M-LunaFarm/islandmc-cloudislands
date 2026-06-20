@@ -411,6 +411,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
             + "\",\"targetServerName\":\"" + ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
             + "\",\"state\":\"" + ticket.state()
             + "\",\"expiresAt\":\"" + ticket.expiresAt()
+            + "\",\"nonce\":\"" + escape(ticket.nonce())
             + "\",\"payload\":" + toJson(ticket.payload())
             + "}";
     }
