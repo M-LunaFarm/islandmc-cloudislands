@@ -6,11 +6,13 @@ import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.parseLon
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
 import com.velocitypowered.api.proxy.Player;
+import java.util.Locale;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
@@ -147,8 +149,19 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void recordPlayerProfile(Player player) {
-        coreApiClient.touchPlayerProfile(player.getUniqueId(), player.getUsername())
+        coreApiClient.touchPlayerProfile(player.getUniqueId(), player.getUsername(), playerLocale(player))
             .exceptionally(error -> null);
+    }
+
+    static String playerLocale(Player player) {
+        return player == null ? PlayerIslandProfile.normalizeLocale("") : normalizedLocale(player.getEffectiveLocale());
+    }
+
+    static String normalizedLocale(Locale locale) {
+        if (locale == null || locale.getLanguage() == null || locale.getLanguage().isBlank()) {
+            return PlayerIslandProfile.normalizeLocale("");
+        }
+        return PlayerIslandProfile.normalizeLocale(locale.toLanguageTag());
     }
 
     public void routePendingSession(Player player) {
