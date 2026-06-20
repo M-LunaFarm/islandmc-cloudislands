@@ -326,7 +326,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 return literalMatches(List.of("minecraft:cobblestone", "minecraft:dirt", "minecraft:oak_log", "minecraft:iron_ingot"), args[1]);
             }
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
-                return literalMatches(List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5"), args[1]);
+                return literalMatches(memberRoleNamesWithVisitor(), args[1]);
             }
             if (first.equals("permission-exception") || first.equals("권한예외")) {
                 return onlinePlayerMatches(args[1]);
@@ -426,6 +426,12 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             .filter(role -> role.islandMemberRole() && role != IslandRole.OWNER)
             .map(Enum::name)
             .toList();
+    }
+
+    private List<String> memberRoleNamesWithVisitor() {
+        List<String> names = new ArrayList<>(memberRoleNames());
+        names.add(IslandRole.VISITOR.name());
+        return names;
     }
 
     private List<String> onlinePlayerMatches(String typed) {
@@ -1022,12 +1028,12 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("input-member-role-required", "역할을 바꿀 플레이어와 역할을 입력해주세요."));
                 return true;
             }
-            IslandRole role = islandRole(args[2]);
-            if (role == null || !role.islandMemberRole() || role == IslandRole.OWNER) {
-                message(player, routeMessage("input-member-role-invalid", "올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, CUSTOM_1"));
+            String roleKey = roleKey(args[2]);
+            if (!editableRoleKey(roleKey)) {
+                message(player, routeMessage("input-member-role-invalid", "올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, BUILDER"));
                 return true;
             }
-            setIslandMemberRole(player, args[1], role, "섬 멤버 역할을 " + role.name() + "(으)로 변경했습니다.");
+            setIslandMemberRole(player, args[1], roleKey, "섬 멤버 역할을 " + roleKey + "(으)로 변경했습니다.");
             return true;
         }
         if (subcommand.equals("roles") || subcommand.equals("role-menu") || subcommand.equals("역할")) {
@@ -1043,12 +1049,12 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("input-role-edit-required", "역할, 가중치, 표시 이름을 입력해주세요."));
                 return true;
             }
-            IslandRole role = islandRole(args[1]);
-            if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
-                message(player, routeMessage("input-role-edit-invalid", "편집 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1"));
+            String roleKey = roleKey(args[1]);
+            if (!editableRoleKey(roleKey)) {
+                message(player, routeMessage("input-role-edit-invalid", "편집 가능한 멤버 역할을 입력해주세요. 예: BUILDER"));
                 return true;
             }
-            upsertIslandRole(player, role, integer(args[2], role.ordinal()), joined(args, 3));
+            upsertIslandRole(player, roleKey, integer(args[2], defaultRoleWeight(roleKey)), joined(args, 3));
             return true;
         }
         if (subcommand.equals("role-reset") || subcommand.equals("역할초기화")) {
@@ -1056,12 +1062,12 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("input-role-reset-required", "초기화할 역할을 입력해주세요."));
                 return true;
             }
-            IslandRole role = islandRole(args[1]);
-            if (role == null || role == IslandRole.OWNER || !role.islandMemberRole()) {
-                message(player, routeMessage("input-role-reset-invalid", "초기화 가능한 멤버 역할을 입력해주세요. 예: CUSTOM_1"));
+            String roleKey = roleKey(args[1]);
+            if (!editableRoleKey(roleKey)) {
+                message(player, routeMessage("input-role-reset-invalid", "초기화 가능한 멤버 역할을 입력해주세요. 예: BUILDER"));
                 return true;
             }
-            resetIslandRole(player, role);
+            resetIslandRole(player, roleKey);
             return true;
         }
         if (subcommand.equals("transfer") || subcommand.equals("양도")) {
@@ -1313,7 +1319,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 }
             }
             case "island.permissions.open" -> openIslandPermissionMenu(player);
-            case "island.permissions.page" -> openIslandPermissionMenu(player, (int) longValue(data.getOrDefault("page", "0"), 0L));
+            case "island.permissions.page" -> openIslandPermissionMenu(player, (int) longValue(data.getOrDefault("page", "0"), 0L), (int) longValue(data.getOrDefault("rolePage", "0"), 0L));
             case "island.permissions.list" -> listIslandPermissions(player);
             case "island.permissions.save" -> saveStagedIslandPermissions(player);
             case "island.permissions.reset" -> resetStagedIslandPermissions(player);
@@ -3040,13 +3046,17 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void setIslandMemberRole(Player player, String target, IslandRole role, String successMessage) {
+        setIslandMemberRole(player, target, role.name(), successMessage);
+    }
+
+    private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage) {
         currentIsland(player, "섬 안에서만 멤버 역할을 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
                 message(player, routeMessage("member-role-denied", "섬 멤버 역할을 변경할 권한이 없습니다."));
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutate("island.member.role.set", () -> coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), targetUuid, role))
+                mutate("island.member.role.set", () -> coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), targetUuid, roleKey))
                     .thenAccept(body -> message(player, actionResultMessage(successMessage, targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 멤버 역할을 변경하지 못했습니다.");
@@ -3270,7 +3280,11 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void openIslandPermissionMenu(Player player, int page) {
-        currentIsland(player, "섬 안에서만 권한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player), page));
+        openIslandPermissionMenu(player, page, 0);
+    }
+
+    private void openIslandPermissionMenu(Player player, int page, int rolePage) {
+        currentIsland(player, "섬 안에서만 권한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player), page, rolePage));
     }
 
     private void openIslandRoleMenu(Player player) {
@@ -3283,17 +3297,17 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
                 return;
             }
-            IslandRole role = islandRole(roleName);
+            String roleKey = roleKey(roleName);
             IslandPermission permission = islandPermission(permissionName);
-            if (role == null || permission == null) {
+            if (roleKey.isBlank() || permission == null) {
                 message(player, routeMessage("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
                 return;
             }
             boolean allowed = booleanValue(allowedValue);
-            StagedPermissionChange change = new StagedPermissionChange(role, permission, allowed);
+            StagedPermissionChange change = new StagedPermissionChange(roleKey, permission, allowed);
             stagedPermissionChanges.computeIfAbsent(player.getUniqueId(), _uuid -> new ConcurrentHashMap<>()).put(change.key(), change);
             message(player, routeMessage("permission-stage-success-prefix", "권한 변경을 임시 저장했습니다. 저장 버튼을 눌러 반영하세요: ")
-                + role.name() + ":" + permission.name() + "=" + allowed);
+                + roleKey + ":" + permission.name() + "=" + allowed);
         });
     }
 
@@ -3315,7 +3329,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 return;
             }
             List<CompletableFuture<String>> writes = staged.values().stream()
-                .map(change -> mutate("island.permission.batch-save", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), change.role(), change.permission(), change.allowed())))
+                .map(change -> mutate("island.permission.batch-save", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), change.roleKey(), change.permission(), change.allowed())))
                 .toList();
             GuiStateMenus.openSaving(plugin, player, messagesFor(player), routeMessage("permission-save-title", "권한 저장"));
             CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new))
@@ -3335,12 +3349,16 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void upsertIslandRole(Player player, IslandRole role, int weight, String displayName) {
+        upsertIslandRole(player, role.name(), weight, displayName);
+    }
+
+    private void upsertIslandRole(Player player, String roleKey, int weight, String displayName) {
         currentIsland(player, "섬 안에서만 역할을 편집할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
                 message(player, routeMessage("role-edit-denied", "섬 역할을 편집할 권한이 없습니다."));
                 return;
             }
-            mutate("island.role.upsert", () -> coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), role, weight, displayName.isBlank() ? role.name() : displayName))
+            mutate("island.role.upsert", () -> coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), roleKey, weight, displayName.isBlank() ? roleKey : displayName))
                 .thenAccept(body -> message(player, "섬 역할 저장 완료: " + text(body, "role") + " weight=" + (long) decimal(body, "weight") + " name=" + text(body, "displayName")))
                 .exceptionally(error -> {
                     message(player, "섬 역할을 저장하지 못했습니다.");
@@ -3350,27 +3368,31 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void adjustIslandRoleWeight(Player player, String roleName, String weightValue, String displayName, GuiClick click) {
-        IslandRole role = islandRole(roleName);
-        if (role == null) {
+        String roleKey = roleKey(roleName);
+        if (!editableRoleKey(roleKey)) {
             message(player, routeMessage("input-role-invalid", "올바른 역할을 입력해주세요."));
             return;
         }
         if (click.shift()) {
-            resetIslandRole(player, role);
+            resetIslandRole(player, roleKey);
             return;
         }
         int currentWeight = (int) Math.max(0L, Math.min(100L, longValue(weightValue, 0L)));
         int updatedWeight = Math.max(0, Math.min(100, currentWeight + (click.right() ? -1 : 1)));
-        upsertIslandRole(player, role, updatedWeight, displayName);
+        upsertIslandRole(player, roleKey, updatedWeight, displayName);
     }
 
     private void resetIslandRole(Player player, IslandRole role) {
+        resetIslandRole(player, role.name());
+    }
+
+    private void resetIslandRole(Player player, String roleKey) {
         currentIsland(player, "섬 안에서만 역할을 초기화할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
                 message(player, routeMessage("role-reset-denied", "섬 역할을 초기화할 권한이 없습니다."));
                 return;
             }
-            mutateIdempotent("island.role.reset", () -> coreApiClient.resetIslandRole(islandId, player.getUniqueId(), role))
+            mutateIdempotent("island.role.reset", () -> coreApiClient.resetIslandRole(islandId, player.getUniqueId(), roleKey))
                 .thenAccept(body -> message(player, "섬 역할 초기화 완료: " + text(body, "role")))
                 .exceptionally(error -> {
                     message(player, "섬 역할을 초기화하지 못했습니다.");
@@ -3385,15 +3407,15 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
                 return;
             }
-            IslandRole role = islandRole(roleName);
+            String roleKey = roleKey(roleName);
             IslandPermission permission = islandPermission(permissionName);
-            if (role == null || permission == null) {
+            if (roleKey.isBlank() || permission == null) {
                 message(player, routeMessage("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
                 return;
             }
             boolean allowed = booleanValue(allowedValue);
-            mutate("island.permission.set", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), role, permission, allowed))
-                .thenAccept(body -> message(player, actionResultMessage("섬 권한 변경 " + role.name() + ":" + permission.name() + "=" + allowed, role.name(), body)))
+            mutate("island.permission.set", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), roleKey, permission, allowed))
+                .thenAccept(body -> message(player, actionResultMessage("섬 권한 변경 " + roleKey + ":" + permission.name() + "=" + allowed, roleKey, body)))
                 .exceptionally(error -> {
                     message(player, coreWriteFailureMessage(error, "섬 권한을 변경하지 못했습니다."));
                     return null;
@@ -3424,9 +3446,9 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         });
     }
 
-    private record StagedPermissionChange(IslandRole role, IslandPermission permission, boolean allowed) {
+    private record StagedPermissionChange(String roleKey, IslandPermission permission, boolean allowed) {
         private String key() {
-            return role.name() + ":" + permission.name();
+            return roleKey + ":" + permission.name();
         }
     }
 
@@ -4137,10 +4159,27 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
 
     private IslandRole islandRole(String value) {
         try {
-            return IslandRole.valueOf(value.toUpperCase().replace('-', '_'));
+            return IslandRole.valueOf(roleKey(value));
         } catch (RuntimeException ignored) {
             return null;
         }
+    }
+
+    private String roleKey(String value) {
+        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+    }
+
+    private boolean editableRoleKey(String roleKey) {
+        return !roleKey.isBlank()
+            && roleKey.matches("[A-Z0-9_]{1,32}")
+            && !roleKey.equals(IslandRole.OWNER.name())
+            && !roleKey.equals(IslandRole.VISITOR.name())
+            && !roleKey.equals(IslandRole.BANNED.name());
+    }
+
+    private int defaultRoleWeight(String roleKey) {
+        IslandRole role = islandRole(roleKey);
+        return role == null ? 100 : role.ordinal();
     }
 
     private IslandPermission islandPermission(String value) {

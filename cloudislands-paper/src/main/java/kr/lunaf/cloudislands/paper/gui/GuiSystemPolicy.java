@@ -9,7 +9,7 @@ public final class GuiSystemPolicy {
     public static final String MEMBER_MENU_POLICY =
             "member-gui-shows-membership-actions-online-state-and-last-seen-state";
     public static final String PERMISSION_MATRIX_POLICY =
-            "permission-gui-renders-role-by-permission-matrix-for-member-trusted-visitor";
+            "permission-gui-renders-core-role-catalog-by-full-api-permission-matrix";
     public static final String NODE_ADMIN_POLICY =
             "node-admin-gui-shows-node-load-and-safe-operation-buttons";
 
@@ -38,25 +38,18 @@ public final class GuiSystemPolicy {
     );
 
     private static final List<String> PERMISSION_MATRIX_ROLES = List.of(
-            "MEMBER",
-            "TRUSTED",
-            "VISITOR"
+            "CORE_ROLE_CATALOG",
+            "VISITOR_FALLBACK"
     );
 
     private static final List<String> PERMISSION_MATRIX_COLUMNS = List.of(
-            "BUILD",
-            "BREAK",
-            "CHEST",
-            "DOOR",
-            "PVP"
+            "IslandPermission.values()"
     );
 
     private static final Map<String, List<String>> PERMISSION_MATRIX = Map.of(
-            "BUILD", List.of("MEMBER=allow", "TRUSTED=allow", "VISITOR=deny"),
-            "BREAK", List.of("MEMBER=allow", "TRUSTED=allow", "VISITOR=deny"),
-            "CHEST", List.of("MEMBER=allow", "TRUSTED=deny", "VISITOR=deny"),
-            "DOOR", List.of("MEMBER=allow", "TRUSTED=allow", "VISITOR=allow"),
-            "PVP", List.of("MEMBER=deny", "TRUSTED=deny", "VISITOR=deny")
+            "role-source", List.of("PaperGuiViews.islandRoles", "VISITOR_FALLBACK"),
+            "permission-source", List.of("IslandPermission.values()"),
+            "write-mode", List.of("stage", "save-batch")
     );
 
     private static final List<String> NODE_ADMIN_FIELDS = List.of(

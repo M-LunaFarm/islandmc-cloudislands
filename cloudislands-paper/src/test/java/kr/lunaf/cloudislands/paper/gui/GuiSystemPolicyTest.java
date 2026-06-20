@@ -49,12 +49,11 @@ class GuiSystemPolicyTest {
 
     @Test
     void pinsPermissionMatrixShape() {
-        assertEquals(List.of("MEMBER", "TRUSTED", "VISITOR"), GuiSystemPolicy.permissionMatrixRoles());
-        assertEquals(List.of("BUILD", "BREAK", "CHEST", "DOOR", "PVP"), GuiSystemPolicy.permissionMatrixColumns());
-        assertEquals(List.of("MEMBER=allow", "TRUSTED=allow", "VISITOR=deny"), GuiSystemPolicy.permissionMatrix().get("BUILD"));
-        assertEquals(List.of("MEMBER=allow", "TRUSTED=deny", "VISITOR=deny"), GuiSystemPolicy.permissionMatrix().get("CHEST"));
-        assertEquals(List.of("MEMBER=allow", "TRUSTED=allow", "VISITOR=allow"), GuiSystemPolicy.permissionMatrix().get("DOOR"));
-        assertEquals(List.of("MEMBER=deny", "TRUSTED=deny", "VISITOR=deny"), GuiSystemPolicy.permissionMatrix().get("PVP"));
+        assertEquals(List.of("CORE_ROLE_CATALOG", "VISITOR_FALLBACK"), GuiSystemPolicy.permissionMatrixRoles());
+        assertEquals(List.of("IslandPermission.values()"), GuiSystemPolicy.permissionMatrixColumns());
+        assertEquals(List.of("PaperGuiViews.islandRoles", "VISITOR_FALLBACK"), GuiSystemPolicy.permissionMatrix().get("role-source"));
+        assertEquals(List.of("IslandPermission.values()"), GuiSystemPolicy.permissionMatrix().get("permission-source"));
+        assertEquals(List.of("stage", "save-batch"), GuiSystemPolicy.permissionMatrix().get("write-mode"));
     }
 
     @Test

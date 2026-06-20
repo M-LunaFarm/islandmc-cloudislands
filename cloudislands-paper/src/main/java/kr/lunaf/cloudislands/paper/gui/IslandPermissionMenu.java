@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PermissionRuleView;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RoleView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -23,7 +24,8 @@ public final class IslandPermissionMenu implements Listener {
     private static final String TITLE_KEY = "permission-menu-title";
     private static final String TITLE = "섬 권한 설정";
     private static final String MENU_ID = "island.permissions";
-    private static final List<String> ROLES = List.of("CO_OWNER", "MODERATOR", "MEMBER", "TRUSTED", "VISITOR");
+    private static final List<String> FALLBACK_ROLES = List.of("VISITOR");
+    private static final int ROLES_PER_PAGE = 5;
     private static final int PERMISSIONS_PER_PAGE = 8;
     private static final List<String> PERMISSIONS = Arrays.stream(IslandPermission.values()).map(Enum::name).toList();
     private final MessageRenderer messages;
@@ -51,10 +53,16 @@ public final class IslandPermissionMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
+        open(plugin, client, player, islandId, messages, page, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page, int rolePage) {
         int safePage = safePage(page);
+        int safeRolePage = Math.max(0, rolePage);
         GuiStateMenus.openLoading(plugin, player, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandPermissions(client, islandId)
-            .thenAccept(rules -> openSync(plugin, player, rules, messages, safePage))
+            .thenCombine(PaperGuiViews.islandRoles(client, islandId), (rules, roles) -> new PermissionMenuData(rules, roles))
+            .thenAccept(data -> openSync(plugin, player, data.rules(), data.roles(), messages, safePage, safeRolePage))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, messages, message(messages, TITLE_KEY, TITLE), message(messages, "permission-menu-load-failed", "섬 권한을 불러오지 못했습니다."), "island.permissions.open", "island.settings.open");
                 return null;
@@ -84,28 +92,32 @@ public final class IslandPermissionMenu implements Listener {
         actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
     }
 
-    private static void openSync(Plugin plugin, Player player, List<PermissionRuleView> rules, MessageRenderer messages, int page) {
+    private static void openSync(Plugin plugin, Player player, List<PermissionRuleView> rules, List<RoleView> roleViews, MessageRenderer messages, int page, int rolePage) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
+            List<String> roles = roleNames(roleViews);
             int safePage = safePage(page);
+            int safeRolePage = safeRolePage(rolePage, roles);
             int start = safePage * PERMISSIONS_PER_PAGE;
+            int roleStart = safeRolePage * ROLES_PER_PAGE;
             List<String> visiblePermissions = PERMISSIONS.subList(start, Math.min(PERMISSIONS.size(), start + PERMISSIONS_PER_PAGE));
-            for (int row = 0; row < ROLES.size(); row++) {
-                String role = ROLES.get(row);
+            List<String> visibleRoles = roles.subList(roleStart, Math.min(roles.size(), roleStart + ROLES_PER_PAGE));
+            for (int row = 0; row < visibleRoles.size(); row++) {
+                String role = visibleRoles.get(row);
                 inventory.setItem(row * 9, GuiItems.action(Material.NAME_TAG, role, "island.permissions.list", message(messages, "permission-menu-role-row", "역할 권한 행")));
                 for (int column = 0; column < visiblePermissions.size(); column++) {
                     String permission = visiblePermissions.get(column);
                     inventory.setItem(row * 9 + column + 1, ruleItem(role, permission, allowed(rules, role, permission), messages));
                 }
             }
-            inventory.setItem(45, GuiItems.action(Material.BOOK, message(messages, "permission-menu-all-names-name", "전체 권한 이름"), "island.permissions.list", message(messages, "permission-menu-matrix-policy", "전체 API 권한을 페이지로 표시합니다."), permissionSummary()));
-            inventory.setItem(46, GuiItems.action(Material.ARROW, message(messages, "permission-menu-prev-page-name", "이전 페이지"), "island.permissions.page", Map.of("page", String.valueOf(Math.max(0, safePage - 1))), pageLine(safePage)));
-            inventory.setItem(47, GuiItems.action(Material.ARROW, message(messages, "permission-menu-next-page-name", "다음 페이지"), "island.permissions.page", Map.of("page", String.valueOf(Math.min(maxPage(), safePage + 1))), pageLine(safePage)));
-            inventory.setItem(48, GuiItems.action(Material.EMERALD_BLOCK, message(messages, "permission-menu-save-name", "변경 저장"), "island.permissions.save", message(messages, "permission-menu-save-lore", "임시 변경 사항을 한 번에 저장합니다.")));
-            inventory.setItem(49, GuiItems.action(Material.CLOCK, message(messages, "permission-menu-reset-name", "변경 취소"), "island.permissions.reset", message(messages, "permission-menu-reset-lore", "임시 변경 사항을 버리고 다시 불러옵니다.")));
-            inventory.setItem(50, GuiItems.action(Material.NAME_TAG, message(messages, "permission-menu-role-name", "역할 설정"), "island.roles.open"));
-            inventory.setItem(51, GuiItems.action(Material.MAP, message(messages, "permission-menu-page-name", "페이지"), "island.permissions.list", pageLine(safePage)));
-            inventory.setItem(52, GuiItems.action(Material.PAPER, message(messages, "permission-menu-list-name", "권한 목록"), "island.permissions.list"));
+            inventory.setItem(45, GuiItems.action(Material.ARROW, message(messages, "permission-menu-prev-role-page-name", "이전 역할"), "island.permissions.page", Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.max(0, safeRolePage - 1))), rolePageLine(safeRolePage, roles)));
+            inventory.setItem(46, GuiItems.action(Material.ARROW, message(messages, "permission-menu-next-role-page-name", "다음 역할"), "island.permissions.page", Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.min(maxRolePage(roles), safeRolePage + 1))), rolePageLine(safeRolePage, roles)));
+            inventory.setItem(47, GuiItems.action(Material.ARROW, message(messages, "permission-menu-prev-page-name", "이전 권한"), "island.permissions.page", Map.of("page", String.valueOf(Math.max(0, safePage - 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage)));
+            inventory.setItem(48, GuiItems.action(Material.ARROW, message(messages, "permission-menu-next-page-name", "다음 권한"), "island.permissions.page", Map.of("page", String.valueOf(Math.min(maxPage(), safePage + 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage)));
+            inventory.setItem(49, GuiItems.action(Material.EMERALD_BLOCK, message(messages, "permission-menu-save-name", "변경 저장"), "island.permissions.save", message(messages, "permission-menu-save-lore", "임시 변경 사항을 한 번에 저장합니다.")));
+            inventory.setItem(50, GuiItems.action(Material.CLOCK, message(messages, "permission-menu-reset-name", "변경 취소"), "island.permissions.reset", message(messages, "permission-menu-reset-lore", "임시 변경 사항을 버리고 다시 불러옵니다.")));
+            inventory.setItem(51, GuiItems.action(Material.NAME_TAG, message(messages, "permission-menu-role-name", "역할 설정"), "island.roles.open"));
+            inventory.setItem(52, GuiItems.action(Material.MAP, message(messages, "permission-menu-page-name", "페이지"), "island.permissions.list", pageLine(safePage), rolePageLine(safeRolePage, roles), permissionSummary()));
             inventory.setItem(53, GuiItems.action(Material.OAK_DOOR, message(messages, "permission-menu-settings-name", "뒤로"), "island.settings.open"));
             player.openInventory(inventory);
         });
@@ -167,6 +179,33 @@ public final class IslandPermissionMenu implements Listener {
         return Math.max(0, (PERMISSIONS.size() - 1) / PERMISSIONS_PER_PAGE);
     }
 
+    private static int safeRolePage(int rolePage, List<String> roles) {
+        return Math.max(0, Math.min(maxRolePage(roles), rolePage));
+    }
+
+    private static int maxRolePage(List<String> roles) {
+        return Math.max(0, (Math.max(1, roles.size()) - 1) / ROLES_PER_PAGE);
+    }
+
+    private static String rolePageLine(int rolePage, List<String> roles) {
+        return "Role Page " + (safeRolePage(rolePage, roles) + 1) + "/" + (maxRolePage(roles) + 1) + " (" + roles.size() + " roles)";
+    }
+
+    private static List<String> roleNames(List<RoleView> roles) {
+        java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+        for (RoleView role : roles) {
+            if (role.role() != null && !role.role().isBlank() && !role.role().equals("OWNER") && !role.role().equals("BANNED")) {
+                names.add(role.role());
+            }
+        }
+        if (names.isEmpty()) {
+            names.addAll(FALLBACK_ROLES);
+        } else {
+            names.add("VISITOR");
+        }
+        return List.copyOf(names);
+    }
+
     private static Boolean allowed(List<PermissionRuleView> rules, String role, String permission) {
         for (PermissionRuleView rule : rules) {
             if (rule.role().equals(role) && rule.permission().equals(permission)) {
@@ -176,4 +215,5 @@ public final class IslandPermissionMenu implements Listener {
         return null;
     }
 
+    private record PermissionMenuData(List<PermissionRuleView> rules, List<RoleView> roles) {}
 }

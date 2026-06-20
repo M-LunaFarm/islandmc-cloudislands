@@ -484,9 +484,14 @@ class PaperPlatformBoundaryTest {
         String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
 
         assertTrue(menu.contains("IslandPermission.values()"), "Permission GUI must render from the API permission enum");
+        assertTrue(menu.contains("PaperGuiViews.islandRoles"), "Permission GUI must render roles from the Core role catalog");
+        assertTrue(menu.contains("ROLES_PER_PAGE"), "Permission GUI must paginate dynamic role catalogs");
+        assertTrue(menu.contains("rolePage"), "Permission GUI must preserve role pagination state");
         assertTrue(menu.contains("PERMISSIONS_PER_PAGE"), "Permission GUI must paginate the full permission matrix");
         assertTrue(!menu.contains("List.of(\"BUILD\", \"BREAK\", \"INTERACT\""), "Permission GUI must not hard-code the legacy 8-permission subset");
+        assertTrue(!menu.contains("private static final List<String> ROLES"), "Permission GUI must not hard-code a fixed role matrix");
         assertTrue(backend.contains("case \"island.permissions.page\""), "Permission GUI page action must be registered");
+        assertTrue(backend.contains("data.getOrDefault(\"rolePage\""), "Permission GUI page action must route role page state");
     }
 
     @Test
@@ -575,8 +580,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(menu.contains("GuiItems.action(Material.PAPER"), "Role list control must use PDC action metadata");
         assertTrue(menu.contains("GuiItems.action(Material.COMPARATOR"), "Role permission control must use PDC action metadata");
         assertTrue(backend.contains("case \"island.role.weight.adjust\" -> adjustIslandRoleWeight"), "Role edit action must be registered");
-        assertTrue(backend.contains("upsertIslandRole(player, role, updatedWeight, displayName)"), "Role edit action must call the Core role mutation");
-        assertTrue(backend.contains("resetIslandRole(player, role)"), "Role edit action must support reset through the Core role mutation");
+        assertTrue(backend.contains("upsertIslandRole(player, roleKey, updatedWeight, displayName)"), "Role edit action must call the Core role mutation with dynamic role keys");
+        assertTrue(backend.contains("resetIslandRole(player, roleKey)"), "Role edit action must support reset through the Core role mutation");
         assertTrue(!menu.contains("역할편집"), "Role GUI must not print command syntax as its edit path");
         assertTrue(!translations.contains("role-menu-edit-prefix"), "Role translations must not keep command-hint edit text");
         assertTrue(!translations.contains("role-menu-list-command"), "Role controls must describe actions rather than command aliases");

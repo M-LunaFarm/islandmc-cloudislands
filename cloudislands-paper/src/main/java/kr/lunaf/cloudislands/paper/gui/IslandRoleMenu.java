@@ -92,7 +92,7 @@ public final class IslandRoleMenu implements Listener {
                 "displayName", role.displayName()
             ),
             message(messages, "role-menu-weight", "weight=") + role.weight(),
-            message(messages, "role-menu-enum", "enum=") + role.role(),
+            message(messages, "role-menu-role-key", "역할: ") + role.role(),
             message(messages, "role-menu-click-edit", "좌클릭: weight +1, 우클릭: weight -1, Shift: 기본값 복원"));
     }
 
