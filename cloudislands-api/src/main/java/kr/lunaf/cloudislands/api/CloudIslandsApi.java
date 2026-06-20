@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api;
 
 import java.util.Map;
+import kr.lunaf.cloudislands.api.compat.ApiCompatibilityPolicy;
 import kr.lunaf.cloudislands.api.service.IslandAdminService;
 import kr.lunaf.cloudislands.api.service.IslandAddonService;
 import kr.lunaf.cloudislands.api.service.IslandCommandService;
@@ -31,6 +32,14 @@ public interface CloudIslandsApi {
 
     default Map<String, String> contractMetadata() {
         return CloudIslandsApiContract.metadata();
+    }
+
+    default String apiRuntimeVersion() {
+        return CloudIslandsApiContract.RUNTIME_API_VERSION;
+    }
+
+    default String apiCompatibilityStatus(String requestedApiVersion) {
+        return ApiCompatibilityPolicy.evaluate(requestedApiVersion, apiRuntimeVersion()).status().code();
     }
 
     IslandQueryService islands();

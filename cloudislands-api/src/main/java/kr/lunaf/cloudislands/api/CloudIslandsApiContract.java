@@ -6,6 +6,7 @@ import java.util.ArrayList;
 
 public final class CloudIslandsApiContract {
     public static final String CONTRACT_VERSION = "1";
+    public static final String RUNTIME_API_VERSION = "1.0.1";
     public static final String READ_POLICY = "query-services-use-core-api-or-local-cache-snapshots-no-direct-storage-access";
     public static final String WRITE_AUTHORITY = "all-island-writes-go-through-core-api-transaction-endpoints";
     public static final String SYNC_EVENT_POLICY = "synchronous-paper-events-must-use-local-protection-permission-caches";
@@ -21,6 +22,8 @@ public final class CloudIslandsApiContract {
     public static final String EVENT_API_POLICY = "global-events-are-append-only-cache-invalidation-and-addon-lifecycle-contract";
     public static final String SEMANTIC_VERSION_POLICY = "major-version-breaks-binary-api-minor-adds-compatible-api-patch-fixes-only";
     public static final String DEPRECATION_POLICY = "deprecated-api-remains-for-at-least-one-minor-release-before-removal";
+    public static final String COMPATIBILITY_LEVELS = "compatible,runtime-too-old,major-version-mismatch,invalid-version";
+    public static final String DEPRECATION_REMOVAL_POLICY = "deprecated-api-removal-requires-major-bump-or-one-full-minor-window";
     public static final String EVENT_DELIVERY_POLICY = "global-events-are-at-least-once-delivered-and-consumers-must-deduplicate-by-event-id";
     public static final String THREADING_POLICY = "api-futures-complete-off-main-thread-paper-callers-must-schedule-bukkit-world-and-player-access";
     public static final String CORE_FAILURE_POLICY = "core-unavailable-fails-closed-for-writes-and-may-return-marked-stale-snapshots-for-reads";
@@ -41,6 +44,7 @@ public final class CloudIslandsApiContract {
             "contract-version",
             "compatibility-status",
             "required-metadata-keys",
+            "runtime-api-version",
             "read-policy",
             "write-authority",
             "sync-event-policy",
@@ -56,6 +60,8 @@ public final class CloudIslandsApiContract {
             "event-api-policy",
             "semantic-version-policy",
             "deprecation-policy",
+            "compatibility-levels",
+            "deprecation-removal-policy",
             "event-delivery-policy",
             "threading-policy",
             "core-failure-policy",
@@ -116,6 +122,7 @@ public final class CloudIslandsApiContract {
             Map.entry("contract-version", CONTRACT_VERSION),
             Map.entry("compatibility-status", "compatible"),
             Map.entry("required-metadata-keys", requiredMetadataKeysCsv()),
+            Map.entry("runtime-api-version", RUNTIME_API_VERSION),
             Map.entry("read-policy", READ_POLICY),
             Map.entry("write-authority", WRITE_AUTHORITY),
             Map.entry("sync-event-policy", SYNC_EVENT_POLICY),
@@ -131,6 +138,8 @@ public final class CloudIslandsApiContract {
             Map.entry("event-api-policy", EVENT_API_POLICY),
             Map.entry("semantic-version-policy", SEMANTIC_VERSION_POLICY),
             Map.entry("deprecation-policy", DEPRECATION_POLICY),
+            Map.entry("compatibility-levels", COMPATIBILITY_LEVELS),
+            Map.entry("deprecation-removal-policy", DEPRECATION_REMOVAL_POLICY),
             Map.entry("event-delivery-policy", EVENT_DELIVERY_POLICY),
             Map.entry("threading-policy", THREADING_POLICY),
             Map.entry("core-failure-policy", CORE_FAILURE_POLICY),
