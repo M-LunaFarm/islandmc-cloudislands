@@ -1,6 +1,13 @@
 package kr.lunaf.cloudislands.paper.config;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -8,40 +15,230 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.common.config.ConfigSnapshot;
+import kr.lunaf.cloudislands.common.config.ConfigSource;
+import kr.lunaf.cloudislands.common.config.ConfigV2Loader;
 import kr.lunaf.cloudislands.paper.AgentRole;
 import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public final class PaperRuntimeConfigLoader {
     private static final String PRIMARY_STORAGE_TYPE_PATH = "setup.storage.type";
     private static final String FALLBACK_STORAGE_TYPE_PATH = "setup.storage.fallback.type";
+    private static final List<String> PAPER_CONFIG_V2_FILES = List.of(
+        "config.yml",
+        "runtime.yml",
+        "integrations.yml",
+        "security.yml",
+        "features.yml",
+        "gameplay.yml",
+        "migration.yml",
+        "ui/scoreboard.yml",
+        "ui/messages/ko_kr.yml"
+    );
 
     private PaperRuntimeConfigLoader() {
     }
 
+    public static PaperRuntimeConfig load(JavaPlugin plugin, Function<String, String> envResolver) {
+        if (plugin == null) {
+            return PaperRuntimeConfig.defaults();
+        }
+        List<ConfigSource> sources = paperConfigV2Sources(plugin);
+        FileConfiguration legacyConfig = plugin.getConfig();
+        if (sources.isEmpty()) {
+            return load(legacyConfig, envResolver);
+        }
+        return loadV2(sources, legacyConfig, envResolver);
+    }
+
     public static PaperRuntimeConfig load(FileConfiguration config, Function<String, String> envResolver) {
+        return load(config, envResolver, null);
+    }
+
+    public static PaperRuntimeConfig loadV2(List<ConfigSource> sources, FileConfiguration legacyConfig, Function<String, String> envResolver) {
+        YamlConfiguration mapped = mapV2Sources(sources);
+        if (mapped.getKeys(true).isEmpty()) {
+            return load(legacyConfig, envResolver);
+        }
+        ConfigSnapshot snapshot = ConfigV2Loader.load(List.of(new ConfigSource("paper-config-v2-runtime", 10, mapped.saveToString())));
+        YamlConfiguration effective = new YamlConfiguration();
+        copyScalars(legacyConfig, effective);
+        copyScalars(mapped, effective);
+        return load(effective, envResolver, snapshot);
+    }
+
+    private static PaperRuntimeConfig load(FileConfiguration config, Function<String, String> envResolver, ConfigSnapshot sourceConfig) {
         Function<String, String> resolver = envResolver == null ? value -> value == null ? "" : value.trim() : envResolver;
-        PaperRuntimeConfig.Node node = node(config);
+        FileConfiguration safeConfig = config == null ? new YamlConfiguration() : config;
+        PaperRuntimeConfig.Node node = node(safeConfig);
         return new PaperRuntimeConfig(
-            string(config, "plugin.service-name", "CloudIslands"),
+            string(safeConfig, "plugin.service-name", "CloudIslands"),
             node,
-            coreApi(config, resolver),
-            redis(config, resolver),
-            security(config, resolver),
-            routing(config),
-            protection(config),
-            new PaperRuntimeConfig.Generator(string(config, "generators.default-key", "default")),
-            messages(config),
-            storage(config, resolver),
-            migration(config),
-            worker(config),
-            snapshots(config),
-            new PaperRuntimeConfig.Health(config.getBoolean("health.enabled", false), string(config, "health.bind-host", "127.0.0.1"), config.getInt("health.port", 8787)),
-            new PaperRuntimeConfig.Heartbeat(config.getLong("heartbeat.interval-ticks", 20L)),
-            new PaperRuntimeConfig.Gui(booleanValue(config, "paper-gui.enabled", true), booleanValue(config, "paper-gui.island-node-enabled", true), booleanValue(config, "paper-gui.lobby-enabled", true))
+            coreApi(safeConfig, resolver),
+            redis(safeConfig, resolver),
+            security(safeConfig, resolver),
+            routing(safeConfig),
+            protection(safeConfig),
+            new PaperRuntimeConfig.Generator(string(safeConfig, "generators.default-key", "default")),
+            messages(safeConfig),
+            storage(safeConfig, resolver),
+            migration(safeConfig),
+            worker(safeConfig),
+            snapshots(safeConfig),
+            new PaperRuntimeConfig.Health(safeConfig.getBoolean("health.enabled", false), string(safeConfig, "health.bind-host", "127.0.0.1"), safeConfig.getInt("health.port", 8787)),
+            new PaperRuntimeConfig.Heartbeat(safeConfig.getLong("heartbeat.interval-ticks", 20L)),
+            new PaperRuntimeConfig.Gui(booleanValue(safeConfig, "paper-gui.enabled", true), booleanValue(safeConfig, "paper-gui.island-node-enabled", true), booleanValue(safeConfig, "paper-gui.lobby-enabled", true)),
+            sourceConfig
         );
+    }
+
+    private static List<ConfigSource> paperConfigV2Sources(JavaPlugin plugin) {
+        List<ConfigSource> sources = new ArrayList<>();
+        Path dataRoot = plugin.getDataFolder().toPath().resolve("config-v2");
+        for (String file : PAPER_CONFIG_V2_FILES) {
+            String yaml = configV2Yaml(plugin, dataRoot, file);
+            if (!yaml.isBlank()) {
+                sources.add(new ConfigSource("paper/config-v2/" + file, 10 + sources.size(), yaml));
+            }
+        }
+        return List.copyOf(sources);
+    }
+
+    private static String configV2Yaml(JavaPlugin plugin, Path dataRoot, String file) {
+        Path dataFile = dataRoot.resolve(file);
+        if (Files.isRegularFile(dataFile)) {
+            try {
+                return Files.readString(dataFile, StandardCharsets.UTF_8);
+            } catch (IOException exception) {
+                throw new UncheckedIOException("Failed to read Paper config-v2 file " + dataFile, exception);
+            }
+        }
+        try (InputStream input = plugin.getResource("config-v2/" + file)) {
+            if (input == null) {
+                return "";
+            }
+            return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            throw new UncheckedIOException("Failed to read bundled Paper config-v2 file " + file, exception);
+        }
+    }
+
+    private static YamlConfiguration mapV2Sources(List<ConfigSource> sources) {
+        YamlConfiguration mapped = new YamlConfiguration();
+        if (sources == null || sources.isEmpty()) {
+            return mapped;
+        }
+        for (ConfigSource source : sources) {
+            YamlConfiguration yaml = yaml(source.yaml(), source.name());
+            String name = source.name();
+            if (name.endsWith("config.yml")) {
+                mapRootV2(yaml, mapped);
+            } else if (name.endsWith("runtime.yml")) {
+                mapRuntimeV2(yaml, mapped);
+            } else if (name.endsWith("integrations.yml")) {
+                mapIntegrationsV2(yaml, mapped);
+            } else if (name.endsWith("security.yml")) {
+                mapSecurityV2(yaml, mapped);
+            } else if (name.endsWith("features.yml")) {
+                mapFeaturesV2(yaml, mapped);
+            } else if (name.endsWith("gameplay.yml")) {
+                mapGameplayV2(yaml, mapped);
+            } else if (name.endsWith("migration.yml")) {
+                setIfPresent(yaml, mapped, "superiorskyblock2.enabled", "migration.superiorskyblock2.enabled");
+            } else if (name.endsWith("ui/scoreboard.yml")) {
+                setIfPresent(yaml, mapped, "lines", "messages.scoreboard-lines");
+            }
+        }
+        return mapped;
+    }
+
+    private static void mapRootV2(FileConfiguration source, FileConfiguration target) {
+        setIfPresent(source, target, "language", "plugin.language");
+    }
+
+    private static void mapRuntimeV2(FileConfiguration source, FileConfiguration target) {
+        setIfPresent(source, target, "node.id", "node.id");
+        setIfPresent(source, target, "node.role", "node.role");
+        setIfPresent(source, target, "node.pool", "node.pool");
+        setIfPresent(source, target, "node.velocity-server-name", "node.velocity-server-name");
+        setIfPresent(source, target, "node.supported-templates", "node.supported-templates");
+        setIfPresent(source, target, "capacity.max-active-islands", "node.max-active-islands");
+        setIfPresent(source, target, "capacity.max-activation-queue", "node.max-activation-queue");
+        setIfPresent(source, target, "capacity.soft-player-limit", "node.soft-player-cap");
+        setIfPresent(source, target, "capacity.hard-player-limit", "node.hard-player-cap");
+        setIfPresent(source, target, "health.enabled", "health.enabled");
+        setIfPresent(source, target, "health.bind-host", "health.bind-host");
+        setIfPresent(source, target, "health.port", "health.port");
+        if (source.contains("heartbeat.interval")) {
+            target.set("heartbeat.interval-ticks", durationTicks(source.getString("heartbeat.interval", "1s")));
+        }
+    }
+
+    private static void mapIntegrationsV2(FileConfiguration source, FileConfiguration target) {
+        setIfPresent(source, target, "core-api.base-url", "core-api.base-url");
+        if (source.contains("core-api.timeout.request")) {
+            target.set("core-api.timeout-ms", durationMillis(source.getString("core-api.timeout.request", "3s")));
+        }
+        setIfPresent(source, target, "redis.uri", "redis.uri");
+        setIfPresent(source, target, "storage.type", "storage.type");
+        setIfPresent(source, target, "storage.endpoint", "storage.endpoint");
+        setIfPresent(source, target, "storage.bucket", "storage.bucket");
+        setIfPresent(source, target, "storage.region", "storage.region");
+    }
+
+    private static void mapSecurityV2(FileConfiguration source, FileConfiguration target) {
+        setIfPresent(source, target, "core-api.auth-token", "core-api.auth-token");
+        setIfPresent(source, target, "core-api.admin-token", "core-api.admin-token");
+        setIfPresent(source, target, "storage.access-key", "storage.access-key");
+        setIfPresent(source, target, "storage.secret-key", "storage.secret-key");
+        setIfPresent(source, target, "storage.bearer-token", "storage.auth-token");
+        setIfPresent(source, target, "forwarding.secret", "security.forwarding-secret");
+        setIfPresent(source, target, "trusted-proxies", "security.proxy-source-allowlist");
+    }
+
+    private static void mapFeaturesV2(FileConfiguration source, FileConfiguration target) {
+        setIfPresent(source, target, "cloudislands.gui", "paper-gui.enabled");
+        setIfPresent(source, target, "cloudislands.migration", "migration.superiorskyblock2.enabled");
+    }
+
+    private static void mapGameplayV2(FileConfiguration source, FileConfiguration target) {
+        setIfPresent(source, target, "generator.default-profile", "generators.default-key");
+        if (source.contains("snapshots.retention-count")) {
+            target.set("snapshots.keep-manual", source.getInt("snapshots.retention-count", 50));
+        }
+    }
+
+    private static YamlConfiguration yaml(String value, String sourceName) {
+        YamlConfiguration yaml = new YamlConfiguration();
+        try {
+            yaml.loadFromString(value == null ? "" : value);
+        } catch (InvalidConfigurationException exception) {
+            throw new IllegalArgumentException("Invalid Paper config-v2 yaml " + sourceName, exception);
+        }
+        return yaml;
+    }
+
+    private static void copyScalars(FileConfiguration source, FileConfiguration target) {
+        if (source == null || target == null) {
+            return;
+        }
+        for (Map.Entry<String, Object> entry : source.getValues(true).entrySet()) {
+            if (!(entry.getValue() instanceof ConfigurationSection)) {
+                target.set(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    private static void setIfPresent(FileConfiguration source, FileConfiguration target, String sourcePath, String targetPath) {
+        if (source.contains(sourcePath)) {
+            target.set(targetPath, source.get(sourcePath));
+        }
     }
 
     private static PaperRuntimeConfig.Migration migration(FileConfiguration config) {
@@ -248,6 +445,32 @@ public final class PaperRuntimeConfigLoader {
 
     private static String safeMetadata(String value) {
         return value.trim().replace(',', '_').replace(';', '_').replace(':', '_').replace('=', '_');
+    }
+
+    private static long durationTicks(String configured) {
+        long millis = durationMillis(configured);
+        return Math.max(1L, Math.round(millis / 50.0d));
+    }
+
+    private static long durationMillis(String configured) {
+        String value = configured == null ? "" : configured.trim().toLowerCase(Locale.ROOT);
+        if (value.isBlank()) {
+            return 1L;
+        }
+        try {
+            if (value.endsWith("ms")) {
+                return Math.max(1L, Long.parseLong(value.substring(0, value.length() - 2).trim()));
+            }
+            if (value.endsWith("s")) {
+                return Math.max(1L, Long.parseLong(value.substring(0, value.length() - 1).trim()) * 1000L);
+            }
+            if (value.endsWith("m")) {
+                return Math.max(1L, Long.parseLong(value.substring(0, value.length() - 1).trim()) * 60_000L);
+            }
+            return Math.max(1L, Long.parseLong(value));
+        } catch (NumberFormatException exception) {
+            return 1L;
+        }
     }
 
     private static Map<IslandPermission, String> denyMessages(FileConfiguration config) {

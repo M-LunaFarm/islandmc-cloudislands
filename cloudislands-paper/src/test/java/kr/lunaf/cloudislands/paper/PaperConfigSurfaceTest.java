@@ -68,6 +68,7 @@ class PaperConfigSurfaceTest {
 
         assertTrue(bootstrap.contains("PaperRuntimeConfigLoader.load"), "Paper bootstrap must create a runtime config snapshot");
         assertTrue(snapshot.contains("record PaperRuntimeConfig"), "Paper runtime config must be immutable snapshot data");
+        assertTrue(snapshot.contains("ConfigSnapshot sourceConfig"), "Paper runtime config must retain the effective Config v2 snapshot");
         assertTrue(snapshot.contains("record Node"), "Paper runtime config must expose typed node settings");
         assertTrue(snapshot.contains("record CoreApi"), "Paper runtime config must expose typed Core API settings");
         assertTrue(snapshot.contains("record Redis"), "Paper runtime config must expose typed Redis settings");
@@ -87,7 +88,9 @@ class PaperConfigSurfaceTest {
         assertTrue(loader.contains("heartbeat.interval-ticks"), "Paper runtime config loader must own heartbeat paths");
         assertTrue(loader.contains("health.enabled"), "Paper runtime config loader must own health paths");
         assertTrue(loader.contains("island-node.shard-count"), "Paper runtime config loader must own island worker paths");
-        assertEquals(1, countOccurrences(bootstrap, "plugin.getConfig()"), "Paper bootstrap may read Bukkit config only once to create the runtime snapshot");
+        assertTrue(loader.contains("paperConfigV2Sources"), "Paper runtime config loader must discover Config v2 sources");
+        assertTrue(loader.contains("loadV2"), "Paper runtime config loader must expose a Config v2 runtime path");
+        assertEquals(0, countOccurrences(bootstrap, "plugin.getConfig()"), "Paper bootstrap must not read Bukkit config directly");
         assertFalse(bootstrap.contains("getString(\"node.id\""), "node identity path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getString(\"redis.uri\""), "Redis path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getInt(\"routing.wait-for-activation-timeout-seconds\""), "routing wait path must live in PaperRuntimeConfigLoader");

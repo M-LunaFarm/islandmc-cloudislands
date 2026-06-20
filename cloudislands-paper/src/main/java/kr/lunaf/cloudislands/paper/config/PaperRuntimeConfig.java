@@ -1,9 +1,12 @@
 package kr.lunaf.cloudislands.paper.config;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.common.config.ConfigSnapshot;
+import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
 import kr.lunaf.cloudislands.paper.AgentRole;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
@@ -23,7 +26,8 @@ public record PaperRuntimeConfig(
     SnapshotRetentionPolicy snapshots,
     Health health,
     Heartbeat heartbeat,
-    Gui gui
+    Gui gui,
+    ConfigSnapshot sourceConfig
 ) {
     public PaperRuntimeConfig {
         serviceName = blankDefault(serviceName, "CloudIslands");
@@ -42,6 +46,7 @@ public record PaperRuntimeConfig(
         health = health == null ? Health.defaults() : health;
         heartbeat = heartbeat == null ? Heartbeat.defaults() : heartbeat;
         gui = gui == null ? Gui.defaults() : gui;
+        sourceConfig = sourceConfig == null ? emptySourceConfig() : sourceConfig;
     }
 
     public boolean guiEnabledForRole(AgentRole role) {
@@ -49,7 +54,11 @@ public record PaperRuntimeConfig(
     }
 
     public static PaperRuntimeConfig defaults() {
-        return new PaperRuntimeConfig(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        return new PaperRuntimeConfig(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    }
+
+    private static ConfigSnapshot emptySourceConfig() {
+        return new ConfigSnapshot(List.of(), "", new ConfigValidationResult(List.of()), Instant.EPOCH);
     }
 
     private static String blankDefault(String value, String fallback) {

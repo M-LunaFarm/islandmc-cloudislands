@@ -69,7 +69,7 @@ final class PaperPluginBootstrap {
     void enable() {
         plugin.lifecycle = new LifecycleRegistry(plugin.getLogger());
         plugin.saveDefaultConfig();
-        PaperRuntimeConfig config = PaperRuntimeConfigLoader.load(plugin.getConfig(), plugin::resolveEnv);
+        PaperRuntimeConfig config = PaperRuntimeConfigLoader.load(plugin, plugin::resolveEnv);
         plugin.runtimeConfig = config;
         logSecurityPosture(config);
         plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, "minecraft:brand");
