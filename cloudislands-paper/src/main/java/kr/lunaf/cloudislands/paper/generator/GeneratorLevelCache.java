@@ -3,16 +3,11 @@ package kr.lunaf.cloudislands.paper.generator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class GeneratorLevelCache {
     private static final long TTL_MILLIS = 30_000L;
-    private static final Pattern UPGRADE_OBJECT = Pattern.compile("\\{[^{}]*\"upgradeKey\"\\s*:\\s*\"[^\"]+\"[^{}]*}", Pattern.CASE_INSENSITIVE);
-    private static final Pattern UPGRADE_KEY_FIELD = Pattern.compile("\"upgradeKey\"\\s*:\\s*\"([^\"]+)\"", Pattern.CASE_INSENSITIVE);
-    private static final Pattern GENERATOR_KEY_FIELD = Pattern.compile("\"generatorKey\"\\s*:\\s*\"([^\"]+)\"", Pattern.CASE_INSENSITIVE);
-    private static final Pattern LEVEL_FIELD = Pattern.compile("\"level\"\\s*:\\s*(\\d+)");
     private final CoreApiClient client;
     private final String defaultGeneratorKey;
     private final Map<UUID, CachedLevel> cache = new ConcurrentHashMap<>();
@@ -64,15 +59,17 @@ public final class GeneratorLevelCache {
             return new GeneratorProfile(defaultGeneratorKey, 1);
         }
         GeneratorProfile selected = new GeneratorProfile(defaultGeneratorKey, 1);
-        Matcher upgrade = UPGRADE_OBJECT.matcher(json);
-        while (upgrade.find()) {
-            String object = upgrade.group();
-            String upgradeKey = text(object, UPGRADE_KEY_FIELD, "");
+        for (Object item : SimpleJson.list(SimpleJson.parse(json))) {
+            Map<?, ?> object = SimpleJson.object(item);
+            String upgradeKey = normalizeKey(SimpleJson.text(object.get("upgradeKey")));
             if (!isGeneratorUpgrade(upgradeKey)) {
                 continue;
             }
             int level = level(object);
-            String generatorKey = text(object, GENERATOR_KEY_FIELD, generatorKey(upgradeKey));
+            String generatorKey = normalizeKey(SimpleJson.text(object.get("generatorKey")));
+            if (generatorKey.equals("default")) {
+                generatorKey = generatorKey(upgradeKey);
+            }
             if (level > selected.level() || (level == selected.level() && selected.generatorKey().equals(defaultGeneratorKey) && !generatorKey.equals(defaultGeneratorKey))) {
                 selected = new GeneratorProfile(generatorKey, level);
             }
@@ -80,16 +77,8 @@ public final class GeneratorLevelCache {
         return selected;
     }
 
-    private int level(String object) {
-        Matcher level = LEVEL_FIELD.matcher(object);
-        if (!level.find()) {
-            return 1;
-        }
-        try {
-            return Math.max(1, Integer.parseInt(level.group(1)));
-        } catch (NumberFormatException ignored) {
-            return 1;
-        }
+    private int level(Map<?, ?> object) {
+        return Math.max(1, (int) SimpleJson.number(object.get("level")));
     }
 
     private boolean isGeneratorUpgrade(String upgradeKey) {
@@ -99,11 +88,6 @@ public final class GeneratorLevelCache {
     private String generatorKey(String upgradeKey) {
         int separator = upgradeKey.indexOf(':');
         return separator < 0 ? defaultGeneratorKey : normalizeKey(upgradeKey.substring(separator + 1));
-    }
-
-    private String text(String object, Pattern pattern, String fallback) {
-        Matcher matcher = pattern.matcher(object);
-        return matcher.find() ? normalizeKey(matcher.group(1)) : fallback;
     }
 
     private String normalizeKey(String value) {

@@ -1,13 +1,13 @@
 package kr.lunaf.cloudislands.storage.manifest;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
+import kr.lunaf.cloudislands.storage.MinecraftKeyMigrations;
 
 public final class IslandManifestJson {
     private IslandManifestJson() {}
@@ -19,6 +19,10 @@ public final class IslandManifestJson {
             + "\"ownerUuid\":\"" + manifest.ownerUuid() + "\","
             + "\"formatVersion\":" + manifest.formatVersion() + ","
             + "\"minecraftVersion\":\"" + escape(manifest.minecraftVersion()) + "\","
+            + "\"pluginVersion\":\"" + escape(manifest.pluginVersion()) + "\","
+            + "\"minecraftDataVersion\":" + manifest.minecraftDataVersion() + ","
+            + "\"paperApiBaseline\":\"" + escape(manifest.paperApiBaseline()) + "\","
+            + "\"templateVersion\":\"" + escape(manifest.templateVersion()) + "\","
             + "\"schemaVersion\":" + manifest.schemaVersion() + ","
             + "\"size\":" + manifest.size() + ","
             + "\"spawn\":{"
@@ -51,35 +55,43 @@ public final class IslandManifestJson {
     }
 
     public static IslandBundleManifest read(String json) {
-        UUID islandId = uuid(json, "islandId", new UUID(0L, 0L));
-        UUID ownerUuid = uuid(json, "ownerUuid", new UUID(0L, 0L));
-        int formatVersion = integer(json, "formatVersion", 3);
-        String minecraftVersion = text(json, "minecraftVersion", "unknown");
-        int schemaVersion = integer(json, "schemaVersion", 12);
-        int size = integer(json, "size", 300);
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
+        UUID islandId = uuid(root, "islandId", new UUID(0L, 0L));
+        UUID ownerUuid = uuid(root, "ownerUuid", new UUID(0L, 0L));
+        int formatVersion = integer(root, "formatVersion", 3);
+        String minecraftVersion = text(root, "minecraftVersion", "unknown");
+        String pluginVersion = text(root, "pluginVersion", IslandBundleManifest.DEFAULT_PLUGIN_VERSION);
+        int minecraftDataVersion = integer(root, "minecraftDataVersion", IslandBundleManifest.DEFAULT_MINECRAFT_DATA_VERSION);
+        String paperApiBaseline = text(root, "paperApiBaseline", IslandBundleManifest.DEFAULT_PAPER_API_BASELINE);
+        String templateVersion = text(root, "templateVersion", IslandBundleManifest.DEFAULT_TEMPLATE_VERSION);
+        int schemaVersion = integer(root, "schemaVersion", 12);
+        int size = integer(root, "size", 300);
+        Map<?, ?> spawnJson = SimpleJson.object(root.get("spawn"));
         IslandLocation spawn = new IslandLocation(
-            text(json, "world", "ci_shard_001"),
-            decimal(json, "x", 0.5D),
-            decimal(json, "y", 100.0D),
-            decimal(json, "z", 0.5D),
-            (float) decimal(json, "yaw", 180.0D),
-            (float) decimal(json, "pitch", 0.0D)
+            text(spawnJson, "world", "ci_shard_001"),
+            decimal(spawnJson, "x", 0.5D),
+            decimal(spawnJson, "y", 100.0D),
+            decimal(spawnJson, "z", 0.5D),
+            (float) decimal(spawnJson, "yaw", 180.0D),
+            (float) decimal(spawnJson, "pitch", 0.0D)
         );
-        List<String> homes = stringArray(json, "homes");
-        List<String> warps = stringArray(json, "warps");
-        List<String> biomes = stringArray(json, "biomes");
-        Instant createdAt = instant(json, "createdAt", Instant.now());
-        Instant savedAt = instant(json, "savedAt", createdAt);
-        String checksum = text(json, "checksum", "");
-        String checksumAlgorithm = text(json, "checksumAlgorithm", "SHA-256");
-        String compression = text(json, "compression", "zstd");
-        String storagePath = text(json, "storagePath", "");
-        long sizeBytes = number(json, "sizeBytes", 0L);
-        String snapshotReason = text(json, "snapshotReason", "");
-        boolean portable = bool(json, "portable", true);
-        String placementPolicy = text(json, "placementPolicy", "node-agnostic-shard-cell-remap");
-        String restorePolicy = text(json, "restorePolicy", "verify-checksum-then-restore-to-current-active-node");
-        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy);
+        List<String> homes = stringArray(root.get("homes"));
+        List<String> warps = stringArray(root.get("warps"));
+        List<String> biomes = stringArray(root.get("biomes")).stream()
+            .map(key -> MinecraftKeyMigrations.defaults().migrateBiome(key, minecraftDataVersion).orElse(key))
+            .toList();
+        Instant createdAt = instant(root, "createdAt", Instant.now());
+        Instant savedAt = instant(root, "savedAt", createdAt);
+        String checksum = text(root, "checksum", "");
+        String checksumAlgorithm = text(root, "checksumAlgorithm", "SHA-256");
+        String compression = text(root, "compression", "zstd");
+        String storagePath = text(root, "storagePath", "");
+        long sizeBytes = number(root, "sizeBytes", 0L);
+        String snapshotReason = text(root, "snapshotReason", "");
+        boolean portable = bool(root, "portable", true);
+        String placementPolicy = text(root, "placementPolicy", "node-agnostic-shard-cell-remap");
+        String restorePolicy = text(root, "restorePolicy", "verify-checksum-then-restore-to-current-active-node");
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy, pluginVersion, minecraftDataVersion, paperApiBaseline, templateVersion);
     }
 
     public static IslandBundleManifest minimal(UUID islandId, UUID ownerUuid, String checksum) {
@@ -87,82 +99,61 @@ public final class IslandManifestJson {
         return new IslandBundleManifest(islandId, ownerUuid, 3, "1.21.11", 12, 300, new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F), now, now, checksum);
     }
 
-    private static String text(String json, String field, String fallback) {
-        Matcher matcher = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"").matcher(json);
-        if (!matcher.find()) {
-            return fallback;
-        }
-        return unescape(matcher.group(1));
+    private static String text(Map<?, ?> object, String field, String fallback) {
+        String value = SimpleJson.text(object.get(field));
+        return value.isBlank() ? fallback : value;
     }
 
-    private static UUID uuid(String json, String field, UUID fallback) {
+    private static UUID uuid(Map<?, ?> object, String field, UUID fallback) {
         try {
-            return UUID.fromString(text(json, field, fallback.toString()));
+            return UUID.fromString(text(object, field, fallback.toString()));
         } catch (IllegalArgumentException ignored) {
             return fallback;
         }
     }
 
-    private static int integer(String json, String field, int fallback) {
+    private static int integer(Map<?, ?> object, String field, int fallback) {
+        Object value = object.get(field);
+        return value == null ? fallback : (int) SimpleJson.number(value);
+    }
+
+    private static long number(Map<?, ?> object, String field, long fallback) {
+        Object value = object.get(field);
+        return value == null ? fallback : SimpleJson.number(value);
+    }
+
+    private static boolean bool(Map<?, ?> object, String field, boolean fallback) {
+        Object value = object.get(field);
+        if (value instanceof Boolean booleanValue) {
+            return booleanValue;
+        }
+        String text = SimpleJson.text(value);
+        return text.isBlank() ? fallback : Boolean.parseBoolean(text);
+    }
+
+    private static double decimal(Map<?, ?> object, String field, double fallback) {
+        Object value = object.get(field);
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
         try {
-            return Integer.parseInt(scalar(json, field, Integer.toString(fallback)));
+            String text = SimpleJson.text(value);
+            return text.isBlank() ? fallback : Double.parseDouble(text);
         } catch (NumberFormatException ignored) {
             return fallback;
         }
     }
 
-    private static long number(String json, String field, long fallback) {
+    private static Instant instant(Map<?, ?> object, String field, Instant fallback) {
         try {
-            return Long.parseLong(scalar(json, field, Long.toString(fallback)));
-        } catch (NumberFormatException ignored) {
-            return fallback;
-        }
-    }
-
-    private static boolean bool(String json, String field, boolean fallback) {
-        String value = scalar(json, field, Boolean.toString(fallback));
-        return value.equalsIgnoreCase("true") || (!value.equalsIgnoreCase("false") && fallback);
-    }
-
-    private static double decimal(String json, String field, double fallback) {
-        try {
-            return Double.parseDouble(scalar(json, field, Double.toString(fallback)));
-        } catch (NumberFormatException ignored) {
-            return fallback;
-        }
-    }
-
-    private static Instant instant(String json, String field, Instant fallback) {
-        try {
-            return Instant.parse(text(json, field, fallback.toString()));
+            return Instant.parse(text(object, field, fallback.toString()));
         } catch (RuntimeException ignored) {
             return fallback;
         }
     }
 
-    private static String scalar(String json, String field, String fallback) {
-        Matcher matcher = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*([-0-9.]+|true|false)").matcher(json);
-        if (!matcher.find()) {
-            return fallback;
-        }
-        return matcher.group(1);
-    }
-
-    private static List<String> stringArray(String json, String field) {
-        Matcher matcher = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*\\[(.*?)]").matcher(json);
-        if (!matcher.find()) {
-            return List.of();
-        }
-        String body = matcher.group(1).trim();
-        if (body.isEmpty()) {
-            return List.of();
-        }
-        List<String> values = new ArrayList<>();
-        Matcher valueMatcher = Pattern.compile("\"((?:\\\\.|[^\"])*)\"").matcher(body);
-        while (valueMatcher.find()) {
-            values.add(unescape(valueMatcher.group(1)));
-        }
-        return List.copyOf(values);
+    private static List<String> stringArray(Object value) {
+        return SimpleJson.list(value).stream().map(SimpleJson::text).toList();
     }
 
     private static String stringArray(List<String> values) {
@@ -182,10 +173,6 @@ public final class IslandManifestJson {
             first = false;
         }
         return builder.append(']').toString();
-    }
-
-    private static String unescape(String value) {
-        return value.replace("\\\"", "\"").replace("\\\\", "\\");
     }
 
     private static String escape(String value) {

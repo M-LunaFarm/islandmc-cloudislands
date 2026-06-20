@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.paper;
 
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
+import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
@@ -11,6 +13,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 public final class IslandBoundaryListener implements Listener {
     private final ProtectionController protection;
     private final MessageRenderer messages;
+    private final PaperPlayerGateway players;
     private final java.util.concurrent.atomic.AtomicLong memberReturns = new java.util.concurrent.atomic.AtomicLong();
     private final java.util.concurrent.atomic.AtomicLong visitorReturns = new java.util.concurrent.atomic.AtomicLong();
     private final java.util.concurrent.atomic.AtomicLong adminBypasses = new java.util.concurrent.atomic.AtomicLong();
@@ -20,8 +23,13 @@ public final class IslandBoundaryListener implements Listener {
     }
 
     public IslandBoundaryListener(ProtectionController protection, MessageRenderer messages) {
+        this(protection, messages, new BukkitPlayerGateway());
+    }
+
+    IslandBoundaryListener(ProtectionController protection, MessageRenderer messages, PaperPlayerGateway players) {
         this.protection = protection;
         this.messages = messages;
+        this.players = players;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -52,7 +60,7 @@ public final class IslandBoundaryListener implements Listener {
         }
         Location target = member ? memberSpawn(from, region) : visitorSpawn(from, region);
         event.setCancelled(true);
-        event.getPlayer().teleport(target);
+        players.teleport(event.getPlayer(), target);
         event.getPlayer().sendActionBar(Component.text(member
             ? message("boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.")
             : message("boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다.")));

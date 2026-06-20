@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
+import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -18,6 +20,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandMemberMenu implements Listener {
     private static final String TITLE = "섬 멤버 관리";
+    private static final PaperPlayerGateway PLAYERS = new BukkitPlayerGateway();
     private final MessageRenderer messages;
 
     public IslandMemberMenu() {
@@ -228,7 +231,7 @@ public final class IslandMemberMenu implements Listener {
         if (uuid == null) {
             return message(messages, "member-menu-status-unknown", "접속 상태: 알 수 없음");
         }
-        return Bukkit.getPlayer(uuid) == null
+        return PLAYERS.onlinePlayer(uuid) == null
                 ? message(messages, "member-menu-status-offline", "접속 상태: 오프라인")
                 : message(messages, "member-menu-status-online", "접속 상태: 온라인");
     }

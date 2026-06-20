@@ -12,6 +12,10 @@ import kr.lunaf.cloudislands.paper.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
+import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
+import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
+import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import org.bukkit.Bukkit;
@@ -26,6 +30,8 @@ public final class RouteTicketConsumer {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
+    private final PaperPlayerGateway players;
+    private final PaperWorldGateway worlds;
     private final java.util.Map<UUID, BossBar> loadingBars = new ConcurrentHashMap<>();
     private final AtomicLong consumeRetries = new AtomicLong();
     private final AtomicLong consumeFailures = new AtomicLong();
@@ -39,9 +45,15 @@ public final class RouteTicketConsumer {
     private volatile MessageRenderer messages;
 
     public RouteTicketConsumer(Plugin plugin, CoreApiClient coreApiClient, String nodeId) {
+        this(plugin, coreApiClient, nodeId, new BukkitPlayerGateway(), new BukkitWorldGateway(plugin));
+    }
+
+    RouteTicketConsumer(Plugin plugin, CoreApiClient coreApiClient, String nodeId, PaperPlayerGateway players, PaperWorldGateway worlds) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
+        this.players = players;
+        this.worlds = worlds;
     }
 
     public void setActiveIslands(ActiveIslandRegistry activeIslands) {
@@ -61,7 +73,7 @@ public final class RouteTicketConsumer {
     }
 
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
-        if (Bukkit.getPlayer(playerUuid) == null) {
+        if (players.onlinePlayer(playerUuid) == null) {
             recordFailure("PLAYER_DISCONNECTED");
             clearRoute(playerUuid, ticketId, "PLAYER_DISCONNECTED");
             return;
@@ -94,9 +106,9 @@ public final class RouteTicketConsumer {
     }
 
     private void teleport(UUID playerUuid, RouteTicket ticket, int attempt) {
-        Player player = Bukkit.getPlayer(playerUuid);
+        Player player = players.onlinePlayer(playerUuid);
         String worldName = ticket.targetWorld();
-        World world = worldName == null ? null : Bukkit.getWorld(worldName);
+        World world = worlds.world(worldName);
         if (player == null) {
             recordFailure("PLAYER_DISCONNECTED");
             clearRoute(playerUuid, ticket.ticketId(), "PLAYER_DISCONNECTED");
@@ -119,7 +131,7 @@ public final class RouteTicketConsumer {
         String placementSource = payload.getOrDefault("placementSource", "");
         if (ticket.action() == RouteAction.VISIT) {
             IslandPreVisitEvent preVisit = new IslandPreVisitEvent(ticket.islandId(), playerUuid, player, worldName, placementSource);
-            Bukkit.getPluginManager().callEvent(preVisit);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(preVisit);
             if (preVisit.isCancelled()) {
                 recordTeleportFailure("VISIT_CANCELLED");
                 player.sendActionBar(Component.text(playerMessage("route-visit-cancelled", "섬 방문이 취소되었습니다.")));
@@ -136,11 +148,11 @@ public final class RouteTicketConsumer {
         Location target = maybeTarget.get();
         teleportAttempts.incrementAndGet();
         lastTargetType = payload.getOrDefault("targetType", ticket.action().name());
-        if (player.teleport(target)) {
+        if (players.teleport(player, target)) {
             teleportSuccesses.incrementAndGet();
             hideLoading(player);
             player.sendActionBar(Component.text(arrivalMessage(ticket.action())));
-            Bukkit.getPluginManager().callEvent(new RouteTicketConsumedEvent(
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new RouteTicketConsumedEvent(
                     ticket.ticketId(),
                     ticket.islandId(),
                     playerUuid,
@@ -149,7 +161,7 @@ public final class RouteTicketConsumer {
                     routeEventFields(ticket, target, payload)
             ));
             if (ticket.action() == RouteAction.VISIT) {
-                Bukkit.getPluginManager().callEvent(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName, placementSource));
+                kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName, placementSource));
             }
         } else {
             recordTeleportFailure("BUKKIT_TELEPORT_REJECTED");
@@ -264,7 +276,7 @@ public final class RouteTicketConsumer {
     }
 
     private void notifyPreparing(UUID playerUuid, int attempt) {
-        Player player = Bukkit.getPlayer(playerUuid);
+        Player player = players.onlinePlayer(playerUuid);
         if (player != null) {
             BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text(playerMessage("route-consume-loading", "섬 로딩 중")), RoutePreparationProgressPolicy.handoffProgress(0), BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
             bar.progress(RoutePreparationProgressPolicy.handoffProgress(attempt));
@@ -274,7 +286,7 @@ public final class RouteTicketConsumer {
     }
 
     private void notifyRouteFailed(UUID playerUuid) {
-        Player player = Bukkit.getPlayer(playerUuid);
+        Player player = players.onlinePlayer(playerUuid);
         if (player == null) {
             loadingBars.remove(playerUuid);
             return;

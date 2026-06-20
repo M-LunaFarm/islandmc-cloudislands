@@ -3,13 +3,11 @@ package kr.lunaf.cloudislands.paper.limit;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class IslandLimitCache {
     private static final long TTL_MILLIS = 30_000L;
-    private static final Pattern LIMIT_OBJECT = Pattern.compile("\\{[^{}]*\"limitKey\"\\s*:\\s*\"([^\"]+)\"[^{}]*\"value\"\\s*:\\s*(\\d+)[^{}]*}");
     private final CoreApiClient client;
     private final Map<UUID, CachedLimits> cache = new ConcurrentHashMap<>();
 
@@ -47,11 +45,11 @@ public final class IslandLimitCache {
             return Map.of();
         }
         Map<String, Long> values = new ConcurrentHashMap<>();
-        Matcher matcher = LIMIT_OBJECT.matcher(json);
-        while (matcher.find()) {
-            try {
-                values.put(matcher.group(1).toUpperCase(), Long.parseLong(matcher.group(2)));
-            } catch (NumberFormatException ignored) {
+        for (Object item : SimpleJson.list(SimpleJson.parse(json))) {
+            Map<?, ?> object = SimpleJson.object(item);
+            String limitKey = SimpleJson.text(object.get("limitKey"));
+            if (!limitKey.isBlank()) {
+                values.put(limitKey.toUpperCase(), SimpleJson.number(object.get("value")));
             }
         }
         return Map.copyOf(values);

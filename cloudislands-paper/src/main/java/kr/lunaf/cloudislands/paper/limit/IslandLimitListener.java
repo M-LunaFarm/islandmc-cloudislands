@@ -164,12 +164,12 @@ public final class IslandLimitListener implements Listener {
     }
 
     private boolean isRedstone(Material material) {
-        String name = material.name();
-        return name.contains("REDSTONE")
-            || name.endsWith("_BUTTON")
-            || name.endsWith("_PRESSURE_PLATE")
-            || name.endsWith("_PISTON")
-            || name.endsWith("_RAIL")
+        String key = material.getKey().getKey();
+        return key.contains("redstone")
+            || key.endsWith("_button")
+            || key.endsWith("_pressure_plate")
+            || key.endsWith("_piston")
+            || key.endsWith("_rail")
             || material == Material.REPEATER
             || material == Material.COMPARATOR
             || material == Material.LEVER

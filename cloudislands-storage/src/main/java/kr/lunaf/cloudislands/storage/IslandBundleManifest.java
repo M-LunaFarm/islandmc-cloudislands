@@ -27,8 +27,19 @@ public record IslandBundleManifest(
     String snapshotReason,
     boolean portable,
     String placementPolicy,
-    String restorePolicy
+    String restorePolicy,
+    String pluginVersion,
+    int minecraftDataVersion,
+    String paperApiBaseline,
+    String templateVersion
 ) {
+    public static final int CURRENT_FORMAT_VERSION = 3;
+    public static final int CURRENT_MINECRAFT_DATA_VERSION = 4435;
+    public static final String DEFAULT_PLUGIN_VERSION = "unknown";
+    public static final int DEFAULT_MINECRAFT_DATA_VERSION = 0;
+    public static final String DEFAULT_PAPER_API_BASELINE = "1.21.11";
+    public static final String DEFAULT_TEMPLATE_VERSION = "unknown";
+
     public IslandBundleManifest {
         homes = homes == null ? List.of() : List.copyOf(homes);
         warps = warps == null ? List.of() : List.copyOf(warps);
@@ -40,6 +51,36 @@ public record IslandBundleManifest(
         snapshotReason = snapshotReason == null ? "" : snapshotReason;
         placementPolicy = placementPolicy == null || placementPolicy.isBlank() ? BundleRestorePolicy.PLACEMENT_POLICY : placementPolicy;
         restorePolicy = restorePolicy == null || restorePolicy.isBlank() ? BundleRestorePolicy.RESTORE_POLICY : restorePolicy;
+        pluginVersion = pluginVersion == null || pluginVersion.isBlank() ? DEFAULT_PLUGIN_VERSION : pluginVersion;
+        minecraftDataVersion = Math.max(0, minecraftDataVersion);
+        paperApiBaseline = paperApiBaseline == null || paperApiBaseline.isBlank() ? DEFAULT_PAPER_API_BASELINE : paperApiBaseline;
+        templateVersion = templateVersion == null || templateVersion.isBlank() ? DEFAULT_TEMPLATE_VERSION : templateVersion;
+    }
+
+    public IslandBundleManifest(
+        UUID islandId,
+        UUID ownerUuid,
+        int formatVersion,
+        String minecraftVersion,
+        int schemaVersion,
+        int size,
+        IslandLocation spawn,
+        List<String> homes,
+        List<String> warps,
+        List<String> biomes,
+        Instant createdAt,
+        Instant savedAt,
+        String checksum,
+        String checksumAlgorithm,
+        String compression,
+        String storagePath,
+        long sizeBytes,
+        String snapshotReason,
+        boolean portable,
+        String placementPolicy,
+        String restorePolicy
+    ) {
+        this(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy, DEFAULT_PLUGIN_VERSION, DEFAULT_MINECRAFT_DATA_VERSION, DEFAULT_PAPER_API_BASELINE, DEFAULT_TEMPLATE_VERSION);
     }
 
     public IslandBundleManifest(
@@ -100,11 +141,11 @@ public record IslandBundleManifest(
     }
 
     public IslandBundleManifest withSnapshotReason(String reason) {
-        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, reason == null ? "" : reason, portable, placementPolicy, restorePolicy);
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, reason == null ? "" : reason, portable, placementPolicy, restorePolicy, pluginVersion, minecraftDataVersion, paperApiBaseline, templateVersion);
     }
 
     public IslandBundleManifest withStoredBundle(String checksum, String checksumAlgorithm, String compression, String storagePath, long sizeBytes) {
-        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy);
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy, pluginVersion, minecraftDataVersion, paperApiBaseline, templateVersion);
     }
 
     public boolean restorePreflightReady() {
@@ -130,6 +171,12 @@ public record IslandBundleManifest(
         }
         if (sizeBytes <= 0L) {
             missing.add("sizeBytes");
+        }
+        if (formatVersion > CURRENT_FORMAT_VERSION) {
+            missing.add("formatVersion");
+        }
+        if (minecraftDataVersion > CURRENT_MINECRAFT_DATA_VERSION) {
+            missing.add("minecraftDataVersion");
         }
         return List.copyOf(missing);
     }

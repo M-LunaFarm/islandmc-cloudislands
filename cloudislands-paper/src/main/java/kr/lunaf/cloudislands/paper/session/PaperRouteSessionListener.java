@@ -12,6 +12,8 @@ import kr.lunaf.cloudislands.common.security.BackendAccessPolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
+import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import kr.lunaf.cloudislands.paper.security.ProxySourceAllowlist;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import org.bukkit.Bukkit;
@@ -34,6 +36,7 @@ public final class PaperRouteSessionListener implements Listener {
     private final String fallbackServerName;
     private final ProxySourceAllowlist proxySourceAllowlist;
     private final MessageRenderer messages;
+    private final PaperPlayerGateway players;
     private final Map<UUID, PlayerRouteSession> verifiedSessions = new ConcurrentHashMap<>();
     private final AtomicLong proxySourceRejections = new AtomicLong();
     private final AtomicLong proxySourceConfigurationRejections = new AtomicLong();
@@ -66,6 +69,10 @@ public final class PaperRouteSessionListener implements Listener {
     }
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, boolean requireProxySourceAllowlist, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist, MessageRenderer messages) {
+        this(plugin, coreApiClient, ticketConsumer, nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, proxySourceAllowlist, messages, new BukkitPlayerGateway());
+    }
+
+    PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId, boolean requireRouteSession, boolean forwardingReady, boolean requireProxySourceAllowlist, String fallbackServerName, ProxySourceAllowlist proxySourceAllowlist, MessageRenderer messages, PaperPlayerGateway players) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.ticketConsumer = ticketConsumer;
@@ -76,6 +83,7 @@ public final class PaperRouteSessionListener implements Listener {
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
         this.proxySourceAllowlist = proxySourceAllowlist == null ? new ProxySourceAllowlist(java.util.List.of()) : proxySourceAllowlist;
         this.messages = messages;
+        this.players = players;
     }
 
     @EventHandler
@@ -177,7 +185,7 @@ public final class PaperRouteSessionListener implements Listener {
                 rejectDirectJoin(playerUuid);
             } else {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                    var player = Bukkit.getPlayer(playerUuid);
+                    var player = players.onlinePlayer(playerUuid);
                     if (player != null) {
                         player.sendActionBar(Component.text(playerMessage("route-session-check-failed", "섬 입장 준비를 확인하지 못했습니다.")));
                     }
@@ -196,7 +204,7 @@ public final class PaperRouteSessionListener implements Listener {
 
     private void showPreparing(java.util.UUID playerUuid) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            var player = Bukkit.getPlayer(playerUuid);
+            var player = players.onlinePlayer(playerUuid);
             if (player != null) {
                 player.sendActionBar(Component.text(playerMessage("route-session-preparing", "섬 입장을 준비하는 중입니다...")));
             }
@@ -206,12 +214,12 @@ public final class PaperRouteSessionListener implements Listener {
     private void rejectDirectJoin(java.util.UUID playerUuid) {
         routeSessionRejections.incrementAndGet();
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            var player = Bukkit.getPlayer(playerUuid);
+            var player = players.onlinePlayer(playerUuid);
             if (player != null) {
                 player.sendActionBar(Component.text(playerMessage("route-session-missing-fallback", "섬 입장 요청이 없어 로비로 이동합니다.")));
                 sendToFallback(player);
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> {
-                    var stillHere = Bukkit.getPlayer(playerUuid);
+                    var stillHere = players.onlinePlayer(playerUuid);
                     if (stillHere != null) {
                         stillHere.kick(Component.text(playerMessage("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
                     }

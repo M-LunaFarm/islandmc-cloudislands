@@ -3,14 +3,11 @@ package kr.lunaf.cloudislands.paper.generator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class CropGrowthLevelCache {
     private static final long TTL_MILLIS = 30_000L;
-    private static final Pattern CROP_UPGRADE = Pattern.compile("\\{[^{}]*\"upgradeKey\"\\s*:\\s*\"crop\"[^{}]*}", Pattern.CASE_INSENSITIVE);
-    private static final Pattern LEVEL_FIELD = Pattern.compile("\"level\"\\s*:\\s*(\\d+)");
     private final CoreApiClient client;
     private final Map<UUID, CachedLevel> cache = new ConcurrentHashMap<>();
 
@@ -47,19 +44,13 @@ public final class CropGrowthLevelCache {
         if (json == null || json.isBlank()) {
             return 1;
         }
-        Matcher upgrade = CROP_UPGRADE.matcher(json);
-        if (!upgrade.find()) {
-            return 1;
+        for (Object item : SimpleJson.list(SimpleJson.parse(json))) {
+            Map<?, ?> object = SimpleJson.object(item);
+            if ("crop".equalsIgnoreCase(SimpleJson.text(object.get("upgradeKey")))) {
+                return Math.max(1, (int) SimpleJson.number(object.get("level")));
+            }
         }
-        Matcher level = LEVEL_FIELD.matcher(upgrade.group());
-        if (!level.find()) {
-            return 1;
-        }
-        try {
-            return Math.max(1, Integer.parseInt(level.group(1)));
-        } catch (NumberFormatException ignored) {
-            return 1;
-        }
+        return 1;
     }
 
     private record CachedLevel(int level, long expiresAtMillis) {}

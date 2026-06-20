@@ -42,7 +42,7 @@ public final class PaperCommandRegistrar {
             IslandCommandController islandController = new IslandCommandController(plugin, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages);
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);
-            plugin.getServer().getPluginManager().registerEvents(islandController, plugin);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, islandController);
         }
     }
 }

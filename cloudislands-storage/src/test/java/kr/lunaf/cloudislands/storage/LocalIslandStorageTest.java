@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.storage;
 
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
+import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -84,6 +85,91 @@ class LocalIslandStorageTest {
         assertThrows(IOException.class, () -> storage.readBundleManifest("../outside/bundle.tar.zst"));
     }
 
+    @Test
+    void manifestJsonPreservesRuntimeCompatibilityMetadata() {
+        IslandBundleManifest manifest = new IslandBundleManifest(
+                ISLAND_ID,
+                OWNER_ID,
+                3,
+                "1.21.11",
+                12,
+                300,
+                new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+                List.of("default"),
+                List.of("shop"),
+                List.of("minecraft:plains"),
+                CREATED_AT,
+                SAVED_AT,
+                "checksum",
+                "SHA-256",
+                "zstd",
+                "islands/" + ISLAND_ID + "/snapshots/000001/bundle.tar.zst",
+                42L,
+                "CREATED",
+                true,
+                BundleRestorePolicy.PLACEMENT_POLICY,
+                BundleRestorePolicy.RESTORE_POLICY,
+                "1.0.1",
+                4435,
+                "1.21.11",
+                "skyblock-default@4"
+        );
+
+        String json = IslandManifestJson.write(manifest);
+        IslandBundleManifest parsed = IslandManifestJson.read(json);
+
+        assertTrue(json.contains("\"pluginVersion\":\"1.0.1\""));
+        assertTrue(json.contains("\"minecraftDataVersion\":4435"));
+        assertEquals("1.0.1", parsed.pluginVersion());
+        assertEquals(4435, parsed.minecraftDataVersion());
+        assertEquals("1.21.11", parsed.paperApiBaseline());
+        assertEquals("skyblock-default@4", parsed.templateVersion());
+    }
+
+    @Test
+    void manifestJsonMigratesLegacyBiomeKeysToNamespaceKeys() {
+        String json = IslandManifestJson.write(manifest("LEGACY"))
+                .replace("\"minecraft:plains\"", "\"plains\"");
+
+        IslandBundleManifest parsed = IslandManifestJson.read(json);
+
+        assertEquals(List.of("minecraft:plains"), parsed.biomes());
+    }
+
+    @Test
+    void restorePreflightRejectsFutureBundleCompatibilityMetadata() {
+        IslandBundleManifest manifest = new IslandBundleManifest(
+                ISLAND_ID,
+                OWNER_ID,
+                IslandBundleManifest.CURRENT_FORMAT_VERSION + 1,
+                "1.21.99",
+                12,
+                300,
+                new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+                List.of("default"),
+                List.of("shop"),
+                List.of("minecraft:plains"),
+                CREATED_AT,
+                SAVED_AT,
+                "checksum",
+                "SHA-256",
+                "zstd",
+                "islands/" + ISLAND_ID + "/snapshots/000001/bundle.tar.zst",
+                42L,
+                "CREATED",
+                true,
+                BundleRestorePolicy.PLACEMENT_POLICY,
+                BundleRestorePolicy.RESTORE_POLICY,
+                "1.0.1",
+                IslandBundleManifest.CURRENT_MINECRAFT_DATA_VERSION + 1,
+                "1.21.99",
+                "skyblock-default@future"
+        );
+
+        assertEquals(List.of("formatVersion", "minecraftDataVersion"), manifest.restoreMissingRequirements());
+        assertEquals("missing-formatVersion+minecraftDataVersion", manifest.restorePreflightSummary());
+    }
+
     private static IslandBundleManifest manifest(String reason) {
         return new IslandBundleManifest(
                 ISLAND_ID,
@@ -95,7 +181,7 @@ class LocalIslandStorageTest {
                 new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
                 List.of("default"),
                 List.of("shop"),
-                List.of("plains"),
+                List.of("minecraft:plains"),
                 CREATED_AT,
                 SAVED_AT,
                 "",

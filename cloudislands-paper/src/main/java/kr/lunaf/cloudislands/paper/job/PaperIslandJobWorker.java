@@ -107,14 +107,14 @@ public final class PaperIslandJobWorker {
             }
             if (job.type() == IslandJobType.CREATE_ISLAND) {
                 IslandPreCreateEvent preCreate = new IslandPreCreateEvent(job.islandId(), job.jobId(), nodeId);
-                Bukkit.getPluginManager().callEvent(preCreate);
+                kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(preCreate);
                 if (preCreate.isCancelled()) {
                     jobSource.fail(nodeId, job.jobId(), "CREATE_CANCELLED");
                     return;
                 }
             }
             IslandPreActivateEvent preEvent = new IslandPreActivateEvent(job.islandId(), job.jobId(), job.type(), nodeId);
-            Bukkit.getPluginManager().callEvent(preEvent);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(preEvent);
             if (preEvent.isCancelled()) {
                 jobSource.fail(nodeId, job.jobId(), "ACTIVATION_CANCELLED");
                 return;
@@ -130,9 +130,9 @@ public final class PaperIslandJobWorker {
                     return;
                 }
                 if (job.type() == IslandJobType.CREATE_ISLAND) {
-                    Bukkit.getPluginManager().callEvent(new IslandCreateEvent(result.islandId(), job.jobId(), nodeId, result.worldName()));
+                    kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandCreateEvent(result.islandId(), job.jobId(), nodeId, result.worldName()));
                 }
-                Bukkit.getPluginManager().callEvent(new IslandActivateEvent(result.islandId(), nodeId, result.worldName(), result.cellX(), result.cellZ(), result.schemaVersion(), result.placementSource()));
+                kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandActivateEvent(result.islandId(), nodeId, result.worldName(), result.cellX(), result.cellZ(), result.schemaVersion(), result.placementSource()));
                 if (permissionSync != null) {
                     permissionSync.sync(job.islandId());
                 }
@@ -158,9 +158,9 @@ public final class PaperIslandJobWorker {
         String reason = job.payload().getOrDefault("reason", defaultSnapshotReason(job.type()));
         IslandDeactivationHandler.DeactivationResult result = deactivationHandler.deactivate(job.islandId(), job.type() == IslandJobType.DELETE_ISLAND, reason);
         if (result.success()) {
-            Bukkit.getPluginManager().callEvent(new IslandDeactivateEvent(result.islandId(), nodeId, result.snapshotNo()));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandDeactivateEvent(result.islandId(), nodeId, result.snapshotNo()));
             if (job.type() == IslandJobType.DELETE_ISLAND) {
-                Bukkit.getPluginManager().callEvent(new IslandDeleteEvent(result.islandId(), job.jobId(), nodeId, result.snapshotNo()));
+                kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandDeleteEvent(result.islandId(), job.jobId(), nodeId, result.snapshotNo()));
             }
             IslandJobCompletionPayload payload = IslandJobCompletionPayload.snapshot(result.snapshotNo(), reason, result.checksum(), result.sizeBytes());
             if (job.type() == IslandJobType.DELETE_ISLAND && job.payload().containsKey("ownerUuid")) {

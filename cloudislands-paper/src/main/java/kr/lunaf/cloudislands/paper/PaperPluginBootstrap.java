@@ -106,27 +106,27 @@ final class PaperPluginBootstrap {
         plugin.localCaches.register("limits", limitCache::invalidateAll);
         long denyMessageCooldownMs = plugin.getConfig().getLong("protection.deny-message-cooldown-ms", 1000L);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(plugin, client);
-        plugin.getServer().getPluginManager().registerEvents(new PaperPlayerProfileListener(client), plugin);
-        plugin.getServer().getPluginManager().registerEvents(new PaperBrandingListener(plugin, plugin.messages), plugin);
-        plugin.getServer().getPluginManager().registerEvents(new PaperChatListener(plugin.messages), plugin);
-        plugin.getServer().getPluginManager().registerEvents(new PaperScoreboardListener(plugin, plugin.messages), plugin);
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperPlayerProfileListener(client));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperBrandingListener(plugin, plugin.messages));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperChatListener(plugin.messages));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperScoreboardListener(plugin, plugin.messages));
         if (plugin.guiEnabledForRole(role)) {
             IslandGuiMenuRegistrar.register(plugin, plugin.messages);
         }
         if (role == AgentRole.ISLAND_NODE) {
-            plugin.getServer().getPluginManager().registerEvents(new IslandProtectionListener(plugin.agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()), plugin);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandProtectionListener(plugin.agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()));
             plugin.boundaryListener = new IslandBoundaryListener(plugin.agent.protection(), plugin.messages);
-            plugin.getServer().getPluginManager().registerEvents(plugin.boundaryListener, plugin);
-            plugin.getServer().getPluginManager().registerEvents(new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages), plugin);
-            plugin.getServer().getPluginManager().registerEvents(new IslandLimitListener(plugin.agent.protection(), limitCache, plugin.messages), plugin);
-            plugin.getServer().getPluginManager().registerEvents(new IslandEntityLimitListener(plugin.agent.protection(), limitCache, plugin.messages), plugin);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.boundaryListener);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandLimitListener(plugin.agent.protection(), limitCache, plugin.messages));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandEntityLimitListener(plugin.agent.protection(), limitCache, plugin.messages));
             plugin.generatorLevels = new GeneratorLevelCache(client, plugin.getConfig().getString("generators.default-key", "default"));
             CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
             plugin.localCaches.register("generator-levels", plugin.generatorLevels::invalidateAll);
             plugin.localCaches.register("crop-growth-levels", cropGrowthLevels::invalidateAll);
             plugin.generatorListener = new IslandGeneratorListener(plugin.agent.protection(), ConfigGeneratorRules.load(plugin), plugin.generatorLevels, blockDeltas);
-            plugin.getServer().getPluginManager().registerEvents(plugin.generatorListener, plugin);
-            plugin.getServer().getPluginManager().registerEvents(new IslandCropGrowthListener(plugin.agent.protection(), cropGrowthLevels), plugin);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.generatorListener);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandCropGrowthListener(plugin.agent.protection(), cropGrowthLevels));
         }
         String fallbackServerName = plugin.getConfig().getString("routing.fallback-on-failure", "Lobby");
         boolean enforceRouteSession = role == AgentRole.ISLAND_NODE && plugin.configBoolean("security.enforce-route-session", true);
@@ -137,7 +137,7 @@ final class PaperPluginBootstrap {
         plugin.proxySourceAllowlist = new ProxySourceAllowlist(plugin.getConfig().getStringList("security.proxy-source-allowlist"));
         boolean requireProxySourceAllowlist = role == AgentRole.ISLAND_NODE && plugin.configBoolean("security.require-proxy-source-allowlist", true);
         plugin.routeSessionListener = new PaperRouteSessionListener(plugin, client, plugin.agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, plugin.proxySourceAllowlist, plugin.messages);
-        plugin.getServer().getPluginManager().registerEvents(plugin.routeSessionListener, plugin);
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.routeSessionListener);
         int routeWaitSeconds = plugin.getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
         new PaperCommandRegistrar(plugin).register(plugin.agent, client, nodeId, routeWaitSeconds, fallbackServerName, economyBridge, plugin.messages, plugin.localCaches, () -> plugin.activeIslands);
         MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(plugin, plugin.getConfig()), PaperStorageFactory.backendName(plugin.getConfig())) : null;

@@ -57,6 +57,10 @@ import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
+import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
+import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
+import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
@@ -201,6 +205,8 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     private final IslandLevelScanService levelScanService;
     private final EconomyBridge economyBridge;
     private final MessageRenderer messages;
+    private final PaperPlayerGateway players;
+    private final PaperWorldGateway worlds;
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
@@ -223,6 +229,10 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, new BukkitPlayerGateway(), new BukkitWorldGateway(plugin));
+    }
+
+    IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PaperPlayerGateway players, PaperWorldGateway worlds) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
@@ -231,6 +241,8 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         this.levelScanService = levelScanService;
         this.economyBridge = economyBridge;
         this.messages = messages;
+        this.players = players;
+        this.worlds = worlds;
     }
 
     @Override
@@ -3049,14 +3061,14 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             }
             java.util.Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
             String worldName = region.map(IslandRegion::world).orElse(point.worldName());
-            World world = plugin.getServer().getWorld(worldName);
+            World world = worlds.world(worldName);
             if (world == null) {
                 message(player, routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."));
                 return;
             }
             double targetX = region.map(value -> value.originX() + point.x()).orElse(point.x());
             double targetZ = region.map(value -> value.originZ() + point.z()).orElse(point.z());
-            player.teleport(new Location(world, targetX, point.y(), targetZ, point.yaw(), point.pitch()));
+            players.teleport(player, new Location(world, targetX, point.y(), targetZ, point.yaw(), point.pitch()));
             player.sendMessage(successMessage);
         });
     }

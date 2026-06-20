@@ -1,18 +1,25 @@
 package kr.lunaf.cloudislands.paper.world;
 
-import org.bukkit.Bukkit;
+import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
+import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 public final class ShardWorldPreloader {
     private final Plugin plugin;
+    private final PaperWorldGateway worlds;
 
     public ShardWorldPreloader(Plugin plugin) {
+        this(plugin, new BukkitWorldGateway(plugin));
+    }
+
+    ShardWorldPreloader(Plugin plugin, PaperWorldGateway worlds) {
         this.plugin = plugin;
+        this.worlds = worlds;
     }
 
     public void preload(String worldName, int originX, int originZ, int radiusChunks) {
-        World world = Bukkit.getWorld(worldName);
+        World world = worlds.world(worldName);
         if (world == null) {
             plugin.getLogger().warning("Shard world is not loaded: " + worldName);
             return;

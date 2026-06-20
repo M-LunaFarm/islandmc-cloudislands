@@ -7,7 +7,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
-import org.bukkit.Bukkit;
+import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
+import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -18,11 +19,17 @@ public final class IslandLevelScanService {
     private final Plugin plugin;
     private final Supplier<ActiveIslandRegistry> activeIslands;
     private final CoreApiClient client;
+    private final PaperWorldGateway worlds;
 
     public IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client) {
+        this(plugin, activeIslands, client, new BukkitWorldGateway(plugin));
+    }
+
+    IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client, PaperWorldGateway worlds) {
         this.plugin = plugin;
         this.activeIslands = activeIslands;
         this.client = client;
+        this.worlds = worlds;
     }
 
     public CompletableFuture<Void> rescanIsland(UUID islandId) {
@@ -34,7 +41,7 @@ public final class IslandLevelScanService {
         CompletableFuture<Void> future = new CompletableFuture<>();
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             try {
-                World world = Bukkit.getWorld(active.worldName());
+                World world = worlds.world(active.worldName());
                 if (world == null) {
                     future.complete(null);
                     return;

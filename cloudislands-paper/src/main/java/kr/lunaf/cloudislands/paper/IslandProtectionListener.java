@@ -393,7 +393,7 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onFade(BlockFadeEvent event) {
-        if (event.getBlock().getType().name().contains("ICE")) {
+        if (event.getBlock().getType().getKey().getKey().contains("ice")) {
             boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.ICE_MELT).allowed();
             event.setCancelled(!allowed);
             if (allowed) {
@@ -409,7 +409,7 @@ public final class IslandProtectionListener implements Listener {
 
     private boolean denied(Player player, Block block, IslandPermission permission) {
         PermissionResult result = protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission, player.hasPermission("cloudislands.admin.bypass"));
-        protection.islandAt(block).ifPresent(islandId -> Bukkit.getPluginManager().callEvent(new IslandPermissionCheckEvent(islandId, player.getUniqueId(), player, block, permission, result)));
+        protection.islandAt(block).ifPresent(islandId -> kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandPermissionCheckEvent(islandId, player.getUniqueId(), player, block, permission, result)));
         boolean denied = !result.allowed();
         if (denied) {
             sendDenyMessage(player, permission);
@@ -471,29 +471,29 @@ public final class IslandProtectionListener implements Listener {
     }
 
     private IslandPermission interactionPermission(Material type) {
-        String name = type.name();
-        if (name.endsWith("_DOOR") || name.endsWith("_TRAPDOOR") || name.endsWith("_FENCE_GATE")) {
+        String key = type.getKey().getKey();
+        if (key.endsWith("_door") || key.endsWith("_trapdoor") || key.endsWith("_fence_gate")) {
             return IslandPermission.USE_DOOR;
         }
-        if (name.endsWith("_BUTTON")) {
+        if (key.endsWith("_button")) {
             return IslandPermission.USE_BUTTON;
         }
-        if (name.endsWith("_PRESSURE_PLATE")) {
+        if (key.endsWith("_pressure_plate")) {
             return IslandPermission.USE_PRESSURE_PLATE;
         }
-        if (name.equals("LEVER") || name.equals("REDSTONE_WIRE") || name.endsWith("REPEATER") || name.endsWith("COMPARATOR")) {
+        if (key.equals("lever") || key.equals("redstone_wire") || key.endsWith("repeater") || key.endsWith("comparator")) {
             return IslandPermission.USE_REDSTONE;
         }
-        if (name.equals("SPAWNER")) {
+        if (key.equals("spawner")) {
             return IslandPermission.USE_SPAWNER;
         }
-        if (name.equals("ANVIL") || name.equals("CHIPPED_ANVIL") || name.equals("DAMAGED_ANVIL")) {
+        if (key.equals("anvil") || key.equals("chipped_anvil") || key.equals("damaged_anvil")) {
             return IslandPermission.USE_ANVIL;
         }
-        if (name.equals("ENCHANTING_TABLE")) {
+        if (key.equals("enchanting_table")) {
             return IslandPermission.USE_ENCHANT_TABLE;
         }
-        if (name.equals("BREWING_STAND")) {
+        if (key.equals("brewing_stand")) {
             return IslandPermission.USE_BREWING_STAND;
         }
         return IslandPermission.INTERACT;
