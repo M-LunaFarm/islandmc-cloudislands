@@ -148,6 +148,7 @@ class PaperIntegrationRegistryTest {
         StackerIntegration integration = new StackerIntegration("RoseStacker");
 
         assertTrue(integration.capabilities().contains(IntegrationCapability.STATE_EXPORT));
+        assertTrue(integration.capabilities().contains(IntegrationCapability.STATE_RESTORE));
         assertTrue(integration.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
 
         IntegrationResult denied = integration.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 31L, true, "stacker:export:1", Map.of(
@@ -167,6 +168,15 @@ class PaperIntegrationRegistryTest {
             "bundleKey", "bundles/island.tar.zst"
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, allowed.status());
+
+        IntegrationResult restored = integration.restoreState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 31L, true, "stacker:restore:1", Map.of(
+            "world", "islands",
+            "cell", "3,4",
+            "entityCountKey", "limits.entities.effective",
+            "spawnerCountKey", "limits.spawners.effective",
+            "bundleKey", "bundles/island.tar.zst"
+        )));
+        assertEquals(IntegrationResult.Status.SUCCESS, restored.status());
     }
 
     @Test

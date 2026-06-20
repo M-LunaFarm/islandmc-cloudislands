@@ -12,6 +12,7 @@ public final class StackerIntegration extends PolicyBackedCloudIntegration {
             IntegrationCapability.DETECT,
             IntegrationCapability.VALIDATE_VERSION,
             IntegrationCapability.STATE_EXPORT,
+            IntegrationCapability.STATE_RESTORE,
             IntegrationCapability.RUNTIME_AUTHORITY
         ));
     }
@@ -19,5 +20,10 @@ public final class StackerIntegration extends PolicyBackedCloudIntegration {
     @Override
     public IntegrationResult exportState(IntegrationContext context) {
         return guardedStateHook("effective-stack-export", context, "world", "cell", "entityCountKey", "spawnerCountKey", "bundleKey");
+    }
+
+    @Override
+    public IntegrationResult restoreState(IntegrationContext context) {
+        return guardedStateHook("effective-stack-restore", context, "world", "cell", "entityCountKey", "spawnerCountKey", "bundleKey");
     }
 }
