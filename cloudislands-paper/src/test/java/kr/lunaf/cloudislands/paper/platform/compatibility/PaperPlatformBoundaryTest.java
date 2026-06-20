@@ -2,9 +2,13 @@ package kr.lunaf.cloudislands.paper.platform.compatibility;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
@@ -309,6 +313,50 @@ class PaperPlatformBoundaryTest {
         }
     }
 
+    @Test
+    void configV2MenuLayoutsDoNotCollideAndUseRegisteredActions() throws Exception {
+        Path root = repositoryRoot();
+        Set<String> registeredActions = registeredGuiActions(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        try (Stream<Path> files = yamlFiles(root.resolve("cloudislands-paper/src/main/resources/config-v2/ui/menus"))) {
+            String violations = files
+                .flatMap(path -> menuConfigViolations(root, path, registeredActions).stream())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    @Test
+    void guiJavaMenusDoNotReuseSlotsOrOverflowInventories() throws Exception {
+        Path root = repositoryRoot();
+        try (Stream<Path> files = javaFiles(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui"))) {
+            String violations = files
+                .flatMap(path -> javaMenuSlotViolations(root, path).stream())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    @Test
+    void guiJavaActionIdsAreRegistered() throws Exception {
+        Path root = repositoryRoot();
+        Set<String> registeredActions = registeredGuiActions(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        try (Stream<Path> files = javaFiles(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui"))) {
+            String violations = files
+                .flatMap(path -> javaGuiActionViolations(root, path, registeredActions).stream())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
     private static Stream<Path> javaFiles(Path root) {
         try {
             if (Files.notExists(root)) {
@@ -491,5 +539,467 @@ class PaperPlatformBoundaryTest {
             || value.startsWith("${")
             || value.startsWith("\"<")
             || value.startsWith("<");
+    }
+
+    private static List<String> menuConfigViolations(Path root, Path path, Set<String> registeredActions) {
+        try {
+            List<String> violations = new ArrayList<>();
+            List<String> lines = Files.readAllLines(path);
+            Integer rows = yamlInt(lines, "rows");
+            if (rows == null || rows < 1 || rows > 6) {
+                violations.add(root.relativize(path) + ": rows must be 1..6");
+            }
+
+            List<String> layout = yamlStringList(lines, "layout");
+            if (!layout.isEmpty()) {
+                if (rows != null && layout.size() != rows) {
+                    violations.add(root.relativize(path) + ": layout row count must match rows");
+                }
+                Set<String> symbols = new LinkedHashSet<>();
+                for (int row = 0; row < layout.size(); row++) {
+                    String value = layout.get(row);
+                    if (value.length() != 9) {
+                        violations.add(root.relativize(path) + ": layout row " + (row + 1) + " must be 9 columns");
+                    }
+                    for (int column = 0; column < value.length(); column++) {
+                        char symbol = value.charAt(column);
+                        if (symbol != '.') {
+                            symbols.add(String.valueOf(symbol));
+                        }
+                    }
+                }
+                Set<String> itemKeys = yamlChildKeys(lines, "items");
+                Set<String> missing = new LinkedHashSet<>(symbols);
+                missing.removeAll(itemKeys);
+                if (!missing.isEmpty()) {
+                    violations.add(root.relativize(path) + ": layout symbols without items " + missing);
+                }
+            }
+
+            for (String material : yamlValues(lines, "material")) {
+                if (!materialExists(material)) {
+                    violations.add(root.relativize(path) + ": unknown material " + material);
+                }
+            }
+            for (String action : yamlActionValues(lines)) {
+                if (!registeredActions.contains(action)) {
+                    violations.add(root.relativize(path) + ": unregistered action-id " + action);
+                }
+            }
+            return violations;
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static Set<String> registeredGuiActions(Path backend) {
+        try {
+            Set<String> actions = new HashSet<>();
+            for (String line : Files.readAllLines(backend)) {
+                if (!line.contains("case \"")) {
+                    continue;
+                }
+                int offset = 0;
+                while (offset < line.length()) {
+                    int start = line.indexOf('"', offset);
+                    if (start < 0) {
+                        break;
+                    }
+                    int end = line.indexOf('"', start + 1);
+                    if (end < 0) {
+                        break;
+                    }
+                    String value = line.substring(start + 1, end);
+                    if (isGuiActionId(value)) {
+                        actions.add(value);
+                    }
+                    offset = end + 1;
+                }
+            }
+            return actions;
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static List<String> javaMenuSlotViolations(Path root, Path path) {
+        try {
+            List<String> violations = new ArrayList<>();
+            List<String> lines = Files.readAllLines(path);
+            MenuBlock block = null;
+            int slotStart = -1;
+            int pendingLimit = -1;
+            int pendingIndexLimit = -1;
+            for (int index = 0; index < lines.size(); index++) {
+                String line = lines.get(index);
+                int lineNumber = index + 1;
+                Integer inventorySize = parseInventorySize(line);
+                if (inventorySize != null) {
+                    if (block != null) {
+                        violations.addAll(block.violations(root, path));
+                    }
+                    block = new MenuBlock(lineNumber, inventorySize);
+                    slotStart = -1;
+                    pendingLimit = -1;
+                    pendingIndexLimit = -1;
+                    continue;
+                }
+                if (block == null) {
+                    continue;
+                }
+                Integer fixedSlot = parseFixedSlot(line);
+                if (fixedSlot != null) {
+                    block.addFixedSlot(fixedSlot, lineNumber, !line.contains("empty"));
+                }
+                Integer assignment = parseSlotAssignment(line);
+                if (assignment != null) {
+                    slotStart = assignment;
+                }
+                Integer limit = parseLimit(line);
+                if (limit != null) {
+                    pendingLimit = limit;
+                }
+                Integer indexLimit = parseIndexLimit(line);
+                if (indexLimit != null) {
+                    pendingIndexLimit = indexLimit;
+                }
+                if (line.contains("inventory.setItem(slot++")) {
+                    if (slotStart < 0 || pendingLimit < 0) {
+                        violations.add(root.relativize(path) + ":" + lineNumber + ": slot++ menu list must declare a finite limit");
+                    } else {
+                        block.addDynamicRange(slotStart, slotStart + pendingLimit - 1, lineNumber);
+                    }
+                    pendingLimit = -1;
+                }
+                if (line.contains("inventory.setItem(index")) {
+                    if (pendingIndexLimit < 0) {
+                        violations.add(root.relativize(path) + ":" + lineNumber + ": index menu list must declare a finite limit");
+                    } else {
+                        int offset = line.contains("index + 9") ? 9 : 0;
+                        block.addDynamicRange(offset, offset + pendingIndexLimit - 1, lineNumber);
+                    }
+                    pendingIndexLimit = -1;
+                }
+                if (line.contains("player.openInventory(inventory);")) {
+                    violations.addAll(block.violations(root, path));
+                    block = null;
+                    slotStart = -1;
+                    pendingLimit = -1;
+                    pendingIndexLimit = -1;
+                }
+            }
+            if (block != null) {
+                violations.addAll(block.violations(root, path));
+            }
+            return violations;
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static List<String> javaGuiActionViolations(Path root, Path path, Set<String> registeredActions) {
+        try {
+            List<String> violations = new ArrayList<>();
+            List<String> lines = Files.readAllLines(path);
+            for (int index = 0; index < lines.size(); index++) {
+                String line = lines.get(index);
+                if (!line.contains("GuiItems.action(")
+                    && !line.contains("GuiActionRegistry.execute(")
+                    && !line.contains("actions.execute(")) {
+                    continue;
+                }
+                for (String action : quotedGuiActionIds(line)) {
+                    if (!registeredActions.contains(action)) {
+                        violations.add(root.relativize(path) + ":" + (index + 1) + ": unregistered action-id " + action);
+                    }
+                }
+            }
+            return violations;
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static List<String> quotedGuiActionIds(String line) {
+        List<String> values = new ArrayList<>();
+        int offset = 0;
+        while (offset < line.length()) {
+            int start = line.indexOf('"', offset);
+            if (start < 0) {
+                break;
+            }
+            int end = line.indexOf('"', start + 1);
+            if (end < 0) {
+                break;
+            }
+            String value = line.substring(start + 1, end);
+            if (isGuiActionId(value)) {
+                values.add(value);
+            }
+            offset = end + 1;
+        }
+        return values;
+    }
+
+    private static Integer yamlInt(List<String> lines, String key) {
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith(key + ":")) {
+                return Integer.parseInt(cleanYamlValue(trimmed.substring(trimmed.indexOf(':') + 1)));
+            }
+        }
+        return null;
+    }
+
+    private static List<String> yamlStringList(List<String> lines, String key) {
+        List<String> values = new ArrayList<>();
+        boolean inBlock = false;
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.equals(key + ":")) {
+                inBlock = true;
+                continue;
+            }
+            if (inBlock && !line.startsWith(" ")) {
+                break;
+            }
+            if (inBlock && trimmed.startsWith("-")) {
+                values.add(cleanYamlValue(trimmed.substring(1)));
+            }
+        }
+        return values;
+    }
+
+    private static Set<String> yamlChildKeys(List<String> lines, String key) {
+        Set<String> values = new LinkedHashSet<>();
+        boolean inBlock = false;
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.equals(key + ":")) {
+                inBlock = true;
+                continue;
+            }
+            if (inBlock && !line.startsWith(" ")) {
+                break;
+            }
+            if (inBlock && line.startsWith("  ") && !line.startsWith("    ") && trimmed.endsWith(":")) {
+                values.add(trimmed.substring(0, trimmed.length() - 1));
+            }
+        }
+        return values;
+    }
+
+    private static List<String> yamlValues(List<String> lines, String key) {
+        List<String> values = new ArrayList<>();
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith(key + ":")) {
+                values.add(cleanYamlValue(trimmed.substring(trimmed.indexOf(':') + 1)));
+            }
+        }
+        return values;
+    }
+
+    private static List<String> yamlActionValues(List<String> lines) {
+        List<String> values = new ArrayList<>();
+        boolean inActionBlock = false;
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.equals("actions:") || trimmed.equals("footer-actions:")) {
+                inActionBlock = true;
+                continue;
+            }
+            if (inActionBlock && !line.startsWith(" ")) {
+                inActionBlock = false;
+            }
+            if (trimmed.startsWith("action:")) {
+                values.add(cleanYamlValue(trimmed.substring(trimmed.indexOf(':') + 1)));
+                continue;
+            }
+            if (inActionBlock && line.startsWith("  ") && trimmed.contains(":")) {
+                values.add(cleanYamlValue(trimmed.substring(trimmed.indexOf(':') + 1)));
+            }
+        }
+        return values.stream().filter(PaperPlatformBoundaryTest::isGuiActionId).toList();
+    }
+
+    private static String cleanYamlValue(String value) {
+        String cleaned = value.trim();
+        if ((cleaned.startsWith("\"") && cleaned.endsWith("\"")) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+            return cleaned.substring(1, cleaned.length() - 1);
+        }
+        return cleaned;
+    }
+
+    private static boolean isGuiActionId(String value) {
+        return value.startsWith("island.") || value.startsWith("admin.") || value.startsWith("gui.");
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static boolean materialExists(String material) {
+        try {
+            Class<?> materialClass = Class.forName("org.bukkit.Material");
+            Enum.valueOf((Class) materialClass.asSubclass(Enum.class), material);
+            return true;
+        } catch (ClassNotFoundException exception) {
+            return knownMenuMaterials().contains(material);
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private static Set<String> knownMenuMaterials() {
+        return Set.of(
+            "BEACON",
+            "CHEST",
+            "COMPARATOR",
+            "COMPASS",
+            "EMERALD",
+            "ENDER_PEARL",
+            "GOLD_BLOCK",
+            "GRASS_BLOCK",
+            "HOPPER",
+            "LAVA_BUCKET",
+            "MAP",
+            "NAME_TAG",
+            "PLAYER_HEAD",
+            "WRITABLE_BOOK"
+        );
+    }
+
+    private static Integer parseInventorySize(String line) {
+        int start = line.indexOf("GuiInventories.create(");
+        if (start < 0) {
+            return null;
+        }
+        int firstComma = line.indexOf(',', start);
+        if (firstComma < 0) {
+            return null;
+        }
+        int secondComma = line.indexOf(',', firstComma + 1);
+        if (secondComma < 0) {
+            return null;
+        }
+        return parseInteger(line.substring(firstComma + 1, secondComma).trim());
+    }
+
+    private static Integer parseFixedSlot(String line) {
+        int start = line.indexOf("inventory.setItem(");
+        if (start < 0) {
+            return null;
+        }
+        int offset = start + "inventory.setItem(".length();
+        int end = offset;
+        while (end < line.length() && Character.isDigit(line.charAt(end))) {
+            end++;
+        }
+        if (end == offset) {
+            return null;
+        }
+        return parseInteger(line.substring(offset, end));
+    }
+
+    private static Integer parseSlotAssignment(String line) {
+        String trimmed = line.trim();
+        if (trimmed.startsWith("int slot = ")) {
+            return parseInteger(trimmed.substring("int slot = ".length(), trimmed.indexOf(';')).trim());
+        }
+        if (trimmed.startsWith("slot = ")) {
+            return parseInteger(trimmed.substring("slot = ".length(), trimmed.indexOf(';')).trim());
+        }
+        return null;
+    }
+
+    private static Integer parseLimit(String line) {
+        int start = line.indexOf(".limit(");
+        if (start < 0) {
+            return null;
+        }
+        int end = line.indexOf(')', start);
+        if (end < 0) {
+            return null;
+        }
+        return parseInteger(line.substring(start + ".limit(".length(), end).trim());
+    }
+
+    private static Integer parseIndexLimit(String line) {
+        int offset = 0;
+        while (offset < line.length()) {
+            int start = line.indexOf("index < ", offset);
+            if (start < 0) {
+                return null;
+            }
+            int valueStart = start + "index < ".length();
+            int end = valueStart;
+            while (end < line.length() && Character.isDigit(line.charAt(end))) {
+                end++;
+            }
+            if (end > valueStart) {
+                return parseInteger(line.substring(valueStart, end));
+            }
+            offset = valueStart;
+        }
+        return null;
+    }
+
+    private static Integer parseInteger(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private record SlotUse(int slot, int line, boolean blocksDynamicArea) {
+    }
+
+    private record SlotRange(int start, int end, int line) {
+    }
+
+    private static final class MenuBlock {
+        private final int line;
+        private final int size;
+        private final List<SlotUse> fixedSlots = new ArrayList<>();
+        private final List<SlotRange> dynamicRanges = new ArrayList<>();
+
+        private MenuBlock(int line, int size) {
+            this.line = line;
+            this.size = size;
+        }
+
+        private void addFixedSlot(int slot, int line, boolean blocksDynamicArea) {
+            fixedSlots.add(new SlotUse(slot, line, blocksDynamicArea));
+        }
+
+        private void addDynamicRange(int start, int end, int line) {
+            dynamicRanges.add(new SlotRange(start, end, line));
+        }
+
+        private List<String> violations(Path root, Path path) {
+            List<String> violations = new ArrayList<>();
+            Set<Integer> seen = new HashSet<>();
+            for (SlotUse use : fixedSlots) {
+                if (use.slot() < 0 || use.slot() >= size) {
+                    violations.add(root.relativize(path) + ":" + use.line() + ": fixed slot " + use.slot() + " outside inventory size " + size);
+                }
+                if (!seen.add(use.slot())) {
+                    violations.add(root.relativize(path) + ":" + use.line() + ": duplicate fixed slot " + use.slot());
+                }
+            }
+            for (SlotRange range : dynamicRanges) {
+                if (range.start() < 0 || range.end() >= size) {
+                    violations.add(root.relativize(path) + ":" + range.line() + ": dynamic slots " + range.start() + ".." + range.end() + " outside inventory size " + size);
+                }
+                for (SlotUse use : fixedSlots) {
+                    if (use.blocksDynamicArea() && use.slot() >= range.start() && use.slot() <= range.end()) {
+                        violations.add(root.relativize(path) + ":" + range.line() + ": dynamic slots " + range.start() + ".." + range.end() + " overlap fixed slot " + use.slot());
+                    }
+                }
+            }
+            if (size % 9 != 0 || size < 9 || size > 54) {
+                violations.add(root.relativize(path) + ":" + line + ": inventory size must be a 1..6 row chest size");
+            }
+            return violations;
+        }
     }
 }

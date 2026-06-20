@@ -1072,6 +1072,9 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.visit.public.open" -> listPublicIslands(player, 10);
             case "island.visit.target" -> routeVisitTarget(player, data.getOrDefault("target", ""));
             case "island.members.open" -> openIslandMemberMenu(player);
+            case "island.member.detail" -> listIslandMembers(player);
+            case "island.member.role" -> listIslandMembers(player);
+            case "island.member.invite", "island.member.invite.help" -> message(player, routeMessage("member-invite-help", "멤버 초대는 /섬 초대 <플레이어> 로 요청합니다."));
             case "island.member.list" -> listIslandMembers(player);
             case "island.member.promote" -> setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
             case "island.member.demote" -> setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
@@ -1102,8 +1105,11 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.ban.pardon.confirm" -> pardonIslandVisitor(player, data.getOrDefault("playerUuid", ""));
             case "island.permissions.open" -> openIslandPermissionMenu(player);
             case "island.permissions.list" -> listIslandPermissions(player);
+            case "island.permissions.save" -> listIslandPermissions(player);
+            case "island.permissions.reset" -> openIslandPermissionMenu(player);
             case "island.permissions.set" -> setIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true");
             case "island.roles.open" -> openIslandRoleMenu(player);
+            case "island.role.edit.help" -> message(player, routeMessage("role-edit-help", "역할 편집은 /섬 역할편집 <역할> <weight> <displayName> 으로 요청합니다."));
             case "island.roles.list" -> listIslandRoles(player);
             case "island.settings.open" -> openIslandSettings(player);
             case "island.public.toggle" -> setIslandPublicAccess(player, !click.right());
@@ -1152,6 +1158,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.danger.reset.confirm" -> resetIsland(player, data.getOrDefault("reason", "player-reset"));
             case "island.danger.delete.confirm" -> deleteIsland(player);
             case "admin.node.open" -> AdminNodeMenu.open(player, plugin.getConfig().getString("node.id", "island-1"), messages);
+            case "admin.node.command" -> message(player, routeMessage("admin-node-direct-required", "관리 명령은 메뉴 안내를 확인한 뒤 직접 입력합니다."));
             case "gui.close" -> player.closeInventory();
             default -> message(player, routeMessage("gui-action-unknown", "알 수 없는 GUI 작업입니다: ") + actionId);
         }

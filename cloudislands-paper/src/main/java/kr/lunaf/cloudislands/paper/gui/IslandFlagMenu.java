@@ -77,7 +77,7 @@ public final class IslandFlagMenu implements Listener {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, TITLE_KEY, TITLE));
             int slot = 0;
-            for (IslandFlag flag : IslandFlag.values()) {
+            for (IslandFlag flag : java.util.Arrays.stream(IslandFlag.values()).limit(49).toList()) {
                 inventory.setItem(slot++, flagItem(flag, values.get(flag), messages));
             }
             inventory.setItem(49, item(Material.CLOCK, message(messages, "flag-menu-refresh-name", "새로고침"), message(messages, "flag-menu-refresh-command", "/섬 플래그")));

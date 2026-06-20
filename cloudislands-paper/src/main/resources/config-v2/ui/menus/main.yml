@@ -13,10 +13,54 @@ items:
     material: GRASS_BLOCK
     name-key: menu.main.home.name
     action: island.home
+  W:
+    material: ENDER_PEARL
+    name-key: menu.main.warps.name
+    action: island.warps.open
+  V:
+    material: COMPASS
+    name-key: menu.main.visit.name
+    action: island.visit.open
   M:
     material: PLAYER_HEAD
     name-key: menu.main.members.name
     action: island.members.open
+  P:
+    material: NAME_TAG
+    name-key: menu.main.permissions.name
+    action: island.permissions.open
+  S:
+    material: COMPARATOR
+    name-key: menu.main.settings.name
+    action: island.settings.open
+  Q:
+    material: GOLD_BLOCK
+    name-key: menu.main.ranking.name
+    action: island.ranking.open
+  U:
+    material: BEACON
+    name-key: menu.main.upgrades.name
+    action: island.upgrades.open
+  B:
+    material: EMERALD
+    name-key: menu.main.bank.name
+    action: island.bank.open
+  R:
+    material: CHEST
+    name-key: menu.main.snapshots.name
+    action: island.snapshots.open
+  I:
+    material: MAP
+    name-key: menu.main.info.name
+    action: island.info.open
+  L:
+    material: HOPPER
+    name-key: menu.main.limits.name
+    action: island.limits.open
+  T:
+    material: WRITABLE_BOOK
+    name-key: menu.main.chat.name
+    action: island.chat.open
   D:
     material: LAVA_BUCKET
     name-key: menu.main.danger.name

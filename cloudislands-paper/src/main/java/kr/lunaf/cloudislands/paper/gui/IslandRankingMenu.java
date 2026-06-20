@@ -78,11 +78,11 @@ public final class IslandRankingMenu implements Listener {
             Inventory inventory = GuiInventories.create(MENU_ID, 54, message(messages, "ranking-menu-title", TITLE));
             inventory.setItem(4, item(Material.GOLD_BLOCK, message(messages, "ranking-menu-title", "섬 랭킹"), message(messages, "ranking-menu-level-side", "좌측: 레벨 TOP"), message(messages, "ranking-menu-worth-side", "우측: 가치 TOP")));
             int slot = 9;
-            for (RankingView ranking : levels) {
+            for (RankingView ranking : levels.stream().limit(18).toList()) {
                 inventory.setItem(slot++, rankingItem(Material.EXPERIENCE_BOTTLE, ranking, messages));
             }
             slot = 27;
-            for (RankingView ranking : worths) {
+            for (RankingView ranking : worths.stream().limit(18).toList()) {
                 inventory.setItem(slot++, rankingItem(Material.EMERALD, ranking, messages));
             }
             inventory.setItem(45, item(Material.COMPASS, message(messages, "ranking-menu-public-islands-name", "공개 섬"), message(messages, "ranking-menu-public-islands-command", "/섬 방문")));

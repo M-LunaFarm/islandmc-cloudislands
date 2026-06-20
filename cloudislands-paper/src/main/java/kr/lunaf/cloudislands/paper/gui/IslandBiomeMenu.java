@@ -96,7 +96,7 @@ public final class IslandBiomeMenu implements Listener {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = GuiInventories.create(MENU_ID, 27, TITLE);
             int slot = 9;
-            for (String biome : BIOMES) {
+            for (String biome : BIOMES.stream().limit(13).toList()) {
                 inventory.setItem(slot++, biomeItem(biome, biome.equalsIgnoreCase(currentBiome), messages));
             }
             inventory.setItem(4, item(Material.GRASS_BLOCK, message(messages, "biome-menu-current-name", "현재 바이옴"), currentBiome.isBlank() ? message(messages, "biome-menu-not-set", "설정 없음") : currentBiome));
