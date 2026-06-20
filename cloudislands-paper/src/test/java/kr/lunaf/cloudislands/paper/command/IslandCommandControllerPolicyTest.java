@@ -25,9 +25,13 @@ class IslandCommandControllerPolicyTest {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));
         String completer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandCatalog.java"));
 
         assertFalse(backend.contains("implements CommandExecutor, TabCompleter"), "command execution backend must not own tab completion");
         assertFalse(backend.contains("onTabComplete("), "tab completion belongs in IslandCommandTabCompleter");
+        assertTrue(backend.contains("static final List<String> SUBCOMMANDS = IslandCommandCatalog.SUBCOMMANDS;"), "command keyword catalog must live outside the backend");
+        assertTrue(backend.contains("static final List<String> HELP_COMMANDS = IslandCommandCatalog.HELP_COMMANDS;"), "help command catalog must live outside the backend");
+        assertTrue(catalog.contains("final class IslandCommandCatalog"), "command catalog must be isolated in its own class");
         assertTrue(controller.contains("private final IslandCommandTabCompleter tabCompleter;"));
         assertTrue(controller.contains("return tabCompleter.onTabComplete(sender, command, alias, args);"));
         assertTrue(completer.contains("implements TabCompleter"));
