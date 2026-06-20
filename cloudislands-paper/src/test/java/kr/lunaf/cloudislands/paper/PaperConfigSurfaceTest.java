@@ -59,6 +59,7 @@ class PaperConfigSurfaceTest {
         String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"), StandardCharsets.UTF_8);
         String plugin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/CloudIslandsPaperPlugin.java"), StandardCharsets.UTF_8);
         String commands = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"), StandardCharsets.UTF_8);
+        String api = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"), StandardCharsets.UTF_8);
         String loader = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfigLoader.java"), StandardCharsets.UTF_8);
         String snapshot = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfig.java"), StandardCharsets.UTF_8);
 
@@ -97,6 +98,10 @@ class PaperConfigSurfaceTest {
         assertFalse(plugin.contains("boolean configBoolean("), "Paper plugin helpers must not parse runtime booleans from Bukkit config");
         assertFalse(commands.contains("plugin.getConfig().getString(\"node.id\""), "commands must use the runtime snapshot for node identity");
         assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"), StandardCharsets.UTF_8).contains("agent.getConfig()"), "admin commands must not read Bukkit config through the agent");
+        assertFalse(api.contains("new StatusService(agent)"), "status API must receive the runtime config snapshot");
+        assertFalse(api.contains("boolean configBoolean("), "Paper API services must not keep duplicate runtime boolean parsers");
+        assertFalse(api.contains("config.getString(\"node.id\""), "status API must use the runtime snapshot for node identity");
+        assertFalse(api.contains("plugin.getConfig()"), "Paper API services must use runtime config snapshots or dedicated config adapters");
     }
 
     private boolean containsPath(String config, String path) {

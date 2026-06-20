@@ -112,13 +112,13 @@ import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
+import kr.lunaf.cloudislands.paper.config.PaperAddonConfigStore;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.scheduler.BukkitTask;
 
 public final class PaperCloudIslandsApi implements CloudIslandsApi {
@@ -144,11 +144,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.routing = new RoutingService(client);
         this.permissions = new PermissionService(agent);
         this.runtime = new RuntimeService(client);
-        this.status = new StatusService(agent);
+        this.status = new StatusService(agent, safeConfig);
         this.events = new EventService(client, agent.plugin());
         this.admin = new AdminService(client, safeConfig.migration().superiorSkyblock2Enabled());
         this.commands = new CommandService(client);
-        this.addons = new AddonService(client, agent.plugin(), events);
+        this.addons = new AddonService(client, agent.plugin(), safeConfig, events);
         agent.cacheInvalidator().setAddonStateInvalidator(invalidation -> addons.invalidateAddonStateCache(invalidation.addonId(), invalidation.islandId()));
     }
 
@@ -213,6 +213,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static final class AddonService implements IslandAddonService {
         private final CoreApiClient coreClient;
         private final Plugin plugin;
+        private final PaperRuntimeConfig runtimeConfig;
+        private final PaperAddonConfigStore addonConfig;
         private final IslandEventService events;
         private final Map<String, AddonRegistration> registrations = new ConcurrentHashMap<>();
         private final Map<String, CloudIslandsAddon> addonObjects = new ConcurrentHashMap<>();
@@ -222,9 +224,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         private GlobalEventSubscription eventSubscription;
         private boolean eventSubscriptionStarting;
 
-        private AddonService(CoreApiClient coreClient, Plugin plugin, IslandEventService events) {
+        private AddonService(CoreApiClient coreClient, Plugin plugin, PaperRuntimeConfig runtimeConfig, IslandEventService events) {
             this.coreClient = coreClient;
             this.plugin = plugin;
+            this.runtimeConfig = runtimeConfig == null ? PaperRuntimeConfig.defaults() : runtimeConfig;
+            this.addonConfig = new PaperAddonConfigStore(plugin);
             this.events = events;
         }
 
@@ -399,45 +403,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         private boolean configuredAddonEnabled(AddonRegistration registration) {
-            String id = registration.id();
-            String addonPath = "addons." + id + ".enabled";
-            boolean enabled = true;
-            if (plugin.getConfig().contains(addonPath)) {
-                enabled = plugin.getConfig().getBoolean(addonPath, true);
-            }
-            for (String alias : parentConfigAliases(registration.metadata())) {
-                String aliasPath = alias + ".enabled";
-                if (plugin.getConfig().contains(aliasPath)) {
-                    enabled = enabled && plugin.getConfig().getBoolean(aliasPath, true);
-                }
-            }
-            return enabled;
+            return addonConfig.addonEnabled(registration.id(), parentConfigAliases(registration.metadata()));
         }
 
         private Map<String, Boolean> configuredFeatures(AddonRegistration registration) {
-            String id = registration.id();
             Map<String, Boolean> features = registration.features();
-            Map<String, Boolean> effective = new HashMap<>(features == null ? Map.of() : features);
-            for (String alias : parentConfigAliases(registration.metadata())) {
-                ConfigurationSection aliasSection = plugin.getConfig().getConfigurationSection(alias + ".features");
-                if (aliasSection != null) {
-                    for (String key : aliasSection.getKeys(false)) {
-                        if (aliasSection.isBoolean(key)) {
-                            effective.put(key, effective.getOrDefault(key, true) && aliasSection.getBoolean(key, true));
-                        }
-                    }
-                }
-            }
-            ConfigurationSection section = plugin.getConfig().getConfigurationSection("addons." + id + ".features");
-            if (section == null) {
-                applyFeatureAliases(effective, registration.metadata());
-                return effective;
-            }
-            for (String key : section.getKeys(false)) {
-                if (section.isBoolean(key)) {
-                    effective.put(key, effective.getOrDefault(key, true) && section.getBoolean(key, true));
-                }
-            }
+            Map<String, Boolean> effective = addonConfig.addonFeatures(registration.id(), parentConfigAliases(registration.metadata()), features);
             applyFeatureAliases(effective, registration.metadata());
             return effective;
         }
@@ -482,7 +453,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private Map<String, String> effectiveMetadata(String id, Map<String, String> metadata, boolean addonDefaultEnabled, boolean parentEnabled) {
             Map<String, String> effective = new HashMap<>(metadata == null ? Map.of() : metadata);
-            effective.putIfAbsent("source-node", plugin.getConfig().getString("node.id", "unknown"));
+            effective.putIfAbsent("source-node", runtimeConfig.node().id());
             effective.putIfAbsent("addon-registry-policy", "external-addons-config-gated-removable-and-state-preserving");
             effective.putIfAbsent("addon-packaging", "external-plugin");
             effective.putIfAbsent("addon-runtime-owns-islands", "false");
@@ -507,15 +478,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             } else {
                 effective.put("disabled-reason", "none");
             }
-            List<String> parentPaths = new ArrayList<>();
-            if (plugin.getConfig().contains("addons." + id)) {
-                parentPaths.add("addons." + id);
-            }
-            for (String alias : parentConfigAliases(metadata)) {
-                if (plugin.getConfig().contains(alias)) {
-                    parentPaths.add(alias);
-                }
-            }
+            List<String> parentPaths = addonConfig.configuredParentPaths(id, parentConfigAliases(metadata));
             effective.put("parent-config-path", parentPaths.isEmpty() ? "default" : String.join(",", parentPaths));
             return effective;
         }
@@ -583,13 +546,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (!registrations.containsKey(safeId)) {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
-            plugin.getConfig().set("addons." + safeId + ".enabled", enabled);
             AddonRegistration registration = registrations.get(safeId);
-            for (String alias : parentConfigAliases(registration.metadata())) {
-                plugin.getConfig().set(alias + ".enabled", enabled);
-            }
-            plugin.saveConfig();
-            plugin.reloadConfig();
+            addonConfig.setEnabled(safeId, parentConfigAliases(registration.metadata()), enabled);
             return refresh(safeId);
         }
 
@@ -605,15 +563,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
             String configFeature = configFeatureKey(registration, feature, normalizedFeature);
-            plugin.getConfig().set("addons." + safeId + ".features." + configFeature, enabled);
-            for (String alias : parentConfigAliases(registration.metadata())) {
-                plugin.getConfig().set(alias + ".features." + configFeature, enabled);
-            }
+            List<String> aliases = parentConfigAliases(registration.metadata());
+            addonConfig.setFeature(safeId, aliases, configFeature, enabled);
             if (configFeature.equals(normalizedFeature)) {
-                clearFeatureAliases(safeId, registration, normalizedFeature);
+                clearFeatureAliases(safeId, aliases, registration, normalizedFeature);
             }
-            plugin.saveConfig();
-            plugin.reloadConfig();
+            addonConfig.saveAndReload();
             return refresh(safeId);
         }
 
@@ -632,13 +587,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return normalizedFeature;
         }
 
-        private void clearFeatureAliases(String id, AddonRegistration registration, String canonicalFeature) {
-            for (String alias : AddonFeatureAliases.aliasesFor(registration.metadata(), canonicalFeature)) {
-                plugin.getConfig().set("addons." + id + ".features." + alias, null);
-                for (String parentAlias : parentConfigAliases(registration.metadata())) {
-                    plugin.getConfig().set(parentAlias + ".features." + alias, null);
-                }
-            }
+        private void clearFeatureAliases(String id, List<String> parentAliases, AddonRegistration registration, String canonicalFeature) {
+            addonConfig.clearFeatureAliases(id, parentAliases, AddonFeatureAliases.aliasesFor(registration.metadata(), canonicalFeature));
         }
 
         private List<String> parentConfigAliases(Map<String, String> metadata) {
@@ -2067,29 +2017,30 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static final class StatusService implements IslandStatusService {
         private final CloudIslandsPaperAgent agent;
+        private final PaperRuntimeConfig config;
 
-        private StatusService(CloudIslandsPaperAgent agent) {
+        private StatusService(CloudIslandsPaperAgent agent, PaperRuntimeConfig config) {
             this.agent = agent;
+            this.config = config == null ? PaperRuntimeConfig.defaults() : config;
         }
 
         @Override
         public CompletableFuture<CloudIslandsStatusSnapshot> current() {
             org.bukkit.plugin.Plugin plugin = agent.plugin();
             kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin paperPlugin = (kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin) plugin;
-            org.bukkit.configuration.file.FileConfiguration config = paperPlugin.getConfig();
             int activeIslands = paperPlugin.activeIslands() == null ? 0 : paperPlugin.activeIslands().size();
             int activationQueue = paperPlugin.jobWorker() == null ? 0 : paperPlugin.jobWorker().activationQueue();
             return CompletableFuture.completedFuture(new CloudIslandsStatusSnapshot(
                 "paper",
                 agent.role().name(),
-                config.getString("node.id", ""),
+                config.node().id(),
                 plugin.getDescription().getVersion(),
                 true,
-                !resolved(config.getString("core-api.auth-token", "")).isBlank() || envPresent("CI_CORE_TOKEN"),
-                !resolved(config.getString("core-api.admin-token", "")).isBlank() || envPresent("CI_ADMIN_TOKEN"),
-                configBoolean(config, "security.require-velocity-forwarding", true),
-                !resolved(config.getString("security.forwarding-secret", "")).isBlank() || envPresent("VELOCITY_FORWARDING_SECRET"),
-                configBoolean(config, "security.enforce-route-session", true) || configBoolean(config, "routing.require-route-session", true),
+                !resolved(config.coreApi().token()).isBlank() || envPresent("CI_CORE_TOKEN"),
+                !resolved(config.coreApi().adminToken()).isBlank() || envPresent("CI_ADMIN_TOKEN"),
+                config.security().requireVelocityForwarding(),
+                !resolved(config.security().forwardingSecret()).isBlank() || envPresent("VELOCITY_FORWARDING_SECRET"),
+                config.security().enforceRouteSession() || config.security().requireRouteSession(),
                 plugin.getServer().getOnlinePlayers().size(),
                 activeIslands,
                 activationQueue,
@@ -2109,24 +2060,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONSISTENCY_AUTHORITY_POLICY,
                 kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONTRACT_VERSION
             ));
-        }
-
-        private static boolean configBoolean(org.bukkit.configuration.file.FileConfiguration config, String path, boolean fallback) {
-            if (!config.contains(path)) {
-                return fallback;
-            }
-            Object raw = config.get(path);
-            if (raw instanceof Boolean value) {
-                return value;
-            }
-            String normalized = String.valueOf(raw).trim().toLowerCase(java.util.Locale.ROOT);
-            if (normalized.equals("true") || normalized.equals("yes") || normalized.equals("on") || normalized.equals("1") || normalized.equals("enable") || normalized.equals("enabled") || normalized.equals("켜기") || normalized.equals("허용") || normalized.equals("활성")) {
-                return true;
-            }
-            if (normalized.equals("false") || normalized.equals("no") || normalized.equals("off") || normalized.equals("0") || normalized.equals("disable") || normalized.equals("disabled") || normalized.equals("끄기") || normalized.equals("거부") || normalized.equals("비활성")) {
-                return false;
-            }
-            return fallback;
         }
 
         private static String resolved(String value) {
