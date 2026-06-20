@@ -92,7 +92,7 @@ final class PaperPluginBootstrap {
         plugin.integrationRegistry = PaperIntegrationRegistry.discover(plugin.getServer());
         plugin.localCaches = new LocalCacheManager();
         plugin.localCaches.registerStats("permissions", plugin.agent.permissionCache()::invalidateAll, plugin.agent.permissionCache()::lookupCount, plugin.agent.permissionCache()::hitRatio);
-        plugin.messages = new MessageRenderer(TranslationManager.fromConfig(plugin.getConfig(), config.serviceName()));
+        plugin.messages = new MessageRenderer(TranslationManager.fromSnapshot(config.messages(), config.serviceName()));
         plugin.playerLocales = new PlayerLocaleCache();
         plugin.agent.routeTickets().setMessages(plugin.messages);
         plugin.redisClient = PaperRedisClient.create(
@@ -139,7 +139,7 @@ final class PaperPluginBootstrap {
         if (config.guiEnabledForRole(role)) {
             IslandGuiMenuRegistrar.register(plugin, plugin.messages, guiActions);
         }
-        MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(plugin, plugin.getConfig()), PaperStorageFactory.backendName(plugin.getConfig())) : null;
+        MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(plugin, config.storage()), PaperStorageFactory.backendName(config.storage())) : null;
         plugin.islandStorage = storage;
         String supportedTemplates = config.node().supportedTemplatesCsv();
         String templateVersions = config.node().templateVersions();

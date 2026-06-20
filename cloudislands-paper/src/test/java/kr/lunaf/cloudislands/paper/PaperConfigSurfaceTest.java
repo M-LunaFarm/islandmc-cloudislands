@@ -67,16 +67,23 @@ class PaperConfigSurfaceTest {
         assertTrue(snapshot.contains("record Redis"), "Paper runtime config must expose typed Redis settings");
         assertTrue(snapshot.contains("record Security"), "Paper runtime config must expose typed security settings");
         assertTrue(snapshot.contains("record Routing"), "Paper runtime config must expose typed routing settings");
+        assertTrue(snapshot.contains("record Messages"), "Paper runtime config must expose typed message settings");
+        assertTrue(snapshot.contains("record Storage"), "Paper runtime config must expose typed storage settings");
         assertTrue(snapshot.contains("record Worker"), "Paper runtime config must expose typed island worker settings");
         assertTrue(loader.contains("node.id"), "Paper runtime config loader must own node paths");
         assertTrue(loader.contains("redis.uri"), "Paper runtime config loader must own Redis paths");
         assertTrue(loader.contains("routing.wait-for-activation-timeout-seconds"), "Paper runtime config loader must own routing paths");
+        assertTrue(loader.contains("messages.translations"), "Paper runtime config loader must own message paths");
+        assertTrue(loader.contains("setup.storage.type"), "Paper runtime config loader must own storage paths");
         assertTrue(loader.contains("heartbeat.interval-ticks"), "Paper runtime config loader must own heartbeat paths");
         assertTrue(loader.contains("health.enabled"), "Paper runtime config loader must own health paths");
         assertTrue(loader.contains("island-node.shard-count"), "Paper runtime config loader must own island worker paths");
+        assertEquals(1, countOccurrences(bootstrap, "plugin.getConfig()"), "Paper bootstrap may read Bukkit config only once to create the runtime snapshot");
         assertFalse(bootstrap.contains("getString(\"node.id\""), "node identity path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getString(\"redis.uri\""), "Redis path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getInt(\"routing.wait-for-activation-timeout-seconds\""), "routing wait path must live in PaperRuntimeConfigLoader");
+        assertFalse(bootstrap.contains("TranslationManager.fromConfig"), "message paths must live in PaperRuntimeConfigLoader");
+        assertFalse(bootstrap.contains("PaperStorageFactory.create(plugin, plugin.getConfig())"), "storage paths must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getLong(\"heartbeat.interval-ticks\""), "heartbeat path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getBoolean(\"health.enabled\""), "health path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getInt(\"island-node.shard-count\""), "island worker paths must live in PaperRuntimeConfigLoader");
@@ -85,6 +92,19 @@ class PaperConfigSurfaceTest {
     private boolean containsPath(String config, String path) {
         String[] parts = path.split("\\.");
         return config.contains(parts[parts.length - 1] + ":");
+    }
+
+    private int countOccurrences(String text, String pattern) {
+        int count = 0;
+        int offset = 0;
+        while (true) {
+            int next = text.indexOf(pattern, offset);
+            if (next < 0) {
+                return count;
+            }
+            count++;
+            offset = next + pattern.length();
+        }
     }
 
     private Map<String, String> flattenYaml(java.util.List<String> lines) {

@@ -2,16 +2,22 @@ package kr.lunaf.cloudislands.paper.config;
 
 import java.time.Duration;
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.paper.AgentRole;
+import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 public final class PaperRuntimeConfigLoader {
+    private static final String PRIMARY_STORAGE_TYPE_PATH = "setup.storage.type";
+    private static final String FALLBACK_STORAGE_TYPE_PATH = "setup.storage.fallback.type";
+
     private PaperRuntimeConfigLoader() {
     }
 
@@ -27,12 +33,69 @@ public final class PaperRuntimeConfigLoader {
             routing(config),
             protection(config),
             new PaperRuntimeConfig.Generator(string(config, "generators.default-key", "default")),
+            messages(config),
+            storage(config, resolver),
             worker(config),
             snapshots(config),
             new PaperRuntimeConfig.Health(config.getBoolean("health.enabled", false), string(config, "health.bind-host", "127.0.0.1"), config.getInt("health.port", 8787)),
             new PaperRuntimeConfig.Heartbeat(config.getLong("heartbeat.interval-ticks", 20L)),
             new PaperRuntimeConfig.Gui(booleanValue(config, "paper-gui.enabled", true), booleanValue(config, "paper-gui.island-node-enabled", true), booleanValue(config, "paper-gui.lobby-enabled", true))
         );
+    }
+
+    private static PaperRuntimeConfig.Messages messages(FileConfiguration config) {
+        Map<String, String> translations = new HashMap<>();
+        ConfigurationSection section = config.getConfigurationSection("messages.translations");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                String value = section.getString(key);
+                if (value != null) {
+                    translations.put(key, value);
+                }
+            }
+        }
+        List<String> scoreboardLines = config.getStringList("messages.scoreboard-lines");
+        return new PaperRuntimeConfig.Messages(
+            string(config, "plugin.language", "ko_kr"),
+            translations,
+            scoreboardLines
+        );
+    }
+
+    private static PaperRuntimeConfig.Storage storage(FileConfiguration config, Function<String, String> resolver) {
+        PaperRuntimeConfig.StorageTarget primary = storageTarget(config, resolver, false);
+        PaperRuntimeConfig.StorageTarget fallback = storageTarget(config, resolver, true);
+        return new PaperRuntimeConfig.Storage(
+            primary,
+            fallbackEnabled(config, primary.backend()),
+            fallback
+        );
+    }
+
+    private static PaperRuntimeConfig.StorageTarget storageTarget(FileConfiguration config, Function<String, String> resolver, boolean fallback) {
+        String prefix = fallback ? "storage.fallback." : "storage.";
+        String setupPrefix = fallback ? "setup.storage.fallback." : "setup.storage.";
+        String typePath = fallback ? FALLBACK_STORAGE_TYPE_PATH : PRIMARY_STORAGE_TYPE_PATH;
+        return new PaperRuntimeConfig.StorageTarget(
+            normalizeBackend(setupString(config, resolver, typePath, prefix + "type", fallback ? "LOCAL_FILESYSTEM" : "S3")),
+            setupString(config, resolver, setupPrefix + "endpoint", prefix + "endpoint", "http://minio.internal:9000"),
+            setupString(config, resolver, setupPrefix + "bucket", prefix + "bucket", "cloudislands"),
+            setupString(config, resolver, setupPrefix + "region", prefix + "region", "us-east-1"),
+            envOrConfig("S3_ACCESS_KEY", setupString(config, resolver, setupPrefix + "access-key", prefix + "access-key", "")),
+            envOrConfig("S3_SECRET_KEY", setupString(config, resolver, setupPrefix + "secret-key", prefix + "secret-key", "")),
+            envOrConfig("S3_BEARER_TOKEN", setupString(config, resolver, setupPrefix + "auth-token", prefix + "auth-token", "")),
+            setupString(config, resolver, setupPrefix + "local-path", prefix + "local-path", fallback ? "islands-storage-fallback" : "islands-storage")
+        );
+    }
+
+    private static boolean fallbackEnabled(FileConfiguration config, String primaryBackend) {
+        if (config.contains("setup.storage.fallback.enabled")) {
+            return config.getBoolean("setup.storage.fallback.enabled");
+        }
+        if (config.contains("storage.fallback.enabled")) {
+            return config.getBoolean("storage.fallback.enabled");
+        }
+        return StorageBackendPolicy.sharedBackend(primaryBackend);
     }
 
     private static PaperRuntimeConfig.Node node(FileConfiguration config) {
@@ -156,6 +219,21 @@ public final class PaperRuntimeConfigLoader {
             values.add(safeMetadata(key) + ":" + safeMetadata(version));
         }
         return String.join(",", values);
+    }
+
+    private static String normalizeBackend(String type) {
+        String normalized = StorageBackendPolicy.normalizeBackend(type);
+        return StorageBackendPolicy.supportedBackend(normalized)
+            ? normalized
+            : StorageBackendPolicy.fallbackTarget(normalized);
+    }
+
+    private static String envOrConfig(String envName, String configured) {
+        String envValue = System.getenv(envName);
+        if (envValue != null && !envValue.isBlank()) {
+            return envValue.trim();
+        }
+        return configured == null ? "" : configured.trim();
     }
 
     private static String safeMetadata(String value) {

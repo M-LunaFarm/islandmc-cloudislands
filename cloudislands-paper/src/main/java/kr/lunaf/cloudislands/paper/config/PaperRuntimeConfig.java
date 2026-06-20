@@ -16,6 +16,8 @@ public record PaperRuntimeConfig(
     Routing routing,
     Protection protection,
     Generator generator,
+    Messages messages,
+    Storage storage,
     Worker worker,
     SnapshotRetentionPolicy snapshots,
     Health health,
@@ -31,6 +33,8 @@ public record PaperRuntimeConfig(
         routing = routing == null ? Routing.defaults() : routing;
         protection = protection == null ? Protection.defaults() : protection;
         generator = generator == null ? Generator.defaults() : generator;
+        messages = messages == null ? Messages.defaults() : messages;
+        storage = storage == null ? Storage.defaults() : storage;
         worker = worker == null ? Worker.defaults() : worker;
         snapshots = snapshots == null ? new SnapshotRetentionPolicy(24, 7, 4, 50, true, "SHA-256").normalized() : snapshots.normalized();
         health = health == null ? Health.defaults() : health;
@@ -164,6 +168,61 @@ public record PaperRuntimeConfig(
 
         public static Generator defaults() {
             return new Generator("default");
+        }
+    }
+
+    public record Messages(String locale, Map<String, String> translations, List<String> scoreboardLines) {
+        public Messages {
+            locale = blankDefault(locale, "ko_kr");
+            translations = translations == null ? Map.of() : Map.copyOf(translations);
+            scoreboardLines = scoreboardLines == null || scoreboardLines.isEmpty()
+                ? List.of("플레이어: {player}", "접속: {online}명", "섬 이동: /섬", "방문: /섬 방문", "관리: /섬 설정")
+                : List.copyOf(scoreboardLines);
+        }
+
+        public static Messages defaults() {
+            return new Messages("ko_kr", Map.of(), List.of());
+        }
+    }
+
+    public record Storage(StorageTarget primary, boolean fallbackEnabled, StorageTarget fallback) {
+        public Storage {
+            primary = primary == null ? StorageTarget.s3Defaults() : primary;
+            fallback = fallback == null ? StorageTarget.localDefaults("islands-storage-fallback") : fallback;
+        }
+
+        public static Storage defaults() {
+            return new Storage(StorageTarget.s3Defaults(), true, StorageTarget.localDefaults("islands-storage-fallback"));
+        }
+    }
+
+    public record StorageTarget(
+        String backend,
+        String endpoint,
+        String bucket,
+        String region,
+        String accessKey,
+        String secretKey,
+        String bearerToken,
+        String localPath
+    ) {
+        public StorageTarget {
+            backend = blankDefault(backend, "S3");
+            endpoint = blankDefault(endpoint, "http://minio.internal:9000");
+            bucket = blankDefault(bucket, "cloudislands");
+            region = blankDefault(region, "us-east-1");
+            accessKey = accessKey == null ? "" : accessKey;
+            secretKey = secretKey == null ? "" : secretKey;
+            bearerToken = bearerToken == null ? "" : bearerToken;
+            localPath = blankDefault(localPath, "islands-storage");
+        }
+
+        public static StorageTarget s3Defaults() {
+            return new StorageTarget("S3", "http://minio.internal:9000", "cloudislands", "us-east-1", "", "", "", "islands-storage");
+        }
+
+        public static StorageTarget localDefaults(String path) {
+            return new StorageTarget("LOCAL_FILESYSTEM", "http://minio.internal:9000", "cloudislands", "us-east-1", "", "", "", path);
         }
     }
 

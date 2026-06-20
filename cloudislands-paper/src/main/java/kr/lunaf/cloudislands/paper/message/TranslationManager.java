@@ -6,8 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 
 public final class TranslationManager {
     private final String locale;
@@ -24,24 +23,21 @@ public final class TranslationManager {
         this.localeTranslations = copyLocaleTranslations(localeTranslations);
     }
 
-    public static TranslationManager fromConfig(FileConfiguration config, String serviceName) {
+    public static TranslationManager fromSnapshot(PaperRuntimeConfig.Messages config, String serviceName) {
         Map<String, String> values = defaults(serviceName);
-        ConfigurationSection section = config.getConfigurationSection("messages.translations");
-        if (section != null) {
-            for (String key : section.getKeys(false)) {
-                String value = section.getString(key);
-                if (value != null) {
-                    values.put(normalize(key), value);
-                }
+        PaperRuntimeConfig.Messages safeConfig = config == null ? PaperRuntimeConfig.Messages.defaults() : config;
+        for (Map.Entry<String, String> entry : safeConfig.translations().entrySet()) {
+            if (entry.getKey() != null && entry.getValue() != null) {
+                values.put(normalize(entry.getKey()), entry.getValue());
             }
         }
         Map<String, List<String>> lines = new HashMap<>();
         lines.put("scoreboard-lines", List.of("플레이어: {player}", "접속: {online}명", "섬 이동: /섬", "방문: /섬 방문", "관리: /섬 설정"));
-        List<String> configuredScoreboard = config.getStringList("messages.scoreboard-lines");
+        List<String> configuredScoreboard = safeConfig.scoreboardLines();
         if (!configuredScoreboard.isEmpty()) {
             lines.put("scoreboard-lines", configuredScoreboard);
         }
-        String configuredLocale = config.getString("plugin.language", "ko_kr");
+        String configuredLocale = safeConfig.locale();
         Map<String, Map<String, String>> localeValues = bundledLocales();
         String normalizedLocale = PlayerIslandProfile.normalizeLocale(configuredLocale);
         Map<String, String> configuredValues = new HashMap<>(localeValues.getOrDefault(normalizedLocale, Map.of()));
