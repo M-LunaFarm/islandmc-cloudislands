@@ -33,12 +33,9 @@ import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
-import kr.lunaf.cloudislands.paper.gui.DangerousGuiActionPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
@@ -214,6 +211,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandSettingsCommandHandler settingsCommands;
     private final IslandHomeWarpCommandHandler homeWarpCommands;
     private final IslandVisitReviewCommandHandler visitReviewCommands;
+    private final IslandLifecycleCommandHandler lifecycleCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -682,6 +680,52 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 IslandCommandBackend.this.routeTicket(player, ticketFuture, failureMessage);
             }
         });
+        this.lifecycleCommands = new IslandLifecycleCommandHandler(plugin, coreApiClient, new IslandLifecycleCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public String playerCodeMessage(String code, String fallback) {
+                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+            }
+
+            @Override
+            public String coreWriteFailureMessage(Throwable error, String fallback) {
+                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+            }
+
+            @Override
+            public String actionResultMessage(String label, UUID targetId, String body) {
+                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+        });
         this.messages = messages;
         this.locales = locales;
         this.configuredNodeId = configuredNodeId == null || configuredNodeId.isBlank() ? "island-1" : configuredNodeId;
@@ -717,14 +761,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
             return true;
         }
-        if (subcommand.equals("create-menu") || subcommand.equals("templates") || subcommand.equals("생성메뉴") || subcommand.equals("템플릿")) {
-            IslandCreateMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            return true;
-        }
-        if (subcommand.equals("create") || subcommand.equals("생성")) {
-            createIsland(player, args.length > 1 ? args[1] : "default");
-            return true;
-        }
         if (subcommand.equals("info") || subcommand.equals("정보")) {
             openIslandInfoMenu(player);
             return true;
@@ -733,24 +769,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             IslandMyIslandsMenu.open(plugin, coreApiClient, player, messagesFor(player));
             return true;
         }
-        if (subcommand.equals("delete") || subcommand.equals("삭제")) {
-            if (args.length > 1 && args[1].equalsIgnoreCase("confirm")) {
-                deleteIsland(player);
-            } else {
-                IslandDangerMenu.open(player, messagesFor(player));
-            }
-            return true;
-        }
-        if (subcommand.equals("reset") || subcommand.equals("리셋")) {
-            if (args.length > 1 && args[1].equalsIgnoreCase("confirm")) {
-                resetIsland(player, args.length > 2 ? joined(args, 2) : "player-reset");
-            } else {
-                IslandDangerMenu.open(player, messagesFor(player));
-            }
-            return true;
-        }
-        if (subcommand.equals("danger") || subcommand.equals("위험작업")) {
-            IslandDangerMenu.open(player, messagesFor(player));
+        if (lifecycleCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (homeWarpCommands.handleCommand(player, subcommand, args)) {
@@ -1015,10 +1034,11 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (visitReviewCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
             return;
         }
+        if (lifecycleCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
+            return;
+        }
         switch (actionId) {
             case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
-            case "island.create.open" -> IslandCreateMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            case "island.create" -> createIsland(player, data.getOrDefault("templateId", "default"));
             case "island.info.open" -> openIslandInfoMenu(player);
             case "island.list.open" -> IslandMyIslandsMenu.open(plugin, coreApiClient, player, messagesFor(player));
             case "island.members.open" -> openIslandMemberMenu(player);
@@ -1103,19 +1123,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             case "island.roles.open" -> openIslandRoleMenu(player);
             case "island.role.weight.adjust" -> adjustIslandRoleWeight(player, data.getOrDefault("role", ""), data.getOrDefault("weight", "0"), data.getOrDefault("displayName", ""), click);
             case "island.roles.list" -> listIslandRoles(player);
-            case "island.danger.open" -> IslandDangerMenu.open(player, messagesFor(player));
-            case "island.danger.reset.prepare" -> IslandDangerMenu.openResetConfirm(player, messagesFor(player));
-            case "island.danger.delete.prepare" -> IslandDangerMenu.openDeleteConfirm(player, messagesFor(player));
-            case "island.danger.reset.confirm" -> {
-                if (dangerConfirmed(player, data, click, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN)) {
-                    resetIsland(player, data.getOrDefault("reason", "player-reset"));
-                }
-            }
-            case "island.danger.delete.confirm" -> {
-                if (dangerConfirmed(player, data, click, DangerousGuiActionPolicy.DELETE_OPERATION, DangerousGuiActionPolicy.DELETE_TOKEN)) {
-                    deleteIsland(player);
-                }
-            }
             case "admin.node.open" -> openAdminNodeMenu(player, adminNodeId(data));
             case "admin.node.list" -> listAdminNodes(player);
             case "admin.node.info" -> refreshAdminNodeInfo(player, adminNodeId(data));
@@ -1163,14 +1170,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             return true;
         }
         message(player, routeMessage("confirmation-token-invalid", "확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));
-        return false;
-    }
-
-    private boolean dangerConfirmed(Player player, Map<String, String> data, GuiClick click, String operation, String token) {
-        if (DangerousGuiActionPolicy.confirmed(data, click, operation, token)) {
-            return true;
-        }
-        message(player, routeMessage("danger-confirm-token-invalid", "위험 작업 확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));
         return false;
     }
 
@@ -1322,49 +1321,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             return helpPage(args, 1);
         }
         return 0;
-    }
-
-    private void createIsland(Player player, String templateId) {
-        mutate("island.create", () -> coreApiClient.createIsland(player.getUniqueId(), templateId))
-            .thenAccept(result -> {
-                if (!result.accepted()) {
-                    message(player, playerCodeMessage(result.code(), "섬 생성을 시작하지 못했습니다."));
-                    return;
-                }
-                message(player, "섬 생성을 시작했습니다.");
-            })
-            .exceptionally(error -> {
-                message(player, coreWriteFailureMessage(error, "섬 생성을 시작하지 못했습니다."));
-                return null;
-            });
-    }
-
-    private void deleteIsland(Player player) {
-        currentIsland(player, "섬 안에서만 섬을 삭제할 수 있습니다.").ifPresent(islandId -> {
-            mutateIdempotent("island.delete", () -> coreApiClient.deleteIsland(player.getUniqueId(), islandId))
-                .thenAccept(result -> {
-                    if (!result.accepted()) {
-                        message(player, playerCodeMessage(result.code(), "섬을 삭제하지 못했습니다."));
-                        return;
-                    }
-                    message(player, "섬 삭제를 요청했습니다.");
-                })
-                .exceptionally(error -> {
-                    message(player, coreWriteFailureMessage(error, "섬을 삭제하지 못했습니다."));
-                    return null;
-                });
-        });
-    }
-
-    private void resetIsland(Player player, String reason) {
-        currentIsland(player, "섬 안에서만 섬을 리셋할 수 있습니다.").ifPresent(islandId -> {
-            mutateIdempotent("island.reset", () -> coreApiClient.resetIslandResult(islandId, player.getUniqueId(), reason))
-                .thenAccept(body -> message(player, actionResultMessage("섬 리셋 요청", islandId, body)))
-                .exceptionally(error -> {
-                    message(player, coreWriteFailureMessage(error, "섬을 리셋하지 못했습니다."));
-                    return null;
-                });
-        });
     }
 
     private void routeWarp(Player player, UUID islandId, String warpName) {

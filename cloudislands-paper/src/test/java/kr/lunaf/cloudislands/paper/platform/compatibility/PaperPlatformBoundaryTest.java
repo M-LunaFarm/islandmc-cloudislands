@@ -661,8 +661,8 @@ class PaperPlatformBoundaryTest {
             })
             .reduce((left, right) -> left + "\n" + right)
             .orElse("");
-        assertTrue(commandBackend.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
-        assertTrue(commandBackend.contains("DangerousGuiActionPolicy.confirmed"), "Dangerous GUI mutations must verify a confirmation token");
+        assertTrue(commandActions.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
+        assertTrue(commandActions.contains("DangerousGuiActionPolicy.confirmed"), "Dangerous GUI mutations must verify a confirmation token");
         assertTrue(commandBackend.contains("ConfirmationTokenPolicy.withToken"), "General confirmation menus must attach confirmation tokens");
         assertTrue(commandBackend.contains("confirmationAccepted(player, \"island.member.remove.confirm\""), "Member removal must verify a confirmation token");
         assertTrue(commandActions.contains("confirmationAccepted(player, \"island.snapshot.restore.confirm\""), "Snapshot restore must verify a confirmation token");

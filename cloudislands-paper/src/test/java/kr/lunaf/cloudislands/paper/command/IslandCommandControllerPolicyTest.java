@@ -193,4 +193,24 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.contains("coreApiClient.listPublicIslands"));
         assertTrue(visitReviewHandler.contains("coreApiClient.setIslandReview"));
     }
+
+    @Test
+    void lifecycleCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String lifecycleHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandLifecycleCommandHandler lifecycleCommands;"));
+        assertTrue(backend.contains("lifecycleCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("lifecycleCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("createIsland("), "island creation logic belongs in IslandLifecycleCommandHandler");
+        assertFalse(backend.contains("deleteIsland("), "island deletion logic belongs in IslandLifecycleCommandHandler");
+        assertFalse(backend.contains("resetIsland("), "island reset logic belongs in IslandLifecycleCommandHandler");
+        assertFalse(backend.contains("dangerConfirmed("), "danger confirmation logic belongs in IslandLifecycleCommandHandler");
+        assertTrue(lifecycleHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(lifecycleHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click)"));
+        assertTrue(lifecycleHandler.contains("coreApiClient.createIsland"));
+        assertTrue(lifecycleHandler.contains("coreApiClient.deleteIsland"));
+        assertTrue(lifecycleHandler.contains("coreApiClient.resetIslandResult"));
+        assertTrue(lifecycleHandler.contains("DangerousGuiActionPolicy.confirmed"));
+    }
 }
