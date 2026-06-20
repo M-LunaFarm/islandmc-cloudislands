@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.IslandPermissionOverrideSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
@@ -27,40 +28,58 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
     @Override
     public void put(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
         delegate.put(islandId, role, permission, allowed);
-        cache(islandId, delegate.list(islandId));
+        cache(islandId, delegate.list(islandId), delegate.listPlayerOverrides(islandId));
     }
 
     @Override
     public List<IslandPermissionRuleSnapshot> list(UUID islandId) {
-        Optional<List<IslandPermissionRuleSnapshot>> cached = cachedRules(islandId);
+        Optional<CachedRules> cached = cachedRules(islandId);
         if (cached.isPresent()) {
-            return cached.get();
+            return cached.get().rules();
         }
         List<IslandPermissionRuleSnapshot> rules = delegate.list(islandId);
-        cache(islandId, rules);
+        cache(islandId, rules, delegate.listPlayerOverrides(islandId));
         return rules;
+    }
+
+    @Override
+    public void putPlayerOverride(UUID islandId, UUID playerUuid, IslandPermission permission, boolean allowed) {
+        delegate.putPlayerOverride(islandId, playerUuid, permission, allowed);
+        cache(islandId, delegate.list(islandId), delegate.listPlayerOverrides(islandId));
+    }
+
+    @Override
+    public List<IslandPermissionOverrideSnapshot> listPlayerOverrides(UUID islandId) {
+        Optional<CachedRules> cached = cachedRules(islandId);
+        if (cached.isPresent()) {
+            return cached.get().overrides();
+        }
+        List<IslandPermissionRuleSnapshot> rules = delegate.list(islandId);
+        List<IslandPermissionOverrideSnapshot> overrides = delegate.listPlayerOverrides(islandId);
+        cache(islandId, rules, overrides);
+        return overrides;
     }
 
     public long failuresTotal() {
         return failures.get();
     }
 
-    private void cache(UUID islandId, List<IslandPermissionRuleSnapshot> rules) {
+    private void cache(UUID islandId, List<IslandPermissionRuleSnapshot> rules, List<IslandPermissionOverrideSnapshot> overrides) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.islandPermissions(islandId), rulesJson(rules));
+            redis.command("SET", RedisKeys.islandPermissions(islandId), rulesJson(rules, overrides));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
     }
 
-    private Optional<List<IslandPermissionRuleSnapshot>> cachedRules(UUID islandId) {
+    private Optional<CachedRules> cachedRules(UUID islandId) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             String json = redis.command("GET", RedisKeys.islandPermissions(islandId));
             if (json == null || json.isBlank()) {
                 return Optional.empty();
             }
             List<IslandPermissionRuleSnapshot> rules = new ArrayList<>();
-            for (String object : objects(json)) {
+            for (String object : objects(arrayBody(json, "rules"))) {
                 rules.add(new IslandPermissionRuleSnapshot(
                     JsonFields.uuid(object, "islandId", islandId),
                     JsonFields.enumValue(IslandRole.class, object, "role", IslandRole.VISITOR),
@@ -68,15 +87,24 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
                     JsonFields.bool(object, "allowed", false)
                 ));
             }
-            return Optional.of(List.copyOf(rules));
+            List<IslandPermissionOverrideSnapshot> overrides = new ArrayList<>();
+            for (String object : objects(arrayBody(json, "overrides"))) {
+                overrides.add(new IslandPermissionOverrideSnapshot(
+                    JsonFields.uuid(object, "islandId", islandId),
+                    JsonFields.uuid(object, "playerUuid", new UUID(0L, 0L)),
+                    JsonFields.enumValue(IslandPermission.class, object, "permission", IslandPermission.INTERACT),
+                    JsonFields.bool(object, "allowed", false)
+                ));
+            }
+            return Optional.of(new CachedRules(List.copyOf(rules), List.copyOf(overrides)));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
             return Optional.empty();
         }
     }
 
-    private static String rulesJson(List<IslandPermissionRuleSnapshot> rules) {
-        StringBuilder builder = new StringBuilder("[");
+    private static String rulesJson(List<IslandPermissionRuleSnapshot> rules, List<IslandPermissionOverrideSnapshot> overrides) {
+        StringBuilder builder = new StringBuilder("{\"rules\":[");
         boolean first = true;
         for (IslandPermissionRuleSnapshot rule : rules) {
             if (!first) {
@@ -90,7 +118,42 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
                 .append("\"allowed\":").append(rule.allowed())
                 .append('}');
         }
-        return builder.append(']').toString();
+        builder.append("],\"overrides\":[");
+        first = true;
+        for (IslandPermissionOverrideSnapshot override : overrides) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"islandId\":\"").append(override.islandId()).append("\",")
+                .append("\"playerUuid\":\"").append(override.playerUuid()).append("\",")
+                .append("\"permission\":\"").append(override.permission().name()).append("\",")
+                .append("\"allowed\":").append(override.allowed())
+                .append('}');
+        }
+        return builder.append("]}").toString();
+    }
+
+    private static String arrayBody(String json, String field) {
+        int fieldStart = json.indexOf("\"" + field + "\":[");
+        if (fieldStart < 0) {
+            return "";
+        }
+        int start = json.indexOf('[', fieldStart);
+        int depth = 0;
+        for (int index = start; index < json.length(); index++) {
+            char current = json.charAt(index);
+            if (current == '[') {
+                depth++;
+            } else if (current == ']') {
+                depth--;
+                if (depth == 0) {
+                    return json.substring(start + 1, index);
+                }
+            }
+        }
+        return "";
     }
 
     private static List<String> objects(String json) {
@@ -143,4 +206,6 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
         }
         return -1;
     }
+
+    private record CachedRules(List<IslandPermissionRuleSnapshot> rules, List<IslandPermissionOverrideSnapshot> overrides) {}
 }

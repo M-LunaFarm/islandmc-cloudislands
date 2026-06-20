@@ -24,13 +24,20 @@ public final class LocalIslandPermissionCache {
         islands.computeIfAbsent(islandId, ignored -> empty()).permissions().put(role, permission, allowed);
     }
 
+    public void putPlayerOverride(UUID islandId, UUID playerUuid, IslandPermission permission, boolean allowed) {
+        islands.computeIfAbsent(islandId, ignored -> empty())
+            .overrides()
+            .computeIfAbsent(playerUuid, ignored -> new ConcurrentHashMap<>())
+            .put(permission, allowed);
+    }
+
     public void putFlag(UUID islandId, IslandFlag flag, String value) {
         islands.computeIfAbsent(islandId, ignored -> empty()).flags().put(flag, value == null ? "" : value);
     }
 
     public boolean allowed(UUID islandId, UUID playerUuid, IslandPermission permission, boolean adminBypass) {
         CachedIslandPermissions cached = cached(islandId);
-        return new PermissionResolver(cached.permissions(), cached.roles()).check(playerUuid, permission, adminBypass).allowed();
+        return new PermissionResolver(cached.permissions(), cached.roles(), cached.overrides()).check(playerUuid, permission, adminBypass).allowed();
     }
 
     public IslandRole role(UUID islandId, UUID playerUuid) {
@@ -74,7 +81,7 @@ public final class LocalIslandPermissionCache {
     }
 
     private CachedIslandPermissions empty() {
-        return new CachedIslandPermissions(DefaultIslandPermissions.create(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+        return new CachedIslandPermissions(DefaultIslandPermissions.create(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
     }
 
     private CachedIslandPermissions cached(UUID islandId) {
@@ -87,5 +94,5 @@ public final class LocalIslandPermissionCache {
         return islands.computeIfAbsent(islandId, ignored -> empty());
     }
 
-    private record CachedIslandPermissions(CachedPermissionSet permissions, Map<UUID, IslandRole> roles, Map<IslandFlag, String> flags) {}
+    private record CachedIslandPermissions(CachedPermissionSet permissions, Map<UUID, IslandRole> roles, Map<IslandFlag, String> flags, Map<UUID, Map<IslandPermission, Boolean>> overrides) {}
 }

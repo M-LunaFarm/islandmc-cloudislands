@@ -56,9 +56,19 @@ public final class PermissionCacheSyncService {
     }
 
     private void loadRules(UUID islandId, String json) {
-        for (Map<?, ?> object : objects(json, "permissions")) {
+        List<Map<?, ?>> rules = objects(json, "rules");
+        if (rules.isEmpty()) {
+            rules = objects(json, "permissions");
+        }
+        for (Map<?, ?> object : rules) {
             try {
                 cache.putRule(islandId, IslandRole.valueOf(text(object, "role")), IslandPermission.valueOf(text(object, "permission")), bool(object, "allowed"));
+            } catch (RuntimeException ignored) {
+            }
+        }
+        for (Map<?, ?> object : objects(json, "overrides")) {
+            try {
+                cache.putPlayerOverride(islandId, UUID.fromString(text(object, "playerUuid")), IslandPermission.valueOf(text(object, "permission")), bool(object, "allowed"));
             } catch (RuntimeException ignored) {
             }
         }

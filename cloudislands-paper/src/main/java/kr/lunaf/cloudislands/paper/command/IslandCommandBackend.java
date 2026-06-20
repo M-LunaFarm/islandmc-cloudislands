@@ -118,7 +118,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "banlist", "밴목록",
         "settings", "setting", "설정", "name", "setname", "rename", "이름", "이름설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
-        "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "권한", "권한설정", "권한목록"
+        "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "permission-exception", "permission-exception-list", "권한", "권한설정", "권한목록", "권한예외", "권한예외목록"
     );
     private static final List<String> HELP_COMMANDS = List.of(
         "섬 help [page]",
@@ -313,6 +313,9 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
                 return literalMatches(List.of("MEMBER", "TRUSTED", "MODERATOR", "VISITOR", "CUSTOM_1", "CUSTOM_2", "CUSTOM_3", "CUSTOM_4", "CUSTOM_5"), args[1]);
             }
+            if (first.equals("permission-exception") || first.equals("권한예외")) {
+                return onlinePlayerMatches(args[1]);
+            }
             if (first.equals("role-upsert") || first.equals("role-edit") || first.equals("역할편집")) {
                 return literalMatches(memberRoleNames(), args[1]);
             }
@@ -325,6 +328,12 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
             return literalMatches(permissionNames(), args[2]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("permission-exception") || args[0].equals("권한예외"))) {
+            return literalMatches(permissionNames(), args[2]);
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("permission-exception") || args[0].equals("권한예외"))) {
+            return literalMatches(List.of("true", "false", "on", "off", "허용", "거부"), args[3]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정"))) {
             return literalMatches(memberRoleNames(), args[2]);
@@ -1125,6 +1134,18 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         }
         if (subcommand.equals("permission-list") || subcommand.equals("권한목록")) {
             listIslandPermissions(player);
+            return true;
+        }
+        if (subcommand.equals("permission-exception-list") || subcommand.equals("권한예외목록")) {
+            listIslandPermissions(player);
+            return true;
+        }
+        if (subcommand.equals("permission-exception") || subcommand.equals("권한예외")) {
+            if (args.length < 4) {
+                message(player, "플레이어, 권한, 허용 여부를 입력해주세요. 예: /섬 권한예외 Steve BUILD 허용");
+                return true;
+            }
+            setIslandPermissionOverride(player, args[1], args[2], args[3]);
             return true;
         }
         if (subcommand.equals("setpermission") || subcommand.equals("permission-set") || subcommand.equals("권한설정")) {
@@ -3045,6 +3066,29 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         });
     }
 
+    private void setIslandPermissionOverride(Player player, String target, String permissionName, String allowedValue) {
+        currentIsland(player, "섬 안에서만 권한 예외를 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
+                message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
+                return;
+            }
+            IslandPermission permission = islandPermission(permissionName);
+            if (permission == null) {
+                message(player, routeMessage("input-permission-set-invalid", "올바른 권한을 입력해주세요."));
+                return;
+            }
+            boolean allowed = booleanValue(allowedValue);
+            resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                mutate("island.permission.override.set", () -> coreApiClient.setIslandPermissionOverride(islandId, player.getUniqueId(), targetUuid, permission, allowed))
+                    .thenAccept(body -> message(player, actionResultMessage("섬 권한 예외 변경 " + permission.name() + "=" + allowed, targetUuid, body)))
+                    .exceptionally(error -> {
+                        message(player, coreWriteFailureMessage(error, "섬 권한 예외를 변경하지 못했습니다."));
+                        return null;
+                    });
+            });
+        });
+    }
+
     private void openIslandSettings(Player player) {
         currentIsland(player, "섬 안에서만 설정 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSettingsMenu.open(plugin, coreApiClient, player, islandId, messages));
     }
@@ -3561,6 +3605,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
 
     private String permissionListMessage(String body) {
         List<String> entries = new ArrayList<>();
+        List<String> overrides = new ArrayList<>();
         int index = 0;
         while (body != null && index < body.length()) {
             int objectStart = body.indexOf('{', index);
@@ -3576,10 +3621,16 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             String permission = text(object, "permission");
             if (!role.isBlank() && !permission.isBlank()) {
                 entries.add(role + ":" + permission + "=" + (bool(object, "allowed") ? "허용" : "거부"));
+            } else {
+                String playerUuid = text(object, "playerUuid");
+                if (!playerUuid.isBlank() && !permission.isBlank()) {
+                    overrides.add(compactId(playerUuid) + ":" + permission + "=" + (bool(object, "allowed") ? "허용" : "거부"));
+                }
             }
             index = objectEnd + 1;
         }
-        return entries.isEmpty() ? "섬 권한 규칙이 없습니다." : "섬 권한: " + String.join(", ", entries);
+        String base = entries.isEmpty() ? "섬 권한 규칙이 없습니다." : "섬 권한: " + String.join(", ", entries);
+        return overrides.isEmpty() ? base : base + " / 예외: " + String.join(", ", overrides);
     }
 
     private String roleListMessage(String body) {

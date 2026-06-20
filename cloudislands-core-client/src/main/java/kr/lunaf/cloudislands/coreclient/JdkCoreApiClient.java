@@ -316,6 +316,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> setIslandPermissionOverride(UUID islandId, UUID actorUuid, UUID playerUuid, IslandPermission permission, boolean allowed) {
+        return postWithResultBody("/v1/islands/permissions/overrides/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"permission\":\"" + permission.name() + "\",\"allowed\":" + allowed + "}");
+    }
+
+    @Override
     public CompletableFuture<String> listIslandRoles(UUID islandId) {
         return get("/v1/islands/" + islandId + "/roles");
     }

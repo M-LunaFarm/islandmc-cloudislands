@@ -133,6 +133,18 @@ CREATE TABLE IF NOT EXISTS island_permissions (
     CONSTRAINT chk_island_permissions_key_trimmed CHECK (permission_key = trim(permission_key))
 );
 
+CREATE TABLE IF NOT EXISTS island_permission_overrides (
+    island_id CHAR(36) NOT NULL,
+    player_uuid CHAR(36) NOT NULL,
+    permission_key VARCHAR(64) NOT NULL,
+    value BOOLEAN NOT NULL,
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (island_id, player_uuid, permission_key),
+    CONSTRAINT fk_island_permission_overrides_island FOREIGN KEY (island_id) REFERENCES islands(id),
+    CONSTRAINT chk_island_permission_overrides_key_not_blank CHECK (trim(permission_key) <> ''),
+    CONSTRAINT chk_island_permission_overrides_key_trimmed CHECK (permission_key = trim(permission_key))
+);
+
 CREATE TABLE IF NOT EXISTS island_flags (
     island_id CHAR(36) NOT NULL,
     flag_key VARCHAR(64) NOT NULL,

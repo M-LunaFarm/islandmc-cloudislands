@@ -127,7 +127,7 @@ public final class IslandQueryRoutes {
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/permissions")) {
             UUID islandId = uuidPath(tail.substring(0, tail.length() - "/permissions".length()));
-            CoreHttpResponses.write(exchange, 200, PermissionRoleRoutes.permissionsJson(permissionRules.list(islandId)));
+            CoreHttpResponses.write(exchange, 200, PermissionRoleRoutes.permissionsJson(permissionRules.list(islandId), permissionRules.listPlayerOverrides(islandId)));
             return;
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/roles")) {

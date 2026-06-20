@@ -13,8 +13,6 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
-import kr.lunaf.cloudislands.common.permission.CachedPermissionSet;
-import kr.lunaf.cloudislands.common.permission.defaults.DefaultIslandPermissions;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -182,12 +180,8 @@ public final class IslandWarpRoutes implements RouteGroup {
         boolean owner = islandRepository.findById(islandId)
             .map(island -> island.ownerUuid().equals(actorUuid))
             .orElse(false);
-        CachedPermissionSet permissions = DefaultIslandPermissions.create();
-        for (var rule : permissionRules.list(islandId)) {
-            permissions.put(rule.role(), rule.permission(), rule.allowed());
-        }
         boolean allowed = metadataRepository.members(islandId).stream()
-            .anyMatch(member -> member.playerUuid().equals(actorUuid) && permissions.allowed(member.role(), permission));
+            .anyMatch(member -> member.playerUuid().equals(actorUuid) && permissionRules.allowed(islandId, actorUuid, member.role(), permission));
         boolean accepted = owner || allowed;
         events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHECKED.name(), Map.of(
             "islandId", islandId.toString(),

@@ -53,6 +53,15 @@ CREATE TABLE island_permissions (
     PRIMARY KEY (island_id, role, permission_key)
 );
 
+CREATE TABLE island_permission_overrides (
+    island_id UUID NOT NULL REFERENCES islands(id),
+    player_uuid UUID NOT NULL,
+    permission_key VARCHAR(64) NOT NULL,
+    value BOOLEAN NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (island_id, player_uuid, permission_key)
+);
+
 CREATE TABLE island_flags (
     island_id UUID NOT NULL REFERENCES islands(id),
     flag_key VARCHAR(64) NOT NULL,

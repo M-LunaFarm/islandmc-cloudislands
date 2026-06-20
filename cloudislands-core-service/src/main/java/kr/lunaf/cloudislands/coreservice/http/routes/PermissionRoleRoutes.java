@@ -5,12 +5,11 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.IslandPermissionOverrideSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
-import kr.lunaf.cloudislands.common.permission.CachedPermissionSet;
-import kr.lunaf.cloudislands.common.permission.defaults.DefaultIslandPermissions;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -56,6 +55,7 @@ public final class PermissionRoleRoutes implements RouteGroup {
     public void register(CoreRouteRegistry registry) {
         registry.route("/v1/islands/permissions", this::permissions);
         registry.route("/v1/islands/permissions/set", this::setPermission);
+        registry.route("/v1/islands/permissions/overrides/set", this::setPermissionOverride);
         registry.route("/v1/islands/roles", this::roles);
         registry.route("/v1/islands/roles/upsert", this::upsertRole);
         registry.route("/v1/islands/roles/reset", this::resetRole);
@@ -63,7 +63,8 @@ public final class PermissionRoleRoutes implements RouteGroup {
 
     private void permissions(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
-        CoreHttpResponses.write(exchange, 200, permissionsJson(permissionRules.list(JsonFields.uuid(body, "islandId", EMPTY_UUID))));
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        CoreHttpResponses.write(exchange, 200, permissionsJson(permissionRules.list(islandId), permissionRules.listPlayerOverrides(islandId)));
     }
 
     private void setPermission(HttpExchange exchange) throws IOException {
@@ -81,6 +82,23 @@ public final class PermissionRoleRoutes implements RouteGroup {
         islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_SET", Map.of("role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
         events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", role.name(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+    }
+
+    private void setPermissionOverride(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        IslandPermission permission = JsonFields.enumValue(IslandPermission.class, body, "permission", IslandPermission.BUILD);
+        boolean allowed = JsonFields.bool(body, "allowed", false);
+        UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
+        if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
+            return;
+        }
+        permissionRules.putPlayerOverride(islandId, playerUuid, permission, allowed);
+        audit.log(actorUuid, "PLAYER", "ISLAND_PERMISSION_OVERRIDE_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
+        islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_OVERRIDE_SET", Map.of("playerUuid", playerUuid.toString(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
+        events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "permission", permission.name(), "allowed", Boolean.toString(allowed), "scope", "PLAYER"));
+        CoreHttpResponses.write(exchange, 202, "{\"accepted\":true,\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\",\"permission\":\"" + permission.name() + "\",\"allowed\":" + allowed + "}");
     }
 
     private void roles(HttpExchange exchange) throws IOException {
@@ -132,12 +150,8 @@ public final class PermissionRoleRoutes implements RouteGroup {
         boolean owner = islandRepository.findById(islandId)
             .map(island -> island.ownerUuid().equals(actorUuid))
             .orElse(false);
-        CachedPermissionSet permissions = DefaultIslandPermissions.create();
-        for (var rule : permissionRules.list(islandId)) {
-            permissions.put(rule.role(), rule.permission(), rule.allowed());
-        }
         boolean allowed = metadataRepository.members(islandId).stream()
-            .anyMatch(member -> member.playerUuid().equals(actorUuid) && permissions.allowed(member.role(), permission));
+            .anyMatch(member -> member.playerUuid().equals(actorUuid) && permissionRules.allowed(islandId, actorUuid, member.role(), permission));
         boolean accepted = owner || allowed;
         events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHECKED.name(), Map.of(
             "islandId", islandId.toString(),
@@ -153,6 +167,10 @@ public final class PermissionRoleRoutes implements RouteGroup {
     }
 
     static String permissionsJson(java.util.List<IslandPermissionRuleSnapshot> rules) {
+        return permissionsJson(rules, java.util.List.of());
+    }
+
+    static String permissionsJson(java.util.List<IslandPermissionRuleSnapshot> rules, java.util.List<IslandPermissionOverrideSnapshot> overrides) {
         StringBuilder builder = new StringBuilder("{\"rules\":[");
         boolean first = true;
         for (IslandPermissionRuleSnapshot rule : rules) {
@@ -165,6 +183,20 @@ public final class PermissionRoleRoutes implements RouteGroup {
                 .append("\"role\":\"").append(rule.role().name()).append("\",")
                 .append("\"permission\":\"").append(rule.permission().name()).append("\",")
                 .append("\"allowed\":").append(rule.allowed())
+                .append('}');
+        }
+        builder.append("],\"overrides\":[");
+        first = true;
+        for (IslandPermissionOverrideSnapshot override : overrides) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"islandId\":\"").append(override.islandId()).append("\",")
+                .append("\"playerUuid\":\"").append(override.playerUuid()).append("\",")
+                .append("\"permission\":\"").append(override.permission().name()).append("\",")
+                .append("\"allowed\":").append(override.allowed())
                 .append('}');
         }
         return builder.append("]}").toString();
