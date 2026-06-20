@@ -65,6 +65,7 @@ class PaperConfigSurfaceTest {
         String addonStore = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperAddonConfigStore.java"), StandardCharsets.UTF_8);
         String addonFile = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperAddonConfigFile.java"), StandardCharsets.UTF_8);
         String agent = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/CloudIslandsPaperAgent.java"), StandardCharsets.UTF_8);
+        String admin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"), StandardCharsets.UTF_8);
 
         assertTrue(bootstrap.contains("PaperRuntimeConfigLoader.load"), "Paper bootstrap must create a runtime config snapshot");
         assertTrue(snapshot.contains("record PaperRuntimeConfig"), "Paper runtime config must be immutable snapshot data");
@@ -103,7 +104,9 @@ class PaperConfigSurfaceTest {
         assertTrue(plugin.contains("PaperRuntimeConfig runtimeConfig"), "Paper plugin must retain the active runtime config snapshot");
         assertFalse(plugin.contains("boolean configBoolean("), "Paper plugin helpers must not parse runtime booleans from Bukkit config");
         assertFalse(commands.contains("plugin.getConfig().getString(\"node.id\""), "commands must use the runtime snapshot for node identity");
-        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"), StandardCharsets.UTF_8).contains("agent.getConfig()"), "admin commands must not read Bukkit config through the agent");
+        assertFalse(admin.contains("agent.getConfig()"), "admin commands must not read Bukkit config through the agent");
+        assertFalse(admin.contains("agent.plugin().reloadConfig()"), "admin commands must refresh the runtime config snapshot instead of only reloading Bukkit config");
+        assertTrue(admin.contains("plugin.reloadRuntimeConfig()"), "admin config reload must refresh the active runtime config snapshot");
         assertFalse(api.contains("new StatusService(agent)"), "status API must receive the runtime config snapshot");
         assertFalse(api.contains("boolean configBoolean("), "Paper API services must not keep duplicate runtime boolean parsers");
         assertFalse(api.contains("config.getString(\"node.id\""), "status API must use the runtime snapshot for node identity");
@@ -113,6 +116,8 @@ class PaperConfigSurfaceTest {
         assertTrue(addonStore.contains("PaperAddonConfigSnapshot"), "Paper addon config store must keep addon settings snapshot-backed");
         assertTrue(addonFile.contains("plugin.getConfig()"), "Bukkit config access must be isolated to the dedicated addon config file adapter");
         assertFalse(agent.contains("getConfig()"), "Paper agent must not expose a Bukkit config accessor");
+        assertTrue(plugin.contains("reloadRuntimeConfig()"), "Paper plugin must expose one runtime snapshot reload boundary");
+        assertTrue(plugin.contains("PaperRuntimeConfigLoader.load(this, this::resolveEnv)"), "runtime reload must use the same Config v2 loader as bootstrap");
     }
 
     private boolean containsPath(String config, String path) {

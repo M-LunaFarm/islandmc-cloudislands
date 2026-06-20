@@ -25,6 +25,7 @@ import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.command.PaperCommandRegistrar;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigLoader;
 import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
@@ -186,6 +187,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public PaperRuntimeConfig runtimeConfig() {
         return runtimeConfig == null ? PaperRuntimeConfig.defaults() : runtimeConfig;
+    }
+
+    public PaperRuntimeConfig reloadRuntimeConfig() {
+        reloadConfig();
+        runtimeConfig = PaperRuntimeConfigLoader.load(this, this::resolveEnv);
+        return runtimeConfig();
     }
 
     boolean guiEnabledForRole(AgentRole role) {

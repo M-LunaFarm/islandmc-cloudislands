@@ -54,7 +54,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("ConfigV2Validator.validateYaml"), "Config validate must run schema and secret validation");
         assertTrue(source.contains("ConfigV2Validator.redactYaml"), "Effective config output must redact secrets");
         assertTrue(source.contains("if (!validation.valid())"), "Config reload must keep the current config when validation fails");
-        assertTrue(source.contains("agent.plugin().reloadConfig()"), "Config reload must apply only after validation passes");
+        assertTrue(source.contains("reloadRuntimeConfig()"), "Config reload must refresh the active Config v2 runtime snapshot after validation passes");
+        assertTrue(source.contains("plugin.reloadRuntimeConfig()"), "Admin config reload must call the Paper runtime snapshot reload boundary");
         assertTrue(source.contains("ConfigDiff.between"), "Config diff must report changed and restart-required paths");
         assertTrue(source.contains("currentConfigYaml"), "Config diff must compare against the current runtime config when available");
         assertTrue(plugin.contains("cloudislands.admin.config"), "Config command must have a plugin permission");

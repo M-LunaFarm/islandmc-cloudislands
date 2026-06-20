@@ -484,7 +484,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("reload")) {
-            agent.plugin().reloadConfig();
+            reloadRuntimeConfig();
             if (args.length > 2) {
                 run(sender, "Addon reload", api.addons().refresh(args[2]).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
             } else {
@@ -533,7 +533,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 message(sender, configValidationMessage(validation));
                 return true;
             }
-            agent.plugin().reloadConfig();
+            reloadRuntimeConfig();
             run(sender, "Config reload", coreApiClient.reload().thenApply(body -> maintenanceMessage("Core reload", body)));
             return true;
         }
@@ -546,6 +546,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin config sources"
         ));
         return true;
+    }
+
+    private void reloadRuntimeConfig() {
+        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
+            plugin.reloadRuntimeConfig();
+            return;
+        }
+        throw new IllegalStateException("CloudIslands Paper runtime config reload requires the Paper plugin instance");
     }
 
     private ConfigValidationResult validateConfigV2Bundle() {
