@@ -70,6 +70,20 @@ class InMemoryRouteTicketStoreTest {
         assertEquals(RouteTicketState.EXPIRED, store.find(ticket.ticketId()).orElseThrow().state());
     }
 
+    @Test
+    void nodeFailureInvalidatesReadyTicketBeforePlayerCanConsumeIt() {
+        InMemoryRouteTicketStore store = new InMemoryRouteTicketStore(CLOCK);
+        RouteTicket ticket = store.save(ticket(RouteTicketState.READY, NOW.plusSeconds(30), "island-2", "nonce-6"));
+
+        java.util.List<RouteTicket> failed = store.markFailedForNode("island-2", "NODE_DOWN_AFTER_READY");
+
+        assertEquals(1, failed.size());
+        assertEquals(RouteTicketState.FAILED, failed.getFirst().state());
+        assertEquals("NODE_DOWN_AFTER_READY", failed.getFirst().payload().get("failureReason"));
+        assertEquals(RouteTicketState.FAILED, store.find(ticket.ticketId()).orElseThrow().state());
+        assertFalse(store.consume(ticket.ticketId(), PLAYER, "island-2", "nonce-6").isPresent());
+    }
+
     private RouteTicket ticket(RouteTicketState state, Instant expiresAt, String targetNode, String nonce) {
         return new RouteTicket(
                 UUID.randomUUID(),
