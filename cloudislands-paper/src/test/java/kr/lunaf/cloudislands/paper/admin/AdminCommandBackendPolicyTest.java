@@ -22,6 +22,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("redactDiagnostic"), "Diagnostics export must redact secrets");
         assertTrue(source.contains("coreApiClient.storageStatus()"), "Diagnostics export must include storage health");
         assertTrue(source.contains("coreApiClient.metrics()"), "Diagnostics export must include metrics");
+        assertTrue(source.contains("coreApiClient.debugRoutes(new UUID(0L, 0L))"), "Diagnostics export must include route ticket debug state");
+        assertTrue(source.contains("diagnosticSection(\"route-debug\""), "Diagnostics bundle must have a route debug section");
         assertTrue(source.contains("coreApiClient.listAuditLogs(25)"), "Diagnostics export must include bounded audit context");
         assertTrue(source.contains("configValidationDiagnosticSection"), "Diagnostics export must include local config validation");
         assertTrue(source.contains("effectiveConfigDiagnosticSection"), "Diagnostics export must include redacted effective config");

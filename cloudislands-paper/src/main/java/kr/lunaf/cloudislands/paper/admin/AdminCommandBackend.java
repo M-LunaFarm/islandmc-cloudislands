@@ -686,11 +686,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<String> storage = diagnosticSection("storage", coreApiClient.storageStatus());
         CompletableFuture<String> nodes = diagnosticSection("nodes", coreApiClient.listNodes().thenApply(Object::toString));
         CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.listJobs().thenApply(Object::toString));
+        CompletableFuture<String> routes = diagnosticSection("route-debug", coreApiClient.debugRoutes(new UUID(0L, 0L)));
         CompletableFuture<String> audit = diagnosticSection("audit", coreApiClient.listAuditLogs(25));
         CompletableFuture<String> configValidation = CompletableFuture.completedFuture(configValidationDiagnosticSection());
         CompletableFuture<String> effectiveConfig = CompletableFuture.completedFuture(effectiveConfigDiagnosticSection());
-        run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, jobs, audit, configValidation, effectiveConfig)
-            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), audit.join(), configValidation.join(), effectiveConfig.join(), integrationsDiagnosticSection()))));
+        run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, jobs, routes, audit, configValidation, effectiveConfig)
+            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), configValidation.join(), effectiveConfig.join(), integrationsDiagnosticSection()))));
         return true;
     }
 
