@@ -32,6 +32,9 @@ class PaperConfigSurfaceTest {
             assertTrue(config.contains("shard-world-prefix: \"ci_shard_\""));
             assertTrue(config.contains("cell-size: 1024"));
             assertTrue(config.contains("default-island-size: 300"));
+            assertFalse(config.contains("cloudislands-satis:"), "Paper default config must not duplicate Satis under addons.cloudislands-satis");
+            assertTrue(config.contains("satis:"), "Paper default config must keep one canonical Satis root");
+            assertTrue(config.contains("features:"), "Paper default config must keep canonical Satis feature gates");
         }
     }
 

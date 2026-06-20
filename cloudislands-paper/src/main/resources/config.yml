@@ -2,44 +2,6 @@ plugin:
   service-name: "CloudIslands"
   language: "ko_kr"
 
-addons:
-  cloudislands-satis:
-    enabled: true
-    features:
-      # Dependencies are enforced even when a child feature is set to true:
-      # resource-nodes requires machines, market requires storage, contracts requires storage.
-      # missions requires contracts and storage, upgrades requires research, menus requires gui.
-      # route-events requires addon-state because it only writes CloudIslands route diagnostics.
-      # Event sub-gates such as members, permissions, level-values and warps require lifecycle.
-      # Legacy satismc names are aliases:
-      # factories -> machines, generators -> resource-nodes, upgrades -> research, missions -> contracts, menus -> gui.
-      commands: true
-      machines: true
-      storage: true
-      factories: true
-      generators: true
-      upgrades: true
-      missions: true
-      menus: true
-      gui: true
-      lifecycle: true
-      resource-nodes: true
-      market: true
-      contracts: true
-      research: true
-      maintenance: true
-      placeholders: true
-      migration: true
-      addon-state: true
-      route-events: true
-      members: true
-      permissions: true
-      level-values: true
-      warps: true
-      biomes: true
-      chat: true
-      templates: true
-
 satis:
   enabled: true
   features:
