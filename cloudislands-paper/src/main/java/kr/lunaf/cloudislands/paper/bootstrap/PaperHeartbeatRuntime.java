@@ -5,6 +5,7 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.heartbeat.PaperHeartbeatService;
 
 public final class PaperHeartbeatRuntime implements RuntimeComponent {
@@ -17,29 +18,24 @@ public final class PaperHeartbeatRuntime implements RuntimeComponent {
     public static PaperHeartbeatRuntime start(
             CloudIslandsPaperPlugin plugin,
             CoreApiClient client,
-            String nodeId,
-            String pool,
-            String velocityServerName,
+            PaperRuntimeConfig config,
             String supportedTemplates,
             Supplier<String> supportedTemplatesSupplier,
             BooleanSupplier storageAvailable,
             IntSupplier activeIslandCount,
             IntSupplier activationQueue,
             IntSupplier recentFailurePenalty) {
-        int maxActivationQueue = Math.max(1, plugin.getConfig().getInt("node.max-activation-queue", plugin.getConfig().getInt("island-node.activation.max-concurrent", 4)));
-        int hardPlayerCap = Math.max(1, plugin.getConfig().getInt("node.hard-player-cap", 110));
-        int reservedSlots = Math.max(0, plugin.getConfig().getInt("node.reserved-slots", 15));
-        int reservedSoftCap = Math.max(1, hardPlayerCap - reservedSlots);
-        int softPlayerCap = plugin.getConfig().contains("node.soft-player-cap")
-            ? Math.max(1, Math.min(reservedSoftCap, plugin.getConfig().getInt("node.soft-player-cap", reservedSoftCap)))
-            : reservedSoftCap;
-        int maxActiveIslands = Math.max(1, plugin.getConfig().getInt("node.max-active-islands", 600));
+        int maxActivationQueue = config.node().maxActivationQueue();
+        int hardPlayerCap = config.node().hardPlayerCap();
+        int reservedSlots = config.node().reservedSlots();
+        int softPlayerCap = config.node().effectiveSoftPlayerCap();
+        int maxActiveIslands = config.node().maxActiveIslands();
         PaperHeartbeatService service = new PaperHeartbeatService(
             plugin,
             client,
-            nodeId,
-            pool,
-            velocityServerName,
+            config.node().id(),
+            config.node().pool(),
+            config.node().velocityServerName(),
             plugin.getDescription().getVersion(),
             supportedTemplates,
             supportedTemplatesSupplier,
@@ -54,7 +50,7 @@ public final class PaperHeartbeatRuntime implements RuntimeComponent {
             () -> Math.min(1.5D, (double) activeIslandCount.getAsInt() / maxActiveIslands),
             recentFailurePenalty
         );
-        service.start(plugin.getConfig().getLong("heartbeat.interval-ticks", 20L));
+        service.start(config.heartbeat().intervalTicks());
         return new PaperHeartbeatRuntime(service);
     }
 

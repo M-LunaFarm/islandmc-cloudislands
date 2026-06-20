@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.bootstrap;
 
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.health.PaperHealthService;
 
 public final class PaperHealthRuntime implements RuntimeComponent {
@@ -13,15 +14,16 @@ public final class PaperHealthRuntime implements RuntimeComponent {
 
     public static PaperHealthRuntime startIfEnabled(
             CloudIslandsPaperPlugin plugin,
+            PaperRuntimeConfig.Health config,
             Supplier<String> healthJson,
             Supplier<String> metricsText) {
-        if (!plugin.getConfig().getBoolean("health.enabled", false)) {
+        if (!config.enabled()) {
             return null;
         }
         PaperHealthService service = new PaperHealthService(
             plugin,
-            plugin.getConfig().getString("health.bind-host", "127.0.0.1"),
-            plugin.getConfig().getInt("health.port", 8787),
+            config.bindHost(),
+            config.port(),
             healthJson,
             metricsText
         );

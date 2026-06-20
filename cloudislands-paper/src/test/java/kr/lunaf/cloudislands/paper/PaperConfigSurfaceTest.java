@@ -54,6 +54,34 @@ class PaperConfigSurfaceTest {
         assertTrue(english.containsKey("errors.PERMISSION_VERSION_CONFLICT"), "permission conflict message must be localized");
     }
 
+    @Test
+    void paperBootstrapDelegatesRuntimeConfigPathsToSnapshotLoader() throws Exception {
+        String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"), StandardCharsets.UTF_8);
+        String loader = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfigLoader.java"), StandardCharsets.UTF_8);
+        String snapshot = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfig.java"), StandardCharsets.UTF_8);
+
+        assertTrue(bootstrap.contains("PaperRuntimeConfigLoader.load"), "Paper bootstrap must create a runtime config snapshot");
+        assertTrue(snapshot.contains("record PaperRuntimeConfig"), "Paper runtime config must be immutable snapshot data");
+        assertTrue(snapshot.contains("record Node"), "Paper runtime config must expose typed node settings");
+        assertTrue(snapshot.contains("record CoreApi"), "Paper runtime config must expose typed Core API settings");
+        assertTrue(snapshot.contains("record Redis"), "Paper runtime config must expose typed Redis settings");
+        assertTrue(snapshot.contains("record Security"), "Paper runtime config must expose typed security settings");
+        assertTrue(snapshot.contains("record Routing"), "Paper runtime config must expose typed routing settings");
+        assertTrue(snapshot.contains("record Worker"), "Paper runtime config must expose typed island worker settings");
+        assertTrue(loader.contains("node.id"), "Paper runtime config loader must own node paths");
+        assertTrue(loader.contains("redis.uri"), "Paper runtime config loader must own Redis paths");
+        assertTrue(loader.contains("routing.wait-for-activation-timeout-seconds"), "Paper runtime config loader must own routing paths");
+        assertTrue(loader.contains("heartbeat.interval-ticks"), "Paper runtime config loader must own heartbeat paths");
+        assertTrue(loader.contains("health.enabled"), "Paper runtime config loader must own health paths");
+        assertTrue(loader.contains("island-node.shard-count"), "Paper runtime config loader must own island worker paths");
+        assertFalse(bootstrap.contains("getString(\"node.id\""), "node identity path must live in PaperRuntimeConfigLoader");
+        assertFalse(bootstrap.contains("getString(\"redis.uri\""), "Redis path must live in PaperRuntimeConfigLoader");
+        assertFalse(bootstrap.contains("getInt(\"routing.wait-for-activation-timeout-seconds\""), "routing wait path must live in PaperRuntimeConfigLoader");
+        assertFalse(bootstrap.contains("getLong(\"heartbeat.interval-ticks\""), "heartbeat path must live in PaperRuntimeConfigLoader");
+        assertFalse(bootstrap.contains("getBoolean(\"health.enabled\""), "health path must live in PaperRuntimeConfigLoader");
+        assertFalse(bootstrap.contains("getInt(\"island-node.shard-count\""), "island worker paths must live in PaperRuntimeConfigLoader");
+    }
+
     private boolean containsPath(String config, String path) {
         String[] parts = path.split("\\.");
         return config.contains(parts[parts.length - 1] + ":");
