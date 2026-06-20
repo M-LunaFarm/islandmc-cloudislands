@@ -369,6 +369,20 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void deploymentYamlDoesNotContainInlineSecrets() throws Exception {
+        Path root = repositoryRoot();
+        try (Stream<Path> files = yamlFiles(root.resolve("deploy"))) {
+            String violations = files
+                .flatMap(path -> deploymentSecretViolations(root, path).stream())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    @Test
     void configV2MenuLayoutsDoNotCollideAndUseRegisteredActions() throws Exception {
         Path root = repositoryRoot();
         Set<String> registeredActions = registeredGuiActions(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
@@ -718,6 +732,83 @@ class PaperPlatformBoundaryTest {
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }
+    }
+
+    private static List<String> deploymentSecretViolations(Path root, Path path) {
+        try {
+            List<String> violations = new ArrayList<>();
+            List<String> lines = Files.readAllLines(path);
+            String relative = root.relativize(path).toString();
+            for (int index = 0; index < lines.size(); index++) {
+                String line = lines.get(index);
+                if (line.matches(".*(ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}).*")) {
+                    violations.add(relative + ":" + (index + 1) + ": contains inline credential-looking token");
+                }
+                String trimmed = line.trim();
+                if (relative.endsWith("docker-compose.yml") && composeInlineSecretEnv(trimmed)) {
+                    violations.add(relative + ":" + (index + 1) + ": compose secret env must use *_FILE and /run/secrets");
+                }
+            }
+            if (relative.endsWith("templates/workloads.yaml")) {
+                violations.addAll(helmInlineSecretEnvViolations(relative, lines));
+            }
+            return violations;
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static boolean composeInlineSecretEnv(String trimmed) {
+        int separator = trimmed.indexOf(':');
+        if (separator <= 0) {
+            return false;
+        }
+        String key = trimmed.substring(0, separator).trim();
+        String value = cleanYamlValue(trimmed.substring(separator + 1));
+        return sensitiveEnvName(key) && !key.endsWith("_FILE") && !value.isBlank();
+    }
+
+    private static List<String> helmInlineSecretEnvViolations(String relative, List<String> lines) {
+        List<String> violations = new ArrayList<>();
+        for (int index = 0; index < lines.size(); index++) {
+            String trimmed = lines.get(index).trim();
+            if (!trimmed.startsWith("- name:")) {
+                continue;
+            }
+            String envName = cleanYamlValue(trimmed.substring(trimmed.indexOf(':') + 1));
+            if (!sensitiveEnvName(envName)) {
+                continue;
+            }
+            String block = envBlock(lines, index);
+            if (!block.contains("valueFrom:") || !block.contains("secretKeyRef:")) {
+                violations.add(relative + ":" + (index + 1) + ": " + envName + " must use valueFrom.secretKeyRef");
+            }
+            if (block.lines().anyMatch(line -> line.trim().startsWith("value:"))) {
+                violations.add(relative + ":" + (index + 1) + ": " + envName + " must not use inline value");
+            }
+        }
+        return violations;
+    }
+
+    private static String envBlock(List<String> lines, int start) {
+        StringBuilder block = new StringBuilder();
+        for (int index = start; index < lines.size(); index++) {
+            if (index > start && lines.get(index).trim().startsWith("- name:")) {
+                break;
+            }
+            block.append(lines.get(index)).append('\n');
+        }
+        return block.toString();
+    }
+
+    private static boolean sensitiveEnvName(String value) {
+        String normalized = value == null ? "" : value.trim().toUpperCase(java.util.Locale.ROOT);
+        return normalized.contains("PASSWORD")
+            || normalized.contains("TOKEN")
+            || normalized.contains("SECRET")
+            || normalized.contains("ACCESS_KEY")
+            || normalized.contains("SECRET_KEY")
+            || normalized.equals("MINIO_ROOT_USER");
     }
 
     private static List<String> menuConfigViolations(Path root, Path path, Set<String> registeredActions) {
