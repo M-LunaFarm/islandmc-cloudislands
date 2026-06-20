@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -69,7 +70,7 @@ public final class IslandMemberRoutes implements RouteGroup {
 
     private void members(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
-        CoreHttpResponses.write(exchange, 200, membersJson(metadataRepository.members(JsonFields.uuid(body, "islandId", EMPTY_UUID))));
+        CoreHttpResponses.write(exchange, 200, membersJson(metadataRepository.members(JsonFields.uuid(body, "islandId", EMPTY_UUID)), playerProfiles));
     }
 
     private void playerIslands(HttpExchange exchange) throws IOException {
@@ -234,6 +235,10 @@ public final class IslandMemberRoutes implements RouteGroup {
     }
 
     static String membersJson(List<IslandMemberSnapshot> members) {
+        return membersJson(members, null);
+    }
+
+    static String membersJson(List<IslandMemberSnapshot> members, PlayerProfileRepository playerProfiles) {
         StringBuilder builder = new StringBuilder("{\"members\":[");
         boolean first = true;
         for (IslandMemberSnapshot member : members) {
@@ -246,10 +251,21 @@ public final class IslandMemberRoutes implements RouteGroup {
                 .append("\"playerUuid\":\"").append(member.playerUuid()).append("\",")
                 .append("\"role\":\"").append(member.role()).append("\",")
                 .append("\"joinedAt\":\"").append(member.joinedAt()).append("\",")
-                .append("\"expiresAt\":").append(member.expiresAt() == null ? "null" : "\"" + member.expiresAt() + "\"")
-                .append('}');
+                .append("\"expiresAt\":").append(member.expiresAt() == null ? "null" : "\"" + member.expiresAt() + "\"");
+            if (playerProfiles != null) {
+                appendProfile(builder, playerProfiles.find(member.playerUuid()));
+            }
+            builder.append('}');
         }
         return builder.append("]}").toString();
+    }
+
+    private static void appendProfile(StringBuilder builder, PlayerIslandProfile profile) {
+        String lastSeen = profile.lastSeenAt() == null || profile.lastSeenAt().equals(Instant.EPOCH) ? "" : profile.lastSeenAt().toString();
+        builder.append(",\"playerName\":\"").append(escape(profile.lastName())).append("\",")
+            .append("\"lastSeenAt\":\"").append(escape(lastSeen)).append("\",")
+            .append("\"presenceState\":\"").append(lastSeen.isBlank() ? "UNKNOWN" : "RECENT_ACTIVITY").append("\",")
+            .append("\"presenceSource\":\"CORE_PLAYER_PROFILE\"");
     }
 
     static String islandsJson(List<IslandSnapshot> islands) {

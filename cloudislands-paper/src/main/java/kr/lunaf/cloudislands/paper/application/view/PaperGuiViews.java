@@ -191,7 +191,15 @@ public final class PaperGuiViews {
         for (String object : objects(body)) {
             String playerUuid = text(object, "playerUuid");
             if (!playerUuid.isBlank()) {
-                members.add(new MemberView(playerUuid, text(object, "role"), text(object, "joinedAt")));
+                members.add(new MemberView(
+                    playerUuid,
+                    text(object, "role"),
+                    text(object, "joinedAt"),
+                    text(object, "playerName"),
+                    text(object, "lastSeenAt"),
+                    text(object, "presenceState"),
+                    text(object, "presenceSource")
+                ));
             }
         }
         return members;
@@ -584,7 +592,7 @@ public final class PaperGuiViews {
     public record RankingView(int rank, String label, String islandId, long level, String worth) {
     }
 
-    public record MemberView(String playerUuid, String role, String joinedAt) {
+    public record MemberView(String playerUuid, String role, String joinedAt, String playerName, String lastSeenAt, String presenceState, String presenceSource) {
     }
 
     public record InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {

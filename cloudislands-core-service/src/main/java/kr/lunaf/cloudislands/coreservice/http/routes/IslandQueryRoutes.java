@@ -101,7 +101,7 @@ public final class IslandQueryRoutes {
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/members")) {
             UUID islandId = uuidPath(tail.substring(0, tail.length() - "/members".length()));
-            CoreHttpResponses.write(exchange, 200, IslandMemberRoutes.membersJson(metadataRepository.members(islandId)));
+            CoreHttpResponses.write(exchange, 200, IslandMemberRoutes.membersJson(metadataRepository.members(islandId), playerProfiles));
             return;
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/runtime")) {

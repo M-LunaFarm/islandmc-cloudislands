@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
+import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandMemberRoutesTest {
@@ -46,6 +47,14 @@ class IslandMemberRoutesTest {
             "{\"members\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"role\":\"CO_OWNER\",\"joinedAt\":\"2026-01-02T03:04:05Z\",\"expiresAt\":null},{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000004\",\"role\":\"TRUSTED\",\"joinedAt\":\"2026-01-02T04:04:05Z\",\"expiresAt\":\"2026-01-02T05:04:05Z\"}]}",
             IslandMemberRoutes.membersJson(List.of(member, temporary))
         );
+
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        profiles.touch(playerUuid, "LunaFarm", "ko_kr");
+        String enriched = IslandMemberRoutes.membersJson(List.of(member), profiles);
+        assertTrue(enriched.contains("\"playerName\":\"LunaFarm\""));
+        assertTrue(enriched.contains("\"presenceState\":\"RECENT_ACTIVITY\""));
+        assertTrue(enriched.contains("\"presenceSource\":\"CORE_PLAYER_PROFILE\""));
+        assertTrue(enriched.contains("\"lastSeenAt\":\""));
     }
 
     @Test

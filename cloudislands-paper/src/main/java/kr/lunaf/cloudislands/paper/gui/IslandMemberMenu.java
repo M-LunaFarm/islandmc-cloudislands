@@ -7,9 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MemberView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
-import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,14 +14,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandMemberMenu implements Listener {
     private static final String TITLE = "섬 멤버 관리";
     private static final String MENU_ID = "island.members";
     private static final int MEMBERS_PER_PAGE = 45;
-    private static final PaperPlayerGateway PLAYERS = new BukkitPlayerGateway();
     private final MessageRenderer messages;
     private final GuiActionExecutor actions;
 
@@ -135,15 +130,17 @@ public final class IslandMemberMenu implements Listener {
             case "TRUSTED" -> Material.EMERALD;
             default -> Material.PLAYER_HEAD;
         };
-        return GuiItems.action(material, member.role() + " " + shortUuid(member.playerUuid()), "island.member.role",
+        return GuiItems.action(material, displayName(member), "island.member.role",
             Map.of("playerUuid", member.playerUuid()),
-            statusLine(member.playerUuid(), messages),
-            lastSeenLine(member.playerUuid(), messages),
+            roleLine(member, messages),
+            statusLine(member, messages),
+            lastSeenLine(member, messages),
             member.joinedAt().isBlank() ? message(messages, "member-menu-no-join-info", "가입 정보 없음") : message(messages, "member-menu-joined-at", "가입 시각: ") + member.joinedAt(),
             message(messages, "member-menu-left-click", "좌클릭: 승급"),
             message(messages, "member-menu-right-click", "우클릭: 강등"),
             message(messages, "member-menu-shift-right-click", "Shift+우클릭: 추방 확인"),
-            message(messages, "member-menu-transfer-line", "소유권 이전은 별도 확인 경로에서 처리됩니다."));
+            message(messages, "member-menu-transfer-line", "소유권 이전은 별도 확인 경로에서 처리됩니다."),
+            message(messages, "member-menu-debug-uuid", "UUID: ") + shortUuid(member.playerUuid()));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
@@ -154,49 +151,34 @@ public final class IslandMemberMenu implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
     private static String shortUuid(String uuid) {
         return uuid.length() <= 8 ? uuid : uuid.substring(0, 8);
     }
 
-    private static String statusLine(String playerUuid, MessageRenderer messages) {
-        UUID uuid = uuid(playerUuid);
-        if (uuid == null) {
-            return message(messages, "member-menu-status-unknown", "접속 상태: 알 수 없음");
+    private static String displayName(MemberView member) {
+        if (member.playerName() != null && !member.playerName().isBlank()) {
+            return member.playerName();
         }
-        return PLAYERS.onlinePlayer(uuid) == null
-                ? message(messages, "member-menu-status-offline", "접속 상태: 오프라인")
-                : message(messages, "member-menu-status-online", "접속 상태: 온라인");
+        return "Player " + shortUuid(member.playerUuid());
     }
 
-    private static String lastSeenLine(String playerUuid, MessageRenderer messages) {
-        UUID uuid = uuid(playerUuid);
-        if (uuid == null) {
-            return message(messages, "member-menu-last-seen-unknown", "마지막 접속: 알 수 없음");
-        }
-        long lastPlayed = Bukkit.getOfflinePlayer(uuid).getLastPlayed();
-        if (lastPlayed <= 0L) {
-            return message(messages, "member-menu-last-seen-never", "마지막 접속: 기록 없음");
-        }
-        return message(messages, "member-menu-last-seen-prefix", "마지막 접속: ") + java.time.Instant.ofEpochMilli(lastPlayed);
+    private static String roleLine(MemberView member, MessageRenderer messages) {
+        return message(messages, "member-menu-role-prefix", "역할: ") + member.role();
     }
 
-    private static UUID uuid(String value) {
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException exception) {
-            return null;
+    private static String statusLine(MemberView member, MessageRenderer messages) {
+        String state = member.presenceState() == null ? "" : member.presenceState();
+        if (state.equals("RECENT_ACTIVITY")) {
+            return message(messages, "member-menu-status-recent", "네트워크 상태: 최근 활동 확인됨");
         }
+        return message(messages, "member-menu-status-unknown", "네트워크 상태: 알 수 없음");
+    }
+
+    private static String lastSeenLine(MemberView member, MessageRenderer messages) {
+        if (member.lastSeenAt() == null || member.lastSeenAt().isBlank()) {
+            return message(messages, "member-menu-last-seen-never", "마지막 활동: 기록 없음");
+        }
+        return message(messages, "member-menu-last-seen-prefix", "마지막 활동: ") + member.lastSeenAt();
     }
 
 }
