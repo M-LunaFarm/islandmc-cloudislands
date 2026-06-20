@@ -39,4 +39,8 @@ public final class ProductionReadinessPolicy {
     public static String requiredGateSummary() {
         return String.join(",", REQUIRED_GATES);
     }
+
+    public static boolean drillMatrixComplete() {
+        return ProductionGaDrillMatrix.gatesWithoutDrills(REQUIRED_GATES).isEmpty();
+    }
 }

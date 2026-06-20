@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ProductionReadinessPolicyTest {
@@ -39,6 +41,47 @@ class ProductionReadinessPolicyTest {
         assertTrue(ProductionReadinessPolicy.DEPLOYMENT_TEMPLATE_POLICY.contains("compose-and-helm"));
         assertTrue(ProductionReadinessPolicy.ROLLING_UPGRADE_POLICY.contains("protocol-n-minus-one"));
         assertTrue(ProductionReadinessPolicy.SUPPORT_BUNDLE_POLICY.contains("redacts-secrets"));
+        assertTrue(ProductionReadinessPolicy.drillMatrixComplete());
+    }
+
+    @Test
+    void productionGaDrillMatrixCoversEveryReadinessGate() {
+        assertEquals(List.of(), ProductionGaDrillMatrix.gatesWithoutDrills(ProductionReadinessPolicy.requiredGates()));
+        assertEquals(ProductionReadinessPolicy.requiredGates().size(), ProductionGaDrillMatrix.drills().size());
+        assertTrue(ProductionGaDrillMatrix.CONTRACT.contains("production-ga-drills"));
+        assertTrue(ProductionGaDrillMatrix.evidenceSummary().contains("backup-restore-drill=db-backup+object-storage-bundle+manifest-checksum+restore-activation+route-recovery+post-restore-audit"));
+        assertTrue(ProductionGaDrillMatrix.evidenceSummary().contains("rolling-upgrade=compatibility-matrix+drain-plan+protocol-n-minus-one+rollback-step+post-upgrade-smoke"));
+    }
+
+    @Test
+    void productionGaDrillMatrixPinsRequiredFailureInjectionScenarios() {
+        String failures = ProductionGaDrillMatrix.failureInjectionSummary();
+
+        assertTrue(failures.contains("simultaneous-activation"));
+        assertTrue(failures.contains("paper-save-kill"));
+        assertTrue(failures.contains("velocity-kill-during-transfer"));
+        assertTrue(failures.contains("redis-delay-duplicate-reorder"));
+        assertTrue(failures.contains("route-ticket-expiry-edge"));
+        assertTrue(failures.contains("old-paper-save-attempt"));
+        assertTrue(failures.contains("object-storage-upload-after-db-commit-failure"));
+        assertTrue(failures.contains("db-commit-event-publish-gap"));
+        assertTrue(failures.contains("dual-admin-permission-edit"));
+        assertTrue(failures.contains("core-leader-change"));
+        assertTrue(failures.contains("snapshot-restore-node-failure"));
+    }
+
+    @Test
+    void productionGaDrillMatrixRequiresEvidenceBeforeCompletion() {
+        Map<String, List<String>> evidence = new HashMap<>();
+        for (ProductionGaDrill drill : ProductionGaDrillMatrix.drills()) {
+            evidence.put(drill.gate(), drill.requiredEvidence());
+        }
+
+        assertEquals(List.of(), ProductionGaDrillMatrix.incompleteGates(evidence));
+
+        evidence.put("backup-restore-drill", List.of("db-backup", "object-storage-bundle"));
+
+        assertEquals(List.of("backup-restore-drill"), ProductionGaDrillMatrix.incompleteGates(evidence));
     }
 
     @Test
