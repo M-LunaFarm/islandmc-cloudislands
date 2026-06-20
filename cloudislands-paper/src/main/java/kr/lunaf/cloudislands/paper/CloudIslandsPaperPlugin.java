@@ -30,6 +30,7 @@ import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.generator.IslandCropGrowthListener;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
+import kr.lunaf.cloudislands.paper.gui.GuiSessions;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
 import kr.lunaf.cloudislands.paper.integration.PaperIntegrationRegistry;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
@@ -116,6 +117,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             playerLocales.clear();
             playerLocales = null;
         }
+        GuiSessions.clear();
         runtimeConfig = null;
     }
 

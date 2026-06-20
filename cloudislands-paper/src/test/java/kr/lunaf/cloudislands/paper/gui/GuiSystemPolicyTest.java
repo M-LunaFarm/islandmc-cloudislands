@@ -83,4 +83,17 @@ class GuiSystemPolicyTest {
         assertTrue(source.contains("GuiStateMenus.listener(registry)"), "state menus must share the injected action registry");
         assertFalse(source.contains("GuiActionRegistry.configure"), "menu bootstrap must not configure global registry state");
     }
+
+    @Test
+    void guiSessionsAreRevisionGuardedAndClearedOnPluginDisable() throws Exception {
+        String sessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
+        String plugin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/CloudIslandsPaperPlugin.java"));
+
+        assertTrue(sessions.contains("AtomicLong REVISIONS"), "GUI sessions must carry a monotonically increasing revision");
+        assertTrue(sessions.contains("CURRENT.put(player.getUniqueId(), session)"), "opening a GUI must replace the current player session");
+        assertTrue(sessions.contains("session.equals(CURRENT.get(player.getUniqueId()))"), "delayed GUI responses must check the current player session");
+        assertTrue(sessions.contains("runIfCurrent"), "async GUI rendering must be guarded by the current session");
+        assertTrue(sessions.contains("CURRENT.clear()"), "GUI sessions must expose a lifecycle cleanup hook");
+        assertTrue(plugin.contains("GuiSessions.clear()"), "plugin disable must clear stale GUI sessions");
+    }
 }

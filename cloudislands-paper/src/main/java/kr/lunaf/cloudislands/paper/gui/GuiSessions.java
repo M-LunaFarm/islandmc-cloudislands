@@ -44,4 +44,8 @@ public final class GuiSessions {
         }
         CURRENT.computeIfPresent(player.getUniqueId(), (_uuid, session) -> session.sessionId().equals(sessionId) ? null : session);
     }
+
+    public static void clear() {
+        CURRENT.clear();
+    }
 }
