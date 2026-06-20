@@ -112,6 +112,7 @@ import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
@@ -133,6 +134,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private final AddonService addons;
 
     public PaperCloudIslandsApi(CoreApiClient client, CloudIslandsPaperAgent agent) {
+        this(client, agent, PaperRuntimeConfig.defaults());
+    }
+
+    public PaperCloudIslandsApi(CoreApiClient client, CloudIslandsPaperAgent agent, PaperRuntimeConfig config) {
+        PaperRuntimeConfig safeConfig = config == null ? PaperRuntimeConfig.defaults() : config;
         this.query = new QueryService(client, agent);
         this.players = new PlayerService(client, query);
         this.routing = new RoutingService(client);
@@ -140,7 +146,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         this.runtime = new RuntimeService(client);
         this.status = new StatusService(agent);
         this.events = new EventService(client, agent.plugin());
-        this.admin = new AdminService(client, agent.plugin());
+        this.admin = new AdminService(client, safeConfig.migration().superiorSkyblock2Enabled());
         this.commands = new CommandService(client);
         this.addons = new AddonService(client, agent.plugin(), events);
         agent.cacheInvalidator().setAddonStateInvalidator(invalidation -> addons.invalidateAddonStateCache(invalidation.addonId(), invalidation.islandId()));
@@ -2368,11 +2374,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static final class AdminService implements IslandAdminService {
         private final CoreApiClient client;
-        private final Plugin plugin;
+        private final boolean superiorSkyblock2MigrationEnabled;
 
-        private AdminService(CoreApiClient client, Plugin plugin) {
+        private AdminService(CoreApiClient client, boolean superiorSkyblock2MigrationEnabled) {
             this.client = client;
-            this.plugin = plugin;
+            this.superiorSkyblock2MigrationEnabled = superiorSkyblock2MigrationEnabled;
         }
 
         @Override public CompletableFuture<Void> drainNode(String nodeId) { return drainNodeResult(nodeId).thenApply(_result -> null); }
@@ -2514,11 +2520,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         private boolean superiorSkyblock2MigrationEnabled() {
-            boolean enabled = plugin.getConfig().getBoolean("migration.superiorskyblock2.enabled", true);
-            if (plugin.getConfig().contains("migration.superiorskyblock2-enabled")) {
-                enabled = enabled && plugin.getConfig().getBoolean("migration.superiorskyblock2-enabled", true);
-            }
-            return enabled;
+            return superiorSkyblock2MigrationEnabled;
         }
 
         private MigrationRunSnapshot disabledMigration(String path) {

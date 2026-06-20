@@ -100,7 +100,7 @@ final class PaperPluginBootstrap {
             config.redis().uri(),
             config.redis().timeout()
         );
-        PaperRuntimeServices runtimeServices = PaperRuntimeServices.register(plugin, client, plugin.agent);
+        PaperRuntimeServices runtimeServices = PaperRuntimeServices.register(plugin, client, plugin.agent, config);
         plugin.lifecycle.started("runtime-services", runtimeServices::stop);
         EconomyBridge economyBridge = runtimeServices.economyBridge();
         IslandLimitCache limitCache = new IslandLimitCache(client);

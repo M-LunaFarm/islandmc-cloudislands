@@ -27,7 +27,11 @@ public final class AdminCommandController implements CommandExecutor, TabComplet
     }
 
     public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId, int routeWaitSeconds, LocalCacheManager localCaches, MessageRenderer messages) {
-        this.backend = new AdminCommandBackend(agent, coreApiClient, nodeId, routeWaitSeconds, localCaches, messages);
+        this(agent, coreApiClient, nodeId, routeWaitSeconds, localCaches, messages, true);
+    }
+
+    public AdminCommandController(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId, int routeWaitSeconds, LocalCacheManager localCaches, MessageRenderer messages, boolean superiorSkyblock2MigrationEnabled) {
+        this.backend = new AdminCommandBackend(agent, coreApiClient, nodeId, routeWaitSeconds, localCaches, messages, superiorSkyblock2MigrationEnabled);
     }
 
     @Override

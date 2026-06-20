@@ -18,6 +18,7 @@ public record PaperRuntimeConfig(
     Generator generator,
     Messages messages,
     Storage storage,
+    Migration migration,
     Worker worker,
     SnapshotRetentionPolicy snapshots,
     Health health,
@@ -35,6 +36,7 @@ public record PaperRuntimeConfig(
         generator = generator == null ? Generator.defaults() : generator;
         messages = messages == null ? Messages.defaults() : messages;
         storage = storage == null ? Storage.defaults() : storage;
+        migration = migration == null ? Migration.defaults() : migration;
         worker = worker == null ? Worker.defaults() : worker;
         snapshots = snapshots == null ? new SnapshotRetentionPolicy(24, 7, 4, 50, true, "SHA-256").normalized() : snapshots.normalized();
         health = health == null ? Health.defaults() : health;
@@ -47,7 +49,7 @@ public record PaperRuntimeConfig(
     }
 
     public static PaperRuntimeConfig defaults() {
-        return new PaperRuntimeConfig(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        return new PaperRuntimeConfig(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     private static String blankDefault(String value, String fallback) {
@@ -227,6 +229,12 @@ public record PaperRuntimeConfig(
 
         public static StorageTarget localDefaults(String path) {
             return new StorageTarget("LOCAL_FILESYSTEM", "http://minio.internal:9000", "cloudislands", "us-east-1", "", "", "", path);
+        }
+    }
+
+    public record Migration(boolean superiorSkyblock2Enabled) {
+        public static Migration defaults() {
+            return new Migration(true);
         }
     }
 

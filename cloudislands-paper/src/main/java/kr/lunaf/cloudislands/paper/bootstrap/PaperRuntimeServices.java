@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.api.PaperCloudIslandsApi;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.economy.VaultEconomyBridge;
 import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
 import org.bukkit.plugin.ServicePriority;
@@ -21,9 +22,9 @@ public final class PaperRuntimeServices implements RuntimeComponent {
         this.plugin = plugin;
     }
 
-    public static PaperRuntimeServices register(CloudIslandsPaperPlugin plugin, CoreApiClient client, CloudIslandsPaperAgent agent) {
+    public static PaperRuntimeServices register(CloudIslandsPaperPlugin plugin, CoreApiClient client, CloudIslandsPaperAgent agent, PaperRuntimeConfig config) {
         PaperRuntimeServices services = new PaperRuntimeServices(plugin);
-        services.registerApi(client, agent);
+        services.registerApi(client, agent, config);
         services.registerEconomy();
         services.registerPlaceholderExpansion(client);
         return services;
@@ -47,8 +48,8 @@ public final class PaperRuntimeServices implements RuntimeComponent {
         }
     }
 
-    private void registerApi(CoreApiClient client, CloudIslandsPaperAgent agent) {
-        this.api = new PaperCloudIslandsApi(client, agent);
+    private void registerApi(CoreApiClient client, CloudIslandsPaperAgent agent, PaperRuntimeConfig config) {
+        this.api = new PaperCloudIslandsApi(client, agent, config);
         CloudIslandsProvider.set(api);
         plugin.getServer().getServicesManager().register(CloudIslandsApi.class, api, plugin, ServicePriority.Normal);
     }

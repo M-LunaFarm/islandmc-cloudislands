@@ -35,7 +35,7 @@ public final class PaperCommandRegistrar {
     ) {
         PluginCommand admin = plugin.getCommand("ciadmin");
         if (admin != null) {
-            AdminCommandController adminController = new AdminCommandController(agent, client, nodeId, routeWaitSeconds, localCaches, messages);
+            AdminCommandController adminController = new AdminCommandController(agent, client, nodeId, routeWaitSeconds, localCaches, messages, plugin.runtimeConfig().migration().superiorSkyblock2Enabled());
             admin.setExecutor(adminController);
             admin.setTabCompleter(adminController);
         }

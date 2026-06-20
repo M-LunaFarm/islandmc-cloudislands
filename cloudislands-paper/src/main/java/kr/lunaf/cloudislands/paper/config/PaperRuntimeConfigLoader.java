@@ -35,12 +35,21 @@ public final class PaperRuntimeConfigLoader {
             new PaperRuntimeConfig.Generator(string(config, "generators.default-key", "default")),
             messages(config),
             storage(config, resolver),
+            migration(config),
             worker(config),
             snapshots(config),
             new PaperRuntimeConfig.Health(config.getBoolean("health.enabled", false), string(config, "health.bind-host", "127.0.0.1"), config.getInt("health.port", 8787)),
             new PaperRuntimeConfig.Heartbeat(config.getLong("heartbeat.interval-ticks", 20L)),
             new PaperRuntimeConfig.Gui(booleanValue(config, "paper-gui.enabled", true), booleanValue(config, "paper-gui.island-node-enabled", true), booleanValue(config, "paper-gui.lobby-enabled", true))
         );
+    }
+
+    private static PaperRuntimeConfig.Migration migration(FileConfiguration config) {
+        boolean enabled = booleanValue(config, "migration.superiorskyblock2.enabled", true);
+        if (config.contains("migration.superiorskyblock2-enabled")) {
+            enabled = enabled && booleanValue(config, "migration.superiorskyblock2-enabled", true);
+        }
+        return new PaperRuntimeConfig.Migration(enabled);
     }
 
     private static PaperRuntimeConfig.Messages messages(FileConfiguration config) {

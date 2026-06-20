@@ -158,6 +158,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private final int routeWaitSeconds;
     private final LocalCacheManager localCaches;
     private final MessageRenderer messages;
+    private final boolean superiorSkyblock2MigrationEnabled;
 
     AdminCommandBackend(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId) {
         this(agent, coreApiClient, nodeId, 20);
@@ -172,12 +173,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     AdminCommandBackend(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId, int routeWaitSeconds, LocalCacheManager localCaches, MessageRenderer messages) {
+        this(agent, coreApiClient, nodeId, routeWaitSeconds, localCaches, messages, true);
+    }
+
+    AdminCommandBackend(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId, int routeWaitSeconds, LocalCacheManager localCaches, MessageRenderer messages, boolean superiorSkyblock2MigrationEnabled) {
         this.agent = agent;
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
         this.localCaches = localCaches;
         this.messages = messages;
+        this.superiorSkyblock2MigrationEnabled = superiorSkyblock2MigrationEnabled;
     }
 
     @Override
@@ -1214,11 +1220,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean superiorSkyblock2MigrationEnabled() {
-        boolean enabled = agent.getConfig().getBoolean("migration.superiorskyblock2.enabled", true);
-        if (agent.getConfig().contains("migration.superiorskyblock2-enabled")) {
-            enabled = enabled && agent.getConfig().getBoolean("migration.superiorskyblock2-enabled", true);
-        }
-        return enabled;
+        return superiorSkyblock2MigrationEnabled;
     }
 
     private String legacyProviderRuntimeMessage() {

@@ -71,6 +71,7 @@ class PaperConfigSurfaceTest {
         assertTrue(snapshot.contains("record Routing"), "Paper runtime config must expose typed routing settings");
         assertTrue(snapshot.contains("record Messages"), "Paper runtime config must expose typed message settings");
         assertTrue(snapshot.contains("record Storage"), "Paper runtime config must expose typed storage settings");
+        assertTrue(snapshot.contains("record Migration"), "Paper runtime config must expose typed migration settings");
         assertTrue(snapshot.contains("record Worker"), "Paper runtime config must expose typed island worker settings");
         assertTrue(loader.contains("node.id"), "Paper runtime config loader must own node paths");
         assertTrue(loader.contains("redis.uri"), "Paper runtime config loader must own Redis paths");
@@ -78,6 +79,7 @@ class PaperConfigSurfaceTest {
         assertTrue(loader.contains("routing.hide-node-names"), "Paper runtime config loader must own topology exposure paths");
         assertTrue(loader.contains("messages.translations"), "Paper runtime config loader must own message paths");
         assertTrue(loader.contains("setup.storage.type"), "Paper runtime config loader must own storage paths");
+        assertTrue(loader.contains("migration.superiorskyblock2.enabled"), "Paper runtime config loader must own migration paths");
         assertTrue(loader.contains("heartbeat.interval-ticks"), "Paper runtime config loader must own heartbeat paths");
         assertTrue(loader.contains("health.enabled"), "Paper runtime config loader must own health paths");
         assertTrue(loader.contains("island-node.shard-count"), "Paper runtime config loader must own island worker paths");
@@ -94,6 +96,7 @@ class PaperConfigSurfaceTest {
         assertTrue(plugin.contains("PaperRuntimeConfig runtimeConfig"), "Paper plugin must retain the active runtime config snapshot");
         assertFalse(plugin.contains("boolean configBoolean("), "Paper plugin helpers must not parse runtime booleans from Bukkit config");
         assertFalse(commands.contains("plugin.getConfig().getString(\"node.id\""), "commands must use the runtime snapshot for node identity");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"), StandardCharsets.UTF_8).contains("agent.getConfig()"), "admin commands must not read Bukkit config through the agent");
     }
 
     private boolean containsPath(String config, String path) {

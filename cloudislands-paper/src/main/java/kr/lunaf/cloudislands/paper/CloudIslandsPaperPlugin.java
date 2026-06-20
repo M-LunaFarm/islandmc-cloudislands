@@ -182,7 +182,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return integrationRegistry;
     }
 
-    PaperRuntimeConfig runtimeConfig() {
+    public PaperRuntimeConfig runtimeConfig() {
         return runtimeConfig == null ? PaperRuntimeConfig.defaults() : runtimeConfig;
     }
 
