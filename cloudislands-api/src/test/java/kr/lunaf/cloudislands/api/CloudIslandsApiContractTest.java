@@ -27,6 +27,7 @@ class CloudIslandsApiContractTest {
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("core-failure-policy"));
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("timeout-retry-policy"));
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("compatibility-testkit-policy"));
+        assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("integration-port-policy"));
 
         assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", CloudIslandsApiContract.ADDON_SUPPORTED_PACKAGING);
         assertEquals("addons-may-run-as-external-plugins-or-built-in-feature-packs-through-the-same-spi", CloudIslandsApiContract.ADDON_PACKAGING_POLICY);
@@ -44,6 +45,7 @@ class CloudIslandsApiContractTest {
         assertEquals("core-unavailable-fails-closed-for-writes-and-may-return-marked-stale-snapshots-for-reads", CloudIslandsApiContract.CORE_FAILURE_POLICY);
         assertEquals("typed-core-client-uses-bounded-timeouts-and-retries-read-requests-only-unless-idempotency-key-is-present", CloudIslandsApiContract.TIMEOUT_RETRY_POLICY);
         assertEquals("addons-validate-against-cloudislands-testkit-contract-fixtures-before-certification", CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY);
+        assertEquals("external-hooks-use-applyValidated-so-core-state-mutations-require-island-uuid-node-id-runtime-fencing-token-node-ownership-and-idempotency-key", CloudIslandsApiContract.INTEGRATION_PORT_POLICY);
     }
 
     @Test
@@ -64,6 +66,7 @@ class CloudIslandsApiContractTest {
         assertEquals(CloudIslandsApiContract.CORE_FAILURE_POLICY, CloudIslandsApiContract.metadata().get("core-failure-policy"));
         assertEquals(CloudIslandsApiContract.TIMEOUT_RETRY_POLICY, CloudIslandsApiContract.metadata().get("timeout-retry-policy"));
         assertEquals(CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY, CloudIslandsApiContract.metadata().get("compatibility-testkit-policy"));
+        assertEquals(CloudIslandsApiContract.INTEGRATION_PORT_POLICY, CloudIslandsApiContract.metadata().get("integration-port-policy"));
     }
 
     @Test

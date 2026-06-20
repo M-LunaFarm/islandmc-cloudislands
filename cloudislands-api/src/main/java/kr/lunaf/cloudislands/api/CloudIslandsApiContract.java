@@ -29,6 +29,7 @@ public final class CloudIslandsApiContract {
     public static final String CORE_FAILURE_POLICY = "core-unavailable-fails-closed-for-writes-and-may-return-marked-stale-snapshots-for-reads";
     public static final String TIMEOUT_RETRY_POLICY = "typed-core-client-uses-bounded-timeouts-and-retries-read-requests-only-unless-idempotency-key-is-present";
     public static final String COMPATIBILITY_TESTKIT_POLICY = "addons-validate-against-cloudislands-testkit-contract-fixtures-before-certification";
+    public static final String INTEGRATION_PORT_POLICY = "external-hooks-use-applyValidated-so-core-state-mutations-require-island-uuid-node-id-runtime-fencing-token-node-ownership-and-idempotency-key";
     public static final String CORE_AUTH_POLICY = "core-api-requires-api-token-or-mtls-for-non-health-requests";
     public static final String ADMIN_ENDPOINT_POLICY = "admin-endpoints-use-separate-admin-token-and-per-command-permissions";
     public static final String NETWORK_EXPOSURE_POLICY = "bind-public-only-with-ip-allowlist-mtls-and-token-controls";
@@ -67,6 +68,7 @@ public final class CloudIslandsApiContract {
             "core-failure-policy",
             "timeout-retry-policy",
             "compatibility-testkit-policy",
+            "integration-port-policy",
             "core-auth-policy",
             "admin-endpoint-policy",
             "network-exposure-policy",
@@ -145,6 +147,7 @@ public final class CloudIslandsApiContract {
             Map.entry("core-failure-policy", CORE_FAILURE_POLICY),
             Map.entry("timeout-retry-policy", TIMEOUT_RETRY_POLICY),
             Map.entry("compatibility-testkit-policy", COMPATIBILITY_TESTKIT_POLICY),
+            Map.entry("integration-port-policy", INTEGRATION_PORT_POLICY),
             Map.entry("core-auth-policy", CORE_AUTH_POLICY),
             Map.entry("admin-endpoint-policy", ADMIN_ENDPOINT_POLICY),
             Map.entry("network-exposure-policy", NETWORK_EXPOSURE_POLICY),

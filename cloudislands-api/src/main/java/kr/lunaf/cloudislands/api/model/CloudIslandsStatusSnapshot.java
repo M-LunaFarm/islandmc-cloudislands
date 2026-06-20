@@ -199,6 +199,7 @@ public record CloudIslandsStatusSnapshot(
         metadata.put("core-failure-policy", CloudIslandsApiContract.CORE_FAILURE_POLICY);
         metadata.put("timeout-retry-policy", CloudIslandsApiContract.TIMEOUT_RETRY_POLICY);
         metadata.put("compatibility-testkit-policy", CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY);
+        metadata.put("integration-port-policy", CloudIslandsApiContract.INTEGRATION_PORT_POLICY);
         metadata.put("java-plugin-api-policy", safe(javaPluginApiPolicy));
         metadata.put("internal-api-policy", safe(internalApiPolicy));
         metadata.put("event-api-policy", safe(eventApiPolicy));
