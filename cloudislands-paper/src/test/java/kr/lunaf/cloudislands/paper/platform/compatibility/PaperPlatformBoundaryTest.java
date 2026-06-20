@@ -198,6 +198,29 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void guiInventoryCreationAlwaysUsesMenuHolderFactory() throws Exception {
+        Path root = repositoryRoot();
+        Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
+        try (Stream<Path> files = javaFiles(guiSource)) {
+            String violations = files
+                .filter(path -> !path.getFileName().toString().equals("GuiInventories.java"))
+                .filter(path -> containsAny(path, "Bukkit.createInventory(", ".createInventory("))
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+
+        String factory = Files.readString(guiSource.resolve("GuiInventories.java"));
+        assertTrue(factory.contains("new CloudIslandsMenuHolder(menuId)"), "GUI inventory factory must create a menu holder with the action/menu id");
+        assertTrue(factory.contains("Bukkit.createInventory(holder"), "GUI inventory factory must attach the holder at creation time");
+        assertTrue(factory.contains("holder.attach(inventory)"), "GUI inventory factory must keep holder.getInventory() wired to the created inventory");
+        assertTrue(factory.contains("inventory.getHolder()"), "GUI menu lookup must read holder identity rather than title text");
+    }
+
+    @Test
     void guiClassesDoNotParseControlDataFromLore() throws Exception {
         Path root = repositoryRoot();
         Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
