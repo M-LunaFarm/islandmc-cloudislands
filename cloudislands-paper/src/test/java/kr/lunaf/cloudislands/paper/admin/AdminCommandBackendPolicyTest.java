@@ -46,4 +46,12 @@ class AdminCommandBackendPolicyTest {
         assertTrue(plugin.contains("AdvancedSpawners"), "AdvancedSpawners must be declared as a soft dependency");
         assertTrue(plugin.contains("Plan"), "Plan must be declared as a soft dependency");
     }
+
+    @Test
+    void islandVisitorStatsAreExposedForOperators() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+
+        assertTrue(source.contains("ciadmin island visitor-stats <island>"), "Visitor stats command must be listed in help");
+        assertTrue(source.contains("coreApiClient.islandVisitorStats"), "Visitor stats command must call the Core visitor stats API");
+    }
 }

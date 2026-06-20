@@ -59,6 +59,7 @@ public interface CoreApiClient {
     CompletableFuture<String> pardonIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<Void> kickIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> kickIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid);
+    CompletableFuture<String> islandVisitorStats(UUID islandId, int limit);
     CompletableFuture<String> listIslandFlags(UUID islandId);
     CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
     CompletableFuture<String> setIslandFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value);

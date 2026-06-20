@@ -2,10 +2,13 @@ package kr.lunaf.cloudislands.coreservice.event;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 
@@ -77,6 +80,55 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
             counts.put(value, counts.getOrDefault(value, 0L) + 1L);
         }
         return counts;
+    }
+
+    public synchronized String visitorStatsJson(UUID islandId, int recentLimit) {
+        int safeLimit = Math.max(1, Math.min(recentLimit, 100));
+        String targetIslandId = islandId == null ? "" : islandId.toString();
+        long totalVisits = 0L;
+        Set<String> uniqueVisitors = new LinkedHashSet<>();
+        Map<String, Instant> latestVisits = new LinkedHashMap<>();
+        for (EventRecord event : events) {
+            if (!event.type().equals(CloudIslandEventType.ISLAND_VISITED.name())) {
+                continue;
+            }
+            if (!event.fields().getOrDefault("islandId", "").equals(targetIslandId)) {
+                continue;
+            }
+            totalVisits++;
+            String visitorUuid = event.fields().getOrDefault("visitorUuid", "");
+            if (!visitorUuid.isBlank()) {
+                uniqueVisitors.add(visitorUuid);
+                latestVisits.put(visitorUuid, event.occurredAt());
+            }
+        }
+        List<Map.Entry<String, Instant>> recentVisitors = new ArrayList<>(latestVisits.entrySet());
+        Collections.reverse(recentVisitors);
+        StringBuilder builder = new StringBuilder("{\"islandId\":\"")
+            .append(escape(targetIslandId))
+            .append("\",\"totalVisits\":")
+            .append(totalVisits)
+            .append(",\"uniqueVisitors\":")
+            .append(uniqueVisitors.size())
+            .append(",\"recentVisitors\":[");
+        boolean first = true;
+        int emitted = 0;
+        for (Map.Entry<String, Instant> entry : recentVisitors) {
+            if (emitted >= safeLimit) {
+                break;
+            }
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            emitted++;
+            builder.append("{\"visitorUuid\":\"")
+                .append(escape(entry.getKey()))
+                .append("\",\"lastVisitedAt\":\"")
+                .append(entry.getValue())
+                .append("\"}");
+        }
+        return builder.append("]}").toString();
     }
 
     private String fieldsJson(Map<String, String> fields) {

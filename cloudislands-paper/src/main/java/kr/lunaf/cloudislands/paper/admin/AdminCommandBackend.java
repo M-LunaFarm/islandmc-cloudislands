@@ -37,7 +37,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
     private static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state", "route-events");
     private static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
-    private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
+    private static final List<String> ISLAND_COMMANDS = List.of("info", "where", "visitor-stats", "visitors", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     private static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     private static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     private static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
@@ -78,6 +78,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         "ciadmin node shutdown-safe <node> [reason]",
         "ciadmin island info <island>",
         "ciadmin island where <island>",
+        "ciadmin island visitor-stats <island>",
         "ciadmin island tp <island>",
         "ciadmin island activate <island>",
         "ciadmin island deactivate <island>",
@@ -648,6 +649,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island where", coreApiClient.adminIslandWhere(islandId).thenApply(this::runtimeInfoMessage));
             return true;
         }
+        if (args[1].equalsIgnoreCase("visitor-stats") || args[1].equalsIgnoreCase("visitors")) {
+            run(sender, "Island visitor stats", coreApiClient.islandVisitorStats(islandId, 10).thenApply(body -> actionResultMessage("Visitor stats", islandId.toString(), body)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("tp")) {
             if (sender instanceof Player player) {
                 routeAdminTeleport(player, islandId);
@@ -1005,6 +1010,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         sendCommandUsage(sender, List.of(
             "/ciadmin island info <islandUuid|islandName>",
             "/ciadmin island where <islandUuid|islandName>",
+            "/ciadmin island visitor-stats <islandUuid|islandName>",
             "/ciadmin island tp <islandUuid|islandName>",
             "/ciadmin island activate <islandUuid|islandName>",
             "/ciadmin island deactivate <islandUuid|islandName>",
