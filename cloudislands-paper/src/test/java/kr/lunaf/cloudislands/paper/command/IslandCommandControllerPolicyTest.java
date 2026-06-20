@@ -66,4 +66,19 @@ class IslandCommandControllerPolicyTest {
         assertTrue(snapshotHandler.contains("coreApiClient.requestIslandSnapshotResult"));
         assertTrue(snapshotHandler.contains("coreApiClient.restoreIslandSnapshotResult"));
     }
+
+    @Test
+    void warehouseCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String warehouseHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandWarehouseCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandWarehouseCommandHandler warehouseCommands;"));
+        assertTrue(backend.contains("warehouseCommands.handleCommand(player, subcommand, args)"));
+        assertFalse(backend.contains("listIslandWarehouse("), "warehouse list logic belongs in IslandWarehouseCommandHandler");
+        assertFalse(backend.contains("changeIslandWarehouse("), "warehouse mutation logic belongs in IslandWarehouseCommandHandler");
+        assertTrue(warehouseHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(warehouseHandler.contains("coreApiClient.islandWarehouse"));
+        assertTrue(warehouseHandler.contains("coreApiClient.depositIslandWarehouse"));
+        assertTrue(warehouseHandler.contains("coreApiClient.withdrawIslandWarehouse"));
+    }
 }

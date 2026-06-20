@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.paper.command;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -224,6 +223,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandLevelScanService levelScanService;
     private final IslandBankCommandHandler bankCommands;
     private final IslandSnapshotCommandHandler snapshotCommands;
+    private final IslandWarehouseCommandHandler warehouseCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -353,6 +353,42 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             @Override
             public boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click) {
                 return IslandCommandBackend.this.confirmationAccepted(player, actionId, data, click);
+            }
+        });
+        this.warehouseCommands = new IslandWarehouseCommandHandler(coreApiClient, new IslandWarehouseCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public boolean allowed(Player player, IslandPermission permission) {
+                return IslandCommandBackend.this.allowed(player, permission);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public String playerCodeMessage(String code, String fallback) {
+                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+            }
+
+            @Override
+            public String coreWriteFailureMessage(Throwable error, String fallback) {
+                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
             }
         });
         this.messages = messages;
@@ -628,24 +664,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (bankCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
-        if (subcommand.equals("warehouse") || subcommand.equals("warehouse-list") || subcommand.equals("storage-box") || subcommand.equals("창고") || subcommand.equals("창고목록")) {
-            listIslandWarehouse(player, args.length > 1 ? integer(args[1], 27) : 27);
-            return true;
-        }
-        if (subcommand.equals("warehouse-deposit") || subcommand.equals("창고입금")) {
-            if (args.length < 3) {
-                message(player, routeMessage("input-warehouse-deposit-required", "창고에 넣을 재료와 수량을 입력해주세요."));
-                return true;
-            }
-            changeIslandWarehouse(player, args[1], longValue(args[2], 0L), true);
-            return true;
-        }
-        if (subcommand.equals("warehouse-withdraw") || subcommand.equals("창고출금")) {
-            if (args.length < 3) {
-                message(player, routeMessage("input-warehouse-withdraw-required", "창고에서 뺄 재료와 수량을 입력해주세요."));
-                return true;
-            }
-            changeIslandWarehouse(player, args[1], longValue(args[2], 0L), false);
+        if (warehouseCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (subcommand.equals("upgrade") || subcommand.equals("upgrades") || subcommand.equals("업그레이드")) {
@@ -2103,58 +2122,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         });
     }
 
-    private void listIslandWarehouse(Player player, int limit) {
-        currentIsland(player, "섬 안에서만 창고를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandWarehouse(islandId, Math.max(1, Math.min(limit, 100)))
-                .thenAccept(body -> message(player, warehouseListMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 창고를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void changeIslandWarehouse(Player player, String materialKey, long amount, boolean deposit) {
-        currentIsland(player, deposit ? "섬 안에서만 창고에 입금할 수 있습니다." : "섬 안에서만 창고에서 출금할 수 있습니다.").ifPresent(islandId -> {
-            IslandPermission permission = deposit ? IslandPermission.OPEN_CONTAINER : IslandPermission.WITHDRAW_BANK;
-            if (!allowed(player, permission)) {
-                message(player, deposit ? routeMessage("warehouse-deposit-denied", "섬 창고에 넣을 권한이 없습니다.") : routeMessage("warehouse-withdraw-denied", "섬 창고에서 뺄 권한이 없습니다."));
-                return;
-            }
-            if (amount <= 0L) {
-                message(player, playerCodeMessage("INVALID_AMOUNT", routeMessage("input-amount-invalid", "올바른 수량을 입력해주세요.")));
-                return;
-            }
-            CompletableFuture<String> request = deposit
-                ? mutateIdempotent("island.warehouse.deposit", () -> coreApiClient.depositIslandWarehouse(islandId, player.getUniqueId(), materialKey, amount))
-                : mutateIdempotent("island.warehouse.withdraw", () -> coreApiClient.withdrawIslandWarehouse(islandId, player.getUniqueId(), materialKey, amount));
-            request.thenAccept(body -> {
-                    String code = text(body, "code");
-                    if (body.contains("\"accepted\":false")) {
-                        message(player, playerCodeMessage(code, deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
-                        return;
-                    }
-                    message(player, (deposit ? "섬 창고 입금 완료: " : "섬 창고 출금 완료: ") + text(body, "materialKey") + " x" + (long) decimal(body, "amount"));
-                })
-                .exceptionally(error -> {
-                    message(player, coreWriteFailureMessage(error, deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
-                    return null;
-                });
-        });
-    }
-
-    private BigDecimal positiveAmount(String amount) {
-        if (amount == null || amount.isBlank()) {
-            return null;
-        }
-        try {
-            BigDecimal value = new BigDecimal(amount.trim());
-            return value.signum() > 0 ? value : null;
-        } catch (NumberFormatException exception) {
-            return null;
-        }
-    }
-
     private void listIslandUpgrades(Player player) {
         currentIsland(player, "섬 안에서만 업그레이드를 확인할 수 있습니다.").ifPresent(islandId -> {
             coreApiClient.listIslandUpgrades(islandId)
@@ -3410,32 +3377,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
             return "섬 후기가 없습니다.";
         }
         return "섬 후기: 평균=" + average + " 개수=" + count + " | " + String.join(" | ", entries);
-    }
-
-    private String warehouseListMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "섬 창고가 비어 있습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = body.indexOf("\"items\"");
-        while (index >= 0 && index < body.length() && entries.size() < 20) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String materialKey = text(object, "materialKey");
-            long amount = (long) decimal(object, "amount");
-            if (!materialKey.isBlank() && amount > 0L) {
-                entries.add(materialKey + " x" + amount);
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "섬 창고가 비어 있습니다." : "섬 창고: " + String.join(", ", entries);
     }
 
     private String generatorInfoMessage(String body) {
