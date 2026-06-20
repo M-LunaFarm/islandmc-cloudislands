@@ -1373,18 +1373,30 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                     deleteIsland(player);
                 }
             }
-            case "admin.node.open" -> AdminNodeMenu.open(player, plugin.getConfig().getString("node.id", "island-1"), messagesFor(player));
-            case "admin.node.list",
-                "admin.node.info",
-                "admin.node.islands",
-                "admin.node.drain",
-                "admin.node.undrain",
-                "admin.node.sweep",
-                "admin.node.kickall.prepare",
-                "admin.node.shutdown-safe.prepare",
-                "admin.island.where.prompt",
+            case "admin.node.open" -> openAdminNodeMenu(player, adminNodeId(data));
+            case "admin.node.list" -> listAdminNodes(player);
+            case "admin.node.info" -> refreshAdminNodeInfo(player, adminNodeId(data));
+            case "admin.node.islands" -> listAdminNodeIslands(player, adminNodeId(data));
+            case "admin.node.drain" -> drainAdminNode(player, adminNodeId(data));
+            case "admin.node.undrain" -> undrainAdminNode(player, adminNodeId(data));
+            case "admin.node.sweep" -> sweepAdminNode(player, adminNodeId(data));
+            case "admin.node.kickall.prepare" -> openAdminNodeKickAllConfirmation(player, adminNodeId(data));
+            case "admin.node.shutdown-safe.prepare" -> openAdminNodeShutdownConfirmation(player, adminNodeId(data));
+            case "admin.node.kickall.confirm" -> {
+                if (confirmationAccepted(player, "admin.node.kickall.confirm", data, click)) {
+                    String nodeId = adminNodeId(data);
+                    kickAllAdminNode(player, nodeId, data.getOrDefault("reason", "admin-gui"));
+                }
+            }
+            case "admin.node.shutdown-safe.confirm" -> {
+                if (confirmationAccepted(player, "admin.node.shutdown-safe.confirm", data, click)) {
+                    String nodeId = adminNodeId(data);
+                    shutdownAdminNodeSafely(player, nodeId, data.getOrDefault("reason", "admin-gui"));
+                }
+            }
+            case "admin.island.where.prompt",
                 "admin.island.migrate.prompt" ->
-                message(player, routeMessage("admin-node-direct-required", "관리 명령은 메뉴 안내를 확인한 뒤 직접 입력합니다."));
+                message(player, routeMessage("admin-node-direct-required", "섬 UUID와 대상 노드 입력이 필요한 관리 작업입니다. 관리자 명령 도움말을 확인해주세요."));
             case "gui.close" -> player.closeInventory();
             default -> message(player, routeMessage("gui-action-unknown", "알 수 없는 GUI 작업입니다: ") + actionId);
         }
@@ -1417,6 +1429,112 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         }
         message(player, routeMessage("danger-confirm-token-invalid", "위험 작업 확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));
         return false;
+    }
+
+    private String adminNodeId(Map<String, String> data) {
+        String configured = plugin.getConfig().getString("node.id", "island-1");
+        String nodeId = data == null ? configured : data.getOrDefault("nodeId", configured);
+        return nodeId == null || nodeId.isBlank() ? configured : nodeId;
+    }
+
+    private void openAdminNodeMenu(Player player, String nodeId) {
+        AdminNodeMenu.open(player, nodeId, messagesFor(player));
+    }
+
+    private void listAdminNodes(Player player) {
+        coreApiClient.listNodes()
+            .thenAccept(body -> message(player, routeMessage("admin-node-list-result-prefix", "노드 목록: ") + adminNodeBodySummary(body)))
+            .exceptionally(error -> adminNodeFailure(player, "admin-node-list-failed", "노드 목록을 불러오지 못했습니다.", error));
+    }
+
+    private void refreshAdminNodeInfo(Player player, String nodeId) {
+        coreApiClient.nodeInfo(nodeId)
+            .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> AdminNodeMenu.open(player, nodeId, body, messagesFor(player))))
+            .exceptionally(error -> adminNodeFailure(player, "admin-node-info-failed", "노드 정보를 불러오지 못했습니다.", error));
+    }
+
+    private void listAdminNodeIslands(Player player, String nodeId) {
+        coreApiClient.nodeIslands(nodeId, 50)
+            .thenAccept(body -> message(player, routeMessage("admin-node-islands-result-prefix", "노드 섬 현황: ") + adminNodeBodySummary(body)))
+            .exceptionally(error -> adminNodeFailure(player, "admin-node-islands-failed", "노드 섬 현황을 불러오지 못했습니다.", error));
+    }
+
+    private void drainAdminNode(Player player, String nodeId) {
+        mutate("admin.node.drain", () -> coreApiClient.drainNode(nodeId))
+            .thenAccept(body -> message(player, adminNodeActionMessage("Node drain", nodeId, body)))
+            .exceptionally(error -> adminNodeFailure(player, "admin-node-action-failed", "Node drain 실패", error));
+    }
+
+    private void undrainAdminNode(Player player, String nodeId) {
+        mutate("admin.node.undrain", () -> coreApiClient.undrainNode(nodeId))
+            .thenAccept(body -> message(player, adminNodeActionMessage("Node undrain", nodeId, body)))
+            .exceptionally(error -> adminNodeFailure(player, "admin-node-action-failed", "Node undrain 실패", error));
+    }
+
+    private void sweepAdminNode(Player player, String nodeId) {
+        mutate("admin.node.sweep", () -> coreApiClient.sweepNode(nodeId))
+            .thenAccept(body -> message(player, adminNodeActionMessage("Node sweep", nodeId, body)))
+            .exceptionally(error -> adminNodeFailure(player, "admin-node-action-failed", "Node sweep 실패", error));
+    }
+
+    private void kickAllAdminNode(Player player, String nodeId, String reason) {
+        mutateIdempotent("admin.node.kickall", () -> coreApiClient.kickAllNode(nodeId, reason))
+            .thenAccept(body -> message(player, adminNodeActionMessage("Node kickall", nodeId, body)))
+            .exceptionally(error -> adminNodeFailure(player, "admin-node-danger-action-failed", "Node kickall 실패", error));
+    }
+
+    private void shutdownAdminNodeSafely(Player player, String nodeId, String reason) {
+        mutateIdempotent("admin.node.shutdown-safe", () -> coreApiClient.shutdownNodeSafely(nodeId, reason))
+            .thenAccept(body -> message(player, adminNodeActionMessage("Node shutdown-safe", nodeId, body)))
+            .exceptionally(error -> adminNodeFailure(player, "admin-node-danger-action-failed", "Node shutdown-safe 실패", error));
+    }
+
+    private void openAdminNodeKickAllConfirmation(Player player, String nodeId) {
+        openConfirmation(player,
+            routeMessage("admin-node-kickall-confirm-title", "노드 플레이어 이동 확인"),
+            routeMessage("admin-node-kickall-confirm-description", "현재 노드의 접속자를 로비로 이동합니다."),
+            Material.IRON_DOOR,
+            routeMessage("admin-node-kickall-confirm-name", "로비 이동 실행"),
+            "admin.node.kickall.confirm",
+            Map.of("nodeId", nodeId, "reason", "admin-gui"),
+            routeMessage("admin-node-kickall-confirm-lore", "클릭하면 Core에 노드 플레이어 이동을 요청합니다."),
+            "admin.node.open");
+    }
+
+    private void openAdminNodeShutdownConfirmation(Player player, String nodeId) {
+        openConfirmation(player,
+            routeMessage("admin-node-shutdown-confirm-title", "노드 안전 종료 확인"),
+            routeMessage("admin-node-shutdown-confirm-description", "Drain 후 접속자를 로비로 이동하고 안전 종료를 요청합니다."),
+            Material.BELL,
+            routeMessage("admin-node-shutdown-confirm-name", "안전 종료 실행"),
+            "admin.node.shutdown-safe.confirm",
+            Map.of("nodeId", nodeId, "reason", "admin-gui"),
+            routeMessage("admin-node-shutdown-confirm-lore", "클릭하면 Core에 노드 안전 종료를 요청합니다."),
+            "admin.node.open");
+    }
+
+    private Void adminNodeFailure(Player player, String key, String fallback, Throwable error) {
+        message(player, routeMessage(key, fallback));
+        return null;
+    }
+
+    private String adminNodeActionMessage(String label, String nodeId, String body) {
+        return actionResultMessage(label, nodeId, body);
+    }
+
+    private String adminNodeBodySummary(String body) {
+        if (body == null || body.isBlank()) {
+            return routeMessage("admin-node-empty-response", "응답 없음");
+        }
+        String code = text(body, "code");
+        if (!code.isBlank()) {
+            return "code=" + code;
+        }
+        String nodeId = text(body, "nodeId");
+        if (!nodeId.isBlank()) {
+            return "node=" + compactId(nodeId);
+        }
+        return body.length() > 180 ? body.substring(0, 180) + "..." : body;
     }
 
     private void sendCommandList(Player player, String title, List<String> commands, int page) {

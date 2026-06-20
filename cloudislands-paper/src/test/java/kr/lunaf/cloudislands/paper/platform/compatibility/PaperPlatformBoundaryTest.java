@@ -166,6 +166,26 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void adminNodeGuiActionsCallCoreUsecases() throws Exception {
+        Path root = repositoryRoot();
+        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String tokens = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/ConfirmationTokenPolicy.java"));
+
+        assertTrue(backend.contains("case \"admin.node.list\" -> listAdminNodes(player);"), "Admin node list GUI action must call the Core usecase path");
+        assertTrue(backend.contains("case \"admin.node.info\" -> refreshAdminNodeInfo(player, adminNodeId(data));"), "Admin node info GUI action must refresh from Core");
+        assertTrue(backend.contains("case \"admin.node.drain\" -> drainAdminNode(player, adminNodeId(data));"), "Admin node drain GUI action must call Core");
+        assertTrue(backend.contains("case \"admin.node.undrain\" -> undrainAdminNode(player, adminNodeId(data));"), "Admin node undrain GUI action must call Core");
+        assertTrue(backend.contains("case \"admin.node.sweep\" -> sweepAdminNode(player, adminNodeId(data));"), "Admin node sweep GUI action must call Core");
+        assertTrue(backend.contains("coreApiClient.kickAllNode("), "Admin node kickall confirmation must call Core");
+        assertTrue(backend.contains("coreApiClient.shutdownNodeSafely("), "Admin node shutdown confirmation must call Core");
+        assertTrue(backend.contains("confirmationAccepted(player, \"admin.node.kickall.confirm\""), "Admin node kickall must verify a confirmation token");
+        assertTrue(backend.contains("confirmationAccepted(player, \"admin.node.shutdown-safe.confirm\""), "Admin node shutdown-safe must verify a confirmation token");
+        assertTrue(tokens.contains("\"admin.node.kickall.confirm\""), "Admin node kickall must require a confirmation token");
+        assertTrue(tokens.contains("\"admin.node.shutdown-safe.confirm\""), "Admin node shutdown-safe must require a confirmation token");
+        assertTrue(!backend.contains("case \"admin.node.list\",\n                \"admin.node.info\""), "Admin node GUI actions must not fall through to direct command guidance");
+    }
+
+    @Test
     void paperRuntimeDoesNotReenterCommandsThroughPlayerCommandStrings() throws Exception {
         Path root = repositoryRoot();
         Path paperSource = root.resolve("cloudislands-paper/src/main/java");

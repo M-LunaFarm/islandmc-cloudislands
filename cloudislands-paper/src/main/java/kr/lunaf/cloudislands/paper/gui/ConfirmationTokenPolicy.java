@@ -13,7 +13,9 @@ public final class ConfirmationTokenPolicy {
         "island.member.demote",
         "island.member.remove.confirm",
         "island.ban.pardon.confirm",
-        "island.snapshot.restore.confirm"
+        "island.snapshot.restore.confirm",
+        "admin.node.kickall.confirm",
+        "admin.node.shutdown-safe.confirm"
     );
 
     private ConfirmationTokenPolicy() {
