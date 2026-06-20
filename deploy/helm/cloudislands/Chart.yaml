@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cloudislands
+description: CloudIslands distributed Skyblock control plane and runtime nodes
+type: application
+version: 0.1.0
+appVersion: 1.0.1

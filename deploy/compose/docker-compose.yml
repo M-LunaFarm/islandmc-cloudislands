@@ -1,0 +1,156 @@
+name: cloudislands
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: cloudislands
+      POSTGRES_USER: cloudislands
+      POSTGRES_PASSWORD_FILE: /run/secrets/cloudislands_database_password
+    secrets:
+      - cloudislands_database_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudislands -d cloudislands"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7
+    command: ["/bin/sh", "-c", "exec redis-server --requirepass \"$$(cat /run/secrets/cloudislands_redis_password)\""]
+    secrets:
+      - cloudislands_redis_password
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$(cat /run/secrets/cloudislands_redis_password)\" ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  object-storage:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER_FILE: /run/secrets/cloudislands_storage_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/cloudislands_storage_secret_key
+    secrets:
+      - cloudislands_storage_access_key
+      - cloudislands_storage_secret_key
+    volumes:
+      - object-storage-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  core:
+    image: ${CLOUDISLANDS_CORE_IMAGE:?set CLOUDISLANDS_CORE_IMAGE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+    environment:
+      CI_BIND: 0.0.0.0
+      CI_PORT: "8443"
+      CI_REPOSITORY_MODE: JDBC
+      CI_DATABASE_TYPE: POSTGRESQL
+      CI_JDBC_URL: jdbc:postgresql://postgres:5432/cloudislands
+      CI_DB_USERNAME: cloudislands
+      CI_DB_PASSWORD_FILE: /run/secrets/cloudislands_database_password
+      CI_REDIS_URI: redis://redis:6379
+      CI_REDIS_PASSWORD_FILE: /run/secrets/cloudislands_redis_password
+      CI_STORAGE_TYPE: S3
+      CI_STORAGE_ENDPOINT: http://object-storage:9000
+      CI_STORAGE_BUCKET: cloudislands
+      CI_STORAGE_ACCESS_KEY_FILE: /run/secrets/cloudislands_storage_access_key
+      CI_STORAGE_SECRET_KEY_FILE: /run/secrets/cloudislands_storage_secret_key
+      CI_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
+      CI_ADMIN_TOKEN_FILE: /run/secrets/cloudislands_admin_token
+    secrets:
+      - cloudislands_database_password
+      - cloudislands_redis_password
+      - cloudislands_storage_access_key
+      - cloudislands_storage_secret_key
+      - cloudislands_core_token
+      - cloudislands_admin_token
+    ports:
+      - "8443:8443"
+
+  velocity:
+    image: ${CLOUDISLANDS_VELOCITY_IMAGE:?set CLOUDISLANDS_VELOCITY_IMAGE}
+    depends_on:
+      core:
+        condition: service_started
+    environment:
+      CLOUDISLANDS_CORE_API_BASE_URL: http://core:8443
+      CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
+      CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
+    secrets:
+      - cloudislands_core_token
+      - cloudislands_forwarding_secret
+    ports:
+      - "25565:25565"
+
+  lobby-paper:
+    image: ${CLOUDISLANDS_PAPER_IMAGE:?set CLOUDISLANDS_PAPER_IMAGE}
+    depends_on:
+      velocity:
+        condition: service_started
+      core:
+        condition: service_started
+    environment:
+      CLOUDISLANDS_NODE_ID: lobby-01
+      CLOUDISLANDS_NODE_ROLE: LOBBY
+      CLOUDISLANDS_VELOCITY_SERVER_NAME: lobby
+      CLOUDISLANDS_CORE_API_BASE_URL: http://core:8443
+      CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
+      CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
+    secrets:
+      - cloudislands_core_token
+      - cloudislands_forwarding_secret
+
+  island-paper-1:
+    image: ${CLOUDISLANDS_PAPER_IMAGE:?set CLOUDISLANDS_PAPER_IMAGE}
+    depends_on:
+      velocity:
+        condition: service_started
+      core:
+        condition: service_started
+    environment:
+      CLOUDISLANDS_NODE_ID: island-01
+      CLOUDISLANDS_NODE_ROLE: ISLAND
+      CLOUDISLANDS_VELOCITY_SERVER_NAME: island-1
+      CLOUDISLANDS_CORE_API_BASE_URL: http://core:8443
+      CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
+      CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
+    secrets:
+      - cloudislands_core_token
+      - cloudislands_forwarding_secret
+
+secrets:
+  cloudislands_database_password:
+    file: ${CLOUDISLANDS_DATABASE_PASSWORD_FILE:?set CLOUDISLANDS_DATABASE_PASSWORD_FILE}
+  cloudislands_redis_password:
+    file: ${CLOUDISLANDS_REDIS_PASSWORD_FILE:?set CLOUDISLANDS_REDIS_PASSWORD_FILE}
+  cloudislands_storage_access_key:
+    file: ${CLOUDISLANDS_STORAGE_ACCESS_KEY_FILE:?set CLOUDISLANDS_STORAGE_ACCESS_KEY_FILE}
+  cloudislands_storage_secret_key:
+    file: ${CLOUDISLANDS_STORAGE_SECRET_KEY_FILE:?set CLOUDISLANDS_STORAGE_SECRET_KEY_FILE}
+  cloudislands_core_token:
+    file: ${CLOUDISLANDS_CORE_TOKEN_FILE:?set CLOUDISLANDS_CORE_TOKEN_FILE}
+  cloudislands_admin_token:
+    file: ${CLOUDISLANDS_ADMIN_TOKEN_FILE:?set CLOUDISLANDS_ADMIN_TOKEN_FILE}
+  cloudislands_forwarding_secret:
+    file: ${CLOUDISLANDS_FORWARDING_SECRET_FILE:?set CLOUDISLANDS_FORWARDING_SECRET_FILE}
+
+volumes:
+  postgres-data:
+  redis-data:
+  object-storage-data:

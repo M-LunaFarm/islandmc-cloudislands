@@ -1,0 +1,59 @@
+images:
+  core:
+    repository: ghcr.io/m-lunafarm/cloudislands-core
+    tag: latest
+  velocity:
+    repository: ghcr.io/m-lunafarm/cloudislands-velocity
+    tag: latest
+  paper:
+    repository: ghcr.io/m-lunafarm/cloudislands-paper
+    tag: latest
+  postgres:
+    repository: postgres
+    tag: "16"
+  redis:
+    repository: redis
+    tag: "7"
+  objectStorage:
+    repository: minio/minio
+    tag: latest
+
+secrets:
+  existingSecret: cloudislands-secrets
+  databasePasswordKey: database-password
+  redisPasswordKey: redis-password
+  storageAccessKeyKey: storage-access-key
+  storageSecretKeyKey: storage-secret-key
+  coreTokenKey: core-token
+  adminTokenKey: admin-token
+  forwardingSecretKey: forwarding-secret
+
+core:
+  replicas: 1
+  port: 8443
+
+velocity:
+  replicas: 1
+  port: 25565
+
+lobby:
+  replicas: 1
+  nodeId: lobby-01
+  serverName: lobby
+
+islandPaper:
+  replicas: 2
+  pool: island
+  serverNamePrefix: island
+
+postgres:
+  database: cloudislands
+  username: cloudislands
+  storage: 20Gi
+
+redis:
+  storage: 5Gi
+
+objectStorage:
+  bucket: cloudislands
+  storage: 50Gi
