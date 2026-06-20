@@ -185,9 +185,18 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public List<IslandWarpSnapshot> publicWarps(int limit) {
+        return publicWarps(limit, "", "");
+    }
+
+    @Override
+    public List<IslandWarpSnapshot> publicWarps(int limit, String category, String query) {
+        String normalizedCategory = IslandWarpSnapshot.normalizeCategory(category);
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase(java.util.Locale.ROOT);
         return warps.values().stream()
             .flatMap(islandWarps -> islandWarps.values().stream())
             .filter(IslandWarpSnapshot::publicAccess)
+            .filter(warp -> category == null || category.isBlank() || warp.category().equalsIgnoreCase(normalizedCategory))
+            .filter(warp -> normalizedQuery.isBlank() || warp.name().toLowerCase(java.util.Locale.ROOT).contains(normalizedQuery) || warp.category().toLowerCase(java.util.Locale.ROOT).contains(normalizedQuery))
             .sorted(java.util.Comparator.comparing(IslandWarpSnapshot::createdAt).reversed())
             .limit(Math.max(1, limit))
             .toList();
@@ -200,8 +209,13 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy) {
+        upsertWarp(islandId, name, location, publicAccess, createdBy, "default");
+    }
+
+    @Override
+    public void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category) {
         warps.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
-            .put(name.toLowerCase(), new IslandWarpSnapshot(islandId, name.toLowerCase(), location, publicAccess, createdBy, Instant.now()));
+            .put(name.toLowerCase(), new IslandWarpSnapshot(islandId, name.toLowerCase(), location, publicAccess, createdBy, Instant.now(), category));
     }
 
     @Override
@@ -216,7 +230,8 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
             warp.location(),
             publicAccess,
             warp.createdBy(),
-            warp.createdAt()
+            warp.createdAt(),
+            warp.category()
         ));
     }
 

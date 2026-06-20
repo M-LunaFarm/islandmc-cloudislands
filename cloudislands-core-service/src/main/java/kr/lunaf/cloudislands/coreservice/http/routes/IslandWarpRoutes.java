@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -73,7 +75,9 @@ public final class IslandWarpRoutes implements RouteGroup {
     private void publicWarps(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         int limit = queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 27), 1, 54);
-        List<IslandWarpSnapshot> visibleWarps = metadataRepository.publicWarps(500).stream()
+        String category = queryText(exchange, "category", JsonFields.text(body, "category", ""));
+        String query = queryText(exchange, "query", JsonFields.text(body, "query", ""));
+        List<IslandWarpSnapshot> visibleWarps = metadataRepository.publicWarps(500, category, query).stream()
             .filter(warp -> metadataRepository.isPublicAccess(warp.islandId()))
             .filter(warp -> !metadataRepository.isLocked(warp.islandId()))
             .filter(warp -> islandFlagEnabled(warp.islandId(), IslandFlag.PUBLIC_WARPS))
@@ -106,6 +110,7 @@ public final class IslandWarpRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         String name = JsonFields.text(body, "name", "default").toLowerCase();
+        String category = JsonFields.text(body, "category", "default");
         boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
@@ -117,9 +122,9 @@ public final class IslandWarpRoutes implements RouteGroup {
             return;
         }
         IslandLocation warpLocation = location(body);
-        metadataRepository.upsertWarp(islandId, name, warpLocation, publicAccess, actorUuid);
-        audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
-        islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
+        metadataRepository.upsertWarp(islandId, name, warpLocation, publicAccess, actorUuid, category);
+        audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess), "category", IslandWarpSnapshot.normalizeCategory(category)));
+        islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess), "category", IslandWarpSnapshot.normalizeCategory(category)));
         if (!existingWarp) {
             events.publish(CloudIslandEventType.ISLAND_WARP_CREATED.name(), Map.of(
                 "islandId", islandId.toString(),
@@ -129,10 +134,11 @@ public final class IslandWarpRoutes implements RouteGroup {
                 "localY", Double.toString(warpLocation.localY()),
                 "localZ", Double.toString(warpLocation.localZ()),
                 "yaw", Float.toString(warpLocation.yaw()),
-                "pitch", Float.toString(warpLocation.pitch())
+                "pitch", Float.toString(warpLocation.pitch()),
+                "category", IslandWarpSnapshot.normalizeCategory(category)
             ));
         }
-        events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", existingWarp ? "WARP_UPDATE" : "WARP_CREATE"));
+        events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", existingWarp ? "WARP_UPDATE" : "WARP_CREATE", "category", IslandWarpSnapshot.normalizeCategory(category)));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 
@@ -267,6 +273,7 @@ public final class IslandWarpRoutes implements RouteGroup {
                 .append("\"yaw\":").append(location.yaw()).append(',')
                 .append("\"pitch\":").append(location.pitch()).append(',')
                 .append("\"publicAccess\":").append(warp.publicAccess()).append(',')
+                .append("\"category\":\"").append(escape(warp.category())).append("\",")
                 .append("\"createdBy\":\"").append(warp.createdBy()).append("\",")
                 .append("\"createdAt\":\"").append(warp.createdAt()).append("\"")
                 .append('}');
@@ -291,6 +298,21 @@ public final class IslandWarpRoutes implements RouteGroup {
             }
         }
         return Math.max(min, Math.min(fallback, max));
+    }
+
+    static String queryText(HttpExchange exchange, String key, String fallback) {
+        String query = exchange.getRequestURI().getRawQuery();
+        if (query == null || query.isBlank()) {
+            return fallback == null ? "" : fallback;
+        }
+        for (String part : query.split("&")) {
+            int separator = part.indexOf('=');
+            if (separator <= 0 || !part.substring(0, separator).equals(key)) {
+                continue;
+            }
+            return URLDecoder.decode(part.substring(separator + 1), StandardCharsets.UTF_8);
+        }
+        return fallback == null ? "" : fallback;
     }
 
     private static String escape(String value) {

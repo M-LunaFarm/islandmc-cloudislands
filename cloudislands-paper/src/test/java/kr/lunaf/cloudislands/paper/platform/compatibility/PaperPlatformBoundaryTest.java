@@ -384,6 +384,21 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void publicWarpsExposeCategoryAndSearchFilters() throws Exception {
+        Path root = repositoryRoot();
+        String model = Files.readString(root.resolve("cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/model/IslandWarpSnapshot.java"));
+        String routes = Files.readString(root.resolve("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarpRoutes.java"));
+        String client = Files.readString(root.resolve("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/CoreApiClient.java"));
+        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+
+        assertTrue(model.contains("String category"), "Warp API model must include a category");
+        assertTrue(routes.contains("queryText(exchange, \"category\""), "Core public warp route must accept category filters");
+        assertTrue(routes.contains("queryText(exchange, \"query\""), "Core public warp route must accept search filters");
+        assertTrue(client.contains("listPublicWarps(int limit, String category, String query)"), "Core client must expose filtered public warp lookup");
+        assertTrue(backend.contains("listPublicWarps(player, args[1]"), "Paper public warp command must expose category/search arguments");
+    }
+
+    @Test
     void asyncGuiLoadFailuresUseInventoryStateScreens() throws Exception {
         Path root = repositoryRoot();
         Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");

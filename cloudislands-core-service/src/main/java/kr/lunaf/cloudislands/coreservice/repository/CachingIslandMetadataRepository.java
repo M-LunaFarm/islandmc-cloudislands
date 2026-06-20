@@ -210,6 +210,11 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public List<IslandWarpSnapshot> publicWarps(int limit, String category, String query) {
+        return delegate.publicWarps(limit, category, query);
+    }
+
+    @Override
     public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
         Optional<List<IslandWarpSnapshot>> cached = cachedWarps(islandId);
         if (cached.isPresent()) {
@@ -223,6 +228,12 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     @Override
     public void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy) {
         delegate.upsertWarp(islandId, name, location, publicAccess, createdBy);
+        cacheWarps(islandId, delegate.warps(islandId));
+    }
+
+    @Override
+    public void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category) {
+        delegate.upsertWarp(islandId, name, location, publicAccess, createdBy, category);
         cacheWarps(islandId, delegate.warps(islandId));
     }
 
@@ -413,7 +424,8 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
                     location,
                     JsonFields.bool(object, "publicAccess", false),
                     JsonFields.uuid(object, "createdBy", new UUID(0L, 0L)),
-                    instant(JsonFields.text(object, "createdAt", ""))
+                    instant(JsonFields.text(object, "createdAt", "")),
+                    JsonFields.text(object, "category", "default")
                 ));
             }
             return Optional.of(List.copyOf(warps));
@@ -518,6 +530,7 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
                 .append("\"yaw\":").append(warp.location().yaw()).append(',')
                 .append("\"pitch\":").append(warp.location().pitch()).append(',')
                 .append("\"publicAccess\":").append(warp.publicAccess()).append(',')
+                .append("\"category\":\"").append(escape(warp.category())).append("\",")
                 .append("\"createdBy\":\"").append(warp.createdBy()).append("\",")
                 .append("\"createdAt\":\"").append(warp.createdAt()).append("\"")
                 .append('}');

@@ -2894,7 +2894,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 location(object),
                 bool(object, "publicAccess", false),
                 uuid(object, "createdBy", new UUID(0L, 0L)),
-                instant(text(object, "createdAt", Instant.EPOCH.toString()))
+                instant(text(object, "createdAt", Instant.EPOCH.toString())),
+                text(object, "category", "default")
             ));
         }
         return warps;

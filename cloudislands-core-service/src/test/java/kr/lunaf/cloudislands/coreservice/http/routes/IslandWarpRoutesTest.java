@@ -51,8 +51,14 @@ class IslandWarpRoutesTest {
             IslandWarpRoutes.homesJson(List.of(new IslandHomeSnapshot(islandId, "main \"home\"", location, actorUuid, Instant.parse("2026-01-02T03:04:05Z"))))
         );
         assertEquals(
-            "{\"warps\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"shop \\\"warp\\\"\",\"localX\":1.0,\"localY\":65.5,\"localZ\":-3.25,\"yaw\":90.0,\"pitch\":15.0,\"publicAccess\":true,\"createdBy\":\"00000000-0000-0000-0000-000000000002\",\"createdAt\":\"2026-01-02T03:04:05Z\"}]}",
-            IslandWarpRoutes.warpsJson(List.of(new IslandWarpSnapshot(islandId, "shop \"warp\"", location, true, actorUuid, Instant.parse("2026-01-02T03:04:05Z"))))
+            "{\"warps\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"shop \\\"warp\\\"\",\"localX\":1.0,\"localY\":65.5,\"localZ\":-3.25,\"yaw\":90.0,\"pitch\":15.0,\"publicAccess\":true,\"category\":\"market\",\"createdBy\":\"00000000-0000-0000-0000-000000000002\",\"createdAt\":\"2026-01-02T03:04:05Z\"}]}",
+            IslandWarpRoutes.warpsJson(List.of(new IslandWarpSnapshot(islandId, "shop \"warp\"", location, true, actorUuid, Instant.parse("2026-01-02T03:04:05Z"), "Market")))
         );
+    }
+
+    @Test
+    void normalizesWarpCategories() {
+        assertEquals("default", IslandWarpSnapshot.normalizeCategory(""));
+        assertEquals("public-market", IslandWarpSnapshot.normalizeCategory("Public Market"));
     }
 }

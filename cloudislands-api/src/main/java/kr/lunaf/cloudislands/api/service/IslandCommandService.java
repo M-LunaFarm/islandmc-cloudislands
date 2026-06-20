@@ -80,6 +80,9 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> createWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
+    default CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category) {
+        return setWarpResult(islandId, actorUuid, name, location, publicAccess);
+    }
     CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<IslandActionResult> deleteWarpResult(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<Void> setWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess);

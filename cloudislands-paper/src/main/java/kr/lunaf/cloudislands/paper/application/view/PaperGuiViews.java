@@ -88,6 +88,10 @@ public final class PaperGuiViews {
         return client.listPublicWarps(limit).thenApply(PaperGuiViews::warps);
     }
 
+    public static CompletableFuture<List<WarpView>> publicWarps(CoreApiClient client, int limit, String category, String query) {
+        return client.listPublicWarps(limit, category, query).thenApply(PaperGuiViews::warps);
+    }
+
     public static CompletableFuture<List<PermissionRuleView>> islandPermissions(CoreApiClient client, UUID islandId) {
         return client.listIslandPermissions(islandId).thenApply(PaperGuiViews::permissionRules);
     }
@@ -246,7 +250,7 @@ public final class PaperGuiViews {
                 name = text(object, "warpName");
             }
             if (!name.isBlank()) {
-                warps.add(new WarpView(text(object, "islandId"), name, doubleValue(object, "localX", "x"), doubleValue(object, "localY", "y"), doubleValue(object, "localZ", "z"), bool(object, "publicAccess")));
+                warps.add(new WarpView(text(object, "islandId"), name, doubleValue(object, "localX", "x"), doubleValue(object, "localY", "y"), doubleValue(object, "localZ", "z"), bool(object, "publicAccess"), text(object, "category")));
             }
         }
         return warps;
@@ -585,7 +589,10 @@ public final class PaperGuiViews {
     public record HomeView(String name, double x, double y, double z, String createdAt) {
     }
 
-    public record WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess) {
+    public record WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess, String category) {
+        public WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess) {
+            this(islandId, name, x, y, z, publicAccess, "default");
+        }
     }
 
     public record PermissionRuleView(String role, String permission, boolean allowed) {

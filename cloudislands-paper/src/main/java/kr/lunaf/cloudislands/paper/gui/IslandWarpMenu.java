@@ -143,12 +143,14 @@ public final class IslandWarpMenu implements Listener {
         if (publicMenu) {
             return GuiItems.action(material, warp.name(), "island.warp.teleport",
                 Map.of("islandId", warp.islandId(), "warpName", warp.name()),
+                message(messages, "warp-menu-category", "카테고리: ") + (warp.category().isBlank() ? "default" : warp.category()),
                 message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(),
                 message(messages, "warp-menu-public-left-click", "좌클릭: 공개 워프로 이동"));
         }
         return GuiItems.action(material, warp.name(), "island.warp.teleport",
             Map.of("warpName", warp.name(), "publicAccess", String.valueOf(warp.publicAccess())),
             message(messages, "warp-menu-public-state", "공개 상태: ") + (warp.publicAccess() ? message(messages, "warp-menu-public", "공개") : message(messages, "warp-menu-private", "비공개")),
+            message(messages, "warp-menu-category", "카테고리: ") + (warp.category().isBlank() ? "default" : warp.category()),
             message(messages, "warp-menu-location", "위치: ") + (long) warp.x() + ", " + (long) warp.y() + ", " + (long) warp.z(),
             warp.publicAccess() ? message(messages, "warp-menu-public-label", "공개 워프") : message(messages, "warp-menu-private-label", "비공개 워프"),
             message(messages, "warp-menu-left-click", "좌클릭: 이동"),

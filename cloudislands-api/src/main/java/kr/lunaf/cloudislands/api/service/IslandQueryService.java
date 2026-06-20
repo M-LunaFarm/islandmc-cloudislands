@@ -41,6 +41,16 @@ public interface IslandQueryService {
     CompletableFuture<List<IslandHomeSnapshot>> getHomes(UUID islandId);
     CompletableFuture<List<IslandWarpSnapshot>> getWarps(UUID islandId);
     CompletableFuture<List<IslandWarpSnapshot>> getPublicWarps(int limit);
+    default CompletableFuture<List<IslandWarpSnapshot>> getPublicWarps(int limit, String category, String query) {
+        return getPublicWarps(limit).thenApply(warps -> {
+            String normalizedCategory = IslandWarpSnapshot.normalizeCategory(category);
+            String normalizedQuery = query == null ? "" : query.trim().toLowerCase(java.util.Locale.ROOT);
+            return warps.stream()
+                .filter(warp -> category == null || category.isBlank() || warp.category().equalsIgnoreCase(normalizedCategory))
+                .filter(warp -> normalizedQuery.isBlank() || warp.name().toLowerCase(java.util.Locale.ROOT).contains(normalizedQuery) || warp.category().toLowerCase(java.util.Locale.ROOT).contains(normalizedQuery))
+                .toList();
+        });
+    }
     CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId);
     CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId);
     CompletableFuture<List<IslandLimitSnapshot>> getLimits(UUID islandId);

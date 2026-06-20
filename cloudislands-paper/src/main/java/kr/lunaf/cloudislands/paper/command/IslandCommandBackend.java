@@ -472,7 +472,11 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             return true;
         }
         if (subcommand.equals("public-warps") || subcommand.equals("publicwarplist") || subcommand.equals("공개워프목록")) {
-            IslandWarpMenu.openPublic(plugin, coreApiClient, player, messages);
+            if (args.length > 1) {
+                listPublicWarps(player, args[1], args.length > 2 ? joined(args, 2) : "");
+            } else {
+                IslandWarpMenu.openPublic(plugin, coreApiClient, player, messages);
+            }
             return true;
         }
         if (subcommand.equals("warp")) {
@@ -1499,6 +1503,15 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             .thenAccept(body -> message(player, publicIslandListMessage(body)))
             .exceptionally(error -> {
                 message(player, "공개 섬 목록을 불러오지 못했습니다.");
+                return null;
+            });
+    }
+
+    private void listPublicWarps(Player player, String category, String query) {
+        coreApiClient.listPublicWarps(20, category, query)
+            .thenAccept(body -> message(player, publicWarpListMessage(body, category, query)))
+            .exceptionally(error -> {
+                message(player, "공개 워프 목록을 불러오지 못했습니다.");
                 return null;
             });
     }
@@ -2785,6 +2798,35 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
+    }
+
+    private String publicWarpListMessage(String body, String category, String query) {
+        if (body == null || body.isBlank()) {
+            return "공개 워프가 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        int index = body.indexOf("\"warps\"");
+        while (index >= 0 && index < body.length() && entries.size() < 20) {
+            int objectStart = body.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = body.indexOf('}', objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            String object = body.substring(objectStart, objectEnd + 1);
+            String name = text(object, "name");
+            String islandId = text(object, "islandId");
+            if (!name.isBlank() && !islandId.isBlank()) {
+                String warpCategory = text(object, "category");
+                entries.add((entries.size() + 1) + ". " + name + " (섬=" + compactId(islandId) + ", 카테고리=" + (warpCategory.isBlank() ? "default" : warpCategory) + ")");
+            }
+            index = objectEnd + 1;
+        }
+        String suffix = (category == null || category.isBlank() ? "" : " category=" + category)
+            + (query == null || query.isBlank() ? "" : " query=" + query);
+        return entries.isEmpty() ? "공개 워프가 없습니다." + suffix : "공개 워프" + suffix + ": " + String.join(" | ", entries);
     }
 
     private String bankBalance(String body) {

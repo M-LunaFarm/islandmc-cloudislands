@@ -77,8 +77,10 @@ public interface CoreApiClient {
     CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, IslandRole role);
     CompletableFuture<String> listIslandWarps(UUID islandId);
     CompletableFuture<String> listPublicWarps(int limit);
+    CompletableFuture<String> listPublicWarps(int limit, String category, String query);
     CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
+    CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category);
     CompletableFuture<Void> deleteIslandWarp(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<String> deleteIslandWarpResult(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<Void> setIslandWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess);

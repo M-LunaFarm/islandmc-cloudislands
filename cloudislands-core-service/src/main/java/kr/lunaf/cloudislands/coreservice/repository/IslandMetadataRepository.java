@@ -39,8 +39,10 @@ public interface IslandMetadataRepository {
     void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy);
     List<IslandWarpSnapshot> warps(UUID islandId);
     List<IslandWarpSnapshot> publicWarps(int limit);
+    List<IslandWarpSnapshot> publicWarps(int limit, String category, String query);
     Optional<IslandWarpSnapshot> warp(UUID islandId, String name);
     void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy);
+    void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category);
     void setWarpPublicAccess(UUID islandId, String name, boolean publicAccess);
     void deleteWarp(UUID islandId, String name);
     boolean isPublicAccess(UUID islandId);

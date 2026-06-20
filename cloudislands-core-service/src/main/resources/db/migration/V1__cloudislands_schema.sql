@@ -85,6 +85,7 @@ CREATE INDEX idx_island_invites_target ON island_invites(target_uuid, state);
 CREATE TABLE island_warps (
     island_id UUID NOT NULL REFERENCES islands(id),
     name VARCHAR(32) NOT NULL,
+    category VARCHAR(32) NOT NULL DEFAULT 'default',
     local_x DOUBLE PRECISION NOT NULL,
     local_y DOUBLE PRECISION NOT NULL,
     local_z DOUBLE PRECISION NOT NULL,
