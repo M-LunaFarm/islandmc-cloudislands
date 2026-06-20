@@ -40,13 +40,29 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void commandRoutingIsSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String router = routerSource();
+
+        assertTrue(backend.contains("private final IslandCommandRouter router;"));
+        assertTrue(backend.contains("return router.handleCommand(sender, command, label, args);"));
+        assertTrue(backend.contains("router.handleGuiAction(player, action, click);"));
+        assertFalse(backend.contains("commandListPage("), "command route parsing belongs in IslandCommandRouter");
+        assertFalse(backend.contains("sendCommandList(Player player"), "command list rendering belongs in IslandCommandRouter");
+        assertTrue(router.contains("final class IslandCommandRouter"));
+        assertTrue(router.contains("boolean handleCommand(@NotNull CommandSender sender"));
+        assertTrue(router.contains("void handleGuiAction(Player player, GuiAction action, GuiClick click)"));
+        assertTrue(router.contains("CommandListPolicy.page"));
+    }
+
+    @Test
     void bankCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String bankHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandBankCommandHandler bankCommands;"));
-        assertTrue(backend.contains("bankCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("bankCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("bankCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("bankCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("depositIslandBank("), "bank deposit logic belongs in IslandBankCommandHandler");
         assertFalse(backend.contains("withdrawIslandBank("), "bank withdraw logic belongs in IslandBankCommandHandler");
         assertTrue(bankHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
@@ -61,8 +77,8 @@ class IslandCommandControllerPolicyTest {
         String snapshotHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSnapshotCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandSnapshotCommandHandler snapshotCommands;"));
-        assertTrue(backend.contains("snapshotCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("snapshotCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("snapshotCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("snapshotCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("requestIslandSnapshot("), "snapshot create logic belongs in IslandSnapshotCommandHandler");
         assertFalse(backend.contains("restoreIslandSnapshot("), "snapshot restore logic belongs in IslandSnapshotCommandHandler");
         assertTrue(snapshotHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
@@ -77,7 +93,7 @@ class IslandCommandControllerPolicyTest {
         String warehouseHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandWarehouseCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandWarehouseCommandHandler warehouseCommands;"));
-        assertTrue(backend.contains("warehouseCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("warehouseCommands.handleCommand(player, subcommand, args)"));
         assertFalse(backend.contains("listIslandWarehouse("), "warehouse list logic belongs in IslandWarehouseCommandHandler");
         assertFalse(backend.contains("changeIslandWarehouse("), "warehouse mutation logic belongs in IslandWarehouseCommandHandler");
         assertTrue(warehouseHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
@@ -92,8 +108,8 @@ class IslandCommandControllerPolicyTest {
         String chatLogHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandChatLogCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandChatLogCommandHandler chatLogCommands;"));
-        assertTrue(backend.contains("chatLogCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("chatLogCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("chatLogCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("chatLogCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("sendIslandChat("), "chat send logic belongs in IslandChatLogCommandHandler");
         assertFalse(backend.contains("listIslandLogs("), "log list logic belongs in IslandChatLogCommandHandler");
         assertTrue(chatLogHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
@@ -108,8 +124,8 @@ class IslandCommandControllerPolicyTest {
         String progressionHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandProgressionCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandProgressionCommandHandler progressionCommands;"));
-        assertTrue(backend.contains("progressionCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("progressionCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("progressionCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("progressionCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("recalculateIslandLevel("), "level recalculation logic belongs in IslandProgressionCommandHandler");
         assertFalse(backend.contains("purchaseIslandUpgrade("), "upgrade purchase logic belongs in IslandProgressionCommandHandler");
         assertFalse(backend.contains("completeIslandTask("), "mission completion logic belongs in IslandProgressionCommandHandler");
@@ -126,8 +142,8 @@ class IslandCommandControllerPolicyTest {
         String environmentHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandEnvironmentCommandHandler environmentCommands;"));
-        assertTrue(backend.contains("environmentCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("environmentCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("environmentCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("environmentCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("setIslandBiome("), "biome mutation logic belongs in IslandEnvironmentCommandHandler");
         assertFalse(backend.contains("setIslandLimit("), "limit mutation logic belongs in IslandEnvironmentCommandHandler");
         assertFalse(backend.contains("applyIslandBorder("), "border UI logic belongs in IslandEnvironmentCommandHandler");
@@ -144,8 +160,8 @@ class IslandCommandControllerPolicyTest {
         String settingsHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSettingsCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandSettingsCommandHandler settingsCommands;"));
-        assertTrue(backend.contains("settingsCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("settingsCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("settingsCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("settingsCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("setIslandPublicAccess("), "public access logic belongs in IslandSettingsCommandHandler");
         assertFalse(backend.contains("setIslandFlag("), "flag mutation logic belongs in IslandSettingsCommandHandler");
         assertFalse(backend.contains("setIslandName("), "name mutation logic belongs in IslandSettingsCommandHandler");
@@ -162,8 +178,8 @@ class IslandCommandControllerPolicyTest {
         String homeWarpHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandHomeWarpCommandHandler homeWarpCommands;"));
-        assertTrue(backend.contains("homeWarpCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("homeWarpCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("homeWarpCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("homeWarpCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("setHome("), "home mutation logic belongs in IslandHomeWarpCommandHandler");
         assertFalse(backend.contains("setWarp("), "warp mutation logic belongs in IslandHomeWarpCommandHandler");
         assertFalse(backend.contains("teleportHome("), "home teleport logic belongs in IslandHomeWarpCommandHandler");
@@ -183,8 +199,8 @@ class IslandCommandControllerPolicyTest {
         String visitReviewHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandVisitReviewCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandVisitReviewCommandHandler visitReviewCommands;"));
-        assertTrue(backend.contains("visitReviewCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("visitReviewCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("visitReviewCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("visitReviewCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("routeVisitTarget("), "visit target resolution belongs in IslandVisitReviewCommandHandler");
         assertFalse(backend.contains("routeRandomVisit("), "random visit routing belongs in IslandVisitReviewCommandHandler");
         assertFalse(backend.contains("listPublicIslands("), "public island listing belongs in IslandVisitReviewCommandHandler");
@@ -204,8 +220,8 @@ class IslandCommandControllerPolicyTest {
         String lifecycleHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandLifecycleCommandHandler lifecycleCommands;"));
-        assertTrue(backend.contains("lifecycleCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("lifecycleCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("lifecycleCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("lifecycleCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("createIsland("), "island creation logic belongs in IslandLifecycleCommandHandler");
         assertFalse(backend.contains("deleteIsland("), "island deletion logic belongs in IslandLifecycleCommandHandler");
         assertFalse(backend.contains("resetIsland("), "island reset logic belongs in IslandLifecycleCommandHandler");
@@ -224,8 +240,8 @@ class IslandCommandControllerPolicyTest {
         String overviewHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandOverviewCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandOverviewCommandHandler overviewCommands;"));
-        assertTrue(backend.contains("overviewCommands.handleCommand(player, subcommand)"));
-        assertTrue(backend.contains("overviewCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("overviewCommands.handleCommand(player, subcommand)"));
+        assertTrue(routerSource().contains("overviewCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("openIslandInfoMenu("), "info menu routing belongs in IslandOverviewCommandHandler");
         assertFalse(backend.contains("IslandMyIslandsMenu.open("), "my islands menu routing belongs in IslandOverviewCommandHandler");
         assertTrue(overviewHandler.contains("boolean handleCommand(Player player, String subcommand)"));
@@ -240,8 +256,8 @@ class IslandCommandControllerPolicyTest {
         String membershipHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandMembershipCommandHandler membershipCommands;"));
-        assertTrue(backend.contains("membershipCommands.handleCommand(player, subcommand, args)"));
-        assertTrue(backend.contains("membershipCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("membershipCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("membershipCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("subcommand.equals(\"members\")"), "membership command routing belongs in IslandMembershipCommandHandler");
         assertFalse(backend.contains("case \"island.members.open\""), "membership GUI routing belongs in IslandMembershipCommandHandler");
         assertFalse(backend.contains("case \"island.permissions.open\""), "permission GUI routing belongs in IslandMembershipCommandHandler");
@@ -257,7 +273,7 @@ class IslandCommandControllerPolicyTest {
         String adminHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandAdminNodeCommandHandler adminCommands;"));
-        assertTrue(backend.contains("adminCommands.handleGuiAction(player, action"));
+        assertTrue(routerSource().contains("adminCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("case \"admin.node.list\""), "admin node GUI routing belongs in IslandAdminNodeCommandHandler");
         assertFalse(backend.contains("openAdminNodeMenu("), "admin menu opening belongs in IslandAdminNodeCommandHandler");
         assertFalse(backend.contains("drainAdminNode("), "admin node mutations belong in IslandAdminNodeCommandHandler");
@@ -285,5 +301,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(routingHandler.contains("routeBossBars"));
         assertTrue(routingHandler.contains("sendPluginMessage(plugin, \"BungeeCord\""));
         assertTrue(routingHandler.contains("RoutePreparationProgressPolicy"));
+    }
+
+    private static String routerSource() throws Exception {
+        return Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouter.java"));
     }
 }

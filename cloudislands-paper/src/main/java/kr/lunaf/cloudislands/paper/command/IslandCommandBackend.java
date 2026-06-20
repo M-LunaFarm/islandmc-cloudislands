@@ -43,17 +43,14 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
-final class IslandCommandBackend implements CommandExecutor, Listener {
+final class IslandCommandBackend {
     static final List<String> SUBCOMMANDS = IslandCommandCatalog.SUBCOMMANDS;
     static final List<String> HELP_COMMANDS = IslandCommandCatalog.HELP_COMMANDS;
     private final Plugin plugin;
@@ -75,6 +72,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandMembershipCommandHandler membershipCommands;
     private final IslandAdminNodeCommandHandler adminCommands;
     private final IslandRoutingCommandHandler routingCommands;
+    private final IslandCommandRouter router;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final PaperPlayerGateway players;
@@ -945,6 +943,32 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         this.locales = locales;
         this.players = players;
         this.worlds = worlds;
+        this.router = new IslandCommandRouter(
+            bankCommands,
+            snapshotCommands,
+            warehouseCommands,
+            chatLogCommands,
+            progressionCommands,
+            environmentCommands,
+            settingsCommands,
+            homeWarpCommands,
+            visitReviewCommands,
+            lifecycleCommands,
+            overviewCommands,
+            membershipCommands,
+            adminCommands,
+            new IslandCommandRouter.Runtime() {
+                @Override
+                public void message(Player player, String message) {
+                    IslandCommandBackend.this.message(player, message);
+                }
+
+                @Override
+                public String routeMessage(String key, String fallback) {
+                    return IslandCommandBackend.this.routeMessage(key, fallback);
+                }
+            }
+        );
     }
 
     private <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
@@ -955,115 +979,12 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return CoreMutationContext.with(CoreMutationMetadata.idempotent(auditAction), operation);
     }
 
-    @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(routeMessage("player-only-command", "플레이어만 사용할 수 있습니다."));
-            return true;
-        }
-        if (args.length == 0) {
-            sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
-            return true;
-        }
-        String subcommand = args[0].toLowerCase(Locale.ROOT);
-        int commandListPage = commandListPage(args);
-        if (commandListPage > 0) {
-            sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, commandListPage);
-            return true;
-        }
-        if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
-            sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
-            return true;
-        }
-        if (overviewCommands.handleCommand(player, subcommand)) {
-            return true;
-        }
-        if (lifecycleCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (homeWarpCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (settingsCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (visitReviewCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (progressionCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (bankCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (warehouseCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (chatLogCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (environmentCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (snapshotCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        if (membershipCommands.handleCommand(player, subcommand, args)) {
-            return true;
-        }
-        sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
-        return true;
+        return router.handleCommand(sender, command, label, args);
     }
 
     void executeGuiAction(Player player, GuiAction action, GuiClick click) {
-        if (action == null) {
-            return;
-        }
-        String actionId = action.actionId();
-        if (actionId == null || actionId.isBlank()) {
-            return;
-        }
-        if (bankCommands.handleGuiAction(player, action)) {
-            return;
-        }
-        if (snapshotCommands.handleGuiAction(player, action, click)) {
-            return;
-        }
-        if (chatLogCommands.handleGuiAction(player, action)) {
-            return;
-        }
-        if (progressionCommands.handleGuiAction(player, action)) {
-            return;
-        }
-        if (environmentCommands.handleGuiAction(player, action)) {
-            return;
-        }
-        if (settingsCommands.handleGuiAction(player, action, click.right())) {
-            return;
-        }
-        if (homeWarpCommands.handleGuiAction(player, action, click)) {
-            return;
-        }
-        if (visitReviewCommands.handleGuiAction(player, action)) {
-            return;
-        }
-        if (lifecycleCommands.handleGuiAction(player, action, click)) {
-            return;
-        }
-        if (overviewCommands.handleGuiAction(player, action)) {
-            return;
-        }
-        if (membershipCommands.handleGuiAction(player, action, click)) {
-            return;
-        }
-        if (adminCommands.handleGuiAction(player, action, click)) {
-            return;
-        }
-        switch (actionId) {
-            case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
-            case "gui.close" -> player.closeInventory();
-            default -> message(player, routeMessage("gui-action-unknown", "알 수 없는 GUI 작업입니다: ") + actionId);
-        }
+        router.handleGuiAction(player, action, click);
     }
 
     private void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
@@ -1085,50 +1006,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         }
         message(player, routeMessage("confirmation-token-invalid", "확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));
         return false;
-    }
-
-    private void sendCommandList(Player player, String title, List<String> commands, int page) {
-        sendCommandList(player, "섬", title, commands, page);
-    }
-
-    private void sendCommandList(Player player, String label, String title, List<String> commands, int page) {
-        List<String> labelledCommands = commands.stream()
-            .map(command -> command.replaceFirst("^섬", label))
-            .toList();
-        CommandListPolicy.Page commandPage = CommandListPolicy.page(labelledCommands, page, label + " command list");
-        String headerTitle = routeMessage("command-list-title", title + " ");
-        String headerSuffix = routeMessage("command-list-suffix", CommandListPolicy.HEADER_SUFFIX);
-        player.sendMessage(headerTitle + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + headerSuffix);
-        for (String command : commandPage.entries()) {
-            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
-        }
-        if (commandPage.previousCommand() != null) {
-            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
-        }
-        if (commandPage.nextCommand() != null) {
-            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
-        }
-    }
-
-    private int helpPage(String[] args, int index) {
-        if (args.length <= index) {
-            return 1;
-        }
-        return (int) number(args[index], 1L);
-    }
-
-    private int commandListPage(String[] args) {
-        if (args.length == 0) {
-            return 0;
-        }
-        String first = args[0].toLowerCase(Locale.ROOT);
-        if (first.equals("command") && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
-            return helpPage(args, 2);
-        }
-        if (first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록")) {
-            return helpPage(args, 1);
-        }
-        return 0;
     }
 
     private String playerCodeMessage(String code, String fallback) {
@@ -1165,12 +1042,10 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         routingCommands.clearRouteLoading(event.getPlayer());
     }
 
-    @EventHandler
     public void onKick(PlayerKickEvent event) {
         routingCommands.clearRouteLoading(event.getPlayer());
     }

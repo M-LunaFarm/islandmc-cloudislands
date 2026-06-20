@@ -169,12 +169,12 @@ class PaperPlatformBoundaryTest {
     @Test
     void adminNodeGuiActionsCallCoreUsecases() throws Exception {
         Path root = repositoryRoot();
-        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String router = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouter.java"));
         String adminHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
         String homeWarpHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
         String tokens = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/ConfirmationTokenPolicy.java"));
 
-        assertTrue(backend.contains("adminCommands.handleGuiAction(player, action"), "Admin node GUI actions must route through the admin handler");
+        assertTrue(router.contains("adminCommands.handleGuiAction(player, action"), "Admin node GUI actions must route through the admin handler");
         assertTrue(adminHandler.contains("case \"admin.node.list\""), "Admin node list GUI action must call the Core usecase path");
         assertTrue(adminHandler.contains("coreApiClient.listNodes()"), "Admin node list GUI action must call Core");
         assertTrue(adminHandler.contains("case \"admin.node.info\""), "Admin node info GUI action must refresh from Core");
@@ -521,14 +521,14 @@ class PaperPlatformBoundaryTest {
         String model = Files.readString(root.resolve("cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/model/IslandWarpSnapshot.java"));
         String routes = Files.readString(root.resolve("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarpRoutes.java"));
         String client = Files.readString(root.resolve("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/CoreApiClient.java"));
-        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String router = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouter.java"));
         String homeWarpHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
 
         assertTrue(model.contains("String category"), "Warp API model must include a category");
         assertTrue(routes.contains("queryText(exchange, \"category\""), "Core public warp route must accept category filters");
         assertTrue(routes.contains("queryText(exchange, \"query\""), "Core public warp route must accept search filters");
         assertTrue(client.contains("listPublicWarps(int limit, String category, String query)"), "Core client must expose filtered public warp lookup");
-        assertTrue(backend.contains("homeWarpCommands.handleCommand(player, subcommand, args)"), "Paper public warp command must be routed to the home/warp handler");
+        assertTrue(router.contains("homeWarpCommands.handleCommand(player, subcommand, args)"), "Paper public warp command must be routed to the home/warp handler");
         assertTrue(homeWarpHandler.contains("listPublicWarps(player, args[1]"), "Paper public warp command must expose category/search arguments");
     }
 
