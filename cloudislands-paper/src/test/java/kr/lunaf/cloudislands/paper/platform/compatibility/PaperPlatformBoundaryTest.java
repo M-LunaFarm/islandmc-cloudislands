@@ -592,6 +592,7 @@ class PaperPlatformBoundaryTest {
     void permissionGuiStagesChangesBeforeSaving() throws Exception {
         Path root = repositoryRoot();
         String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String permissionHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandPermissionCommandHandler.java"));
         String membershipHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
 
@@ -599,10 +600,11 @@ class PaperPlatformBoundaryTest {
         assertTrue(membershipHandler.contains("runtime.stageIslandPermission"), "Permission cells must stage edits instead of immediately writing Core state");
         assertTrue(membershipHandler.contains("case \"island.permissions.save\""), "Permission save must be the only GUI save action");
         assertTrue(membershipHandler.contains("runtime.saveStagedIslandPermissions"), "Permission save must be the only GUI save action");
-        assertTrue(backend.contains("stagedPermissionChanges"), "Permission edits must have a dirty session store");
-        assertTrue(backend.contains("GuiStateMenus.openSaving"), "Permission save must show a Saving state");
-        assertTrue(backend.contains("GuiStateMenus.openSuccess"), "Permission save must show a Success state");
-        assertTrue(backend.contains("GuiStateMenus.openConflict"), "Permission save failures must show Conflict/Error recovery state");
+        assertTrue(backend.contains("IslandPermissionCommandHandler"), "Permission commands must be extracted from the backend");
+        assertTrue(permissionHandler.contains("stagedPermissionChanges"), "Permission edits must have a dirty session store");
+        assertTrue(permissionHandler.contains("GuiStateMenus.openSaving"), "Permission save must show a Saving state");
+        assertTrue(permissionHandler.contains("GuiStateMenus.openSuccess"), "Permission save must show a Success state");
+        assertTrue(permissionHandler.contains("GuiStateMenus.openConflict"), "Permission save failures must show Conflict/Error recovery state");
         assertTrue(menu.contains("\"island.permissions.save\""), "Permission menu must expose an explicit save button");
         assertTrue(menu.contains("\"island.permissions.reset\""), "Permission menu must expose a reset/cancel button");
         assertTrue(!membershipHandler.contains("case \"island.permissions.set\" -> setIslandPermission"), "Permission cell clicks must not call the immediate mutation path");
@@ -611,7 +613,7 @@ class PaperPlatformBoundaryTest {
     @Test
     void roleMenuUsesRegisteredActionsInsteadOfCommandHints() throws Exception {
         Path root = repositoryRoot();
-        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String permissionHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandPermissionCommandHandler.java"));
         String membershipHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandRoleMenu.java"));
         String translations = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/message/TranslationManager.java"));
@@ -621,8 +623,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(menu.contains("GuiItems.action(Material.COMPARATOR"), "Role permission control must use PDC action metadata");
         assertTrue(membershipHandler.contains("case \"island.role.weight.adjust\""), "Role edit action must be registered");
         assertTrue(membershipHandler.contains("runtime.adjustIslandRoleWeight"), "Role edit action must route to the role weight adjuster");
-        assertTrue(backend.contains("upsertIslandRole(player, roleKey, updatedWeight, displayName)"), "Role edit action must call the Core role mutation with dynamic role keys");
-        assertTrue(backend.contains("resetIslandRole(player, roleKey)"), "Role edit action must support reset through the Core role mutation");
+        assertTrue(permissionHandler.contains("upsertIslandRole(player, roleKey, updatedWeight, displayName)"), "Role edit action must call the Core role mutation with dynamic role keys");
+        assertTrue(permissionHandler.contains("resetIslandRole(player, roleKey)"), "Role edit action must support reset through the Core role mutation");
         assertTrue(!menu.contains("역할편집"), "Role GUI must not print command syntax as its edit path");
         assertTrue(!translations.contains("role-menu-edit-prefix"), "Role translations must not keep command-hint edit text");
         assertTrue(!translations.contains("role-menu-list-command"), "Role controls must describe actions rather than command aliases");

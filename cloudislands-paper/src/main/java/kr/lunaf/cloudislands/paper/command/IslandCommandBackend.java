@@ -7,7 +7,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -27,14 +26,11 @@ import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
-import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -187,7 +183,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final ProtectionController protection;
-    private final Map<UUID, Map<String, StagedPermissionChange>> stagedPermissionChanges = new ConcurrentHashMap<>();
     private final IslandLevelScanService levelScanService;
     private final IslandBankCommandHandler bankCommands;
     private final IslandSnapshotCommandHandler snapshotCommands;
@@ -200,6 +195,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandVisitReviewCommandHandler visitReviewCommands;
     private final IslandLifecycleCommandHandler lifecycleCommands;
     private final IslandOverviewCommandHandler overviewCommands;
+    private final IslandPermissionCommandHandler permissionCommands;
     private final IslandMembershipCommandHandler membershipCommands;
     private final IslandAdminNodeCommandHandler adminCommands;
     private final IslandRoutingCommandHandler routingCommands;
@@ -761,6 +757,62 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 return IslandCommandBackend.this.messagesFor(player);
             }
         });
+        this.permissionCommands = new IslandPermissionCommandHandler(plugin, coreApiClient, new IslandPermissionCommandHandler.Runtime() {
+            @Override
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+            }
+
+            @Override
+            public boolean allowed(Player player, IslandPermission permission) {
+                return IslandCommandBackend.this.allowed(player, permission);
+            }
+
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+            }
+
+            @Override
+            public CompletableFuture<UUID> resolvePlayerUuid(String value) {
+                return IslandCommandBackend.this.resolvePlayerUuid(value);
+            }
+
+            @Override
+            public String actionResultMessage(String label, String targetId, String body) {
+                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
+            }
+
+            @Override
+            public String actionResultMessage(String label, UUID targetId, String body) {
+                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
+            }
+
+            @Override
+            public String coreWriteFailureMessage(Throwable error, String fallback) {
+                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+            }
+        });
         this.membershipCommands = new IslandMembershipCommandHandler(plugin, coreApiClient, new IslandMembershipCommandHandler.Runtime() {
             @Override
             public void message(Player player, String message) {
@@ -794,17 +846,17 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
 
             @Override
             public String roleKey(String value) {
-                return IslandCommandBackend.this.roleKey(value);
+                return permissionCommands.roleKey(value);
             }
 
             @Override
             public boolean editableRoleKey(String roleKey) {
-                return IslandCommandBackend.this.editableRoleKey(roleKey);
+                return permissionCommands.editableRoleKey(roleKey);
             }
 
             @Override
             public int defaultRoleWeight(String roleKey) {
-                return IslandCommandBackend.this.defaultRoleWeight(roleKey);
+                return permissionCommands.defaultRoleWeight(roleKey);
             }
 
             @Override
@@ -894,67 +946,67 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
 
             @Override
             public void listIslandPermissions(Player player) {
-                IslandCommandBackend.this.listIslandPermissions(player);
+                permissionCommands.listIslandPermissions(player);
             }
 
             @Override
             public void openIslandPermissionMenu(Player player) {
-                IslandCommandBackend.this.openIslandPermissionMenu(player);
+                permissionCommands.openIslandPermissionMenu(player);
             }
 
             @Override
             public void openIslandPermissionMenu(Player player, int page, int rolePage) {
-                IslandCommandBackend.this.openIslandPermissionMenu(player, page, rolePage);
+                permissionCommands.openIslandPermissionMenu(player, page, rolePage);
             }
 
             @Override
             public void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
-                IslandCommandBackend.this.stageIslandPermission(player, roleName, permissionName, allowedValue);
+                permissionCommands.stageIslandPermission(player, roleName, permissionName, allowedValue);
             }
 
             @Override
             public void resetStagedIslandPermissions(Player player) {
-                IslandCommandBackend.this.resetStagedIslandPermissions(player);
+                permissionCommands.resetStagedIslandPermissions(player);
             }
 
             @Override
             public void saveStagedIslandPermissions(Player player) {
-                IslandCommandBackend.this.saveStagedIslandPermissions(player);
+                permissionCommands.saveStagedIslandPermissions(player);
             }
 
             @Override
             public void setIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
-                IslandCommandBackend.this.setIslandPermission(player, roleName, permissionName, allowedValue);
+                permissionCommands.setIslandPermission(player, roleName, permissionName, allowedValue);
             }
 
             @Override
             public void setIslandPermissionOverride(Player player, String target, String permissionName, String allowedValue) {
-                IslandCommandBackend.this.setIslandPermissionOverride(player, target, permissionName, allowedValue);
+                permissionCommands.setIslandPermissionOverride(player, target, permissionName, allowedValue);
             }
 
             @Override
             public void openIslandRoleMenu(Player player) {
-                IslandCommandBackend.this.openIslandRoleMenu(player);
+                permissionCommands.openIslandRoleMenu(player);
             }
 
             @Override
             public void listIslandRoles(Player player) {
-                IslandCommandBackend.this.listIslandRoles(player);
+                permissionCommands.listIslandRoles(player);
             }
 
             @Override
             public void upsertIslandRole(Player player, String roleKey, int weight, String displayName) {
-                IslandCommandBackend.this.upsertIslandRole(player, roleKey, weight, displayName);
+                permissionCommands.upsertIslandRole(player, roleKey, weight, displayName);
             }
 
             @Override
             public void resetIslandRole(Player player, String roleKey) {
-                IslandCommandBackend.this.resetIslandRole(player, roleKey);
+                permissionCommands.resetIslandRole(player, roleKey);
             }
 
             @Override
             public void adjustIslandRoleWeight(Player player, String roleName, String weightValue, String displayName, GuiClick click) {
-                IslandCommandBackend.this.adjustIslandRoleWeight(player, roleName, weightValue, displayName, click);
+                permissionCommands.adjustIslandRoleWeight(player, roleName, weightValue, displayName, click);
             }
 
             @Override
@@ -1583,205 +1635,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> IslandBanMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
     }
 
-    private void listIslandPermissions(Player player) {
-        currentIsland(player, "섬 안에서만 권한을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandPermissions(islandId)
-                .thenAccept(body -> message(player, permissionListMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 권한을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void listIslandRoles(Player player) {
-        currentIsland(player, "섬 안에서만 역할을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandRoles(islandId)
-                .thenAccept(body -> message(player, roleListMessage(body)))
-                .exceptionally(error -> {
-                    message(player, "섬 역할을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void openIslandPermissionMenu(Player player) {
-        openIslandPermissionMenu(player, 0);
-    }
-
-    private void openIslandPermissionMenu(Player player, int page) {
-        openIslandPermissionMenu(player, page, 0);
-    }
-
-    private void openIslandPermissionMenu(Player player, int page, int rolePage) {
-        currentIsland(player, "섬 안에서만 권한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player), page, rolePage));
-    }
-
-    private void openIslandRoleMenu(Player player) {
-        currentIsland(player, "섬 안에서만 역할 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandRoleMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
-    }
-
-    private void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
-        currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(_islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
-                return;
-            }
-            String roleKey = roleKey(roleName);
-            IslandPermission permission = islandPermission(permissionName);
-            if (roleKey.isBlank() || permission == null) {
-                message(player, routeMessage("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
-                return;
-            }
-            boolean allowed = booleanValue(allowedValue);
-            StagedPermissionChange change = new StagedPermissionChange(roleKey, permission, allowed);
-            stagedPermissionChanges.computeIfAbsent(player.getUniqueId(), _uuid -> new ConcurrentHashMap<>()).put(change.key(), change);
-            message(player, routeMessage("permission-stage-success-prefix", "권한 변경을 임시 저장했습니다. 저장 버튼을 눌러 반영하세요: ")
-                + roleKey + ":" + permission.name() + "=" + allowed);
-        });
-    }
-
-    private void resetStagedIslandPermissions(Player player) {
-        stagedPermissionChanges.remove(player.getUniqueId());
-        message(player, routeMessage("permission-stage-reset", "임시 권한 변경을 취소했습니다."));
-        openIslandPermissionMenu(player);
-    }
-
-    private void saveStagedIslandPermissions(Player player) {
-        Map<String, StagedPermissionChange> staged = stagedPermissionChanges.getOrDefault(player.getUniqueId(), Map.of());
-        if (staged.isEmpty()) {
-            message(player, routeMessage("permission-stage-empty", "저장할 권한 변경이 없습니다."));
-            return;
-        }
-        currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
-                return;
-            }
-            List<CompletableFuture<String>> writes = staged.values().stream()
-                .map(change -> mutate("island.permission.batch-save", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), change.roleKey(), change.permission(), change.allowed())))
-                .toList();
-            GuiStateMenus.openSaving(plugin, player, messagesFor(player), routeMessage("permission-save-title", "권한 저장"));
-            CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new))
-                .thenAccept(_ignored -> {
-                    stagedPermissionChanges.remove(player.getUniqueId());
-                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                        GuiStateMenus.openSuccess(plugin, player, messagesFor(player), routeMessage("permission-save-title", "권한 저장"), routeMessage("permission-save-success", "권한 변경을 저장했습니다."), "island.permissions.open");
-                    });
-                })
-                .exceptionally(error -> {
-                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                        GuiStateMenus.openConflict(plugin, player, messagesFor(player), routeMessage("permission-save-title", "권한 저장"), coreWriteFailureMessage(error, routeMessage("permission-save-failed", "권한 변경을 저장하지 못했습니다.")), "island.permissions.save", "island.permissions.open");
-                    });
-                    return null;
-                });
-        });
-    }
-
-    private void upsertIslandRole(Player player, IslandRole role, int weight, String displayName) {
-        upsertIslandRole(player, role.name(), weight, displayName);
-    }
-
-    private void upsertIslandRole(Player player, String roleKey, int weight, String displayName) {
-        currentIsland(player, "섬 안에서만 역할을 편집할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                message(player, routeMessage("role-edit-denied", "섬 역할을 편집할 권한이 없습니다."));
-                return;
-            }
-            mutate("island.role.upsert", () -> coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), roleKey, weight, displayName.isBlank() ? roleKey : displayName))
-                .thenAccept(body -> message(player, "섬 역할 저장 완료: " + text(body, "role") + " weight=" + (long) decimal(body, "weight") + " name=" + text(body, "displayName")))
-                .exceptionally(error -> {
-                    message(player, "섬 역할을 저장하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void adjustIslandRoleWeight(Player player, String roleName, String weightValue, String displayName, GuiClick click) {
-        String roleKey = roleKey(roleName);
-        if (!editableRoleKey(roleKey)) {
-            message(player, routeMessage("input-role-invalid", "올바른 역할을 입력해주세요."));
-            return;
-        }
-        if (click.shift()) {
-            resetIslandRole(player, roleKey);
-            return;
-        }
-        int currentWeight = (int) Math.max(0L, Math.min(100L, longValue(weightValue, 0L)));
-        int updatedWeight = Math.max(0, Math.min(100, currentWeight + (click.right() ? -1 : 1)));
-        upsertIslandRole(player, roleKey, updatedWeight, displayName);
-    }
-
-    private void resetIslandRole(Player player, IslandRole role) {
-        resetIslandRole(player, role.name());
-    }
-
-    private void resetIslandRole(Player player, String roleKey) {
-        currentIsland(player, "섬 안에서만 역할을 초기화할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                message(player, routeMessage("role-reset-denied", "섬 역할을 초기화할 권한이 없습니다."));
-                return;
-            }
-            mutateIdempotent("island.role.reset", () -> coreApiClient.resetIslandRole(islandId, player.getUniqueId(), roleKey))
-                .thenAccept(body -> message(player, "섬 역할 초기화 완료: " + text(body, "role")))
-                .exceptionally(error -> {
-                    message(player, "섬 역할을 초기화하지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
-    private void setIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
-        currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
-                return;
-            }
-            String roleKey = roleKey(roleName);
-            IslandPermission permission = islandPermission(permissionName);
-            if (roleKey.isBlank() || permission == null) {
-                message(player, routeMessage("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
-                return;
-            }
-            boolean allowed = booleanValue(allowedValue);
-            mutate("island.permission.set", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), roleKey, permission, allowed))
-                .thenAccept(body -> message(player, actionResultMessage("섬 권한 변경 " + roleKey + ":" + permission.name() + "=" + allowed, roleKey, body)))
-                .exceptionally(error -> {
-                    message(player, coreWriteFailureMessage(error, "섬 권한을 변경하지 못했습니다."));
-                    return null;
-                });
-        });
-    }
-
-    private void setIslandPermissionOverride(Player player, String target, String permissionName, String allowedValue) {
-        currentIsland(player, "섬 안에서만 권한 예외를 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                message(player, routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
-                return;
-            }
-            IslandPermission permission = islandPermission(permissionName);
-            if (permission == null) {
-                message(player, routeMessage("input-permission-set-invalid", "올바른 권한을 입력해주세요."));
-                return;
-            }
-            boolean allowed = booleanValue(allowedValue);
-            resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutate("island.permission.override.set", () -> coreApiClient.setIslandPermissionOverride(islandId, player.getUniqueId(), targetUuid, permission, allowed))
-                    .thenAccept(body -> message(player, actionResultMessage("섬 권한 예외 변경 " + permission.name() + "=" + allowed, targetUuid, body)))
-                    .exceptionally(error -> {
-                        message(player, coreWriteFailureMessage(error, "섬 권한 예외를 변경하지 못했습니다."));
-                        return null;
-                    });
-            });
-        });
-    }
-
-    private record StagedPermissionChange(String roleKey, IslandPermission permission, boolean allowed) {
-        private String key() {
-            return roleKey + ":" + permission.name();
-        }
-    }
-
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
         if (islandId.isEmpty()) {
@@ -1897,58 +1750,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return entries.isEmpty() ? "섬 밴 목록이 비어 있습니다." : "섬 밴 목록: " + String.join(", ", entries);
     }
 
-    private String permissionListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        List<String> overrides = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String role = text(object, "role");
-            String permission = text(object, "permission");
-            if (!role.isBlank() && !permission.isBlank()) {
-                entries.add(role + ":" + permission + "=" + (bool(object, "allowed") ? "허용" : "거부"));
-            } else {
-                String playerUuid = text(object, "playerUuid");
-                if (!playerUuid.isBlank() && !permission.isBlank()) {
-                    overrides.add(compactId(playerUuid) + ":" + permission + "=" + (bool(object, "allowed") ? "허용" : "거부"));
-                }
-            }
-            index = objectEnd + 1;
-        }
-        String base = entries.isEmpty() ? "섬 권한 규칙이 없습니다." : "섬 권한: " + String.join(", ", entries);
-        return overrides.isEmpty() ? base : base + " / 예외: " + String.join(", ", overrides);
-    }
-
-    private String roleListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String role = text(object, "role");
-            if (!role.isBlank()) {
-                entries.add(role + "(weight=" + (long) decimal(object, "weight") + ", name=" + text(object, "displayName") + ")");
-            }
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "섬 커스텀 역할이 없습니다." : "섬 역할: " + String.join(", ", entries);
-    }
-
     private String joined(String[] args, int start) {
         StringBuilder builder = new StringBuilder();
         for (int i = start; i < args.length; i++) {
@@ -2051,47 +1852,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 return profileUuid == null ? plugin.getServer().getOfflinePlayer(value).getUniqueId() : profileUuid;
             })
             .exceptionally(error -> plugin.getServer().getOfflinePlayer(value).getUniqueId());
-    }
-
-    private IslandRole islandRole(String value) {
-        try {
-            return IslandRole.valueOf(roleKey(value));
-        } catch (RuntimeException ignored) {
-            return null;
-        }
-    }
-
-    private String roleKey(String value) {
-        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT).replace('-', '_');
-    }
-
-    private boolean editableRoleKey(String roleKey) {
-        return !roleKey.isBlank()
-            && roleKey.matches("[A-Z0-9_]{1,32}")
-            && !roleKey.equals(IslandRole.OWNER.name())
-            && !roleKey.equals(IslandRole.VISITOR.name())
-            && !roleKey.equals(IslandRole.BANNED.name());
-    }
-
-    private int defaultRoleWeight(String roleKey) {
-        IslandRole role = islandRole(roleKey);
-        return role == null ? 100 : role.ordinal();
-    }
-
-    private IslandPermission islandPermission(String value) {
-        try {
-            return IslandPermission.valueOf(value.toUpperCase().replace('-', '_'));
-        } catch (RuntimeException ignored) {
-            return null;
-        }
-    }
-
-    private boolean booleanValue(String value) {
-        return value.equalsIgnoreCase("true")
-            || value.equalsIgnoreCase("yes")
-            || value.equalsIgnoreCase("on")
-            || value.equals("1")
-            || value.equals("허용");
     }
 
     private IslandHomeWarpCommandHandler.Point point(String body, String requestedName, String fallbackWorldName) {
