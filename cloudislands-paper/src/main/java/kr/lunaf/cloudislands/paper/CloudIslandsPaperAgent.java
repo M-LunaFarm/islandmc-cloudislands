@@ -27,13 +27,6 @@ public final class CloudIslandsPaperAgent {
         return plugin;
     }
 
-    public org.bukkit.configuration.file.FileConfiguration getConfig() {
-        if (plugin instanceof org.bukkit.plugin.java.JavaPlugin javaPlugin) {
-            return javaPlugin.getConfig();
-        }
-        return new org.bukkit.configuration.file.YamlConfiguration();
-    }
-
     public AgentRole role() {
         return role;
     }
