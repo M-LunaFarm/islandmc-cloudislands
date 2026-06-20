@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
+import kr.lunaf.cloudislands.testkit.AddonCertificationMatrix;
+import kr.lunaf.cloudislands.testkit.AddonCertificationReport;
 import kr.lunaf.cloudislands.testkit.ApiContractVerification;
 import kr.lunaf.cloudislands.testkit.ApiContractVerifier;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,13 @@ class ExampleCloudIslandsAddonDefinitionTest {
         assertTrue(verification.passed(), verification.failures().toString());
         assertEquals(ExampleCloudIslandsAddonDefinition.ADDON_ID, addon.addonId());
         assertTrue(addon.addonFeatures().get("route-events"));
+    }
+
+    @Test
+    void exampleAddonPassesTheCertificationMatrix() {
+        AddonCertificationReport report = AddonCertificationMatrix.certify(new ExampleCloudIslandsAddonDefinition("1.0.1"), CloudIslandsApiContract.metadata());
+
+        assertTrue(report.certified(), report.failureSummary().toString());
     }
 
     @Test
