@@ -10,15 +10,6 @@ setup:
     auth-token: ""
     admin-token: ""
     timeout-ms: 0
-  database:
-    # Velocity never owns island data directly. Keep this as CORE_API and configure PostgreSQL/MySQL fallback on the Core service or Paper/Satis addon side.
-    type: "CORE_API"
-    core-api:
-      enabled: true
-    fallback:
-      enabled: true
-      order: "CORE_API,POSTGRESQL,MYSQL,MARIADB,UNSUPPORTED_JDBC"
-
 core-api:
   base-url: "https://core-api.internal:8443"
   auth-token: "${CI_CORE_TOKEN}"

@@ -1,0 +1,13 @@
+routing:
+  ticket-ttl: 30s
+  activation-timeout: 20s
+snapshots:
+  retention-count: 10
+  delete-grace-period: 7d
+islands:
+  delete-grace-period: 24h
+  owner-transfer-cooldown: 1h
+upgrades:
+  source: DATABASE
+block-values:
+  source: DATABASE

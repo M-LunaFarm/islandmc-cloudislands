@@ -55,15 +55,15 @@ public final class IslandRankingMenu implements Listener {
         int slot = event.getRawSlot();
         player.closeInventory();
         if (slot == 45) {
-            player.performCommand("섬 방문");
+            GuiActionRegistry.execute(player, "island.visit.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 랜덤방문");
+            GuiActionRegistry.execute(player, "island.visit.random", GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            player.performCommand("섬 랭킹");
+            GuiActionRegistry.execute(player, "island.ranking.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -74,7 +74,7 @@ public final class IslandRankingMenu implements Listener {
         if (islandId.isBlank()) {
             return;
         }
-        player.performCommand("섬 방문 " + islandId);
+        GuiActionRegistry.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, List<Ranking> levels, List<Ranking> worths, MessageRenderer messages) {

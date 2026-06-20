@@ -1,9 +1,12 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import java.util.List;
+import java.util.Map;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
+import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.command.Command;
@@ -17,7 +20,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
-public final class IslandCommandController implements CommandExecutor, TabCompleter, Listener {
+public final class IslandCommandController implements CommandExecutor, TabCompleter, Listener, GuiActionExecutor {
     private final IslandCommandBackend backend;
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
@@ -52,6 +55,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         return backend.onCommand(sender, command, label, args);
+    }
+
+    @Override
+    public void execute(org.bukkit.entity.Player player, String actionId, Map<String, String> data, GuiClick click) {
+        backend.executeGuiAction(player, actionId, data, click);
     }
 
     @EventHandler

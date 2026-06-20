@@ -67,19 +67,19 @@ public final class IslandBiomeMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 4) {
-            player.performCommand("섬 바이옴정보");
+            GuiActionRegistry.execute(player, "island.biome.show", GuiClick.from(event));
             return;
         }
         if (slot == 22) {
-            player.performCommand("섬 바이옴");
+            GuiActionRegistry.execute(player, "island.biome.open", GuiClick.from(event));
             return;
         }
         if (slot == 24) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         if (slot == 26) {
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -90,7 +90,7 @@ public final class IslandBiomeMenu implements Listener {
         if (biomeKey.isBlank()) {
             return;
         }
-        player.performCommand("섬 바이옴 " + biomeKey);
+        GuiActionRegistry.execute(player, "island.biome.set", java.util.Map.of("biomeKey", biomeKey), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, String currentBiome, MessageRenderer messages) {

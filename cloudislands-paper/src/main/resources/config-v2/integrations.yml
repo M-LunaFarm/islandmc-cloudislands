@@ -1,0 +1,17 @@
+core-api:
+  enabled: true
+  base-url: https://core-api.internal:8443
+  timeout:
+    connect: 2s
+    request: 3s
+redis:
+  enabled: true
+  uri: redis://redis.internal:6379
+  database: 0
+storage:
+  type: S3
+  endpoint: http://minio.internal:9000
+  bucket: cloudislands
+  region: us-east-1
+routing:
+  transport: CORE_TICKET

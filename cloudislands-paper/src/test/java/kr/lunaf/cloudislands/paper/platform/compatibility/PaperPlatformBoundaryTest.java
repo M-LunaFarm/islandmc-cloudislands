@@ -123,6 +123,58 @@ class PaperPlatformBoundaryTest {
         }
     }
 
+    @Test
+    void guiClassesDoNotInvokePlayerCommands() throws Exception {
+        Path root = repositoryRoot();
+        Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
+        try (Stream<Path> files = javaFiles(guiSource)) {
+            String violations = files
+                .filter(path -> contains(path, "performCommand("))
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    @Test
+    void velocityDefaultConfigDoesNotExposeDatabaseOwnership() throws Exception {
+        Path root = repositoryRoot();
+        Path config = root.resolve("cloudislands-velocity/src/main/resources/config.yaml");
+        String source = Files.readString(config);
+
+        assertTrue(!source.contains("database:"), "Velocity default config must not expose database ownership settings");
+        assertTrue(!source.contains("POSTGRESQL"), "Velocity default config must not mention Core database backends");
+        assertTrue(!source.contains("MYSQL"), "Velocity default config must not mention Core database backends");
+        assertTrue(!source.contains("MARIADB"), "Velocity default config must not mention Core database backends");
+    }
+
+    @Test
+    void splitConfigV2DefaultsArePackagedForEachRuntime() throws Exception {
+        Path root = repositoryRoot();
+        for (String required : java.util.List.of(
+            "cloudislands-paper/src/main/resources/config-v2/config.yml",
+            "cloudislands-paper/src/main/resources/config-v2/runtime.yml",
+            "cloudislands-paper/src/main/resources/config-v2/integrations.yml",
+            "cloudislands-paper/src/main/resources/config-v2/security.yml",
+            "cloudislands-paper/src/main/resources/config-v2/features.yml",
+            "cloudislands-paper/src/main/resources/config-v2/gameplay.yml",
+            "cloudislands-paper/src/main/resources/config-v2/ui/menus/main.yml",
+            "cloudislands-paper/src/main/resources/config-v2/ui/menus/permissions.yml",
+            "cloudislands-core-service/src/main/resources/config-v2/application.yml",
+            "cloudislands-core-service/src/main/resources/config-v2/database.yml",
+            "cloudislands-core-service/src/main/resources/config-v2/security.yml",
+            "cloudislands-velocity/src/main/resources/config-v2/config.yml",
+            "cloudislands-velocity/src/main/resources/config-v2/core-api.yml",
+            "cloudislands-velocity/src/main/resources/config-v2/routing.yml",
+            "cloudislands-velocity/src/main/resources/config-v2/security.yml"
+        )) {
+            assertTrue(Files.exists(root.resolve(required)), required);
+        }
+    }
+
     private static Stream<Path> javaFiles(Path root) {
         try {
             if (Files.notExists(root)) {
@@ -195,6 +247,14 @@ class PaperPlatformBoundaryTest {
                 }
             }
             return false;
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static boolean contains(Path path, String needle) {
+        try {
+            return Files.readString(path).contains(needle);
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }

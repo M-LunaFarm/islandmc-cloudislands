@@ -1,0 +1,19 @@
+node:
+  id: island-node-01
+  role: ISLAND_NODE
+  pool: island
+  velocity-server-name: island-1
+  supported-templates:
+    - "*"
+capacity:
+  max-active-islands: 600
+  soft-player-limit: 90
+  hard-player-limit: 110
+  max-activation-queue: 20
+heartbeat:
+  interval: 5s
+  timeout: 20s
+health:
+  enabled: true
+  bind-host: 127.0.0.1
+  port: 8789

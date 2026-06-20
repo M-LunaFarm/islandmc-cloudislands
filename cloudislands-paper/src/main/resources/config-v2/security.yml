@@ -1,0 +1,12 @@
+core-api:
+  auth-token: "${file:/run/secrets/cloudislands_core_token}"
+  admin-token: "${file:/run/secrets/cloudislands_admin_token}"
+redis:
+  password: "${file:/run/secrets/redis_password}"
+storage:
+  access-key: "${file:/run/secrets/s3_access_key}"
+  secret-key: "${file:/run/secrets/s3_secret_key}"
+  bearer-token: "${file:/run/secrets/s3_bearer_token}"
+forwarding:
+  secret: "${file:/run/secrets/velocity_forwarding_secret}"
+trusted-proxies: []

@@ -1,0 +1,7 @@
+default-pool: island
+ticket:
+  ttl: 30s
+  activation-timeout: 20s
+node-selection:
+  soft-full-policy: AVOID_NEW_ACTIVATIONS
+  hard-full-policy: DENY_OR_QUEUE

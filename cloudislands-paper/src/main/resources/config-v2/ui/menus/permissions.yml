@@ -1,0 +1,23 @@
+id: island.permissions
+rows: 6
+title-key: menu.permissions.title
+roles:
+  - CO_OWNER
+  - MODERATOR
+  - MEMBER
+  - TRUSTED
+  - VISITOR
+permissions:
+  - BUILD
+  - BREAK
+  - INTERACT
+  - OPEN_CONTAINER
+  - USE_DOOR
+  - USE_REDSTONE
+  - ATTACK_PLAYER
+  - ATTACK_MOB
+footer-actions:
+  save: island.permissions.save
+  reset: island.permissions.reset
+  roles: island.roles.open
+  back: island.settings.open

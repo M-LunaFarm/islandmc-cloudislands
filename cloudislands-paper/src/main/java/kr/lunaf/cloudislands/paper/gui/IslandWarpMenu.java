@@ -75,15 +75,15 @@ public final class IslandWarpMenu implements Listener {
             return;
         }
         if (publicMenu && slot == 45) {
-            player.performCommand("섬 공개워프목록");
+            GuiActionRegistry.execute(player, "island.visit.public.open", GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -96,19 +96,19 @@ public final class IslandWarpMenu implements Listener {
         }
         String islandId = loreValue(meta, "섬 ID=");
         if (publicMenu && !islandId.isBlank()) {
-            player.performCommand("섬 warp " + islandId + " " + warpName);
+            GuiActionRegistry.execute(player, "island.warp.teleport", java.util.Map.of("islandId", String.valueOf(islandId), "warpName", warpName), GuiClick.from(event));
             return;
         }
         if (event.isShiftClick() && event.isRightClick()) {
-            player.performCommand("섬 워프삭제 " + warpName);
+            GuiActionRegistry.execute(player, "island.warp.delete", java.util.Map.of("warpName", warpName), GuiClick.from(event));
             return;
         }
         if (event.isRightClick()) {
             boolean publicAccess = Boolean.parseBoolean(loreValue(meta, "warpPublic="));
-            player.performCommand(publicAccess ? "섬 워프비공개 " + warpName : "섬 워프공개 " + warpName);
+            GuiActionRegistry.execute(player, "island.warp.public.toggle", java.util.Map.of("warpName", warpName, "publicAccess", String.valueOf(publicAccess)), GuiClick.from(event));
             return;
         }
-        player.performCommand("섬 warp " + warpName);
+        GuiActionRegistry.execute(player, "island.warp.teleport", java.util.Map.of("warpName", warpName), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, String title, List<Warp> warps, boolean publicMenu, MessageRenderer messages) {

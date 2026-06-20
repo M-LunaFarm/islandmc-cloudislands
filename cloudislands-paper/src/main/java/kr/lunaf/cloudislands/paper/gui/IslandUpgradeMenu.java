@@ -56,15 +56,15 @@ public final class IslandUpgradeMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 45) {
-            player.performCommand("섬 은행");
+            GuiActionRegistry.execute(player, "island.bank.open", GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            player.performCommand("섬 업그레이드");
+            GuiActionRegistry.execute(player, "island.upgrades.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -75,7 +75,7 @@ public final class IslandUpgradeMenu implements Listener {
         if (key.isBlank()) {
             return;
         }
-        player.performCommand("섬 업그레이드 " + key);
+        GuiActionRegistry.execute(player, "island.upgrade.purchase", java.util.Map.of("upgradeKey", key), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, List<Upgrade> upgrades, MessageRenderer messages) {

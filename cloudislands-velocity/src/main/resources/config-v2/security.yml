@@ -1,0 +1,7 @@
+core-api:
+  auth-token: "${file:/run/secrets/cloudislands_core_token}"
+  admin-token: "${file:/run/secrets/cloudislands_admin_token}"
+forwarding:
+  secret: "${file:/run/secrets/velocity_forwarding_secret}"
+plugin-message:
+  block-cloudislands-channel: true

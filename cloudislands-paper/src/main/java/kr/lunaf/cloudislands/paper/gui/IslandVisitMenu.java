@@ -56,15 +56,15 @@ public final class IslandVisitMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 4) {
-            player.performCommand("섬 랜덤방문");
+            GuiActionRegistry.execute(player, "island.visit.random", GuiClick.from(event));
             return;
         }
         if (slot == 45) {
-            player.performCommand("섬 공개워프목록");
+            GuiActionRegistry.execute(player, "island.visit.public.open", GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            player.performCommand("섬 방문");
+            GuiActionRegistry.execute(player, "island.visit.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -76,7 +76,7 @@ public final class IslandVisitMenu implements Listener {
         }
         String islandId = loreValue(meta.getLore(), "섬 ID=");
         if (!islandId.isBlank()) {
-            player.performCommand("섬 방문 " + islandId);
+            GuiActionRegistry.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
         }
     }
 

@@ -58,21 +58,21 @@ public final class IslandBankMenu implements Listener {
         if (slot == 13) {
             player.sendMessage(message(messages, "bank-menu-deposit-usage", "사용법: /섬 입금 <금액>"));
         } else if (slot == 10) {
-            player.performCommand("섬 입금 1000");
+            GuiActionRegistry.execute(player, "island.bank.deposit", java.util.Map.of("amount", "1000"), GuiClick.from(event));
         } else if (slot == 11) {
-            player.performCommand("섬 입금 10000");
+            GuiActionRegistry.execute(player, "island.bank.deposit", java.util.Map.of("amount", "10000"), GuiClick.from(event));
         } else if (slot == 17) {
             player.sendMessage(message(messages, "bank-menu-withdraw-usage", "사용법: /섬 출금 <금액>"));
         } else if (slot == 15) {
-            player.performCommand("섬 출금 1000");
+            GuiActionRegistry.execute(player, "island.bank.withdraw", java.util.Map.of("amount", "1000"), GuiClick.from(event));
         } else if (slot == 16) {
-            player.performCommand("섬 출금 10000");
+            GuiActionRegistry.execute(player, "island.bank.withdraw", java.util.Map.of("amount", "10000"), GuiClick.from(event));
         } else if (slot == 22) {
-            player.performCommand("섬 은행");
+            GuiActionRegistry.execute(player, "island.bank.open", GuiClick.from(event));
         } else if (slot == 18) {
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
         } else if (slot == 26) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
         }
     }
 

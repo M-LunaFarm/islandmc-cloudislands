@@ -57,15 +57,15 @@ public final class IslandSnapshotMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 45) {
-            player.performCommand("섬 스냅샷생성 manual");
+            GuiActionRegistry.execute(player, "island.snapshot.create", java.util.Map.of("reason", "manual"), GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            player.performCommand("섬 스냅샷");
+            GuiActionRegistry.execute(player, "island.snapshots.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -75,7 +75,7 @@ public final class IslandSnapshotMenu implements Listener {
         String snapshotNo = loreValue(meta, "번호=");
         if (!snapshotNo.isBlank()) {
             if (event.isShiftClick() && event.isRightClick()) {
-                player.performCommand("섬 스냅샷복원 " + snapshotNo);
+                GuiActionRegistry.execute(player, "island.snapshot.restore", java.util.Map.of("snapshotNo", String.valueOf(snapshotNo)), GuiClick.from(event));
                 return;
             }
             if (event.isRightClick()) {

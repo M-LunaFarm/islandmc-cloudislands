@@ -87,35 +87,35 @@ public final class IslandSettingsMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 10) {
-            player.performCommand(event.isRightClick() ? "섬 비공개" : "섬 공개");
+            GuiActionRegistry.execute(player, "island.public.toggle", GuiClick.from(event));
         } else if (slot == 11) {
-            player.performCommand(event.isRightClick() ? "섬 잠금" : "섬 잠금해제");
+            GuiActionRegistry.execute(player, "island.lock.toggle", GuiClick.from(event));
         } else if (slot == 12) {
-            player.performCommand("섬 멤버관리");
+            GuiActionRegistry.execute(player, "island.members.open", GuiClick.from(event));
         } else if (slot == 13) {
-            player.performCommand("섬 권한");
+            GuiActionRegistry.execute(player, "island.permissions.open", GuiClick.from(event));
         } else if (slot == 14) {
-            player.performCommand("섬 플래그");
+            GuiActionRegistry.execute(player, "island.flags.open", GuiClick.from(event));
         } else if (slot == 15) {
-            player.performCommand("섬 워프");
+            GuiActionRegistry.execute(player, "island.warps.open", GuiClick.from(event));
         } else if (slot == 16) {
-            player.performCommand("섬 밴목록");
+            GuiActionRegistry.execute(player, "island.bans.open", GuiClick.from(event));
         } else if (slot == 17) {
-            player.performCommand("섬 역할");
+            GuiActionRegistry.execute(player, "island.roles.open", GuiClick.from(event));
         } else if (slot == 18) {
-            player.performCommand("섬 은행");
+            GuiActionRegistry.execute(player, "island.bank.open", GuiClick.from(event));
         } else if (slot == 19) {
-            player.performCommand("섬 업그레이드");
+            GuiActionRegistry.execute(player, "island.upgrades.open", GuiClick.from(event));
         } else if (slot == 20) {
-            player.performCommand("섬 바이옴");
+            GuiActionRegistry.execute(player, "island.biome.open", GuiClick.from(event));
         } else if (slot == 21) {
-            player.performCommand("섬 제한");
+            GuiActionRegistry.execute(player, "island.limits.open", GuiClick.from(event));
         } else if (slot == 22) {
-            player.performCommand("섬 스냅샷");
+            GuiActionRegistry.execute(player, "island.snapshots.open", GuiClick.from(event));
         } else if (slot == 23) {
-            player.performCommand("섬 정보");
+            GuiActionRegistry.execute(player, "island.info.open", GuiClick.from(event));
         } else if (slot == 26) {
-            player.performCommand("섬 위험작업");
+            GuiActionRegistry.execute(player, "island.danger.open", GuiClick.from(event));
         }
     }
 

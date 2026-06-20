@@ -1,0 +1,31 @@
+cloudislands:
+  gui: true
+  snapshots: true
+  migration: false
+  missions: true
+  upgrades: true
+satis:
+  enabled: true
+  commands: true
+  machines: true
+  storage: true
+  resource-nodes: true
+  market: true
+  contracts: true
+  research: true
+  lifecycle: true
+  addon-state: true
+  route-events: true
+dependencies:
+  resource-nodes:
+    - machines
+  market:
+    - storage
+  contracts:
+    - storage
+  missions:
+    - contracts
+  menus:
+    - gui
+  route-events:
+    - addon-state

@@ -1,0 +1,11 @@
+config-version: 2
+profile: production
+language: ko_kr
+strict-validation: true
+files:
+  core-api: core-api.yml
+  routing: routing.yml
+  security: security.yml
+  commands: commands.yml
+  health: health.yml
+  locale: messages/ko_kr.yml

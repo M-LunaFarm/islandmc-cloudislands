@@ -1,0 +1,7 @@
+materials:
+  loading: CLOCK
+  error: BARRIER
+  back: OAK_DOOR
+  retry: CLOCK
+  confirm: LIME_DYE
+  destructive: LAVA_BUCKET

@@ -1,0 +1,9 @@
+id: island.members
+rows: 6
+title-key: menu.members.title
+page-size: 45
+actions:
+  detail: island.member.detail
+  invite: island.member.invite
+  permissions: island.permissions.open
+  back: island.main.open

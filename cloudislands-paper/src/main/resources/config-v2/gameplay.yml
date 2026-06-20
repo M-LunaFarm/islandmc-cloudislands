@@ -1,0 +1,14 @@
+protection:
+  outside-island-build: false
+  explosion-policy: OWNER_ONLY
+  void-rescue: true
+generator:
+  default-profile: default
+  async-generation: true
+snapshots:
+  automatic: true
+  retention-count: 10
+  require-snapshot-before-reset: true
+limits:
+  cache-ttl: 10s
+  fail-closed: true

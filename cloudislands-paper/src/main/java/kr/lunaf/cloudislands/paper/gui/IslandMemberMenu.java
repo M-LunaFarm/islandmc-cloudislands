@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -22,13 +23,19 @@ public final class IslandMemberMenu implements Listener {
     private static final String TITLE = "섬 멤버 관리";
     private static final PaperPlayerGateway PLAYERS = new BukkitPlayerGateway();
     private final MessageRenderer messages;
+    private final GuiActionExecutor actions;
 
     public IslandMemberMenu() {
         this(null);
     }
 
     public IslandMemberMenu(MessageRenderer messages) {
+        this(messages, GuiActionExecutor.noop());
+    }
+
+    public IslandMemberMenu(MessageRenderer messages, GuiActionExecutor actions) {
         this.messages = messages;
+        this.actions = actions == null ? GuiActionExecutor.noop() : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
@@ -50,69 +57,46 @@ public final class IslandMemberMenu implements Listener {
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null) {
+        if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
-        int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 54) {
+        GuiClick click = GuiClick.from(event);
+        if (!click.supported()) {
             return;
         }
-        player.closeInventory();
-        if (slot == 45) {
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (actionId.isBlank()) {
+            return;
+        }
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        if (actionId.equals("island.member.invite.help")) {
             player.sendMessage(message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>"));
             return;
         }
-        if (slot == 46) {
-            player.performCommand("섬 초대목록");
-            return;
-        }
-        if (slot == 47) {
-            player.performCommand("섬 권한");
-            return;
-        }
-        if (slot == 48) {
-            player.performCommand("섬 설정");
-            return;
-        }
-        if (slot == 49) {
-            player.performCommand("섬 멤버관리");
-            return;
-        }
-        if (slot == 53) {
-            player.performCommand("섬 메뉴");
-            return;
-        }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        String playerUuid = loreValue(meta, "플레이어=");
-        if (!playerUuid.isBlank()) {
-            if (event.isShiftClick() && event.isRightClick()) {
-                player.performCommand("섬 추방 " + playerUuid);
+        if (actionId.equals("island.member.role")) {
+            if (click == GuiClick.LEFT) {
+                actionId = "island.member.promote";
+            } else if (click == GuiClick.RIGHT) {
+                actionId = "island.member.demote";
+            } else if (click == GuiClick.SHIFT_RIGHT) {
+                actionId = "island.member.remove.prepare";
+            } else {
                 return;
             }
-            if (event.isRightClick()) {
-                player.performCommand("섬 강등 " + playerUuid);
-                return;
-            }
-            if (event.isLeftClick()) {
-                player.performCommand("섬 승급 " + playerUuid);
-                return;
-            }
-            player.sendMessage(message(messages, "member-menu-transfer-direct", "소유권 이전은 명령어로 직접 확인해주세요: /섬 양도 ") + playerUuid);
         }
+        player.closeInventory();
+        actions.execute(player, actionId, data, click);
     }
 
     private static void openSync(Plugin plugin, Player player, List<Member> members, MessageRenderer messages) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             Inventory inventory = Bukkit.createInventory(null, 54, TITLE);
-            inventory.setItem(45, item(Material.WRITABLE_BOOK, message(messages, "member-menu-invite-name", "멤버 초대"), message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));
-            inventory.setItem(46, item(Material.PAPER, message(messages, "member-menu-invite-list-name", "초대 목록"), message(messages, "member-menu-invite-list-command", "/섬 초대목록")));
-            inventory.setItem(47, item(Material.COMPARATOR, message(messages, "member-menu-permission-name", "권한 설정"), message(messages, "member-menu-permission-command", "/섬 권한")));
-            inventory.setItem(48, item(Material.REDSTONE_TORCH, message(messages, "member-menu-settings-name", "설정"), message(messages, "member-menu-settings-command", "/섬 설정")));
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "member-menu-refresh-name", "새로고침"), message(messages, "member-menu-refresh-command", "/섬 멤버관리")));
-            inventory.setItem(53, item(Material.COMPASS, message(messages, "member-menu-main-menu-name", "메인 메뉴"), message(messages, "member-menu-main-menu-command", "/섬 메뉴")));
+            inventory.setItem(45, GuiItems.action(Material.WRITABLE_BOOK, message(messages, "member-menu-invite-name", "멤버 초대"), "island.member.invite.help", message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>")));
+            inventory.setItem(46, GuiItems.action(Material.PAPER, message(messages, "member-menu-invite-list-name", "초대 목록"), "island.invites.open"));
+            inventory.setItem(47, GuiItems.action(Material.COMPARATOR, message(messages, "member-menu-permission-name", "권한 설정"), "island.permissions.open"));
+            inventory.setItem(48, GuiItems.action(Material.REDSTONE_TORCH, message(messages, "member-menu-settings-name", "설정"), "island.settings.open"));
+            inventory.setItem(49, GuiItems.action(Material.CLOCK, message(messages, "member-menu-refresh-name", "새로고침"), "island.members.open"));
+            inventory.setItem(53, GuiItems.action(Material.COMPASS, message(messages, "member-menu-main-menu-name", "메인 메뉴"), "island.main.open"));
             int slot = 0;
             for (Member member : members.stream().limit(45).toList()) {
                 inventory.setItem(slot++, memberItem(member, messages));
@@ -129,15 +113,15 @@ public final class IslandMemberMenu implements Listener {
             case "TRUSTED" -> Material.EMERALD;
             default -> Material.PLAYER_HEAD;
         };
-        return item(material, member.role() + " " + shortUuid(member.playerUuid()),
-            "플레이어=" + member.playerUuid(),
+        return GuiItems.action(material, member.role() + " " + shortUuid(member.playerUuid()), "island.member.role",
+            Map.of("playerUuid", member.playerUuid()),
             statusLine(member.playerUuid(), messages),
             lastSeenLine(member.playerUuid(), messages),
             member.joinedAt().isBlank() ? message(messages, "member-menu-no-join-info", "가입 정보 없음") : message(messages, "member-menu-joined-at", "가입 시각: ") + member.joinedAt(),
             message(messages, "member-menu-left-click", "좌클릭: 승급"),
             message(messages, "member-menu-right-click", "우클릭: 강등"),
-            message(messages, "member-menu-shift-right-click", "Shift+우클릭: 추방"),
-            message(messages, "member-menu-transfer-line", "양도: /섬 양도 ") + member.playerUuid());
+            message(messages, "member-menu-shift-right-click", "Shift+우클릭: 추방 확인"),
+            message(messages, "member-menu-transfer-line", "소유권 이전은 별도 확인 경로에서 처리됩니다."));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

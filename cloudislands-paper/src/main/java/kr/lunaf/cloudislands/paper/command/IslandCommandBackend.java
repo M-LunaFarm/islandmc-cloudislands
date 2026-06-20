@@ -31,6 +31,7 @@ import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
+import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
@@ -55,6 +56,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
+import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
@@ -1019,6 +1021,102 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         }
         sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
         return true;
+    }
+
+    void executeGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click) {
+        if (actionId == null || actionId.isBlank()) {
+            return;
+        }
+        switch (actionId) {
+            case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
+            case "island.create.open" -> IslandCreateMenu.open(plugin, coreApiClient, player, messages);
+            case "island.create" -> createIsland(player, data.getOrDefault("templateId", "default"));
+            case "island.info.open" -> openIslandInfoMenu(player);
+            case "island.list.open" -> IslandMyIslandsMenu.open(plugin, coreApiClient, player, messages);
+            case "island.home" -> {
+                if (click.right()) {
+                    openIslandHomeMenu(player);
+                } else {
+                    teleportHome(player, data.getOrDefault("homeName", "default"));
+                }
+            }
+            case "island.home.set" -> setHome(player, data.getOrDefault("homeName", "default"));
+            case "island.warps.open" -> openIslandWarpMenu(player);
+            case "island.warp.teleport" -> {
+                String islandId = data.getOrDefault("islandId", "");
+                String warpName = data.getOrDefault("warpName", "default");
+                UUID uuid = uuid(islandId);
+                if (uuid != null) {
+                    routeWarp(player, uuid, warpName);
+                } else {
+                    teleportWarp(player, warpName);
+                }
+            }
+            case "island.warp.delete" -> deleteWarp(player, data.getOrDefault("warpName", "default"));
+            case "island.warp.public" -> setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), true);
+            case "island.warp.private" -> setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), false);
+            case "island.warp.public.toggle" -> setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), !Boolean.parseBoolean(data.getOrDefault("publicAccess", "false")));
+            case "island.visit.open" -> IslandVisitMenu.open(plugin, coreApiClient, player, messages);
+            case "island.visit.random" -> routeRandomVisit(player);
+            case "island.visit.public.open" -> listPublicIslands(player, 10);
+            case "island.visit.target" -> routeVisitTarget(player, data.getOrDefault("target", ""));
+            case "island.members.open" -> openIslandMemberMenu(player);
+            case "island.member.list" -> listIslandMembers(player);
+            case "island.member.promote" -> setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
+            case "island.member.demote" -> setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
+            case "island.member.remove.prepare" -> message(player, routeMessage("member-remove-confirm-required", "멤버 추방은 상세 확인 화면에서 다시 확인해야 합니다."));
+            case "island.invites.open" -> IslandInviteMenu.open(plugin, coreApiClient, player, messages);
+            case "island.invite.accept" -> acceptIslandInviteTarget(player, data.getOrDefault("inviteId", ""));
+            case "island.invite.decline" -> declineIslandInviteTarget(player, data.getOrDefault("inviteId", ""));
+            case "island.bans.open" -> openIslandBanMenu(player);
+            case "island.bans.list" -> listIslandBans(player);
+            case "island.ban.pardon" -> pardonIslandVisitor(player, data.getOrDefault("playerUuid", ""));
+            case "island.permissions.open" -> openIslandPermissionMenu(player);
+            case "island.permissions.list" -> listIslandPermissions(player);
+            case "island.permissions.set" -> setIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true");
+            case "island.roles.open" -> openIslandRoleMenu(player);
+            case "island.roles.list" -> listIslandRoles(player);
+            case "island.settings.open" -> openIslandSettings(player);
+            case "island.public.toggle" -> setIslandPublicAccess(player, !click.right());
+            case "island.lock.toggle" -> setIslandLocked(player, click.right());
+            case "island.flags.open" -> openIslandFlagMenu(player);
+            case "island.flags.list" -> listIslandFlags(player);
+            case "island.flag.set" -> setIslandFlag(player, data.getOrDefault("flag", ""), click.right() ? "false" : "true");
+            case "island.bank.open" -> openIslandBankMenu(player);
+            case "island.bank.deposit" -> depositIslandBank(player, data.getOrDefault("amount", "0"));
+            case "island.bank.withdraw" -> withdrawIslandBank(player, data.getOrDefault("amount", "0"));
+            case "island.ranking.open" -> IslandRankingMenu.open(plugin, coreApiClient, player, messages);
+            case "island.ranking.list" -> listIslandRanking(player, data.getOrDefault("kind", "").equalsIgnoreCase("worth"), 10);
+            case "island.level.recalculate" -> recalculateIslandLevel(player);
+            case "island.level.show" -> showIslandLevel(player);
+            case "island.worth.show" -> showIslandWorth(player);
+            case "island.missions.open" -> openIslandMissionMenu(player, data.getOrDefault("kind", "MISSION"));
+            case "island.mission.complete" -> completeIslandTask(player, data.getOrDefault("missionKey", ""), data.getOrDefault("kind", "MISSION"), data.getOrDefault("label", "섬 미션"));
+            case "island.chat.open" -> IslandChatMenu.open(player, messages);
+            case "island.logs.open" -> openIslandLogMenu(player);
+            case "island.logs.list" -> listIslandLogs(player, 10);
+            case "island.biome.open" -> openIslandBiomeMenu(player);
+            case "island.biome.show" -> showIslandBiome(player);
+            case "island.biome.set" -> setIslandBiome(player, data.getOrDefault("biomeKey", ""));
+            case "island.limits.open" -> openIslandLimitMenu(player);
+            case "island.limits.list" -> listIslandLimits(player);
+            case "island.limit.set" -> setIslandLimit(player, data.getOrDefault("limitKey", ""), longValue(data.getOrDefault("value", "0"), 0L));
+            case "island.snapshots.open" -> openIslandSnapshotMenu(player);
+            case "island.snapshots.list" -> listIslandSnapshots(player, 10);
+            case "island.snapshot.create" -> requestIslandSnapshot(player, data.getOrDefault("reason", "manual"));
+            case "island.snapshot.restore" -> restoreIslandSnapshot(player, longValue(data.getOrDefault("snapshotNo", "0"), 0L));
+            case "island.upgrades.open" -> openIslandUpgradeMenu(player);
+            case "island.upgrades.list" -> listIslandUpgrades(player);
+            case "island.upgrade.purchase" -> purchaseIslandUpgrade(player, data.getOrDefault("upgradeKey", ""));
+            case "island.danger.open" -> IslandDangerMenu.open(player, messages);
+            case "island.danger.reset.prepare" -> IslandDangerMenu.openResetConfirm(player, messages);
+            case "island.danger.delete.prepare" -> IslandDangerMenu.openDeleteConfirm(player, messages);
+            case "island.danger.reset.confirm" -> resetIsland(player, data.getOrDefault("reason", "player-reset"));
+            case "island.danger.delete.confirm" -> deleteIsland(player);
+            case "admin.node.open" -> AdminNodeMenu.open(player, plugin.getConfig().getString("node.id", "island-1"), messages);
+            case "gui.close" -> player.closeInventory();
+            default -> message(player, routeMessage("gui-action-unknown", "알 수 없는 GUI 작업입니다: ") + actionId);
+        }
     }
 
     private void sendCommandList(Player player, String title, List<String> commands, int page) {

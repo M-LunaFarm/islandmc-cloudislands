@@ -59,11 +59,11 @@ public final class IslandChatMenu implements Listener {
         } else if (slot == 12) {
             player.sendMessage(message(messages, "chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>"));
         } else if (slot == 14) {
-            player.performCommand("섬 로그");
+            GuiActionRegistry.execute(player, "island.logs.open", GuiClick.from(event));
         } else if (slot == 15) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
         } else if (slot == 16) {
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
         }
     }
 

@@ -57,19 +57,19 @@ public final class IslandRoleMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 18) {
-            player.performCommand("섬 역할목록");
+            GuiActionRegistry.execute(player, "island.roles.list", GuiClick.from(event));
             return;
         }
         if (slot == 19) {
-            player.performCommand("섬 권한");
+            GuiActionRegistry.execute(player, "island.permissions.open", GuiClick.from(event));
             return;
         }
         if (slot == 20) {
-            player.performCommand("섬 역할");
+            GuiActionRegistry.execute(player, "island.roles.open", GuiClick.from(event));
             return;
         }
         if (slot == 26) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();

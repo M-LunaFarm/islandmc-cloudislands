@@ -1,0 +1,6 @@
+type: S3
+endpoint: http://minio.internal:9000
+bucket: cloudislands
+region: us-east-1
+access-key: "${file:/run/secrets/s3_access_key}"
+secret-key: "${file:/run/secrets/s3_secret_key}"

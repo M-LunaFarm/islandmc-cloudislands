@@ -1,0 +1,11 @@
+type: POSTGRESQL
+jdbc-url: jdbc:postgresql://postgres:5432/cloudislands
+username: cloudislands
+password: "${file:/run/secrets/database_password}"
+pool:
+  minimum-idle: 5
+  maximum-size: 20
+  connection-timeout: 3s
+schema:
+  migration: true
+  validate-on-startup: true

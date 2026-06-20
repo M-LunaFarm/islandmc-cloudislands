@@ -1,0 +1,11 @@
+default-lobby: Lobby
+island-pool: island
+ticket:
+  ttl: 30s
+  wait-timeout: 20s
+failure:
+  fallback-server: Lobby
+  hide-backend-node-names: true
+presence:
+  publish-interval: 5s
+  offline-timeout: 15s

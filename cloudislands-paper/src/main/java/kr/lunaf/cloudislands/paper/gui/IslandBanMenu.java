@@ -56,11 +56,11 @@ public final class IslandBanMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 49) {
-            player.performCommand("섬 밴목록");
+            GuiActionRegistry.execute(player, "island.bans.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -72,7 +72,7 @@ public final class IslandBanMenu implements Listener {
             return;
         }
         if (event.isRightClick()) {
-            player.performCommand("섬 밴해제 " + bannedUuid);
+            GuiActionRegistry.execute(player, "island.ban.pardon", java.util.Map.of("playerUuid", bannedUuid), GuiClick.from(event));
             return;
         }
         player.sendMessage(message(messages, "ban-menu-detail-title", "방문자 밴 상세"));

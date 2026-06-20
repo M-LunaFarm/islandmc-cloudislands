@@ -58,15 +58,15 @@ public final class IslandMissionMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 45) {
-            player.performCommand("섬 미션");
+            GuiActionRegistry.execute(player, "island.missions.open", java.util.Map.of("kind", "MISSION"), GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 챌린지");
+            GuiActionRegistry.execute(player, "island.missions.open", java.util.Map.of("kind", "CHALLENGE"), GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            player.performCommand(MISSION_TITLE.equals(title) ? "섬 미션" : "섬 챌린지");
+            GuiActionRegistry.execute(player, "island.missions.open", java.util.Map.of("kind", MISSION_TITLE.equals(title) ? "MISSION" : "CHALLENGE"), GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -77,7 +77,7 @@ public final class IslandMissionMenu implements Listener {
         if (missionKey.isBlank()) {
             return;
         }
-        player.performCommand((MISSION_TITLE.equals(title) ? "섬 미션 " : "섬 챌린지 ") + missionKey);
+        GuiActionRegistry.execute(player, "island.mission.complete", java.util.Map.of("kind", MISSION_TITLE.equals(title) ? "MISSION" : "CHALLENGE", "missionKey", missionKey, "label", MISSION_TITLE.equals(title) ? "섬 미션" : "섬 챌린지"), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, String kind, List<Mission> missions, MessageRenderer messages) {

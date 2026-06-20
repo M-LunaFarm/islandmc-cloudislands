@@ -53,17 +53,17 @@ public final class IslandInfoMenu implements Listener {
         int slot = event.getRawSlot();
         player.closeInventory();
         if (slot == 23) {
-            player.performCommand("섬 레벨계산");
+            GuiActionRegistry.execute(player, "island.level.recalculate", GuiClick.from(event));
         } else if (slot == 21) {
-            player.performCommand("섬 랭킹");
+            GuiActionRegistry.execute(player, "island.ranking.open", GuiClick.from(event));
         } else if (slot == 22) {
-            player.performCommand("섬 로그");
+            GuiActionRegistry.execute(player, "island.logs.open", GuiClick.from(event));
         } else if (slot == 16) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
         } else if (slot == 25) {
-            player.performCommand("섬 정보");
+            GuiActionRegistry.execute(player, "island.info.open", GuiClick.from(event));
         } else if (slot == 24) {
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
         } else if (slot == 26) {
             return;
         }

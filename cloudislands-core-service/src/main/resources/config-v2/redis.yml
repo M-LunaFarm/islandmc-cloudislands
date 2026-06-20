@@ -1,0 +1,5 @@
+enabled: true
+uri: redis://redis.internal:6379
+password: "${file:/run/secrets/redis_password}"
+events:
+  stream-prefix: cloudislands

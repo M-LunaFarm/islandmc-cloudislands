@@ -1,0 +1,6 @@
+enabled: true
+title-key: scoreboard.title
+lines:
+  - scoreboard.island
+  - scoreboard.role
+  - scoreboard.members

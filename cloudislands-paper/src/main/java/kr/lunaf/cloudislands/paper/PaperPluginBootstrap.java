@@ -29,6 +29,7 @@ import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.generator.IslandCropGrowthListener;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
+import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
@@ -110,9 +111,6 @@ final class PaperPluginBootstrap {
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperBrandingListener(plugin, plugin.messages));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperChatListener(plugin.messages));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperScoreboardListener(plugin, plugin.messages));
-        if (plugin.guiEnabledForRole(role)) {
-            IslandGuiMenuRegistrar.register(plugin, plugin.messages);
-        }
         if (role == AgentRole.ISLAND_NODE) {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandProtectionListener(plugin.agent.protection(), blockDeltas, denyMessageCooldownMs, denyMessages()));
             plugin.boundaryListener = new IslandBoundaryListener(plugin.agent.protection(), plugin.messages);
@@ -139,7 +137,10 @@ final class PaperPluginBootstrap {
         plugin.routeSessionListener = new PaperRouteSessionListener(plugin, client, plugin.agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, plugin.proxySourceAllowlist, plugin.messages);
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.routeSessionListener);
         int routeWaitSeconds = plugin.getConfig().getInt("routing.wait-for-activation-timeout-seconds", 20);
-        new PaperCommandRegistrar(plugin).register(plugin.agent, client, nodeId, routeWaitSeconds, fallbackServerName, economyBridge, plugin.messages, plugin.localCaches, () -> plugin.activeIslands);
+        GuiActionExecutor guiActions = new PaperCommandRegistrar(plugin).register(plugin.agent, client, nodeId, routeWaitSeconds, fallbackServerName, economyBridge, plugin.messages, plugin.localCaches, () -> plugin.activeIslands);
+        if (plugin.guiEnabledForRole(role)) {
+            IslandGuiMenuRegistrar.register(plugin, plugin.messages, guiActions);
+        }
         MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(plugin, plugin.getConfig()), PaperStorageFactory.backendName(plugin.getConfig())) : null;
         plugin.islandStorage = storage;
         String supportedTemplates = String.join(",", plugin.getConfig().getStringList("node.supported-templates"));

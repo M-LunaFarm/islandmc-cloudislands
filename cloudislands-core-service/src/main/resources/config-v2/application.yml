@@ -1,0 +1,11 @@
+config-version: 2
+profile: production
+strict-validation: true
+files:
+  runtime: runtime.yml
+  database: database.yml
+  redis: redis.yml
+  storage: storage.yml
+  routing: routing.yml
+  policies: policies.yml
+  security: security.yml

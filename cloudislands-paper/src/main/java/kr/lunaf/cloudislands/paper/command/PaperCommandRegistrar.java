@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
+import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.command.PluginCommand;
@@ -19,7 +20,7 @@ public final class PaperCommandRegistrar {
         this.plugin = plugin;
     }
 
-    public void register(
+    public GuiActionExecutor register(
         CloudIslandsPaperAgent agent,
         CoreApiClient client,
         String nodeId,
@@ -43,6 +44,8 @@ public final class PaperCommandRegistrar {
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, islandController);
+            return islandController;
         }
+        return GuiActionExecutor.noop();
     }
 }

@@ -56,12 +56,12 @@ public final class IslandCreateMenu implements Listener {
         }
         if (message(messages, "create-menu-refresh-name", "템플릿 새로고침").equals(meta.getDisplayName())) {
             player.closeInventory();
-            player.performCommand("섬 생성메뉴");
+            GuiActionRegistry.execute(player, "island.create.open", GuiClick.from(event));
             return;
         }
         if (message(messages, "create-menu-main-menu-name", "메인 메뉴").equals(meta.getDisplayName())) {
             player.closeInventory();
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         String templateId = "";
@@ -75,7 +75,7 @@ public final class IslandCreateMenu implements Listener {
             return;
         }
         player.closeInventory();
-        player.performCommand("섬 생성 " + templateId);
+        GuiActionRegistry.execute(player, "island.create", java.util.Map.of("templateId", templateId), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, List<Template> templates, MessageRenderer messages) {

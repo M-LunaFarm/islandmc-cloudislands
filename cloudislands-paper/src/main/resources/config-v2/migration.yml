@@ -1,0 +1,5 @@
+superiorskyblock2:
+  enabled: false
+  source-directory: plugins/SuperiorSkyblock2
+  dry-run: true
+  allow-write: false

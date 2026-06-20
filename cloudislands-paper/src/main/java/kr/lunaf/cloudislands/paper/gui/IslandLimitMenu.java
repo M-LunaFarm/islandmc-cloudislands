@@ -57,15 +57,15 @@ public final class IslandLimitMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 45) {
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            player.performCommand("섬 제한");
+            GuiActionRegistry.execute(player, "island.limits.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -79,7 +79,7 @@ public final class IslandLimitMenu implements Listener {
         long value = number(loreValue(meta, "limitValue="));
         long step = event.isShiftClick() ? 10L : 1L;
         long nextValue = event.isRightClick() ? Math.max(0L, value - step) : value + step;
-        player.performCommand("섬 제한설정 " + limitKey + " " + nextValue);
+        GuiActionRegistry.execute(player, "island.limit.set", java.util.Map.of("limitKey", limitKey, "value", String.valueOf(nextValue)), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, List<Limit> limits, MessageRenderer messages) {

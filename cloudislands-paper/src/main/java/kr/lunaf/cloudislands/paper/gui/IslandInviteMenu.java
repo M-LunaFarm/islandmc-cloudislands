@@ -56,15 +56,15 @@ public final class IslandInviteMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 49) {
-            player.performCommand("섬 초대목록");
+            GuiActionRegistry.execute(player, "island.invites.open", GuiClick.from(event));
             return;
         }
         if (slot == 45) {
-            player.performCommand("섬 멤버관리");
+            GuiActionRegistry.execute(player, "island.members.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -75,7 +75,7 @@ public final class IslandInviteMenu implements Listener {
         if (inviteId.isBlank()) {
             return;
         }
-        player.performCommand((event.isRightClick() ? "섬 초대거절 " : "섬 초대수락 ") + inviteId);
+        GuiActionRegistry.execute(player, event.isRightClick() ? "island.invite.decline" : "island.invite.accept", java.util.Map.of("inviteId", inviteId), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, List<Invite> invites, MessageRenderer messages) {

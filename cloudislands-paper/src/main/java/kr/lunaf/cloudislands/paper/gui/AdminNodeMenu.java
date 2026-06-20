@@ -119,7 +119,7 @@ public final class AdminNodeMenu implements Listener {
             return;
         }
         if (command != null) {
-            player.performCommand(command.substring(1));
+            player.getServer().dispatchCommand(player, command.substring(1));
         }
     }
 

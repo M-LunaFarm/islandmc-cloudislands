@@ -1,0 +1,5 @@
+enabled: true
+base-url: https://core-api.internal:8443
+timeout:
+  connect: 2s
+  request: 3s

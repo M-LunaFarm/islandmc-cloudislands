@@ -1,0 +1,23 @@
+id: island.main
+rows: 6
+title-key: menu.main.title
+layout:
+  - "........."
+  - ".H.W.V..."
+  - ".M.P.S..."
+  - ".Q.U.B.R."
+  - ".I.L.T..."
+  - "B.......D"
+items:
+  H:
+    material: GRASS_BLOCK
+    name-key: menu.main.home.name
+    action: island.home
+  M:
+    material: PLAYER_HEAD
+    name-key: menu.main.members.name
+    action: island.members.open
+  D:
+    material: LAVA_BUCKET
+    name-key: menu.main.danger.name
+    action: island.danger.open

@@ -1,0 +1,8 @@
+root:
+  aliases:
+    - is
+    - island
+    - 섬
+admin:
+  aliases:
+    - ciadmin

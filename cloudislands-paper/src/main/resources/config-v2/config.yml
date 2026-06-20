@@ -1,0 +1,15 @@
+config-version: 2
+profile: production
+language: ko_kr
+strict-validation: true
+files:
+  runtime: runtime.yml
+  integrations: integrations.yml
+  security: security.yml
+  features: features.yml
+  gameplay: gameplay.yml
+  migration: migration.yml
+  theme: ui/theme.yml
+  scoreboard: ui/scoreboard.yml
+  locale: ui/messages/ko_kr.yml
+  menus: ui/menus

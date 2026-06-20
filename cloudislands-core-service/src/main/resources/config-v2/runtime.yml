@@ -1,0 +1,11 @@
+server:
+  bind-host: 0.0.0.0
+  port: 8443
+instance:
+  id: core-01
+  mode: production
+jobs:
+  worker-count: 8
+  lease-duration: 30s
+events:
+  backend: REDIS_STREAM

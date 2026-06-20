@@ -1,0 +1,8 @@
+route:
+  preparing: "Preparing {target}."
+  ready: "Moving to {target} shortly."
+  failed: "Could not move to the island."
+  unavailable: "No island nodes are currently available."
+errors:
+  no-permission: "You do not have permission."
+  service-unavailable: "The island service is temporarily unavailable."

@@ -1,0 +1,10 @@
+menu:
+  loading: "Loading."
+  empty: "No items to display."
+  retry: "Retry"
+  back: "Back"
+errors:
+  ISLAND_NOT_FOUND: "Island not found."
+  ROLE_CHANGE_NOT_ALLOWED: "You cannot change that player's role."
+  PERMISSION_VERSION_CONFLICT: "Another administrator changed permissions."
+  CORE_API_TIMEOUT: "The island service is temporarily unavailable."

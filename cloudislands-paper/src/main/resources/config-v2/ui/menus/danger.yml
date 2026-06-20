@@ -1,0 +1,8 @@
+id: island.danger
+rows: 3
+title-key: menu.danger.title
+actions:
+  snapshot: island.snapshots.open
+  reset: island.danger.reset.prepare
+  delete: island.danger.delete.prepare
+  back: island.settings.open

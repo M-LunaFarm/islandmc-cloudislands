@@ -73,17 +73,17 @@ public final class IslandLogMenu implements Listener {
         }
         if (slot == 31) {
             player.closeInventory();
-            player.performCommand("섬 로그");
+            GuiActionRegistry.execute(player, "island.logs.open", GuiClick.from(event));
             return;
         }
         if (slot == 30) {
             player.closeInventory();
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         if (slot == 32) {
             player.closeInventory();
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         if (slot == 35) {

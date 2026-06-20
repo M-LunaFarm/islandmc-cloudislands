@@ -61,15 +61,15 @@ public final class IslandHomeMenu implements Listener {
                 player.sendMessage(message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>"));
                 return;
             }
-            player.performCommand("섬 셋홈 default");
+            GuiActionRegistry.execute(player, "island.home.set", java.util.Map.of("homeName", "default"), GuiClick.from(event));
             return;
         }
         if (slot == 49) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 메뉴");
+            GuiActionRegistry.execute(player, "island.main.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -79,10 +79,10 @@ public final class IslandHomeMenu implements Listener {
         String homeName = loreValue(meta, "homeName=");
         if (!homeName.isBlank()) {
             if (event.isRightClick()) {
-                player.performCommand("섬 셋홈 " + homeName);
+                GuiActionRegistry.execute(player, "island.home.set", java.util.Map.of("homeName", homeName), GuiClick.from(event));
                 return;
             }
-            player.performCommand("섬 home " + homeName);
+            GuiActionRegistry.execute(player, "island.home", java.util.Map.of("homeName", homeName), GuiClick.from(event));
         }
     }
 

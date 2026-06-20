@@ -58,11 +58,11 @@ public final class IslandFlagMenu implements Listener {
         }
         player.closeInventory();
         if (slot == 49) {
-            player.performCommand("섬 플래그");
+            GuiActionRegistry.execute(player, "island.flags.open", GuiClick.from(event));
             return;
         }
         if (slot == 53) {
-            player.performCommand("섬 설정");
+            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
         ItemMeta meta = event.getCurrentItem().getItemMeta();
@@ -79,7 +79,7 @@ public final class IslandFlagMenu implements Listener {
         if (flag.isBlank()) {
             return;
         }
-        player.performCommand("섬 플래그설정 " + flag + " " + (!event.isRightClick()));
+        GuiActionRegistry.execute(player, "island.flag.set", java.util.Map.of("flag", flag), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, Map<IslandFlag, String> values, MessageRenderer messages) {
