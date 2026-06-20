@@ -43,6 +43,39 @@ public final class GuiStateMenus implements Listener {
         });
     }
 
+    public static void openSaving(Plugin plugin, Player player, MessageRenderer messages, String title) {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+            Inventory inventory = GuiInventories.create(MENU_ID, 27, title(messages, title, "Saving"));
+            inventory.setItem(13, stateItem(Material.HOPPER, message(messages, "gui-state-saving-name", "Saving"), message(messages, "gui-state-saving-lore", "변경 사항을 Core에 저장하는 중입니다.")));
+            player.openInventory(inventory);
+        });
+    }
+
+    public static void openSuccess(Plugin plugin, Player player, MessageRenderer messages, String title, String detail, String backAction) {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+            Inventory inventory = GuiInventories.create(MENU_ID, 27, title(messages, title, "Success"));
+            inventory.setItem(13, stateItem(Material.EMERALD_BLOCK, message(messages, "gui-state-success-name", "Success"), detail == null || detail.isBlank() ? message(messages, "gui-state-success-lore", "요청이 완료되었습니다.") : detail));
+            if (backAction != null && !backAction.isBlank()) {
+                inventory.setItem(15, GuiItems.action(Material.OAK_DOOR, message(messages, "gui-state-back-name", "Back"), backAction));
+            }
+            player.openInventory(inventory);
+        });
+    }
+
+    public static void openConflict(Plugin plugin, Player player, MessageRenderer messages, String title, String detail, String retryAction, String backAction) {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+            Inventory inventory = GuiInventories.create(MENU_ID, 27, title(messages, title, "Conflict"));
+            inventory.setItem(13, stateItem(Material.ANVIL, message(messages, "gui-state-conflict-name", "Conflict"), detail == null || detail.isBlank() ? message(messages, "gui-state-conflict-lore", "다른 관리자가 먼저 변경했습니다.") : detail));
+            if (retryAction != null && !retryAction.isBlank()) {
+                inventory.setItem(11, GuiItems.action(Material.CLOCK, message(messages, "gui-state-retry-name", "Retry"), retryAction));
+            }
+            if (backAction != null && !backAction.isBlank()) {
+                inventory.setItem(15, GuiItems.action(Material.OAK_DOOR, message(messages, "gui-state-back-name", "Back"), backAction));
+            }
+            player.openInventory(inventory);
+        });
+    }
+
     public static ItemStack empty(MessageRenderer messages, String title, String detail) {
         return stateItem(Material.BARRIER, title == null || title.isBlank() ? message(messages, "gui-state-empty-name", "Empty") : title, detail == null || detail.isBlank() ? message(messages, "gui-state-empty-lore", "표시할 항목이 없습니다.") : detail);
     }

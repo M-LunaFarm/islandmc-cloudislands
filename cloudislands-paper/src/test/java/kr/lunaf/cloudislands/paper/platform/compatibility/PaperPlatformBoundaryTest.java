@@ -529,6 +529,14 @@ class PaperPlatformBoundaryTest {
         assertTrue(states.contains("READY"), "GUI states must include Ready");
         assertTrue(states.contains("EMPTY"), "GUI states must include Empty");
         assertTrue(states.contains("ERROR"), "GUI states must include Error");
+        assertTrue(states.contains("RETRY"), "GUI states must include Retry");
+        assertTrue(states.contains("SAVING"), "GUI states must include Saving");
+        assertTrue(states.contains("SUCCESS"), "GUI states must include Success");
+        assertTrue(states.contains("CONFLICT"), "GUI states must include Conflict");
+        String stateMenus = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiStateMenus.java"));
+        assertTrue(stateMenus.contains("openSaving("), "GUI state menus must expose a Saving screen");
+        assertTrue(stateMenus.contains("openSuccess("), "GUI state menus must expose a Success screen");
+        assertTrue(stateMenus.contains("openConflict("), "GUI state menus must expose a Conflict screen");
     }
 
     @Test

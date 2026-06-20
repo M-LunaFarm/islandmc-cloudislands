@@ -4,5 +4,9 @@ public enum GuiState {
     LOADING,
     READY,
     EMPTY,
-    ERROR
+    ERROR,
+    RETRY,
+    SAVING,
+    SUCCESS,
+    CONFLICT
 }
