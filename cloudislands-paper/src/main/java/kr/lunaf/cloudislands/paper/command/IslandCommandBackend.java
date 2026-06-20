@@ -1,8 +1,5 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +8,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -20,7 +16,6 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
-import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
@@ -30,7 +25,6 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
-import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
@@ -48,8 +42,6 @@ import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
-import net.kyori.adventure.bossbar.BossBar;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -194,9 +186,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final ProtectionController protection;
-    private final int routeWaitSeconds;
-    private final String fallbackServerName;
-    private final Map<UUID, BossBar> routeBossBars = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, StagedPermissionChange>> stagedPermissionChanges = new ConcurrentHashMap<>();
     private final IslandLevelScanService levelScanService;
     private final IslandBankCommandHandler bankCommands;
@@ -212,6 +201,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandOverviewCommandHandler overviewCommands;
     private final IslandMembershipCommandHandler membershipCommands;
     private final IslandAdminNodeCommandHandler adminCommands;
+    private final IslandRoutingCommandHandler routingCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final PaperPlayerGateway players;
@@ -257,9 +247,43 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.protection = protection;
-        this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
-        this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
         this.levelScanService = levelScanService;
+        this.routingCommands = new IslandRoutingCommandHandler(plugin, coreApiClient, routeWaitSeconds, fallbackServerName, new IslandRoutingCommandHandler.Runtime() {
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback, String... variables) {
+                return IslandCommandBackend.this.routeMessage(key, fallback, variables);
+            }
+
+            @Override
+            public String routeMessage(Player player, String key, String fallback, String... variables) {
+                return IslandCommandBackend.this.routeMessage(player, key, fallback, variables);
+            }
+
+            @Override
+            public String playerCodeMessage(String code, String fallback) {
+                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+            }
+
+            @Override
+            public String playerMessage(String message) {
+                return IslandCommandBackend.this.playerMessage(message);
+            }
+
+            @Override
+            public boolean coreUnavailable(Throwable error) {
+                return IslandCommandBackend.this.coreUnavailable(error);
+            }
+
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+        });
         this.bankCommands = new IslandBankCommandHandler(plugin, coreApiClient, economyBridge, new IslandBankCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
@@ -620,7 +644,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
 
             @Override
             public void routeWarp(Player player, UUID islandId, String warpName) {
-                IslandCommandBackend.this.routeWarp(player, islandId, warpName);
+                routingCommands.routeWarp(player, islandId, warpName);
             }
 
             @Override
@@ -676,7 +700,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
 
             @Override
             public void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
-                IslandCommandBackend.this.routeTicket(player, ticketFuture, failureMessage);
+                routingCommands.routeTicket(player, ticketFuture, failureMessage);
             }
         });
         this.lifecycleCommands = new IslandLifecycleCommandHandler(plugin, coreApiClient, new IslandLifecycleCommandHandler.Runtime() {
@@ -1169,35 +1193,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return 0;
     }
 
-    private void routeWarp(Player player, UUID islandId, String warpName) {
-        routeTicket(player, mutate("route.ticket.warp", () -> coreApiClient.createWarpTicket(player.getUniqueId(), islandId, warpName)), "해당 워프로 이동할 수 없습니다.");
-    }
-
-    private void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
-        ticketFuture.thenAccept(ticket -> routeTicket(player, ticket, failureMessage, 0)).exceptionally(error -> {
-            clearRouteLoading(player);
-            message(player, routeFailureMessage(error, failureMessage));
-            return null;
-        });
-    }
-
-    private String routeFailureMessage(Throwable error, String fallback) {
-        if (coreUnavailable(error)) {
-            return routeMessage("core-service-maintenance", CoreApiDegradedModePolicy.MAINTENANCE_MESSAGE);
-        }
-        Throwable current = error;
-        while (current != null) {
-            if (current instanceof CoreApiException coreError) {
-                return playerCodeMessage(coreError.code(), fallback);
-            }
-            if (current instanceof java.io.IOException) {
-                return CoreApiDegradedModePolicy.MAINTENANCE_MESSAGE;
-            }
-            current = current.getCause();
-        }
-        return fallback;
-    }
-
     private String playerCodeMessage(String code, String fallback) {
         if (code == null || code.isBlank()) {
             return fallback;
@@ -1217,46 +1212,6 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         };
     }
 
-    private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
-        if (ticket.state().name().equals("READY")) {
-            String target = routeTargetName(ticket);
-            showRouteLoading(player, 1.0f, routeMessage(player, "route-loading-complete", target + " 로딩 완료", "target", target));
-            player.sendActionBar(routeComponent(player, "route-ready", "잠시 후 " + target + "으로 이동합니다.", "target", target));
-            publishAndConnect(player, ticket, failureMessage);
-            return;
-        }
-        if (attempt >= routeWaitSeconds) {
-            clearRouteLoading(player);
-            message(player, failureMessage);
-            return;
-        }
-        int progress = RoutePreparationProgressPolicy.preparingPercent(attempt);
-        String target = RoutePreparationProgressPolicy.safeTargetName(routeTargetName(ticket));
-        String progressValue = Integer.toString(progress);
-        showRouteLoading(player, RoutePreparationProgressPolicy.preparingProgress(attempt), routeMessage(player, "route-loading-progress", RoutePreparationProgressPolicy.loadingTitle(target, attempt), "target", target, "progress", progressValue));
-        player.sendActionBar(routeComponent(player, "route-preparing-progress", RoutePreparationProgressPolicy.preparingActionBar(target, attempt), "target", target, "progress", progressValue));
-        CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
-            if (status.isPresent()) {
-                routeTicket(player, status.get(), failureMessage, attempt + 1);
-            } else {
-                clearRouteLoading(player);
-                message(player, failureMessage);
-            }
-        }).exceptionally(error -> {
-            clearRouteLoading(player);
-            message(player, routeFailureMessage(error, failureMessage));
-            return null;
-        }), CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
-    }
-
-    private Component routeComponent(String key, String fallback, String... variables) {
-        return Component.text(playerMessage(routeMessage(key, fallback, variables)));
-    }
-
-    private Component routeComponent(Player player, String key, String fallback, String... variables) {
-        return Component.text(playerMessage(routeMessage(player, key, fallback, variables)));
-    }
-
     private MessageRenderer messagesFor(Player player) {
         return messages == null || player == null ? messages : messages.forLocale(locales == null ? player.getLocale() : locales.locale(player));
     }
@@ -1272,119 +1227,14 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
-        mutate("route.session.publish", () -> coreApiClient.publishRouteSession(ticket)).thenRun(() -> {
-            clearRouteLoading(player);
-            connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
-        }).exceptionally(error -> {
-            clearRouteLoading(player);
-            clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
-            message(player, routeFailureMessage(error, failureMessage));
-            return null;
-        });
-    }
-
-    private void showRouteLoading(Player player, float progress, String title) {
-        BossBar bossBar = routeBossBars.computeIfAbsent(player.getUniqueId(), ignored -> {
-            BossBar created = BossBar.bossBar(Component.text(playerMessage(title)), progress, BossBar.Color.GREEN, BossBar.Overlay.PROGRESS);
-            player.showBossBar(created);
-            return created;
-        });
-        bossBar.name(Component.text(playerMessage(title)));
-        bossBar.progress(Math.max(0.0f, Math.min(1.0f, progress)));
-    }
-
-    private void clearRouteLoading(Player player) {
-        BossBar bossBar = routeBossBars.remove(player.getUniqueId());
-        if (bossBar != null) {
-            player.hideBossBar(bossBar);
-        }
-    }
-
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        clearRouteLoading(event.getPlayer());
+        routingCommands.clearRouteLoading(event.getPlayer());
     }
 
     @EventHandler
     public void onKick(PlayerKickEvent event) {
-        clearRouteLoading(event.getPlayer());
-    }
-
-    private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            if (targetServerName == null || targetServerName.isBlank()) {
-                clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
-                message(player, routeMessage("route-command-failed", "섬으로 이동하지 못했습니다."));
-                return;
-            }
-            if (!canUseBungeeConnect()) {
-                clearFailedRoute(ticket, "BUNGEE_CONNECT_UNAVAILABLE");
-                message(player, routeMessage("route-command-publish-failed", "섬 이동 경로를 준비하지 못했습니다."));
-                return;
-            }
-            try {
-                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                DataOutputStream output = new DataOutputStream(bytes);
-                output.writeUTF("Connect");
-                output.writeUTF(targetServerName);
-                player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-                message(player, routeMessage("route-command-started", "섬으로 이동합니다."));
-            } catch (IOException | RuntimeException exception) {
-                clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
-                message(player, routeMessage("route-command-failed", "섬으로 이동하지 못했습니다."));
-            }
-        });
-    }
-
-    private void clearFailedRoute(RouteTicket ticket) {
-        clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
-    }
-
-    private void clearFailedRoute(RouteTicket ticket, String reason) {
-        mutate("route.clear", () -> coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason)).exceptionally(error -> null);
-    }
-
-    private String routeTargetName(RouteTicket ticket) {
-        if (ticket == null) {
-            return "섬";
-        }
-        return switch (PlayerRouteTicketView.from(ticket).destination()) {
-            case "my-island" -> "내 섬";
-            case "other-island" -> "다른 사람 섬";
-            case "island-ranking" -> "섬 랭킹";
-            case "island-visit" -> "방문할 섬";
-            case "island-settings" -> "섬 설정";
-            case "island-warps" -> "섬 워프";
-            default -> "섬";
-        };
-    }
-
-    private void connectPlayerToServer(Player player, String targetServerName, String successMessage, String failureMessage) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            if (targetServerName == null || targetServerName.isBlank()) {
-                player.sendMessage(playerMessage(failureMessage));
-                return;
-            }
-            if (!canUseBungeeConnect()) {
-                player.sendMessage(playerMessage(failureMessage));
-                return;
-            }
-            try {
-                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                DataOutputStream output = new DataOutputStream(bytes);
-                output.writeUTF("Connect");
-                output.writeUTF(targetServerName);
-                player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
-                player.sendMessage(playerMessage(successMessage));
-            } catch (IOException | RuntimeException exception) {
-                player.sendMessage(playerMessage(failureMessage));
-            }
-        });
-    }
-
-    private boolean canUseBungeeConnect() {
-        return plugin.getServer().getMessenger().isOutgoingChannelRegistered(plugin, "BungeeCord");
+        routingCommands.clearRouteLoading(event.getPlayer());
     }
 
     private void listIslandMembers(Player player) {
@@ -1709,7 +1559,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (!islandId.equals(targetIslandId)) {
             return false;
         }
-        connectPlayerToServer(targetPlayer, fallbackServerName, successMessage, failureMessage);
+        routingCommands.connectPlayerToFallback(targetPlayer, successMessage, failureMessage);
         return true;
     }
 

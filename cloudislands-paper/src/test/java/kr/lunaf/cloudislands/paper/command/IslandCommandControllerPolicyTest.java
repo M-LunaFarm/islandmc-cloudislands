@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 class IslandCommandControllerPolicyTest {
     @Test
     void playerRouteMessagesUsePlayerRouteTicketView() throws Exception {
-        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandRoutingCommandHandler.java"));
 
         assertTrue(source.contains("import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;"));
         assertTrue(source.contains("PlayerRouteTicketView.from(ticket).destination()"));
@@ -262,5 +262,24 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("case \"admin.node.list\""));
         assertTrue(adminHandler.contains("coreApiClient.drainNode(nodeId)"));
         assertTrue(adminHandler.contains("coreApiClient.shutdownNodeSafely("));
+    }
+
+    @Test
+    void routingCommandsAreSeparatedFromCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String routingHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandRoutingCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandRoutingCommandHandler routingCommands;"));
+        assertTrue(backend.contains("routingCommands.routeWarp(player, islandId, warpName)"));
+        assertTrue(backend.contains("routingCommands.routeTicket(player, ticketFuture, failureMessage)"));
+        assertTrue(backend.contains("routingCommands.clearRouteLoading(event.getPlayer())"));
+        assertFalse(backend.contains("routeBossBars"), "route loading state belongs in IslandRoutingCommandHandler");
+        assertFalse(backend.contains("sendPluginMessage(plugin, \"BungeeCord\""), "Bungee plugin messaging belongs in IslandRoutingCommandHandler");
+        assertFalse(backend.contains("RoutePreparationProgressPolicy"), "route preparation polling belongs in IslandRoutingCommandHandler");
+        assertTrue(routingHandler.contains("void routeWarp(Player player, UUID islandId, String warpName)"));
+        assertTrue(routingHandler.contains("void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage)"));
+        assertTrue(routingHandler.contains("routeBossBars"));
+        assertTrue(routingHandler.contains("sendPluginMessage(plugin, \"BungeeCord\""));
+        assertTrue(routingHandler.contains("RoutePreparationProgressPolicy"));
     }
 }
