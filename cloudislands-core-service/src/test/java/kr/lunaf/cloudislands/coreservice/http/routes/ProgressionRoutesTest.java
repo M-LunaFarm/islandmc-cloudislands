@@ -16,10 +16,11 @@ class ProgressionRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(8, paths.size());
+        assertEquals(9, paths.size());
         assertTrue(paths.contains("/v1/rankings/level"));
         assertTrue(paths.contains("/v1/rankings/worth"));
         assertTrue(paths.contains("/v1/upgrades/rules"));
+        assertTrue(paths.contains("/v1/addons/missions/register"));
         assertTrue(paths.contains("/v1/islands/missions/complete"));
         assertTrue(paths.contains("/v1/islands/limits/set"));
     }

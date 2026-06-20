@@ -526,6 +526,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> registerMissionProvider(String providerId, String definitionsJson) {
+        String definitions = definitionsJson == null || definitionsJson.isBlank() ? "[]" : definitionsJson;
+        return postWithResultBody("/v1/addons/missions/register", "{\"providerId\":\"" + escape(providerId) + "\",\"missions\":" + definitions + "}");
+    }
+
+    @Override
     public CompletableFuture<String> listIslandLimits(UUID islandId) {
         return post("/v1/islands/limits", "{\"islandId\":\"" + islandId + "\"}");
     }

@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
@@ -58,8 +59,51 @@ public final class CachingIslandMissionRepository implements IslandMissionReposi
         return imported;
     }
 
+    @Override
+    public List<MissionProviderDefinitionSnapshot> listProviderDefinitions(String providerId) {
+        return delegate.listProviderDefinitions(providerId);
+    }
+
+    @Override
+    public List<MissionProviderDefinitionSnapshot> registerProviderDefinitions(String providerId, List<MissionProviderDefinitionSnapshot> definitions) {
+        List<MissionProviderDefinitionSnapshot> registered = delegate.registerProviderDefinitions(providerId, definitions);
+        clearMissionCaches();
+        return registered;
+    }
+
     public long failuresTotal() {
         return failures.get();
+    }
+
+    private void clearMissionCaches() {
+        for (String key : scanMissionCacheKeys()) {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                redis.command("DEL", key);
+            } catch (IOException | RuntimeException ignored) {
+                failures.incrementAndGet();
+            }
+        }
+    }
+
+    private List<String> scanMissionCacheKeys() {
+        List<String> keys = new ArrayList<>();
+        String cursor = "0";
+        do {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                String response = redis.command("SCAN", cursor, "MATCH", "ci:island:*:missions:*", "COUNT", "100");
+                String[] lines = response.split("\\n");
+                cursor = lines.length == 0 || lines[0].isBlank() ? "0" : lines[0];
+                for (int i = 1; i < lines.length; i++) {
+                    if (!lines[i].isBlank()) {
+                        keys.add(lines[i]);
+                    }
+                }
+            } catch (IOException | RuntimeException ignored) {
+                failures.incrementAndGet();
+                return keys;
+            }
+        } while (!"0".equals(cursor));
+        return keys;
     }
 
     private List<IslandMissionSnapshot> cache(UUID islandId, String kind, List<IslandMissionSnapshot> missions) {

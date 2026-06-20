@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 
 public interface IslandCommandService {
@@ -110,6 +111,7 @@ public interface IslandCommandService {
         return progressMissionResult(islandId, actorUuid, missionKey, kind, amount).thenApply(_result -> null);
     }
     CompletableFuture<java.util.Optional<IslandMissionSnapshot>> progressMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);
+    CompletableFuture<java.util.List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, java.util.List<MissionProviderDefinitionSnapshot> definitions);
     default CompletableFuture<Void> completeChallenge(UUID islandId, UUID actorUuid, String challengeKey) {
         return completeMission(islandId, actorUuid, challengeKey, "CHALLENGE");
     }

@@ -53,6 +53,61 @@ public final class JsonFields {
         return Map.copyOf(values);
     }
 
+    public static java.util.List<String> objects(String json, String field) {
+        String body = arrayBody(json, field);
+        if (body.isBlank()) {
+            return java.util.List.of();
+        }
+        java.util.List<String> objects = new java.util.ArrayList<>();
+        for (String part : splitTopLevelPairs(body)) {
+            String trimmed = part.trim();
+            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                objects.add(trimmed);
+            }
+        }
+        return java.util.List.copyOf(objects);
+    }
+
+    private static String arrayBody(String json, String field) {
+        int fieldStart = json.indexOf("\"" + field + "\":");
+        if (fieldStart < 0) {
+            return "";
+        }
+        int arrayStart = json.indexOf('[', fieldStart);
+        if (arrayStart < 0) {
+            return "";
+        }
+        int depth = 0;
+        boolean quoted = false;
+        boolean escaped = false;
+        int arrayEnd = -1;
+        for (int i = arrayStart; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (c == '"') {
+                quoted = !quoted;
+                continue;
+            }
+            if (!quoted && c == '[') depth++;
+            if (!quoted && c == ']') depth--;
+            if (!quoted && depth == 0) {
+                arrayEnd = i;
+                break;
+            }
+        }
+        if (arrayEnd < 0) {
+            return "";
+        }
+        return json.substring(arrayStart + 1, arrayEnd).trim();
+    }
+
     private static String objectBody(String json, String field) {
         int fieldStart = json.indexOf("\"" + field + "\":");
         if (fieldStart < 0) {

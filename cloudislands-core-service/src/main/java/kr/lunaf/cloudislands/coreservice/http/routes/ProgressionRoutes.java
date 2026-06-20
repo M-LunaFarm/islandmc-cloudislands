@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
@@ -78,6 +79,19 @@ public final class ProgressionRoutes implements RouteGroup {
         registry.route("/v1/islands/missions", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             CoreHttpResponses.write(exchange, 200, missionsJson(missionRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "kind", "MISSION"))));
+        });
+        registry.route("/v1/addons/missions/register", exchange -> {
+            String body = CoreHttpResponses.readBody(exchange);
+            String providerId = JsonFields.text(body, "providerId", "");
+            java.util.List<MissionProviderDefinitionSnapshot> definitions = missionDefinitions(body, providerId);
+            if (providerId.isBlank() || definitions.isEmpty()) {
+                CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_MISSION_PROVIDER", "Provider id and at least one mission definition are required"));
+                return;
+            }
+            java.util.List<MissionProviderDefinitionSnapshot> registered = missionRepository.registerProviderDefinitions(providerId, definitions);
+            audit.log(new UUID(0L, 0L), "API", "MISSION_PROVIDER_REGISTER", "ADDON", providerId, Map.of("missions", Integer.toString(registered.size())));
+            events.publish(CloudIslandEventType.CORE_CACHE_CLEARED.name(), Map.of("cacheTargets", "ISLAND_MISSIONS", "providerId", providerId));
+            CoreHttpResponses.write(exchange, 202, missionDefinitionsJson(registered));
         });
         registry.route("/v1/islands/missions/complete", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
@@ -279,6 +293,48 @@ public final class ProgressionRoutes implements RouteGroup {
             + ",\"reward\":\"" + escape(mission.reward())
             + "\",\"updatedAt\":\"" + mission.updatedAt()
             + "\"}";
+    }
+
+    static java.util.List<MissionProviderDefinitionSnapshot> missionDefinitions(String json, String providerId) {
+        java.util.List<MissionProviderDefinitionSnapshot> definitions = new java.util.ArrayList<>();
+        for (String object : JsonFields.objects(json, "missions")) {
+            MissionProviderDefinitionSnapshot definition = new MissionProviderDefinitionSnapshot(
+                providerId,
+                JsonFields.text(object, "missionKey", ""),
+                JsonFields.text(object, "kind", "MISSION"),
+                JsonFields.text(object, "title", ""),
+                JsonFields.longValue(object, "goal", 1L),
+                JsonFields.text(object, "reward", ""),
+                JsonFields.bool(object, "enabled", true),
+                java.time.Instant.EPOCH
+            );
+            if (!definition.missionKey().isBlank()) {
+                definitions.add(definition);
+            }
+        }
+        return java.util.List.copyOf(definitions);
+    }
+
+    static String missionDefinitionsJson(java.util.List<MissionProviderDefinitionSnapshot> definitions) {
+        StringBuilder builder = new StringBuilder("{\"missions\":[");
+        boolean first = true;
+        for (MissionProviderDefinitionSnapshot definition : definitions) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"providerId\":\"").append(escape(definition.providerId())).append("\",")
+                .append("\"missionKey\":\"").append(escape(definition.missionKey())).append("\",")
+                .append("\"kind\":\"").append(escape(definition.kind())).append("\",")
+                .append("\"title\":\"").append(escape(definition.title())).append("\",")
+                .append("\"goal\":").append(definition.goal()).append(',')
+                .append("\"reward\":\"").append(escape(definition.reward())).append("\",")
+                .append("\"enabled\":").append(definition.enabled()).append(',')
+                .append("\"updatedAt\":\"").append(definition.updatedAt()).append("\"")
+                .append('}');
+        }
+        return builder.append("]}").toString();
     }
 
     static String limitsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandLimitSnapshot> limits) {

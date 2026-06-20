@@ -8,9 +8,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 
 public final class InMemoryIslandMissionRepository implements IslandMissionRepository {
     private final Map<UUID, Map<String, IslandMissionSnapshot>> missions = new ConcurrentHashMap<>();
+    private final Map<String, MissionProviderDefinitionSnapshot> providerDefinitions = new ConcurrentHashMap<>();
 
     @Override
     public List<IslandMissionSnapshot> list(UUID islandId, String kind) {
@@ -62,10 +64,42 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         return completed;
     }
 
+    @Override
+    public List<MissionProviderDefinitionSnapshot> listProviderDefinitions(String providerId) {
+        String provider = providerId == null || providerId.isBlank() ? "" : providerId.trim();
+        return providerDefinitions.values().stream()
+            .filter(definition -> provider.isBlank() || definition.providerId().equals(provider))
+            .sorted(Comparator.comparing(MissionProviderDefinitionSnapshot::providerId).thenComparing(MissionProviderDefinitionSnapshot::missionKey))
+            .toList();
+    }
+
+    @Override
+    public List<MissionProviderDefinitionSnapshot> registerProviderDefinitions(String providerId, List<MissionProviderDefinitionSnapshot> definitions) {
+        String provider = providerId == null || providerId.isBlank() ? "unknown-provider" : providerId.trim();
+        for (MissionProviderDefinitionSnapshot definition : definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions) {
+            MissionProviderDefinitionSnapshot normalized = new MissionProviderDefinitionSnapshot(provider, definition.missionKey(), definition.kind(), definition.title(), definition.goal(), definition.reward(), definition.enabled(), Instant.now());
+            if (!normalized.missionKey().isBlank()) {
+                providerDefinitions.put(normalized.missionKey(), normalized);
+            }
+        }
+        return listProviderDefinitions(provider);
+    }
+
     private void ensureDefaults(UUID islandId) {
         Map<String, IslandMissionSnapshot> islandMissions = missions.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
-        for (MissionDefinition definition : MissionCatalog.all()) {
+        for (MissionDefinition definition : definitions()) {
+            if (!definition.enabled()) {
+                continue;
+            }
             islandMissions.putIfAbsent(definition.missionKey(), new IslandMissionSnapshot(islandId, definition.missionKey(), definition.kind(), definition.title(), 0L, definition.goal(), false, definition.reward(), Instant.EPOCH));
         }
+    }
+
+    private List<MissionDefinition> definitions() {
+        java.util.ArrayList<MissionDefinition> definitions = new java.util.ArrayList<>(MissionCatalog.all());
+        providerDefinitions.values().stream()
+            .map(MissionDefinition::new)
+            .forEach(definitions::add);
+        return List.copyOf(definitions);
     }
 }

@@ -68,6 +68,7 @@ import kr.lunaf.cloudislands.api.event.RouteTicketConsumedGlobalEvent;
 import kr.lunaf.cloudislands.api.event.RouteTicketCreatedEvent;
 import kr.lunaf.cloudislands.api.event.RouteTicketFailedEvent;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 
 public interface CloudIslandsAddon {
     String PACKAGING_EXTERNAL_PLUGIN = "external-plugin";
@@ -91,6 +92,10 @@ public interface CloudIslandsAddon {
 
     default Map<String, String> addonMetadata() {
         return Map.of();
+    }
+
+    default List<MissionProviderDefinitionSnapshot> addonMissions() {
+        return List.of();
     }
 
     default String addonPackaging() {
@@ -212,6 +217,11 @@ public interface CloudIslandsAddon {
         metadata.put("addon-event-failure-policy", "addon-callback-exceptions-are-logged-and-isolated");
         metadata.put("addon-event-feature-gating-policy", "disabled-addon-features-do-not-receive-matching-runtime-events");
         metadata.put("addon-lifecycle-events", String.join(",", addonLifecycleEvents()));
+        List<MissionProviderDefinitionSnapshot> missions = addonMissions();
+        if (missions != null && !missions.isEmpty()) {
+            metadata.put("addon-mission-provider", "true");
+            metadata.put("addon-mission-keys", safeMissionKeys(missions));
+        }
         String descriptor = addonDescriptorResource();
         if (descriptor != null && !descriptor.isBlank()) {
             metadata.put("addon-descriptor-resource", descriptor);
@@ -231,6 +241,14 @@ public interface CloudIslandsAddon {
             .filter(value -> value != null && !value.isBlank())
             .reduce((left, right) -> left + "," + right)
             .orElse(fallback);
+    }
+
+    private static String safeMissionKeys(List<MissionProviderDefinitionSnapshot> missions) {
+        return missions.stream()
+            .map(MissionProviderDefinitionSnapshot::missionKey)
+            .filter(value -> value != null && !value.isBlank())
+            .reduce((left, right) -> left + "," + right)
+            .orElse("");
     }
 
     default void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {
@@ -553,7 +571,13 @@ public interface CloudIslandsAddon {
     }
 
     default CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsApi api) {
-        return api.addons().register(this);
+        return api.addons().register(this).thenCompose(snapshot -> {
+            List<MissionProviderDefinitionSnapshot> missions = addonMissions();
+            if (missions == null || missions.isEmpty()) {
+                return CompletableFuture.completedFuture(snapshot);
+            }
+            return api.commands().registerMissionProvider(snapshot.id(), missions).thenApply(_definitions -> snapshot);
+        });
     }
 
     default CompletableFuture<Void> unregister(CloudIslandsApi api) {

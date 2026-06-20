@@ -117,6 +117,7 @@ public interface CoreApiClient {
     }
     CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey, String kind);
     CompletableFuture<String> progressIslandMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);
+    CompletableFuture<String> registerMissionProvider(String providerId, String definitionsJson);
     CompletableFuture<String> listIslandLimits(UUID islandId);
     CompletableFuture<String> setIslandLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<String> sendIslandChat(UUID islandId, UUID actorUuid, String channel, String message);

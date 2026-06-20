@@ -78,7 +78,8 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V57__island_reviews.sql",
         "/db/migration/V58__island_warehouse.sql",
         "/db/migration/V59__temporary_trust_expiry.sql",
-        "/db/migration/V60__island_permission_overrides.sql"
+        "/db/migration/V60__island_permission_overrides.sql",
+        "/db/migration/V61__mission_provider_definitions.sql"
     };
 
     private enum Dialect {
