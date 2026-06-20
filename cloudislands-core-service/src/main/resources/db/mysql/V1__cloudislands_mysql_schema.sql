@@ -232,6 +232,22 @@ CREATE INDEX idx_island_warps_public_recent ON island_warps(public_access, creat
 CREATE INDEX idx_island_warps_public_category_recent ON island_warps(public_access, category, created_at DESC);
 CREATE INDEX idx_island_warps_public_island ON island_warps(island_id, public_access, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS island_reviews (
+    island_id CHAR(36) NOT NULL,
+    reviewer_uuid CHAR(36) NOT NULL,
+    rating INTEGER NOT NULL,
+    comment VARCHAR(280) NOT NULL DEFAULT '',
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (island_id, reviewer_uuid),
+    CONSTRAINT fk_island_reviews_island FOREIGN KEY (island_id) REFERENCES islands(id),
+    CONSTRAINT chk_island_reviews_rating_range CHECK (rating BETWEEN 1 AND 5),
+    CONSTRAINT chk_island_reviews_comment_trimmed CHECK (comment = trim(comment))
+);
+
+CREATE INDEX idx_island_reviews_recent ON island_reviews(island_id, updated_at DESC);
+CREATE INDEX idx_island_reviews_rating_recent ON island_reviews(island_id, rating DESC, updated_at DESC);
+
 CREATE TABLE IF NOT EXISTS island_biomes (
     island_id CHAR(36) PRIMARY KEY,
     biome_key VARCHAR(96) NOT NULL,

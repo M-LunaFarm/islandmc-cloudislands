@@ -341,6 +341,21 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public CompletableFuture<String> listIslandReviews(UUID islandId, int limit) {
+        return post("/v1/islands/reviews", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
+    }
+
+    @Override
+    public CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment) {
+        return postWithResultBody("/v1/islands/reviews/set", "{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"rating\":" + rating + ",\"comment\":\"" + escape(comment) + "\"}");
+    }
+
+    @Override
+    public CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid) {
+        return postWithResultBody("/v1/islands/reviews/delete", "{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\"}");
+    }
+
+    @Override
     public CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
         return setIslandWarpResult(islandId, actorUuid, name, location, publicAccess).thenApply(_body -> null);
     }

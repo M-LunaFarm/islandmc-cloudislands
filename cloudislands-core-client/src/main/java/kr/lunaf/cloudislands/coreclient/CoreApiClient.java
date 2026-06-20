@@ -78,6 +78,9 @@ public interface CoreApiClient {
     CompletableFuture<String> listIslandWarps(UUID islandId);
     CompletableFuture<String> listPublicWarps(int limit);
     CompletableFuture<String> listPublicWarps(int limit, String category, String query);
+    CompletableFuture<String> listIslandReviews(UUID islandId, int limit);
+    CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
+    CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
     CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category);

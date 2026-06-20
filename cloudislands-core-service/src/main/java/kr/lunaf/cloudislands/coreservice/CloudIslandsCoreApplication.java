@@ -50,6 +50,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.IslandCommunicationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandMemberRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandPlayerLifecycleRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandQueryRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.IslandReviewRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSettingsRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandSnapshotRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandUpgradeRoutes;
@@ -114,6 +115,9 @@ import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandMetadataRepository
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.redis.RedisStreamWriterAdapter;
+import kr.lunaf.cloudislands.coreservice.review.InMemoryIslandReviewRepository;
+import kr.lunaf.cloudislands.coreservice.review.IslandReviewRepository;
+import kr.lunaf.cloudislands.coreservice.review.JdbcIslandReviewRepository;
 import kr.lunaf.cloudislands.coreservice.role.CachingIslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.role.InMemoryIslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
@@ -277,6 +281,7 @@ public final class CloudIslandsCoreApplication {
             ? new CachingIslandTemplateRepository(baseTemplateRepository, config.redisUri())
             : baseTemplateRepository;
         AddonStateRepository addonStates = config.jdbcRepositories() ? new JdbcAddonStateRepository(dataSource) : new InMemoryAddonStateRepository();
+        IslandReviewRepository reviewRepository = config.jdbcRepositories() ? new JdbcIslandReviewRepository(dataSource) : new InMemoryIslandReviewRepository();
         AuditLogger baseAudit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         AuditLogger audit = redisEventWriter == null ? baseAudit : new RedisAuditLogger(baseAudit, redisEventWriter, RedisKeys.auditStream());
         routeRegistrar.setAudit(audit);
@@ -365,6 +370,7 @@ public final class CloudIslandsCoreApplication {
         new IslandVisitorRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
         new IslandSettingsRoutes(islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
         new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
+        new IslandReviewRoutes(reviewRepository, islandRepository, islandLogs, audit, events).register(routeRegistrar::route);
         new IslandCatalogRoutes(islandRepository, metadataRepository, createIsland, islandLogs, audit).register(routeRegistrar::route);
         this.islandDeleteService = new CoreIslandDeleteService(deleteStorage, islandRepository, playerProfiles, runtimeRepository, jobs, events, snapshotRepository, snapshotRetentionPolicy);
         new IslandPlayerLifecycleRoutes(islandRepository, metadataRepository, permissionRules, lifecycle, islandDeleteService::requestIslandDelete, islandLogs, audit, events).register(routeRegistrar::route);
