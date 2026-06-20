@@ -211,6 +211,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
     private final IslandVisitReviewCommandHandler visitReviewCommands;
     private final IslandLifecycleCommandHandler lifecycleCommands;
     private final IslandOverviewCommandHandler overviewCommands;
+    private final IslandMembershipCommandHandler membershipCommands;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final String configuredNodeId;
@@ -736,6 +737,212 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
                 return IslandCommandBackend.this.messagesFor(player);
             }
         });
+        this.membershipCommands = new IslandMembershipCommandHandler(plugin, coreApiClient, new IslandMembershipCommandHandler.Runtime() {
+            @Override
+            public void message(Player player, String message) {
+                IslandCommandBackend.this.message(player, message);
+            }
+
+            @Override
+            public String routeMessage(String key, String fallback) {
+                return IslandCommandBackend.this.routeMessage(key, fallback);
+            }
+
+            @Override
+            public MessageRenderer messagesFor(Player player) {
+                return IslandCommandBackend.this.messagesFor(player);
+            }
+
+            @Override
+            public String joined(String[] args, int start) {
+                return IslandCommandBackend.this.joined(args, start);
+            }
+
+            @Override
+            public int integer(String value, int fallback) {
+                return IslandCommandBackend.this.integer(value, fallback);
+            }
+
+            @Override
+            public long longValue(String value, long fallback) {
+                return IslandCommandBackend.this.longValue(value, fallback);
+            }
+
+            @Override
+            public String roleKey(String value) {
+                return IslandCommandBackend.this.roleKey(value);
+            }
+
+            @Override
+            public boolean editableRoleKey(String roleKey) {
+                return IslandCommandBackend.this.editableRoleKey(roleKey);
+            }
+
+            @Override
+            public int defaultRoleWeight(String roleKey) {
+                return IslandCommandBackend.this.defaultRoleWeight(roleKey);
+            }
+
+            @Override
+            public void listIslandMembers(Player player) {
+                IslandCommandBackend.this.listIslandMembers(player);
+            }
+
+            @Override
+            public void openIslandMemberMenu(Player player) {
+                IslandCommandBackend.this.openIslandMemberMenu(player);
+            }
+
+            @Override
+            public void openIslandMemberMenu(Player player, int page) {
+                IslandCommandBackend.this.openIslandMemberMenu(player, page);
+            }
+
+            @Override
+            public void inviteIslandMember(Player player, String target) {
+                IslandCommandBackend.this.inviteIslandMember(player, target);
+            }
+
+            @Override
+            public void listPendingInvites(Player player) {
+                IslandCommandBackend.this.listPendingInvites(player);
+            }
+
+            @Override
+            public void acceptIslandInviteTarget(Player player, String target) {
+                IslandCommandBackend.this.acceptIslandInviteTarget(player, target);
+            }
+
+            @Override
+            public void declineIslandInviteTarget(Player player, String target) {
+                IslandCommandBackend.this.declineIslandInviteTarget(player, target);
+            }
+
+            @Override
+            public void removeIslandMember(Player player, String target) {
+                IslandCommandBackend.this.removeIslandMember(player, target);
+            }
+
+            @Override
+            public void setIslandMemberRole(Player player, String target, IslandRole role, String successMessage) {
+                IslandCommandBackend.this.setIslandMemberRole(player, target, role, successMessage);
+            }
+
+            @Override
+            public void setIslandMemberRole(Player player, String target, String roleKey, String successMessage) {
+                IslandCommandBackend.this.setIslandMemberRole(player, target, roleKey, successMessage);
+            }
+
+            @Override
+            public void trustIslandMemberTemporary(Player player, String target, String duration) {
+                IslandCommandBackend.this.trustIslandMemberTemporary(player, target, duration);
+            }
+
+            @Override
+            public void transferIslandOwnership(Player player, String target) {
+                IslandCommandBackend.this.transferIslandOwnership(player, target);
+            }
+
+            @Override
+            public void banIslandVisitor(Player player, String target, String reason) {
+                IslandCommandBackend.this.banIslandVisitor(player, target, reason);
+            }
+
+            @Override
+            public void pardonIslandVisitor(Player player, String target) {
+                IslandCommandBackend.this.pardonIslandVisitor(player, target);
+            }
+
+            @Override
+            public void kickIslandVisitor(Player player, String target) {
+                IslandCommandBackend.this.kickIslandVisitor(player, target);
+            }
+
+            @Override
+            public void openIslandBanMenu(Player player) {
+                IslandCommandBackend.this.openIslandBanMenu(player);
+            }
+
+            @Override
+            public void listIslandBans(Player player) {
+                IslandCommandBackend.this.listIslandBans(player);
+            }
+
+            @Override
+            public void listIslandPermissions(Player player) {
+                IslandCommandBackend.this.listIslandPermissions(player);
+            }
+
+            @Override
+            public void openIslandPermissionMenu(Player player) {
+                IslandCommandBackend.this.openIslandPermissionMenu(player);
+            }
+
+            @Override
+            public void openIslandPermissionMenu(Player player, int page, int rolePage) {
+                IslandCommandBackend.this.openIslandPermissionMenu(player, page, rolePage);
+            }
+
+            @Override
+            public void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
+                IslandCommandBackend.this.stageIslandPermission(player, roleName, permissionName, allowedValue);
+            }
+
+            @Override
+            public void resetStagedIslandPermissions(Player player) {
+                IslandCommandBackend.this.resetStagedIslandPermissions(player);
+            }
+
+            @Override
+            public void saveStagedIslandPermissions(Player player) {
+                IslandCommandBackend.this.saveStagedIslandPermissions(player);
+            }
+
+            @Override
+            public void setIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
+                IslandCommandBackend.this.setIslandPermission(player, roleName, permissionName, allowedValue);
+            }
+
+            @Override
+            public void setIslandPermissionOverride(Player player, String target, String permissionName, String allowedValue) {
+                IslandCommandBackend.this.setIslandPermissionOverride(player, target, permissionName, allowedValue);
+            }
+
+            @Override
+            public void openIslandRoleMenu(Player player) {
+                IslandCommandBackend.this.openIslandRoleMenu(player);
+            }
+
+            @Override
+            public void listIslandRoles(Player player) {
+                IslandCommandBackend.this.listIslandRoles(player);
+            }
+
+            @Override
+            public void upsertIslandRole(Player player, String roleKey, int weight, String displayName) {
+                IslandCommandBackend.this.upsertIslandRole(player, roleKey, weight, displayName);
+            }
+
+            @Override
+            public void resetIslandRole(Player player, String roleKey) {
+                IslandCommandBackend.this.resetIslandRole(player, roleKey);
+            }
+
+            @Override
+            public void adjustIslandRoleWeight(Player player, String roleName, String weightValue, String displayName, GuiClick click) {
+                IslandCommandBackend.this.adjustIslandRoleWeight(player, roleName, weightValue, displayName, click);
+            }
+
+            @Override
+            public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
+                IslandCommandBackend.this.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
+            }
+
+            @Override
+            public boolean confirmationAccepted(Player player, String actionId, Map<String, String> data, GuiClick click) {
+                return IslandCommandBackend.this.confirmationAccepted(player, actionId, data, click);
+            }
+        });
         this.messages = messages;
         this.locales = locales;
         this.configuredNodeId = configuredNodeId == null || configuredNodeId.isBlank() ? "island-1" : configuredNodeId;
@@ -804,207 +1011,7 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (snapshotCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
-        if (subcommand.equals("members") || subcommand.equals("member-menu") || subcommand.equals("멤버") || subcommand.equals("멤버관리")) {
-            openIslandMemberMenu(player);
-            return true;
-        }
-        if (subcommand.equals("member-list") || subcommand.equals("멤버목록")) {
-            listIslandMembers(player);
-            return true;
-        }
-        if (subcommand.equals("invite") || subcommand.equals("초대")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-invite-player-required", "초대할 플레이어를 입력해주세요."));
-                return true;
-            }
-            inviteIslandMember(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("invites") || subcommand.equals("invite-menu") || subcommand.equals("초대목록")) {
-            IslandInviteMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            return true;
-        }
-        if (subcommand.equals("invite-list")) {
-            listPendingInvites(player);
-            return true;
-        }
-        if (subcommand.equals("accept") || subcommand.equals("invite-accept") || subcommand.equals("초대수락")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-invite-accept-target-required", "수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
-                return true;
-            }
-            acceptIslandInviteTarget(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("decline") || subcommand.equals("invite-decline") || subcommand.equals("초대거절")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-invite-decline-target-required", "거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
-                return true;
-            }
-            declineIslandInviteTarget(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("kick") || subcommand.equals("remove-member") || subcommand.equals("추방")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-remove-player-required", "추방할 플레이어를 입력해주세요."));
-                return true;
-            }
-            removeIslandMember(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("trust") || subcommand.equals("신뢰")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-trust-player-required", "신뢰할 플레이어를 입력해주세요."));
-                return true;
-            }
-            if (args.length > 2) {
-                trustIslandMemberTemporary(player, args[1], args[2]);
-            } else {
-                setIslandMemberRole(player, args[1], IslandRole.TRUSTED, "섬 신뢰 멤버로 설정했습니다.");
-            }
-            return true;
-        }
-        if (subcommand.equals("untrust") || subcommand.equals("신뢰해제")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-untrust-player-required", "신뢰 해제할 플레이어를 입력해주세요."));
-                return true;
-            }
-            setIslandMemberRole(player, args[1], IslandRole.MEMBER, "섬 신뢰를 해제했습니다.");
-            return true;
-        }
-        if (subcommand.equals("promote") || subcommand.equals("승급")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-promote-player-required", "승급할 플레이어를 입력해주세요."));
-                return true;
-            }
-            setIslandMemberRole(player, args[1], IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
-            return true;
-        }
-        if (subcommand.equals("demote") || subcommand.equals("강등")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-demote-player-required", "강등할 플레이어를 입력해주세요."));
-                return true;
-            }
-            setIslandMemberRole(player, args[1], IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
-            return true;
-        }
-        if (subcommand.equals("setrole") || subcommand.equals("role-set") || subcommand.equals("역할설정")) {
-            if (args.length < 3) {
-                message(player, routeMessage("input-member-role-required", "역할을 바꿀 플레이어와 역할을 입력해주세요."));
-                return true;
-            }
-            String roleKey = roleKey(args[2]);
-            if (!editableRoleKey(roleKey)) {
-                message(player, routeMessage("input-member-role-invalid", "올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, BUILDER"));
-                return true;
-            }
-            setIslandMemberRole(player, args[1], roleKey, "섬 멤버 역할을 " + roleKey + "(으)로 변경했습니다.");
-            return true;
-        }
-        if (subcommand.equals("roles") || subcommand.equals("role-menu") || subcommand.equals("역할")) {
-            openIslandRoleMenu(player);
-            return true;
-        }
-        if (subcommand.equals("role-list") || subcommand.equals("역할목록")) {
-            listIslandRoles(player);
-            return true;
-        }
-        if (subcommand.equals("role-upsert") || subcommand.equals("role-edit") || subcommand.equals("역할편집")) {
-            if (args.length < 4) {
-                message(player, routeMessage("input-role-edit-required", "역할, 가중치, 표시 이름을 입력해주세요."));
-                return true;
-            }
-            String roleKey = roleKey(args[1]);
-            if (!editableRoleKey(roleKey)) {
-                message(player, routeMessage("input-role-edit-invalid", "편집 가능한 멤버 역할을 입력해주세요. 예: BUILDER"));
-                return true;
-            }
-            upsertIslandRole(player, roleKey, integer(args[2], defaultRoleWeight(roleKey)), joined(args, 3));
-            return true;
-        }
-        if (subcommand.equals("role-reset") || subcommand.equals("역할초기화")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-role-reset-required", "초기화할 역할을 입력해주세요."));
-                return true;
-            }
-            String roleKey = roleKey(args[1]);
-            if (!editableRoleKey(roleKey)) {
-                message(player, routeMessage("input-role-reset-invalid", "초기화 가능한 멤버 역할을 입력해주세요. 예: BUILDER"));
-                return true;
-            }
-            resetIslandRole(player, roleKey);
-            return true;
-        }
-        if (subcommand.equals("transfer") || subcommand.equals("양도")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-transfer-player-required", "양도할 플레이어를 입력해주세요."));
-                return true;
-            }
-            transferIslandOwnership(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("ban") || subcommand.equals("밴")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-ban-player-required", "밴할 플레이어를 입력해주세요."));
-                return true;
-            }
-            banIslandVisitor(player, args[1], args.length > 2 ? joined(args, 2) : "");
-            return true;
-        }
-        if (subcommand.equals("unban") || subcommand.equals("pardon") || subcommand.equals("밴해제")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-pardon-player-required", "밴 해제할 플레이어를 입력해주세요."));
-                return true;
-            }
-            pardonIslandVisitor(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("kickvisitor") || subcommand.equals("방문자추방")) {
-            if (args.length < 2) {
-                message(player, routeMessage("input-kick-visitor-required", "추방할 방문자를 입력해주세요."));
-                return true;
-            }
-            kickIslandVisitor(player, args[1]);
-            return true;
-        }
-        if (subcommand.equals("bans") || subcommand.equals("ban-menu") || subcommand.equals("banlist") || subcommand.equals("밴목록")) {
-            openIslandBanMenu(player);
-            return true;
-        }
-        if (subcommand.equals("ban-list")) {
-            listIslandBans(player);
-            return true;
-        }
-        if (subcommand.equals("permissions") || subcommand.equals("permission-menu") || subcommand.equals("permission") || subcommand.equals("perms") || subcommand.equals("권한")) {
-            if (args.length > 3) {
-                setIslandPermission(player, args[1], args[2], args[3]);
-            } else {
-                openIslandPermissionMenu(player);
-            }
-            return true;
-        }
-        if (subcommand.equals("permission-list") || subcommand.equals("권한목록")) {
-            listIslandPermissions(player);
-            return true;
-        }
-        if (subcommand.equals("permission-exception-list") || subcommand.equals("권한예외목록")) {
-            listIslandPermissions(player);
-            return true;
-        }
-        if (subcommand.equals("permission-exception") || subcommand.equals("권한예외")) {
-            if (args.length < 4) {
-                message(player, "플레이어, 권한, 허용 여부를 입력해주세요. 예: /섬 권한예외 Steve BUILD 허용");
-                return true;
-            }
-            setIslandPermissionOverride(player, args[1], args[2], args[3]);
-            return true;
-        }
-        if (subcommand.equals("setpermission") || subcommand.equals("permission-set") || subcommand.equals("권한설정")) {
-            if (args.length < 4) {
-                message(player, routeMessage("input-permission-set-required", "역할, 권한, 허용 여부를 입력해주세요."));
-                return true;
-            }
-            setIslandPermission(player, args[1], args[2], args[3]);
+        if (membershipCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         sendCommandList(player, label, "섬 명령어 목록", HELP_COMMANDS, 1);
@@ -1045,90 +1052,11 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         if (overviewCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
             return;
         }
+        if (membershipCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
+            return;
+        }
         switch (actionId) {
             case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", HELP_COMMANDS, 1);
-            case "island.members.open" -> openIslandMemberMenu(player);
-            case "island.member.detail" -> {
-                message(player, routeMessage("member-detail-title", "멤버 상세"));
-                message(player, "- " + routeMessage("member-detail-player", "플레이어: ") + data.getOrDefault("playerName", data.getOrDefault("playerUuid", "")));
-                message(player, "- " + routeMessage("member-detail-role", "역할: ") + data.getOrDefault("role", "unknown"));
-                message(player, "- " + routeMessage("member-detail-presence", "네트워크 상태: ") + data.getOrDefault("presenceState", "UNKNOWN"));
-                message(player, "- " + routeMessage("member-detail-last-seen", "마지막 활동: ") + data.getOrDefault("lastSeenAt", routeMessage("member-detail-last-seen-empty", "기록 없음")));
-            }
-            case "island.member.role" -> listIslandMembers(player);
-            case "island.members.page" -> openIslandMemberMenu(player, (int) longValue(data.getOrDefault("page", "0"), 0L));
-            case "island.member.invite", "island.member.invite.help" -> message(player, routeMessage("member-invite-help", "멤버 초대는 /섬 초대 <플레이어> 로 요청합니다."));
-            case "island.member.list" -> listIslandMembers(player);
-            case "island.member.promote.prepare" -> openConfirmation(player,
-                routeMessage("member-promote-confirm-title", "멤버 승급 확인"),
-                routeMessage("member-promote-confirm-description", "선택한 플레이어를 MODERATOR 역할로 변경합니다."),
-                Material.EMERALD,
-                routeMessage("member-promote-confirm-name", "승급 확인"),
-                "island.member.promote",
-                Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
-                routeMessage("member-promote-confirm-lore", "클릭하면 Core에 역할 변경을 요청합니다."),
-                "island.members.open");
-            case "island.member.promote" -> {
-                if (confirmationAccepted(player, "island.member.promote", data, click)) {
-                    setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
-                }
-            }
-            case "island.member.demote.prepare" -> openConfirmation(player,
-                routeMessage("member-demote-confirm-title", "멤버 강등 확인"),
-                routeMessage("member-demote-confirm-description", "선택한 플레이어를 MEMBER 역할로 변경합니다."),
-                Material.IRON_INGOT,
-                routeMessage("member-demote-confirm-name", "강등 확인"),
-                "island.member.demote",
-                Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
-                routeMessage("member-demote-confirm-lore", "클릭하면 Core에 역할 변경을 요청합니다."),
-                "island.members.open");
-            case "island.member.demote" -> {
-                if (confirmationAccepted(player, "island.member.demote", data, click)) {
-                    setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
-                }
-            }
-            case "island.member.remove.prepare" -> openConfirmation(player,
-                routeMessage("member-remove-confirm-title", "멤버 추방 확인"),
-                routeMessage("member-remove-confirm-description", "선택한 플레이어를 섬 멤버에서 제거합니다."),
-                Material.BARRIER,
-                routeMessage("member-remove-confirm-name", "멤버 추방"),
-                "island.member.remove.confirm",
-                Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
-                routeMessage("member-remove-confirm-lore", "클릭하면 Core에 멤버 추방을 요청합니다."),
-                "island.members.open");
-            case "island.member.remove.confirm" -> {
-                if (confirmationAccepted(player, "island.member.remove.confirm", data, click)) {
-                    removeIslandMember(player, data.getOrDefault("playerUuid", ""));
-                }
-            }
-            case "island.invites.open" -> IslandInviteMenu.open(plugin, coreApiClient, player, messagesFor(player));
-            case "island.invite.accept" -> acceptIslandInviteTarget(player, data.getOrDefault("inviteId", ""));
-            case "island.invite.decline" -> declineIslandInviteTarget(player, data.getOrDefault("inviteId", ""));
-            case "island.bans.open" -> openIslandBanMenu(player);
-            case "island.bans.list" -> listIslandBans(player);
-            case "island.ban.pardon.prepare" -> openConfirmation(player,
-                routeMessage("ban-pardon-confirm-title", "밴 해제 확인"),
-                routeMessage("ban-pardon-confirm-description", "선택한 방문자의 밴을 해제합니다."),
-                Material.MILK_BUCKET,
-                routeMessage("ban-pardon-confirm-name", "밴 해제"),
-                "island.ban.pardon.confirm",
-                Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
-                routeMessage("ban-pardon-confirm-lore", "클릭하면 Core에 밴 해제를 요청합니다."),
-                "island.bans.open");
-            case "island.ban.pardon.confirm" -> {
-                if (confirmationAccepted(player, "island.ban.pardon.confirm", data, click)) {
-                    pardonIslandVisitor(player, data.getOrDefault("playerUuid", ""));
-                }
-            }
-            case "island.permissions.open" -> openIslandPermissionMenu(player);
-            case "island.permissions.page" -> openIslandPermissionMenu(player, (int) longValue(data.getOrDefault("page", "0"), 0L), (int) longValue(data.getOrDefault("rolePage", "0"), 0L));
-            case "island.permissions.list" -> listIslandPermissions(player);
-            case "island.permissions.save" -> saveStagedIslandPermissions(player);
-            case "island.permissions.reset" -> resetStagedIslandPermissions(player);
-            case "island.permissions.set" -> stageIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true");
-            case "island.roles.open" -> openIslandRoleMenu(player);
-            case "island.role.weight.adjust" -> adjustIslandRoleWeight(player, data.getOrDefault("role", ""), data.getOrDefault("weight", "0"), data.getOrDefault("displayName", ""), click);
-            case "island.roles.list" -> listIslandRoles(player);
             case "admin.node.open" -> openAdminNodeMenu(player, adminNodeId(data));
             case "admin.node.list" -> listAdminNodes(player);
             case "admin.node.info" -> refreshAdminNodeInfo(player, adminNodeId(data));

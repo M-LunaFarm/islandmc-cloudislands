@@ -482,7 +482,7 @@ class PaperPlatformBoundaryTest {
     void permissionMenuCoversFullApiPermissionEnum() throws Exception {
         Path root = repositoryRoot();
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
-        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String membershipHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
 
         assertTrue(menu.contains("IslandPermission.values()"), "Permission GUI must render from the API permission enum");
         assertTrue(menu.contains("PaperGuiViews.islandRoles"), "Permission GUI must render roles from the Core role catalog");
@@ -491,20 +491,20 @@ class PaperPlatformBoundaryTest {
         assertTrue(menu.contains("PERMISSIONS_PER_PAGE"), "Permission GUI must paginate the full permission matrix");
         assertTrue(!menu.contains("List.of(\"BUILD\", \"BREAK\", \"INTERACT\""), "Permission GUI must not hard-code the legacy 8-permission subset");
         assertTrue(!menu.contains("private static final List<String> ROLES"), "Permission GUI must not hard-code a fixed role matrix");
-        assertTrue(backend.contains("case \"island.permissions.page\""), "Permission GUI page action must be registered");
-        assertTrue(backend.contains("data.getOrDefault(\"rolePage\""), "Permission GUI page action must route role page state");
+        assertTrue(membershipHandler.contains("case \"island.permissions.page\""), "Permission GUI page action must be registered");
+        assertTrue(membershipHandler.contains("data.getOrDefault(\"rolePage\""), "Permission GUI page action must route role page state");
     }
 
     @Test
     void memberMenuPaginatesBeyondFirstInventoryPage() throws Exception {
         Path root = repositoryRoot();
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMemberMenu.java"));
-        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String membershipHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
 
         assertTrue(menu.contains("MEMBERS_PER_PAGE"), "Member GUI must declare a page size");
         assertTrue(menu.contains(".skip((long) safePage * MEMBERS_PER_PAGE)"), "Member GUI must page through members instead of truncating to the first 45");
         assertTrue(menu.contains("\"island.members.page\""), "Member GUI must expose page navigation actions");
-        assertTrue(backend.contains("case \"island.members.page\""), "Member GUI page action must be registered");
+        assertTrue(membershipHandler.contains("case \"island.members.page\""), "Member GUI page action must be registered");
     }
 
     @Test
@@ -586,30 +586,35 @@ class PaperPlatformBoundaryTest {
     void permissionGuiStagesChangesBeforeSaving() throws Exception {
         Path root = repositoryRoot();
         String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String membershipHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
 
-        assertTrue(backend.contains("case \"island.permissions.set\" -> stageIslandPermission"), "Permission cells must stage edits instead of immediately writing Core state");
-        assertTrue(backend.contains("case \"island.permissions.save\" -> saveStagedIslandPermissions"), "Permission save must be the only GUI save action");
+        assertTrue(membershipHandler.contains("case \"island.permissions.set\""), "Permission cells must stage edits instead of immediately writing Core state");
+        assertTrue(membershipHandler.contains("runtime.stageIslandPermission"), "Permission cells must stage edits instead of immediately writing Core state");
+        assertTrue(membershipHandler.contains("case \"island.permissions.save\""), "Permission save must be the only GUI save action");
+        assertTrue(membershipHandler.contains("runtime.saveStagedIslandPermissions"), "Permission save must be the only GUI save action");
         assertTrue(backend.contains("stagedPermissionChanges"), "Permission edits must have a dirty session store");
         assertTrue(backend.contains("GuiStateMenus.openSaving"), "Permission save must show a Saving state");
         assertTrue(backend.contains("GuiStateMenus.openSuccess"), "Permission save must show a Success state");
         assertTrue(backend.contains("GuiStateMenus.openConflict"), "Permission save failures must show Conflict/Error recovery state");
         assertTrue(menu.contains("\"island.permissions.save\""), "Permission menu must expose an explicit save button");
         assertTrue(menu.contains("\"island.permissions.reset\""), "Permission menu must expose a reset/cancel button");
-        assertTrue(!backend.contains("case \"island.permissions.set\" -> setIslandPermission"), "Permission cell clicks must not call the immediate mutation path");
+        assertTrue(!membershipHandler.contains("case \"island.permissions.set\" -> setIslandPermission"), "Permission cell clicks must not call the immediate mutation path");
     }
 
     @Test
     void roleMenuUsesRegisteredActionsInsteadOfCommandHints() throws Exception {
         Path root = repositoryRoot();
         String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String membershipHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandRoleMenu.java"));
         String translations = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/message/TranslationManager.java"));
 
         assertTrue(menu.contains("\"island.role.weight.adjust\""), "Role GUI must expose a direct role edit action");
         assertTrue(menu.contains("GuiItems.action(Material.PAPER"), "Role list control must use PDC action metadata");
         assertTrue(menu.contains("GuiItems.action(Material.COMPARATOR"), "Role permission control must use PDC action metadata");
-        assertTrue(backend.contains("case \"island.role.weight.adjust\" -> adjustIslandRoleWeight"), "Role edit action must be registered");
+        assertTrue(membershipHandler.contains("case \"island.role.weight.adjust\""), "Role edit action must be registered");
+        assertTrue(membershipHandler.contains("runtime.adjustIslandRoleWeight"), "Role edit action must route to the role weight adjuster");
         assertTrue(backend.contains("upsertIslandRole(player, roleKey, updatedWeight, displayName)"), "Role edit action must call the Core role mutation with dynamic role keys");
         assertTrue(backend.contains("resetIslandRole(player, roleKey)"), "Role edit action must support reset through the Core role mutation");
         assertTrue(!menu.contains("역할편집"), "Role GUI must not print command syntax as its edit path");
@@ -664,7 +669,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(commandActions.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
         assertTrue(commandActions.contains("DangerousGuiActionPolicy.confirmed"), "Dangerous GUI mutations must verify a confirmation token");
         assertTrue(commandBackend.contains("ConfirmationTokenPolicy.withToken"), "General confirmation menus must attach confirmation tokens");
-        assertTrue(commandBackend.contains("confirmationAccepted(player, \"island.member.remove.confirm\""), "Member removal must verify a confirmation token");
+        assertTrue(commandActions.contains("confirmationAccepted(player, \"island.member.remove.confirm\""), "Member removal must verify a confirmation token");
         assertTrue(commandActions.contains("confirmationAccepted(player, \"island.snapshot.restore.confirm\""), "Snapshot restore must verify a confirmation token");
         assertTrue(commandActions.contains("mutateIdempotent(\"island.bank.withdraw\""), "Bank withdraw must use an idempotency key");
         assertTrue(commandActions.contains("CoreMutationMetadata.request"), "Paper mutations must carry request IDs and audit actions");

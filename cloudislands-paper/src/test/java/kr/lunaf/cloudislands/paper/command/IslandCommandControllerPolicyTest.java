@@ -229,4 +229,21 @@ class IslandCommandControllerPolicyTest {
         assertTrue(overviewHandler.contains("IslandInfoMenu.open"));
         assertTrue(overviewHandler.contains("IslandMyIslandsMenu.open"));
     }
+
+    @Test
+    void membershipCommandsRouteOutsideCommandBackend() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String membershipHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
+
+        assertTrue(backend.contains("private final IslandMembershipCommandHandler membershipCommands;"));
+        assertTrue(backend.contains("membershipCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(backend.contains("membershipCommands.handleGuiAction(player, actionId"));
+        assertFalse(backend.contains("subcommand.equals(\"members\")"), "membership command routing belongs in IslandMembershipCommandHandler");
+        assertFalse(backend.contains("case \"island.members.open\""), "membership GUI routing belongs in IslandMembershipCommandHandler");
+        assertFalse(backend.contains("case \"island.permissions.open\""), "permission GUI routing belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(membershipHandler.contains("boolean handleGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click)"));
+        assertTrue(membershipHandler.contains("subcommand.equals(\"members\")"));
+        assertTrue(membershipHandler.contains("case \"island.permissions.open\""));
+    }
 }
