@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -175,12 +176,17 @@ class ConfigV2ValidatorTest {
     }
 
     private static Set<String> registeredGuiActions(Path root) {
-        Path backend = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java");
+        List<Path> sources = List.of(
+            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"),
+            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java")
+        );
         Pattern pattern = Pattern.compile("\"(island\\.[a-z0-9.-]+|admin\\.[a-z0-9.-]+)\"");
         Set<String> actions = new TreeSet<>();
-        Matcher matcher = pattern.matcher(read(backend));
-        while (matcher.find()) {
-            actions.add(matcher.group(1));
+        for (Path source : sources) {
+            Matcher matcher = pattern.matcher(read(source));
+            while (matcher.find()) {
+                actions.add(matcher.group(1));
+            }
         }
         return actions;
     }
