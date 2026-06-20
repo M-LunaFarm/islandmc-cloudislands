@@ -36,6 +36,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
@@ -66,6 +67,7 @@ import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -1052,7 +1054,16 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                     teleportWarp(player, warpName);
                 }
             }
-            case "island.warp.delete" -> deleteWarp(player, data.getOrDefault("warpName", "default"));
+            case "island.warp.delete.prepare" -> openConfirmation(player,
+                routeMessage("warp-delete-confirm-title", "워프 삭제 확인"),
+                routeMessage("warp-delete-confirm-description", "워프를 삭제하면 해당 이름으로 이동할 수 없습니다."),
+                Material.ENDER_PEARL,
+                routeMessage("warp-delete-confirm-name", "워프 삭제"),
+                "island.warp.delete.confirm",
+                Map.of("warpName", data.getOrDefault("warpName", "default")),
+                routeMessage("warp-delete-confirm-lore", "클릭하면 Core에 워프 삭제를 요청합니다."),
+                "island.warps.open");
+            case "island.warp.delete.confirm" -> deleteWarp(player, data.getOrDefault("warpName", "default"));
             case "island.warp.public" -> setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), true);
             case "island.warp.private" -> setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), false);
             case "island.warp.public.toggle" -> setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), !Boolean.parseBoolean(data.getOrDefault("publicAccess", "false")));
@@ -1064,13 +1075,31 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.member.list" -> listIslandMembers(player);
             case "island.member.promote" -> setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
             case "island.member.demote" -> setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
-            case "island.member.remove.prepare" -> message(player, routeMessage("member-remove-confirm-required", "멤버 추방은 상세 확인 화면에서 다시 확인해야 합니다."));
+            case "island.member.remove.prepare" -> openConfirmation(player,
+                routeMessage("member-remove-confirm-title", "멤버 추방 확인"),
+                routeMessage("member-remove-confirm-description", "선택한 플레이어를 섬 멤버에서 제거합니다."),
+                Material.BARRIER,
+                routeMessage("member-remove-confirm-name", "멤버 추방"),
+                "island.member.remove.confirm",
+                Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
+                routeMessage("member-remove-confirm-lore", "클릭하면 Core에 멤버 추방을 요청합니다."),
+                "island.members.open");
+            case "island.member.remove.confirm" -> removeIslandMember(player, data.getOrDefault("playerUuid", ""));
             case "island.invites.open" -> IslandInviteMenu.open(plugin, coreApiClient, player, messages);
             case "island.invite.accept" -> acceptIslandInviteTarget(player, data.getOrDefault("inviteId", ""));
             case "island.invite.decline" -> declineIslandInviteTarget(player, data.getOrDefault("inviteId", ""));
             case "island.bans.open" -> openIslandBanMenu(player);
             case "island.bans.list" -> listIslandBans(player);
-            case "island.ban.pardon" -> pardonIslandVisitor(player, data.getOrDefault("playerUuid", ""));
+            case "island.ban.pardon.prepare" -> openConfirmation(player,
+                routeMessage("ban-pardon-confirm-title", "밴 해제 확인"),
+                routeMessage("ban-pardon-confirm-description", "선택한 방문자의 밴을 해제합니다."),
+                Material.MILK_BUCKET,
+                routeMessage("ban-pardon-confirm-name", "밴 해제"),
+                "island.ban.pardon.confirm",
+                Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
+                routeMessage("ban-pardon-confirm-lore", "클릭하면 Core에 밴 해제를 요청합니다."),
+                "island.bans.open");
+            case "island.ban.pardon.confirm" -> pardonIslandVisitor(player, data.getOrDefault("playerUuid", ""));
             case "island.permissions.open" -> openIslandPermissionMenu(player);
             case "island.permissions.list" -> listIslandPermissions(player);
             case "island.permissions.set" -> setIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true");
@@ -1104,7 +1133,16 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.snapshots.open" -> openIslandSnapshotMenu(player);
             case "island.snapshots.list" -> listIslandSnapshots(player, 10);
             case "island.snapshot.create" -> requestIslandSnapshot(player, data.getOrDefault("reason", "manual"));
-            case "island.snapshot.restore" -> restoreIslandSnapshot(player, longValue(data.getOrDefault("snapshotNo", "0"), 0L));
+            case "island.snapshot.restore.prepare" -> openConfirmation(player,
+                routeMessage("snapshot-restore-confirm-title", "스냅샷 복원 확인"),
+                routeMessage("snapshot-restore-confirm-description", "현재 월드 상태를 선택한 스냅샷으로 복원합니다."),
+                Material.CHEST,
+                routeMessage("snapshot-restore-confirm-name", "스냅샷 복원"),
+                "island.snapshot.restore.confirm",
+                Map.of("snapshotNo", data.getOrDefault("snapshotNo", "0")),
+                routeMessage("snapshot-restore-confirm-lore", "클릭하면 Core에 스냅샷 복원을 요청합니다."),
+                "island.snapshots.open");
+            case "island.snapshot.restore.confirm" -> restoreIslandSnapshot(player, longValue(data.getOrDefault("snapshotNo", "0"), 0L));
             case "island.upgrades.open" -> openIslandUpgradeMenu(player);
             case "island.upgrades.list" -> listIslandUpgrades(player);
             case "island.upgrade.purchase" -> purchaseIslandUpgrade(player, data.getOrDefault("upgradeKey", ""));
@@ -1117,6 +1155,19 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "gui.close" -> player.closeInventory();
             default -> message(player, routeMessage("gui-action-unknown", "알 수 없는 GUI 작업입니다: ") + actionId);
         }
+    }
+
+    private void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
+        IslandConfirmationMenu.open(player, messages, IslandConfirmationMenu.Confirmation.of(
+            title,
+            description,
+            material,
+            confirmName,
+            confirmAction,
+            data,
+            confirmLore,
+            cancelAction
+        ));
     }
 
     private void sendCommandList(Player player, String title, List<String> commands, int page) {

@@ -72,7 +72,7 @@ public final class IslandBanMenu implements Listener {
             return;
         }
         if (event.isRightClick()) {
-            GuiActionRegistry.execute(player, "island.ban.pardon", java.util.Map.of("playerUuid", bannedUuid), GuiClick.from(event));
+            GuiActionRegistry.execute(player, "island.ban.pardon.prepare", java.util.Map.of("playerUuid", bannedUuid), GuiClick.from(event));
             return;
         }
         player.sendMessage(message(messages, "ban-menu-detail-title", "방문자 밴 상세"));
@@ -100,7 +100,7 @@ public final class IslandBanMenu implements Listener {
     }
 
     private static ItemStack banItem(BanView ban, MessageRenderer messages) {
-        return GuiItems.action(Material.BARRIER, message(messages, "ban-menu-title-prefix", "밴 ") + shortUuid(ban.bannedUuid()), "island.ban.pardon",
+        return GuiItems.action(Material.BARRIER, message(messages, "ban-menu-title-prefix", "밴 ") + shortUuid(ban.bannedUuid()), "island.ban.pardon.prepare",
             Map.of("playerUuid", ban.bannedUuid()),
             message(messages, "ban-menu-actor", "처리자: ") + shortUuid(ban.actorUuid()),
             message(messages, "ban-menu-reason", "사유: ") + (ban.reason().isBlank() ? message(messages, "ban-menu-none", "없음") : ban.reason()),

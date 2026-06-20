@@ -101,7 +101,7 @@ public final class IslandWarpMenu implements Listener {
             return;
         }
         if (event.isShiftClick() && event.isRightClick()) {
-            GuiActionRegistry.execute(player, "island.warp.delete", java.util.Map.of("warpName", warpName), GuiClick.from(event));
+            GuiActionRegistry.execute(player, "island.warp.delete.prepare", java.util.Map.of("warpName", warpName), GuiClick.from(event));
             return;
         }
         if (event.isRightClick()) {

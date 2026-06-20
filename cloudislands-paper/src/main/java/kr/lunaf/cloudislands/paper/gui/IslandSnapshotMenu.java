@@ -75,7 +75,7 @@ public final class IslandSnapshotMenu implements Listener {
         String snapshotNo = GuiItems.data(event.getCurrentItem()).getOrDefault("snapshotNo", "");
         if (!snapshotNo.isBlank()) {
             if (event.isShiftClick() && event.isRightClick()) {
-                GuiActionRegistry.execute(player, "island.snapshot.restore", java.util.Map.of("snapshotNo", String.valueOf(snapshotNo)), GuiClick.from(event));
+                GuiActionRegistry.execute(player, "island.snapshot.restore.prepare", java.util.Map.of("snapshotNo", String.valueOf(snapshotNo)), GuiClick.from(event));
                 return;
             }
             if (event.isRightClick()) {
@@ -118,7 +118,7 @@ public final class IslandSnapshotMenu implements Listener {
     }
 
     private static ItemStack snapshotItem(SnapshotView snapshot, MessageRenderer messages) {
-        return GuiItems.action(Material.PAPER, message(messages, "snapshot-menu-title-prefix", "스냅샷 #") + snapshot.snapshotNo(), "island.snapshot.restore",
+        return GuiItems.action(Material.PAPER, message(messages, "snapshot-menu-title-prefix", "스냅샷 #") + snapshot.snapshotNo(), "island.snapshot.restore.prepare",
             Map.of("snapshotNo", String.valueOf(snapshot.snapshotNo())),
             message(messages, "snapshot-menu-reason", "사유: ") + (snapshot.reason().isBlank() ? message(messages, "snapshot-menu-none", "없음") : snapshot.reason()),
             message(messages, "snapshot-menu-size", "크기: ") + snapshot.sizeBytes() + message(messages, "snapshot-menu-size-unit", " bytes"),

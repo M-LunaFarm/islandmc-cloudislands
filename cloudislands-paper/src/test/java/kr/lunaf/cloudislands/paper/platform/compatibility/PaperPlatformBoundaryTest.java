@@ -212,6 +212,30 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void guiClassesDoNotExposeDestructiveConfirmActionsDirectly() throws Exception {
+        Path root = repositoryRoot();
+        Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
+        try (Stream<Path> files = javaFiles(guiSource)) {
+            String violations = files
+                .filter(path -> !path.getFileName().toString().equals("IslandConfirmationMenu.java")
+                    && !path.getFileName().toString().equals("IslandDangerMenu.java"))
+                .filter(path -> containsAny(path,
+                    "\"island.warp.delete.confirm\"",
+                    "\"island.member.remove.confirm\"",
+                    "\"island.ban.pardon.confirm\"",
+                    "\"island.snapshot.restore.confirm\"",
+                    "\"island.danger.reset.confirm\"",
+                    "\"island.danger.delete.confirm\""))
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
+    @Test
     void velocityDefaultConfigDoesNotExposeDatabaseOwnership() throws Exception {
         Path root = repositoryRoot();
         Path config = root.resolve("cloudislands-velocity/src/main/resources/config.yaml");
