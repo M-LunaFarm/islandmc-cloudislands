@@ -7,6 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -102,13 +106,20 @@ class ConfigV2ValidatorTest {
     @Test
     void bundledConfigV2YamlPassesDuplicateAndSecretValidation() throws Exception {
         Path root = repositoryRoot();
+        Set<String> registeredActions = registeredGuiActions(root);
         try (Stream<Path> files = Stream.of(
                 root.resolve("cloudislands-paper/src/main/resources/config-v2"),
                 root.resolve("cloudislands-core-service/src/main/resources/config-v2"),
                 root.resolve("cloudislands-velocity/src/main/resources/config-v2")
             ).flatMap(ConfigV2ValidatorTest::yamlFiles)) {
             String violations = files
-                .map(path -> Map.entry(root.relativize(path).toString(), ConfigV2Validator.validateYaml(root.relativize(path).toString(), read(path))))
+                .map(path -> {
+                    String relative = root.relativize(path).toString();
+                    ConfigValidationResult result = relative.contains("/ui/menus/")
+                        ? ConfigV2Validator.validateMenuYaml(relative, read(path), registeredActions)
+                        : ConfigV2Validator.validateYaml(relative, read(path));
+                    return Map.entry(relative, result);
+                })
                 .filter(entry -> !entry.getValue().valid())
                 .map(entry -> entry.getKey() + ": " + entry.getValue().summary())
                 .sorted()
@@ -117,6 +128,31 @@ class ConfigV2ValidatorTest {
 
             assertTrue(violations.isBlank(), violations);
         }
+    }
+
+    @Test
+    void rejectsInvalidMenuLayoutAndUnregisteredActions() {
+        ConfigValidationResult result = ConfigV2Validator.validateMenuYaml("ui/menus/bad.yml", """
+            id: island.bad
+            rows: 7
+            layout:
+              - ".........."
+              - ".X......."
+            items:
+              H:
+                material: GRASS_BLOCK
+                action: island.home
+              X:
+                material: BARRIER
+                action: island.missing
+            footer-actions:
+              back: island.main.open
+            """, Set.of("island.home", "island.main.open"));
+
+        assertFalse(result.valid());
+        assertTrue(result.hasIssue("MENU_ROWS_RANGE"));
+        assertTrue(result.hasIssue("MENU_LAYOUT_ROW_WIDTH"));
+        assertTrue(result.hasIssue("MENU_ACTION_UNREGISTERED"));
     }
 
     private static Stream<Path> yamlFiles(Path root) {
@@ -136,6 +172,17 @@ class ConfigV2ValidatorTest {
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }
+    }
+
+    private static Set<String> registeredGuiActions(Path root) {
+        Path backend = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java");
+        Pattern pattern = Pattern.compile("\"(island\\.[a-z0-9.-]+|admin\\.[a-z0-9.-]+)\"");
+        Set<String> actions = new TreeSet<>();
+        Matcher matcher = pattern.matcher(read(backend));
+        while (matcher.find()) {
+            actions.add(matcher.group(1));
+        }
+        return actions;
     }
 
     private static Path repositoryRoot() {
