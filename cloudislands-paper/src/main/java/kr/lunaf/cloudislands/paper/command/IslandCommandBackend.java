@@ -15,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -26,6 +27,8 @@ import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
+import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
@@ -247,6 +250,14 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
         this.messages = messages;
         this.players = players;
         this.worlds = worlds;
+    }
+
+    private <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+        return CoreMutationContext.with(CoreMutationMetadata.request(auditAction), operation);
+    }
+
+    private <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+        return CoreMutationContext.with(CoreMutationMetadata.idempotent(auditAction), operation);
     }
 
     @Override
@@ -1223,7 +1234,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void createIsland(Player player, String templateId) {
-        coreApiClient.createIsland(player.getUniqueId(), templateId)
+        mutate("island.create", () -> coreApiClient.createIsland(player.getUniqueId(), templateId))
             .thenAccept(result -> {
                 if (!result.accepted()) {
                     message(player, playerCodeMessage(result.code(), "섬 생성을 시작하지 못했습니다."));
@@ -1239,7 +1250,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
 
     private void deleteIsland(Player player) {
         currentIsland(player, "섬 안에서만 섬을 삭제할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.deleteIsland(player.getUniqueId(), islandId)
+            mutateIdempotent("island.delete", () -> coreApiClient.deleteIsland(player.getUniqueId(), islandId))
                 .thenAccept(result -> {
                     if (!result.accepted()) {
                         message(player, playerCodeMessage(result.code(), "섬을 삭제하지 못했습니다."));
@@ -1256,7 +1267,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
 
     private void resetIsland(Player player, String reason) {
         currentIsland(player, "섬 안에서만 섬을 리셋할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.resetIslandResult(islandId, player.getUniqueId(), reason)
+            mutateIdempotent("island.reset", () -> coreApiClient.resetIslandResult(islandId, player.getUniqueId(), reason))
                 .thenAccept(body -> message(player, actionResultMessage("섬 리셋 요청", islandId, body)))
                 .exceptionally(error -> {
                     message(player, coreWriteFailureMessage(error, "섬을 리셋하지 못했습니다."));
@@ -1271,7 +1282,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("home-set-denied", "섬 홈을 설정할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.setIslandHomeResult(islandId, player.getUniqueId(), name, location(player.getLocation()))
+            mutate("island.home.set", () -> coreApiClient.setIslandHomeResult(islandId, player.getUniqueId(), name, location(player.getLocation())))
                 .thenAccept(body -> message(player, actionResultMessage("섬 홈 설정 " + name, name, body)))
                 .exceptionally(error -> {
                     message(player, "섬 홈을 설정하지 못했습니다.");
@@ -1286,7 +1297,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("warp-set-denied", "섬 워프를 설정할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.setIslandWarpResult(islandId, player.getUniqueId(), name, location(player.getLocation()), false)
+            mutate("island.warp.set", () -> coreApiClient.setIslandWarpResult(islandId, player.getUniqueId(), name, location(player.getLocation()), false))
                 .thenAccept(body -> message(player, actionResultMessage("섬 워프 설정 " + name, name, body)))
                 .exceptionally(error -> {
                     message(player, "섬 워프를 설정하지 못했습니다.");
@@ -1376,7 +1387,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("warp-delete-denied", "섬 워프를 삭제할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.deleteIslandWarpResult(islandId, player.getUniqueId(), name)
+            mutateIdempotent("island.warp.delete", () -> coreApiClient.deleteIslandWarpResult(islandId, player.getUniqueId(), name))
                 .thenAccept(body -> message(player, actionResultMessage("섬 워프 삭제 " + name, name, body)))
                 .exceptionally(error -> {
                     message(player, "섬 워프를 삭제하지 못했습니다.");
@@ -1391,7 +1402,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("warp-access-denied", "섬 워프 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.setIslandWarpPublicAccessResult(islandId, player.getUniqueId(), name, publicAccess)
+            mutate("island.warp.public-access.set", () -> coreApiClient.setIslandWarpPublicAccessResult(islandId, player.getUniqueId(), name, publicAccess))
                 .thenAccept(body -> message(player, actionResultMessage(publicAccess ? "섬 워프 공개 " + name : "섬 워프 비공개 " + name, name, body)))
                 .exceptionally(error -> {
                     message(player, "섬 워프 공개 상태를 변경하지 못했습니다.");
@@ -1406,7 +1417,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.setIslandPublicAccessResult(islandId, player.getUniqueId(), publicAccess)
+            mutate("island.public-access.set", () -> coreApiClient.setIslandPublicAccessResult(islandId, player.getUniqueId(), publicAccess))
                 .thenAccept(body -> {
                     message(player, actionResultMessage(publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId, body));
                     if (!resultRejected(body)) {
@@ -1426,7 +1437,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.setIslandLockedResult(islandId, player.getUniqueId(), locked)
+            mutate("island.locked.set", () -> coreApiClient.setIslandLockedResult(islandId, player.getUniqueId(), locked))
                 .thenAccept(body -> {
                     message(player, actionResultMessage(locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId, body));
                     if (!resultRejected(body)) {
@@ -1451,7 +1462,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             if (primaryIslandId != null) {
                 UUID ownerUuid = uuid(text(body, "playerUuid"));
                 if (ownerUuid != null) {
-                    routeTicket(player, coreApiClient.createVisitTicketForOwner(player.getUniqueId(), ownerUuid), "해당 섬에 방문할 수 없습니다.");
+                    routeTicket(player, mutate("route.ticket.visit.owner", () -> coreApiClient.createVisitTicketForOwner(player.getUniqueId(), ownerUuid)), "해당 섬에 방문할 수 없습니다.");
                 } else {
                     routeVisit(player, primaryIslandId);
                 }
@@ -1465,19 +1476,19 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void routeVisitName(Player player, String islandName) {
-        routeTicket(player, coreApiClient.createVisitTicket(player.getUniqueId(), islandName), "해당 섬에 방문할 수 없습니다.");
+        routeTicket(player, mutate("route.ticket.visit.name", () -> coreApiClient.createVisitTicket(player.getUniqueId(), islandName)), "해당 섬에 방문할 수 없습니다.");
     }
 
     private void routeVisit(Player player, UUID islandId) {
-        routeTicket(player, coreApiClient.createVisitTicket(player.getUniqueId(), islandId), "해당 섬에 방문할 수 없습니다.");
+        routeTicket(player, mutate("route.ticket.visit", () -> coreApiClient.createVisitTicket(player.getUniqueId(), islandId)), "해당 섬에 방문할 수 없습니다.");
     }
 
     private void routeWarp(Player player, UUID islandId, String warpName) {
-        routeTicket(player, coreApiClient.createWarpTicket(player.getUniqueId(), islandId, warpName), "해당 워프로 이동할 수 없습니다.");
+        routeTicket(player, mutate("route.ticket.warp", () -> coreApiClient.createWarpTicket(player.getUniqueId(), islandId, warpName)), "해당 워프로 이동할 수 없습니다.");
     }
 
     private void routeRandomVisit(Player player) {
-        routeTicket(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
+        routeTicket(player, mutate("route.ticket.random-visit", () -> coreApiClient.createRandomVisitTicket(player.getUniqueId())), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }
 
     private void listPublicIslands(Player player, int limit) {
@@ -1573,7 +1584,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
-        coreApiClient.publishRouteSession(ticket).thenRun(() -> {
+        mutate("route.session.publish", () -> coreApiClient.publishRouteSession(ticket)).thenRun(() -> {
             clearRouteLoading(player);
             connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
         }).exceptionally(error -> {
@@ -1642,7 +1653,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void clearFailedRoute(RouteTicket ticket, String reason) {
-        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason).exceptionally(error -> null);
+        mutate("route.clear", () -> coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason)).exceptionally(error -> null);
     }
 
     private String routeTargetName(RouteTicket ticket) {
@@ -1804,7 +1815,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                         message(player, playerCodeMessage("INSUFFICIENT_FUNDS", "잔액이 부족합니다."));
                         return CompletableFuture.completedFuture(null);
                     }
-                    return coreApiClient.depositIslandBank(islandId, playerUuid, normalizedAmount).thenCompose(body -> {
+                    return mutateIdempotent("island.bank.deposit", () -> coreApiClient.depositIslandBank(islandId, playerUuid, normalizedAmount)).thenCompose(body -> {
                         if (body.contains("\"accepted\":false")) {
                             return refundPlayer(playerUuid, parsedAmount)
                                 .thenRun(() -> message(player, playerCodeMessage(text(body, "code"), "섬 은행에 입금하지 못했습니다.")));
@@ -1837,7 +1848,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             }
             String normalizedAmount = parsedAmount.toPlainString();
             UUID playerUuid = player.getUniqueId();
-            coreApiClient.withdrawIslandBank(islandId, playerUuid, normalizedAmount)
+            mutateIdempotent("island.bank.withdraw", () -> coreApiClient.withdrawIslandBank(islandId, playerUuid, normalizedAmount))
                 .thenCompose(body -> {
                     if (body.contains("\"accepted\":false")) {
                         message(player, playerCodeMessage(text(body, "code"), "섬 은행에서 출금하지 못했습니다."));
@@ -1846,7 +1857,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                     String balance = bankBalance(body);
                     return economyBridge.deposit(playerUuid, parsedAmount, "CloudIslands island bank withdraw")
                         .thenRun(() -> message(player, "섬 은행에서 출금했습니다. 잔액: " + balance))
-                        .exceptionallyCompose(error -> coreApiClient.depositIslandBank(islandId, playerUuid, normalizedAmount)
+                        .exceptionallyCompose(error -> mutateIdempotent("island.bank.withdraw.rollback", () -> coreApiClient.depositIslandBank(islandId, playerUuid, normalizedAmount))
                             .thenRun(() -> message(player, "경제 지급에 실패해 출금을 되돌렸습니다."))
                             .exceptionally(rollbackError -> {
                                 message(player, "경제 지급에 실패했고 은행 되돌림도 실패했습니다. 관리자에게 문의해주세요.");
@@ -1912,7 +1923,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey)
+            mutateIdempotent("island.upgrade.purchase", () -> coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey))
                 .thenAccept(body -> {
                     String key = text(body, "upgradeKey");
                     String cost = text(body, "cost");
@@ -1954,7 +1965,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
 
     private void completeIslandTask(Player player, String missionKey, String kind, String label) {
         currentIsland(player, "섬 안에서만 " + label + "을 완료할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, kind)
+            mutateIdempotent("island.mission.complete", () -> coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, kind))
                 .thenAccept(body -> {
                     if (resultRejected(body)) {
                         message(player, playerCodeMessage(text(body, "code"), label + "을 완료하지 못했습니다."));
@@ -1973,7 +1984,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
 
     private void sendIslandChat(Player player, String channel, String chatMessage, String label) {
         currentIsland(player, "섬 안에서만 " + label + "을 사용할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, chatMessage)
+            mutate("island.chat.send", () -> coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, chatMessage))
                 .thenAccept(body -> {
                     if (body == null || body.isBlank() || !body.contains("\"accepted\":true")) {
                         message(player, label + "을 전송하지 못했습니다.");
@@ -2073,7 +2084,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.setIslandBiomeResult(islandId, player.getUniqueId(), biomeKey)
+            mutate("island.biome.set", () -> coreApiClient.setIslandBiomeResult(islandId, player.getUniqueId(), biomeKey))
                 .thenAccept(body -> message(player, actionResultMessage("섬 바이옴 변경 " + biomeKey, biomeKey, body)))
                 .exceptionally(error -> {
                     message(player, "섬 바이옴을 변경하지 못했습니다.");
@@ -2133,7 +2144,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("limit-set-denied", "섬 제한을 변경할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value)
+            mutate("island.limit.set", () -> coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value))
                 .thenAccept(body -> {
                     if (resultRejected(body)) {
                         message(player, playerCodeMessage(text(body, "code"), "섬 제한을 변경하지 못했습니다."));
@@ -2169,7 +2180,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("snapshot-create-denied", "섬 스냅샷을 생성할 관리자 권한이 없습니다."));
                 return;
             }
-            coreApiClient.requestIslandSnapshotResult(islandId, reason)
+            mutate("island.snapshot.create", () -> coreApiClient.requestIslandSnapshotResult(islandId, reason))
                 .thenAccept(body -> message(player, actionResultMessage("섬 스냅샷 생성 요청", islandId, body)))
                 .exceptionally(error -> {
                     message(player, "섬 스냅샷 생성을 요청하지 못했습니다.");
@@ -2188,7 +2199,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요."));
                 return;
             }
-            coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo)
+            mutateIdempotent("island.snapshot.restore", () -> coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo))
                 .thenAccept(body -> message(player, actionResultMessage("섬 스냅샷 복원 요청 #" + snapshotNo, islandId, body)))
                 .exceptionally(error -> {
                     message(player, "섬 스냅샷 복원을 요청하지 못했습니다.");
@@ -2235,7 +2246,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     }
 
     private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid) {
-        coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid)
+        mutate("island.invite.create", () -> coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid))
             .thenAccept(body -> message(player, actionResultMessage("섬 초대", text(body, "inviteId"), body)))
             .exceptionally(error -> {
                 message(player, "섬 초대를 보내지 못했습니다.");
@@ -2257,7 +2268,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             message(player, routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
             return;
         }
-        coreApiClient.acceptIslandInviteResult(inviteId, player.getUniqueId())
+        mutate("island.invite.accept", () -> coreApiClient.acceptIslandInviteResult(inviteId, player.getUniqueId()))
             .thenAccept(body -> message(player, inviteActionMessage("섬 초대 수락", inviteId, body)))
             .exceptionally(error -> {
                 message(player, "섬 초대를 수락하지 못했습니다.");
@@ -2283,7 +2294,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             message(player, routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
             return;
         }
-        coreApiClient.declineIslandInviteResult(inviteId, player.getUniqueId())
+        mutate("island.invite.decline", () -> coreApiClient.declineIslandInviteResult(inviteId, player.getUniqueId()))
             .thenAccept(body -> message(player, inviteActionMessage("섬 초대 거절", inviteId, body)))
             .exceptionally(error -> {
                 message(player, "섬 초대를 거절하지 못했습니다.");
@@ -2365,7 +2376,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                coreApiClient.removeIslandMemberResult(islandId, player.getUniqueId(), targetUuid)
+                mutateIdempotent("island.member.remove", () -> coreApiClient.removeIslandMemberResult(islandId, player.getUniqueId(), targetUuid))
                     .thenAccept(body -> message(player, actionResultMessage("섬 멤버 제거", targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 멤버를 제거하지 못했습니다.");
@@ -2382,7 +2393,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), targetUuid, role)
+                mutate("island.member.role.set", () -> coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), targetUuid, role))
                     .thenAccept(body -> message(player, actionResultMessage(successMessage, targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 멤버 역할을 변경하지 못했습니다.");
@@ -2395,7 +2406,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
     private void transferIslandOwnership(Player player, String target) {
         currentIsland(player, "섬 안에서만 소유권을 양도할 수 있습니다.").ifPresent(islandId -> {
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                coreApiClient.transferIslandOwnershipResult(islandId, player.getUniqueId(), targetUuid)
+                mutateIdempotent("island.ownership.transfer", () -> coreApiClient.transferIslandOwnershipResult(islandId, player.getUniqueId(), targetUuid))
                     .thenAccept(body -> message(player, actionResultMessage("섬 소유권 양도", targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 소유권을 양도하지 못했습니다.");
@@ -2412,7 +2423,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), targetUuid, reason)
+                mutateIdempotent("island.visitor.ban", () -> coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), targetUuid, reason))
                     .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                         if (resultRejected(body)) {
                             player.sendMessage(playerMessage(actionResultMessage("섬 방문자 밴", targetUuid, body)));
@@ -2436,7 +2447,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                coreApiClient.pardonIslandVisitorResult(islandId, player.getUniqueId(), targetUuid)
+                mutateIdempotent("island.visitor.pardon", () -> coreApiClient.pardonIslandVisitorResult(islandId, player.getUniqueId(), targetUuid))
                     .thenAccept(body -> message(player, actionResultMessage("섬 방문자 밴 해제", targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 방문자 밴을 해제하지 못했습니다.");
@@ -2453,7 +2464,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                coreApiClient.kickIslandVisitorResult(islandId, player.getUniqueId(), targetUuid)
+                mutateIdempotent("island.visitor.kick", () -> coreApiClient.kickIslandVisitorResult(islandId, player.getUniqueId(), targetUuid))
                     .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                         if (resultRejected(body)) {
                             player.sendMessage(playerMessage(actionResultMessage("섬 방문자 추방", targetUuid, body)));
@@ -2548,7 +2559,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("input-flag-invalid", "올바른 섬 플래그를 입력해주세요."));
                 return;
             }
-            coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value)
+            mutate("island.flag.set", () -> coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value))
                 .thenAccept(body -> message(player, actionResultMessage("섬 플래그 변경 " + flag.name() + "=" + value, flag.name(), body)))
                 .exceptionally(error -> {
                     message(player, coreWriteFailureMessage(error, "섬 플래그를 변경하지 못했습니다."));
@@ -2593,7 +2604,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("role-edit-denied", "섬 역할을 편집할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), role, weight, displayName.isBlank() ? role.name() : displayName)
+            mutate("island.role.upsert", () -> coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), role, weight, displayName.isBlank() ? role.name() : displayName))
                 .thenAccept(body -> message(player, "섬 역할 저장 완료: " + text(body, "role") + " weight=" + (long) decimal(body, "weight") + " name=" + text(body, "displayName")))
                 .exceptionally(error -> {
                     message(player, "섬 역할을 저장하지 못했습니다.");
@@ -2608,7 +2619,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("role-reset-denied", "섬 역할을 초기화할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.resetIslandRole(islandId, player.getUniqueId(), role)
+            mutateIdempotent("island.role.reset", () -> coreApiClient.resetIslandRole(islandId, player.getUniqueId(), role))
                 .thenAccept(body -> message(player, "섬 역할 초기화 완료: " + text(body, "role")))
                 .exceptionally(error -> {
                     message(player, "섬 역할을 초기화하지 못했습니다.");
@@ -2630,7 +2641,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 return;
             }
             boolean allowed = booleanValue(allowedValue);
-            coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), role, permission, allowed)
+            mutate("island.permission.set", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), role, permission, allowed))
                 .thenAccept(body -> message(player, actionResultMessage("섬 권한 변경 " + role.name() + ":" + permission.name() + "=" + allowed, role.name(), body)))
                 .exceptionally(error -> {
                     message(player, coreWriteFailureMessage(error, "섬 권한을 변경하지 못했습니다."));
@@ -2649,7 +2660,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                 message(player, routeMessage("name-change-denied", "섬 이름을 변경할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.setIslandNameResult(islandId, player.getUniqueId(), name)
+            mutate("island.name.set", () -> coreApiClient.setIslandNameResult(islandId, player.getUniqueId(), name))
                 .thenAccept(body -> {
                     message(player, actionResultMessage("섬 이름 변경", name, body));
                     if (!resultRejected(body)) {

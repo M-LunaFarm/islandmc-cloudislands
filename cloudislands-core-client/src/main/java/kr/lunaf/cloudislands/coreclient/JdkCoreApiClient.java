@@ -1533,6 +1533,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
         addAdminHeaders(builder, path);
+        CoreMutationContext.apply(builder);
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : "");
@@ -1544,6 +1545,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
             .header("Authorization", "Bearer " + authToken)
             .GET();
         addAdminHeaders(builder, path);
+        CoreMutationContext.apply(builder);
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : "");
@@ -1556,6 +1558,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
         addAdminHeaders(builder, path);
+        CoreMutationContext.apply(builder);
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : "");
@@ -1567,6 +1570,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
             .header("Authorization", "Bearer " + authToken)
             .DELETE();
         addAdminHeaders(builder, path);
+        CoreMutationContext.apply(builder);
         HttpRequest request = builder.build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : "");

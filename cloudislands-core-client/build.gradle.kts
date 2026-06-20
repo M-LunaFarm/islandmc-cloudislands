@@ -3,6 +3,11 @@ plugins { `java-library` }
 dependencies {
     api(project(":cloudislands-api"))
     api(project(":cloudislands-protocol"))
+    testImplementation(libs.junit.jupiter)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.jar {

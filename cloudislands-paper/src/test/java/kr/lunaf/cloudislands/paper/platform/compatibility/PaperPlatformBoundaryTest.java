@@ -382,6 +382,27 @@ class PaperPlatformBoundaryTest {
         assertTrue(states.contains("ERROR"), "GUI states must include Error");
     }
 
+    @Test
+    void paperCoreMutationCallsCarryRequestMetadata() throws Exception {
+        Path root = repositoryRoot();
+        List<Path> files = List.of(
+            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"),
+            root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java")
+        );
+        String violations = files.stream()
+            .flatMap(path -> mutationMetadataViolations(root, path).stream())
+            .sorted()
+            .reduce((left, right) -> left + "\n" + right)
+            .orElse("");
+
+        assertTrue(violations.isBlank(), violations);
+
+        String commandBackend = Files.readString(files.get(0));
+        assertTrue(commandBackend.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
+        assertTrue(commandBackend.contains("mutateIdempotent(\"island.bank.withdraw\""), "Bank withdraw must use an idempotency key");
+        assertTrue(commandBackend.contains("CoreMutationMetadata.request"), "Paper mutations must carry request IDs and audit actions");
+    }
+
     private static Stream<Path> javaFiles(Path root) {
         try {
             if (Files.notExists(root)) {
@@ -517,6 +538,81 @@ class PaperPlatformBoundaryTest {
 
     private static long countLines(String source, String line) {
         return source.lines().filter(value -> value.equals(line)).count();
+    }
+
+    private static List<String> mutationMetadataViolations(Path root, Path path) {
+        try {
+            List<String> violations = new ArrayList<>();
+            List<String> lines = Files.readAllLines(path);
+            for (int index = 0; index < lines.size(); index++) {
+                String line = lines.get(index);
+                if (line.contains(".thenCompose(_body -> client.")) {
+                    continue;
+                }
+                if (containsAnyText(line, "coreApiClient.", "client.", "coreClient.")
+                    && containsAnyText(line, mutationMethodNeedles())
+                    && !containsAnyText(line, "mutate(", "mutateIdempotent(")) {
+                    violations.add(root.relativize(path) + ":" + (index + 1) + " " + line.trim());
+                }
+            }
+            return violations;
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static String[] mutationMethodNeedles() {
+        return new String[] {
+            ".accept",
+            ".activate",
+            ".adminDelete",
+            ".adminIslandTeleport",
+            ".ban",
+            ".cancel",
+            ".claim",
+            ".clear",
+            ".complete",
+            ".consume",
+            ".create",
+            ".deactivate",
+            ".decline",
+            ".delete",
+            ".deposit",
+            ".disable",
+            ".drain",
+            ".enable",
+            ".fail",
+            ".kick",
+            ".migrate",
+            ".pardon",
+            ".progress",
+            ".publish",
+            ".purchase",
+            ".put",
+            ".quarantine",
+            ".record",
+            ".recover",
+            ".reload",
+            ".remove",
+            ".repair",
+            ".replace",
+            ".request",
+            ".reset",
+            ".restore",
+            ".retry",
+            ".rollback",
+            ".save",
+            ".send",
+            ".set",
+            ".shutdown",
+            ".sweep",
+            ".tableBulk",
+            ".tableKeyValueBulkSave",
+            ".transfer",
+            ".undrain",
+            ".upsert",
+            ".withdraw"
+        };
     }
 
     private static String configValidationViolation(Path root, Path path) {

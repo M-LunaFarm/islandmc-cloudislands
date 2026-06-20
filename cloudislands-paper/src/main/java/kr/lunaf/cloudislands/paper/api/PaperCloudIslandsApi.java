@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.event.CloudEvent;
@@ -102,6 +103,8 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
+import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
@@ -186,6 +189,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     @Override
     public IslandAddonService addons() {
         return addons;
+    }
+
+    private static <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+        return CoreMutationContext.with(CoreMutationMetadata.request(auditAction), operation);
+    }
+
+    private static <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+        return CoreMutationContext.with(CoreMutationMetadata.idempotent(auditAction), operation);
     }
 
     private static final class AddonService implements IslandAddonService {
@@ -691,7 +702,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Map.copyOf(localState));
             }
             writeAddonState(safeId, localState);
-            return coreClient.putAddonState(safeId, changedState)
+            return mutate("addon.state.put", () -> coreClient.putAddonState(safeId, changedState))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
@@ -741,7 +752,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             localState.putAll(merged);
             writeAddonState(safeId, localState);
-            return coreClient.saveAddonState(safeId, Map.copyOf(safeValues), Map.copyOf(safeTables))
+            return mutate("addon.state.save", () -> coreClient.saveAddonState(safeId, Map.copyOf(safeValues), Map.copyOf(safeTables)))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
@@ -791,7 +802,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             localState.putAll(merged);
             writeAddonState(safeId, localState);
-            return coreClient.tableKeyValueBulkSaveAddonState(safeId, Map.copyOf(safeValues), Map.copyOf(safeTables))
+            return mutate("addon.state.table-key-value.bulk-save", () -> coreClient.tableKeyValueBulkSaveAddonState(safeId, Map.copyOf(safeValues), Map.copyOf(safeTables)))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
@@ -867,7 +878,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             localState.putAll(merged);
             writeAddonState(safeId, localState);
-            return coreClient.tableBulkAddonState(safeId, Map.copyOf(safeTables))
+            return mutate("addon.state.table.bulk", () -> coreClient.tableBulkAddonState(safeId, Map.copyOf(safeTables)))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
@@ -948,7 +959,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             localState.keySet().removeIf(key -> key.startsWith(prefix));
             writeAddonState(safeId, localState);
-            return coreClient.clearAddonTableState(safeId, table)
+            return mutateIdempotent("addon.state.table.clear", () -> coreClient.clearAddonTableState(safeId, table))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
@@ -973,7 +984,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             localState.keySet().removeIf(key -> key.startsWith(prefix));
             localState.putAll(tableValues);
             writeAddonState(safeId, localState);
-            return coreClient.replaceAddonTableState(safeId, table, values)
+            return mutateIdempotent("addon.state.table.replace", () -> coreClient.replaceAddonTableState(safeId, table, values))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
@@ -1043,7 +1054,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             state.remove(key);
             writeAddonState(safeId, state);
-            return coreClient.removeAddonState(safeId, key)
+            return mutateIdempotent("addon.state.remove", () -> coreClient.removeAddonState(safeId, key))
                 .thenApply(this::stateFromJson)
                 .thenApply(coreState -> {
                     addonStates.put(safeId, coreState);
@@ -1062,7 +1073,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon state clear failed for " + safeId + ": " + exception.getMessage());
             }
-            return coreClient.clearAddonState(safeId).thenApply(_body -> (Void) null).exceptionally(_error -> null);
+            return mutateIdempotent("addon.state.clear", () -> coreClient.clearAddonState(safeId)).thenApply(_body -> (Void) null).exceptionally(_error -> null);
         }
 
         @Override
@@ -1104,7 +1115,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Map.copyOf(localState));
             }
             writeAddonIslandState(safeId, islandId, localState);
-            return coreClient.putAddonIslandState(safeId, islandId, changedState)
+            return mutate("addon.island-state.put", () -> coreClient.putAddonIslandState(safeId, islandId, changedState))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
@@ -1156,7 +1167,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
             localState.putAll(merged);
             writeAddonIslandState(safeId, islandId, localState);
-            return coreClient.saveAddonIslandState(safeId, islandId, Map.copyOf(safeValues), Map.copyOf(safeTables))
+            return mutate("addon.island-state.save", () -> coreClient.saveAddonIslandState(safeId, islandId, Map.copyOf(safeValues), Map.copyOf(safeTables)))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
@@ -1208,7 +1219,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
             localState.putAll(merged);
             writeAddonIslandState(safeId, islandId, localState);
-            return coreClient.tableKeyValueBulkSaveAddonIslandState(safeId, islandId, Map.copyOf(safeValues), Map.copyOf(safeTables))
+            return mutate("addon.island-state.table-key-value.bulk-save", () -> coreClient.tableKeyValueBulkSaveAddonIslandState(safeId, islandId, Map.copyOf(safeValues), Map.copyOf(safeTables)))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
@@ -1283,7 +1294,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
             localState.putAll(merged);
             writeAddonIslandState(safeId, islandId, localState);
-            return coreClient.tableBulkAddonIslandState(safeId, islandId, Map.copyOf(safeTables))
+            return mutate("addon.island-state.table.bulk", () -> coreClient.tableBulkAddonIslandState(safeId, islandId, Map.copyOf(safeTables)))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
@@ -1360,7 +1371,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
             localState.keySet().removeIf(key -> key.startsWith(prefix));
             writeAddonIslandState(safeId, islandId, localState);
-            return coreClient.clearAddonIslandTableState(safeId, islandId, table)
+            return mutateIdempotent("addon.island-state.table.clear", () -> coreClient.clearAddonIslandTableState(safeId, islandId, table))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
@@ -1384,7 +1395,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             localState.keySet().removeIf(key -> key.startsWith(prefix));
             localState.putAll(tableValues);
             writeAddonIslandState(safeId, islandId, localState);
-            return coreClient.replaceAddonIslandTableState(safeId, islandId, table, values)
+            return mutateIdempotent("addon.island-state.table.replace", () -> coreClient.replaceAddonIslandTableState(safeId, islandId, table, values))
                 .thenApply(this::stateFromJson)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
@@ -1408,7 +1419,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> state = new HashMap<>(readAddonIslandState(safeId, islandId));
             state.remove(key);
             writeAddonIslandState(safeId, islandId, state);
-            return coreClient.removeAddonIslandState(safeId, islandId, key)
+            return mutateIdempotent("addon.island-state.remove", () -> coreClient.removeAddonIslandState(safeId, islandId, key))
                 .thenApply(this::stateFromJson)
                 .thenApply(coreState -> {
                     writeAddonIslandState(safeId, islandId, coreState);
@@ -1435,7 +1446,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon island state clear failed for " + safeId + "/" + islandId + ": " + exception.getMessage());
             }
-            return coreClient.clearAddonIslandState(safeId, islandId).thenApply(_body -> (Void) null).exceptionally(_error -> null);
+            return mutateIdempotent("addon.island-state.clear", () -> coreClient.clearAddonIslandState(safeId, islandId)).thenApply(_body -> (Void) null).exceptionally(_error -> null);
         }
 
         private boolean addonAcceptsIslandStateWrites(String id) {
@@ -2135,12 +2146,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Optional<PlayerIslandProfile>> setPrimaryIsland(UUID playerUuid, UUID islandId) {
-            return client.setPlayerIsland(playerUuid, islandId).thenApply(PaperCloudIslandsApi::playerProfile);
+            return mutate("player.primary-island.set", () -> client.setPlayerIsland(playerUuid, islandId)).thenApply(PaperCloudIslandsApi::playerProfile);
         }
 
         @Override
         public CompletableFuture<Optional<PlayerIslandProfile>> clearPrimaryIsland(UUID playerUuid) {
-            return client.clearPlayerIsland(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile);
+            return mutate("player.primary-island.clear", () -> client.clearPlayerIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile);
         }
     }
 
@@ -2151,18 +2162,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             this.client = client;
         }
 
-        @Override public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) { return client.createHomeTicket(playerUuid); }
-        @Override public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) { return client.createHomeTicket(playerUuid, homeName); }
-        @Override public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) { return client.createVisitTicket(visitorUuid, targetIslandId); }
-        @Override public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) { return client.createVisitTicket(visitorUuid, islandName); }
-        @Override public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) { return client.createVisitTicketForOwner(visitorUuid, ownerUuid); }
-        @Override public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) { return client.createRandomVisitTicket(visitorUuid); }
-        @Override public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) { return client.createWarpTicket(playerUuid, islandId, warpName); }
+        @Override public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) { return mutate("route.ticket.home", () -> client.createHomeTicket(playerUuid)); }
+        @Override public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) { return mutate("route.ticket.home.named", () -> client.createHomeTicket(playerUuid, homeName)); }
+        @Override public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) { return mutate("route.ticket.visit", () -> client.createVisitTicket(visitorUuid, targetIslandId)); }
+        @Override public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) { return mutate("route.ticket.visit.name", () -> client.createVisitTicket(visitorUuid, islandName)); }
+        @Override public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) { return mutate("route.ticket.visit.owner", () -> client.createVisitTicketForOwner(visitorUuid, ownerUuid)); }
+        @Override public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) { return mutate("route.ticket.random-visit", () -> client.createRandomVisitTicket(visitorUuid)); }
+        @Override public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) { return mutate("route.ticket.warp", () -> client.createWarpTicket(playerUuid, islandId, warpName)); }
         @Override public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) { return publishRouteSessionResult(ticket).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> publishRouteSessionResult(RouteTicket ticket) { return client.publishRouteSessionResult(ticket).thenApply(body -> action(body, "ROUTE_SESSION_PUBLISHED")); }
-        @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> consumeRouteSession(UUID playerUuid, String nodeId) { return client.consumeRouteSession(playerUuid, nodeId).thenApply(session -> session.map(PaperCloudIslandsApi::routeSession)); }
+        @Override public CompletableFuture<IslandActionResult> publishRouteSessionResult(RouteTicket ticket) { return mutate("route.session.publish", () -> client.publishRouteSessionResult(ticket)).thenApply(body -> action(body, "ROUTE_SESSION_PUBLISHED")); }
+        @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> consumeRouteSession(UUID playerUuid, String nodeId) { return mutate("route.session.consume", () -> client.consumeRouteSession(playerUuid, nodeId)).thenApply(session -> session.map(PaperCloudIslandsApi::routeSession)); }
         @Override public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce) { return client.routeTicketStatus(ticketId, playerUuid, nonce); }
-        @Override public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) { return client.consumeTicket(ticketId, playerUuid, nodeId, nonce); }
+        @Override public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) { return mutate("route.ticket.consume", () -> client.consumeTicket(ticketId, playerUuid, nodeId, nonce)); }
         @Override public CompletableFuture<RoutePlan> resolveHome(UUID playerUuid) { return createHomeTicket(playerUuid).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveHome(UUID playerUuid, String homeName) { return createHomeTicket(playerUuid, homeName).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<RoutePlan> resolveVisit(UUID visitorUuid, UUID targetIslandId) { return createVisitTicket(visitorUuid, targetIslandId).thenApply(PaperCloudIslandsApi::plan); }
@@ -2200,12 +2211,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandRuntimeSnapshot> activate(UUID islandId, String preferredPool) {
-            return client.activateIsland(islandId).thenCompose(_body -> client.adminIslandWhere(islandId)).thenApply(PaperCloudIslandsApi::runtime);
+            return mutate("runtime.island.activate", () -> client.activateIsland(islandId)).thenCompose(_body -> client.adminIslandWhere(islandId)).thenApply(PaperCloudIslandsApi::runtime);
         }
 
         @Override
         public CompletableFuture<IslandActionResult> activateResult(UUID islandId, String preferredPool) {
-            return client.activateIslandResult(islandId).thenApply(body -> actionCode(body, "ACTIVATED"));
+            return mutate("runtime.island.activate", () -> client.activateIslandResult(islandId)).thenApply(body -> actionCode(body, "ACTIVATED"));
         }
 
         @Override
@@ -2215,7 +2226,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> deactivateResult(UUID islandId) {
-            return client.deactivateIslandResult(islandId).thenApply(body -> actionCode(body, "DEACTIVATED"));
+            return mutate("runtime.island.deactivate", () -> client.deactivateIslandResult(islandId)).thenApply(body -> actionCode(body, "DEACTIVATED"));
         }
 
         @Override
@@ -2225,7 +2236,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> heartbeatResult(String nodeId, NodeHeartbeat heartbeat) {
-            return client.publishHeartbeatResult(new NodeHeartbeatRequest(
+            return mutate("runtime.heartbeat.publish", () -> client.publishHeartbeatResult(new NodeHeartbeatRequest(
                 NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION,
                 nodeId,
                 "island",
@@ -2247,7 +2258,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 0,
                 true,
                 "*"
-            )).thenApply(body -> action(body, "HEARTBEAT_ACCEPTED"));
+            ))).thenApply(body -> action(body, "HEARTBEAT_ACCEPTED"));
         }
 
         @Override
@@ -2257,17 +2268,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> recordBlockDeltaResult(UUID islandId, String materialKey, long delta) {
-            return client.recordBlockDeltaResult(islandId, materialKey, delta).thenApply(body -> action(body, "BLOCK_DELTA_RECORDED"));
+            return mutate("runtime.block-delta.record", () -> client.recordBlockDeltaResult(islandId, materialKey, delta)).thenApply(body -> action(body, "BLOCK_DELTA_RECORDED"));
         }
 
         @Override
         public CompletableFuture<List<ClaimedIslandJobSnapshot>> claimJobs(String nodeId, List<String> supportedTypes, int maxJobs) {
-            return client.claimJobs(nodeId, jobTypes(supportedTypes), maxJobs).thenApply(jobs -> jobs.stream().map(PaperCloudIslandsApi::claimedJob).toList());
+            return mutate("runtime.jobs.claim", () -> client.claimJobs(nodeId, jobTypes(supportedTypes), maxJobs)).thenApply(jobs -> jobs.stream().map(PaperCloudIslandsApi::claimedJob).toList());
         }
 
         @Override
         public CompletableFuture<List<ClaimedIslandJobSnapshot>> claimTypedJobs(String nodeId, List<IslandRuntimeJobType> supportedTypes, int maxJobs) {
-            return client.claimJobs(nodeId, runtimeJobTypes(supportedTypes), maxJobs).thenApply(jobs -> jobs.stream().map(PaperCloudIslandsApi::claimedJob).toList());
+            return mutate("runtime.jobs.claim", () -> client.claimJobs(nodeId, runtimeJobTypes(supportedTypes), maxJobs)).thenApply(jobs -> jobs.stream().map(PaperCloudIslandsApi::claimedJob).toList());
         }
 
         @Override
@@ -2282,7 +2293,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload) {
-            return client.completeJobResult(nodeId, jobId, payload).thenApply(body -> action(body, "JOB_COMPLETED"));
+            return mutateIdempotent("runtime.job.complete", () -> client.completeJobResult(nodeId, jobId, payload)).thenApply(body -> action(body, "JOB_COMPLETED"));
         }
 
         @Override
@@ -2292,7 +2303,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> failJobResult(String nodeId, UUID jobId, String errorMessage) {
-            return client.failJobResult(nodeId, jobId, errorMessage).thenApply(body -> action(body, "JOB_FAILED"));
+            return mutateIdempotent("runtime.job.fail", () -> client.failJobResult(nodeId, jobId, errorMessage)).thenApply(body -> action(body, "JOB_FAILED"));
         }
     }
 
@@ -2340,59 +2351,59 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override public CompletableFuture<Void> drainNode(String nodeId) { return drainNodeResult(nodeId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> drainNodeResult(String nodeId) { return client.drainNodeResult(nodeId).thenApply(body -> action(body, "NODE_DRAINED")); }
+        @Override public CompletableFuture<IslandActionResult> drainNodeResult(String nodeId) { return mutate("admin.node.drain", () -> client.drainNodeResult(nodeId)).thenApply(body -> action(body, "NODE_DRAINED")); }
         @Override public CompletableFuture<Void> undrainNode(String nodeId) { return undrainNodeResult(nodeId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId) { return client.undrainNodeResult(nodeId).thenApply(body -> action(body, "NODE_UNDRAINED")); }
+        @Override public CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId) { return mutate("admin.node.undrain", () -> client.undrainNodeResult(nodeId)).thenApply(body -> action(body, "NODE_UNDRAINED")); }
         @Override public CompletableFuture<Void> sweepNode(String nodeId) { return sweepNodeResult(nodeId).thenApply(_result -> null); }
-        @Override public CompletableFuture<NodeSweepResult> sweepNodeResult(String nodeId) { return client.sweepNodeResult(nodeId).thenApply(PaperCloudIslandsApi::nodeSweep); }
+        @Override public CompletableFuture<NodeSweepResult> sweepNodeResult(String nodeId) { return mutate("admin.node.sweep", () -> client.sweepNodeResult(nodeId)).thenApply(PaperCloudIslandsApi::nodeSweep); }
         @Override public CompletableFuture<Void> kickAllNode(String nodeId, String reason) { return kickAllNodeResult(nodeId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> kickAllNodeResult(String nodeId, String reason) { return client.kickAllNodeResult(nodeId, reason).thenApply(body -> action(body, "NODE_KICKALL_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> kickAllNodeResult(String nodeId, String reason) { return mutateIdempotent("admin.node.kickall", () -> client.kickAllNodeResult(nodeId, reason)).thenApply(body -> action(body, "NODE_KICKALL_REQUESTED")); }
         @Override public CompletableFuture<Void> shutdownNodeSafely(String nodeId, String reason) { return shutdownNodeSafelyResult(nodeId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> shutdownNodeSafelyResult(String nodeId, String reason) { return client.shutdownNodeSafelyResult(nodeId, reason).thenApply(body -> action(body, "NODE_SHUTDOWN_SAFE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> shutdownNodeSafelyResult(String nodeId, String reason) { return mutateIdempotent("admin.node.shutdown-safe", () -> client.shutdownNodeSafelyResult(nodeId, reason)).thenApply(body -> action(body, "NODE_SHUTDOWN_SAFE_REQUESTED")); }
         @Override public CompletableFuture<Void> activateIsland(UUID islandId) { return activateIslandResult(islandId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> activateIslandResult(UUID islandId) { return client.activateIslandResult(islandId).thenApply(body -> actionCode(body, "ACTIVATE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> activateIslandResult(UUID islandId) { return mutate("admin.island.activate", () -> client.activateIslandResult(islandId)).thenApply(body -> actionCode(body, "ACTIVATE_REQUESTED")); }
         @Override public CompletableFuture<Void> deactivateIsland(UUID islandId) { return deactivateIslandResult(islandId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> deactivateIslandResult(UUID islandId) { return client.deactivateIslandResult(islandId).thenApply(body -> actionCode(body, "DEACTIVATE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> deactivateIslandResult(UUID islandId) { return mutate("admin.island.deactivate", () -> client.deactivateIslandResult(islandId)).thenApply(body -> actionCode(body, "DEACTIVATE_REQUESTED")); }
         @Override public CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode) { return migrateIslandResult(islandId, targetNode).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode) { return client.migrateIslandResult(islandId, targetNode).thenApply(body -> actionCode(body, "MIGRATED")); }
+        @Override public CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode) { return mutateIdempotent("admin.island.migrate", () -> client.migrateIslandResult(islandId, targetNode)).thenApply(body -> actionCode(body, "MIGRATED")); }
         @Override public CompletableFuture<Void> saveIsland(UUID islandId) { return saveIslandResult(islandId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> saveIslandResult(UUID islandId) { return client.requestIslandSaveResult(islandId, "ADMIN_SAVE").thenApply(body -> actionCode(body, "SAVE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> saveIslandResult(UUID islandId) { return mutate("admin.island.save", () -> client.requestIslandSaveResult(islandId, "ADMIN_SAVE")).thenApply(body -> actionCode(body, "SAVE_REQUESTED")); }
         @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return snapshotIslandResult(islandId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason) { return client.requestIslandSnapshotResult(islandId, reason).thenApply(body -> actionCode(body, "SNAPSHOT_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason) { return mutate("admin.island.snapshot", () -> client.requestIslandSnapshotResult(islandId, reason)).thenApply(body -> actionCode(body, "SNAPSHOT_REQUESTED")); }
         @Override public CompletableFuture<List<IslandSnapshotRecord>> listIslandSnapshots(UUID islandId, int limit) { return client.listIslandSnapshots(islandId, limit).thenApply(PaperCloudIslandsApi::snapshots); }
         @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return restoreIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo) { return client.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionCode(body, "RESTORE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo) { return mutateIdempotent("admin.island.restore", () -> client.restoreIslandSnapshotResult(islandId, snapshotNo)).thenApply(body -> actionCode(body, "RESTORE_REQUESTED")); }
         @Override public CompletableFuture<Void> rollbackIsland(UUID islandId, long snapshotNo) { return rollbackIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> rollbackIslandResult(UUID islandId, long snapshotNo) { return client.rollbackIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionCode(body, "ROLLBACK_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> rollbackIslandResult(UUID islandId, long snapshotNo) { return mutateIdempotent("admin.island.rollback", () -> client.rollbackIslandSnapshotResult(islandId, snapshotNo)).thenApply(body -> actionCode(body, "ROLLBACK_REQUESTED")); }
         @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return quarantineIslandResult(islandId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason) { return client.quarantineIslandResult(islandId, reason).thenApply(body -> actionCode(body, "QUARANTINED")); }
+        @Override public CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason) { return mutateIdempotent("admin.island.quarantine", () -> client.quarantineIslandResult(islandId, reason)).thenApply(body -> actionCode(body, "QUARANTINED")); }
         @Override public CompletableFuture<Void> repairIsland(UUID islandId, String reason) { return repairIslandResult(islandId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<Optional<IslandRuntimeSnapshot>> repairIslandResult(UUID islandId, String reason) { return client.repairIslandResult(islandId, reason).thenApply(PaperCloudIslandsApi::runtimeOptional); }
+        @Override public CompletableFuture<Optional<IslandRuntimeSnapshot>> repairIslandResult(UUID islandId, String reason) { return mutateIdempotent("admin.island.repair", () -> client.repairIslandResult(islandId, reason)).thenApply(PaperCloudIslandsApi::runtimeOptional); }
         @Override public CompletableFuture<Void> deleteIsland(UUID islandId) { return adminDeleteIslandResult(islandId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return client.adminDeleteIslandResult(islandId).thenApply(body -> action(body, "ISLAND_DELETED")); }
-        @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return client.adminIslandTeleport(playerUuid, islandId); }
+        @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return mutateIdempotent("admin.island.delete", () -> client.adminDeleteIslandResult(islandId)).thenApply(body -> action(body, "ISLAND_DELETED")); }
+        @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return mutate("admin.route.teleport", () -> client.adminIslandTeleport(playerUuid, islandId)); }
         @Override public CompletableFuture<RoutePlan> resolveAdminTeleport(UUID playerUuid, UUID islandId) { return createAdminTeleportTicket(playerUuid, islandId).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket); }
         @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> getRouteSession(UUID playerUuid) { return client.debugRoutes(playerUuid).thenApply(PaperCloudIslandsApi::routeSession); }
         @Override public CompletableFuture<RouteDebugSnapshot> getRouteDebug() { return client.debugRoutes(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug); }
         @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return clearRouteResult(playerUuid, ticketId).thenApply(_result -> null); }
-        @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return client.clearRouteResult(playerUuid, ticketId).thenApply(PaperCloudIslandsApi::routeClear); }
+        @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return mutate("admin.route.clear", () -> client.clearRouteResult(playerUuid, ticketId)).thenApply(PaperCloudIslandsApi::routeClear); }
         @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.listJobs().thenApply(PaperCloudIslandsApi::jobs); }
         @Override public CompletableFuture<Void> retryJob(UUID jobId) { return retryJobResult(jobId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> retryJobResult(UUID jobId) { return client.retryJobResult(jobId).thenApply(body -> action(body, "JOB_RETRIED")); }
+        @Override public CompletableFuture<IslandActionResult> retryJobResult(UUID jobId) { return mutate("admin.job.retry", () -> client.retryJobResult(jobId)).thenApply(body -> action(body, "JOB_RETRIED")); }
         @Override public CompletableFuture<Void> cancelJob(UUID jobId) { return cancelJobResult(jobId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> cancelJobResult(UUID jobId) { return client.cancelJobResult(jobId).thenApply(body -> action(body, "JOB_CANCELED")); }
+        @Override public CompletableFuture<IslandActionResult> cancelJobResult(UUID jobId) { return mutate("admin.job.cancel", () -> client.cancelJobResult(jobId)).thenApply(body -> action(body, "JOB_CANCELED")); }
         @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return recoverJobsResult(nodeId, minIdleMillis, maxJobs).thenApply(_result -> null); }
-        @Override public CompletableFuture<JobRecoveryResult> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) { return client.recoverJobsResult(nodeId, minIdleMillis, maxJobs).thenApply(PaperCloudIslandsApi::jobRecovery); }
+        @Override public CompletableFuture<JobRecoveryResult> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) { return mutate("admin.jobs.recover", () -> client.recoverJobsResult(nodeId, minIdleMillis, maxJobs)).thenApply(PaperCloudIslandsApi::jobRecovery); }
         @Override public CompletableFuture<Void> clearCache() { return clearCacheResult().thenApply(_result -> null); }
-        @Override public CompletableFuture<CoreMaintenanceResult> clearCacheResult() { return client.clearCacheResult().thenApply(body -> maintenance(body, false)); }
+        @Override public CompletableFuture<CoreMaintenanceResult> clearCacheResult() { return mutate("admin.cache.clear", () -> client.clearCacheResult()).thenApply(body -> maintenance(body, false)); }
         @Override public CompletableFuture<Void> reload() { return reloadResult().thenApply(_result -> null); }
-        @Override public CompletableFuture<CoreMaintenanceResult> reloadResult() { return client.reloadResult().thenApply(body -> maintenance(body, bool(body, "reloaded", false))); }
+        @Override public CompletableFuture<CoreMaintenanceResult> reloadResult() { return mutate("admin.core.reload", () -> client.reloadResult()).thenApply(body -> maintenance(body, bool(body, "reloaded", false))); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid) { return client.playerInfo(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
-        @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return client.setPlayerIsland(playerUuid, islandId).thenApply(PaperCloudIslandsApi::playerProfile); }
-        @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return client.clearPlayerIsland(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
+        @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return mutate("admin.player.primary-island.set", () -> client.setPlayerIsland(playerUuid, islandId)).thenApply(PaperCloudIslandsApi::playerProfile); }
+        @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return mutate("admin.player.primary-island.clear", () -> client.clearPlayerIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return client.setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(body -> action(body, "BLOCK_VALUE_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return mutate("admin.block-value.set", () -> client.setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit)).thenApply(body -> action(body, "BLOCK_VALUE_SET")); }
         @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.listEvents().thenApply(PaperCloudIslandsApi::events); }
         @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents(int limit) { return client.listEvents(limit).thenApply(PaperCloudIslandsApi::events); }
         @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatch() { return client.listEvents().thenApply(PaperCloudIslandsApi::eventBatch); }
@@ -2427,17 +2438,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandTemplateSnapshot> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion) {
-            return client.upsertTemplate(templateId, displayName, enabled, minNodeVersion).thenApply(PaperCloudIslandsApi::template);
+            return mutate("admin.template.upsert", () -> client.upsertTemplate(templateId, displayName, enabled, minNodeVersion)).thenApply(PaperCloudIslandsApi::template);
         }
 
         @Override
         public CompletableFuture<IslandTemplateSnapshot> enableTemplate(String templateId) {
-            return client.enableTemplate(templateId).thenApply(PaperCloudIslandsApi::template);
+            return mutate("admin.template.enable", () -> client.enableTemplate(templateId)).thenApply(PaperCloudIslandsApi::template);
         }
 
         @Override
         public CompletableFuture<IslandTemplateSnapshot> disableTemplate(String templateId) {
-            return client.disableTemplate(templateId).thenApply(PaperCloudIslandsApi::template);
+            return mutate("admin.template.disable", () -> client.disableTemplate(templateId)).thenApply(PaperCloudIslandsApi::template);
         }
 
         @Override
@@ -2474,7 +2485,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (!superiorSkyblock2MigrationEnabled()) {
                 return CompletableFuture.completedFuture(disabledMigration(path));
             }
-            return client.migrateSuperiorSkyblock2(action, path).thenApply(PaperCloudIslandsApi::migrationRun);
+            return mutateIdempotent("admin.migration.superiorskyblock2." + action, () -> client.migrateSuperiorSkyblock2(action, path)).thenApply(PaperCloudIslandsApi::migrationRun);
         }
 
         private boolean superiorSkyblock2MigrationEnabled() {
@@ -2557,16 +2568,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override public CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid) { return createIsland(ownerUuid, "default"); }
-        @Override public CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid, String templateId) { return client.createIsland(ownerUuid, templateId); }
-        @Override public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) { return client.deleteIsland(requesterUuid, islandId); }
+        @Override public CompletableFuture<CreateIslandResult> createIsland(UUID ownerUuid, String templateId) { return mutate("island.create", () -> client.createIsland(ownerUuid, templateId)); }
+        @Override public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) { return mutateIdempotent("island.delete", () -> client.deleteIsland(requesterUuid, islandId)); }
         @Override public CompletableFuture<Void> resetIsland(UUID islandId, UUID actorUuid, String reason) { return resetIslandResult(islandId, actorUuid, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> resetIslandResult(UUID islandId, UUID actorUuid, String reason) { return client.resetIslandResult(islandId, actorUuid, reason).thenApply(body -> actionCode(body, "RESET_QUEUED")); }
+        @Override public CompletableFuture<IslandActionResult> resetIslandResult(UUID islandId, UUID actorUuid, String reason) { return mutateIdempotent("island.reset", () -> client.resetIslandResult(islandId, actorUuid, reason)).thenApply(body -> actionCode(body, "RESET_QUEUED")); }
         @Override public CompletableFuture<Void> invite(UUID islandId, UUID inviterUuid, UUID targetUuid) { return inviteResult(islandId, inviterUuid, targetUuid).thenApply(_invite -> null); }
-        @Override public CompletableFuture<IslandInviteSnapshot> inviteResult(UUID islandId, UUID inviterUuid, UUID targetUuid) { return client.createIslandInvite(islandId, inviterUuid, targetUuid).thenApply(PaperCloudIslandsApi::invite); }
+        @Override public CompletableFuture<IslandInviteSnapshot> inviteResult(UUID islandId, UUID inviterUuid, UUID targetUuid) { return mutate("island.invite.create", () -> client.createIslandInvite(islandId, inviterUuid, targetUuid)).thenApply(PaperCloudIslandsApi::invite); }
         @Override public CompletableFuture<Void> acceptInvite(UUID inviteId, UUID playerUuid) { return acceptInviteResult(inviteId, playerUuid).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandInviteActionResult> acceptInviteResult(UUID inviteId, UUID playerUuid) { return client.acceptIslandInviteResult(inviteId, playerUuid).thenApply(body -> inviteAction(body, "ACCEPTED")); }
+        @Override public CompletableFuture<IslandInviteActionResult> acceptInviteResult(UUID inviteId, UUID playerUuid) { return mutate("island.invite.accept", () -> client.acceptIslandInviteResult(inviteId, playerUuid)).thenApply(body -> inviteAction(body, "ACCEPTED")); }
         @Override public CompletableFuture<Void> declineInvite(UUID inviteId, UUID playerUuid) { return declineInviteResult(inviteId, playerUuid).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandInviteActionResult> declineInviteResult(UUID inviteId, UUID playerUuid) { return client.declineIslandInviteResult(inviteId, playerUuid).thenApply(body -> inviteAction(body, "DECLINED")); }
+        @Override public CompletableFuture<IslandInviteActionResult> declineInviteResult(UUID inviteId, UUID playerUuid) { return mutate("island.invite.decline", () -> client.declineIslandInviteResult(inviteId, playerUuid)).thenApply(body -> inviteAction(body, "DECLINED")); }
         @Override public CompletableFuture<Void> acceptInviteFromIsland(UUID playerUuid, UUID islandId) { return acceptInviteFromIslandResult(playerUuid, islandId).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandInviteActionResult> acceptInviteFromIslandResult(UUID playerUuid, UUID islandId) { return pendingInvite(playerUuid, invite -> invite.islandId().equals(islandId)).thenCompose(invite -> invite.map(value -> acceptInviteResult(value.inviteId(), playerUuid)).orElseGet(() -> CompletableFuture.completedFuture(new IslandInviteActionResult(false, "INVITE_UNAVAILABLE")))); }
         @Override public CompletableFuture<Void> declineInviteFromIsland(UUID playerUuid, UUID islandId) { return declineInviteFromIslandResult(playerUuid, islandId).thenApply(_result -> null); }
@@ -2576,29 +2587,29 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> declineInviteFromPlayer(UUID playerUuid, UUID inviterUuid) { return declineInviteFromPlayerResult(playerUuid, inviterUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandInviteActionResult> declineInviteFromPlayerResult(UUID playerUuid, UUID inviterUuid) { return pendingInvite(playerUuid, invite -> invite.inviterUuid().equals(inviterUuid)).thenCompose(invite -> invite.map(value -> declineInviteResult(value.inviteId(), playerUuid)).orElseGet(() -> CompletableFuture.completedFuture(new IslandInviteActionResult(false, "INVITE_UNAVAILABLE")))); }
         @Override public CompletableFuture<Void> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) { return banVisitorResult(islandId, actorUuid, targetUuid, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> banVisitorResult(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) { return client.banIslandVisitorResult(islandId, actorUuid, targetUuid, reason).thenApply(body -> action(body, "VISITOR_BANNED")); }
+        @Override public CompletableFuture<IslandActionResult> banVisitorResult(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) { return mutateIdempotent("island.visitor.ban", () -> client.banIslandVisitorResult(islandId, actorUuid, targetUuid, reason)).thenApply(body -> action(body, "VISITOR_BANNED")); }
         @Override public CompletableFuture<Void> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) { return pardonVisitorResult(islandId, actorUuid, targetUuid).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> pardonVisitorResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.pardonIslandVisitorResult(islandId, actorUuid, targetUuid).thenApply(body -> action(body, "VISITOR_PARDONED")); }
+        @Override public CompletableFuture<IslandActionResult> pardonVisitorResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return mutateIdempotent("island.visitor.pardon", () -> client.pardonIslandVisitorResult(islandId, actorUuid, targetUuid)).thenApply(body -> action(body, "VISITOR_PARDONED")); }
         @Override public CompletableFuture<Void> kick(UUID islandId, UUID actorUuid, UUID targetUuid) { return kickResult(islandId, actorUuid, targetUuid).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> kickResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.removeIslandMemberResult(islandId, actorUuid, targetUuid).thenApply(body -> action(body, "MEMBER_REMOVED")); }
+        @Override public CompletableFuture<IslandActionResult> kickResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return mutateIdempotent("island.member.remove", () -> client.removeIslandMemberResult(islandId, actorUuid, targetUuid)).thenApply(body -> action(body, "MEMBER_REMOVED")); }
         @Override public CompletableFuture<Void> trustPlayer(UUID islandId, UUID actorUuid, UUID targetUuid) { return trustPlayerResult(islandId, actorUuid, targetUuid).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> trustPlayerResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.setIslandMemberResult(islandId, actorUuid, targetUuid, IslandRole.TRUSTED).thenApply(body -> action(body, "PLAYER_TRUSTED")); }
+        @Override public CompletableFuture<IslandActionResult> trustPlayerResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return mutate("island.member.trust", () -> client.setIslandMemberResult(islandId, actorUuid, targetUuid, IslandRole.TRUSTED)).thenApply(body -> action(body, "PLAYER_TRUSTED")); }
         @Override public CompletableFuture<Void> untrustPlayer(UUID islandId, UUID actorUuid, UUID targetUuid) { return untrustPlayerResult(islandId, actorUuid, targetUuid).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> untrustPlayerResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.setIslandMemberResult(islandId, actorUuid, targetUuid, IslandRole.MEMBER).thenApply(body -> action(body, "PLAYER_UNTRUSTED")); }
+        @Override public CompletableFuture<IslandActionResult> untrustPlayerResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return mutate("island.member.untrust", () -> client.setIslandMemberResult(islandId, actorUuid, targetUuid, IslandRole.MEMBER)).thenApply(body -> action(body, "PLAYER_UNTRUSTED")); }
         @Override public CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) { return setRoleResult(islandId, actorUuid, targetUuid, role).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) { return client.setIslandMemberResult(islandId, actorUuid, targetUuid, role).thenApply(body -> action(body, "MEMBER_ROLE_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) { return mutate("island.member.role.set", () -> client.setIslandMemberResult(islandId, actorUuid, targetUuid, role)).thenApply(body -> action(body, "MEMBER_ROLE_SET")); }
         @Override public CompletableFuture<Void> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) { return transferOwnershipResult(islandId, actorUuid, targetUuid).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> transferOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return client.transferIslandOwnershipResult(islandId, actorUuid, targetUuid).thenApply(body -> action(body, "OWNERSHIP_TRANSFERRED")); }
+        @Override public CompletableFuture<IslandActionResult> transferOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return mutateIdempotent("island.ownership.transfer", () -> client.transferIslandOwnershipResult(islandId, actorUuid, targetUuid)).thenApply(body -> action(body, "OWNERSHIP_TRANSFERRED")); }
         @Override public CompletableFuture<Void> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return setFlagResult(islandId, actorUuid, flag, value).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return client.setIslandFlagResult(islandId, actorUuid, flag, value).thenApply(body -> action(body, "FLAG_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return mutate("island.flag.set", () -> client.setIslandFlagResult(islandId, actorUuid, flag, value)).thenApply(body -> action(body, "FLAG_SET")); }
         @Override public CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return setPermissionResult(islandId, actorUuid, role, permission, allowed).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return client.setIslandPermissionResult(islandId, actorUuid, role, permission, allowed).thenApply(body -> action(body, "PERMISSION_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return mutate("island.permission.set", () -> client.setIslandPermissionResult(islandId, actorUuid, role, permission, allowed)).thenApply(body -> action(body, "PERMISSION_SET")); }
         @Override public CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) { return upsertRoleResult(islandId, actorUuid, role, weight, displayName).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) { return client.upsertIslandRole(islandId, actorUuid, role, weight, displayName).thenApply(PaperCloudIslandsApi::role); }
+        @Override public CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) { return mutate("island.role.upsert", () -> client.upsertIslandRole(islandId, actorUuid, role, weight, displayName)).thenApply(PaperCloudIslandsApi::role); }
         @Override public CompletableFuture<Void> resetRole(UUID islandId, UUID actorUuid, IslandRole role) { return resetRoleResult(islandId, actorUuid, role).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, IslandRole role) { return client.resetIslandRole(islandId, actorUuid, role).thenApply(body -> action(body, "ROLE_RESET")); }
+        @Override public CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, IslandRole role) { return mutateIdempotent("island.role.reset", () -> client.resetIslandRole(islandId, actorUuid, role)).thenApply(body -> action(body, "ROLE_RESET")); }
         @Override public CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked) { return setLockedResult(islandId, actorUuid, locked).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked) { return client.setIslandLockedResult(islandId, actorUuid, locked).thenApply(body -> action(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED")); }
+        @Override public CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked) { return mutate("island.locked.set", () -> client.setIslandLockedResult(islandId, actorUuid, locked)).thenApply(body -> action(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED")); }
         @Override public CompletableFuture<Void> lockIsland(UUID islandId, UUID actorUuid) { return lockIslandResult(islandId, actorUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> lockIslandResult(UUID islandId, UUID actorUuid) { return setLockedResult(islandId, actorUuid, true); }
         @Override public CompletableFuture<Void> unlockIsland(UUID islandId, UUID actorUuid) { return unlockIslandResult(islandId, actorUuid).thenApply(_result -> null); }
@@ -2606,47 +2617,47 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, IslandLocation location) { return setHomeResult(islandId, actorUuid, location).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, IslandLocation location) { return setHomeResult(islandId, actorUuid, "default", location); }
         @Override public CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return setHomeResult(islandId, actorUuid, name, location).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return client.setIslandHomeResult(islandId, actorUuid, name, location).thenApply(body -> action(body, "HOME_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return mutate("island.home.set", () -> client.setIslandHomeResult(islandId, actorUuid, name, location)).thenApply(body -> action(body, "HOME_SET")); }
         @Override public CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey) { return setBiomeResult(islandId, actorUuid, biomeKey).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setBiomeResult(UUID islandId, UUID actorUuid, String biomeKey) { return client.setIslandBiomeResult(islandId, actorUuid, biomeKey).thenApply(body -> action(body, "BIOME_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setBiomeResult(UUID islandId, UUID actorUuid, String biomeKey) { return mutate("island.biome.set", () -> client.setIslandBiomeResult(islandId, actorUuid, biomeKey)).thenApply(body -> action(body, "BIOME_SET")); }
         @Override public CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) { return setLimitResult(islandId, actorUuid, limitKey, value).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandLimitSnapshot> setLimitResult(UUID islandId, UUID actorUuid, String limitKey, long value) { return client.setIslandLimit(islandId, actorUuid, limitKey, value).thenApply(PaperCloudIslandsApi::limit); }
+        @Override public CompletableFuture<IslandLimitSnapshot> setLimitResult(UUID islandId, UUID actorUuid, String limitKey, long value) { return mutate("island.limit.set", () -> client.setIslandLimit(islandId, actorUuid, limitKey, value)).thenApply(PaperCloudIslandsApi::limit); }
         @Override public CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return createWarpResult(islandId, actorUuid, name, location).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> createWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return setWarpResult(islandId, actorUuid, name, location, false); }
         @Override public CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return setWarpResult(islandId, actorUuid, name, location, publicAccess).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return client.setIslandWarpResult(islandId, actorUuid, name, location, publicAccess).thenApply(body -> action(body, "WARP_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return mutate("island.warp.set", () -> client.setIslandWarpResult(islandId, actorUuid, name, location, publicAccess)).thenApply(body -> action(body, "WARP_SET")); }
         @Override public CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name) { return deleteWarpResult(islandId, actorUuid, name).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> deleteWarpResult(UUID islandId, UUID actorUuid, String name) { return client.deleteIslandWarpResult(islandId, actorUuid, name).thenApply(body -> action(body, "WARP_DELETED")); }
+        @Override public CompletableFuture<IslandActionResult> deleteWarpResult(UUID islandId, UUID actorUuid, String name) { return mutateIdempotent("island.warp.delete", () -> client.deleteIslandWarpResult(islandId, actorUuid, name)).thenApply(body -> action(body, "WARP_DELETED")); }
         @Override public CompletableFuture<Void> setWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess) { return setWarpPublicAccessResult(islandId, actorUuid, name, publicAccess).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setWarpPublicAccessResult(UUID islandId, UUID actorUuid, String name, boolean publicAccess) { return client.setIslandWarpPublicAccessResult(islandId, actorUuid, name, publicAccess).thenApply(body -> action(body, publicAccess ? "WARP_PUBLIC_ACCESS_ENABLED" : "WARP_PUBLIC_ACCESS_DISABLED")); }
+        @Override public CompletableFuture<IslandActionResult> setWarpPublicAccessResult(UUID islandId, UUID actorUuid, String name, boolean publicAccess) { return mutate("island.warp.public-access.set", () -> client.setIslandWarpPublicAccessResult(islandId, actorUuid, name, publicAccess)).thenApply(body -> action(body, publicAccess ? "WARP_PUBLIC_ACCESS_ENABLED" : "WARP_PUBLIC_ACCESS_DISABLED")); }
         @Override public CompletableFuture<Void> publishWarp(UUID islandId, UUID actorUuid, String name) { return publishWarpResult(islandId, actorUuid, name).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> publishWarpResult(UUID islandId, UUID actorUuid, String name) { return setWarpPublicAccessResult(islandId, actorUuid, name, true); }
         @Override public CompletableFuture<Void> privatizeWarp(UUID islandId, UUID actorUuid, String name) { return privatizeWarpResult(islandId, actorUuid, name).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> privatizeWarpResult(UUID islandId, UUID actorUuid, String name) { return setWarpPublicAccessResult(islandId, actorUuid, name, false); }
         @Override public CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) { return setPublicAccessResult(islandId, actorUuid, publicAccess).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess) { return client.setIslandPublicAccessResult(islandId, actorUuid, publicAccess).thenApply(body -> action(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED")); }
+        @Override public CompletableFuture<IslandActionResult> setPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess) { return mutate("island.public-access.set", () -> client.setIslandPublicAccessResult(islandId, actorUuid, publicAccess)).thenApply(body -> action(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED")); }
         @Override public CompletableFuture<Void> publishIsland(UUID islandId, UUID actorUuid) { return publishIslandResult(islandId, actorUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> publishIslandResult(UUID islandId, UUID actorUuid) { return setPublicAccessResult(islandId, actorUuid, true); }
         @Override public CompletableFuture<Void> privatizeIsland(UUID islandId, UUID actorUuid) { return privatizeIslandResult(islandId, actorUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> privatizeIslandResult(UUID islandId, UUID actorUuid) { return setPublicAccessResult(islandId, actorUuid, false); }
-        @Override public CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid) { return client.recalculateIslandLevel(islandId, actorUuid).thenApply(PaperCloudIslandsApi::level); }
+        @Override public CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid) { return mutate("island.level.recalculate", () -> client.recalculateIslandLevel(islandId, actorUuid)).thenApply(PaperCloudIslandsApi::level); }
         @Override public CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) { return purchaseUpgradeResult(islandId, actorUuid, upgradeKey).thenApply(_result -> null); }
-        @Override public CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey) { return client.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey).thenApply(PaperCloudIslandsApi::upgradePurchase); }
+        @Override public CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey) { return mutateIdempotent("island.upgrade.purchase", () -> client.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey)).thenApply(PaperCloudIslandsApi::upgradePurchase); }
         @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey) { return completeMission(islandId, actorUuid, missionKey, "MISSION"); }
         @Override public CompletableFuture<Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey) { return completeMissionResult(islandId, actorUuid, missionKey, "MISSION"); }
         @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind) { return completeMissionResult(islandId, actorUuid, missionKey, kind).thenApply(_result -> null); }
-        @Override public CompletableFuture<Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind) { return client.completeIslandMission(islandId, actorUuid, missionKey, kind).thenApply(PaperCloudIslandsApi::mission); }
-        @Override public CompletableFuture<Optional<IslandMissionSnapshot>> progressMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) { return client.progressIslandMission(islandId, actorUuid, missionKey, kind, amount).thenApply(PaperCloudIslandsApi::mission); }
+        @Override public CompletableFuture<Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind) { return mutateIdempotent("island.mission.complete", () -> client.completeIslandMission(islandId, actorUuid, missionKey, kind)).thenApply(PaperCloudIslandsApi::mission); }
+        @Override public CompletableFuture<Optional<IslandMissionSnapshot>> progressMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) { return mutateIdempotent("island.mission.progress", () -> client.progressIslandMission(islandId, actorUuid, missionKey, kind, amount)).thenApply(PaperCloudIslandsApi::mission); }
         @Override public CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message) { return sendChatResult(islandId, actorUuid, channel, message).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message) { return client.sendIslandChat(islandId, actorUuid, channel, message).thenApply(PaperCloudIslandsApi::chatResult); }
+        @Override public CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message) { return mutate("island.chat.send", () -> client.sendIslandChat(islandId, actorUuid, channel, message)).thenApply(PaperCloudIslandsApi::chatResult); }
         @Override public CompletableFuture<Void> sendIslandChat(UUID islandId, UUID actorUuid, String message) { return sendIslandChatResult(islandId, actorUuid, message).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandChatResult> sendIslandChatResult(UUID islandId, UUID actorUuid, String message) { return sendChatResult(islandId, actorUuid, "ISLAND", message); }
         @Override public CompletableFuture<Void> sendTeamChat(UUID islandId, UUID actorUuid, String message) { return sendTeamChatResult(islandId, actorUuid, message).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandChatResult> sendTeamChatResult(UUID islandId, UUID actorUuid, String message) { return sendChatResult(islandId, actorUuid, "TEAM", message); }
         @Override public CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return depositBankResult(islandId, actorUuid, amount).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandBankChangeSnapshot> depositBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return client.depositIslandBank(islandId, actorUuid, amount.toPlainString()).thenApply(PaperCloudIslandsApi::bankDeposit); }
+        @Override public CompletableFuture<IslandBankChangeSnapshot> depositBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.deposit", () -> client.depositIslandBank(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankDeposit); }
         @Override public CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return withdrawBankResult(islandId, actorUuid, amount).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return client.withdrawIslandBank(islandId, actorUuid, amount.toPlainString()).thenApply(PaperCloudIslandsApi::bankChange); }
+        @Override public CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.withdraw", () -> client.withdrawIslandBank(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankChange); }
 
         private CompletableFuture<Optional<IslandInviteSnapshot>> pendingInvite(UUID playerUuid, java.util.function.Predicate<IslandInviteSnapshot> predicate) {
             return client.listPendingInvites(playerUuid)
