@@ -13,10 +13,12 @@ class AdminCommandBackendPolicyTest {
     @Test
     void diagnosticsExportIsAFirstClassAdminCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String adminSurface = source + "\n" + catalog;
 
-        assertTrue(source.contains("\"diagnostics\""), "Diagnostics root command must be registered");
-        assertTrue(source.contains("ciadmin diagnostics export"), "Diagnostics export must be listed in help");
+        assertTrue(adminSurface.contains("\"diagnostics\""), "Diagnostics root command must be registered");
+        assertTrue(adminSurface.contains("ciadmin diagnostics export"), "Diagnostics export must be listed in help");
         assertTrue(source.contains("handleDiagnostics"), "Diagnostics command must have a handler");
         assertTrue(source.contains("cloudislands.admin.\" + root"), "Diagnostics must be covered by admin permission mapping");
         assertTrue(source.contains("redactDiagnostic"), "Diagnostics export must redact secrets");
@@ -42,14 +44,16 @@ class AdminCommandBackendPolicyTest {
     @Test
     void configOperationsAreFirstClassAdminCommands() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String adminSurface = source + "\n" + catalog;
 
         assertTrue(source.contains("CONFIG_COMMANDS"), "Config subcommands must be registered for completion");
-        assertTrue(source.contains("ciadmin config validate"), "Config validate must be listed in help");
-        assertTrue(source.contains("ciadmin config diff"), "Config diff must be listed in help");
-        assertTrue(source.contains("ciadmin config reload"), "Config reload must be listed in help");
-        assertTrue(source.contains("ciadmin config effective"), "Config effective must be listed in help");
-        assertTrue(source.contains("ciadmin config sources"), "Config sources must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin config validate"), "Config validate must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin config diff"), "Config diff must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin config reload"), "Config reload must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin config effective"), "Config effective must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin config sources"), "Config sources must be listed in help");
         assertTrue(source.contains("handleConfig"), "Config command must have a local operation handler");
         assertTrue(source.contains("ConfigV2Validator.validateYaml"), "Config validate must run schema and secret validation");
         assertTrue(source.contains("ConfigV2Validator.redactYaml"), "Effective config output must redact secrets");
@@ -64,11 +68,13 @@ class AdminCommandBackendPolicyTest {
     @Test
     void integrationsCommandCoversMajorHookPlugins() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
         String policy = Files.readString(Path.of("../cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/integration/CloudIntegrationPolicy.java"));
+        String adminSurface = source + "\n" + catalog;
 
-        assertTrue(source.contains("\"integrations\""), "Integrations root command must be registered");
-        assertTrue(source.contains("ciadmin integrations"), "Integrations command must be listed in help");
+        assertTrue(adminSurface.contains("\"integrations\""), "Integrations root command must be registered");
+        assertTrue(adminSurface.contains("ciadmin integrations"), "Integrations command must be listed in help");
         assertTrue(source.contains("integrationStatusMessage"), "Integrations command must have a status handler");
         assertTrue(source.contains("integrationRegistry().statusLine()"), "Integrations command must use the runtime integration registry");
         assertTrue(source.contains("integrationsDiagnosticSection"), "Diagnostics export must include integration policy state");
@@ -101,8 +107,10 @@ class AdminCommandBackendPolicyTest {
     @Test
     void islandVisitorStatsAreExposedForOperators() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String adminSurface = source + "\n" + catalog;
 
-        assertTrue(source.contains("ciadmin island visitor-stats <island>"), "Visitor stats command must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island visitor-stats <island>"), "Visitor stats command must be listed in help");
         assertTrue(source.contains("coreApiClient.islandVisitorStats"), "Visitor stats command must call the Core visitor stats API");
     }
 }
