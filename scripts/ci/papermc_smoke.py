@@ -40,7 +40,10 @@ def download(url: str, target: Path) -> None:
 
 
 def prepare_paper(work_dir: Path, plugin: Path) -> list[str]:
-    (work_dir / "plugins" / "CloudIslands").mkdir(parents=True, exist_ok=True)
+    cloudislands_dir = work_dir / "plugins" / "CloudIslands"
+    config_v2_dir = cloudislands_dir / "config-v2"
+    cloudislands_dir.mkdir(parents=True, exist_ok=True)
+    config_v2_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(plugin, work_dir / "plugins" / plugin.name)
     (work_dir / "eula.txt").write_text("eula=true\n", encoding="utf-8")
     (work_dir / "server.properties").write_text(
@@ -60,29 +63,66 @@ def prepare_paper(work_dir: Path, plugin: Path) -> list[str]:
         ),
         encoding="utf-8",
     )
-    (work_dir / "plugins" / "CloudIslands" / "config.yml").write_text(
+    (config_v2_dir / "runtime.yml").write_text(
         "\n".join(
             [
                 "node:",
                 "  role: LOBBY",
                 "  id: smoke-lobby",
+                "  pool: lobby",
                 "  velocity-server-name: Lobby",
                 "  reject-default-identity: false",
-                "core-api:",
-                "  base-url: http://127.0.0.1:9",
-                "  auth-token: smoke",
-                "  admin-token: smoke",
-                "  timeout-ms: 100",
-                "redis:",
-                "  uri: \"\"",
-                "security:",
-                "  require-velocity-forwarding: false",
-                "  require-proxy-source-allowlist: false",
-                "  enforce-route-session: false",
-                "routing:",
-                "  require-route-session: false",
+                "  supported-templates:",
+                "    - \"*\"",
+                "capacity:",
+                "  max-active-islands: 1",
+                "  soft-player-limit: 10",
+                "  hard-player-limit: 20",
+                "  max-activation-queue: 1",
+                "heartbeat:",
+                "  interval: 5s",
                 "health:",
                 "  enabled: false",
+                "  bind-host: 127.0.0.1",
+                "  port: 8789",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (config_v2_dir / "integrations.yml").write_text(
+        "\n".join(
+            [
+                "core-api:",
+                "  base-url: http://127.0.0.1:9",
+                "  timeout:",
+                "    request: 100ms",
+                "redis:",
+                "  uri: \"\"",
+                "storage:",
+                "  type: LOCAL_FILESYSTEM",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (config_v2_dir / "security.yml").write_text(
+        "\n".join(
+            [
+                "core-api:",
+                "  auth-token: ${env:CI_CORE_TOKEN}",
+                "  admin-token: ${env:CI_ADMIN_TOKEN}",
+                "forwarding:",
+                "  required: false",
+                "  secret: ${env:VELOCITY_FORWARDING_SECRET}",
+                "route-session:",
+                "  enforce: false",
+                "  required: false",
+                "trusted-proxies: []",
+                "proxy-source-allowlist:",
+                "  required: false",
+                "storage:",
+                "  bearer-token: ${env:S3_BEARER_TOKEN}",
                 "",
             ]
         ),

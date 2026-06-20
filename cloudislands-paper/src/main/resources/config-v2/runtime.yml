@@ -3,6 +3,7 @@ node:
   role: ISLAND_NODE
   pool: island
   velocity-server-name: island-1
+  reject-default-identity: true
   supported-templates:
     - "*"
 capacity:

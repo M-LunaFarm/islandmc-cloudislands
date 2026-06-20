@@ -58,29 +58,25 @@ public final class PaperRuntimeConfigLoader {
             return PaperRuntimeConfig.defaults();
         }
         List<ConfigSource> sources = paperConfigV2Sources(plugin);
-        FileConfiguration legacyConfig = plugin.getConfig();
         if (sources.isEmpty()) {
-            return load(legacyConfig, envResolver);
+            return load(plugin.getConfig(), envResolver);
         }
-        return loadV2(sources, legacyConfig, envResolver);
+        return loadV2(sources, envResolver);
     }
 
     public static PaperRuntimeConfig load(FileConfiguration config, Function<String, String> envResolver) {
         return load(config, envResolver, null);
     }
 
-    public static PaperRuntimeConfig loadV2(List<ConfigSource> sources, FileConfiguration legacyConfig, Function<String, String> envResolver) {
+    public static PaperRuntimeConfig loadV2(List<ConfigSource> sources, Function<String, String> envResolver) {
         validateV2Sources(sources);
         YamlConfiguration mapped = mapV2Sources(sources);
         if (mapped.getKeys(true).isEmpty()) {
-            return load(legacyConfig, envResolver);
+            return load(new YamlConfiguration(), envResolver);
         }
         ConfigSnapshot snapshot = ConfigV2Loader.load(List.of(new ConfigSource("paper-config-v2-runtime", 10, mapped.saveToString())));
         requireValidSnapshot(snapshot);
-        YamlConfiguration effective = new YamlConfiguration();
-        copyScalars(legacyConfig, effective);
-        copyScalars(mapped, effective);
-        return load(effective, envResolver, snapshot);
+        return load(mapped, envResolver, snapshot);
     }
 
     private static void validateV2Sources(List<ConfigSource> sources) {
@@ -207,6 +203,7 @@ public final class PaperRuntimeConfigLoader {
         setIfPresent(source, target, "node.role", "node.role");
         setIfPresent(source, target, "node.pool", "node.pool");
         setIfPresent(source, target, "node.velocity-server-name", "node.velocity-server-name");
+        setIfPresent(source, target, "node.reject-default-identity", "node.reject-default-identity");
         setIfPresent(source, target, "node.supported-templates", "node.supported-templates");
         setIfPresent(source, target, "capacity.max-active-islands", "node.max-active-islands");
         setIfPresent(source, target, "capacity.max-activation-queue", "node.max-activation-queue");
@@ -239,7 +236,11 @@ public final class PaperRuntimeConfigLoader {
         setIfPresent(source, target, "storage.secret-key", "storage.secret-key");
         setIfPresent(source, target, "storage.bearer-token", "storage.auth-token");
         setIfPresent(source, target, "forwarding.secret", "security.forwarding-secret");
+        setIfPresent(source, target, "forwarding.required", "security.require-velocity-forwarding");
+        setIfPresent(source, target, "route-session.enforce", "security.enforce-route-session");
+        setIfPresent(source, target, "route-session.required", "routing.require-route-session");
         setIfPresent(source, target, "trusted-proxies", "security.proxy-source-allowlist");
+        setIfPresent(source, target, "proxy-source-allowlist.required", "security.require-proxy-source-allowlist");
     }
 
     private static void mapFeaturesV2(FileConfiguration source, FileConfiguration target) {
@@ -262,17 +263,6 @@ public final class PaperRuntimeConfigLoader {
             throw new IllegalArgumentException("Invalid Paper config-v2 yaml " + sourceName, exception);
         }
         return yaml;
-    }
-
-    private static void copyScalars(FileConfiguration source, FileConfiguration target) {
-        if (source == null || target == null) {
-            return;
-        }
-        for (Map.Entry<String, Object> entry : source.getValues(true).entrySet()) {
-            if (!(entry.getValue() instanceof ConfigurationSection)) {
-                target.set(entry.getKey(), entry.getValue());
-            }
-        }
     }
 
     private static void setIfPresent(FileConfiguration source, FileConfiguration target, String sourcePath, String targetPath) {

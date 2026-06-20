@@ -8,5 +8,11 @@ storage:
   secret-key: "${file:/run/secrets/s3_secret_key}"
   bearer-token: "${file:/run/secrets/s3_bearer_token}"
 forwarding:
+  required: true
   secret: "${file:/run/secrets/velocity_forwarding_secret}"
+route-session:
+  enforce: true
+  required: true
 trusted-proxies: []
+proxy-source-allowlist:
+  required: true
