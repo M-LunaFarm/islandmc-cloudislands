@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.platform.compatibility;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
@@ -271,12 +272,63 @@ class PaperPlatformBoundaryTest {
         }
     }
 
+    @Test
+    void splitConfigV2UsesCanonicalFeatureAndRuntimeOwnership() throws Exception {
+        Path root = repositoryRoot();
+        String paperFeatures = Files.readString(root.resolve("cloudislands-paper/src/main/resources/config-v2/features.yml"));
+        String coreDatabase = Files.readString(root.resolve("cloudislands-core-service/src/main/resources/config-v2/database.yml"));
+        String velocityConfig = Files.readString(root.resolve("cloudislands-velocity/src/main/resources/config-v2/config.yml"))
+            + "\n" + Files.readString(root.resolve("cloudislands-velocity/src/main/resources/config-v2/core-api.yml"))
+            + "\n" + Files.readString(root.resolve("cloudislands-velocity/src/main/resources/config-v2/routing.yml"));
+
+        assertTrue(!paperFeatures.contains("addons:"), "Paper config v2 must not expose legacy addon feature roots");
+        assertTrue(!paperFeatures.contains("cloudislands-satis"), "Paper config v2 must keep Satis features at the canonical satis root");
+        assertTrue(countLines(paperFeatures, "satis:") == 1, "Paper config v2 must define exactly one canonical satis root");
+
+        assertTrue(coreDatabase.contains("type: POSTGRESQL"), "Core config v2 database.yml must declare one selected backend type");
+        assertTrue(!containsAnyLine(coreDatabase, "postgresql:", "mysql:", "mariadb:", "setup:"), "Core config v2 database.yml must not expose multiple typed backend blocks or setup state");
+
+        assertTrue(!containsAnyText(velocityConfig, "database:", "storage:", "POSTGRESQL", "MYSQL", "MARIADB"), "Velocity config v2 must not expose Core database or island storage ownership");
+    }
+
+    @Test
+    void splitConfigV2DoesNotContainPlaintextSecrets() throws Exception {
+        Path root = repositoryRoot();
+        try (Stream<Path> files = Stream.of(
+                root.resolve("cloudislands-paper/src/main/resources/config-v2"),
+                root.resolve("cloudislands-core-service/src/main/resources/config-v2"),
+                root.resolve("cloudislands-velocity/src/main/resources/config-v2")
+            ).flatMap(PaperPlatformBoundaryTest::yamlFiles)) {
+            String violations = files
+                .flatMap(path -> plaintextSecretViolations(root, path).stream())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+
+            assertTrue(violations.isBlank(), violations);
+        }
+    }
+
     private static Stream<Path> javaFiles(Path root) {
         try {
             if (Files.notExists(root)) {
                 return Stream.empty();
             }
             return Files.walk(root).filter(path -> path.toString().endsWith(".java"));
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static Stream<Path> yamlFiles(Path root) {
+        try {
+            if (Files.notExists(root)) {
+                return Stream.empty();
+            }
+            return Files.walk(root).filter(path -> {
+                String value = path.toString();
+                return value.endsWith(".yml") || value.endsWith(".yaml");
+            });
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }
@@ -368,5 +420,76 @@ class PaperPlatformBoundaryTest {
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }
+    }
+
+    private static boolean containsAnyText(String source, String... needles) {
+        for (String needle : needles) {
+            if (source.contains(needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsAnyLine(String source, String... lines) {
+        return source.lines().map(String::trim).anyMatch(value -> {
+            for (String line : lines) {
+                if (value.equals(line)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    private static long countLines(String source, String line) {
+        return source.lines().filter(value -> value.equals(line)).count();
+    }
+
+    private static List<String> plaintextSecretViolations(Path root, Path path) {
+        try {
+            return Files.readAllLines(path).stream()
+                .map(String::trim)
+                .filter(line -> !line.isBlank() && !line.startsWith("#"))
+                .filter(PaperPlatformBoundaryTest::looksLikeSecretLine)
+                .filter(line -> !usesSecretReference(line))
+                .map(line -> root.relativize(path) + ": " + line)
+                .toList();
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static boolean looksLikeSecretLine(String line) {
+        int separator = line.indexOf(':');
+        if (separator <= 0 || separator == line.length() - 1) {
+            return false;
+        }
+        String key = line.substring(0, separator).trim().toLowerCase(java.util.Locale.ROOT);
+        return key.equals("password")
+            || key.endsWith("-password")
+            || key.endsWith("_password")
+            || key.endsWith("token")
+            || key.endsWith("-token")
+            || key.endsWith("_token")
+            || key.equals("secret")
+            || key.endsWith("-secret")
+            || key.endsWith("_secret")
+            || key.equals("access-key")
+            || key.equals("secret-key")
+            || key.equals("bearer-token")
+            || key.equals("auth-token")
+            || key.equals("admin-token");
+    }
+
+    private static boolean usesSecretReference(String line) {
+        String value = line.substring(line.indexOf(':') + 1).trim();
+        return value.equals("\"\"")
+            || value.equals("''")
+            || value.isBlank()
+            || value.startsWith("\"${")
+            || value.startsWith("${")
+            || value.startsWith("\"<")
+            || value.startsWith("<");
     }
 }
