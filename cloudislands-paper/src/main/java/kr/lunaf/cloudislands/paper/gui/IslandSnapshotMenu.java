@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.SnapshotView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -72,8 +71,8 @@ public final class IslandSnapshotMenu implements Listener {
             GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        String snapshotNo = GuiItems.data(event.getCurrentItem()).getOrDefault("snapshotNo", "");
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        String snapshotNo = data.getOrDefault("snapshotNo", "");
         if (!snapshotNo.isBlank()) {
             if (event.isShiftClick() && event.isRightClick()) {
                 GuiActionRegistry.execute(player, "island.snapshot.restore.prepare", java.util.Map.of("snapshotNo", String.valueOf(snapshotNo)), GuiClick.from(event));
@@ -84,11 +83,10 @@ public final class IslandSnapshotMenu implements Listener {
                 return;
             }
             player.sendMessage(message(messages, "snapshot-menu-detail-title", "스냅샷 상세"));
-            if (meta.getLore() != null) {
-                for (String line : meta.getLore()) {
-                    player.sendMessage("- " + line);
-                }
-            }
+            player.sendMessage("- " + message(messages, "snapshot-menu-number", "번호: ") + snapshotNo);
+            player.sendMessage("- " + message(messages, "snapshot-menu-reason", "사유: ") + fallback(data.get("reason"), message(messages, "snapshot-menu-none", "없음")));
+            player.sendMessage("- " + message(messages, "snapshot-menu-size", "크기: ") + fallback(data.get("sizeBytes"), "0") + message(messages, "snapshot-menu-size-unit", " bytes"));
+            player.sendMessage("- " + message(messages, "snapshot-menu-created-at", "생성 시각: ") + fallback(data.get("createdAt"), message(messages, "snapshot-menu-no-created-info", "생성 정보 없음")));
         }
     }
 
@@ -120,7 +118,12 @@ public final class IslandSnapshotMenu implements Listener {
 
     private static ItemStack snapshotItem(SnapshotView snapshot, MessageRenderer messages) {
         return GuiItems.action(Material.PAPER, message(messages, "snapshot-menu-title-prefix", "스냅샷 #") + snapshot.snapshotNo(), "island.snapshot.restore.prepare",
-            Map.of("snapshotNo", String.valueOf(snapshot.snapshotNo())),
+            Map.of(
+                "snapshotNo", String.valueOf(snapshot.snapshotNo()),
+                "reason", snapshot.reason(),
+                "sizeBytes", String.valueOf(snapshot.sizeBytes()),
+                "createdAt", snapshot.createdAt()
+            ),
             message(messages, "snapshot-menu-reason", "사유: ") + (snapshot.reason().isBlank() ? message(messages, "snapshot-menu-none", "없음") : snapshot.reason()),
             message(messages, "snapshot-menu-size", "크기: ") + snapshot.sizeBytes() + message(messages, "snapshot-menu-size-unit", " bytes"),
             snapshot.createdAt().isBlank() ? message(messages, "snapshot-menu-no-created-info", "생성 정보 없음") : message(messages, "snapshot-menu-created-at", "생성 시각: ") + snapshot.createdAt(),
@@ -137,6 +140,10 @@ public final class IslandSnapshotMenu implements Listener {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static String fallback(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
 }

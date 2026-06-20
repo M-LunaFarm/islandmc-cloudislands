@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.BanView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -67,8 +66,8 @@ public final class IslandBanMenu implements Listener {
             GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        String bannedUuid = GuiItems.data(event.getCurrentItem()).getOrDefault("playerUuid", "");
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        String bannedUuid = data.getOrDefault("playerUuid", "");
         if (bannedUuid.isBlank()) {
             return;
         }
@@ -77,11 +76,11 @@ public final class IslandBanMenu implements Listener {
             return;
         }
         player.sendMessage(message(messages, "ban-menu-detail-title", "방문자 밴 상세"));
-        if (meta.getLore() != null) {
-            for (String line : meta.getLore()) {
-                player.sendMessage("- " + line);
-            }
-        }
+        player.sendMessage("- " + message(messages, "ban-menu-player", "대상: ") + shortUuid(bannedUuid));
+        player.sendMessage("- " + message(messages, "ban-menu-actor", "처리자: ") + shortUuid(data.getOrDefault("actorUuid", "")));
+        player.sendMessage("- " + message(messages, "ban-menu-reason", "사유: ") + fallback(data.get("reason"), message(messages, "ban-menu-none", "없음")));
+        player.sendMessage("- " + message(messages, "ban-menu-created-at", "생성 시각: ") + fallback(data.get("createdAt"), message(messages, "ban-menu-no-created-info", "생성 정보 없음")));
+        player.sendMessage("- " + message(messages, "ban-menu-expires-at", "만료 시각: ") + fallback(data.get("expiresAt"), message(messages, "ban-menu-no-expire", "만료 없음")));
     }
 
     private static void openSync(Plugin plugin, Player player, List<BanView> bans, MessageRenderer messages) {
@@ -102,7 +101,13 @@ public final class IslandBanMenu implements Listener {
 
     private static ItemStack banItem(BanView ban, MessageRenderer messages) {
         return GuiItems.action(Material.BARRIER, message(messages, "ban-menu-title-prefix", "밴 ") + shortUuid(ban.bannedUuid()), "island.ban.pardon.prepare",
-            Map.of("playerUuid", ban.bannedUuid()),
+            Map.of(
+                "playerUuid", ban.bannedUuid(),
+                "actorUuid", ban.actorUuid(),
+                "reason", ban.reason(),
+                "createdAt", ban.createdAt(),
+                "expiresAt", ban.expiresAt()
+            ),
             message(messages, "ban-menu-actor", "처리자: ") + shortUuid(ban.actorUuid()),
             message(messages, "ban-menu-reason", "사유: ") + (ban.reason().isBlank() ? message(messages, "ban-menu-none", "없음") : ban.reason()),
             ban.createdAt().isBlank() ? message(messages, "ban-menu-no-created-info", "생성 정보 없음") : message(messages, "ban-menu-created-at", "생성 시각: ") + ban.createdAt(),
@@ -132,6 +137,10 @@ public final class IslandBanMenu implements Listener {
 
     private static String shortUuid(String uuid) {
         return uuid.length() <= 8 ? uuid : uuid.substring(0, 8);
+    }
+
+    private static String fallback(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
 }

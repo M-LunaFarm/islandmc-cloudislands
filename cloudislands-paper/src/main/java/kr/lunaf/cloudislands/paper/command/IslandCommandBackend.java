@@ -1281,6 +1281,13 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.chat.open" -> IslandChatMenu.open(player, messages);
             case "island.logs.open" -> openIslandLogMenu(player);
             case "island.logs.list" -> listIslandLogs(player, 10);
+            case "island.log.detail" -> {
+                message(player, routeMessage("log-menu-detail-title", "섬 로그 상세"));
+                message(player, "- " + routeMessage("log-menu-action", "작업: ") + data.getOrDefault("action", "unknown"));
+                message(player, "- " + routeMessage("log-menu-time", "시간: ") + data.getOrDefault("createdAt", "unknown"));
+                message(player, "- " + routeMessage("log-menu-actor", "처리자: ") + data.getOrDefault("actorUuid", "unknown"));
+                message(player, "- " + routeMessage("log-menu-payload", "payload: ") + data.getOrDefault("payload", routeMessage("log-menu-payload-empty", "없음")));
+            }
             case "island.biome.open" -> openIslandBiomeMenu(player);
             case "island.biome.show" -> showIslandBiome(player);
             case "island.biome.set" -> setIslandBiome(player, data.getOrDefault("biomeKey", ""));

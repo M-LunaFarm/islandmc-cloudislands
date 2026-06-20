@@ -8,7 +8,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.LogEntryView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -78,16 +77,15 @@ public final class IslandLogMenu implements Listener {
             player.closeInventory();
             return;
         }
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
-        if (meta == null) {
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        if (data.isEmpty()) {
             return;
         }
         player.sendMessage(message(messages, "log-menu-detail-title", "섬 로그 상세"));
-        if (meta.hasLore() && meta.getLore() != null) {
-            for (String line : meta.getLore()) {
-                player.sendMessage("- " + line);
-            }
-        }
+        player.sendMessage("- " + message(messages, "log-menu-action", "작업: ") + fallback(data.get("action"), "unknown"));
+        player.sendMessage("- " + message(messages, "log-menu-time", "시간: ") + fallback(data.get("createdAt"), message(messages, "log-menu-unknown", "unknown")));
+        player.sendMessage("- " + message(messages, "log-menu-actor", "처리자: ") + shorten(data.get("actorUuid")));
+        player.sendMessage("- " + message(messages, "log-menu-payload", "payload: ") + fallback(data.get("payload"), message(messages, "log-menu-payload-empty", "없음")));
     }
 
     private static void openSync(Plugin plugin, Player player, List<LogEntryView> entries, MessageRenderer messages) {
@@ -98,7 +96,7 @@ public final class IslandLogMenu implements Listener {
             } else {
                 for (int index = 0; index < entries.size() && index < 27; index++) {
                     LogEntryView entry = entries.get(index);
-                    inventory.setItem(index, item(material(entry.action()), (index + 1) + ". " + entry.action(), lore(entry, messages)));
+                    inventory.setItem(index, logItem(entry, index, messages));
                 }
             }
             inventory.setItem(30, item(Material.COMPASS, message(messages, "log-menu-main-menu-name", "메인 메뉴"), message(messages, "log-menu-main-menu-command", "/섬 메뉴")));
@@ -125,6 +123,34 @@ public final class IslandLogMenu implements Listener {
             }
         }
         return lore;
+    }
+
+    private static ItemStack logItem(LogEntryView entry, int index, MessageRenderer messages) {
+        return GuiItems.action(material(entry.action()), (index + 1) + ". " + entry.action(), "island.log.detail",
+            Map.of(
+                "action", fallback(entry.action(), "unknown"),
+                "actorUuid", fallback(entry.actorUuid(), ""),
+                "createdAt", fallback(entry.createdAt(), ""),
+                "payload", payloadSummary(entry.payload(), messages)
+            ),
+            lore(entry, messages).toArray(String[]::new));
+    }
+
+    private static String payloadSummary(Map<String, String> payload, MessageRenderer messages) {
+        if (payload.isEmpty()) {
+            return message(messages, "log-menu-payload-empty", "없음");
+        }
+        StringBuilder builder = new StringBuilder();
+        for (Map.Entry<String, String> entry : payload.entrySet()) {
+            if (builder.length() > 0) {
+                builder.append(", ");
+            }
+            builder.append(entry.getKey()).append('=').append(entry.getValue());
+            if (builder.length() > 180) {
+                return builder.substring(0, 180) + "...";
+            }
+        }
+        return builder.toString();
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
