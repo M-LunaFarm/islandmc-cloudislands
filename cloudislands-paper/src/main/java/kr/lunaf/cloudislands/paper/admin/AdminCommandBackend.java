@@ -684,14 +684,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<String> config = diagnosticSection("core-config", coreApiClient.coreConfig());
         CompletableFuture<String> metrics = diagnosticSection("metrics", coreApiClient.metrics());
         CompletableFuture<String> storage = diagnosticSection("storage", coreApiClient.storageStatus());
-        CompletableFuture<String> nodes = diagnosticSection("nodes", coreApiClient.listNodes().thenApply(Object::toString));
+        CompletableFuture<String> nodeSnapshot = coreApiClient.listNodes().thenApply(Object::toString);
+        CompletableFuture<String> nodes = diagnosticSection("nodes", nodeSnapshot);
+        CompletableFuture<String> heartbeatLag = diagnosticSection("heartbeat-lag", nodeSnapshot.thenApply(this::heartbeatLagDiagnosticBody));
         CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.listJobs().thenApply(Object::toString));
         CompletableFuture<String> routes = diagnosticSection("route-debug", coreApiClient.debugRoutes(new UUID(0L, 0L)));
         CompletableFuture<String> audit = diagnosticSection("audit", coreApiClient.listAuditLogs(25));
         CompletableFuture<String> configValidation = CompletableFuture.completedFuture(configValidationDiagnosticSection());
         CompletableFuture<String> effectiveConfig = CompletableFuture.completedFuture(effectiveConfigDiagnosticSection());
-        run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, jobs, routes, audit, configValidation, effectiveConfig)
-            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), configValidation.join(), effectiveConfig.join(), integrationsDiagnosticSection()))));
+        run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, heartbeatLag, jobs, routes, audit, configValidation, effectiveConfig)
+            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), heartbeatLag.join(), jobs.join(), routes.join(), audit.join(), configValidation.join(), effectiveConfig.join(), integrationsDiagnosticSection()))));
         return true;
     }
 
@@ -744,6 +746,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         } catch (RuntimeException exception) {
             return "## effective-config-redacted\nerror=" + exception.getClass().getSimpleName() + ':' + exception.getMessage() + '\n';
         }
+    }
+
+    private String heartbeatLagDiagnosticBody(String nodesJson) {
+        return "nodeCount=" + longValue(nodesJson, "nodeCount") + '\n'
+            + "routeCandidateCount=" + longValue(nodesJson, "routeCandidateCount") + '\n'
+            + "staleNodeCount=" + longValue(nodesJson, "staleNodeCount") + '\n'
+            + "heartbeatTimeoutSeconds=" + longValue(nodesJson, "heartbeatTimeoutSeconds") + '\n';
     }
 
     private static String redactDiagnostic(String value) {
