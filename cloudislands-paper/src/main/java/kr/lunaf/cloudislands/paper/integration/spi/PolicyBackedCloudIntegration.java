@@ -28,4 +28,16 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
     public Set<IntegrationCapability> capabilities() {
         return capabilities;
     }
+
+    protected IntegrationResult guardedStateHook(String operation, IntegrationContext context, String... requiredMetadata) {
+        CloudIntegrationPolicy.HookDecision decision = validateRuntimeAuthority(context, true);
+        if (!decision.allowed()) {
+            return IntegrationResult.failed(pluginName + " " + operation + " denied: " + String.join(",", decision.violations()));
+        }
+        Set<String> missingMetadata = context == null ? Set.of("context") : context.missingMetadata(requiredMetadata);
+        if (!missingMetadata.isEmpty()) {
+            return IntegrationResult.failed(pluginName + " " + operation + " missing metadata: " + String.join(",", missingMetadata));
+        }
+        return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId());
+    }
 }

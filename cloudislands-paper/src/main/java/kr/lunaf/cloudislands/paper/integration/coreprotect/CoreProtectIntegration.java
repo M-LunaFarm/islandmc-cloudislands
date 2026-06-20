@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.paper.integration.coreprotect;
 
 import java.util.Set;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.spi.PolicyBackedCloudIntegration;
 
 public final class CoreProtectIntegration extends PolicyBackedCloudIntegration {
@@ -13,5 +15,15 @@ public final class CoreProtectIntegration extends PolicyBackedCloudIntegration {
             IntegrationCapability.STATE_RESTORE,
             IntegrationCapability.RUNTIME_AUTHORITY
         ));
+    }
+
+    @Override
+    public IntegrationResult exportState(IntegrationContext context) {
+        return guardedStateHook("audit-export", context, "world", "cell", "bundleKey");
+    }
+
+    @Override
+    public IntegrationResult restoreState(IntegrationContext context) {
+        return guardedStateHook("rollback-restore", context, "world", "cell", "rollbackSeconds", "bundleKey");
     }
 }
