@@ -565,6 +565,24 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void roleMenuUsesRegisteredActionsInsteadOfCommandHints() throws Exception {
+        Path root = repositoryRoot();
+        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandRoleMenu.java"));
+        String translations = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/message/TranslationManager.java"));
+
+        assertTrue(menu.contains("\"island.role.weight.adjust\""), "Role GUI must expose a direct role edit action");
+        assertTrue(menu.contains("GuiItems.action(Material.PAPER"), "Role list control must use PDC action metadata");
+        assertTrue(menu.contains("GuiItems.action(Material.COMPARATOR"), "Role permission control must use PDC action metadata");
+        assertTrue(backend.contains("case \"island.role.weight.adjust\" -> adjustIslandRoleWeight"), "Role edit action must be registered");
+        assertTrue(backend.contains("upsertIslandRole(player, role, updatedWeight, displayName)"), "Role edit action must call the Core role mutation");
+        assertTrue(backend.contains("resetIslandRole(player, role)"), "Role edit action must support reset through the Core role mutation");
+        assertTrue(!menu.contains("역할편집"), "Role GUI must not print command syntax as its edit path");
+        assertTrue(!translations.contains("role-menu-edit-prefix"), "Role translations must not keep command-hint edit text");
+        assertTrue(!translations.contains("role-menu-list-command"), "Role controls must describe actions rather than command aliases");
+    }
+
+    @Test
     void paperCoreMutationCallsCarryRequestMetadata() throws Exception {
         Path root = repositoryRoot();
         List<Path> files = List.of(

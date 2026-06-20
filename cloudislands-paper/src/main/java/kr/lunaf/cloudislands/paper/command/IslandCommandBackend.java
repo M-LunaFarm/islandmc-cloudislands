@@ -1308,7 +1308,7 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
             case "island.permissions.reset" -> resetStagedIslandPermissions(player);
             case "island.permissions.set" -> stageIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true");
             case "island.roles.open" -> openIslandRoleMenu(player);
-            case "island.role.edit.help" -> message(player, routeMessage("role-edit-help", "역할 편집은 /섬 역할편집 <역할> <weight> <displayName> 으로 요청합니다."));
+            case "island.role.weight.adjust" -> adjustIslandRoleWeight(player, data.getOrDefault("role", ""), data.getOrDefault("weight", "0"), data.getOrDefault("displayName", ""), click);
             case "island.roles.list" -> listIslandRoles(player);
             case "island.settings.open" -> openIslandSettings(player);
             case "island.public.toggle" -> setIslandPublicAccess(player, !click.right());
@@ -3336,6 +3336,21 @@ final class IslandCommandBackend implements CommandExecutor, TabCompleter, Liste
                     return null;
                 });
         });
+    }
+
+    private void adjustIslandRoleWeight(Player player, String roleName, String weightValue, String displayName, GuiClick click) {
+        IslandRole role = islandRole(roleName);
+        if (role == null) {
+            message(player, routeMessage("input-role-invalid", "올바른 역할을 입력해주세요."));
+            return;
+        }
+        if (click.shift()) {
+            resetIslandRole(player, role);
+            return;
+        }
+        int currentWeight = (int) Math.max(0L, Math.min(100L, longValue(weightValue, 0L)));
+        int updatedWeight = Math.max(0, Math.min(100, currentWeight + (click.right() ? -1 : 1)));
+        upsertIslandRole(player, role, updatedWeight, displayName);
     }
 
     private void resetIslandRole(Player player, IslandRole role) {

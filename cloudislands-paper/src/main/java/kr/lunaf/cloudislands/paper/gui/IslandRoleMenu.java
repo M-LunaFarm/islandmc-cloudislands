@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RoleView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -55,31 +54,16 @@ public final class IslandRoleMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getCurrentItem() == null || !GuiItems.topInventoryClick(event)) {
             return;
         }
-        int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 27) {
+        GuiClick click = GuiClick.from(event);
+        if (!click.supported()) {
+            return;
+        }
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (actionId.isBlank()) {
             return;
         }
         player.closeInventory();
-        if (slot == 18) {
-            GuiActionRegistry.execute(player, "island.roles.list", GuiClick.from(event));
-            return;
-        }
-        if (slot == 19) {
-            GuiActionRegistry.execute(player, "island.permissions.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 20) {
-            GuiActionRegistry.execute(player, "island.roles.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 26) {
-            GuiActionRegistry.execute(player, "island.settings.open", GuiClick.from(event));
-            return;
-        }
-        String role = GuiItems.data(event.getCurrentItem()).getOrDefault("role", "");
-        if (!role.isBlank()) {
-            player.sendMessage(message(messages, "role-menu-edit-prefix", "역할 편집: /섬 역할편집 ") + role + message(messages, "role-menu-edit-suffix", " <weight> <displayName>"));
-        }
+        GuiActionRegistry.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
     }
 
     private static void openSync(Plugin plugin, Player player, List<RoleView> roles, MessageRenderer messages) {
@@ -90,22 +74,26 @@ public final class IslandRoleMenu implements Listener {
                 inventory.setItem(slot++, roleItem(role, messages));
             }
             if (roles.isEmpty()) {
-                inventory.setItem(13, item(Material.GRAY_DYE, message(messages, "role-menu-empty-title", "커스텀 역할 없음"), message(messages, "role-menu-empty-example", "/섬 역할편집 CUSTOM_1 5 부관리자")));
+                inventory.setItem(13, item(Material.GRAY_DYE, message(messages, "role-menu-empty-title", "커스텀 역할 없음"), message(messages, "role-menu-empty-example", "Core 역할 카탈로그가 비어 있습니다.")));
             }
-            inventory.setItem(18, item(Material.PAPER, message(messages, "role-menu-list-name", "역할 목록"), message(messages, "role-menu-list-command", "/섬 역할목록")));
-            inventory.setItem(19, item(Material.COMPARATOR, message(messages, "role-menu-permission-name", "권한 설정"), message(messages, "role-menu-permission-command", "/섬 권한")));
-            inventory.setItem(20, item(Material.CLOCK, message(messages, "role-menu-refresh-name", "새로고침"), message(messages, "role-menu-refresh-command", "/섬 역할")));
-            inventory.setItem(26, item(Material.REDSTONE_TORCH, message(messages, "role-menu-settings-name", "설정"), message(messages, "role-menu-settings-command", "/섬 설정")));
+            inventory.setItem(18, GuiItems.action(Material.PAPER, message(messages, "role-menu-list-name", "역할 목록"), "island.roles.list", message(messages, "role-menu-list-lore", "Core 역할 카탈로그를 채팅에 출력합니다.")));
+            inventory.setItem(19, GuiItems.action(Material.COMPARATOR, message(messages, "role-menu-permission-name", "권한 설정"), "island.permissions.open", message(messages, "role-menu-permission-lore", "역할별 권한 매트릭스를 엽니다.")));
+            inventory.setItem(20, GuiItems.action(Material.CLOCK, message(messages, "role-menu-refresh-name", "새로고침"), "island.roles.open", message(messages, "role-menu-refresh-lore", "Core에서 역할을 다시 불러옵니다.")));
+            inventory.setItem(26, GuiItems.action(Material.REDSTONE_TORCH, message(messages, "role-menu-settings-name", "설정"), "island.settings.open", message(messages, "role-menu-settings-lore", "섬 설정으로 돌아갑니다.")));
             player.openInventory(inventory);
         });
     }
 
     private static ItemStack roleItem(RoleView role, MessageRenderer messages) {
-        return GuiItems.action(material(role.role()), role.displayName().isBlank() ? role.role() : role.displayName(), "island.role.edit.help",
-            Map.of("role", role.role()),
+        return GuiItems.action(material(role.role()), role.displayName().isBlank() ? role.role() : role.displayName(), "island.role.weight.adjust",
+            Map.of(
+                "role", role.role(),
+                "weight", String.valueOf(role.weight()),
+                "displayName", role.displayName()
+            ),
             message(messages, "role-menu-weight", "weight=") + role.weight(),
             message(messages, "role-menu-enum", "enum=") + role.role(),
-            message(messages, "role-menu-click-edit", "클릭: 편집 명령어 안내"));
+            message(messages, "role-menu-click-edit", "좌클릭: weight +1, 우클릭: weight -1, Shift: 기본값 복원"));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
