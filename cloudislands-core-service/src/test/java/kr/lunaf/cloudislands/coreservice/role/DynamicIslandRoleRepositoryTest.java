@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import org.junit.jupiter.api.Test;
 
 class DynamicIslandRoleRepositoryTest {
@@ -37,5 +38,18 @@ class DynamicIslandRoleRepositoryTest {
         assertNull(rule.role());
         assertEquals("BUILDER", rule.effectiveRoleKey());
         assertTrue(rule.allowed());
+    }
+
+    @Test
+    void memberAssignmentsKeepOperatorDefinedRoleKeys() {
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000112");
+
+        metadata.upsertMemberKey(ISLAND, playerUuid, "builder");
+
+        var member = metadata.members(ISLAND).getFirst();
+        assertNull(member.role());
+        assertEquals("BUILDER", member.roleKey());
+        assertEquals("BUILDER", member.effectiveRoleKey());
     }
 }

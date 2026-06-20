@@ -17,11 +17,35 @@ public final class LocalIslandPermissionCache {
     private final AtomicLong hits = new AtomicLong();
 
     public void putRole(UUID islandId, UUID playerUuid, IslandRole role) {
-        islands.computeIfAbsent(islandId, ignored -> empty()).roles().put(playerUuid, role);
+        putRoleKey(islandId, playerUuid, role.name());
+    }
+
+    public void putRoleKey(UUID islandId, UUID playerUuid, String roleKey) {
+        CachedIslandPermissions cached = islands.computeIfAbsent(islandId, ignored -> empty());
+        String normalizedRoleKey = normalizeRoleKey(roleKey);
+        cached.roleKeys().put(playerUuid, normalizedRoleKey);
+        IslandRole role = roleOrNull(normalizedRoleKey);
+        if (role == null) {
+            cached.roles().remove(playerUuid);
+        } else {
+            cached.roles().put(playerUuid, role);
+        }
     }
 
     public void putRule(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
-        islands.computeIfAbsent(islandId, ignored -> empty()).permissions().put(role, permission, allowed);
+        putRuleKey(islandId, role.name(), permission, allowed);
+    }
+
+    public void putRuleKey(UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
+        CachedIslandPermissions cached = islands.computeIfAbsent(islandId, ignored -> empty());
+        String normalizedRoleKey = normalizeRoleKey(roleKey);
+        cached.dynamicRules()
+            .computeIfAbsent(normalizedRoleKey, ignored -> new ConcurrentHashMap<>())
+            .put(permission, allowed);
+        IslandRole role = roleOrNull(normalizedRoleKey);
+        if (role != null) {
+            cached.permissions().put(role, permission, allowed);
+        }
     }
 
     public void putPlayerOverride(UUID islandId, UUID playerUuid, IslandPermission permission, boolean allowed) {
@@ -37,12 +61,35 @@ public final class LocalIslandPermissionCache {
 
     public boolean allowed(UUID islandId, UUID playerUuid, IslandPermission permission, boolean adminBypass) {
         CachedIslandPermissions cached = cached(islandId);
+        if (adminBypass) {
+            return true;
+        }
+        Boolean override = cached.overrides().getOrDefault(playerUuid, Map.of()).get(permission);
+        if (override != null) {
+            return override;
+        }
+        String roleKey = roleKey(islandId, playerUuid);
+        if (roleKey.equals(IslandRole.OWNER.name())) {
+            return true;
+        }
+        if (roleKey.equals(IslandRole.BANNED.name())) {
+            return false;
+        }
+        Boolean dynamicRule = cached.dynamicRules().getOrDefault(roleKey, Map.of()).get(permission);
+        if (dynamicRule != null) {
+            return dynamicRule;
+        }
         return new PermissionResolver(cached.permissions(), cached.roles(), cached.overrides()).check(playerUuid, permission, adminBypass).allowed();
     }
 
     public IslandRole role(UUID islandId, UUID playerUuid) {
         CachedIslandPermissions cached = cached(islandId);
         return cached.roles().getOrDefault(playerUuid, IslandRole.VISITOR);
+    }
+
+    public String roleKey(UUID islandId, UUID playerUuid) {
+        CachedIslandPermissions cached = cached(islandId);
+        return cached.roleKeys().getOrDefault(playerUuid, cached.roles().getOrDefault(playerUuid, IslandRole.VISITOR).name());
     }
 
     public boolean flagAllowed(UUID islandId, IslandFlag flag) {
@@ -81,7 +128,7 @@ public final class LocalIslandPermissionCache {
     }
 
     private CachedIslandPermissions empty() {
-        return new CachedIslandPermissions(DefaultIslandPermissions.create(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+        return new CachedIslandPermissions(DefaultIslandPermissions.create(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
     }
 
     private CachedIslandPermissions cached(UUID islandId) {
@@ -94,5 +141,17 @@ public final class LocalIslandPermissionCache {
         return islands.computeIfAbsent(islandId, ignored -> empty());
     }
 
-    private record CachedIslandPermissions(CachedPermissionSet permissions, Map<UUID, IslandRole> roles, Map<IslandFlag, String> flags, Map<UUID, Map<IslandPermission, Boolean>> overrides) {}
+    private static String normalizeRoleKey(String roleKey) {
+        return roleKey == null ? "" : roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
+    }
+
+    private static IslandRole roleOrNull(String roleKey) {
+        try {
+            return IslandRole.valueOf(roleKey);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private record CachedIslandPermissions(CachedPermissionSet permissions, Map<UUID, IslandRole> roles, Map<UUID, String> roleKeys, Map<String, Map<IslandPermission, Boolean>> dynamicRules, Map<IslandFlag, String> flags, Map<UUID, Map<IslandPermission, Boolean>> overrides) {}
 }

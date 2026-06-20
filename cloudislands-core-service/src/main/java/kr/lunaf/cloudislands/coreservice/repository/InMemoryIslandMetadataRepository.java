@@ -60,9 +60,20 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey) {
+        upsertMemberKey(islandId, playerUuid, roleKey, null);
+    }
+
+    @Override
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, Instant expiresAt) {
+        upsertMemberKey(islandId, playerUuid, role.name(), expiresAt);
+    }
+
+    @Override
+    public void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey, Instant expiresAt) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
         members.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
-            .compute(playerUuid, (ignored, current) -> new IslandMemberSnapshot(islandId, playerUuid, role, current == null ? Instant.now() : current.joinedAt(), expiresAt));
+            .compute(playerUuid, (ignored, current) -> new IslandMemberSnapshot(islandId, playerUuid, normalizedRoleKey, current == null ? Instant.now() : current.joinedAt(), expiresAt));
     }
 
     @Override

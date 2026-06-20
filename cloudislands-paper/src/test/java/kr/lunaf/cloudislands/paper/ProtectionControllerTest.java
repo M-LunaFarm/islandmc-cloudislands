@@ -44,4 +44,19 @@ class ProtectionControllerTest {
         assertEquals(ProtectionDecisionPolicy.HOT_PATH_POLICY, protection.synchronousDecisionPolicy());
         assertEquals("no-core-api-http-database-or-redis-call-on-bukkit-event-thread", ProtectionDecisionPolicy.NO_SYNC_IO_POLICY);
     }
+
+    @Test
+    void dynamicRoleKeysCanGrantProtectionPermissions() {
+        UUID builder = UUID.fromString("00000000-0000-0000-0000-000000000504");
+        LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
+        ProtectionController protection = new ProtectionController(new RegionIndex(), cache);
+        protection.registerIsland(ISLAND, "ci_shard_001", 0, 0, 300, 2, 3);
+        cache.putRoleKey(ISLAND, builder, "builder");
+        cache.putRuleKey(ISLAND, "builder", IslandPermission.BUILD, true);
+        cache.putRuleKey(ISLAND, "builder", IslandPermission.BREAK, false);
+
+        assertTrue(protection.memberOrTrusted(ISLAND, builder));
+        assertTrue(protection.checkBlock(builder, "ci_shard_001", 0, 100, 0, IslandPermission.BUILD).allowed());
+        assertFalse(protection.checkBlock(builder, "ci_shard_001", 0, 100, 0, IslandPermission.BREAK).allowed());
+    }
 }

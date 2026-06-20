@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS island_members (
     owner_island_id CHAR(36) GENERATED ALWAYS AS (IF(role = 'OWNER', island_id, NULL)) STORED,
     PRIMARY KEY (island_id, player_uuid),
     CONSTRAINT fk_island_members_island FOREIGN KEY (island_id) REFERENCES islands(id),
-    CONSTRAINT chk_island_members_role_known CHECK (role IN ('OWNER', 'CO_OWNER', 'MODERATOR', 'MEMBER', 'TRUSTED', 'CUSTOM_1', 'CUSTOM_2', 'CUSTOM_3', 'CUSTOM_4', 'CUSTOM_5')),
+    CONSTRAINT chk_island_members_role_key_format CHECK (role = trim(role) AND role = upper(role) AND role <> '' AND role REGEXP '^[A-Z0-9_]+$' AND role NOT IN ('VISITOR', 'BANNED')),
     CONSTRAINT chk_island_members_joined_at_present CHECK (joined_at IS NOT NULL)
 );
 

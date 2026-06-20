@@ -109,7 +109,7 @@ public final class IslandWarehouseRoutes implements RouteGroup {
             .map(island -> island.ownerUuid().equals(actorUuid))
             .orElse(false);
         boolean allowed = metadataRepository.members(islandId).stream()
-            .anyMatch(member -> member.playerUuid().equals(actorUuid) && permissionRules.allowed(islandId, actorUuid, member.role(), permission));
+            .anyMatch(member -> member.playerUuid().equals(actorUuid) && permissionRules.allowedRoleKey(islandId, actorUuid, member.effectiveRoleKey(), permission));
         boolean accepted = owner || allowed;
         events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHECKED.name(), Map.of(
             "islandId", islandId.toString(),

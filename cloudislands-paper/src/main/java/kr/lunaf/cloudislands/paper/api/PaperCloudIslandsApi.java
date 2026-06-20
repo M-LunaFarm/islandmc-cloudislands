@@ -2840,8 +2840,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             members.add(new IslandMemberSnapshot(
                 uuid(object, "islandId", new UUID(0L, 0L)),
                 uuid(object, "playerUuid", new UUID(0L, 0L)),
-                enumValue(IslandRole.class, text(object, "role", "VISITOR"), IslandRole.VISITOR),
-                instant(text(object, "joinedAt", Instant.EPOCH.toString()))
+                roleKey(object, "VISITOR"),
+                instant(text(object, "joinedAt", Instant.EPOCH.toString())),
+                nullableInstant(object, "expiresAt")
             ));
         }
         return members;
@@ -2932,7 +2933,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         for (String object : objects(json, "rules")) {
             rules.add(new IslandPermissionRuleSnapshot(
                 uuid(object, "islandId", new UUID(0L, 0L)),
-                enumValue(IslandRole.class, text(object, "role", "VISITOR"), IslandRole.VISITOR),
+                roleKey(object, "VISITOR"),
                 enumValue(IslandPermission.class, text(object, "permission", "INTERACT"), IslandPermission.INTERACT),
                 bool(object, "allowed", false)
             ));
@@ -2951,10 +2952,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static IslandRoleSnapshot role(String json) {
         return new IslandRoleSnapshot(
             uuid(json, "islandId", new UUID(0L, 0L)),
-            enumValue(IslandRole.class, text(json, "role", "MEMBER"), IslandRole.MEMBER),
+            roleKey(json, "MEMBER"),
             integer(json, "weight", 0),
             text(json, "displayName", "")
         );
+    }
+
+    private static String roleKey(String json, String fallback) {
+        String value = text(json, "roleKey", "");
+        if (value.isBlank()) {
+            value = text(json, "role", fallback);
+        }
+        return value.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 
     private static IslandBiomeSnapshot biome(String json) {

@@ -49,7 +49,7 @@ public final class PermissionCacheSyncService {
     private void loadMembers(UUID islandId, String json) {
         for (Map<?, ?> object : objects(json, "members")) {
             try {
-                cache.putRole(islandId, UUID.fromString(text(object, "playerUuid")), IslandRole.valueOf(text(object, "role")));
+                cache.putRoleKey(islandId, UUID.fromString(text(object, "playerUuid")), roleKey(object, IslandRole.VISITOR.name()));
             } catch (RuntimeException ignored) {
             }
         }
@@ -62,7 +62,7 @@ public final class PermissionCacheSyncService {
         }
         for (Map<?, ?> object : rules) {
             try {
-                cache.putRule(islandId, IslandRole.valueOf(text(object, "role")), IslandPermission.valueOf(text(object, "permission")), bool(object, "allowed"));
+                cache.putRuleKey(islandId, roleKey(object, IslandRole.VISITOR.name()), IslandPermission.valueOf(text(object, "permission")), bool(object, "allowed"));
             } catch (RuntimeException ignored) {
             }
         }
@@ -97,6 +97,17 @@ public final class PermissionCacheSyncService {
 
     private String text(Map<?, ?> object, String field) {
         return SimpleJson.text(object.get(field));
+    }
+
+    private String roleKey(Map<?, ?> object, String fallback) {
+        String value = text(object, "roleKey");
+        if (value.isBlank()) {
+            value = text(object, "role");
+        }
+        if (value.isBlank()) {
+            value = fallback;
+        }
+        return value.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 
     private boolean bool(Map<?, ?> object, String field) {

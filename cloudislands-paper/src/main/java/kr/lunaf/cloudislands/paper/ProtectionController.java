@@ -87,8 +87,8 @@ public final class ProtectionController {
     }
 
     public boolean memberOrTrusted(UUID islandId, UUID playerUuid) {
-        IslandRole role = role(islandId, playerUuid);
-        return role.islandMemberRole();
+        String roleKey = permissionCache.roleKey(islandId, playerUuid);
+        return !roleKey.equals(IslandRole.VISITOR.name()) && !roleKey.equals(IslandRole.BANNED.name());
     }
 
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission) {

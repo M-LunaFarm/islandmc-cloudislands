@@ -376,7 +376,7 @@ final class MigrationAdminBackend {
             }
             for (kr.lunaf.cloudislands.migration.MigrationMemberRole memberRole : manifest.memberRoles()) {
                 if (!memberRole.playerUuid().equals(manifest.ownerUuid())) {
-                    metadata.upsertMember(manifest.islandId(), memberRole.playerUuid(), IslandRole.valueOf(memberRole.roleName()));
+                    metadata.upsertMemberKey(manifest.islandId(), memberRole.playerUuid(), memberRole.roleName());
                 }
             }
             for (java.util.UUID bannedUuid : manifest.bannedVisitors()) {
@@ -396,7 +396,7 @@ final class MigrationAdminBackend {
                 metadata.setFlag(manifest.islandId(), IslandFlag.valueOf(flag.flagName()), flag.value());
             }
             for (kr.lunaf.cloudislands.migration.MigrationPermission permission : manifest.permissions()) {
-                permissionRules.put(manifest.islandId(), IslandRole.valueOf(permission.roleName()), IslandPermission.valueOf(permission.permissionName()), permission.allowed());
+                permissionRules.putRoleKey(manifest.islandId(), permission.roleName(), IslandPermission.valueOf(permission.permissionName()), permission.allowed());
             }
             for (kr.lunaf.cloudislands.migration.MigrationUpgrade upgrade : manifest.upgrades()) {
                 upgrades.setLevel(manifest.islandId(), upgrade.upgradeKey(), UpgradePolicy.typeFor(upgrade.upgradeKey()), upgrade.level());
@@ -689,7 +689,7 @@ final class MigrationAdminBackend {
         for (kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot rule : permissionRules.list(manifest.islandId())) {
             current.put(rule.effectiveRoleKey() + ":" + rule.permission().name(), rule.allowed());
         }
-        return manifest.permissions().stream().allMatch(permission -> Boolean.valueOf(permission.allowed()).equals(current.get(permission.roleName() + ":" + permission.permissionName())));
+        return manifest.permissions().stream().allMatch(permission -> Boolean.valueOf(permission.allowed()).equals(current.get(normalizedRoleKey(permission.roleName()) + ":" + permission.permissionName())));
     }
 
     private boolean originLocationMatches(MigrationManifest manifest) {
@@ -708,11 +708,11 @@ final class MigrationAdminBackend {
     }
 
     private boolean memberRolesMatch(MigrationManifest manifest) {
-        Map<java.util.UUID, IslandRole> current = new java.util.HashMap<>();
+        Map<java.util.UUID, String> current = new java.util.HashMap<>();
         for (kr.lunaf.cloudislands.api.model.IslandMemberSnapshot member : metadata.members(manifest.islandId())) {
-            current.put(member.playerUuid(), member.role());
+            current.put(member.playerUuid(), member.effectiveRoleKey());
         }
-        return manifest.memberRoles().stream().allMatch(memberRole -> IslandRole.valueOf(memberRole.roleName()).equals(current.get(memberRole.playerUuid())));
+        return manifest.memberRoles().stream().allMatch(memberRole -> normalizedRoleKey(memberRole.roleName()).equals(current.get(memberRole.playerUuid())));
     }
 
     private boolean upgradesMatch(MigrationManifest manifest) {
@@ -1067,5 +1067,9 @@ final class MigrationAdminBackend {
 
     private String escape(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String normalizedRoleKey(String roleKey) {
+        return kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
     }
 }

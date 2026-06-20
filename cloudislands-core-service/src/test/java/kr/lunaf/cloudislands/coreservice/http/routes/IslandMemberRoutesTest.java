@@ -44,7 +44,7 @@ class IslandMemberRoutesTest {
         assertEquals(IslandRole.CO_OWNER, IslandMemberRoutes.memberRole(List.of(member), playerUuid));
         assertNull(IslandMemberRoutes.memberRole(List.of(member), UUID.fromString("00000000-0000-0000-0000-000000000003")));
         assertEquals(
-            "{\"members\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"role\":\"CO_OWNER\",\"joinedAt\":\"2026-01-02T03:04:05Z\",\"expiresAt\":null},{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000004\",\"role\":\"TRUSTED\",\"joinedAt\":\"2026-01-02T04:04:05Z\",\"expiresAt\":\"2026-01-02T05:04:05Z\"}]}",
+            "{\"members\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"role\":\"CO_OWNER\",\"roleKey\":\"CO_OWNER\",\"joinedAt\":\"2026-01-02T03:04:05Z\",\"expiresAt\":null},{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000004\",\"role\":\"TRUSTED\",\"roleKey\":\"TRUSTED\",\"joinedAt\":\"2026-01-02T04:04:05Z\",\"expiresAt\":\"2026-01-02T05:04:05Z\"}]}",
             IslandMemberRoutes.membersJson(List.of(member, temporary))
         );
 
@@ -55,6 +55,20 @@ class IslandMemberRoutesTest {
         assertTrue(enriched.contains("\"presenceState\":\"RECENT_ACTIVITY\""));
         assertTrue(enriched.contains("\"presenceSource\":\"CORE_PLAYER_PROFILE\""));
         assertTrue(enriched.contains("\"lastSeenAt\":\""));
+    }
+
+    @Test
+    void rendersDynamicMemberRoleKeys() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000022");
+        IslandMemberSnapshot member = new IslandMemberSnapshot(islandId, playerUuid, "builder", Instant.parse("2026-01-02T03:04:05Z"), null);
+
+        assertNull(IslandMemberRoutes.memberRole(List.of(member), playerUuid));
+        assertEquals("BUILDER", member.effectiveRoleKey());
+        assertEquals(
+            "{\"members\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000022\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\",\"joinedAt\":\"2026-01-02T03:04:05Z\",\"expiresAt\":null}]}",
+            IslandMemberRoutes.membersJson(List.of(member))
+        );
     }
 
     @Test

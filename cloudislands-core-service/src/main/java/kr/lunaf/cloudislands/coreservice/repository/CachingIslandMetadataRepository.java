@@ -63,6 +63,24 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey) {
+        delegate.upsertMemberKey(islandId, playerUuid, roleKey);
+        cacheMembers(islandId, delegate.members(islandId));
+    }
+
+    @Override
+    public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, Instant expiresAt) {
+        delegate.upsertMember(islandId, playerUuid, role, expiresAt);
+        cacheMembers(islandId, delegate.members(islandId));
+    }
+
+    @Override
+    public void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey, Instant expiresAt) {
+        delegate.upsertMemberKey(islandId, playerUuid, roleKey, expiresAt);
+        cacheMembers(islandId, delegate.members(islandId));
+    }
+
+    @Override
     public void removeMember(UUID islandId, UUID playerUuid) {
         delegate.removeMember(islandId, playerUuid);
         cacheMembers(islandId, delegate.members(islandId));
@@ -287,7 +305,7 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
                 members.add(new IslandMemberSnapshot(
                     JsonFields.uuid(object, "islandId", islandId),
                     JsonFields.uuid(object, "playerUuid", new UUID(0L, 0L)),
-                    JsonFields.enumValue(IslandRole.class, object, "role", IslandRole.VISITOR),
+                    roleKey(object),
                     instant(JsonFields.text(object, "joinedAt", "")),
                     nullableInstant(JsonFields.text(object, "expiresAt", ""))
                 ));
@@ -447,12 +465,21 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
             builder.append('{')
                 .append("\"islandId\":\"").append(member.islandId()).append("\",")
                 .append("\"playerUuid\":\"").append(member.playerUuid()).append("\",")
-                .append("\"role\":\"").append(member.role().name()).append("\",")
+                .append("\"role\":\"").append(member.effectiveRoleKey()).append("\",")
+                .append("\"roleKey\":\"").append(member.effectiveRoleKey()).append("\",")
                 .append("\"joinedAt\":\"").append(member.joinedAt()).append("\",")
                 .append("\"expiresAt\":\"").append(member.expiresAt() == null ? "" : member.expiresAt()).append("\"")
                 .append('}');
         }
         return builder.append(']').toString();
+    }
+
+    private static String roleKey(String object) {
+        String roleKey = JsonFields.text(object, "roleKey", "");
+        if (roleKey.isBlank()) {
+            roleKey = JsonFields.text(object, "role", IslandRole.VISITOR.name());
+        }
+        return kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
     }
 
     private static String bansJson(List<IslandBanSnapshot> bans) {

@@ -84,12 +84,23 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey) {
+        upsertMemberKey(islandId, playerUuid, roleKey, null);
+    }
+
+    @Override
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, Instant expiresAt) {
+        upsertMemberKey(islandId, playerUuid, role.name(), expiresAt);
+    }
+
+    @Override
+    public void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey, Instant expiresAt) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(upsertMemberSql(connection))) {
             statement.setObject(1, islandId);
             statement.setObject(2, playerUuid);
-            statement.setString(3, role.name());
+            statement.setString(3, normalizedRoleKey);
             statement.setObject(4, expiresAt == null ? null : java.sql.Timestamp.from(expiresAt));
             statement.executeUpdate();
         } catch (SQLException exception) {
@@ -566,7 +577,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         return new IslandMemberSnapshot(
             (UUID) rs.getObject("island_id"),
             (UUID) rs.getObject("player_uuid"),
-            IslandRole.valueOf(rs.getString("role")),
+            rs.getString("role"),
             rs.getTimestamp("joined_at").toInstant(),
             expiresAt == null ? null : expiresAt.toInstant()
         );
