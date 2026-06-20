@@ -377,6 +377,7 @@ class PaperPlatformBoundaryTest {
     void splitConfigV2UsesCanonicalFeatureAndRuntimeOwnership() throws Exception {
         Path root = repositoryRoot();
         String paperFeatures = Files.readString(root.resolve("cloudislands-paper/src/main/resources/config-v2/features.yml"));
+        String paperIntegrations = Files.readString(root.resolve("cloudislands-paper/src/main/resources/config-v2/integrations.yml"));
         String coreDatabase = Files.readString(root.resolve("cloudislands-core-service/src/main/resources/config-v2/database.yml"));
         String velocityConfig = Files.readString(root.resolve("cloudislands-velocity/src/main/resources/config-v2/config.yml"))
             + "\n" + Files.readString(root.resolve("cloudislands-velocity/src/main/resources/config-v2/core-api.yml"))
@@ -388,6 +389,13 @@ class PaperPlatformBoundaryTest {
 
         assertTrue(coreDatabase.contains("type: POSTGRESQL"), "Core config v2 database.yml must declare one selected backend type");
         assertTrue(!containsAnyLine(coreDatabase, "postgresql:", "mysql:", "mariadb:", "setup:"), "Core config v2 database.yml must not expose multiple typed backend blocks or setup state");
+
+        assertTrue(paperIntegrations.contains("hooks:"), "Paper config v2 integrations must expose first-class hook settings");
+        assertTrue(paperIntegrations.contains("distributed-policy: paper-hooks-must-tag-island-uuid-runtime-fencing-token-node-id-and-node-ownership-before-core-state-changes"), "Paper integration config must publish the distributed hook policy");
+        assertTrue(paperIntegrations.contains("runtime-fencing-token"), "Paper integration config must require runtime fencing claims for authority-changing hooks");
+        assertTrue(paperIntegrations.contains("CoreProtect:"), "Paper integration config must include CoreProtect hook settings");
+        assertTrue(paperIntegrations.contains("FastAsyncWorldEdit:"), "Paper integration config must include FAWE hook settings");
+        assertTrue(paperIntegrations.contains("runtime-authority-required: true"), "Paper integration config must distinguish Core-state-changing hooks");
 
         assertTrue(!containsAnyText(velocityConfig, "database:", "storage:", "POSTGRESQL", "MYSQL", "MARIADB"), "Velocity config v2 must not expose Core database or island storage ownership");
     }

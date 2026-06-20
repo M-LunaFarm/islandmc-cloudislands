@@ -31,6 +31,7 @@ import kr.lunaf.cloudislands.paper.generator.IslandCropGrowthListener;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
 import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
+import kr.lunaf.cloudislands.paper.integration.PaperIntegrationRegistry;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
@@ -91,6 +92,7 @@ final class PaperPluginBootstrap {
             Duration.ofMillis(coreApiTimeoutMillis())
         );
         plugin.agent = new CloudIslandsPaperAgent(plugin, role, client, nodeId);
+        plugin.integrationRegistry = PaperIntegrationRegistry.discover(plugin.getServer());
         plugin.localCaches = new LocalCacheManager();
         plugin.localCaches.registerStats("permissions", plugin.agent.permissionCache()::invalidateAll, plugin.agent.permissionCache()::lookupCount, plugin.agent.permissionCache()::hitRatio);
         String serviceName = plugin.getConfig().getString("plugin.service-name", "CloudIslands");

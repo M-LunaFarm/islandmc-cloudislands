@@ -15,3 +15,68 @@ storage:
   region: us-east-1
 routing:
   transport: CORE_TICKET
+hooks:
+  distributed-policy: paper-hooks-must-tag-island-uuid-runtime-fencing-token-node-id-and-node-ownership-before-core-state-changes
+  required-runtime-claims:
+    - island-uuid
+    - node-id
+    - runtime-fencing-token
+    - node-ownership
+    - core-idempotency-key
+  plugins:
+    CoreProtect:
+      enabled: true
+      category: audit-rollback
+      runtime-authority-required: true
+    WorldEdit:
+      enabled: true
+      category: world-edit
+      runtime-authority-required: true
+    FastAsyncWorldEdit:
+      enabled: true
+      category: world-edit
+      runtime-authority-required: true
+    LuckPerms:
+      enabled: true
+      category: permission
+      runtime-authority-required: false
+    ItemsAdder:
+      enabled: true
+      category: custom-items
+      runtime-authority-required: true
+    Oraxen:
+      enabled: true
+      category: custom-items
+      runtime-authority-required: true
+    Nexo:
+      enabled: true
+      category: custom-items
+      runtime-authority-required: true
+    RoseStacker:
+      enabled: true
+      category: stacker
+      runtime-authority-required: true
+    WildStacker:
+      enabled: true
+      category: stacker
+      runtime-authority-required: true
+    AdvancedSpawners:
+      enabled: true
+      category: spawner
+      runtime-authority-required: true
+    Plan:
+      enabled: true
+      category: analytics
+      runtime-authority-required: false
+    SuperVanish:
+      enabled: true
+      category: presence
+      runtime-authority-required: false
+    PremiumVanish:
+      enabled: true
+      category: presence
+      runtime-authority-required: false
+    Vault:
+      enabled: true
+      category: economy
+      runtime-authority-required: true

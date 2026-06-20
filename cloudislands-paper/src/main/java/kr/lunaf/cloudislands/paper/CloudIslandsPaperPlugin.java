@@ -30,6 +30,7 @@ import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
 import kr.lunaf.cloudislands.paper.generator.IslandCropGrowthListener;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
+import kr.lunaf.cloudislands.paper.integration.PaperIntegrationRegistry;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
@@ -76,6 +77,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     LocalCacheManager localCaches;
     ProxySourceAllowlist proxySourceAllowlist;
     MeteredIslandStorage islandStorage;
+    PaperIntegrationRegistry integrationRegistry;
     LifecycleRegistry lifecycle;
 
     @Override
@@ -104,6 +106,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             localCaches.invalidateAll();
             localCaches = null;
         }
+        integrationRegistry = null;
         messages = null;
     }
 
@@ -161,6 +164,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     MeteredIslandStorage islandStorage() {
         return islandStorage;
+    }
+
+    public PaperIntegrationRegistry integrationRegistry() {
+        if (integrationRegistry == null) {
+            integrationRegistry = PaperIntegrationRegistry.discover(getServer());
+        }
+        return integrationRegistry;
     }
 
     boolean guiEnabledForRole(AgentRole role) {

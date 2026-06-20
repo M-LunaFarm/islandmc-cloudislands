@@ -27,6 +27,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
+import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import org.bukkit.command.Command;
@@ -687,7 +688,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.listJobs().thenApply(Object::toString));
         CompletableFuture<String> audit = diagnosticSection("audit", coreApiClient.listAuditLogs(25));
         run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, jobs, audit)
-            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), audit.join()))));
+            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), audit.join(), integrationsDiagnosticSection()))));
         return true;
     }
 
@@ -736,12 +737,22 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private String integrationStatusMessage() {
+        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
+            return adminText("admin-command-integrations-prefix", "Integrations: ") + plugin.integrationRegistry().statusLine();
+        }
         List<String> entries = new ArrayList<>();
         for (String pluginName : kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.knownPlugins()) {
             boolean enabled = agent.plugin().getServer().getPluginManager().isPluginEnabled(pluginName);
             entries.add(pluginName + "=" + (enabled ? "enabled" : "missing") + ":" + kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.category(pluginName));
         }
         return adminText("admin-command-integrations-prefix", "Integrations: ") + String.join(", ", entries);
+    }
+
+    private String integrationsDiagnosticSection() {
+        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
+            return plugin.integrationRegistry().diagnosticsSection();
+        }
+        return diagnosticSection("integrations", CompletableFuture.completedFuture(integrationStatusMessage())).join();
     }
 
     private boolean handleNode(CommandSender sender, String[] args) {

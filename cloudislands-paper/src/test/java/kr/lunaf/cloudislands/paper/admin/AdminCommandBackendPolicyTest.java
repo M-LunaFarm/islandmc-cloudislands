@@ -56,12 +56,15 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("\"integrations\""), "Integrations root command must be registered");
         assertTrue(source.contains("ciadmin integrations"), "Integrations command must be listed in help");
         assertTrue(source.contains("integrationStatusMessage"), "Integrations command must have a status handler");
-        assertTrue(source.contains("isPluginEnabled(pluginName)"), "Integrations command must inspect Bukkit plugin state");
+        assertTrue(source.contains("integrationRegistry().statusLine()"), "Integrations command must use the runtime integration registry");
+        assertTrue(source.contains("integrationsDiagnosticSection"), "Diagnostics export must include integration policy state");
         assertTrue(source.contains("CloudIntegrationPolicy.knownPlugins()"), "Integrations command must use the shared integration policy");
         assertTrue(policy.contains("LuckPerms"), "LuckPerms must be covered by integration status");
         assertTrue(policy.contains("CoreProtect"), "CoreProtect must be covered by integration status");
         assertTrue(policy.contains("FastAsyncWorldEdit"), "FAWE must be covered by integration status");
         assertTrue(policy.contains("DISTRIBUTED_HOOK_POLICY"), "Integrations must publish the distributed hook policy");
+        assertTrue(policy.contains("requiredRuntimeClaims"), "Integration policy must expose required runtime claims");
+        assertTrue(policy.contains("validateHookContext"), "Integration policy must validate hook authority context");
         assertTrue(plugin.contains("cloudislands.admin.integrations"), "Integrations command must have a plugin permission");
         assertTrue(plugin.contains("LuckPerms"), "LuckPerms must be declared as a soft dependency");
         assertTrue(plugin.contains("CoreProtect"), "CoreProtect must be declared as a soft dependency");
