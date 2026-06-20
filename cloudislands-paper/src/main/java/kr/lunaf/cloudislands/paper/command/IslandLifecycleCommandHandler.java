@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.DangerousGuiActionPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
@@ -57,7 +58,9 @@ final class IslandLifecycleCommandHandler {
         return false;
     }
 
-    boolean handleGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click) {
+    boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        String actionId = action.actionId();
+        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.create.open" -> {
                 IslandCreateMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));

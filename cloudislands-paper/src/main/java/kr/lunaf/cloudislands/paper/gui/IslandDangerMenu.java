@@ -17,7 +17,7 @@ public final class IslandDangerMenu implements Listener {
     private static final String RESET_CONFIRM_TITLE = "섬 리셋 확인";
     private static final String DELETE_CONFIRM_TITLE = "섬 삭제 확인";
     private final MessageRenderer messages;
-    private final GuiActionExecutor actions;
+    private final GuiActionRegistry actions;
 
     public IslandDangerMenu() {
         this(null);
@@ -28,8 +28,12 @@ public final class IslandDangerMenu implements Listener {
     }
 
     public IslandDangerMenu(MessageRenderer messages, GuiActionExecutor actions) {
+        this(messages, new GuiActionRegistry(actions));
+    }
+
+    public IslandDangerMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
-        this.actions = actions == null ? GuiActionExecutor.noop() : actions;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Player player) {

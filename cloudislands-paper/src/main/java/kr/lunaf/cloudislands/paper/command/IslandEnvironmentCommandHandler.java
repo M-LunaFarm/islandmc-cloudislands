@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -117,7 +118,9 @@ final class IslandEnvironmentCommandHandler {
         return false;
     }
 
-    boolean handleGuiAction(Player player, String actionId, Map<String, String> data) {
+    boolean handleGuiAction(Player player, GuiAction action) {
+        String actionId = action.actionId();
+        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.biome.open" -> {
                 openBiomeMenu(player);

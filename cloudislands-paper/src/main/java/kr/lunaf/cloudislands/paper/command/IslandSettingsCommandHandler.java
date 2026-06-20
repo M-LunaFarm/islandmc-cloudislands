@@ -11,6 +11,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -97,7 +98,9 @@ final class IslandSettingsCommandHandler {
         return false;
     }
 
-    boolean handleGuiAction(Player player, String actionId, Map<String, String> data, boolean rightClick) {
+    boolean handleGuiAction(Player player, GuiAction action, boolean rightClick) {
+        String actionId = action.actionId();
+        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.settings.open" -> {
                 openSettings(player);

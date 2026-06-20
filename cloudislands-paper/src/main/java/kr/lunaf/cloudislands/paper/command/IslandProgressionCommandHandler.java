@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
@@ -143,7 +144,9 @@ final class IslandProgressionCommandHandler {
         return false;
     }
 
-    boolean handleGuiAction(Player player, String actionId, Map<String, String> data) {
+    boolean handleGuiAction(Player player, GuiAction action) {
+        String actionId = action.actionId();
+        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.ranking.open" -> {
                 openRankingMenu(player);

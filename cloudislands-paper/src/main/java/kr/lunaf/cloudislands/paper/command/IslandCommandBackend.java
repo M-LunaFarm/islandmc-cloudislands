@@ -26,6 +26,7 @@ import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
@@ -1081,44 +1082,48 @@ final class IslandCommandBackend implements CommandExecutor, Listener {
         return true;
     }
 
-    void executeGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click) {
+    void executeGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action == null) {
+            return;
+        }
+        String actionId = action.actionId();
         if (actionId == null || actionId.isBlank()) {
             return;
         }
-        if (bankCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+        if (bankCommands.handleGuiAction(player, action)) {
             return;
         }
-        if (snapshotCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
+        if (snapshotCommands.handleGuiAction(player, action, click)) {
             return;
         }
-        if (chatLogCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+        if (chatLogCommands.handleGuiAction(player, action)) {
             return;
         }
-        if (progressionCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+        if (progressionCommands.handleGuiAction(player, action)) {
             return;
         }
-        if (environmentCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+        if (environmentCommands.handleGuiAction(player, action)) {
             return;
         }
-        if (settingsCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click.right())) {
+        if (settingsCommands.handleGuiAction(player, action, click.right())) {
             return;
         }
-        if (homeWarpCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
+        if (homeWarpCommands.handleGuiAction(player, action, click)) {
             return;
         }
-        if (visitReviewCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+        if (visitReviewCommands.handleGuiAction(player, action)) {
             return;
         }
-        if (lifecycleCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
+        if (lifecycleCommands.handleGuiAction(player, action, click)) {
             return;
         }
-        if (overviewCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data)) {
+        if (overviewCommands.handleGuiAction(player, action)) {
             return;
         }
-        if (membershipCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
+        if (membershipCommands.handleGuiAction(player, action, click)) {
             return;
         }
-        if (adminCommands.handleGuiAction(player, actionId, data == null ? Map.of() : data, click)) {
+        if (adminCommands.handleGuiAction(player, action, click)) {
             return;
         }
         switch (actionId) {

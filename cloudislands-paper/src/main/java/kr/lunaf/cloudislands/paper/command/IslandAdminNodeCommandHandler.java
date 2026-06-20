@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -24,7 +25,9 @@ final class IslandAdminNodeCommandHandler {
         this.runtime = runtime;
     }
 
-    boolean handleGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click) {
+    boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        String actionId = action.actionId();
+        Map<String, String> data = action.data();
         return switch (actionId) {
             case "admin.node.open" -> {
                 openAdminNodeMenu(player, adminNodeId(data));

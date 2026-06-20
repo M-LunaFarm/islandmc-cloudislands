@@ -1,10 +1,10 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import java.util.List;
-import java.util.Map;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
@@ -69,8 +69,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     @Override
-    public void execute(org.bukkit.entity.Player player, String actionId, Map<String, String> data, GuiClick click) {
-        backend.executeGuiAction(player, actionId, data, click);
+    public void execute(org.bukkit.entity.Player player, GuiAction action, GuiClick click) {
+        backend.executeGuiAction(player, action, click);
     }
 
     @EventHandler

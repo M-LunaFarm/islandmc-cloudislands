@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
@@ -138,7 +139,9 @@ final class IslandHomeWarpCommandHandler {
         return false;
     }
 
-    boolean handleGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click) {
+    boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        String actionId = action.actionId();
+        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.home" -> {
                 if (click.right()) {

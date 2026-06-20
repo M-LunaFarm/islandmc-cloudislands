@@ -20,6 +20,6 @@ public final class GuiActionRegistry {
             return;
         }
         GuiActionParser.parse(actionId, data)
-            .ifPresent(action -> executor.execute(player, action.actionId(), action.data(), safeClick));
+            .ifPresent(action -> executor.execute(player, action, safeClick));
     }
 }

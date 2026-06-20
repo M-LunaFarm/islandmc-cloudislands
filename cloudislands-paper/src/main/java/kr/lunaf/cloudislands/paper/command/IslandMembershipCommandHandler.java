@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -228,7 +229,9 @@ final class IslandMembershipCommandHandler {
         return false;
     }
 
-    boolean handleGuiAction(Player player, String actionId, Map<String, String> data, GuiClick click) {
+    boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        String actionId = action.actionId();
+        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.members.open" -> {
                 runtime.openIslandMemberMenu(player);

@@ -21,7 +21,7 @@ public final class IslandMemberMenu implements Listener {
     private static final String MENU_ID = "island.members";
     private static final int MEMBERS_PER_PAGE = 45;
     private final MessageRenderer messages;
-    private final GuiActionExecutor actions;
+    private final GuiActionRegistry actions;
 
     public IslandMemberMenu() {
         this(null);
@@ -32,8 +32,12 @@ public final class IslandMemberMenu implements Listener {
     }
 
     public IslandMemberMenu(MessageRenderer messages, GuiActionExecutor actions) {
+        this(messages, new GuiActionRegistry(actions));
+    }
+
+    public IslandMemberMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
-        this.actions = actions == null ? GuiActionExecutor.noop() : actions;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {

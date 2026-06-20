@@ -29,7 +29,7 @@ public final class IslandPermissionMenu implements Listener {
     private static final int PERMISSIONS_PER_PAGE = 8;
     private static final List<String> PERMISSIONS = Arrays.stream(IslandPermission.values()).map(Enum::name).toList();
     private final MessageRenderer messages;
-    private final GuiActionExecutor actions;
+    private final GuiActionRegistry actions;
 
     public IslandPermissionMenu() {
         this(null);
@@ -40,8 +40,12 @@ public final class IslandPermissionMenu implements Listener {
     }
 
     public IslandPermissionMenu(MessageRenderer messages, GuiActionExecutor actions) {
+        this(messages, new GuiActionRegistry(actions));
+    }
+
+    public IslandPermissionMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
-        this.actions = actions == null ? GuiActionExecutor.noop() : actions;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {

@@ -17,7 +17,7 @@ public final class IslandMainMenu implements Listener {
     private static final String TITLE = "섬 메뉴";
     private static final String MENU_ID = "island.main";
     private final MessageRenderer messages;
-    private final GuiActionExecutor actions;
+    private final GuiActionRegistry actions;
 
     public IslandMainMenu() {
         this(null);
@@ -28,8 +28,12 @@ public final class IslandMainMenu implements Listener {
     }
 
     public IslandMainMenu(MessageRenderer messages, GuiActionExecutor actions) {
+        this(messages, new GuiActionRegistry(actions));
+    }
+
+    public IslandMainMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
-        this.actions = actions == null ? GuiActionExecutor.noop() : actions;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Player player) {

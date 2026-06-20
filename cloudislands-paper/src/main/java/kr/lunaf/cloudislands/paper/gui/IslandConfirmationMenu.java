@@ -16,11 +16,15 @@ public final class IslandConfirmationMenu implements Listener {
     private static final String MENU_ID = "island.confirmation";
     private static final String TITLE = "작업 확인";
     private final MessageRenderer messages;
-    private final GuiActionExecutor actions;
+    private final GuiActionRegistry actions;
 
     public IslandConfirmationMenu(MessageRenderer messages, GuiActionExecutor actions) {
+        this(messages, new GuiActionRegistry(actions));
+    }
+
+    public IslandConfirmationMenu(MessageRenderer messages, GuiActionRegistry actions) {
         this.messages = messages;
-        this.actions = actions == null ? GuiActionExecutor.noop() : actions;
+        this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
     public static void open(Player player, MessageRenderer messages, Confirmation confirmation) {

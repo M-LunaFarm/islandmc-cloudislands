@@ -71,9 +71,22 @@ class GuiSystemPolicyTest {
         assertTrue(source.contains("GuiClick.UNSUPPORTED"), "null clicks must not be treated as LEFT");
         assertTrue(source.contains("!safeClick.supported()"), "unsupported clicks must be dropped before action execution");
         assertTrue(source.contains("GuiActionParser.parse(actionId, data)"), "GUI actions must pass through typed parser before execution");
+        assertTrue(source.contains("executor.execute(player, action, safeClick)"), "parsed GUI actions must be executed as typed action objects");
         assertTrue(source.contains("private final GuiActionExecutor executor"), "GUI action executor must be constructor-injected");
         assertFalse(source.contains("AtomicReference"), "GUI action registry must not keep global mutable executor state");
         assertFalse(source.contains("static void configure"), "GUI action registry must not be reconfigured globally");
+    }
+
+    @Test
+    void executorBoundaryUsesTypedActions() throws Exception {
+        String executor = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionExecutor.java"));
+        String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+
+        assertTrue(executor.contains("void execute(Player player, GuiAction action, GuiClick click)"), "executor boundary must not expose raw action id and payload map");
+        assertFalse(executor.contains("String actionId, Map<String, String> data"), "executor boundary must receive parsed GuiAction objects");
+        assertTrue(controller.contains("backend.executeGuiAction(player, action, click)"), "command controller must forward typed GUI actions");
+        assertTrue(backend.contains("void executeGuiAction(Player player, GuiAction action, GuiClick click)"), "command backend must accept typed GUI actions");
     }
 
     @Test

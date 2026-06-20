@@ -173,7 +173,7 @@ class PaperPlatformBoundaryTest {
         String homeWarpHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
         String tokens = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/ConfirmationTokenPolicy.java"));
 
-        assertTrue(backend.contains("adminCommands.handleGuiAction(player, actionId"), "Admin node GUI actions must route through the admin handler");
+        assertTrue(backend.contains("adminCommands.handleGuiAction(player, action"), "Admin node GUI actions must route through the admin handler");
         assertTrue(adminHandler.contains("case \"admin.node.list\""), "Admin node list GUI action must call the Core usecase path");
         assertTrue(adminHandler.contains("coreApiClient.listNodes()"), "Admin node list GUI action must call Core");
         assertTrue(adminHandler.contains("case \"admin.node.info\""), "Admin node info GUI action must refresh from Core");
