@@ -28,6 +28,14 @@ public record IslandPermissionRuleSnapshot(
         return roleKey;
     }
 
+    public RoleId roleId() {
+        return RoleId.of(roleKey);
+    }
+
+    public SystemRole systemRole() {
+        return roleId().asSystemRole();
+    }
+
     private static IslandRole parseRole(String roleKey) {
         try {
             return IslandRole.valueOf(RoleId.normalize(roleKey, IslandRole.MEMBER.name()));

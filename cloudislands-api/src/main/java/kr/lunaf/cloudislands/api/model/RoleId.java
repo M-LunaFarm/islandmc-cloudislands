@@ -30,6 +30,14 @@ public record RoleId(String value) {
         return of(value, fallback).value();
     }
 
+    public boolean systemRole() {
+        return SystemRole.isSystemRole(this);
+    }
+
+    public SystemRole asSystemRole() {
+        return SystemRole.from(this);
+    }
+
     private static String normalizeRaw(String value) {
         return value == null ? "" : value.trim().toUpperCase(Locale.ROOT).replace('-', '_');
     }

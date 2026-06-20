@@ -13,6 +13,8 @@ class RoleIdSnapshotTest {
     void roleIdRequiresCanonicalNonBlankValue() {
         assertEquals("BUILDER", new RoleId(" builder ").value());
         assertEquals("CO_OWNER", new RoleId("co-owner").value());
+        assertEquals(SystemRole.OWNER, RoleId.of("owner").asSystemRole());
+        assertEquals(SystemRole.BANNED, SystemRole.from("banned"));
         assertThrows(IllegalArgumentException.class, () -> new RoleId(" "));
     }
 
@@ -24,11 +26,15 @@ class RoleIdSnapshotTest {
 
         IslandMemberSnapshot fallback = new IslandMemberSnapshot(islandId, playerUuid, null, joinedAt, null, " ");
         assertEquals("VISITOR", fallback.effectiveRoleKey());
+        assertEquals(RoleId.of("VISITOR"), fallback.roleId());
         assertEquals(IslandRole.VISITOR, fallback.role());
+        assertEquals(SystemRole.VISITOR, fallback.systemRole());
 
         IslandMemberSnapshot dynamic = new IslandMemberSnapshot(islandId, playerUuid, "builder", joinedAt, null);
         assertEquals("BUILDER", dynamic.effectiveRoleKey());
+        assertEquals(RoleId.of("BUILDER"), dynamic.roleId());
         assertNull(dynamic.role());
+        assertNull(dynamic.systemRole());
     }
 
     @Test
@@ -37,10 +43,14 @@ class RoleIdSnapshotTest {
 
         IslandRoleSnapshot role = new IslandRoleSnapshot(islandId, null, 10, "Broken", "");
         assertEquals("MEMBER", role.effectiveRoleKey());
+        assertEquals(RoleId.of("MEMBER"), role.roleId());
         assertEquals(IslandRole.MEMBER, role.role());
+        assertNull(role.systemRole());
 
         IslandPermissionRuleSnapshot permission = new IslandPermissionRuleSnapshot(islandId, "builder", IslandPermission.BUILD, true);
         assertEquals("BUILDER", permission.effectiveRoleKey());
+        assertEquals(RoleId.of("BUILDER"), permission.roleId());
         assertNull(permission.role());
+        assertNull(permission.systemRole());
     }
 }
