@@ -109,6 +109,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public IslandEnvironmentCommandClient environmentCommands() {
+        return environmentClient;
+    }
+
+    @Override
     public HomeWarpQueryClient homeWarps() {
         return homeWarpClient;
     }
@@ -852,7 +857,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         }
     }
 
-    private final class JdkEnvironmentClient implements IslandEnvironmentQueryClient {
+    private final class JdkEnvironmentClient implements IslandEnvironmentQueryClient, IslandEnvironmentCommandClient {
         @Override
         public CompletableFuture<IslandBiomeSnapshot> biome(UUID islandId) {
             requireId(islandId, "islandId");
@@ -880,10 +885,50 @@ public final class JdkCoreApiClient implements CoreApiClient {
                 .thenApply(body -> CoreEnvironmentJson.limits(islandId, body));
         }
 
+        @Override
+        public CompletableFuture<EnvironmentActionView> setBiome(UUID islandId, UUID actorUuid, String biomeKey) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return JdkCoreApiClient.this.setIslandBiomeResult(islandId, actorUuid, biomeKey == null ? "" : biomeKey)
+                .thenApply(body -> actionResult(body, "BIOME_SET"));
+        }
+
+        @Override
+        public CompletableFuture<EnvironmentActionView> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            if (flag == null) {
+                throw new IllegalArgumentException("flag is required");
+            }
+            return JdkCoreApiClient.this.setIslandFlagResult(islandId, actorUuid, flag, value == null ? "" : value)
+                .thenApply(body -> actionResult(body, "FLAG_SET"));
+        }
+
+        @Override
+        public CompletableFuture<EnvironmentActionView> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return JdkCoreApiClient.this.setIslandLimit(islandId, actorUuid, limitKey == null ? "" : limitKey, value)
+                .thenApply(body -> actionResult(body, "LIMIT_SET"));
+        }
+
         private void requireId(UUID id, String name) {
             if (id == null) {
                 throw new IllegalArgumentException(name + " is required");
             }
+        }
+
+        private EnvironmentActionView actionResult(String body, String successCode) {
+            Map<?, ?> root = CoreJson.object(body);
+            return new EnvironmentActionView(
+                CoreJson.accepted(root),
+                CoreJson.code(root, successCode),
+                CoreJson.firstText(root, "limitKey", "biomeKey", "flag", "key"),
+                CoreJson.number(root, "value"),
+                CoreJson.text(root, "islandId"),
+                CoreJson.text(root, "updatedBy"),
+                CoreJson.text(root, "updatedAt")
+            );
         }
     }
 

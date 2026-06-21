@@ -7,7 +7,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentCommandClient;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
 import kr.lunaf.cloudislands.coreclient.IslandEnvironmentCommandClient;
 import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
@@ -25,11 +24,11 @@ public final class IslandEnvironmentUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.environmentQueries = coreApiClient.environment();
-        this.environmentCommands = new CoreIslandEnvironmentCommandClient(coreApiClient);
+        this.environmentCommands = coreApiClient.environmentCommands();
     }
 
     IslandEnvironmentUseCase(CoreApiClient coreApiClient, IslandEnvironmentQueryClient environmentQueries) {
-        this(coreApiClient, environmentQueries, new CoreIslandEnvironmentCommandClient(coreApiClient));
+        this(coreApiClient, environmentQueries, coreApiClient.environmentCommands());
     }
 
     IslandEnvironmentUseCase(CoreApiClient coreApiClient, IslandEnvironmentQueryClient environmentQueries, IslandEnvironmentCommandClient environmentCommands) {
