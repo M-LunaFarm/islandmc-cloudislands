@@ -308,6 +308,7 @@ class IslandCommandControllerPolicyTest {
     void adminNodeCommandsRouteOutsideCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String adminHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
+        String adminUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandAdminNodeUseCase.java"));
 
         assertTrue(backend.contains("private final IslandAdminNodeCommandHandler adminCommands;"));
         assertTrue(routerSource().contains("adminCommands.handleGuiAction(player, action"));
@@ -318,8 +319,13 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"));
         assertTrue(adminHandler.contains("case LIST ->"));
-        assertTrue(adminHandler.contains("coreApiClient.drainNode(nodeId)"));
-        assertTrue(adminHandler.contains("coreApiClient.shutdownNodeSafely("));
+        assertTrue(adminHandler.contains("IslandAdminNodeUseCase"));
+        assertTrue(adminHandler.contains("adminNodeUseCase.drain"));
+        assertTrue(adminHandler.contains("adminNodeUseCase.shutdownSafely"));
+        assertFalse(adminHandler.contains("coreApiClient.drainNode"));
+        assertFalse(adminHandler.contains("coreApiClient.shutdownNodeSafely"));
+        assertTrue(adminUseCase.contains("coreApiClient.drainNode"));
+        assertTrue(adminUseCase.contains("coreApiClient.shutdownNodeSafely"));
     }
 
     @Test
