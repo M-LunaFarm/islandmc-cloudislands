@@ -111,6 +111,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
+import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
@@ -1971,7 +1972,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandVisitorStatsSnapshot> getVisitorStats(UUID islandId, int limit) {
-            return client.islandVisitorStats(islandId, limit).thenApply(PaperCloudIslandsApi::visitorStats);
+            return client.visitorStats().stats(islandId, limit).thenApply(PaperCloudIslandsApi::visitorStats);
         }
 
         @Override
@@ -3130,6 +3131,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             uuid(json, "islandId", new UUID(0L, 0L)),
             longValue(json, "totalVisits", 0L),
             longValue(json, "uniqueVisitors", 0L),
+            recentVisitors
+        );
+    }
+
+    private static IslandVisitorStatsSnapshot visitorStats(IslandVisitorStatsView view) {
+        List<IslandVisitorStatsSnapshot.RecentVisitor> recentVisitors = view.recentVisitors().stream()
+            .map(visitor -> new IslandVisitorStatsSnapshot.RecentVisitor(
+                visitor.visitorUuid(),
+                visitor.lastVisitedAt().isBlank() ? Instant.EPOCH : instant(visitor.lastVisitedAt())
+            ))
+            .toList();
+        return new IslandVisitorStatsSnapshot(
+            uuidValueOrZero(view.islandId()),
+            view.totalVisits(),
+            view.uniqueVisitors(),
             recentVisitors
         );
     }
