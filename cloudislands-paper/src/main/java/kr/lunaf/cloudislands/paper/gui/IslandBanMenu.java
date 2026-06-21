@@ -14,7 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandBanMenu implements Listener {
@@ -104,9 +103,9 @@ public final class IslandBanMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<BanView> bans, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
             if (bans.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, message(messages, "ban-menu-empty-title", "밴 기록 없음"), message(messages, "ban-menu-empty", "현재 밴된 방문자가 없습니다.")));
+                setEmptyItem(inventory, messages);
             } else {
                 for (int index = 0; index < bans.size() && index < 45; index++) {
                     inventory.setItem(index, banItem(bans.get(index), messages));
@@ -137,15 +136,9 @@ public final class IslandBanMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
+    private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
+        MENU.itemAt(22)
+            .ifPresent(item -> inventory.setItem(22, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of())));
     }
 
     private static String shortUuid(String uuid) {

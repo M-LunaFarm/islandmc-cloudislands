@@ -4,11 +4,19 @@ title-key: menu.visit.title
 layout:
   - "....R...."
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "........."
   - "P...O...."
 items:
+  E:
+    material: BARRIER
+    name-key: visit-menu-empty-title
+    fallback-name: 공개 섬 없음
+    lore-keys:
+      - visit-menu-empty
+    fallback-lore:
+      - 방문 가능한 공개 섬이 없습니다.
   R:
     material: COMPASS
     name-key: visit-menu-random-name

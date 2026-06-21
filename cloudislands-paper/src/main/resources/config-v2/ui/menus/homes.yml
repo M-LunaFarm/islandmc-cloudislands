@@ -4,11 +4,19 @@ title-key: menu.homes.title
 layout:
   - "........."
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "........."
   - "D...S...M"
 items:
+  E:
+    material: BARRIER
+    name-key: home-menu-empty-title
+    fallback-name: 홈 없음
+    lore-keys:
+      - home-menu-empty
+    fallback-lore:
+      - 현재 등록된 섬 홈이 없습니다.
   D:
     material: RED_BED
     name-key: home-menu-set-current-name

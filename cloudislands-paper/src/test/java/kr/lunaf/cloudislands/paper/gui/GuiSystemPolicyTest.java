@@ -199,6 +199,25 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void emptyListPlaceholdersRenderFromMenuDefinitions() throws Exception {
+        for (String menuName : List.of("IslandHomeMenu", "IslandBanMenu", "IslandVisitMenu")) {
+            String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
+            assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())"), menuName + " must hide the configured empty placeholder during normal render");
+            assertTrue(menu.contains("MENU.itemAt(22)"), menuName + " must render the configured empty placeholder when the list is empty");
+            assertTrue(menu.contains("GuiMenuRenderer.item(MENU, item, messages"), menuName + " empty placeholder must use the shared config-backed renderer");
+        }
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandHomeMenu.java")).contains("home-menu-empty-title"), "home empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBanMenu.java")).contains("ban-menu-empty-title"), "ban empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandVisitMenu.java")).contains("visit-menu-empty-title"), "visit empty placeholder copy must live in config-v2");
+
+        for (String configPath : List.of("homes.yml", "bans.yml", "visit.yml")) {
+            String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + configPath));
+            assertTrue(config.contains("  E:"), configPath + " must define the empty placeholder item");
+            assertTrue(config.contains("material: BARRIER"), configPath + " empty placeholder material must live in config-v2");
+        }
+    }
+
+    @Test
     void guiSessionsAreRevisionGuardedAndClearedOnPluginDisable() throws Exception {
         String sessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));

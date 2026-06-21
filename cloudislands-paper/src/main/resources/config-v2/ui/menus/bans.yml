@@ -4,11 +4,19 @@ title-key: menu.bans.title
 layout:
   - "........."
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "........."
   - "....R...S"
 items:
+  E:
+    material: BARRIER
+    name-key: ban-menu-empty-title
+    fallback-name: 밴 기록 없음
+    lore-keys:
+      - ban-menu-empty
+    fallback-lore:
+      - 현재 밴된 방문자가 없습니다.
   R:
     material: CLOCK
     name-key: ban-menu-refresh-name
