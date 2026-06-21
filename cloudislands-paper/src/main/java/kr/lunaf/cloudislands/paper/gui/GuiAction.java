@@ -1,11 +1,12 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -17,6 +18,28 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.PermissionPag
             if (actionId.isBlank()) {
                 throw new IllegalArgumentException("actionId is required");
             }
+        }
+    }
+
+    record BankAmount(String actionId, BigDecimal amount) implements GuiAction {
+        public BankAmount {
+            actionId = actionId == null ? "" : actionId.trim();
+            if (!actionId.equals("island.bank.deposit") && !actionId.equals("island.bank.withdraw")) {
+                throw new IllegalArgumentException("unsupported bank action");
+            }
+            if (amount == null || amount.signum() <= 0) {
+                throw new IllegalArgumentException("positive amount is required");
+            }
+            amount = amount.stripTrailingZeros();
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("amount", amount.toPlainString());
+        }
+
+        public boolean deposit() {
+            return actionId.equals("island.bank.deposit");
         }
     }
 

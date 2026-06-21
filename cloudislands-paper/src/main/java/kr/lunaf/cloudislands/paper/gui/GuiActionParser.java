@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +26,10 @@ public final class GuiActionParser {
                 ));
             }
             return switch (safeAction) {
+                case "island.bank.deposit", "island.bank.withdraw" -> Optional.of(new GuiAction.BankAmount(
+                    safeAction,
+                    positiveDecimal(required(safeData, "amount"))
+                ));
                 case "island.permissions.page" -> Optional.of(new GuiAction.PermissionPage(
                     integer(safeData.get("page")),
                     integer(safeData.get("rolePage"))
@@ -52,6 +57,14 @@ public final class GuiActionParser {
             return 0;
         }
         return Math.max(0, Integer.parseInt(value.trim()));
+    }
+
+    private static BigDecimal positiveDecimal(String value) {
+        BigDecimal amount = new BigDecimal(value.trim());
+        if (amount.signum() <= 0) {
+            throw new IllegalArgumentException("positive amount is required");
+        }
+        return amount;
     }
 
     private static String required(Map<String, String> data, String key) {

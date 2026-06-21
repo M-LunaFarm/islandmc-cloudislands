@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -58,19 +57,18 @@ final class IslandBankCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.BankAmount bankAmount) {
+            if (bankAmount.deposit()) {
+                deposit(player, bankAmount.amount().toPlainString());
+            } else {
+                withdraw(player, bankAmount.amount().toPlainString());
+            }
+            return true;
+        }
         String actionId = action.actionId();
-        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.bank.open" -> {
                 openBankMenu(player);
-                yield true;
-            }
-            case "island.bank.deposit" -> {
-                deposit(player, data.getOrDefault("amount", "0"));
-                yield true;
-            }
-            case "island.bank.withdraw" -> {
-                withdraw(player, data.getOrDefault("amount", "0"));
                 yield true;
             }
             default -> false;
