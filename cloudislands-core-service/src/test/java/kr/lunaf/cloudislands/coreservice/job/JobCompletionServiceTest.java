@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.job;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.RedisActivationLock;
+import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
@@ -21,6 +22,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -96,6 +98,27 @@ class JobCompletionServiceTest {
     }
 
     @Test
+    void snapshotCompletionKeepsCommittedSnapshotWhenEventPublishFails() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        JobCompletionService service = service(runtimes, (_eventType, _fields) -> {
+            throw new IllegalStateException("event sink down");
+        }, snapshots);
+        runtimes.markActive(ISLAND, "island-1", "ci_shard_001", 1, 2, 6L);
+
+        assertDoesNotThrow(() -> service.completed(job(IslandJobType.SAVE_ISLAND, "island-1", Map.of(
+            "fencingToken", "6",
+            "snapshotNo", "13",
+            "storagePath", "islands/" + ISLAND + "/snapshots/000013/bundle.tar.zst",
+            "checksum", "saved-before-event-failure",
+            "sizeBytes", "4096"
+        ))));
+
+        assertEquals("saved-before-event-failure", snapshots.find(ISLAND, 13L).orElseThrow().checksum());
+        assertEquals(IslandState.ACTIVE, runtimes.find(ISLAND).orElseThrow().state());
+    }
+
+    @Test
     void restoreCompletionRecordsPreRestoreSnapshotAndReleasesRestoreLock() {
         InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
         InMemoryIslandRepository islands = new InMemoryIslandRepository();
@@ -161,7 +184,7 @@ class JobCompletionServiceTest {
         assertTrue(activationLock.acquire(ISLAND, "restore").isPresent());
     }
 
-    private JobCompletionService service(InMemoryIslandRuntimeRepository runtimes, InMemoryGlobalEventPublisher events, InMemoryIslandSnapshotRepository snapshots) {
+    private JobCompletionService service(InMemoryIslandRuntimeRepository runtimes, GlobalEventPublisher events, InMemoryIslandSnapshotRepository snapshots) {
         return new JobCompletionService(
             runtimes,
             events,

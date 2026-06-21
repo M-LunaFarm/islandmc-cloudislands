@@ -87,7 +87,7 @@ final class JobCompletionBackend {
             int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of(
                 "placementSource", job.payload().getOrDefault("placementSource", "")
             ));
-            events.publish(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of(
+            publishEvent(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of(
                 "islandId", job.islandId().toString(),
                 "nodeId", job.targetNode() == null ? "" : job.targetNode(),
                 "worldName", worldName,
@@ -110,7 +110,7 @@ final class JobCompletionBackend {
             long snapshotNo = recordCompletedSnapshot(job, "DEACTIVATION", true);
             setIslandState(job.islandId(), IslandState.INACTIVE_READY);
             publishMigrationActivation(job);
-            events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of(
+            publishEvent(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of(
                 "islandId", job.islandId().toString(),
                 "nodeId", job.targetNode() == null ? "" : job.targetNode(),
                 "phase", "DEACTIVATED",
@@ -146,7 +146,7 @@ final class JobCompletionBackend {
             runtimes.setState(job.islandId(), IslandState.DELETED);
             markIslandDeleted(job);
             clearOwnerPrimaryIsland(job);
-            events.publish(CloudIslandEventType.ISLAND_DELETED.name(), Map.of("islandId", job.islandId().toString(), "snapshotNo", Long.toString(snapshotNo)));
+            publishEvent(CloudIslandEventType.ISLAND_DELETED.name(), Map.of("islandId", job.islandId().toString(), "snapshotNo", Long.toString(snapshotNo)));
             return;
         }
         if (job.type() == IslandJobType.RESTORE_ISLAND) {
@@ -157,7 +157,7 @@ final class JobCompletionBackend {
             recordPreMutationSnapshot(job);
             restoreDeletedIslandRecord(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
-            events.publish(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of(
+            publishEvent(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of(
                 "islandId", job.islandId().toString(),
                 "state", "RESTORED",
                 "snapshotNo", job.payload().getOrDefault("snapshotNo", ""),
@@ -184,7 +184,7 @@ final class JobCompletionBackend {
                 "sourceNode", job.payload().getOrDefault("sourceNode", ""),
                 "placementSource", job.payload().getOrDefault("placementSource", "")
             ));
-            events.publish(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of(
+            publishEvent(CloudIslandEventType.ISLAND_MIGRATED.name(), Map.of(
                 "islandId", job.islandId().toString(),
                 "fromNode", job.payload().getOrDefault("sourceNode", ""),
                 "targetNode", job.targetNode() == null ? "" : job.targetNode(),
@@ -232,7 +232,7 @@ final class JobCompletionBackend {
         runtimes.setState(job.islandId(), state);
         setIslandState(job.islandId(), state);
         failPreparingRouteTickets(job, errorMessage);
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", job.islandId().toString(), "state", state.name(), "error", errorMessage == null ? "" : errorMessage));
+        publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", job.islandId().toString(), "state", state.name(), "error", errorMessage == null ? "" : errorMessage));
         if (job.type() == IslandJobType.MIGRATE_ISLAND || (job.type() == IslandJobType.DEACTIVATE_ISLAND && job.payload().containsKey("migrateTargetNode"))) {
             releaseMigrationLock(job);
         }
@@ -244,7 +244,7 @@ final class JobCompletionBackend {
             runtimes.setState(job.islandId(), IslandState.ERROR_SAVING);
             setIslandState(job.islandId(), IslandState.ERROR_SAVING);
         }
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "state", current == null ? IslandState.ERROR_SAVING.name() : current.state().name(),
             "jobType", job.type().name(),
@@ -277,7 +277,7 @@ final class JobCompletionBackend {
         int failedTickets = migrationSource
             ? tickets.markFailedForIsland(job.islandId(), job.payload().getOrDefault("migrateTargetNode", ""), errorMessage == null ? "MIGRATION_SOURCE_SAVE_FAILED" : errorMessage).size()
             : 0;
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "state", keptState.name(),
             "jobType", job.type().name(),
@@ -297,7 +297,7 @@ final class JobCompletionBackend {
         runtimes.setState(job.islandId(), IslandState.RECOVERY_REQUIRED);
         setIslandState(job.islandId(), IslandState.RECOVERY_REQUIRED);
         failPreparingRouteTickets(job, errorMessage == null || errorMessage.isBlank() ? "MIGRATION_TARGET_FAILED" : errorMessage);
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "state", IslandState.RECOVERY_REQUIRED.name(),
             "jobType", job.type().name(),
@@ -314,7 +314,7 @@ final class JobCompletionBackend {
         runtimes.setState(job.islandId(), IslandState.RECOVERY_REQUIRED);
         setIslandState(job.islandId(), IslandState.RECOVERY_REQUIRED);
         failPreparingRouteTickets(job, errorMessage == null || errorMessage.isBlank() ? "RECOVERY_RESTORE_FAILED" : errorMessage);
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "state", IslandState.RECOVERY_REQUIRED.name(),
             "jobType", job.type().name(),
@@ -337,7 +337,7 @@ final class JobCompletionBackend {
         if (staleReason.isBlank()) {
             return false;
         }
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "state", current == null ? IslandState.RECOVERY_REQUIRED.name() : current.state().name(),
             "ignoredJob", job.jobId().toString(),
@@ -403,7 +403,7 @@ final class JobCompletionBackend {
         runtimes.setState(job.islandId(), IslandState.ACTIVATING);
         setIslandState(job.islandId(), IslandState.ACTIVATING);
         publishMigrationActivation(job);
-        events.publish(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_DEACTIVATED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "phase", "MIGRATION_SOURCE_SAVED",
             "targetNode", job.payload().getOrDefault("migrateTargetNode", ""),
@@ -468,7 +468,7 @@ final class JobCompletionBackend {
             return true;
         }
         failPreparingRouteTickets(job, "STALE_FENCING_TOKEN");
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "state", runtime.state().name(),
             "ignoredJob", job.jobId().toString(),
@@ -492,7 +492,7 @@ final class JobCompletionBackend {
             return true;
         }
         failPreparingRouteTickets(job, "STALE_FENCING_TOKEN");
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "state", runtime.state().name(),
             "ignoredJob", job.jobId().toString(),
@@ -541,7 +541,7 @@ final class JobCompletionBackend {
     }
 
     private void publishIgnoredCompletion(IslandJob job, kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current, long fencingToken, String reason) {
-        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "state", current == null ? "" : current.state().name(),
             "ignoredJob", job.jobId().toString(),
@@ -560,7 +560,7 @@ final class JobCompletionBackend {
         }
         String reason = errorMessage == null || errorMessage.isBlank() ? "JOB_FAILED" : errorMessage;
         for (var ticket : tickets.markFailedForIsland(job.islandId(), job.targetNode(), reason)) {
-            events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
+            publishEvent(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
                 "ticketId", ticket.ticketId().toString(),
                 "playerUuid", ticket.playerUuid().toString(),
                 "islandId", ticket.islandId().toString(),
@@ -615,7 +615,7 @@ final class JobCompletionBackend {
     }
 
     private void publishSnapshotCreated(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes) {
-        events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of(
             "islandId", islandId.toString(),
             "snapshotNo", Long.toString(snapshotNo),
             "storagePath", storagePath == null ? "" : storagePath,
@@ -659,7 +659,7 @@ final class JobCompletionBackend {
         payload.put("sourceSnapshotSizeBytes", job.payload().getOrDefault("sizeBytes", "0"));
         payload.put(ACTIVATION_LOCK_TOKEN_KEY, job.payload().getOrDefault(ACTIVATION_LOCK_TOKEN_KEY, ""));
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, job.islandId(), targetNode, 10, Map.copyOf(payload), Instant.now()));
-        events.publish(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of(
+        publishEvent(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of(
             "islandId", job.islandId().toString(),
             "sourceNode", job.targetNode() == null ? "" : job.targetNode(),
             "targetNode", targetNode,
@@ -670,6 +670,17 @@ final class JobCompletionBackend {
             "fencingToken", fencingToken,
             "placementSource", payload.get("placementSource")
         ));
+    }
+
+    private void publishEvent(String eventType, Map<String, String> fields) {
+        if (events == null) {
+            return;
+        }
+        try {
+            events.publish(eventType, fields);
+        } catch (RuntimeException ignored) {
+            // Job completion has already committed authoritative runtime/snapshot state.
+        }
     }
 
     private long longValue(String value) {
