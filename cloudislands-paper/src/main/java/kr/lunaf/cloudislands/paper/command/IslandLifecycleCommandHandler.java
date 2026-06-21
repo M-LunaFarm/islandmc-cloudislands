@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.IslandCreationUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.DangerousGuiActionPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -18,11 +19,13 @@ import org.bukkit.plugin.Plugin;
 final class IslandLifecycleCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final IslandCreationUseCase creationUseCase;
     private final Runtime runtime;
 
     IslandLifecycleCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.creationUseCase = new IslandCreationUseCase(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -108,7 +111,7 @@ final class IslandLifecycleCommandHandler {
     }
 
     private void createIsland(Player player, String templateId) {
-        runtime.mutate("island.create", () -> coreApiClient.createIsland(player.getUniqueId(), templateId))
+        creationUseCase.create(player.getUniqueId(), templateId, runtime::mutate)
             .thenAccept(result -> {
                 if (!result.accepted()) {
                     runtime.message(player, runtime.playerCodeMessage(result.code(), "섬 생성을 시작하지 못했습니다."));
@@ -124,7 +127,7 @@ final class IslandLifecycleCommandHandler {
 
     private void deleteIsland(Player player) {
         runtime.currentIsland(player, "섬 안에서만 섬을 삭제할 수 있습니다.").ifPresent(islandId -> {
-            runtime.mutateIdempotent("island.delete", () -> coreApiClient.deleteIsland(player.getUniqueId(), islandId))
+            creationUseCase.delete(player.getUniqueId(), islandId, runtime::mutateIdempotent)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
                         runtime.message(player, runtime.playerCodeMessage(result.code(), "섬을 삭제하지 못했습니다."));
@@ -141,7 +144,7 @@ final class IslandLifecycleCommandHandler {
 
     private void resetIsland(Player player, String reason) {
         runtime.currentIsland(player, "섬 안에서만 섬을 리셋할 수 있습니다.").ifPresent(islandId -> {
-            runtime.mutateIdempotent("island.reset", () -> coreApiClient.resetIslandResult(islandId, player.getUniqueId(), reason))
+            creationUseCase.reset(islandId, player.getUniqueId(), reason, runtime::mutateIdempotent)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 리셋 요청", islandId, body)))
                 .exceptionally(error -> {
                     runtime.message(player, runtime.coreWriteFailureMessage(error, "섬을 리셋하지 못했습니다."));

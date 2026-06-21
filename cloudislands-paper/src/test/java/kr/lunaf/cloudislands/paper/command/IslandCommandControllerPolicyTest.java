@@ -237,6 +237,7 @@ class IslandCommandControllerPolicyTest {
     void lifecycleCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String lifecycleHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java"));
+        String creationUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandCreationUseCase.java"));
 
         assertTrue(backend.contains("private final IslandLifecycleCommandHandler lifecycleCommands;"));
         assertTrue(routerSource().contains("lifecycleCommands.handleCommand(player, subcommand, args)"));
@@ -247,9 +248,14 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("dangerConfirmed("), "danger confirmation logic belongs in IslandLifecycleCommandHandler");
         assertTrue(lifecycleHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(lifecycleHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
-        assertTrue(lifecycleHandler.contains("coreApiClient.createIsland"));
-        assertTrue(lifecycleHandler.contains("coreApiClient.deleteIsland"));
-        assertTrue(lifecycleHandler.contains("coreApiClient.resetIslandResult"));
+        assertTrue(lifecycleHandler.contains("IslandCreationUseCase"));
+        assertTrue(lifecycleHandler.contains("creationUseCase.create("));
+        assertFalse(lifecycleHandler.contains("coreApiClient.createIsland"));
+        assertFalse(lifecycleHandler.contains("coreApiClient.deleteIsland"));
+        assertFalse(lifecycleHandler.contains("coreApiClient.resetIslandResult"));
+        assertTrue(creationUseCase.contains("coreApiClient.createIsland"));
+        assertTrue(creationUseCase.contains("coreApiClient.deleteIsland"));
+        assertTrue(creationUseCase.contains("coreApiClient.resetIslandResult"));
         assertTrue(lifecycleHandler.contains("DangerousGuiActionPolicy.confirmed"));
     }
 
