@@ -945,6 +945,12 @@ class CoreTypedClientsTest {
                         {"blocks":[{"materialKey":"minecraft:diamond_block","count":2,"totalWorth":"2000.00","levelPoints":20}],"summary":{"totalWorth":"2000.00","totalLevelPoints":20}}
                         """);
                 }
+                case "getIslandLevel" -> {
+                    calls.add("level");
+                    yield CompletableFuture.completedFuture("""
+                        {"islandId":"%s","level":9,"worth":"42.50","calculatedAt":"2026-06-21T00:00:00Z"}
+                        """.formatted(islandId));
+                }
                 case "topIslandsByWorth", "topIslandsByLevel" -> {
                     calls.add(method.getName() + ":" + args[0]);
                     yield CompletableFuture.completedFuture("""
@@ -981,6 +987,10 @@ class CoreTypedClientsTest {
         ProgressionQueryClient client = new CoreProgressionQueryClient(raw);
 
         assertEquals(7L, client.islandInfo(islandId).join().level());
+        LevelView level = client.level(islandId).join();
+        assertEquals(9L, level.level());
+        assertEquals("42.50", level.worth());
+        assertEquals("2026-06-21T00:00:00Z", level.calculatedAt());
         assertEquals("2000.00", client.blockDetails(islandId, 500).join().totalWorth());
         assertEquals("12.50", client.topWorth(500).join().get(0).worth());
         assertEquals(7L, client.topLevel(0).join().get(0).level());
@@ -996,6 +1006,7 @@ class CoreTypedClientsTest {
 
         assertEquals(List.of(
             "info",
+            "level",
             "blocks:100",
             "topIslandsByWorth:100",
             "topIslandsByLevel:1",

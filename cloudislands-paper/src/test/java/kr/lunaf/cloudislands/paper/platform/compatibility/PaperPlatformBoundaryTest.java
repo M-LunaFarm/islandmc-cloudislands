@@ -436,6 +436,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.progression().topLevel(limit).thenApply(PaperCloudIslandsApi::rankings)"), "Public API level rankings must use typed progression query client");
         assertTrue(source.contains("client.progression().topWorth(limit).thenApply(PaperCloudIslandsApi::rankings)"), "Public API worth rankings must use typed progression query client");
         assertTrue(source.contains("client.progression().topReviews(limit).thenApply(PaperCloudIslandsApi::reviewRankings)"), "Public API review rankings must use typed progression query client");
+        assertTrue(source.contains("client.progression().level(islandId).thenApply(PaperCloudIslandsApi::level)"), "Public API level lookup must use typed progression query client");
         assertTrue(source.contains("client.navigation().listReviews(islandId, limit).thenApply(view -> reviews(islandId, view))"), "Public API reviews must use typed navigation query client");
         assertTrue(source.contains("client.progression().upgrades(islandId).thenApply(views -> upgrades(islandId, views))"), "Public API upgrades must use typed progression query client");
         assertTrue(source.contains("client.progression().upgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules)"), "Public API upgrade rules must use typed progression query client");
@@ -466,6 +467,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("return client.topIslandsByLevel(limit).thenApply(PaperCloudIslandsApi::rankings);"), "Public API query surface must not use raw ranking JSON for level rankings");
         assertTrue(!source.contains("return client.topIslandsByWorth(limit).thenApply(PaperCloudIslandsApi::rankings);"), "Public API query surface must not use raw ranking JSON for worth rankings");
         assertTrue(!source.contains("return client.topIslandsByReviews(limit).thenApply(PaperCloudIslandsApi::reviewRankings);"), "Public API query surface must not use raw ranking JSON for review rankings");
+        assertTrue(!source.contains("return client.getIslandLevel(islandId).thenApply(PaperCloudIslandsApi::level);"), "Public API query surface must not use raw level JSON for level lookup");
         assertTrue(!source.contains("return client.listIslandReviews(islandId, limit).thenApply(PaperCloudIslandsApi::reviews);"), "Public API query surface must not use raw review JSON for reviews");
         assertTrue(!source.contains("return client.listIslandUpgrades(islandId).thenApply(PaperCloudIslandsApi::upgrades);"), "Public API query surface must not use raw upgrade JSON for upgrades");
         assertTrue(!source.contains("return client.listUpgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules);"), "Public API query surface must not use raw upgrade rule JSON for upgrade rules");

@@ -24,6 +24,12 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     }
 
     @Override
+    public CompletableFuture<LevelView> level(UUID islandId) {
+        requireIsland(islandId);
+        return delegate.getIslandLevel(islandId).thenApply(CoreProgressionQueryClient::levelView);
+    }
+
+    @Override
     public CompletableFuture<ProgressionBlockDetailsView> blockDetails(UUID islandId, int limit) {
         requireIsland(islandId);
         return delegate.islandBlockDetails(islandId, boundedLimit(limit)).thenApply(CoreProgressionQueryClient::blockDetailsView);
@@ -72,6 +78,16 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     public CompletableFuture<List<CoreGuiViews.MissionView>> missions(UUID islandId, String kind) {
         requireIsland(islandId);
         return CoreGuiViews.islandMissions(delegate, islandId, kind == null || kind.isBlank() ? "MISSION" : kind);
+    }
+
+    private static LevelView levelView(String body) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        return new LevelView(
+            text(root, "islandId"),
+            SimpleJson.number(root.get("level")),
+            text(root, "worth"),
+            text(root, "calculatedAt")
+        );
     }
 
     private static ProgressionBlockDetailsView blockDetailsView(String body) {

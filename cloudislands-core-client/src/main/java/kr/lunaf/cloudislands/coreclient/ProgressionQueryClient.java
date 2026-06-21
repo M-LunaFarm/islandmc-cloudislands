@@ -7,6 +7,8 @@ import java.util.concurrent.CompletableFuture;
 public interface ProgressionQueryClient {
     CompletableFuture<CoreGuiViews.IslandInfoView> islandInfo(UUID islandId);
 
+    CompletableFuture<LevelView> level(UUID islandId);
+
     CompletableFuture<ProgressionBlockDetailsView> blockDetails(UUID islandId, int limit);
 
     CompletableFuture<CoreGuiViews.RankingData> rankings(int limit);

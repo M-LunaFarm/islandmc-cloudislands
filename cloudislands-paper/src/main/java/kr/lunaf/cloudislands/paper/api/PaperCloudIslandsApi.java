@@ -116,6 +116,7 @@ import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
+import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
@@ -1959,7 +1960,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandLevelSnapshot> getLevel(UUID islandId) {
-            return client.getIslandLevel(islandId).thenApply(PaperCloudIslandsApi::level);
+            return client.progression().level(islandId).thenApply(PaperCloudIslandsApi::level);
         }
 
         @Override
@@ -3228,6 +3229,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             longValue(json, "level", 0L),
             text(json, "worth", "0"),
             instant(calculatedAt)
+        );
+    }
+
+    private static IslandLevelSnapshot level(LevelView view) {
+        if (view == null) {
+            return new IslandLevelSnapshot(new UUID(0L, 0L), 0L, "0", Instant.EPOCH);
+        }
+        return new IslandLevelSnapshot(
+            uuidValueOrZero(view.islandId()),
+            view.level(),
+            view.worth(),
+            instant(view.calculatedAt())
         );
     }
 
