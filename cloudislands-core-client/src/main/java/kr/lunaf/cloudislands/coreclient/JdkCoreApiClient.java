@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
@@ -51,13 +52,13 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
         return post("/v1/islands", "{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"" + templateId + "\"}")
-            .thenApply(body -> new CreateIslandResult(body.contains("\"accepted\":true"), text(body, "code", "FAILED"), null, RouteTicketJson.parseNested(body, "ticket")));
+            .thenApply(JdkCoreApiClient::parseCreateIslandResult);
     }
 
     @Override
     public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) {
         return deleteWithResultBody("/v1/islands/" + islandId + "?requesterUuid=" + requesterUuid)
-            .thenApply(body -> new DeleteIslandResult(body.contains("\"accepted\":true"), text(body, "code", "FAILED"), uuid(body, "islandId", islandId)));
+            .thenApply(body -> parseDeleteIslandResult(body, islandId));
     }
 
     @Override
@@ -1699,6 +1700,54 @@ public final class JdkCoreApiClient implements CoreApiClient {
             throw new CoreApiException("ROUTE_FAILED", "Route ticket could not be parsed");
         }
         return ticket;
+    }
+
+    private static CreateIslandResult parseCreateIslandResult(String body) {
+        Map<?, ?> root = resultObject(body);
+        return new CreateIslandResult(
+            bool(root, "accepted"),
+            resultCode(root),
+            null,
+            RouteTicketJson.parseNested(body == null ? "" : body, "ticket")
+        );
+    }
+
+    private static DeleteIslandResult parseDeleteIslandResult(String body, UUID fallbackIslandId) {
+        Map<?, ?> root = resultObject(body);
+        return new DeleteIslandResult(
+            bool(root, "accepted"),
+            resultCode(root),
+            uuid(root, "islandId", fallbackIslandId)
+        );
+    }
+
+    private static Map<?, ?> resultObject(String body) {
+        if (body == null || body.isBlank()) {
+            return Map.of();
+        }
+        return SimpleJson.object(SimpleJson.parse(body));
+    }
+
+    private static String resultCode(Map<?, ?> root) {
+        String code = SimpleJson.text(root.get("code"));
+        return code.isBlank() ? "FAILED" : code;
+    }
+
+    private static boolean bool(Map<?, ?> root, String key) {
+        Object value = root.get(key);
+        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
+    }
+
+    private static UUID uuid(Map<?, ?> root, String key, UUID fallback) {
+        String value = SimpleJson.text(root.get(key));
+        if (value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return fallback;
+        }
     }
 
     private boolean adminProtected(String path) {
