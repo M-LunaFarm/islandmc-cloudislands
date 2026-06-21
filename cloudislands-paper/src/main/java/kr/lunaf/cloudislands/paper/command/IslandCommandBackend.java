@@ -1246,7 +1246,7 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutate("island.member.role.set", () -> coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), targetUuid, roleKey))
+                mutate("island.member.role.set", () -> memberManagement.setRole(islandId, player.getUniqueId(), targetUuid, roleKey))
                     .thenAccept(body -> message(player, actionResultMessage(successMessage, targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 멤버 역할을 변경하지 못했습니다.");
@@ -1268,7 +1268,7 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutate("island.member.temp-trust", () -> coreApiClient.trustIslandMemberTemporary(islandId, player.getUniqueId(), targetUuid, seconds))
+                mutate("island.member.temp-trust", () -> memberManagement.trustTemporarily(islandId, player.getUniqueId(), targetUuid, seconds))
                     .thenAccept(body -> message(player, actionResultMessage("섬 임시 신뢰 설정 " + formatDuration(seconds), targetUuid, body) + " 만료=" + text(body, "expiresAt")))
                     .exceptionally(error -> {
                         message(player, "섬 임시 신뢰를 설정하지 못했습니다.");
@@ -1281,7 +1281,7 @@ final class IslandCommandBackend {
     private void transferIslandOwnership(Player player, String target) {
         currentIsland(player, "섬 안에서만 소유권을 양도할 수 있습니다.").ifPresent(islandId -> {
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.ownership.transfer", () -> coreApiClient.transferIslandOwnershipResult(islandId, player.getUniqueId(), targetUuid))
+                mutateIdempotent("island.ownership.transfer", () -> memberManagement.transferOwnership(islandId, player.getUniqueId(), targetUuid))
                     .thenAccept(body -> message(player, actionResultMessage("섬 소유권 양도", targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 소유권을 양도하지 못했습니다.");
