@@ -15,16 +15,7 @@ public enum GuiClick {
     }
 
     static GuiClick fromClickType(ClickType click) {
-        if (click == null) {
-            return UNSUPPORTED;
-        }
-        return switch (click) {
-            case LEFT -> LEFT;
-            case RIGHT -> RIGHT;
-            case SHIFT_LEFT -> SHIFT_LEFT;
-            case SHIFT_RIGHT -> SHIFT_RIGHT;
-            default -> UNSUPPORTED;
-        };
+        return GuiClickPolicy.fromClickName(click == null ? "" : click.name());
     }
 
     public boolean supported() {
