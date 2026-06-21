@@ -418,6 +418,10 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
             return Map.copyOf(values);
         }
 
+        public boolean confirmation() {
+            return memberRemovalConfirmation(actionId);
+        }
+
         private static boolean memberRemovalConfirmation(String actionId) {
             return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".member.remove.confirm");
         }

@@ -142,6 +142,7 @@ class GuiActionParserTest {
     void parsesMemberRoleAndBanPardonConfirmationsIntoTypedActions() {
         GuiAction promote = GuiActionParser.parse("island.member.promote.prepare", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).orElseThrow();
         GuiAction demote = GuiActionParser.parse("island.member.demote", Map.of("playerUuid", "00000000-0000-0000-0000-000000000001", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.member.demote"))).orElseThrow();
+        GuiAction removal = GuiActionParser.parse("island.member.remove.confirm", Map.of("playerUuid", "00000000-0000-0000-0000-000000000003", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.member.remove.confirm"))).orElseThrow();
         GuiAction pardon = GuiActionParser.parse("island.ban.pardon.confirm", Map.of("playerUuid", "00000000-0000-0000-0000-000000000002", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.ban.pardon.confirm"))).orElseThrow();
 
         assertTrue(promote instanceof GuiAction.MemberRoleChange);
@@ -150,6 +151,8 @@ class GuiActionParserTest {
         assertTrue(demote instanceof GuiAction.MemberRoleChange);
         assertEquals(Map.of("playerUuid", "00000000-0000-0000-0000-000000000001", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.member.demote")), demote.data());
         assertTrue(((GuiAction.MemberRoleChange) demote).confirmation());
+        assertTrue(removal instanceof GuiAction.MemberRemoval);
+        assertEquals(Map.of("playerUuid", "00000000-0000-0000-0000-000000000003", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.member.remove.confirm")), removal.data());
         assertTrue(pardon instanceof GuiAction.BanPardon);
         assertEquals(Map.of("playerUuid", "00000000-0000-0000-0000-000000000002", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.ban.pardon.confirm")), pardon.data());
     }

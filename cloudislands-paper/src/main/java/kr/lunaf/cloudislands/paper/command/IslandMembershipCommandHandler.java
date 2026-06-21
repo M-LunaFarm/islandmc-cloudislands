@@ -261,6 +261,24 @@ final class IslandMembershipCommandHandler {
             }
             return true;
         }
+        if (action instanceof GuiAction.MemberRemoval memberRemoval) {
+            if (!memberRemoval.confirmation()) {
+                runtime.openConfirmation(player,
+                    runtime.routeMessage("member-remove-confirm-title", "멤버 추방 확인"),
+                    runtime.routeMessage("member-remove-confirm-description", "선택한 플레이어를 섬 멤버에서 제거합니다."),
+                    Material.BARRIER,
+                    runtime.routeMessage("member-remove-confirm-name", "멤버 추방"),
+                    "island.member.remove.confirm",
+                    Map.of("playerUuid", memberRemoval.playerUuid().toString()),
+                    runtime.routeMessage("member-remove-confirm-lore", "클릭하면 Core에 멤버 추방을 요청합니다."),
+                    "island.members.open");
+                return true;
+            }
+            if (runtime.confirmationAccepted(player, action, click)) {
+                runtime.removeIslandMember(player, memberRemoval.playerUuid().toString());
+            }
+            return true;
+        }
         if (action instanceof GuiAction.BanPardon banPardon) {
             if (!banPardon.confirmation()) {
                 runtime.openConfirmation(player,
@@ -308,24 +326,6 @@ final class IslandMembershipCommandHandler {
             }
             case "island.member.list" -> {
                 runtime.listIslandMembers(player);
-                yield true;
-            }
-            case "island.member.remove.prepare" -> {
-                runtime.openConfirmation(player,
-                    runtime.routeMessage("member-remove-confirm-title", "멤버 추방 확인"),
-                    runtime.routeMessage("member-remove-confirm-description", "선택한 플레이어를 섬 멤버에서 제거합니다."),
-                    Material.BARRIER,
-                    runtime.routeMessage("member-remove-confirm-name", "멤버 추방"),
-                    "island.member.remove.confirm",
-                    Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
-                    runtime.routeMessage("member-remove-confirm-lore", "클릭하면 Core에 멤버 추방을 요청합니다."),
-                    "island.members.open");
-                yield true;
-            }
-            case "island.member.remove.confirm" -> {
-                if (runtime.confirmationAccepted(player, action, click)) {
-                    runtime.removeIslandMember(player, data.getOrDefault("playerUuid", ""));
-                }
                 yield true;
             }
             case "island.invites.open" -> {
