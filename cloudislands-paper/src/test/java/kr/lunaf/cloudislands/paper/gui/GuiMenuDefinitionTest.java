@@ -380,6 +380,36 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledMyIslandsAndVisitMenuDefinitionsCoverNavigationDeclaratively() {
+        GuiMenuDefinition myIslands = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/my-islands.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition visit = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/visit.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.my-islands", myIslands.id());
+        assertEquals("M", myIslands.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.main.open", myIslands.action(myIslands.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("C", myIslands.itemAt(48).orElseThrow().symbol());
+        assertEquals("island.create.open", myIslands.action(myIslands.itemAt(48).orElseThrow().actionKey(), ""));
+        assertEquals("R", myIslands.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.list.open", myIslands.action(myIslands.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("V", myIslands.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.visit.open", myIslands.action(myIslands.itemAt(53).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.visit", visit.id());
+        assertEquals("R", visit.itemAt(4).orElseThrow().symbol());
+        assertEquals("island.visit.random", visit.action(visit.itemAt(4).orElseThrow().actionKey(), ""));
+        assertEquals("P", visit.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.visit.public.open", visit.action(visit.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("O", visit.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.visit.open", visit.action(visit.itemAt(49).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",

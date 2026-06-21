@@ -1,6 +1,41 @@
 id: island.visit
 rows: 6
 title-key: menu.visit.title
+layout:
+  - "....R...."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "P...O...."
+items:
+  R:
+    material: COMPASS
+    name-key: visit-menu-random-name
+    fallback-name: 랜덤 공개 섬
+    lore-keys:
+      - visit-menu-random-description
+    fallback-lore:
+      - 공개된 섬 중 하나로 이동합니다.
+    action: random
+  P:
+    material: ENDER_EYE
+    name-key: visit-menu-public-warps-name
+    fallback-name: 공개 워프 목록
+    lore-keys:
+      - visit-menu-public-warps-command
+    fallback-lore:
+      - "/섬 공개워프목록"
+    action: public
+  O:
+    material: CLOCK
+    name-key: visit-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - visit-menu-refresh-command
+    fallback-lore:
+      - "/섬 방문"
+    action: open
 actions:
   open: island.visit.open
   public: island.visit.public.open

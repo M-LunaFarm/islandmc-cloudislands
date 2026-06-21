@@ -20,7 +20,17 @@ import org.bukkit.plugin.Plugin;
 public final class IslandVisitMenu implements Listener {
     private static final String TITLE_KEY = "visit-menu-title";
     private static final String TITLE = "섬 방문";
-    private static final String MENU_ID = "island.visit";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/visit.yml",
+        new GuiMenuDefinition("island.visit", 6, TITLE_KEY, Map.of(
+            "open", "island.visit.open",
+            "public", "island.visit.public.open",
+            "random", "island.visit.random",
+            "target", "island.visit.target",
+            "back", "island.main.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -43,11 +53,11 @@ public final class IslandVisitMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.publicIslands(client, 45)
             .thenAccept(islands -> openSync(plugin, player, session, islands, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다."), "island.visit.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다."), "island.visit.open", "island.main.open");
                 return null;
             });
     }
@@ -65,29 +75,17 @@ public final class IslandVisitMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (actionId.isBlank()) {
+            return;
+        }
         player.closeInventory();
-        if (slot == 4) {
-            actions.execute(player, "island.visit.random", GuiClick.from(event));
-            return;
-        }
-        if (slot == 45) {
-            actions.execute(player, "island.visit.public.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 49) {
-            actions.execute(player, "island.visit.open", GuiClick.from(event));
-            return;
-        }
-        String islandId = GuiItems.data(event.getCurrentItem()).getOrDefault("target", "");
-        if (!islandId.isBlank()) {
-            actions.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
-        }
+        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<PublicIslandView> islands, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
-            inventory.setItem(4, item(Material.COMPASS, message(messages, "visit-menu-random-name", "랜덤 공개 섬"), message(messages, "visit-menu-random-description", "공개된 섬 중 하나로 이동합니다.")));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             if (islands.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "visit-menu-empty-title", "공개 섬 없음"), message(messages, "visit-menu-empty", "방문 가능한 공개 섬이 없습니다.")));
             } else {
@@ -101,18 +99,12 @@ public final class IslandVisitMenu implements Listener {
                         message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다.")));
                 }
             }
-            inventory.setItem(45, item(Material.ENDER_EYE, message(messages, "visit-menu-public-warps-name", "공개 워프 목록"), message(messages, "visit-menu-public-warps-command", "/섬 공개워프목록")));
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "visit-menu-refresh-name", "새로고침"), message(messages, "visit-menu-refresh-command", "/섬 방문")));
             player.openInventory(inventory);
         });
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

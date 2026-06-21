@@ -1,8 +1,53 @@
 id: island.my-islands
 rows: 6
 title-key: menu.my-islands.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "M..CR...V"
+items:
+  M:
+    material: COMPASS
+    name-key: my-islands-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - my-islands-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: back
+  C:
+    material: OAK_SAPLING
+    name-key: my-islands-menu-create-name
+    fallback-name: 섬 생성
+    lore-keys:
+      - my-islands-menu-create-command
+    fallback-lore:
+      - "/섬 생성메뉴"
+    action: create
+  R:
+    material: CLOCK
+    name-key: my-islands-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - my-islands-menu-refresh-command
+    fallback-lore:
+      - "/섬 목록"
+    action: open
+  V:
+    material: ENDER_PEARL
+    name-key: my-islands-menu-public-islands-name
+    fallback-name: 공개 섬
+    lore-keys:
+      - my-islands-menu-public-islands-command
+    fallback-lore:
+      - "/섬 방문"
+    action: public
 actions:
   open: island.list.open
   visit: island.visit.target
   create: island.create.open
+  public: island.visit.open
   back: island.main.open

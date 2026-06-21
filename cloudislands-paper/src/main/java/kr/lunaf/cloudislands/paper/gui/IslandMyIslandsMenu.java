@@ -20,7 +20,17 @@ import org.bukkit.plugin.Plugin;
 public final class IslandMyIslandsMenu implements Listener {
     private static final String TITLE_KEY = "my-islands-menu-title";
     private static final String TITLE = "내 섬 목록";
-    private static final String MENU_ID = "island.my-islands";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/my-islands.yml",
+        new GuiMenuDefinition("island.my-islands", 6, TITLE_KEY, Map.of(
+            "open", "island.list.open",
+            "visit", "island.visit.target",
+            "create", "island.create.open",
+            "public", "island.visit.open",
+            "back", "island.main.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -43,11 +53,11 @@ public final class IslandMyIslandsMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.playerIslands(client, player.getUniqueId())
             .thenAccept(islands -> openSync(plugin, player, session, islands, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "my-islands-menu-load-failed", "내 섬 목록을 불러오지 못했습니다."), "island.list.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "my-islands-menu-load-failed", "내 섬 목록을 불러오지 못했습니다."), "island.list.open", "island.main.open");
                 return null;
             });
     }
@@ -65,32 +75,17 @@ public final class IslandMyIslandsMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (actionId.isBlank()) {
+            return;
+        }
         player.closeInventory();
-        if (slot == 49) {
-            actions.execute(player, "island.list.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 48) {
-            actions.execute(player, "island.create.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 45) {
-            actions.execute(player, "island.main.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 53) {
-            actions.execute(player, "island.visit.open", GuiClick.from(event));
-            return;
-        }
-        String islandId = GuiItems.data(event.getCurrentItem()).getOrDefault("target", "");
-        if (!islandId.isBlank()) {
-            actions.execute(player, "island.visit.target", java.util.Map.of("target", String.valueOf(islandId)), GuiClick.from(event));
-        }
+        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<PlayerIslandView> islands, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             if (islands.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "my-islands-menu-empty-title", "섬 없음"), message(messages, "my-islands-menu-empty", "속한 섬이 없습니다.")));
             } else {
@@ -105,20 +100,12 @@ public final class IslandMyIslandsMenu implements Listener {
                         message(messages, "my-islands-menu-click-to-visit", "클릭하면 이 섬으로 이동합니다.")));
                 }
             }
-            inventory.setItem(45, item(Material.COMPASS, message(messages, "my-islands-menu-main-menu-name", "메인 메뉴"), message(messages, "my-islands-menu-main-menu-command", "/섬 메뉴")));
-            inventory.setItem(48, item(Material.OAK_SAPLING, message(messages, "my-islands-menu-create-name", "섬 생성"), message(messages, "my-islands-menu-create-command", "/섬 생성메뉴")));
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "my-islands-menu-refresh-name", "새로고침"), message(messages, "my-islands-menu-refresh-command", "/섬 목록")));
-            inventory.setItem(53, item(Material.ENDER_PEARL, message(messages, "my-islands-menu-public-islands-name", "공개 섬"), message(messages, "my-islands-menu-public-islands-command", "/섬 방문")));
             player.openInventory(inventory);
         });
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static Material material(String role) {
