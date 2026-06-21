@@ -7,6 +7,10 @@ import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectVa
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
+import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
+import kr.lunaf.cloudislands.coreclient.AdminEventView;
 
 public final class VelocityEventMessageFormatter {
     private final VelocityRoutePrivacyFormatter routePrivacy;
@@ -37,6 +41,20 @@ public final class VelocityEventMessageFormatter {
         return entries.isEmpty() ? "Events: empty" : "Events: " + String.join(" | ", entries);
     }
 
+    public String events(AdminEventStreamView view) {
+        if (view == null || view.events().isEmpty()) {
+            return "Events: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        for (AdminEventView event : view.events()) {
+            if (entries.size() >= 10) {
+                break;
+            }
+            entries.add(eventEntry(event));
+        }
+        return entries.isEmpty() ? "Events: empty" : "Events: " + String.join(" | ", entries);
+    }
+
     public String audit(String body) {
         String audit = arrayValue(body, "audit");
         if (audit.isBlank()) {
@@ -55,6 +73,20 @@ public final class VelocityEventMessageFormatter {
             }
             entries.add(auditEntry(audit.substring(objectStart, objectEnd + 1)));
             index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
+    }
+
+    public String audit(List<AdminAuditEntryView> audit) {
+        if (audit == null || audit.isEmpty()) {
+            return "Audit: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        for (AdminAuditEntryView entry : audit) {
+            if (entries.size() >= 10) {
+                break;
+            }
+            entries.add(auditEntry(entry));
         }
         return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
     }
@@ -88,6 +120,33 @@ public final class VelocityEventMessageFormatter {
             + (occurredAt.isBlank() ? "" : " at=" + occurredAt);
     }
 
+    private String eventEntry(AdminEventView event) {
+        Map<String, String> fields = event.fields();
+        String islandId = field(fields, "islandId");
+        String ticketId = field(fields, "ticketId");
+        String playerUuid = field(fields, "playerUuid");
+        String action = field(fields, "action");
+        String reason = field(fields, "reason");
+        String requestedNode = field(fields, "requestedNode");
+        String clearedSession = field(fields, "clearedSession");
+        String clearedTicket = field(fields, "clearedTicket");
+        String nodeId = field(fields, "nodeId");
+        if (nodeId.isBlank()) {
+            nodeId = field(fields, "targetNode");
+        }
+        return (event.type().isBlank() ? "UNKNOWN_EVENT" : event.type())
+            + (islandId.isBlank() ? "" : " 섬=" + islandId)
+            + (ticketId.isBlank() ? "" : " ticket=" + shortId(ticketId))
+            + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
+            + (action.isBlank() ? "" : " action=" + action)
+            + (reason.isBlank() ? "" : " reason=" + reason)
+            + routePrivacy.routeRequestedNodeSuffix(requestedNode)
+            + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
+            + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
+            + routePrivacy.routeNodeSuffix(nodeId)
+            + (event.occurredAt().isBlank() ? "" : " at=" + event.occurredAt());
+    }
+
     private String auditEntry(String object) {
         String action = jsonValue(object, "action");
         String actorType = jsonValue(object, "actorType");
@@ -98,6 +157,21 @@ public final class VelocityEventMessageFormatter {
             + (targetType.isBlank() && targetId.isBlank() ? "" : " target=" + targetType + ":" + targetId)
             + (actorType.isBlank() ? "" : " actor=" + actorType)
             + (createdAt.isBlank() ? "" : " at=" + createdAt);
+    }
+
+    private String auditEntry(AdminAuditEntryView entry) {
+        return (entry.action().isBlank() ? "UNKNOWN_ACTION" : entry.action())
+            + (entry.targetType().isBlank() && entry.targetId().isBlank() ? "" : " target=" + entry.targetType() + ":" + entry.targetId())
+            + (entry.actorType().isBlank() ? "" : " actor=" + entry.actorType())
+            + (entry.createdAt().isBlank() ? "" : " at=" + entry.createdAt());
+    }
+
+    private static String field(Map<String, String> fields, String key) {
+        if (fields == null) {
+            return "";
+        }
+        String value = fields.get(key);
+        return value == null ? "" : value;
     }
 
     private static String shortId(String value) {

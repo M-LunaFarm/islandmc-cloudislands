@@ -14,19 +14,26 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
+import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
+import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
+import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
 import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
+import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.MemberActionView;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
 import kr.lunaf.cloudislands.coreclient.PermissionActionView;
 import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
+import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.SettingsActionView;
+import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 
 public final class VelocityIslandMessageFormatter {
@@ -219,6 +226,63 @@ public final class VelocityIslandMessageFormatter {
         return builder.toString();
     }
 
+    public String actionResult(String label, String targetId, IslandLifecycleActionView view) {
+        if (view == null) {
+            return label + ": accepted target=" + compactTarget(targetId);
+        }
+        StringBuilder builder = new StringBuilder(label)
+            .append(": ")
+            .append(view.accepted() ? "accepted" : "rejected")
+            .append(" target=")
+            .append(compactTarget(targetId));
+        if (!view.code().isBlank()) {
+            builder.append(" code=").append(view.code());
+            String detail = adminCodeDetail(view.code());
+            if (!detail.isBlank()) {
+                builder.append(" detail=").append(detail);
+            }
+        }
+        if (!view.islandId().isBlank() && !view.islandId().equals(targetId)) {
+            builder.append(" 섬=").append(shortId(view.islandId()));
+        }
+        if (view.snapshotNo() > 0L) {
+            builder.append(" snapshot=").append(view.snapshotNo());
+        }
+        if (!view.storagePath().isBlank()) {
+            builder.append(" storagePath=").append(view.storagePath());
+        }
+        return builder.toString();
+    }
+
+    public String actionResult(String label, String targetId, BlockValueActionView view) {
+        if (view == null) {
+            return label + ": accepted target=" + compactTarget(targetId);
+        }
+        String material = view.materialKey().isBlank() ? targetId : view.materialKey();
+        return label + ": " + (view.accepted() ? "accepted" : "rejected")
+            + " target=" + compactTarget(targetId)
+            + (!view.accepted() && !view.code().isBlank() ? " code=" + view.code() : "")
+            + (material == null || material.isBlank() ? "" : " material=" + material);
+    }
+
+    public String playerAction(String label, String playerUuid, PlayerProfileView view) {
+        if (view == null) {
+            return label + ": accepted target=" + compactTarget(playerUuid);
+        }
+        return label + ": accepted target=" + compactTarget(view.playerUuid().isBlank() ? playerUuid : view.playerUuid())
+            + (view.primaryIslandId().isBlank() ? " 섬=없음" : " 섬=" + shortId(view.primaryIslandId()))
+            + (view.lastName().isBlank() ? "" : " 이름=" + view.lastName());
+    }
+
+    public String templateAction(String label, String templateId, TemplateView view) {
+        if (view == null) {
+            return label + ": accepted target=" + compactTarget(templateId);
+        }
+        return label + ": accepted target=" + compactTarget(view.id().isBlank() ? templateId : view.id())
+            + " 상태=" + (view.enabled() ? "사용 가능" : "비활성")
+            + (view.minNodeVersion().isBlank() ? "" : " 최소버전=" + view.minNodeVersion());
+    }
+
     public String inviteCreate(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
@@ -340,6 +404,21 @@ public final class VelocityIslandMessageFormatter {
             + " fence=" + longValue(body, "fencingToken");
     }
 
+    public String runtimeInfo(AdminIslandRuntimeView view) {
+        if (view == null) {
+            return "Island runtime: failed code=NOT_FOUND";
+        }
+        if (!view.code().isBlank()) {
+            return "Island runtime: failed code=" + view.code();
+        }
+        return "Island runtime: 섬=" + shortId(view.islandId())
+            + " state=" + (view.state().isBlank() ? "UNKNOWN" : view.state())
+            + routePrivacy.routeNodeSuffix(view.activeNode())
+            + routePrivacy.runtimeWorldSuffix(view.activeWorld())
+            + (view.hasCell() ? routePrivacy.runtimeCellSuffix("{\"cellX\":" + view.cellX() + ",\"cellZ\":" + view.cellZ() + "}") : "")
+            + " fence=" + view.fencingToken();
+    }
+
     public String playerInfo(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
@@ -351,6 +430,15 @@ public final class VelocityIslandMessageFormatter {
         return "플레이어 정보: ID=" + shortId(playerUuid)
             + (lastName.isBlank() ? "" : " 이름=" + lastName)
             + (islandId.isBlank() ? " 섬=없음" : " 섬=" + shortId(islandId));
+    }
+
+    public String playerInfo(PlayerProfileView view) {
+        if (view == null) {
+            return "플레이어 정보: 실패 사유=NOT_FOUND";
+        }
+        return "플레이어 정보: ID=" + shortId(view.playerUuid())
+            + (view.lastName().isBlank() ? "" : " 이름=" + view.lastName())
+            + (view.primaryIslandId().isBlank() ? " 섬=없음" : " 섬=" + shortId(view.primaryIslandId()));
     }
 
     public String rankingList(String label, String body) {
@@ -435,6 +523,24 @@ public final class VelocityIslandMessageFormatter {
         return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
+    public String blockValueList(List<BlockValueView> values) {
+        if (values == null || values.isEmpty()) {
+            return "Block values: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (BlockValueView value : values) {
+            total++;
+            if (entries.size() < 10) {
+                entries.add(value.materialKey()
+                    + " worth=" + value.worth()
+                    + " level=" + value.levelPoints()
+                    + " limit=" + value.limit());
+            }
+        }
+        return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
     public String addonStateSummary(String body) {
         String addons = arrayValue(body, "addons");
         if (addons.isBlank()) {
@@ -473,6 +579,32 @@ public final class VelocityIslandMessageFormatter {
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
+    public String addonStateSummary(AdminAddonStateSummaryView view) {
+        if (view == null || view.addons().isEmpty()) {
+            return "Addon state: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (AdminAddonStateSummaryView.AddonView addon : view.addons()) {
+            total++;
+            if (entries.size() < 10) {
+                entries.add(addon.addonId()
+                    + " global=" + addon.globalKeys()
+                    + " island=" + addon.islandKeys()
+                    + " totalKeys=" + addon.totalKeys());
+            }
+        }
+        return "Addon state: total=" + total
+            + " owner=" + view.stateOwnership()
+            + " registeredRequired=" + view.registeredAddonRequired()
+            + " orphanPolicy=" + view.orphanStatePolicy()
+            + " missingPolicy=" + view.missingAddonStatePolicy()
+            + " tableKeyPrefix=" + view.tableKeyPrefix()
+            + " maxKeysPerAddon=" + view.maxKeysPerAddon()
+            + " maxValueLength=" + view.maxValueLength()
+            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
     public String templateList(String body) {
         String templates = arrayValue(body, "templates");
         if (templates.isBlank()) {
@@ -505,6 +637,25 @@ public final class VelocityIslandMessageFormatter {
             index = objectEnd + 1;
         }
         return "섬 템플릿: 전체 " + total + "개, 사용 가능 " + enabled + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    public String templateList(List<TemplateView> templates) {
+        if (templates == null || templates.isEmpty()) {
+            return "섬 템플릿: 없음";
+        }
+        List<String> entries = new ArrayList<>();
+        int enabled = 0;
+        for (TemplateView template : templates) {
+            if (template.enabled()) {
+                enabled++;
+            }
+            if (entries.size() < 10) {
+                entries.add(template.id()
+                    + " " + (template.enabled() ? "사용 가능" : "비활성")
+                    + (template.minNodeVersion().isBlank() ? "" : " 최소버전=" + template.minNodeVersion()));
+            }
+        }
+        return "섬 템플릿: 전체 " + templates.size() + "개, 사용 가능 " + enabled + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     public String warpList(String label, String body) {

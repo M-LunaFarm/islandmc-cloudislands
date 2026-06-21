@@ -45,13 +45,13 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
 
     @Override
     public CompletableFuture<List<AdminIslandRuntimeView>> nodeIslandRuntimes(String nodeId, int limit) {
-        return delegate.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 100)))
+        return delegate.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 200)))
             .thenApply(CoreAdminNodeQueryClient::runtimes);
     }
 
     @Override
     public CompletableFuture<AdminNodeSummaryView> nodeIslandsSummary(String nodeId, int limit) {
-        return delegate.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 100)))
+        return delegate.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 200)))
             .thenApply(CoreAdminNodeQueryClient::summary);
     }
 
