@@ -8,7 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import org.junit.jupiter.api.Test;
 
@@ -39,15 +41,17 @@ class RouteTicketRoutesTest {
         PlayerRouteSession session = new PlayerRouteSession(
             UUID.fromString("00000000-0000-0000-0000-000000000001"),
             UUID.fromString("00000000-0000-0000-0000-000000000002"),
-            "island-1",
-            "Island-1",
-            "nonce",
+            "island-1, \"east\"",
+            "Island-1, \"East\"",
+            "nonce\"value",
             Instant.parse("2026-01-01T00:00:00Z")
         );
 
         String json = RouteTicketRoutes.sessionJson(session);
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
 
-        assertTrue(json.contains("\"targetNode\":\"island-1\""));
-        assertTrue(json.contains("\"nonce\":\"nonce\""));
+        assertEquals("island-1, \"east\"", SimpleJson.text(root.get("targetNode")));
+        assertEquals("Island-1, \"East\"", SimpleJson.text(root.get("targetServerName")));
+        assertEquals("nonce\"value", SimpleJson.text(root.get("nonce")));
     }
 }

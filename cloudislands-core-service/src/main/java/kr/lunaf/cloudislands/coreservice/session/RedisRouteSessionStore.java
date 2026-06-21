@@ -217,8 +217,7 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
     }
 
     public String toJson() {
-        StringBuilder builder = new StringBuilder("{\"sessions\":[");
-        boolean first = true;
+        List<PlayerRouteSession> sessions = new ArrayList<>();
         try {
             for (String key : sessionKeys()) {
                 try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
@@ -231,21 +230,12 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
                         redis.command("DEL", key);
                         continue;
                     }
-                    if (!first) {
-                        builder.append(',');
-                    }
-                    first = false;
-                    builder.append("{\"playerUuid\":\"").append(session.playerUuid())
-                        .append("\",\"ticketId\":\"").append(session.ticketId())
-                        .append("\",\"targetNode\":\"").append(escape(session.targetNode()))
-                        .append("\",\"targetServerName\":\"").append(escape(session.targetServerName()))
-                        .append("\",\"expiresAt\":\"").append(session.expiresAt())
-                        .append("\"}");
+                    sessions.add(session);
                 } catch (IOException | RuntimeException exception) {
                     failures.incrementAndGet();
                 }
             }
-            return builder.append("]}").toString();
+            return RouteSessionJson.snapshot(sessions);
         } catch (RuntimeException exception) {
             failures.incrementAndGet();
             return fallback.toJson();
@@ -320,9 +310,5 @@ public final class RedisRouteSessionStore implements RouteSessionStore {
             parts[4],
             Instant.parse(parts[5])
         );
-    }
-
-    private String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

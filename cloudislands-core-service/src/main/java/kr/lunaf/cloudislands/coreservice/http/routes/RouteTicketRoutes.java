@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.session.InMemoryRouteSessionStore;
 import kr.lunaf.cloudislands.coreservice.session.RedisRouteSessionStore;
+import kr.lunaf.cloudislands.coreservice.session.RouteSessionJson;
 import kr.lunaf.cloudislands.coreservice.session.RouteSessionStore;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
@@ -282,7 +283,7 @@ public final class RouteTicketRoutes implements RouteGroup {
     }
 
     static String sessionJson(PlayerRouteSession session) {
-        return "{\"playerUuid\":\"" + session.playerUuid() + "\",\"ticketId\":\"" + session.ticketId() + "\",\"targetNode\":\"" + session.targetNode() + "\",\"targetServerName\":\"" + session.targetServerName() + "\",\"nonce\":\"" + session.nonce() + "\",\"expiresAt\":\"" + session.expiresAt() + "\"}";
+        return RouteSessionJson.session(session);
     }
 
     private static String escape(String value) {

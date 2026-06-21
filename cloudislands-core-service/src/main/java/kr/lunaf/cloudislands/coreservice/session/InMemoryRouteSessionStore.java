@@ -114,25 +114,15 @@ public final class InMemoryRouteSessionStore implements RouteSessionStore {
     }
 
     public String toJson() {
-        StringBuilder builder = new StringBuilder("{\"sessions\":[");
-        boolean first = true;
+        java.util.List<PlayerRouteSession> sessions = new java.util.ArrayList<>();
         for (PlayerRouteSession session : byPlayer.values()) {
             if (expired(session)) {
                 byPlayer.remove(session.playerUuid(), session);
                 continue;
             }
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append("{\"playerUuid\":\"").append(session.playerUuid())
-                .append("\",\"ticketId\":\"").append(session.ticketId())
-                .append("\",\"targetNode\":\"").append(session.targetNode())
-                .append("\",\"targetServerName\":\"").append(session.targetServerName())
-                .append("\",\"expiresAt\":\"").append(session.expiresAt())
-                .append("\"}");
+            sessions.add(session);
         }
-        return builder.append("]}").toString();
+        return RouteSessionJson.snapshot(sessions);
     }
 
     private boolean expired(PlayerRouteSession session) {
