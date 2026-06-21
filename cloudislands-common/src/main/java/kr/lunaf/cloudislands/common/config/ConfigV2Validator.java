@@ -47,14 +47,23 @@ public final class ConfigV2Validator {
             }
         }
         Set<String> allowed = registeredActions == null ? Set.of() : registeredActions;
-        for (Map.Entry<String, String> action : menu.actions().entrySet()) {
-            if (action.getValue().isBlank()) {
-                issues.add(new ConfigIssue("MENU_ACTION_EMPTY", action.getKey(), sourceName));
-            } else if (!allowed.isEmpty() && !allowed.contains(action.getValue())) {
-                issues.add(new ConfigIssue("MENU_ACTION_UNREGISTERED", action.getKey(), sourceName + ":" + action.getValue()));
-            }
+        Map<String, String> actionAliases = menu.actionAliases();
+        for (Map.Entry<String, String> action : menu.actionDefinitions().entrySet()) {
+            validateRegisteredAction(sourceName, issues, allowed, action.getKey(), action.getValue());
+        }
+        for (Map.Entry<String, String> action : menu.itemActions().entrySet()) {
+            String resolved = actionAliases.getOrDefault(action.getValue(), action.getValue());
+            validateRegisteredAction(sourceName, issues, allowed, action.getKey(), resolved);
         }
         return new ConfigValidationResult(issues);
+    }
+
+    private static void validateRegisteredAction(String sourceName, List<ConfigIssue> issues, Set<String> allowed, String path, String action) {
+        if (action == null || action.isBlank()) {
+            issues.add(new ConfigIssue("MENU_ACTION_EMPTY", path, sourceName));
+        } else if (!allowed.isEmpty() && !allowed.contains(action)) {
+            issues.add(new ConfigIssue("MENU_ACTION_UNREGISTERED", path, sourceName + ":" + action));
+        }
     }
 
     public static String redactYaml(String yaml) {
@@ -188,12 +197,25 @@ public final class ConfigV2Validator {
     private record Frame(int indent, String key) {
     }
 
-    private record MenuYaml(int rows, List<String> layout, Set<String> itemSymbols, Map<String, String> actions) {
+    private record MenuYaml(
+        int rows,
+        List<String> layout,
+        Set<String> itemSymbols,
+        Map<String, String> itemActions,
+        Map<String, String> actionDefinitions
+    ) {
+        private Map<String, String> actionAliases() {
+            Map<String, String> aliases = new HashMap<>();
+            actionDefinitions.forEach((path, action) -> aliases.put(path.substring(path.lastIndexOf('.') + 1), action));
+            return aliases;
+        }
+
         private static MenuYaml parse(String yaml) {
             int rows = 0;
             List<String> layout = new ArrayList<>();
             Set<String> itemSymbols = new HashSet<>();
-            Map<String, String> actions = new HashMap<>();
+            Map<String, String> itemActions = new HashMap<>();
+            Map<String, String> actionDefinitions = new HashMap<>();
             List<Frame> stack = new ArrayList<>();
             String currentItem = "";
             String[] lines = yaml.split("\\R");
@@ -231,15 +253,15 @@ public final class ConfigV2Validator {
                     currentItem = key;
                     itemSymbols.add(key);
                 } else if (path.equals("items." + currentItem + ".action")) {
-                    actions.put(path, value);
+                    itemActions.put(path, value);
                 } else if (path.endsWith(".actions." + key) || path.endsWith(".footer-actions." + key) || path.startsWith("actions.") || path.startsWith("footer-actions.")) {
-                    actions.put(path, value);
+                    actionDefinitions.put(path, value);
                 }
                 if (rawValue.isBlank()) {
                     stack.add(new Frame(indent, key));
                 }
             }
-            return new MenuYaml(rows, List.copyOf(layout), Set.copyOf(itemSymbols), Map.copyOf(actions));
+            return new MenuYaml(rows, List.copyOf(layout), Set.copyOf(itemSymbols), Map.copyOf(itemActions), Map.copyOf(actionDefinitions));
         }
 
         private static String listValue(String value) {

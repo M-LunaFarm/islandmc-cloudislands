@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
@@ -171,23 +173,29 @@ class PaperPlatformBoundaryTest {
         Path root = repositoryRoot();
         String router = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouter.java"));
         String adminHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
+        String adminUseCase = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/IslandAdminNodeUseCase.java"));
         String homeWarpHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
         String tokens = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/ConfirmationTokenPolicy.java"));
 
         assertTrue(router.contains("adminCommands.handleGuiAction(player, action"), "Admin node GUI actions must route through the admin handler");
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"), "Admin node GUI actions must use typed actions");
         assertTrue(adminHandler.contains("case LIST ->"), "Admin node list GUI action must call the Core usecase path");
-        assertTrue(adminHandler.contains("coreApiClient.listNodes()"), "Admin node list GUI action must call Core");
+        assertTrue(adminHandler.contains("adminNodeUseCase.listNodes()"), "Admin node list GUI action must call the Core usecase path");
+        assertTrue(adminUseCase.contains("coreApiClient.listNodes()"), "Admin node list usecase must call Core");
         assertTrue(adminHandler.contains("case INFO ->"), "Admin node info GUI action must refresh from Core");
-        assertTrue(adminHandler.contains("coreApiClient.nodeInfo(nodeId)"), "Admin node info GUI action must refresh from Core");
+        assertTrue(adminHandler.contains("adminNodeUseCase.nodeInfo(nodeId)"), "Admin node info GUI action must refresh through the Core usecase");
+        assertTrue(adminUseCase.contains("coreApiClient.nodeInfo("), "Admin node info usecase must call Core");
         assertTrue(adminHandler.contains("case DRAIN ->"), "Admin node drain GUI action must call Core");
-        assertTrue(adminHandler.contains("coreApiClient.drainNode(nodeId)"), "Admin node drain GUI action must call Core");
+        assertTrue(adminHandler.contains("adminNodeUseCase.drain(nodeId"), "Admin node drain GUI action must call the Core usecase");
+        assertTrue(adminUseCase.contains("coreApiClient.drainNode("), "Admin node drain usecase must call Core");
         assertTrue(adminHandler.contains("case UNDRAIN ->"), "Admin node undrain GUI action must call Core");
-        assertTrue(adminHandler.contains("coreApiClient.undrainNode(nodeId)"), "Admin node undrain GUI action must call Core");
+        assertTrue(adminHandler.contains("adminNodeUseCase.undrain(nodeId"), "Admin node undrain GUI action must call the Core usecase");
+        assertTrue(adminUseCase.contains("coreApiClient.undrainNode("), "Admin node undrain usecase must call Core");
         assertTrue(adminHandler.contains("case SWEEP ->"), "Admin node sweep GUI action must call Core");
-        assertTrue(adminHandler.contains("coreApiClient.sweepNode(nodeId)"), "Admin node sweep GUI action must call Core");
-        assertTrue(adminHandler.contains("coreApiClient.kickAllNode("), "Admin node kickall confirmation must call Core");
-        assertTrue(adminHandler.contains("coreApiClient.shutdownNodeSafely("), "Admin node shutdown confirmation must call Core");
+        assertTrue(adminHandler.contains("adminNodeUseCase.sweep(nodeId"), "Admin node sweep GUI action must call the Core usecase");
+        assertTrue(adminUseCase.contains("coreApiClient.sweepNode("), "Admin node sweep usecase must call Core");
+        assertTrue(adminUseCase.contains("coreApiClient.kickAllNode("), "Admin node kickall confirmation must call Core");
+        assertTrue(adminUseCase.contains("coreApiClient.shutdownNodeSafely("), "Admin node shutdown confirmation must call Core");
         assertTrue(adminHandler.contains("confirmationAccepted(player, action, click)"), "Admin node danger actions must verify a typed confirmation token");
         assertTrue(tokens.contains("\"admin.node.kickall.confirm\""), "Admin node kickall must require a confirmation token");
         assertTrue(tokens.contains("\"admin.node.shutdown-safe.confirm\""), "Admin node shutdown-safe must require a confirmation token");
@@ -674,11 +682,14 @@ class PaperPlatformBoundaryTest {
         String permissionHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandPermissionCommandHandler.java"));
         String membershipHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandRoleMenu.java"));
+        String menuConfig = Files.readString(root.resolve("cloudislands-paper/src/main/resources/config-v2/ui/menus/roles.yml"));
         String translations = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/message/TranslationManager.java"));
 
         assertTrue(menu.contains("\"island.role.weight.adjust\""), "Role GUI must expose a direct role edit action");
-        assertTrue(menu.contains("GuiItems.action(Material.PAPER"), "Role list control must use PDC action metadata");
-        assertTrue(menu.contains("GuiItems.action(Material.COMPARATOR"), "Role permission control must use PDC action metadata");
+        assertTrue(menu.contains("GuiItems.action(material(role.role())"), "Role rows must use PDC action metadata");
+        assertTrue(menu.contains("GuiMenuRenderer.render(MENU"), "Role menu controls must render from config-v2 metadata");
+        assertTrue(menuConfig.contains("material: PAPER"), "Role list control must be declarative config");
+        assertTrue(menuConfig.contains("material: COMPARATOR"), "Role permission control must be declarative config");
         assertTrue(membershipHandler.contains("action instanceof GuiAction.RoleWeightAdjust"), "Role edit action must be registered as a typed GUI action");
         assertTrue(membershipHandler.contains("runtime.adjustIslandRoleWeight"), "Role edit action must route to the role weight adjuster");
         assertTrue(permissionHandler.contains("upsertIslandRole(player, roleKey, updatedWeight, displayName)"), "Role edit action must call the Core role mutation with dynamic role keys");
@@ -731,6 +742,7 @@ class PaperPlatformBoundaryTest {
         List<Path> commandSources = commandActionSources(root);
         List<Path> actionSources = new ArrayList<>(commandSources);
         actionSources.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/BankUseCase.java"));
+        actionSources.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/IslandCreationUseCase.java"));
         actionSources.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/SnapshotUseCase.java"));
         List<Path> files = new ArrayList<>(actionSources);
         files.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"));
@@ -1355,6 +1367,7 @@ class PaperPlatformBoundaryTest {
 
     private static List<String> yamlActionValues(List<String> lines) {
         List<String> values = new ArrayList<>();
+        Map<String, String> actionAliases = yamlActionDefinitions(lines);
         boolean inActionBlock = false;
         for (String line : lines) {
             String trimmed = line.trim();
@@ -1366,7 +1379,8 @@ class PaperPlatformBoundaryTest {
                 inActionBlock = false;
             }
             if (trimmed.startsWith("action:")) {
-                values.add(cleanYamlValue(trimmed.substring(trimmed.indexOf(':') + 1)));
+                String action = cleanYamlValue(trimmed.substring(trimmed.indexOf(':') + 1));
+                values.add(actionAliases.getOrDefault(action, action));
                 continue;
             }
             if (inActionBlock && line.startsWith("  ") && trimmed.contains(":")) {
@@ -1374,6 +1388,26 @@ class PaperPlatformBoundaryTest {
             }
         }
         return values.stream().filter(PaperPlatformBoundaryTest::isGuiActionId).toList();
+    }
+
+    private static Map<String, String> yamlActionDefinitions(List<String> lines) {
+        Map<String, String> values = new LinkedHashMap<>();
+        boolean inActionBlock = false;
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.equals("actions:") || trimmed.equals("footer-actions:")) {
+                inActionBlock = true;
+                continue;
+            }
+            if (inActionBlock && !line.startsWith(" ")) {
+                inActionBlock = false;
+            }
+            if (inActionBlock && line.startsWith("  ") && trimmed.contains(":")) {
+                int separator = trimmed.indexOf(':');
+                values.put(trimmed.substring(0, separator).trim(), cleanYamlValue(trimmed.substring(separator + 1)));
+            }
+        }
+        return values;
     }
 
     private static String cleanYamlValue(String value) {
@@ -1403,19 +1437,43 @@ class PaperPlatformBoundaryTest {
 
     private static Set<String> knownMenuMaterials() {
         return Set.of(
+            "ANVIL",
+            "ARROW",
+            "BARRIER",
+            "BELL",
             "BEACON",
+            "BOOK",
             "CHEST",
+            "CLOCK",
             "COMPARATOR",
             "COMPASS",
+            "COMMAND_BLOCK",
             "EMERALD",
+            "EMERALD_BLOCK",
             "ENDER_PEARL",
+            "ENDER_EYE",
+            "EXPERIENCE_BOTTLE",
+            "FILLED_MAP",
             "GOLD_BLOCK",
             "GRASS_BLOCK",
             "HOPPER",
+            "IRON_DOOR",
             "LAVA_BUCKET",
+            "LEVER",
+            "LIME_DYE",
             "MAP",
+            "MINECART",
             "NAME_TAG",
+            "NETHER_STAR",
+            "OAK_DOOR",
+            "OAK_SAPLING",
+            "PAPER",
             "PLAYER_HEAD",
+            "RED_BED",
+            "REDSTONE",
+            "REDSTONE_BLOCK",
+            "REDSTONE_TORCH",
+            "TNT",
             "WRITABLE_BOOK"
         );
     }

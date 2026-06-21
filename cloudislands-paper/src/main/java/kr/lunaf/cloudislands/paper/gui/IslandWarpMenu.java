@@ -30,7 +30,7 @@ public final class IslandWarpMenu implements Listener {
             "public", "island.warp.public",
             "private", "island.warp.private",
             "delete-prepare", "island.warp.delete.prepare",
-            "delete-confirm", "island.warp.delete.confirm",
+            "delete-confirm", ConfirmationTokenPolicy.WARP_DELETE_CONFIRM_ACTION,
             "settings", "island.settings.open",
             "back", "island.main.open"
         ))

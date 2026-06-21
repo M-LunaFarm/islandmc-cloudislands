@@ -6,16 +6,22 @@ import java.util.Set;
 
 public final class ConfirmationTokenPolicy {
     public static final String TOKEN_KEY = "confirmationToken";
+    public static final String WARP_DELETE_CONFIRM_ACTION = "island.warp.delete.confirm";
+    public static final String MEMBER_REMOVE_CONFIRM_ACTION = "island.member.remove.confirm";
+    public static final String BAN_PARDON_CONFIRM_ACTION = "island.ban.pardon.confirm";
+    public static final String SNAPSHOT_RESTORE_CONFIRM_ACTION = "island.snapshot.restore.confirm";
+    public static final String ADMIN_NODE_KICKALL_CONFIRM_ACTION = "admin.node.kickall.confirm";
+    public static final String ADMIN_NODE_SHUTDOWN_SAFE_CONFIRM_ACTION = "admin.node.shutdown-safe.confirm";
 
     private static final Set<String> CONFIRMED_ACTIONS = Set.of(
-        "island.warp.delete.confirm",
+        WARP_DELETE_CONFIRM_ACTION,
         "island.member.promote",
         "island.member.demote",
-        "island.member.remove.confirm",
-        "island.ban.pardon.confirm",
-        "island.snapshot.restore.confirm",
-        "admin.node.kickall.confirm",
-        "admin.node.shutdown-safe.confirm"
+        MEMBER_REMOVE_CONFIRM_ACTION,
+        BAN_PARDON_CONFIRM_ACTION,
+        SNAPSHOT_RESTORE_CONFIRM_ACTION,
+        ADMIN_NODE_KICKALL_CONFIRM_ACTION,
+        ADMIN_NODE_SHUTDOWN_SAFE_CONFIRM_ACTION
     );
 
     private ConfirmationTokenPolicy() {

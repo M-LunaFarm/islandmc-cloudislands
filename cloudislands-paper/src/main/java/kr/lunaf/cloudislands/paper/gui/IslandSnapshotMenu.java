@@ -27,7 +27,7 @@ public final class IslandSnapshotMenu implements Listener {
             "list", "island.snapshots.list",
             "create", "island.snapshot.create",
             "restore-prepare", "island.snapshot.restore.prepare",
-            "restore-confirm", "island.snapshot.restore.confirm",
+            "restore-confirm", ConfirmationTokenPolicy.SNAPSHOT_RESTORE_CONFIRM_ACTION,
             "back", "island.danger.open",
             "settings", "island.settings.open"
         ))

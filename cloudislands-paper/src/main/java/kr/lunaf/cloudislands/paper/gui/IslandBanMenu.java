@@ -25,7 +25,7 @@ public final class IslandBanMenu implements Listener {
             "open", "island.bans.open",
             "list", "island.bans.list",
             "pardon-prepare", "island.ban.pardon.prepare",
-            "pardon-confirm", "island.ban.pardon.confirm",
+            "pardon-confirm", ConfirmationTokenPolicy.BAN_PARDON_CONFIRM_ACTION,
             "back", "island.members.open",
             "settings", "island.settings.open"
         ))

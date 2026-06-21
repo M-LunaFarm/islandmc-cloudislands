@@ -156,6 +156,24 @@ class ConfigV2ValidatorTest {
         assertTrue(result.hasIssue("MENU_ACTION_UNREGISTERED"));
     }
 
+    @Test
+    void resolvesMenuItemActionAliasesThroughMenuActionDefinitions() {
+        ConfigValidationResult result = ConfigV2Validator.validateMenuYaml("ui/menus/admin-node.yml", """
+            id: admin.node
+            rows: 1
+            layout:
+              - "L........"
+            items:
+              L:
+                material: COMPASS
+                action: list
+            actions:
+              list: admin.node.list
+            """, Set.of("admin.node.list"));
+
+        assertTrue(result.valid(), result.summary());
+    }
+
     private static Stream<Path> yamlFiles(Path root) {
         try {
             if (Files.notExists(root)) {
