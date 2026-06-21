@@ -19,16 +19,9 @@ final class CoreBlockValueJson {
     }
 
     static BlockValueActionView action(String body, String materialKey) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("ok"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (!code.isBlank() && !code.equals("BLOCK_VALUE_SET")) {
-            accepted = false;
-        }
-        return new BlockValueActionView(accepted, code.isBlank() ? (accepted ? "BLOCK_VALUE_SET" : "FAILED") : code, materialKey);
+        Map<?, ?> root = CoreJson.object(body);
+        boolean accepted = CoreJson.acceptedWithCode(root, "BLOCK_VALUE_SET");
+        return new BlockValueActionView(accepted, CoreJson.code(root, "BLOCK_VALUE_SET", accepted), materialKey);
     }
 
     private static BlockValueView value(Map<?, ?> object) {

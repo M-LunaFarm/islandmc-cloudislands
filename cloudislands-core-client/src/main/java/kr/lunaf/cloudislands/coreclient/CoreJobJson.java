@@ -18,36 +18,19 @@ final class CoreJobJson {
     }
 
     static JobActionView action(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("ok"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = text(root, "code");
-        if (!code.isBlank() && !code.equals(successCode)) {
-            accepted = false;
-        }
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new JobActionView(accepted, code);
+        Map<?, ?> root = CoreJson.object(body);
+        boolean accepted = CoreJson.acceptedWithCode(root, successCode);
+        return new JobActionView(accepted, CoreJson.code(root, successCode, accepted));
     }
 
     static JobRecoveryView recovery(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error") && !Boolean.FALSE.equals(root.get("accepted"));
+        Map<?, ?> root = CoreJson.object(body);
+        boolean accepted = CoreJson.acceptedWithCode(root, "RECOVERED");
         String recovered = text(root, "recovered");
         if (recovered.isBlank() && root.containsKey("recovered")) {
             recovered = Long.toString(SimpleJson.number(root.get("recovered")));
         }
-        String code = text(root, "code");
-        if (!code.isBlank() && !code.equals("RECOVERED")) {
-            accepted = false;
-        }
-        if (code.isBlank()) {
-            code = accepted ? "RECOVERED" : "FAILED";
-        }
-        return new JobRecoveryView(accepted, accepted ? recovered : "", code);
+        return new JobRecoveryView(accepted, accepted ? recovered : "", CoreJson.code(root, "RECOVERED", accepted));
     }
 
     private static JobView job(Map<?, ?> object) {

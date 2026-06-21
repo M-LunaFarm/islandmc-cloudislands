@@ -48,15 +48,19 @@ class CoreTypedClientsTest {
         Map<?, ?> ok = CoreJson.object("{\"ok\":true,\"nodeId\":\"paper-a\",\"nodes\":[\"paper-a\",\"\"]}");
         Map<?, ?> rejected = CoreJson.object("{\"accepted\":false}");
         Map<?, ?> failed = CoreJson.object("{\"error\":{\"code\":\"STALE_NODE\"}}");
+        Map<?, ?> wrongCode = CoreJson.object("{\"accepted\":true,\"code\":\"STALE_NODE\"}");
 
         assertTrue(CoreJson.accepted(blank));
         assertEquals("FALLBACK", CoreJson.code(blank, "FALLBACK"));
         assertTrue(CoreJson.accepted(ok));
+        assertTrue(CoreJson.acceptedWithCode(ok, "FALLBACK"));
         assertEquals("paper-a", CoreJson.text(ok, "nodeId"));
         assertEquals(List.of("paper-a"), CoreJson.strings(ok, "nodes"));
         assertFalse(CoreJson.accepted(rejected));
         assertEquals("FAILED", CoreJson.code(rejected, "IGNORED"));
         assertFalse(CoreJson.accepted(failed));
+        assertFalse(CoreJson.acceptedWithCode(wrongCode, "EXPECTED"));
+        assertEquals("STALE_NODE", CoreJson.code(wrongCode, "EXPECTED", false));
     }
 
     @Test

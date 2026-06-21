@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreNavigationCommandClient implements NavigationCommandClient {
     private final CoreApiClient delegate;
@@ -63,12 +62,8 @@ public final class CoreNavigationCommandClient implements NavigationCommandClien
     }
 
     private static ReviewActionView reviewActionResult(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        return new ReviewActionView(accepted, code);
+        Map<?, ?> root = CoreJson.object(body);
+        return new ReviewActionView(CoreJson.accepted(root), CoreJson.text(root, "code"));
     }
 
     private static void requireId(UUID id, String name) {

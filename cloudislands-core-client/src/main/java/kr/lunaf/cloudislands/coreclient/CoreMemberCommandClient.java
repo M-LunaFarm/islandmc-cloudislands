@@ -91,17 +91,17 @@ public final class CoreMemberCommandClient implements MemberCommandClient {
     }
 
     private static IslandInviteActionResult inviteAction(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         boolean accepted = bool(root, "accepted");
-        String code = SimpleJson.text(root.get("code"));
+        String code = CoreJson.text(root, "code");
         return new IslandInviteActionResult(accepted, accepted ? successCode : (code.isBlank() ? "FAILED" : code));
     }
 
     private static MemberActionView memberAction(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         boolean accepted = bool(root, "accepted") && !root.containsKey("error");
-        String code = SimpleJson.text(root.get("code"));
-        return new MemberActionView(accepted, accepted ? successCode : (code.isBlank() ? "FAILED" : code), SimpleJson.text(root.get("expiresAt")));
+        String code = CoreJson.text(root, "code");
+        return new MemberActionView(accepted, accepted ? successCode : (code.isBlank() ? "FAILED" : code), CoreJson.text(root, "expiresAt"));
     }
 
     private static boolean bool(Map<?, ?> object, String key) {

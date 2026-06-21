@@ -101,19 +101,19 @@ public final class CoreIslandLifecycleCommandClient implements IslandLifecycleCo
     }
 
     private static IslandLifecycleActionView actionResult(String body, String successCode, UUID fallbackIslandId) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> error = SimpleJson.object(root.get("error"));
         boolean accepted = error.isEmpty()
             && !Boolean.FALSE.equals(root.get("accepted"))
             && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
+        String code = CoreJson.text(root, "code");
         if (code.isBlank()) {
             code = SimpleJson.text(error.get("code"));
         }
         if (code.isBlank()) {
             code = accepted ? successCode : "FAILED";
         }
-        String islandId = SimpleJson.text(root.get("islandId"));
+        String islandId = CoreJson.text(root, "islandId");
         if (islandId.isBlank() && fallbackIslandId != null) {
             islandId = fallbackIslandId.toString();
         }
@@ -121,8 +121,8 @@ public final class CoreIslandLifecycleCommandClient implements IslandLifecycleCo
             accepted,
             code,
             islandId,
-            SimpleJson.number(root.get("snapshotNo")),
-            SimpleJson.text(root.get("storagePath"))
+            CoreJson.number(root, "snapshotNo"),
+            CoreJson.text(root, "storagePath")
         );
     }
 

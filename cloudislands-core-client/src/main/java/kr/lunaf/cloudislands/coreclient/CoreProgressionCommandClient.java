@@ -59,9 +59,9 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
     }
 
     private static ProgressionUpgradePurchaseView upgradePurchaseResult(String body, String fallbackKey) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> upgrade = SimpleJson.object(root.get("upgrade"));
-        boolean accepted = accepted(root);
+        boolean accepted = CoreJson.accepted(root);
         String code = text(root, "code");
         String upgradeKey = text(upgrade, "upgradeKey");
         if (upgradeKey.isBlank()) {
@@ -83,7 +83,7 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
     }
 
     private static LevelView levelView(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         return new LevelView(
             text(root, "islandId"),
             SimpleJson.number(root.get("level")),
@@ -93,8 +93,8 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
     }
 
     private static ProgressionMissionCompletionView missionCompletionResult(String body, UUID fallbackIslandId, String fallbackKey, String fallbackKind) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = accepted(root);
+        Map<?, ?> root = CoreJson.object(body);
+        boolean accepted = CoreJson.accepted(root);
         String code = text(root, "code");
         String missionKey = text(root, "missionKey");
         if (missionKey.isBlank()) {
@@ -173,12 +173,6 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         } catch (RuntimeException ignored) {
             return Instant.EPOCH;
         }
-    }
-
-    private static boolean accepted(Map<?, ?> root) {
-        return !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
     }
 
     private static void requireId(UUID id, String name) {

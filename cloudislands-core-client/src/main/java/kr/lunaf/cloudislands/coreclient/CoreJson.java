@@ -20,12 +20,21 @@ final class CoreJson {
             && !Boolean.FALSE.equals(root.get("applied"));
     }
 
+    static boolean acceptedWithCode(Map<?, ?> root, String successCode) {
+        String code = text(root, "code");
+        return accepted(root) && (code.isBlank() || code.equals(successCode));
+    }
+
     static String code(Map<?, ?> root, String successCode) {
+        return code(root, successCode, accepted(root));
+    }
+
+    static String code(Map<?, ?> root, String successCode, boolean accepted) {
         String code = text(root, "code");
         if (!code.isBlank()) {
             return code;
         }
-        return accepted(root) ? successCode : "FAILED";
+        return accepted ? successCode : "FAILED";
     }
 
     static String text(Map<?, ?> root, String key) {
