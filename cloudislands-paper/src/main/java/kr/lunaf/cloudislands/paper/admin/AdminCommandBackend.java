@@ -642,7 +642,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<String> nodeSnapshot = coreApiClient.listNodes().thenApply(Object::toString);
         CompletableFuture<String> nodes = diagnosticSection("nodes", nodeSnapshot);
         CompletableFuture<String> heartbeatLag = diagnosticSection("heartbeat-lag", nodeSnapshot.thenApply(this::heartbeatLagDiagnosticBody));
-        CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.jobs().list().thenApply(Object::toString));
+        CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
         CompletableFuture<String> routes = diagnosticSection("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
         CompletableFuture<String> audit = diagnosticSection("audit", coreApiClient.adminAudit().list(25).thenApply(this::auditListMessage));
         CompletableFuture<String> configValidation = CompletableFuture.completedFuture(configValidationDiagnosticSection());
