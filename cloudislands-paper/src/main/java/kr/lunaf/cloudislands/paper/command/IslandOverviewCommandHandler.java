@@ -42,18 +42,7 @@ final class IslandOverviewCommandHandler {
             IslandMyIslandsMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
             return true;
         }
-        String actionId = action.actionId();
-        return switch (actionId) {
-            case "island.info.open" -> {
-                openInfoMenu(player);
-                yield true;
-            }
-            case "island.list.open" -> {
-                IslandMyIslandsMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private void openInfoMenu(Player player) {

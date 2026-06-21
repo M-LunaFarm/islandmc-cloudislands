@@ -276,7 +276,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(membershipHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(membershipHandler.contains("subcommand.equals(\"members\")"));
-        assertTrue(membershipHandler.contains("case \"island.permissions.open\""));
+        assertTrue(membershipHandler.contains("case PERMISSIONS_OPEN"));
     }
 
     @Test
