@@ -288,7 +288,7 @@ class CoreTypedClientsTest {
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listIslandSnapshots" -> CompletableFuture.completedFuture("""
-                    {"snapshots":[{"snapshotNo":7,"reason":"manual","sizeBytes":4096,"createdAt":"now","checksum":"abcdef1234567890"}]}
+                    {"snapshots":[{"snapshotNo":7,"reason":"manual","sizeBytes":4096,"createdAt":"now","checksum":"abcdef1234567890","storagePath":"snapshots/7.tar"}]}
                     """);
                 default -> throw new UnsupportedOperationException(method.getName());
             }
@@ -301,6 +301,7 @@ class CoreTypedClientsTest {
         assertEquals("manual", snapshot.reason());
         assertEquals(4096L, snapshot.sizeBytes());
         assertEquals("abcdef1234567890", snapshot.checksum());
+        assertEquals("snapshots/7.tar", snapshot.storagePath());
     }
 
     @Test

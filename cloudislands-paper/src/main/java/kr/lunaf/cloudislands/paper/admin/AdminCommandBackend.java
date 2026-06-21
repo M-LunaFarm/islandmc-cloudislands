@@ -865,7 +865,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args[1].equalsIgnoreCase("snapshots")) {
             int limit = args.length > 3 ? (int) number(args[3], 20L) : 20;
-            run(sender, "Island snapshots", coreApiClient.listIslandSnapshots(islandId, Math.max(1, Math.min(limit, 50))).thenApply(this::snapshotListMessage));
+            run(sender, "Island snapshots", coreApiClient.snapshots().listSnapshots(islandId, Math.max(1, Math.min(limit, 50))).thenApply(this::snapshotListMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("rollback")) {
@@ -2611,38 +2611,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return adminText("admin-command-route-clear-session-prefix", "Route clear: session=") + result.clearedSession() + adminText("admin-command-route-clear-ticket-prefix", " ticket=") + result.clearedTicket() + (result.reason().isBlank() ? "" : adminText("admin-command-route-clear-reason-prefix", " reason=") + result.reason());
     }
 
-    private String snapshotListMessage(String body) {
-        String snapshots = arrayValue(body, "snapshots");
-        if (snapshots.isBlank()) {
+    private String snapshotListMessage(List<CoreGuiViews.SnapshotView> snapshots) {
+        if (snapshots.isEmpty()) {
             return adminText("admin-command-snapshots-empty", "Snapshots: empty");
         }
         List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < snapshots.length() && entries.size() < 20) {
-            int objectStart = snapshots.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
+        for (CoreGuiViews.SnapshotView snapshot : snapshots.stream().limit(20).toList()) {
+            if (snapshot.snapshotNo() > 0L) {
+                entries.add("#" + snapshot.snapshotNo()
+                    + (snapshot.reason().isBlank() ? "" : " " + snapshot.reason())
+                    + adminText("admin-command-snapshot-size-prefix", " size=") + snapshot.sizeBytes()
+                    + (snapshot.checksum().isBlank() ? "" : adminText("admin-command-snapshot-checksum-prefix", " checksum=") + shortChecksum(snapshot.checksum()))
+                    + (snapshot.storagePath().isBlank() ? "" : adminText("admin-command-snapshot-path-prefix", " path=") + snapshot.storagePath())
+                    + (snapshot.createdAt().isBlank() ? "" : adminText("admin-command-snapshot-at-prefix", " at=") + snapshot.createdAt()));
             }
-            int objectEnd = matchingObjectEnd(snapshots, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = snapshots.substring(objectStart, objectEnd + 1);
-            long snapshotNo = longValue(object, "snapshotNo");
-            if (snapshotNo > 0L) {
-                String reason = textValue(object, "reason");
-                long sizeBytes = longValue(object, "sizeBytes");
-                String createdAt = textValue(object, "createdAt");
-                String checksum = textValue(object, "checksum");
-                String storagePath = textValue(object, "storagePath");
-                entries.add("#" + snapshotNo
-                    + (reason.isBlank() ? "" : " " + reason)
-                    + adminText("admin-command-snapshot-size-prefix", " size=") + sizeBytes
-                    + (checksum.isBlank() ? "" : adminText("admin-command-snapshot-checksum-prefix", " checksum=") + shortChecksum(checksum))
-                    + (storagePath.isBlank() ? "" : adminText("admin-command-snapshot-path-prefix", " path=") + storagePath)
-                    + (createdAt.isBlank() ? "" : adminText("admin-command-snapshot-at-prefix", " at=") + createdAt));
-            }
-            index = objectEnd + 1;
         }
         return entries.isEmpty() ? adminText("admin-command-snapshots-empty", "Snapshots: empty") : adminText("admin-command-snapshots-prefix", "Snapshots: ") + String.join(" | ", entries);
     }
