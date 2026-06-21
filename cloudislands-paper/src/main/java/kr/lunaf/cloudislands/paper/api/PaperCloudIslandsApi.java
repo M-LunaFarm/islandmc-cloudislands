@@ -120,6 +120,7 @@ import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionReviewRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
@@ -2411,7 +2412,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandTemplateSnapshot>> listTemplates() {
-            return client.listTemplates().thenApply(PaperCloudIslandsApi::templates);
+            return client.templates().list().thenApply(PaperCloudIslandsApi::templates);
         }
 
         @Override
@@ -3688,6 +3689,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             templates.add(template(object));
         }
         return templates;
+    }
+
+    private static List<IslandTemplateSnapshot> templates(List<TemplateView> views) {
+        return (views == null ? List.<TemplateView>of() : views).stream()
+            .map(view -> new IslandTemplateSnapshot(
+                view.id(),
+                view.displayName(),
+                view.enabled(),
+                view.minNodeVersion()
+            ))
+            .toList();
     }
 
     private static IslandTemplateSnapshot template(String json) {
