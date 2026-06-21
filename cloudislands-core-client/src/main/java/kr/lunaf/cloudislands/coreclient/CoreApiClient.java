@@ -20,6 +20,14 @@ import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
 public interface CoreApiClient {
+    default IslandQueryClient islands() {
+        return new CoreIslandQueryClient(this);
+    }
+
+    default PermissionCommandClient permissions() {
+        return new CorePermissionCommandClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

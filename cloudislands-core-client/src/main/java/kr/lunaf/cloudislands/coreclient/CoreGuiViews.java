@@ -306,7 +306,7 @@ public final class CoreGuiViews {
         return permissionRulesView(body).rules();
     }
 
-    private static PermissionRulesView permissionRulesView(String body) {
+    public static PermissionRulesView permissionRulesView(String body) {
         Map<?, ?> root = root(body);
         String version = text(root, "version");
         List<PermissionRuleView> rules = new ArrayList<>();
