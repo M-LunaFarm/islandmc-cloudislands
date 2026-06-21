@@ -1,6 +1,6 @@
 package kr.lunaf.cloudislands.coreclient;
 
-public record AdminRouteTicketView(String ticketId, String playerUuid, String islandId, String action, String state, String targetNode, String targetServerName, String targetType, String homeName, String warpName, String expiresAt) {
+public record AdminRouteTicketView(String ticketId, String playerUuid, String islandId, String action, String state, String targetNode, String targetWorld, String targetServerName, String targetType, String homeName, String warpName, String expiresAt, String nonce) {
     public AdminRouteTicketView {
         ticketId = ticketId == null ? "" : ticketId;
         playerUuid = playerUuid == null ? "" : playerUuid;
@@ -8,10 +8,12 @@ public record AdminRouteTicketView(String ticketId, String playerUuid, String is
         action = action == null ? "" : action;
         state = state == null ? "" : state;
         targetNode = targetNode == null ? "" : targetNode;
+        targetWorld = targetWorld == null ? "" : targetWorld;
         targetServerName = targetServerName == null ? "" : targetServerName;
         targetType = targetType == null ? "" : targetType;
         homeName = homeName == null ? "" : homeName;
         warpName = warpName == null ? "" : warpName;
         expiresAt = expiresAt == null ? "" : expiresAt;
+        nonce = nonce == null ? "" : nonce;
     }
 }

@@ -456,6 +456,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.adminEvents().listSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch)"), "Public API event batches must use typed admin event query client");
         assertTrue(source.contains("client.adminAudit().list(100).thenApply(PaperCloudIslandsApi::auditLogs)"), "Public API audit logs must use typed admin audit query client");
         assertTrue(source.contains("client.templates().list().thenApply(PaperCloudIslandsApi::templates)"), "Public API templates must use typed template query client");
+        assertTrue(source.contains("client.adminRoutes().ticket(ticketId).thenApply(ticket -> ticket.map(PaperCloudIslandsApi::routeTicket))"), "Public API route ticket lookup must use typed admin route query client");
+        assertTrue(source.contains("client.adminRoutes().debug(playerUuid).thenApply(PaperCloudIslandsApi::routeSession)"), "Public API route session lookup must use typed admin route query client");
+        assertTrue(source.contains("client.adminRoutes().debug(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug)"), "Public API route debug lookup must use typed admin route query client");
         assertTrue(!source.contains("return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for island lookup");
         assertTrue(!source.contains("return client.islandInfoByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for owner lookup");
         assertTrue(!source.contains("return client.adminIslandWhere(islandId).thenApply(PaperCloudIslandsApi::runtime);"), "Public API query surface must not use raw runtime JSON for runtime lookup");
@@ -491,6 +494,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch);"), "Public API query surface must not use raw event JSON for event batches");
         assertTrue(!source.contains("return client.listAuditLogs().thenApply(PaperCloudIslandsApi::auditLogs);"), "Public API query surface must not use raw audit JSON for audit logs");
         assertTrue(!source.contains("return client.listTemplates().thenApply(PaperCloudIslandsApi::templates);"), "Public API query surface must not use raw template JSON for templates");
+        assertTrue(!source.contains("return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket);"), "Public API route ticket lookup must not use raw route JSON");
+        assertTrue(!source.contains("return client.debugRoutes(playerUuid).thenApply(PaperCloudIslandsApi::routeSession);"), "Public API route session lookup must not use raw route JSON");
+        assertTrue(!source.contains("return client.debugRoutes(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug);"), "Public API route debug lookup must not use raw route JSON");
     }
 
     @Test

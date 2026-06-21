@@ -18,6 +18,7 @@ final class CoreAdminRouteJson {
                 text(session, "ticketId"),
                 text(session, "targetNode"),
                 text(session, "targetServerName"),
+                text(session, "nonce"),
                 text(session, "expiresAt")
             ))
             .toList();
@@ -56,11 +57,13 @@ final class CoreAdminRouteJson {
             text(ticket, "action"),
             text(ticket, "state"),
             text(ticket, "targetNode"),
+            text(ticket, "targetWorld"),
             text(ticket, "targetServerName"),
             text(ticket, "targetType"),
             text(ticket, "homeName"),
             text(ticket, "warpName"),
-            text(ticket, "expiresAt")
+            text(ticket, "expiresAt"),
+            text(ticket, "nonce")
         ));
     }
 

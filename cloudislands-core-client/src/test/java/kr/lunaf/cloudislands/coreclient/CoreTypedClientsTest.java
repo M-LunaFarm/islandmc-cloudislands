@@ -1476,14 +1476,14 @@ class CoreTypedClientsTest {
                 case "debugRoutes" -> {
                     calls.add("debug:" + args[0]);
                     yield CompletableFuture.completedFuture("""
-                        {"sessions":[{"playerUuid":"%s","ticketId":"%s","targetNode":"node-a","targetServerName":"island-a","expiresAt":"soon"}],
-                         "tickets":[{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetType":"home","homeName":"base","expiresAt":"soon"}]}
+                        {"sessions":[{"playerUuid":"%s","ticketId":"%s","targetNode":"node-a","targetServerName":"island-a","nonce":"nonce-a","expiresAt":"soon"}],
+                         "tickets":[{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetWorld":"world-a","targetType":"home","homeName":"base","expiresAt":"soon","nonce":"nonce-a"}]}
                         """.formatted(playerUuid, ticketId, ticketId, playerUuid, islandId));
                 }
                 case "routeTicket" -> {
                     calls.add("ticket:" + args[0]);
                     yield CompletableFuture.completedFuture("""
-                        {"ticket":{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetType":"home","homeName":"base","expiresAt":"soon"}}
+                        {"ticket":{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetWorld":"world-a","targetType":"home","homeName":"base","expiresAt":"soon","nonce":"nonce-a"}}
                         """.formatted(args[0], playerUuid, islandId));
                 }
                 case "routeTicketForPlayer" -> {
@@ -1508,11 +1508,16 @@ class CoreTypedClientsTest {
 
         assertEquals(1, debug.sessions().size());
         assertEquals("island-a", debug.sessions().get(0).targetServerName());
+        assertEquals("nonce-a", debug.sessions().get(0).nonce());
         assertEquals(1, debug.tickets().size());
         assertEquals("READY", debug.tickets().get(0).state());
+        assertEquals("world-a", debug.tickets().get(0).targetWorld());
+        assertEquals("nonce-a", debug.tickets().get(0).nonce());
         assertEquals(ticketId.toString(), ticket.ticketId());
         assertEquals("HOME", ticket.action());
         assertEquals("home", ticket.targetType());
+        assertEquals("world-a", ticket.targetWorld());
+        assertEquals("nonce-a", ticket.nonce());
         assertEquals("base", ticket.homeName());
         assertEquals("VISIT", playerTicket.action());
         assertTrue(clear.clearedSession());

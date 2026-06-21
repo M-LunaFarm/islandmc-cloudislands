@@ -111,6 +111,9 @@ import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
 import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
+import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
+import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
+import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
@@ -2366,9 +2369,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return mutateIdempotent("admin.island.delete", () -> client.adminDeleteIslandResult(islandId)).thenApply(body -> action(body, "ISLAND_DELETED")); }
         @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return mutate("admin.route.teleport", () -> client.adminIslandTeleport(playerUuid, islandId)); }
         @Override public CompletableFuture<RoutePlan> resolveAdminTeleport(UUID playerUuid, UUID islandId) { return createAdminTeleportTicket(playerUuid, islandId).thenApply(PaperCloudIslandsApi::plan); }
-        @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket); }
-        @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> getRouteSession(UUID playerUuid) { return client.debugRoutes(playerUuid).thenApply(PaperCloudIslandsApi::routeSession); }
-        @Override public CompletableFuture<RouteDebugSnapshot> getRouteDebug() { return client.debugRoutes(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug); }
+        @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.adminRoutes().ticket(ticketId).thenApply(ticket -> ticket.map(PaperCloudIslandsApi::routeTicket)); }
+        @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> getRouteSession(UUID playerUuid) { return client.adminRoutes().debug(playerUuid).thenApply(PaperCloudIslandsApi::routeSession); }
+        @Override public CompletableFuture<RouteDebugSnapshot> getRouteDebug() { return client.adminRoutes().debug(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug); }
         @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return clearRouteResult(playerUuid, ticketId).thenApply(_result -> null); }
         @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return mutate("admin.route.clear", () -> client.clearRouteResult(playerUuid, ticketId)).thenApply(PaperCloudIslandsApi::routeClear); }
         @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.listJobs().thenApply(PaperCloudIslandsApi::jobs); }
@@ -2811,6 +2814,24 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
+    private static PlayerRouteSessionSnapshot routeSession(AdminRouteSessionView session) {
+        return new PlayerRouteSessionSnapshot(
+            uuidValueOrZero(session.playerUuid()),
+            uuidValueOrZero(session.ticketId()),
+            session.targetNode(),
+            session.targetServerName(),
+            session.nonce(),
+            instant(session.expiresAt().isBlank() ? Instant.EPOCH.toString() : session.expiresAt())
+        );
+    }
+
+    private static Optional<PlayerRouteSessionSnapshot> routeSession(AdminRouteDebugView debug) {
+        if (debug == null || debug.sessions().isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(routeSession(debug.sessions().get(0)));
+    }
+
     private static Optional<PlayerRouteSessionSnapshot> routeSession(String json) {
         if (json == null || json.isBlank() || json.contains("\"error\"")) {
             return Optional.empty();
@@ -2823,6 +2844,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             text(json, "nonce", ""),
             instant(text(json, "expiresAt", Instant.EPOCH.toString()))
         ));
+    }
+
+    private static RouteDebugSnapshot routeDebug(AdminRouteDebugView debug) {
+        if (debug == null) {
+            return new RouteDebugSnapshot(List.of(), List.of());
+        }
+        return new RouteDebugSnapshot(
+            debug.sessions().stream().map(PaperCloudIslandsApi::routeSession).toList(),
+            debug.tickets().stream().map(PaperCloudIslandsApi::routeTicket).toList()
+        );
     }
 
     private static RouteDebugSnapshot routeDebug(String json) {
@@ -3942,6 +3973,26 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         ));
     }
 
+    private static RouteTicket routeTicket(AdminRouteTicketView view) {
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
+        payload.put("targetServerName", view.targetServerName().isBlank() ? view.targetNode() : view.targetServerName());
+        putPayloadValueIfPresent(payload, "targetType", view.targetType());
+        putPayloadValueIfPresent(payload, "homeName", view.homeName());
+        putPayloadValueIfPresent(payload, "warpName", view.warpName());
+        return new RouteTicket(
+            uuidValueOrZero(view.ticketId()),
+            uuidValueOrZero(view.playerUuid()),
+            enumValue(RouteAction.class, view.action().isBlank() ? "HOME" : view.action(), RouteAction.HOME),
+            uuidValueOrZero(view.islandId()),
+            view.targetNode(),
+            view.targetWorld(),
+            enumValue(RouteTicketState.class, view.state().isBlank() ? "READY" : view.state(), RouteTicketState.READY),
+            instant(view.expiresAt().isBlank() ? Instant.EPOCH.toString() : view.expiresAt()),
+            view.nonce(),
+            Map.copyOf(payload)
+        );
+    }
+
     private static RouteClearResult routeClear(String json) {
         return new RouteClearResult(
             bool(json, "clearedSession", false),
@@ -3971,6 +4022,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         String scalar = scalar(json, field);
         if (scalar != null) {
             payload.put(field, scalar);
+        }
+    }
+
+    private static void putPayloadValueIfPresent(Map<String, String> payload, String field, String value) {
+        if (value != null && !value.isBlank()) {
+            payload.put(field, value);
         }
     }
 
