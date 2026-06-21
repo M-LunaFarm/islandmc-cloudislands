@@ -309,6 +309,19 @@ final class IslandMembershipCommandHandler {
             }
             return true;
         }
+        if (action instanceof GuiAction.PermissionPage permissionPage) {
+            runtime.openIslandPermissionMenu(player, permissionPage.page(), permissionPage.rolePage());
+            return true;
+        }
+        if (action instanceof GuiAction.ChangePermission changePermission) {
+            runtime.stageIslandPermission(
+                player,
+                changePermission.roleId().value(),
+                changePermission.permission().name(),
+                click.right() ? "false" : "true",
+                changePermission.expectedVersion());
+            return true;
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {
