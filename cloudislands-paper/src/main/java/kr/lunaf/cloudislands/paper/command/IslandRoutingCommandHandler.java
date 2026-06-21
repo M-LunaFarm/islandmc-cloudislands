@@ -160,7 +160,7 @@ final class IslandRoutingCommandHandler {
     }
 
     private void clearFailedRoute(RouteTicket ticket, String reason) {
-        routingUseCase.clearRoute(ticket, reason, runtime::mutate).exceptionally(error -> null);
+        routingUseCase.clearRouteAction(ticket, reason, runtime::mutate).exceptionally(error -> null);
     }
 
     private String routeTargetName(RouteTicket ticket) {

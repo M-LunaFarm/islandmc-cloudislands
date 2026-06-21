@@ -28,7 +28,7 @@ class IslandRoutingUseCaseTest {
         assertEquals(ticket, useCase.createWarpTicket(playerUuid, islandId, "spawn", mutationRunner(calls)).join());
         assertEquals(Optional.of(ticket), useCase.routeTicketStatus(ticket).join());
         assertEquals(null, useCase.publishRouteSession(ticket, mutationRunner(calls)).join());
-        assertEquals("cleared", useCase.clearRoute(ticket, "", mutationRunner(calls)).join());
+        assertEquals("cleared", useCase.clearRouteAction(ticket, "", mutationRunner(calls)).join().code());
 
         assertEquals(List.of(
             "audit:route.ticket.warp",

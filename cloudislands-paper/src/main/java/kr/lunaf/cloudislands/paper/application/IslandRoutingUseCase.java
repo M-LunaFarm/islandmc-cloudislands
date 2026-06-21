@@ -35,11 +35,20 @@ public final class IslandRoutingUseCase {
         return runner.mutate("route.session.publish", () -> coreApiClient.publishRouteSession(ticket));
     }
 
-    public CompletableFuture<String> clearRoute(RouteTicket ticket, String reason, MutationRunner runner) {
+    private CompletableFuture<String> clearRouteBody(RouteTicket ticket, String reason, MutationRunner runner) {
         requireTicket(ticket);
         requireRunner(runner);
         String normalizedReason = reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason;
         return runner.mutate("route.clear", () -> coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), normalizedReason));
+    }
+
+    public CompletableFuture<RouteClearResult> clearRouteAction(RouteTicket ticket, String reason, MutationRunner runner) {
+        return clearRouteBody(ticket, reason, runner).thenApply(IslandRoutingUseCase::routeClearResult);
+    }
+
+    private static RouteClearResult routeClearResult(String body) {
+        String code = body == null || body.isBlank() ? "CLEARED" : body.trim();
+        return new RouteClearResult(true, code);
     }
 
     private static void requireTicket(RouteTicket ticket) {
@@ -65,5 +74,11 @@ public final class IslandRoutingUseCase {
     @FunctionalInterface
     public interface MutationRunner {
         <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
+    }
+
+    public record RouteClearResult(boolean accepted, String code) {
+        public RouteClearResult {
+            code = code == null ? "" : code;
+        }
     }
 }

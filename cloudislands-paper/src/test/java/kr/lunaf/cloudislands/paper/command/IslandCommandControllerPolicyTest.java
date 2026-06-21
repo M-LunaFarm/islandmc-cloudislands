@@ -402,10 +402,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(routingHandler.contains("RoutePreparationProgressPolicy"));
         assertTrue(routingHandler.contains("IslandRoutingUseCase"));
         assertTrue(routingHandler.contains("routingUseCase.createWarpTicket"));
+        assertTrue(routingHandler.contains("routingUseCase.clearRouteAction"));
         assertFalse(routingHandler.contains("coreApiClient.createWarpTicket"));
         assertFalse(routingHandler.contains("coreApiClient.routeTicketStatus"));
         assertFalse(routingHandler.contains("coreApiClient.publishRouteSession"));
         assertFalse(routingHandler.contains("coreApiClient.clearRoute"));
+        assertFalse(routingUseCase.contains("public CompletableFuture<String> clearRoute("), "route clear usecase must expose typed actions instead of raw strings");
         assertTrue(routingUseCase.contains("coreApiClient.createWarpTicket"));
         assertTrue(routingUseCase.contains("coreApiClient.routeTicketStatus"));
         assertTrue(routingUseCase.contains("coreApiClient.publishRouteSession"));
