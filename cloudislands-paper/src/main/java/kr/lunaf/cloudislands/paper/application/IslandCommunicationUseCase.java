@@ -37,14 +37,14 @@ public final class IslandCommunicationUseCase {
             .thenApply(body -> chatAction(body, "CHAT_SENT"));
     }
 
-    public CompletableFuture<String> listLogs(UUID islandId, int limit) {
+    private CompletableFuture<String> listLogBodies(UUID islandId, int limit) {
         requireIsland(islandId);
         return coreApiClient.listIslandLogs(islandId, Math.max(1, Math.min(limit, 30)));
     }
 
     public CompletableFuture<List<LogEntryView>> logViews(UUID islandId, int limit) {
         requireIsland(islandId);
-        return CoreGuiViews.islandLogs(coreApiClient, islandId, Math.max(1, Math.min(limit, 30)));
+        return listLogBodies(islandId, limit).thenApply(CoreGuiViews::logViews);
     }
 
     private static void requireIsland(UUID islandId) {

@@ -158,6 +158,10 @@ public final class CoreGuiViews {
         return client.listIslandLogs(islandId, limit).thenApply(CoreGuiViews::logs);
     }
 
+    public static List<LogEntryView> logViews(String body) {
+        return logs(body);
+    }
+
     public static NodeSummaryView nodeSummary(String nodeId, String body) {
         Map<?, ?> root = root(body);
         return new NodeSummaryView(

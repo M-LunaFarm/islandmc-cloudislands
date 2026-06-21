@@ -139,8 +139,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(chatLogHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
         assertTrue(chatLogHandler.contains("IslandCommunicationUseCase"));
         assertTrue(chatLogHandler.contains("communicationUseCase.sendChat"));
+        assertTrue(chatLogHandler.contains("communicationUseCase.logViews"));
         assertFalse(chatLogHandler.contains("coreApiClient.sendIslandChat"));
         assertFalse(chatLogHandler.contains("coreApiClient.listIslandLogs"));
+        assertFalse(communicationUseCase.contains("public CompletableFuture<String> listLogs("), "log list usecase must expose typed log views instead of raw JSON");
         assertTrue(communicationUseCase.contains("coreApiClient.sendIslandChat"));
         assertTrue(communicationUseCase.contains("coreApiClient.listIslandLogs"));
     }

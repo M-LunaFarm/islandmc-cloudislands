@@ -24,7 +24,6 @@ class IslandCommunicationUseCaseTest {
         ChatActionResult chat = useCase.sendChatAction(islandId, actorUuid, "team", " hello ", mutationRunner(calls)).join();
         assertEquals(true, chat.accepted());
         assertEquals("CHAT_SENT", chat.code());
-        assertEquals("{\"logs\":[{\"actorUuid\":\"00000000-0000-0000-0000-000000000001\",\"action\":\"CREATE\",\"createdAt\":\"now\",\"payload\":{\"target\":\"island\"}}]}", useCase.listLogs(islandId, 500).join());
         List<LogEntryView> logs = useCase.logViews(islandId, 500).join();
         assertEquals("CREATE", logs.get(0).action());
         assertEquals("00000000-0000-0000-0000-000000000001", logs.get(0).actorUuid());
@@ -34,7 +33,6 @@ class IslandCommunicationUseCaseTest {
             "sendIslandChat:TEAM:hello",
             "audit:island.chat.send",
             "sendIslandChat:TEAM:hello",
-            "listIslandLogs:30",
             "listIslandLogs:30"
         ), calls);
     }
