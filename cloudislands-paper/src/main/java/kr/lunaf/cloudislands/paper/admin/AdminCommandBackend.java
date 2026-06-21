@@ -3060,8 +3060,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         try {
             return CompletableFuture.completedFuture(UUID.fromString(value));
         } catch (IllegalArgumentException ignored) {
-            return coreApiClient.playerInfoByName(value).thenApply(body -> {
-                UUID playerUuid = uuidValue(body, "playerUuid");
+            return coreApiClient.playerProfiles().findByName(value).thenApply(profile -> {
+                UUID playerUuid = uuidOrNull(profile.playerUuid());
                 if (playerUuid == null) {
                     sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + value);
                 }
