@@ -661,16 +661,6 @@ final class IslandCommandBackend {
             }
 
             @Override
-            public String actionResultMessage(String label, String targetId, String body) {
-                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
-            }
-
-            @Override
-            public String actionResultMessage(String label, UUID targetId, String body) {
-                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
-            }
-
-            @Override
             public String coreWriteFailureMessage(Throwable error, String fallback) {
                 return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
             }

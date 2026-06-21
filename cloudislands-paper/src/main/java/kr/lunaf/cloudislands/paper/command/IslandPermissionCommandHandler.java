@@ -311,7 +311,10 @@ final class IslandPermissionCommandHandler {
     }
 
     private String compactId(String value) {
-        return value != null && value.length() == 36 && value.indexOf('-') > 0 ? value.substring(0, 8) : value;
+        if (value == null || value.length() != 36 || !value.contains("-")) {
+            return value;
+        }
+        return new StringBuilder(8).append(value, 0, 8).toString();
     }
 
     interface Runtime {
@@ -330,10 +333,6 @@ final class IslandPermissionCommandHandler {
         <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
 
         CompletableFuture<UUID> resolvePlayerUuid(String value);
-
-        String actionResultMessage(String label, String targetId, String body);
-
-        String actionResultMessage(String label, UUID targetId, String body);
 
         String coreWriteFailureMessage(Throwable error, String fallback);
     }
