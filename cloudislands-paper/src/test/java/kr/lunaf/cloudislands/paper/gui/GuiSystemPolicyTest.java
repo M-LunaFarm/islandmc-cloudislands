@@ -71,8 +71,10 @@ class GuiSystemPolicyTest {
         assertTrue(source.contains("GuiClick.UNSUPPORTED"), "null clicks must not be treated as LEFT");
         assertTrue(source.contains("!safeClick.supported()"), "unsupported clicks must be dropped before action execution");
         assertTrue(source.contains("GuiActionParser.parse(actionId, data)"), "GUI actions must pass through typed parser before execution");
+        assertTrue(source.contains("dedupePolicy.accept"), "rapid duplicate GUI actions must be dropped before executor dispatch");
         assertTrue(source.contains("executor.execute(player, action, safeClick)"), "parsed GUI actions must be executed as typed action objects");
         assertTrue(source.contains("private final GuiActionExecutor executor"), "GUI action executor must be constructor-injected");
+        assertTrue(source.contains("private final GuiActionDedupePolicy dedupePolicy"), "GUI action registry must own the per-player duplicate-action guard");
         assertFalse(source.contains("AtomicReference"), "GUI action registry must not keep global mutable executor state");
         assertFalse(source.contains("static void configure"), "GUI action registry must not be reconfigured globally");
     }
