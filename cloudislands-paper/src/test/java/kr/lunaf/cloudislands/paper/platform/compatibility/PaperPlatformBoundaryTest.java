@@ -573,9 +573,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.progression().upgrades(islandId).thenApply(views -> upgrades(islandId, views))"), "Public API upgrades must use typed progression query client");
         assertTrue(source.contains("client.progression().upgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules)"), "Public API upgrade rules must use typed progression query client");
         assertTrue(source.contains("client.progression().missions(islandId, kind).thenApply(views -> missions(islandId, kind, views))"), "Public API missions must use typed progression query client");
-        assertTrue(source.contains("client.environment().islandBiome(islandId).thenApply(view -> biome(islandId, view))"), "Public API biome must use typed environment query client");
-        assertTrue(source.contains("client.environment().flagValues(islandId).thenApply(values -> flags(islandId, values))"), "Public API flags must use typed environment query client");
-        assertTrue(source.contains("client.environment().limitViews(islandId).thenApply(views -> limits(islandId, views))"), "Public API limits must use typed environment query client");
+        assertTrue(source.contains("client.environment().biome(islandId)"), "Public API biome must use typed environment query client");
+        assertTrue(source.contains("client.environment().flags(islandId)"), "Public API flags must use typed environment query client");
+        assertTrue(source.contains("client.environment().limits(islandId)"), "Public API limits must use typed environment query client");
         assertTrue(!source.contains("private static List<IslandMemberSnapshot> members(String json)"), "Public API must not keep raw member JSON converters");
         assertTrue(!source.contains("private static List<IslandBanSnapshot> bans(String json)"), "Public API must not keep raw ban JSON converters");
         assertTrue(!source.contains("private static List<IslandInviteSnapshot> invites(String json)"), "Public API must not keep raw invite JSON converters");

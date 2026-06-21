@@ -6,7 +6,6 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
-import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreIslandQueryClient;
 import kr.lunaf.cloudislands.coreclient.CorePermissionQueryClient;
 import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
@@ -27,7 +26,7 @@ public final class PermissionCacheSyncService {
         this.plugin = plugin;
         this.islands = new CoreIslandQueryClient(client);
         this.permissions = new CorePermissionQueryClient(client);
-        this.environment = new CoreIslandEnvironmentQueryClient(client);
+        this.environment = client.environment();
         this.cache = cache;
     }
 

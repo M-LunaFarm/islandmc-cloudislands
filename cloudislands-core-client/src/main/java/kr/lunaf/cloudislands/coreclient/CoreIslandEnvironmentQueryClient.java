@@ -1,10 +1,11 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 
 public final class CoreIslandEnvironmentQueryClient implements IslandEnvironmentQueryClient {
     private final CoreApiClient delegate;
@@ -17,9 +18,10 @@ public final class CoreIslandEnvironmentQueryClient implements IslandEnvironment
     }
 
     @Override
-    public CompletableFuture<CoreGuiViews.BiomeView> islandBiome(UUID islandId) {
+    public CompletableFuture<IslandBiomeSnapshot> biome(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandBiome(delegate, islandId);
+        return delegate.islandBiome(islandId)
+            .thenApply(body -> CoreEnvironmentJson.biome(islandId, body));
     }
 
     @Override
@@ -29,15 +31,17 @@ public final class CoreIslandEnvironmentQueryClient implements IslandEnvironment
     }
 
     @Override
-    public CompletableFuture<Map<IslandFlag, String>> flagValues(UUID islandId) {
+    public CompletableFuture<IslandFlagsSnapshot> flags(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandFlags(delegate, islandId);
+        return delegate.listIslandFlags(islandId)
+            .thenApply(body -> CoreEnvironmentJson.flags(islandId, body));
     }
 
     @Override
-    public CompletableFuture<List<CoreGuiViews.LimitView>> limitViews(UUID islandId) {
+    public CompletableFuture<List<IslandLimitSnapshot>> limits(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandLimits(delegate, islandId);
+        return delegate.listIslandLimits(islandId)
+            .thenApply(body -> CoreEnvironmentJson.limits(islandId, body));
     }
 
     private static void requireIsland(UUID islandId) {

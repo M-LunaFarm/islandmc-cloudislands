@@ -18,7 +18,10 @@ import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -244,7 +247,16 @@ class CoreTypedClientsTest {
         );
         IslandEnvironmentQueryClient client = new CoreIslandEnvironmentQueryClient(raw);
 
+        IslandBiomeSnapshot biomeSnapshot = client.biome(islandId).join();
+        IslandFlagsSnapshot flagsSnapshot = client.flags(islandId).join();
+        IslandLimitSnapshot limitSnapshot = client.limits(islandId).join().get(0);
         CoreGuiViews.BiomeView biome = client.islandBiome(islandId).join();
+        assertEquals(islandId, biomeSnapshot.islandId());
+        assertEquals("minecraft:plains", biomeSnapshot.biomeKey());
+        assertEquals(playerUuid, biomeSnapshot.updatedBy());
+        assertEquals("blue", flagsSnapshot.values().get(IslandFlag.BORDER_COLOR));
+        assertEquals("HOPPER", limitSnapshot.limitKey());
+        assertEquals(64L, limitSnapshot.value());
         assertEquals("minecraft:plains", biome.key());
         assertEquals(playerUuid.toString(), biome.updatedBy());
         assertEquals("2026-06-21T00:00:00Z", biome.updatedAt());

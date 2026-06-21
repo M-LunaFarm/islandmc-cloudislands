@@ -1,8 +1,6 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,14 +35,11 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<BiomeView> islandBiome(CoreApiClient client, UUID islandId) {
-        return client.islandBiome(islandId).thenApply(body -> {
-            Map<?, ?> root = root(body);
-            return new BiomeView(text(root, "biomeKey"), text(root, "updatedBy"), text(root, "updatedAt"));
-        });
+        return client.environment().biome(islandId).thenApply(CoreEnvironmentJson::biomeView);
     }
 
     public static CompletableFuture<Map<IslandFlag, String>> islandFlags(CoreApiClient client, UUID islandId) {
-        return client.listIslandFlags(islandId).thenApply(CoreGuiViews::flags);
+        return client.environment().flags(islandId).thenApply(kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot::values);
     }
 
     public static CompletableFuture<List<TemplateView>> templates(CoreApiClient client) {
@@ -137,7 +132,9 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<LimitView>> islandLimits(CoreApiClient client, UUID islandId) {
-        return client.listIslandLimits(islandId).thenApply(CoreGuiViews::limits);
+        return client.environment().limits(islandId).thenApply(values -> values.stream()
+            .map(CoreEnvironmentJson::limitView)
+            .toList());
     }
 
     public static CompletableFuture<List<SnapshotView>> islandSnapshots(CoreApiClient client, UUID islandId, int limit) {
@@ -332,22 +329,6 @@ public final class CoreGuiViews {
         return warps;
     }
 
-    private static Map<IslandFlag, String> flags(String body) {
-        Map<IslandFlag, String> values = new EnumMap<>(IslandFlag.class);
-        Map<?, ?> root = root(body);
-        Map<?, ?> flags = object(root, "flags");
-        if (flags.isEmpty()) {
-            flags = object(root, "values");
-        }
-        for (Map.Entry<String, String> entry : objectFields(flags).entrySet()) {
-            try {
-                values.put(IslandFlag.valueOf(entry.getKey()), entry.getValue());
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        return values;
-    }
-
     private static List<PermissionRuleView> permissionRules(String body) {
         return permissionRulesView(body).rules();
     }
@@ -413,20 +394,6 @@ public final class CoreGuiViews {
         return missions;
     }
 
-    private static List<LimitView> limits(String body) {
-        List<LimitView> limits = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String key = text(object, "key");
-            if (key.isBlank()) {
-                key = text(object, "limitKey");
-            }
-            if (!key.isBlank()) {
-                limits.add(new LimitView(key, longValue(object, "value"), text(object, "updatedAt")));
-            }
-        }
-        return limits;
-    }
-
     private static List<LogEntryView> logs(List<IslandLogRecord> records) {
         return records.stream()
             .map(CoreCommunicationJson::view)
@@ -439,19 +406,6 @@ public final class CoreGuiViews {
 
     private static List<Map<?, ?>> entries(String body) {
         return CoreJson.entries(body);
-    }
-
-    private static Map<?, ?> object(Map<?, ?> object, String key) {
-        return SimpleJson.object(object.get(key));
-    }
-
-    private static Map<String, String> objectFields(Map<?, ?> object) {
-        if (object == null || object.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, String> values = new LinkedHashMap<>();
-        object.forEach((key, value) -> values.put(SimpleJson.text(key), SimpleJson.text(value)));
-        return values;
     }
 
     private static String text(Map<?, ?> object, String key) {

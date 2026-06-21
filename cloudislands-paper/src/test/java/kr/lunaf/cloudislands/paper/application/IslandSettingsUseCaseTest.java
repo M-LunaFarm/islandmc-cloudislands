@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
 import org.junit.jupiter.api.Test;
 
 class IslandSettingsUseCaseTest {
@@ -43,9 +44,10 @@ class IslandSettingsUseCaseTest {
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class},
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "setIslandPublicAccessResult" -> {
+	            new Class<?>[] {CoreApiClient.class},
+	            (_proxy, method, args) -> switch (method.getName()) {
+	                case "environment" -> new CoreIslandEnvironmentQueryClient((CoreApiClient) _proxy);
+	                case "setIslandPublicAccessResult" -> {
                     calls.add("setIslandPublicAccessResult:" + args[2]);
                     yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PUBLIC_ACCESS_ENABLED\"}");
                 }

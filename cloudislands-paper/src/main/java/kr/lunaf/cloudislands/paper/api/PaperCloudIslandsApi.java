@@ -1968,17 +1968,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId) {
-            return client.environment().flagValues(islandId).thenApply(values -> flags(islandId, values));
+            return client.environment().flags(islandId);
         }
 
         @Override
         public CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId) {
-            return client.environment().islandBiome(islandId).thenApply(view -> biome(islandId, view));
+            return client.environment().biome(islandId);
         }
 
         @Override
         public CompletableFuture<List<IslandLimitSnapshot>> getLimits(UUID islandId) {
-            return client.environment().limitViews(islandId).thenApply(views -> limits(islandId, views));
+            return client.environment().limits(islandId);
         }
 
         @Override
@@ -3125,40 +3125,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static String normalizedRoleKey(String value, String fallback) {
         String roleKey = value == null || value.isBlank() ? fallback : value;
         return roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
-    }
-
-    private static IslandBiomeSnapshot biome(UUID islandId, CoreGuiViews.BiomeView view) {
-        return new IslandBiomeSnapshot(
-            islandId == null ? new UUID(0L, 0L) : islandId,
-            view == null || view.key().isBlank() ? "minecraft:plains" : view.key(),
-            view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.updatedBy()),
-            instant(view == null ? "" : view.updatedAt())
-        );
-    }
-
-    private static IslandFlagsSnapshot flags(UUID islandId, Map<IslandFlag, String> values) {
-        Map<IslandFlag, String> safeValues = new EnumMap<>(IslandFlag.class);
-        if (values != null) {
-            values.forEach((flag, value) -> {
-                if (flag != null && value != null) {
-                    safeValues.put(flag, value);
-                }
-            });
-        }
-        return new IslandFlagsSnapshot(islandId == null ? new UUID(0L, 0L) : islandId, Map.copyOf(safeValues));
-    }
-
-    private static List<IslandLimitSnapshot> limits(UUID islandId, List<CoreGuiViews.LimitView> views) {
-        UUID safeIslandId = islandId == null ? new UUID(0L, 0L) : islandId;
-        return (views == null ? List.<CoreGuiViews.LimitView>of() : views).stream()
-            .map(view -> new IslandLimitSnapshot(
-                safeIslandId,
-                view.key(),
-                view.value(),
-                new UUID(0L, 0L),
-                instant(view.updatedAt())
-            ))
-            .toList();
     }
 
     private static IslandLimitSnapshot limit(UUID islandId, UUID actorUuid, EnvironmentActionView view) {

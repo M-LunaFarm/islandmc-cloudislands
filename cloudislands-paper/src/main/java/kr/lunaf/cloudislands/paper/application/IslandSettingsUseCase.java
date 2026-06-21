@@ -6,7 +6,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreIslandSettingsCommandClient;
 import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
 import kr.lunaf.cloudislands.coreclient.IslandSettingsCommandClient;
@@ -22,7 +21,7 @@ public final class IslandSettingsUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.environmentQueries = new CoreIslandEnvironmentQueryClient(coreApiClient);
+        this.environmentQueries = coreApiClient.environment();
         this.settingsCommands = new CoreIslandSettingsCommandClient(coreApiClient);
     }
 

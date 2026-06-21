@@ -8,7 +8,6 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
 import kr.lunaf.cloudislands.coreclient.IslandEnvironmentCommandClient;
 import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
@@ -25,7 +24,7 @@ public final class IslandEnvironmentUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.environmentQueries = new CoreIslandEnvironmentQueryClient(coreApiClient);
+        this.environmentQueries = coreApiClient.environment();
         this.environmentCommands = new CoreIslandEnvironmentCommandClient(coreApiClient);
     }
 

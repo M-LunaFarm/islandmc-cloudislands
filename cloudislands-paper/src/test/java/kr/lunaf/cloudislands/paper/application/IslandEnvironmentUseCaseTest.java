@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LimitView;
 import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase.EnvironmentActionResult;
 import org.junit.jupiter.api.Test;
@@ -60,9 +61,10 @@ class IslandEnvironmentUseCaseTest {
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class},
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "islandBiome" -> {
+	            new Class<?>[] {CoreApiClient.class},
+	            (_proxy, method, args) -> switch (method.getName()) {
+	                case "environment" -> new CoreIslandEnvironmentQueryClient((CoreApiClient) _proxy);
+	                case "islandBiome" -> {
                     calls.add("islandBiome");
                     yield CompletableFuture.completedFuture("{\"biomeKey\":\"PLAINS\"}");
                 }

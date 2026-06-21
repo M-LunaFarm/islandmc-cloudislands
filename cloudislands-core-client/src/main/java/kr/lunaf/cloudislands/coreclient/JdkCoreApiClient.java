@@ -16,9 +16,12 @@ import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
+import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
@@ -41,6 +44,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkBankClient bankClient;
     private final JdkSnapshotClient snapshotClient;
     private final JdkCommunicationClient communicationClient;
+    private final JdkEnvironmentClient environmentClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -55,6 +59,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.bankClient = new JdkBankClient();
         this.snapshotClient = new JdkSnapshotClient();
         this.communicationClient = new JdkCommunicationClient();
+        this.environmentClient = new JdkEnvironmentClient();
     }
 
     @Override
@@ -85,6 +90,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CommunicationCommandClient communicationCommands() {
         return communicationClient;
+    }
+
+    @Override
+    public IslandEnvironmentQueryClient environment() {
+        return environmentClient;
     }
 
     @Override
@@ -802,6 +812,41 @@ public final class JdkCoreApiClient implements CoreApiClient {
             }
             return postWithResultBody("/v1/islands/chat", jsonObject("islandId", islandId, "actorUuid", actorUuid, "channel", normalizedChannel, "message", normalizedMessage))
                 .thenApply(body -> CoreCommunicationJson.chatAction(body, "CHAT_SENT"));
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkEnvironmentClient implements IslandEnvironmentQueryClient {
+        @Override
+        public CompletableFuture<IslandBiomeSnapshot> biome(UUID islandId) {
+            requireId(islandId, "islandId");
+            return post("/v1/islands/biome", jsonObject("islandId", islandId))
+                .thenApply(body -> CoreEnvironmentJson.biome(islandId, body));
+        }
+
+        @Override
+        public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
+            requireId(islandId, "islandId");
+            return islandInfo(islandId).thenApply(CoreGuiViews::islandInfoView);
+        }
+
+        @Override
+        public CompletableFuture<IslandFlagsSnapshot> flags(UUID islandId) {
+            requireId(islandId, "islandId");
+            return get("/v1/islands/" + islandId + "/flags")
+                .thenApply(body -> CoreEnvironmentJson.flags(islandId, body));
+        }
+
+        @Override
+        public CompletableFuture<List<IslandLimitSnapshot>> limits(UUID islandId) {
+            requireId(islandId, "islandId");
+            return post("/v1/islands/limits", jsonObject("islandId", islandId))
+                .thenApply(body -> CoreEnvironmentJson.limits(islandId, body));
         }
 
         private void requireId(UUID id, String name) {
