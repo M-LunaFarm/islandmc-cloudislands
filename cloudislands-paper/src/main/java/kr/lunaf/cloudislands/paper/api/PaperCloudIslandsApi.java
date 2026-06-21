@@ -1918,17 +1918,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandHomeSnapshot>> getHomes(UUID islandId) {
-            return client.homeWarps().homes(islandId).thenApply(views -> homes(islandId, views));
+            return client.homeWarps().homeSnapshots(islandId);
         }
 
         @Override
         public CompletableFuture<List<IslandWarpSnapshot>> getWarps(UUID islandId) {
-            return client.homeWarps().warps(islandId).thenApply(views -> warps(islandId, views));
+            return client.homeWarps().warpSnapshots(islandId);
         }
 
         @Override
         public CompletableFuture<List<IslandWarpSnapshot>> getPublicWarps(int limit) {
-            return client.homeWarps().publicWarps(limit, "", "").thenApply(PaperCloudIslandsApi::warps);
+            return client.homeWarps().publicWarpSnapshots(limit, "", "");
         }
 
         @Override
@@ -3052,42 +3052,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return new IslandActionResult(false, "FAILED");
         }
         return new IslandActionResult(view.accepted(), view.code().isBlank() ? (view.accepted() ? fallbackCode : "FAILED") : view.code());
-    }
-
-    private static List<IslandHomeSnapshot> homes(UUID fallbackIslandId, List<CoreGuiViews.HomeView> views) {
-        return views.stream()
-            .map(view -> new IslandHomeSnapshot(
-                view.islandId().isBlank() ? fallbackIslandId : uuidValueOrZero(view.islandId()),
-                view.name().isBlank() ? "default" : view.name(),
-                location(view.x(), view.y(), view.z()),
-                uuidValueOrZero(view.createdBy()),
-                view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt())
-            ))
-            .toList();
-    }
-
-    private static List<IslandWarpSnapshot> warps(UUID fallbackIslandId, List<CoreGuiViews.WarpView> views) {
-        return views.stream()
-            .map(view -> warp(fallbackIslandId, view))
-            .toList();
-    }
-
-    private static List<IslandWarpSnapshot> warps(List<CoreGuiViews.WarpView> views) {
-        return views.stream()
-            .map(view -> warp(new UUID(0L, 0L), view))
-            .toList();
-    }
-
-    private static IslandWarpSnapshot warp(UUID fallbackIslandId, CoreGuiViews.WarpView view) {
-        return new IslandWarpSnapshot(
-            view.islandId().isBlank() ? fallbackIslandId : uuidValueOrZero(view.islandId()),
-            view.name().isBlank() ? "default" : view.name(),
-            location(view.x(), view.y(), view.z()),
-            view.publicAccess(),
-            uuidValueOrZero(view.createdBy()),
-            view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt()),
-            view.category().isBlank() ? "default" : view.category()
-        );
     }
 
     private static List<IslandPermissionRuleSnapshot> permissionRules(UUID islandId, List<PermissionAssignmentView> views) {

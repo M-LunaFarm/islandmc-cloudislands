@@ -19,12 +19,14 @@ import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
+import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
@@ -45,6 +47,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkSnapshotClient snapshotClient;
     private final JdkCommunicationClient communicationClient;
     private final JdkEnvironmentClient environmentClient;
+    private final JdkHomeWarpClient homeWarpClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -60,6 +63,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.snapshotClient = new JdkSnapshotClient();
         this.communicationClient = new JdkCommunicationClient();
         this.environmentClient = new JdkEnvironmentClient();
+        this.homeWarpClient = new JdkHomeWarpClient();
     }
 
     @Override
@@ -95,6 +99,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public IslandEnvironmentQueryClient environment() {
         return environmentClient;
+    }
+
+    @Override
+    public HomeWarpQueryClient homeWarps() {
+        return homeWarpClient;
     }
 
     @Override
@@ -847,6 +856,41 @@ public final class JdkCoreApiClient implements CoreApiClient {
             requireId(islandId, "islandId");
             return post("/v1/islands/limits", jsonObject("islandId", islandId))
                 .thenApply(body -> CoreEnvironmentJson.limits(islandId, body));
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkHomeWarpClient implements HomeWarpQueryClient {
+        @Override
+        public CompletableFuture<List<IslandHomeSnapshot>> homeSnapshots(UUID islandId) {
+            requireId(islandId, "islandId");
+            return get("/v1/islands/" + islandId + "/homes")
+                .thenApply(body -> CoreHomeWarpJson.homes(islandId, body));
+        }
+
+        @Override
+        public CompletableFuture<List<IslandWarpSnapshot>> warpSnapshots(UUID islandId) {
+            requireId(islandId, "islandId");
+            return get("/v1/islands/" + islandId + "/warps")
+                .thenApply(body -> CoreHomeWarpJson.warps(islandId, body));
+        }
+
+        @Override
+        public CompletableFuture<CoreGuiViews.IslandInfoView> islandInfo(UUID islandId) {
+            requireId(islandId, "islandId");
+            return JdkCoreApiClient.this.islandInfo(islandId).thenApply(CoreGuiViews::islandInfoView);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandWarpSnapshot>> publicWarpSnapshots(int limit, String category, String query) {
+            int safeLimit = Math.max(1, Math.min(limit, 100));
+            return post("/v1/islands/public-warps", jsonObject("limit", safeLimit, "category", category == null ? "" : category, "query", query == null ? "" : query))
+                .thenApply(body -> CoreHomeWarpJson.warps(null, body));
         }
 
         private void requireId(UUID id, String name) {

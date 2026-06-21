@@ -21,11 +21,13 @@ import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
+import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteAction;
@@ -871,7 +873,7 @@ class CoreTypedClientsTest {
                     {"homes":[{"islandId":"%s","name":"home","location":{"x":1.0,"y":2.0,"z":3.0},"createdBy":"00000000-0000-0000-0000-000000000001","createdAt":"now"}]}
                     """.formatted(islandId));
                 case "listIslandWarps" -> CompletableFuture.completedFuture("""
-                    {"warps":[{"islandId":"%s","name":"spawn","location":{"x":1.0,"y":2.0,"z":3.0},"publicAccess":true,"createdBy":"00000000-0000-0000-0000-000000000002","createdAt":"later","category":"default"}]}
+                    {"warps":[{"islandId":"%s","name":"spawn","location":{"x":1.0,"y":2.0,"z":3.0},"publicAccess":true,"createdBy":"00000000-0000-0000-0000-000000000002","createdAt":"2026-01-02T03:04:05Z","category":"default"}]}
                     """.formatted(islandId));
                 case "islandInfo" -> CompletableFuture.completedFuture("""
                     {"islandId":"%s","name":"Island","state":"ACTIVE"}
@@ -884,14 +886,23 @@ class CoreTypedClientsTest {
         );
         HomeWarpQueryClient client = new CoreHomeWarpQueryClient(raw);
 
+        IslandHomeSnapshot homeSnapshot = client.homeSnapshots(islandId).join().get(0);
+        IslandWarpSnapshot warpSnapshot = client.warpSnapshots(islandId).join().get(0);
+        IslandWarpSnapshot publicWarpSnapshot = client.publicWarpSnapshots(200, null, null).join().get(0);
         CoreGuiViews.HomeView home = client.homes(islandId).join().get(0);
         CoreGuiViews.WarpView warp = client.warps(islandId).join().get(0);
+        assertEquals(islandId, homeSnapshot.islandId());
+        assertEquals("home", homeSnapshot.name());
+        assertEquals(1.0d, homeSnapshot.location().localX());
+        assertEquals("spawn", warpSnapshot.name());
+        assertEquals("default", warpSnapshot.category());
+        assertEquals("market", publicWarpSnapshot.name());
         assertEquals(islandId.toString(), home.islandId());
         assertEquals("home", home.name());
         assertEquals("00000000-0000-0000-0000-000000000001", home.createdBy());
         assertEquals("spawn", warp.name());
         assertEquals("00000000-0000-0000-0000-000000000002", warp.createdBy());
-        assertEquals("later", warp.createdAt());
+        assertEquals("2026-01-02T03:04:05Z", warp.createdAt());
         assertEquals("Island", client.islandInfo(islandId).join().name());
         assertEquals("market", client.publicWarps(200, null, null).join().get(0).name());
     }

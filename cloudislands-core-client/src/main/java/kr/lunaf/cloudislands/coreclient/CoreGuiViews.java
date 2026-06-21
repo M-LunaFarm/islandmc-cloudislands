@@ -92,19 +92,19 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<HomeView>> islandHomes(CoreApiClient client, UUID islandId) {
-        return client.listIslandHomes(islandId).thenApply(CoreGuiViews::homes);
+        return client.homeWarps().homes(islandId);
     }
 
     public static CompletableFuture<List<WarpView>> islandWarps(CoreApiClient client, UUID islandId) {
-        return client.listIslandWarps(islandId).thenApply(CoreGuiViews::warps);
+        return client.homeWarps().warps(islandId);
     }
 
     public static CompletableFuture<List<WarpView>> publicWarps(CoreApiClient client, int limit) {
-        return client.listPublicWarps(limit).thenApply(CoreGuiViews::warps);
+        return client.homeWarps().publicWarps(limit, "", "");
     }
 
     public static CompletableFuture<List<WarpView>> publicWarps(CoreApiClient client, int limit, String category, String query) {
-        return client.listPublicWarps(limit, category, query).thenApply(CoreGuiViews::warps);
+        return client.homeWarps().publicWarps(limit, category, query);
     }
 
     public static CompletableFuture<List<PermissionRuleView>> islandPermissions(CoreApiClient client, UUID islandId) {
@@ -302,31 +302,6 @@ public final class CoreGuiViews {
             }
         }
         return bans;
-    }
-
-    private static List<HomeView> homes(String body) {
-        List<HomeView> homes = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String name = text(object, "name");
-            if (!name.isBlank()) {
-                homes.add(new HomeView(text(object, "islandId"), name, doubleValue(object, "localX", "x"), doubleValue(object, "localY", "y"), doubleValue(object, "localZ", "z"), text(object, "createdBy"), text(object, "createdAt")));
-            }
-        }
-        return homes;
-    }
-
-    private static List<WarpView> warps(String body) {
-        List<WarpView> warps = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String name = text(object, "name");
-            if (name.isBlank()) {
-                name = text(object, "warpName");
-            }
-            if (!name.isBlank()) {
-                warps.add(new WarpView(text(object, "islandId"), name, doubleValue(object, "localX", "x"), doubleValue(object, "localY", "y"), doubleValue(object, "localZ", "z"), bool(object, "publicAccess"), text(object, "createdBy"), text(object, "createdAt"), text(object, "category")));
-            }
-        }
-        return warps;
     }
 
     private static List<PermissionRuleView> permissionRules(String body) {

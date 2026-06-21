@@ -560,9 +560,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.navigation().publicIslands(limit).thenApply(PaperCloudIslandsApi::publicIslands)"), "Public API public island list must use typed navigation query client");
         assertTrue(source.contains("CoreGuiViews.playerIslands(client, playerUuid).thenApply(PaperCloudIslandsApi::playerIslands)"), "Public API joined island list must use typed Core views");
         assertTrue(source.contains("client.members().pendingInvites(playerUuid).thenApply(PaperCloudIslandsApi::invites)"), "Public API pending invites must use typed member query client");
-        assertTrue(source.contains("client.homeWarps().homes(islandId).thenApply(views -> homes(islandId, views))"), "Public API homes must use typed home/warp query client");
-        assertTrue(source.contains("client.homeWarps().warps(islandId).thenApply(views -> warps(islandId, views))"), "Public API warps must use typed home/warp query client");
-        assertTrue(source.contains("client.homeWarps().publicWarps(limit, \"\", \"\").thenApply(PaperCloudIslandsApi::warps)"), "Public API public warps must use typed home/warp query client");
+        assertTrue(source.contains("client.homeWarps().homeSnapshots(islandId)"), "Public API homes must use typed home/warp query client");
+        assertTrue(source.contains("client.homeWarps().warpSnapshots(islandId)"), "Public API warps must use typed home/warp query client");
+        assertTrue(source.contains("client.homeWarps().publicWarpSnapshots(limit, \"\", \"\")"), "Public API public warps must use typed home/warp query client");
         assertTrue(source.contains("client.permissionQueries().permissions(islandId).thenApply(views -> permissionRules(islandId, views))"), "Public API permission rules must use typed permission query client");
         assertTrue(source.contains("client.permissionQueries().roles(islandId).thenApply(views -> roles(islandId, views))"), "Public API roles must use typed permission query client");
         assertTrue(source.contains("client.progression().topLevel(limit).thenApply(PaperCloudIslandsApi::rankings)"), "Public API level rankings must use typed progression query client");
