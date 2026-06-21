@@ -114,7 +114,9 @@ class PaperConfigSurfaceTest {
         assertTrue(api.contains("PaperAddonConfigFile.fromPlugin(plugin)"), "Paper API addon service must use the dedicated addon config adapter");
         assertFalse(addonStore.contains("plugin.getConfig()"), "Paper addon config store must read addon settings from a snapshot");
         assertTrue(addonStore.contains("PaperAddonConfigSnapshot"), "Paper addon config store must keep addon settings snapshot-backed");
-        assertTrue(addonFile.contains("plugin.getConfig()"), "Bukkit config access must be isolated to the dedicated addon config file adapter");
+        assertFalse(addonFile.contains("plugin.getConfig()"), "Paper addon config adapter must not read legacy Bukkit config");
+        assertTrue(addonFile.contains("config-v2"), "Paper addon config adapter must use the Config v2 addon file");
+        assertTrue(addonFile.contains("addons.yml"), "Paper addon config adapter must persist addon settings under config-v2/addons.yml");
         assertFalse(agent.contains("getConfig()"), "Paper agent must not expose a Bukkit config accessor");
         assertTrue(plugin.contains("reloadRuntimeConfig()"), "Paper plugin must expose one runtime snapshot reload boundary");
         assertTrue(plugin.contains("PaperRuntimeConfigLoader.load(this, this::resolveEnv)"), "runtime reload must use the same Config v2 loader as bootstrap");

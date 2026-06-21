@@ -1,12 +1,18 @@
 package kr.lunaf.cloudislands.paper.config;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class PaperAddonConfigFile {
-    private final Plugin plugin;
+    private final Path configPath;
 
     private PaperAddonConfigFile(Plugin plugin) {
-        this.plugin = plugin;
+        this.configPath = plugin.getDataFolder().toPath().resolve("config-v2").resolve("addons.yml");
     }
 
     public static PaperAddonConfigFile fromPlugin(Plugin plugin) {
@@ -17,15 +23,40 @@ public final class PaperAddonConfigFile {
     }
 
     PaperAddonConfigSnapshot snapshot() {
-        return PaperAddonConfigSnapshot.from(plugin.getConfig());
+        return PaperAddonConfigSnapshot.from(load());
     }
 
     void set(String path, Object value) {
-        plugin.getConfig().set(path, value);
+        YamlConfiguration config = load();
+        config.set(path, value);
+        save(config);
     }
 
     void saveAndReload() {
-        plugin.saveConfig();
-        plugin.reloadConfig();
+        snapshot();
+    }
+
+    private YamlConfiguration load() {
+        YamlConfiguration config = new YamlConfiguration();
+        if (!Files.isRegularFile(configPath)) {
+            return config;
+        }
+        try {
+            config.load(configPath.toFile());
+            return config;
+        } catch (IOException exception) {
+            throw new UncheckedIOException("Failed to read Paper addon config-v2 file " + configPath, exception);
+        } catch (InvalidConfigurationException exception) {
+            throw new IllegalArgumentException("Invalid Paper addon config-v2 file " + configPath, exception);
+        }
+    }
+
+    private void save(YamlConfiguration config) {
+        try {
+            Files.createDirectories(configPath.getParent());
+            config.save(configPath.toFile());
+        } catch (IOException exception) {
+            throw new UncheckedIOException("Failed to write Paper addon config-v2 file " + configPath, exception);
+        }
     }
 }
