@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.IslandHomeWarpUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
@@ -21,11 +22,13 @@ import org.bukkit.plugin.Plugin;
 final class IslandHomeWarpCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final IslandHomeWarpUseCase homeWarpUseCase;
     private final Runtime runtime;
 
     IslandHomeWarpCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.homeWarpUseCase = new IslandHomeWarpUseCase(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -204,7 +207,7 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("home-set-denied", "섬 홈을 설정할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.home.set", () -> coreApiClient.setIslandHomeResult(islandId, player.getUniqueId(), name, runtime.location(player.getLocation())))
+            homeWarpUseCase.setHome(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), runtime::mutate)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 홈 설정 " + name, name, body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 홈을 설정하지 못했습니다.");
@@ -219,7 +222,7 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("warp-set-denied", "섬 워프를 설정할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.warp.set", () -> coreApiClient.setIslandWarpResult(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false))
+            homeWarpUseCase.setWarp(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false, runtime::mutate)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 워프 설정 " + name, name, body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 워프를 설정하지 못했습니다.");
@@ -230,7 +233,7 @@ final class IslandHomeWarpCommandHandler {
 
     private void listHomes(Player player) {
         runtime.currentIsland(player, "섬 안에서만 홈 목록을 볼 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandHomes(islandId)
+            homeWarpUseCase.listHomes(islandId)
                 .thenAccept(body -> runtime.message(player, runtime.pointListMessage(body, "섬 홈", "섬 홈이 없습니다.")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 홈을 불러오지 못했습니다.");
@@ -241,7 +244,7 @@ final class IslandHomeWarpCommandHandler {
 
     private void listWarps(Player player) {
         runtime.currentIsland(player, "섬 안에서만 워프 목록을 볼 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandWarps(islandId)
+            homeWarpUseCase.listWarps(islandId)
                 .thenAccept(body -> runtime.message(player, runtime.pointListMessage(body, "섬 워프", "섬 워프가 없습니다.")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 워프를 불러오지 못했습니다.");
@@ -264,7 +267,7 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("home-teleport-denied", "섬 홈으로 이동할 권한이 없습니다."));
                 return;
             }
-            coreApiClient.listIslandHomes(islandId)
+            homeWarpUseCase.listHomes(islandId)
                 .thenAccept(body -> runtime.moveToPoint(player, runtime.point(body, name, player.getWorld().getName()), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
                 .exceptionally(error -> {
                     if (runtime.coreUnavailable(error) && runtime.teleportLocalDefaultHome(player)) {
@@ -278,14 +281,14 @@ final class IslandHomeWarpCommandHandler {
 
     private void teleportWarp(Player player, String name) {
         runtime.currentIsland(player, "섬 안에서만 워프로 이동할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandWarps(islandId)
+            homeWarpUseCase.listWarps(islandId)
                 .thenAccept(body -> {
                     Point point = runtime.point(body, name, player.getWorld().getName());
                     if (point == null) {
                         runtime.moveToPoint(player, null, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
                         return;
                     }
-                    coreApiClient.islandInfo(islandId).thenAccept(info -> {
+                    homeWarpUseCase.islandInfo(islandId).thenAccept(info -> {
                         if (!runtime.publicWarpAllowed(player, point, info) && !runtime.allowed(player, IslandPermission.INTERACT)) {
                             runtime.message(player, runtime.routeMessage("warp-teleport-denied", "섬 워프로 이동할 권한이 없습니다."));
                             return;
@@ -309,7 +312,7 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("warp-delete-denied", "섬 워프를 삭제할 권한이 없습니다."));
                 return;
             }
-            runtime.mutateIdempotent("island.warp.delete", () -> coreApiClient.deleteIslandWarpResult(islandId, player.getUniqueId(), name))
+            homeWarpUseCase.deleteWarp(islandId, player.getUniqueId(), name, runtime::mutateIdempotent)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 워프 삭제 " + name, name, body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 워프를 삭제하지 못했습니다.");
@@ -324,7 +327,7 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("warp-access-denied", "섬 워프 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.warp.public-access.set", () -> coreApiClient.setIslandWarpPublicAccessResult(islandId, player.getUniqueId(), name, publicAccess))
+            homeWarpUseCase.setWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess, runtime::mutate)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage(publicAccess ? "섬 워프 공개 " + name : "섬 워프 비공개 " + name, name, body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 워프 공개 상태를 변경하지 못했습니다.");
@@ -334,7 +337,7 @@ final class IslandHomeWarpCommandHandler {
     }
 
     private void listPublicWarps(Player player, String category, String query) {
-        coreApiClient.listPublicWarps(20, category, query)
+        homeWarpUseCase.listPublicWarps(20, category, query)
             .thenAccept(body -> runtime.message(player, publicWarpListMessage(body, category, query)))
             .exceptionally(error -> {
                 runtime.message(player, "공개 워프 목록을 불러오지 못했습니다.");

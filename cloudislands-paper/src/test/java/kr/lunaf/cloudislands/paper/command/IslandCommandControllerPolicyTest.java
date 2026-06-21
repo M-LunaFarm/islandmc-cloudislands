@@ -208,6 +208,7 @@ class IslandCommandControllerPolicyTest {
     void homeWarpCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String homeWarpHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
+        String homeWarpUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandHomeWarpUseCase.java"));
 
         assertTrue(backend.contains("private final IslandHomeWarpCommandHandler homeWarpCommands;"));
         assertTrue(routerSource().contains("homeWarpCommands.handleCommand(player, subcommand, args)"));
@@ -219,10 +220,18 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("listPublicWarps("), "public warp listing belongs in IslandHomeWarpCommandHandler");
         assertTrue(homeWarpHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(homeWarpHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
-        assertTrue(homeWarpHandler.contains("coreApiClient.setIslandHomeResult"));
-        assertTrue(homeWarpHandler.contains("coreApiClient.setIslandWarpResult"));
-        assertTrue(homeWarpHandler.contains("coreApiClient.deleteIslandWarpResult"));
-        assertTrue(homeWarpHandler.contains("coreApiClient.listPublicWarps"));
+        assertTrue(homeWarpHandler.contains("IslandHomeWarpUseCase"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.setHome"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.setWarp"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.deleteWarp"));
+        assertFalse(homeWarpHandler.contains("coreApiClient.setIslandHomeResult"));
+        assertFalse(homeWarpHandler.contains("coreApiClient.setIslandWarpResult"));
+        assertFalse(homeWarpHandler.contains("coreApiClient.deleteIslandWarpResult"));
+        assertFalse(homeWarpHandler.contains("coreApiClient.listPublicWarps"));
+        assertTrue(homeWarpUseCase.contains("coreApiClient.setIslandHomeResult"));
+        assertTrue(homeWarpUseCase.contains("coreApiClient.setIslandWarpResult"));
+        assertTrue(homeWarpUseCase.contains("coreApiClient.deleteIslandWarpResult"));
+        assertTrue(homeWarpUseCase.contains("coreApiClient.listPublicWarps"));
     }
 
     @Test
