@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -119,12 +118,15 @@ final class IslandEnvironmentCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.BiomeSet biomeSet) {
+            setBiome(player, biomeSet.biomeKey());
+            return true;
+        }
         if (action instanceof GuiAction.LimitSet limitSet) {
             setLimit(player, limitSet.limitKey(), limitSet.value());
             return true;
         }
         String actionId = action.actionId();
-        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.biome.open" -> {
                 openBiomeMenu(player);
@@ -132,10 +134,6 @@ final class IslandEnvironmentCommandHandler {
             }
             case "island.biome.show" -> {
                 showBiome(player);
-                yield true;
-            }
-            case "island.biome.set" -> {
-                setBiome(player, data.getOrDefault("biomeKey", ""));
                 yield true;
             }
             case "island.limits.open" -> {

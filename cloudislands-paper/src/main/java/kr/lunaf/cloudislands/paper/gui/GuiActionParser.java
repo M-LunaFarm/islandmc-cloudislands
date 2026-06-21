@@ -40,6 +40,9 @@ public final class GuiActionParser {
                 case "island.snapshot.create" -> Optional.of(new GuiAction.SnapshotCreate(
                     safeData.getOrDefault("reason", "manual")
                 ));
+                case "island.biome.set" -> Optional.of(new GuiAction.BiomeSet(
+                    required(safeData, "biomeKey")
+                ));
                 case "island.limit.set" -> Optional.of(new GuiAction.LimitSet(
                     required(safeData, "limitKey"),
                     nonNegativeLong(required(safeData, "value"))

@@ -74,6 +74,15 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesBiomeSetIntoTypedAction() {
+        GuiAction action = GuiActionParser.parse("island.biome.set", Map.of("biomeKey", " minecraft:plains ")).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.BiomeSet);
+        assertEquals("island.biome.set", action.actionId());
+        assertEquals(Map.of("biomeKey", "minecraft:plains"), action.data());
+    }
+
+    @Test
     void rejectsUnregisteredActionIdsInsteadOfExecutingRawMaps() {
         assertTrue(GuiActionParser.parse("island.member.remvoe", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
         assertTrue(GuiActionParser.parse("island.unknown.open", Map.of()).isEmpty());
@@ -84,5 +93,6 @@ class GuiActionParserTest {
         assertTrue(GuiActionParser.parse("island.limit.set", Map.of("limitKey", "", "value", "1")).isEmpty());
         assertTrue(GuiActionParser.parse("island.limit.set", Map.of("limitKey", "ENTITY", "value", "-1")).isEmpty());
         assertTrue(GuiActionParser.parse("island.limit.set", Map.of("limitKey", "ENTITY", "value", "abc")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.biome.set", Map.of("biomeKey", "")).isEmpty());
     }
 }

@@ -7,7 +7,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.LimitSet, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.LimitSet, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -85,6 +85,25 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
 
         private static boolean snapshotRestoreConfirmation(String actionId) {
             return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".snapshot.restore.confirm");
+        }
+    }
+
+    record BiomeSet(String biomeKey) implements GuiAction {
+        public BiomeSet {
+            biomeKey = biomeKey == null ? "" : biomeKey.trim();
+            if (biomeKey.isBlank()) {
+                throw new IllegalArgumentException("biomeKey is required");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return "island.biome.set";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("biomeKey", biomeKey);
         }
     }
 
