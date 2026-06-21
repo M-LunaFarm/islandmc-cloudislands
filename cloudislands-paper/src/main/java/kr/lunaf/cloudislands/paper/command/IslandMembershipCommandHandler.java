@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import java.util.Map;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -79,7 +78,7 @@ final class IslandMembershipCommandHandler {
             if (args.length > 2) {
                 runtime.trustIslandMemberTemporary(player, args[1], args[2]);
             } else {
-                runtime.setIslandMemberRole(player, args[1], IslandRole.TRUSTED, "섬 신뢰 멤버로 설정했습니다.");
+                runtime.setIslandMemberRole(player, args[1], "TRUSTED", "섬 신뢰 멤버로 설정했습니다.");
             }
             return true;
         }
@@ -88,7 +87,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-untrust-player-required", "신뢰 해제할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.setIslandMemberRole(player, args[1], IslandRole.MEMBER, "섬 신뢰를 해제했습니다.");
+            runtime.setIslandMemberRole(player, args[1], "MEMBER", "섬 신뢰를 해제했습니다.");
             return true;
         }
         if (subcommand.equals("promote") || subcommand.equals("승급")) {
@@ -96,7 +95,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-promote-player-required", "승급할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.setIslandMemberRole(player, args[1], IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
+            runtime.setIslandMemberRole(player, args[1], "MODERATOR", "섬 멤버를 승급했습니다.");
             return true;
         }
         if (subcommand.equals("demote") || subcommand.equals("강등")) {
@@ -104,7 +103,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-demote-player-required", "강등할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.setIslandMemberRole(player, args[1], IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
+            runtime.setIslandMemberRole(player, args[1], "MEMBER", "섬 멤버를 강등했습니다.");
             return true;
         }
         if (subcommand.equals("setrole") || subcommand.equals("role-set") || subcommand.equals("역할설정")) {
@@ -268,7 +267,7 @@ final class IslandMembershipCommandHandler {
                 runtime.setIslandMemberRole(
                     player,
                     roleChange.playerUuid().toString(),
-                    roleChange.promote() ? IslandRole.MODERATOR : IslandRole.MEMBER,
+                    roleChange.promote() ? "MODERATOR" : "MEMBER",
                     roleChange.promote() ? "섬 멤버를 승급했습니다." : "섬 멤버를 강등했습니다.");
             }
             return true;
@@ -421,8 +420,6 @@ final class IslandMembershipCommandHandler {
         void declineIslandInviteTarget(Player player, String target);
 
         void removeIslandMember(Player player, String target);
-
-        void setIslandMemberRole(Player player, String target, IslandRole role, String successMessage);
 
         void setIslandMemberRole(Player player, String target, String roleKey, String successMessage);
 

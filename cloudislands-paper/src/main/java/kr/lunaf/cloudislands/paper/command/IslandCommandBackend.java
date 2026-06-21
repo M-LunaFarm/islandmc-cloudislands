@@ -13,7 +13,6 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
@@ -727,11 +726,6 @@ final class IslandCommandBackend {
             }
 
             @Override
-            public void setIslandMemberRole(Player player, String target, IslandRole role, String successMessage) {
-                IslandCommandBackend.this.setIslandMemberRole(player, target, role, successMessage);
-            }
-
-            @Override
             public void setIslandMemberRole(Player player, String target, String roleKey, String successMessage) {
                 IslandCommandBackend.this.setIslandMemberRole(player, target, roleKey, successMessage);
             }
@@ -1135,10 +1129,6 @@ final class IslandCommandBackend {
                     });
             });
         });
-    }
-
-    private void setIslandMemberRole(Player player, String target, IslandRole role, String successMessage) {
-        setIslandMemberRole(player, target, role.name(), successMessage);
     }
 
     private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage) {

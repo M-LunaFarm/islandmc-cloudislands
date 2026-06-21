@@ -710,6 +710,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(menuConfig.contains("material: COMPARATOR"), "Role permission control must be declarative config");
         assertTrue(membershipHandler.contains("action instanceof GuiAction.RoleWeightAdjust"), "Role edit action must be registered as a typed GUI action");
         assertTrue(membershipHandler.contains("runtime.adjustIslandRoleWeight"), "Role edit action must route to the role weight adjuster");
+        assertTrue(!membershipHandler.contains("IslandRole."), "Membership command presentation must use role keys instead of enum identities");
+        assertTrue(!membershipHandler.contains("setIslandMemberRole(Player player, String target, IslandRole"), "Membership runtime boundary must not expose enum role identity");
         assertTrue(permissionHandler.contains("upsertIslandRole(player, roleKey, updatedWeight, displayName)"), "Role edit action must call the Core role mutation with dynamic role keys");
         assertTrue(permissionHandler.contains("resetIslandRole(player, roleKey)"), "Role edit action must support reset through the Core role mutation");
         assertTrue(!menu.contains("역할편집"), "Role GUI must not print command syntax as its edit path");
