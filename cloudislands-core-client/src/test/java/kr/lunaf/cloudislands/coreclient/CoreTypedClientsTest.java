@@ -881,6 +881,12 @@ class CoreTypedClientsTest {
                         {"playerUuid":"%s","primaryIslandId":"%s"}
                         """.formatted(reviewerUuid, islandId));
                 }
+                case "listPlayerIslands" -> {
+                    calls.add("player-islands:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"islands":[{"islandId":"%s","name":"Home","state":"ACTIVE","role":"OWNER","level":9,"worth":"3000"}]}
+                        """.formatted(islandId));
+                }
                 case "listPublicIslands" -> {
                     calls.add("public:" + args[0]);
                     yield CompletableFuture.completedFuture("""
@@ -899,11 +905,14 @@ class CoreTypedClientsTest {
         NavigationQueryClient client = new CoreNavigationQueryClient(raw);
 
         CoreGuiViews.PlayerProfileView profile = client.playerProfileByName(" Alice ").join();
+        CoreGuiViews.PlayerIslandView playerIsland = client.playerIslands(reviewerUuid).join().get(0);
         CoreGuiViews.PublicIslandView island = client.publicIslands(500).join().get(0);
         ReviewListView reviews = client.listReviews(islandId, 0).join();
 
-        assertEquals(List.of("profile:Alice", "public:100", "reviews:1"), calls);
+        assertEquals(List.of("profile:Alice", "player-islands:" + reviewerUuid, "public:100", "reviews:1"), calls);
         assertEquals(islandId.toString(), profile.primaryIslandId());
+        assertEquals("Home", playerIsland.name());
+        assertEquals("OWNER", playerIsland.role());
         assertEquals("Spawn", island.name());
         assertEquals(1L, reviews.count());
         assertEquals(islandId.toString(), reviews.reviews().get(0).islandId());

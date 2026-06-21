@@ -75,6 +75,22 @@ public final class VelocityIslandMessageFormatter {
         return entries.isEmpty() ? "속한 섬이 없습니다." : "내 섬 목록: " + String.join(" / ", entries);
     }
 
+    public String playerIslands(List<CoreGuiViews.PlayerIslandView> islands) {
+        if (islands == null || islands.isEmpty()) {
+            return "속한 섬이 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        for (CoreGuiViews.PlayerIslandView island : islands) {
+            if (!island.islandId().isBlank()) {
+                entries.add((island.name().isBlank() ? "이름 없는 섬" : island.name())
+                    + " (ID=" + shortId(island.islandId())
+                    + ", 역할=" + (island.role().isBlank() ? "MEMBER" : island.role())
+                    + ", 레벨=" + island.level() + ")");
+            }
+        }
+        return entries.isEmpty() ? "속한 섬이 없습니다." : "내 섬 목록: " + String.join(" / ", entries);
+    }
+
     public String publicIslands(String body) {
         if (body == null || body.isBlank()) {
             return "공개 섬이 없습니다.";

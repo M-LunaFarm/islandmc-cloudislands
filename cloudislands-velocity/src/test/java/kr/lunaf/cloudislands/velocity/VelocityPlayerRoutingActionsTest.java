@@ -20,7 +20,7 @@ class VelocityPlayerRoutingActionsTest {
     void recordPlayerProfileSendsLocaleToCore() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerRoutingActions.java"));
 
-        assertTrue(source.contains("touchPlayerProfile(player.getUniqueId(), player.getUsername(), playerLocale(player))"));
+        assertTrue(source.contains("playerProfileCommands().touch(player.getUniqueId(), player.getUsername(), playerLocale(player))"));
         assertTrue(source.contains("player.getEffectiveLocale()"));
     }
 }

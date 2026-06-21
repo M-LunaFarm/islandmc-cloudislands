@@ -7,6 +7,8 @@ import java.util.concurrent.CompletableFuture;
 public interface NavigationQueryClient {
     CompletableFuture<CoreGuiViews.PlayerProfileView> playerProfileByName(String playerName);
 
+    CompletableFuture<List<CoreGuiViews.PlayerIslandView>> playerIslands(UUID playerUuid);
+
     CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int limit);
 
     CompletableFuture<ReviewListView> listReviews(UUID islandId, int limit);

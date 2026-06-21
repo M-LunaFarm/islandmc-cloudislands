@@ -18,7 +18,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowRouteRequest(player)) {
             return;
         }
-        coreApiClient.createIsland(player.getUniqueId(), templateId).thenAccept(result -> {
+        coreApiClient.lifecycle().createIsland(player.getUniqueId(), templateId).thenAccept(result -> {
             if (result == null || !result.accepted()) {
                 String code = result == null ? "FAILED" : result.code();
                 player.sendMessage(Component.text(messageForCreateFailure(code)));
@@ -35,7 +35,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void deleteIsland(Player player, UUID islandId) {
-        coreApiClient.deleteIsland(player.getUniqueId(), islandId).thenAccept(result -> {
+        coreApiClient.lifecycle().deleteIsland(player.getUniqueId(), islandId).thenAccept(result -> {
             if (result != null && result.accepted()) {
                 player.sendMessage(Component.text("섬을 삭제했습니다."));
                 return;
@@ -48,7 +48,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
-        sendBodyResult(player, coreApiClient.resetIsland(islandId, player.getUniqueId(), reason).thenApply(body -> islandMessages.actionResult("Island reset", islandId.toString(), body)), "섬 리셋을 요청하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.lifecycle().resetIsland(islandId, player.getUniqueId(), reason).thenApply(result -> islandMessages.actionResult("Island reset", islandId.toString(), result)), "섬 리셋을 요청하지 못했습니다.");
     }
 
     public void showMyIsland(Player player) {
@@ -143,7 +143,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void recordPlayerProfile(Player player) {
-        coreApiClient.touchPlayerProfile(player.getUniqueId(), player.getUsername(), playerLocale(player))
+        coreApiClient.playerProfileCommands().touch(player.getUniqueId(), player.getUsername(), playerLocale(player))
             .exceptionally(error -> null);
     }
 
@@ -167,8 +167,8 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void listMyIslands(Player player) {
-        coreApiClient.listPlayerIslands(player.getUniqueId())
-            .thenAccept(body -> player.sendMessage(Component.text(islandMessages.playerIslands(body))))
+        coreApiClient.navigation().playerIslands(player.getUniqueId())
+            .thenAccept(islands -> player.sendMessage(Component.text(islandMessages.playerIslands(islands))))
             .exceptionally(error -> {
                 player.sendMessage(Component.text("내 섬 목록을 불러오지 못했습니다."));
                 return null;

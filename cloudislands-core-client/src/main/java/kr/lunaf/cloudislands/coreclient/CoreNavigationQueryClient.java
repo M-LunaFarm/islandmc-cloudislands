@@ -23,6 +23,12 @@ public final class CoreNavigationQueryClient implements NavigationQueryClient {
     }
 
     @Override
+    public CompletableFuture<List<CoreGuiViews.PlayerIslandView>> playerIslands(UUID playerUuid) {
+        requirePlayer(playerUuid);
+        return CoreGuiViews.playerIslands(delegate, playerUuid);
+    }
+
+    @Override
     public CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int limit) {
         return CoreGuiViews.publicIslands(delegate, boundedLimit(limit));
     }
@@ -58,6 +64,12 @@ public final class CoreNavigationQueryClient implements NavigationQueryClient {
     private static void requireIsland(UUID islandId) {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
+        }
+    }
+
+    private static void requirePlayer(UUID playerUuid) {
+        if (playerUuid == null) {
+            throw new IllegalArgumentException("playerUuid is required");
         }
     }
 
