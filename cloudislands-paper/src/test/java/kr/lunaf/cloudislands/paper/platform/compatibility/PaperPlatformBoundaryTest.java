@@ -244,10 +244,10 @@ class PaperPlatformBoundaryTest {
         assertTrue(!backend.contains("Double.parseDouble(json.substring"), "Presentation code must not parse Core JSON numbers manually");
         assertTrue(membership.contains("runtime.removeIslandMember(player"), "GUI confirmation and command routing must share the same member removal boundary");
         assertTrue(usecase.contains("coreApiClient.removeIslandMemberResult("), "The application usecase must own the Core member removal call");
-        assertTrue(usecase.contains("coreApiClient.listIslandMembers("), "The application usecase must own the Core member list call");
+        assertTrue(usecase.contains("islandQueries.listMembers("), "The application usecase must read members through the typed island query client");
         assertTrue(!usecase.contains("public CompletableFuture<String> listMembers("), "Member list usecase must expose typed views instead of raw JSON");
         assertTrue(usecase.contains("coreApiClient.playerInfoByName("), "The application usecase must own the Core player lookup call");
-        assertTrue(usecase.contains("coreApiClient.islandInfoByName("), "The application usecase must own the Core island-name lookup call");
+        assertTrue(usecase.contains("islandQueries.findIslandByName("), "The application usecase must read island names through the typed island query client");
         assertTrue(usecase.contains("findPendingInviteId("), "The application usecase must own pending invite matching");
         assertTrue(usecase.contains("coreApiClient.createIslandInvite("), "The application usecase must own the Core invite creation call");
         assertTrue(usecase.contains("coreApiClient.acceptIslandInviteResult("), "The application usecase must own the Core invite accept call");
