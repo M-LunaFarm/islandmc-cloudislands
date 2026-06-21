@@ -4,11 +4,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
+import kr.lunaf.cloudislands.coreclient.AdminEventView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class CoreEventPoller {
     private final CoreApiClient coreApiClient;
-    private final CoreEventCodec eventCodec;
     private final Consumer<CoreEventEnvelope> eventHandler;
     private final int batchSize;
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
@@ -16,21 +17,19 @@ public final class CoreEventPoller {
 
     public CoreEventPoller(CoreApiClient coreApiClient, CoreEventCodec eventCodec, Consumer<CoreEventEnvelope> eventHandler, int batchSize) {
         this.coreApiClient = coreApiClient;
-        this.eventCodec = eventCodec;
         this.eventHandler = eventHandler;
         this.batchSize = Math.max(1, batchSize);
     }
 
     public void pollOnce() {
-        coreApiClient.listEventsSince(lastEventSequence, batchSize)
+        coreApiClient.adminEvents().listSince(lastEventSequence, batchSize)
             .thenAccept(this::handleBatch)
             .exceptionally(error -> null);
     }
 
-    private void handleBatch(String body) {
-        CoreEventBatch batch = eventCodec.decodeBatch(body);
-        long oldestSequence = batch.oldestSequence();
-        long latestSequence = batch.latestSequence();
+    private void handleBatch(AdminEventStreamView batch) {
+        long oldestSequence = batch.oldestSeq();
+        long latestSequence = batch.latestSeq();
         if (latestSequence > 0L && latestSequence < lastEventSequence) {
             lastEventSequence = 0L;
             seenEvents.clear();
@@ -39,7 +38,8 @@ public final class CoreEventPoller {
             lastEventSequence = oldestSequence - 1L;
             seenEvents.clear();
         }
-        for (CoreEventEnvelope event : batch.events()) {
+        for (AdminEventView view : batch.events()) {
+            CoreEventEnvelope event = new CoreEventEnvelope(view.seq(), view.type(), view.fields(), view.occurredAt());
             lastEventSequence = Math.max(lastEventSequence, event.sequence());
             if (seenEvents.add(eventKey(event))) {
                 eventHandler.accept(event);
