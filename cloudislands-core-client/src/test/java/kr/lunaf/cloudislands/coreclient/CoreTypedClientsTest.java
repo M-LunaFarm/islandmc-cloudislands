@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import org.junit.jupiter.api.Test;
 
@@ -84,6 +85,30 @@ class CoreTypedClientsTest {
         assertEquals("BUILDER", result.value().rules().get(0).role());
         assertEquals("OPEN_CONTAINER", result.value().rules().get(0).permission());
         assertFalse(result.value().rules().get(0).allowed());
+    }
+
+    @Test
+    void environmentQueryClientReturnsTypedEnvironmentViews() {
+        UUID islandId = UUID.randomUUID();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "islandBiome" -> CompletableFuture.completedFuture("{\"biomeKey\":\"minecraft:plains\"}");
+                case "islandInfo" -> CompletableFuture.completedFuture("""
+                    {"islandId":"%s","name":"Spawn","state":"ACTIVE","size":300,"border":310}
+                    """.formatted(islandId));
+                case "listIslandFlags" -> CompletableFuture.completedFuture("{\"flags\":{\"BORDER_COLOR\":\"blue\"}}");
+                case "listIslandLimits" -> CompletableFuture.completedFuture("{\"limits\":[{\"limitKey\":\"HOPPER\",\"value\":64,\"updatedAt\":\"now\"}]}");
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        IslandEnvironmentQueryClient client = new CoreIslandEnvironmentQueryClient(raw);
+
+        assertEquals("minecraft:plains", client.islandBiome(islandId).join().key());
+        assertEquals(300L, client.getIsland(islandId).join().size());
+        assertEquals("blue", client.flagValues(islandId).join().get(IslandFlag.BORDER_COLOR));
+        assertEquals("HOPPER", client.limitViews(islandId).join().get(0).key());
     }
 
     @Test

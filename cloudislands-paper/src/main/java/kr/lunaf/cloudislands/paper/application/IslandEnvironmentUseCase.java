@@ -8,23 +8,37 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
+import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LimitView;
 
 public final class IslandEnvironmentUseCase {
     private final CoreApiClient coreApiClient;
+    private final IslandEnvironmentQueryClient environmentQueries;
 
     public IslandEnvironmentUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.environmentQueries = new CoreIslandEnvironmentQueryClient(coreApiClient);
+    }
+
+    IslandEnvironmentUseCase(CoreApiClient coreApiClient, IslandEnvironmentQueryClient environmentQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (environmentQueries == null) {
+            throw new IllegalArgumentException("environmentQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.environmentQueries = environmentQueries;
     }
 
     public CompletableFuture<BiomeValue> islandBiomeValue(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandBiome(coreApiClient, islandId).thenApply(BiomeValue::new);
+        return environmentQueries.islandBiome(islandId).thenApply(biome -> new BiomeValue(biome.key()));
     }
 
     private CompletableFuture<String> setBiomeBody(UUID islandId, UUID actorUuid, String biomeKey, MutationRunner runner) {
@@ -41,12 +55,12 @@ public final class IslandEnvironmentUseCase {
 
     public CompletableFuture<IslandInfoView> islandInfoView(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandInfo(coreApiClient, islandId);
+        return environmentQueries.getIsland(islandId);
     }
 
     public CompletableFuture<Map<IslandFlag, String>> flagValues(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandFlags(coreApiClient, islandId);
+        return environmentQueries.flagValues(islandId);
     }
 
     private CompletableFuture<String> setFlagBody(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
@@ -64,7 +78,7 @@ public final class IslandEnvironmentUseCase {
 
     public CompletableFuture<List<LimitView>> limitViews(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandLimits(coreApiClient, islandId);
+        return environmentQueries.limitViews(islandId);
     }
 
     private CompletableFuture<String> setLimitBody(UUID islandId, UUID actorUuid, String limitKey, long value, MutationRunner runner) {

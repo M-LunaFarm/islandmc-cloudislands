@@ -66,7 +66,7 @@ public final class IslandBiomeMenu implements Listener {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandBiome(client, islandId)
-            .thenAccept(currentBiome -> openSync(plugin, player, session, currentBiome, messages))
+            .thenAccept(currentBiome -> openSync(plugin, player, session, currentBiome.key(), messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다."), "island.biome.open", "island.settings.open");
                 return null;

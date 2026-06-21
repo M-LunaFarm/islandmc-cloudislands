@@ -20,7 +20,7 @@ public final class PaperGuiViews {
         return CoreGuiViews.islandBank(client, islandId).thenApply(PaperGuiViews::bank);
     }
 
-    public static CompletableFuture<String> islandBiome(CoreApiClient client, UUID islandId) {
+    public static CompletableFuture<CoreGuiViews.BiomeView> islandBiome(CoreApiClient client, UUID islandId) {
         return CoreGuiViews.islandBiome(client, islandId);
     }
 
