@@ -29,6 +29,23 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
         return capabilities;
     }
 
+    @Override
+    public IntegrationResult validateVersion(IntegrationContext context) {
+        if (!capabilities.contains(IntegrationCapability.VALIDATE_VERSION)) {
+            return IntegrationResult.skipped(pluginName + " version validation is not declared");
+        }
+        Set<String> missingMetadata = context == null ? Set.of("context") : context.missingMetadata("pluginVersion");
+        if (!missingMetadata.isEmpty()) {
+            return IntegrationResult.failed(pluginName + " version validation missing metadata: " + String.join(",", missingMetadata));
+        }
+        String pluginVersion = context.metadata().get("pluginVersion");
+        String minSupportedVersion = context.metadata().getOrDefault("minSupportedVersion", "");
+        if (!minSupportedVersion.isBlank() && compareVersions(pluginVersion, minSupportedVersion) < 0) {
+            return IntegrationResult.failed(pluginName + " version " + pluginVersion + " is older than supported " + minSupportedVersion);
+        }
+        return IntegrationResult.success(pluginName + " version " + pluginVersion + " accepted");
+    }
+
     protected IntegrationResult guardedStateHook(String operation, IntegrationContext context, String... requiredMetadata) {
         CloudIntegrationPolicy.HookDecision decision = validateRuntimeAuthority(context, true);
         if (!decision.allowed()) {
@@ -51,5 +68,36 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
             return IntegrationResult.failed(pluginName + " " + operation + " missing metadata: " + String.join(",", missingMetadata));
         }
         return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId());
+    }
+
+    private static int compareVersions(String actual, String minimum) {
+        int[] actualParts = versionParts(actual);
+        int[] minimumParts = versionParts(minimum);
+        int length = Math.max(actualParts.length, minimumParts.length);
+        for (int index = 0; index < length; index++) {
+            int actualPart = index < actualParts.length ? actualParts[index] : 0;
+            int minimumPart = index < minimumParts.length ? minimumParts[index] : 0;
+            if (actualPart != minimumPart) {
+                return Integer.compare(actualPart, minimumPart);
+            }
+        }
+        return 0;
+    }
+
+    private static int[] versionParts(String value) {
+        if (value == null || value.isBlank()) {
+            return new int[] {0};
+        }
+        String[] rawParts = value.trim().split("[^0-9]+");
+        java.util.ArrayList<Integer> parts = new java.util.ArrayList<>();
+        for (String rawPart : rawParts) {
+            if (!rawPart.isBlank()) {
+                parts.add(Integer.parseInt(rawPart));
+            }
+        }
+        if (parts.isEmpty()) {
+            return new int[] {0};
+        }
+        return parts.stream().mapToInt(Integer::intValue).toArray();
     }
 }

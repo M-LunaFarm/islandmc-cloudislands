@@ -91,6 +91,28 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
+    void priorityAdaptersValidatePluginVersionMetadata() {
+        CoreProtectIntegration integration = new CoreProtectIntegration();
+
+        IntegrationResult missing = integration.validateVersion(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:version:1", Map.of()));
+        assertEquals(IntegrationResult.Status.FAILED, missing.status());
+        assertTrue(missing.message().contains("pluginVersion"));
+
+        IntegrationResult tooOld = integration.validateVersion(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:version:2", Map.of(
+            "pluginVersion", "22.1",
+            "minSupportedVersion", "23.0"
+        )));
+        assertEquals(IntegrationResult.Status.FAILED, tooOld.status());
+        assertTrue(tooOld.message().contains("older than supported"));
+
+        IntegrationResult accepted = integration.validateVersion(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:version:3", Map.of(
+            "pluginVersion", "23.2.1",
+            "minSupportedVersion", "23.0"
+        )));
+        assertEquals(IntegrationResult.Status.SUCCESS, accepted.status());
+    }
+
+    @Test
     void worldEditAdapterRequiresRuntimeAuthorityBeforeWorldStateHooks() {
         WorldEditIntegration integration = new WorldEditIntegration("FastAsyncWorldEdit");
         IntegrationContext context = new IntegrationContext(UUID.randomUUID(), "island-node-01", 99L, true, "fawe:restore:1", Map.of(
