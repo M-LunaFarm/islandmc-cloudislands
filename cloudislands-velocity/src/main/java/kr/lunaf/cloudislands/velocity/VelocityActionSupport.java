@@ -3,11 +3,14 @@ package kr.lunaf.cloudislands.velocity;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 import com.velocitypowered.api.proxy.Player;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
+import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
+import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreConfigMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter;
@@ -96,8 +99,16 @@ abstract class VelocityActionSupport {
         return playerMessage(routeMessages.debug(body));
     }
 
+    protected String routeDebugMessage(AdminRouteDebugView view) {
+        return playerMessage(routeMessages.debug(view));
+    }
+
     protected String routeTicketMessage(String body) {
         return playerMessage(routeMessages.ticket(body));
+    }
+
+    protected String routeTicketMessage(Optional<AdminRouteTicketView> ticket) {
+        return playerMessage(routeMessages.ticket(ticket));
     }
 
     String routeClearMessage(String body) {

@@ -171,7 +171,12 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     }
 
     public void debugRoutes(Player player, UUID playerUuid) {
-        sendBodyResult(player, coreApiClient.debugRoutes(playerUuid).thenApply(this::routeDebugMessage), "라우트 정보를 불러오지 못했습니다.");
+        coreApiClient.adminRoutes().debug(playerUuid)
+            .thenAccept(result -> player.sendMessage(playerComponent(routeDebugMessage(result))))
+            .exceptionally(error -> {
+                player.sendMessage(playerComponent("라우트 정보를 불러오지 못했습니다."));
+                return null;
+            });
     }
 
     public void debugRoutesTarget(Player player, String target) {
@@ -188,7 +193,12 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     }
 
     public void routeTicket(Player player, UUID ticketId) {
-        sendBodyResult(player, coreApiClient.routeTicket(ticketId).thenApply(this::routeTicketMessage), "티켓 정보를 불러오지 못했습니다.");
+        coreApiClient.adminRoutes().ticket(ticketId)
+            .thenAccept(result -> player.sendMessage(playerComponent(routeTicketMessage(result))))
+            .exceptionally(error -> {
+                player.sendMessage(playerComponent("티켓 정보를 불러오지 못했습니다."));
+                return null;
+            });
     }
 
     public void routeTicketTarget(Player player, String target) {
@@ -202,7 +212,12 @@ public final class VelocityAdminActions extends VelocityActionSupport {
                 player.sendMessage(Component.text("플레이어를 찾지 못했습니다."));
                 return;
             }
-            sendBodyResult(player, coreApiClient.routeTicketForPlayer(playerUuid).thenApply(this::routeTicketMessage), "티켓 정보를 불러오지 못했습니다.");
+            coreApiClient.adminRoutes().ticketForPlayer(playerUuid)
+                .thenAccept(result -> player.sendMessage(playerComponent(routeTicketMessage(result))))
+                .exceptionally(error -> {
+                    player.sendMessage(playerComponent("티켓 정보를 불러오지 못했습니다."));
+                    return null;
+                });
         }).exceptionally(error -> {
             player.sendMessage(Component.text("플레이어를 찾지 못했습니다."));
             return null;
