@@ -22,61 +22,56 @@ public final class IslandProgressionUseCase {
         this.coreApiClient = coreApiClient;
     }
 
-    public CompletableFuture<String> islandInfo(UUID islandId) {
+    private CompletableFuture<String> islandInfoBody(UUID islandId) {
         requireIsland(islandId);
         return coreApiClient.islandInfo(islandId);
     }
 
     public CompletableFuture<IslandLevelView> islandLevel(UUID islandId) {
-        return islandInfo(islandId).thenApply(IslandProgressionUseCase::levelView);
+        return islandInfoBody(islandId).thenApply(IslandProgressionUseCase::levelView);
     }
 
-    public CompletableFuture<String> blockDetails(UUID islandId, int limit) {
+    private CompletableFuture<String> blockDetailsBody(UUID islandId, int limit) {
         requireIsland(islandId);
         return coreApiClient.islandBlockDetails(islandId, boundedLimit(limit));
     }
 
     public CompletableFuture<BlockDetailsView> blockDetailsView(UUID islandId, int limit) {
-        return blockDetails(islandId, limit).thenApply(IslandProgressionUseCase::blockDetailsView);
+        return blockDetailsBody(islandId, limit).thenApply(IslandProgressionUseCase::blockDetailsView);
     }
 
-    public CompletableFuture<String> topIslandsByWorth(int limit) {
+    private CompletableFuture<String> topIslandsByWorthBody(int limit) {
         return coreApiClient.topIslandsByWorth(boundedLimit(limit));
     }
 
     public CompletableFuture<List<RankingEntryView>> topWorthViews(int limit) {
-        return topIslandsByWorth(limit).thenApply(body -> rankingViews(body, "worth"));
+        return topIslandsByWorthBody(limit).thenApply(body -> rankingViews(body, "worth"));
     }
 
-    public CompletableFuture<String> topIslandsByLevel(int limit) {
+    private CompletableFuture<String> topIslandsByLevelBody(int limit) {
         return coreApiClient.topIslandsByLevel(boundedLimit(limit));
     }
 
     public CompletableFuture<List<RankingEntryView>> topLevelViews(int limit) {
-        return topIslandsByLevel(limit).thenApply(body -> rankingViews(body, "level"));
+        return topIslandsByLevelBody(limit).thenApply(body -> rankingViews(body, "level"));
     }
 
-    public CompletableFuture<String> topIslandsByReviews(int limit) {
+    private CompletableFuture<String> topIslandsByReviewsBody(int limit) {
         return coreApiClient.topIslandsByReviews(boundedLimit(limit));
     }
 
     public CompletableFuture<List<ReviewRankingEntryView>> topReviewViews(int limit) {
-        return topIslandsByReviews(limit).thenApply(IslandProgressionUseCase::reviewRankingViews);
+        return topIslandsByReviewsBody(limit).thenApply(IslandProgressionUseCase::reviewRankingViews);
     }
 
-    public CompletableFuture<String> recalculateLevel(UUID islandId, UUID actorUuid) {
+    private CompletableFuture<String> recalculateLevelBody(UUID islandId, UUID actorUuid) {
         requireIsland(islandId);
         requireActor(actorUuid);
         return coreApiClient.recalculateIslandLevel(islandId, actorUuid);
     }
 
     public CompletableFuture<IslandLevelView> recalculateLevelView(UUID islandId, UUID actorUuid) {
-        return recalculateLevel(islandId, actorUuid).thenApply(IslandProgressionUseCase::levelView);
-    }
-
-    public CompletableFuture<String> listUpgrades(UUID islandId) {
-        requireIsland(islandId);
-        return coreApiClient.listIslandUpgrades(islandId);
+        return recalculateLevelBody(islandId, actorUuid).thenApply(IslandProgressionUseCase::levelView);
     }
 
     public CompletableFuture<List<UpgradeView>> upgradeViews(UUID islandId) {
@@ -84,7 +79,7 @@ public final class IslandProgressionUseCase {
         return PaperGuiViews.islandUpgrades(coreApiClient, islandId);
     }
 
-    public CompletableFuture<String> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey, IdempotentMutationRunner runner) {
+    private CompletableFuture<String> purchaseUpgradeBody(UUID islandId, UUID actorUuid, String upgradeKey, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireIdempotentRunner(runner);
@@ -92,13 +87,8 @@ public final class IslandProgressionUseCase {
     }
 
     public CompletableFuture<UpgradePurchaseResult> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey, IdempotentMutationRunner runner) {
-        return purchaseUpgrade(islandId, actorUuid, upgradeKey, runner)
+        return purchaseUpgradeBody(islandId, actorUuid, upgradeKey, runner)
             .thenApply(body -> upgradePurchaseResult(body, upgradeKey));
-    }
-
-    public CompletableFuture<String> listMissions(UUID islandId, String kind) {
-        requireIsland(islandId);
-        return coreApiClient.listIslandMissions(islandId, normalizeKind(kind));
     }
 
     public CompletableFuture<List<MissionView>> missionViews(UUID islandId, String kind) {
@@ -106,7 +96,7 @@ public final class IslandProgressionUseCase {
         return PaperGuiViews.islandMissions(coreApiClient, islandId, normalizeKind(kind));
     }
 
-    public CompletableFuture<String> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind, IdempotentMutationRunner runner) {
+    private CompletableFuture<String> completeMissionBody(UUID islandId, UUID actorUuid, String missionKey, String kind, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireIdempotentRunner(runner);
@@ -114,7 +104,7 @@ public final class IslandProgressionUseCase {
     }
 
     public CompletableFuture<MissionCompletionResult> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, IdempotentMutationRunner runner) {
-        return completeMission(islandId, actorUuid, missionKey, kind, runner)
+        return completeMissionBody(islandId, actorUuid, missionKey, kind, runner)
             .thenApply(body -> missionCompletionResult(body, missionKey));
     }
 
