@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import org.junit.jupiter.api.Test;
@@ -295,6 +296,76 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"permission\":\"BREAK\",\"allowed\":false}", requestBodies.get("permissionOverride"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER_ROLE\",\"roleKey\":\"BUILDER_ROLE\",\"weight\":42,\"displayName\":\"Builder \\\"Role\\\"\"}", requestBodies.get("roleUpsert"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER_ROLE\",\"roleKey\":\"BUILDER_ROLE\"}", requestBodies.get("roleReset"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void jdkClientBuildsMemberEnvironmentAndHomePayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        UUID playerUuid = UUID.randomUUID();
+        UUID inviteId = UUID.randomUUID();
+        IslandLocation location = new IslandLocation("world\"home", 10.5D, 65.0D, -2.25D, 180.0F, 15.0F);
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/name", exchange -> respond(exchange, requestBodies, "name", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/members/set", exchange -> respond(exchange, requestBodies, "memberSet", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/members/trust-temporary", exchange -> respond(exchange, requestBodies, "memberTrust", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/transfer", exchange -> respond(exchange, requestBodies, "transfer", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/members/remove", exchange -> respond(exchange, requestBodies, "memberRemove", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/invites", exchange -> respond(exchange, requestBodies, "inviteCreate", "{\"inviteId\":\"" + inviteId + "\"}"));
+        server.createContext("/v1/players/invites", exchange -> respond(exchange, requestBodies, "inviteList", "{\"invites\":[]}"));
+        server.createContext("/v1/players/islands", exchange -> respond(exchange, requestBodies, "playerIslands", "{\"islands\":[]}"));
+        server.createContext("/v1/islands/invites/accept", exchange -> respond(exchange, requestBodies, "inviteAccept", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/invites/decline", exchange -> respond(exchange, requestBodies, "inviteDecline", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/bans/set", exchange -> respond(exchange, requestBodies, "banSet", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/bans/remove", exchange -> respond(exchange, requestBodies, "banRemove", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/visitors/kick", exchange -> respond(exchange, requestBodies, "visitorKick", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/visitors/stats", exchange -> respond(exchange, requestBodies, "visitorStats", "{\"visitors\":[]}"));
+        server.createContext("/v1/islands/flags/set", exchange -> respond(exchange, requestBodies, "flagSet", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/biome/set", exchange -> respond(exchange, requestBodies, "biomeSet", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/homes/set", exchange -> respond(exchange, requestBodies, "homeSet", "{\"accepted\":true}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.setIslandNameResult(islandId, actorUuid, "Base \"One\"").join();
+            client.setIslandMemberResult(islandId, actorUuid, playerUuid, "trusted-member").join();
+            client.trustIslandMemberTemporary(islandId, actorUuid, playerUuid, 30L).join();
+            client.transferIslandOwnershipResult(islandId, actorUuid, playerUuid).join();
+            client.removeIslandMemberResult(islandId, actorUuid, playerUuid).join();
+            client.createIslandInvite(islandId, actorUuid, playerUuid).join();
+            client.listPendingInvites(playerUuid).join();
+            client.listPlayerIslands(playerUuid).join();
+            client.acceptIslandInviteResult(inviteId, playerUuid).join();
+            client.declineIslandInviteResult(inviteId, playerUuid).join();
+            client.banIslandVisitorResult(islandId, actorUuid, playerUuid, "bad \"visitor\"").join();
+            client.pardonIslandVisitorResult(islandId, actorUuid, playerUuid).join();
+            client.kickIslandVisitorResult(islandId, actorUuid, playerUuid).join();
+            client.islandVisitorStats(islandId, 500).join();
+            client.setIslandFlagResult(islandId, actorUuid, IslandFlag.PVP, "deny \"all\"").join();
+            client.setIslandBiomeResult(islandId, actorUuid, "minecraft:plains\"warm").join();
+            client.setIslandHomeResult(islandId, actorUuid, "home\"main", location).join();
+
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"Base \\\"One\\\"\"}", requestBodies.get("name"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"role\":\"TRUSTED_MEMBER\",\"roleKey\":\"TRUSTED_MEMBER\"}", requestBodies.get("memberSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"durationSeconds\":30}", requestBodies.get("memberTrust"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + playerUuid + "\"}", requestBodies.get("transfer"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("memberRemove"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + playerUuid + "\"}", requestBodies.get("inviteCreate"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("inviteList"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("playerIslands"));
+            assertEquals("{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("inviteAccept"));
+            assertEquals("{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("inviteDecline"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"reason\":\"bad \\\"visitor\\\"\"}", requestBodies.get("banSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("banRemove"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("visitorKick"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":100}", requestBodies.get("visitorStats"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"flag\":\"PVP\",\"value\":\"deny \\\"all\\\"\"}", requestBodies.get("flagSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"biomeKey\":\"minecraft:plains\\\"warm\"}", requestBodies.get("biomeSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"home\\\"main\",\"worldName\":\"world\\\"home\",\"localX\":10.5,\"localY\":65.0,\"localZ\":-2.25,\"yaw\":180.0,\"pitch\":15.0}", requestBodies.get("homeSet"));
         } finally {
             server.stop(0);
         }

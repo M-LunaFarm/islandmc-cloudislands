@@ -138,7 +138,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setIslandNameResult(UUID islandId, UUID actorUuid, String name) {
-        return postWithResultBody("/v1/islands/name", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\"}");
+        return postWithResultBody("/v1/islands/name", jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", name));
     }
 
     @Override
@@ -159,12 +159,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> setIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid, String roleKey) {
         String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return postWithResultBody("/v1/islands/members/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"role\":\"" + escape(normalizedRoleKey) + "\",\"roleKey\":\"" + escape(normalizedRoleKey) + "\"}");
+        return postWithResultBody("/v1/islands/members/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey));
     }
 
     @Override
     public CompletableFuture<String> trustIslandMemberTemporary(UUID islandId, UUID actorUuid, UUID playerUuid, long durationSeconds) {
-        return postWithResultBody("/v1/islands/members/trust-temporary", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"durationSeconds\":" + durationSeconds + "}");
+        return postWithResultBody("/v1/islands/members/trust-temporary", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid, "durationSeconds", durationSeconds));
     }
 
     @Override
@@ -174,7 +174,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> transferIslandOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid) {
-        return postWithResultBody("/v1/islands/transfer", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}");
+        return postWithResultBody("/v1/islands/transfer", jsonObject("islandId", islandId, "actorUuid", actorUuid, "targetUuid", targetUuid));
     }
 
     @Override
@@ -184,22 +184,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> removeIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/members/remove", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/islands/members/remove", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid));
     }
 
     @Override
     public CompletableFuture<String> createIslandInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
-        return postWithResultBody("/v1/islands/invites", "{\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + inviterUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}");
+        return postWithResultBody("/v1/islands/invites", jsonObject("islandId", islandId, "inviterUuid", inviterUuid, "targetUuid", targetUuid));
     }
 
     @Override
     public CompletableFuture<String> listPendingInvites(UUID playerUuid) {
-        return post("/v1/players/invites", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return post("/v1/players/invites", jsonObject("playerUuid", playerUuid));
     }
 
     @Override
     public CompletableFuture<String> listPlayerIslands(UUID playerUuid) {
-        return post("/v1/players/islands", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return post("/v1/players/islands", jsonObject("playerUuid", playerUuid));
     }
 
     @Override
@@ -209,7 +209,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> acceptIslandInviteResult(UUID inviteId, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/invites/accept", "{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/islands/invites/accept", jsonObject("inviteId", inviteId, "playerUuid", playerUuid));
     }
 
     @Override
@@ -219,7 +219,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> declineIslandInviteResult(UUID inviteId, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/invites/decline", "{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/islands/invites/decline", jsonObject("inviteId", inviteId, "playerUuid", playerUuid));
     }
 
     @Override
@@ -229,7 +229,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> banIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
-        return postWithResultBody("/v1/islands/bans/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/islands/bans/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid, "reason", reason));
     }
 
     @Override
@@ -244,7 +244,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> pardonIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/bans/remove", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/islands/bans/remove", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid));
     }
 
     @Override
@@ -254,12 +254,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> kickIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/visitors/kick", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/islands/visitors/kick", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid));
     }
 
     @Override
     public CompletableFuture<String> islandVisitorStats(UUID islandId, int limit) {
-        return postWithResultBody("/v1/islands/visitors/stats", "{\"islandId\":\"" + islandId + "\",\"limit\":" + Math.max(1, Math.min(limit, 100)) + "}");
+        return postWithResultBody("/v1/islands/visitors/stats", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))));
     }
 
     @Override
@@ -274,7 +274,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setIslandFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
-        return postWithResultBody("/v1/islands/flags/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"flag\":\"" + flag.name() + "\",\"value\":\"" + escape(value) + "\"}");
+        return postWithResultBody("/v1/islands/flags/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "flag", flag.name(), "value", value));
     }
 
     @Override
@@ -289,7 +289,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setIslandBiomeResult(UUID islandId, UUID actorUuid, String biomeKey) {
-        return postWithResultBody("/v1/islands/biome/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"biomeKey\":\"" + escape(biomeKey) + "\"}");
+        return postWithResultBody("/v1/islands/biome/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "biomeKey", biomeKey));
     }
 
     @Override
@@ -304,7 +304,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setIslandHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
-        return postWithResultBody("/v1/islands/homes/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"worldName\":\"" + escape(location.worldName()) + "\",\"localX\":" + location.localX() + ",\"localY\":" + location.localY() + ",\"localZ\":" + location.localZ() + ",\"yaw\":" + location.yaw() + ",\"pitch\":" + location.pitch() + "}");
+        return postWithResultBody("/v1/islands/homes/set", locationPayload(islandId, actorUuid, name, location));
     }
 
     @Override
@@ -2042,6 +2042,20 @@ public final class JdkCoreApiClient implements CoreApiClient {
             "yaw", location.yaw(),
             "pitch", location.pitch(),
             "publicAccess", publicAccess
+        );
+    }
+
+    private static String locationPayload(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
+        return jsonObject(
+            "islandId", islandId,
+            "actorUuid", actorUuid,
+            "name", name,
+            "worldName", location.worldName(),
+            "localX", location.localX(),
+            "localY", location.localY(),
+            "localZ", location.localZ(),
+            "yaw", location.yaw(),
+            "pitch", location.pitch()
         );
     }
 
