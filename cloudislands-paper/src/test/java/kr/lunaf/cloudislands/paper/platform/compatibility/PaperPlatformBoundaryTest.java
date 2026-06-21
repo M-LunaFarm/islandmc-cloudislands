@@ -181,11 +181,15 @@ class PaperPlatformBoundaryTest {
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"), "Admin node GUI actions must use typed actions");
         assertTrue(adminHandler.contains("case LIST ->"), "Admin node list GUI action must call the Core usecase path");
         assertTrue(adminHandler.contains("adminNodeUseCase.listNodesSummary()"), "Admin node list GUI action must call the typed Core usecase path");
-        assertTrue(adminUseCase.contains("coreApiClient.listNodes()"), "Admin node list usecase must call Core");
+        assertTrue(adminUseCase.contains("AdminNodeQueryClient adminNodeQueries"), "Admin node reads must stay behind a typed query client");
+        assertTrue(adminUseCase.contains("adminNodeQueries.listNodesSummary()"), "Admin node list usecase must read through the typed query client");
         assertTrue(!adminUseCase.contains("public CompletableFuture<String> listNodes("), "Admin node list usecase must expose typed summaries instead of raw JSON");
         assertTrue(adminHandler.contains("case INFO ->"), "Admin node info GUI action must refresh from Core");
         assertTrue(adminHandler.contains("adminNodeUseCase.nodeInfoView(nodeId)"), "Admin node info GUI action must refresh through the typed Core usecase");
-        assertTrue(adminUseCase.contains("coreApiClient.nodeInfo("), "Admin node info usecase must call Core");
+        assertTrue(adminUseCase.contains("adminNodeQueries.nodeInfo("), "Admin node info usecase must read through the typed query client");
+        assertTrue(!adminUseCase.contains("coreApiClient.listNodes("), "Admin node usecase must not parse raw node list bodies");
+        assertTrue(!adminUseCase.contains("coreApiClient.nodeInfo("), "Admin node usecase must not parse raw node info bodies");
+        assertTrue(!adminUseCase.contains("coreApiClient.nodeIslands("), "Admin node usecase must not parse raw node island bodies");
         assertTrue(!adminUseCase.contains("public CompletableFuture<String> nodeInfo("), "Admin node info usecase must expose typed views instead of raw JSON");
         assertTrue(adminHandler.contains("case DRAIN ->"), "Admin node drain GUI action must call Core");
         assertTrue(adminHandler.contains("adminNodeUseCase.drainAction(nodeId"), "Admin node drain GUI action must call the typed Core usecase");

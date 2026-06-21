@@ -471,6 +471,11 @@ class IslandCommandControllerPolicyTest {
         assertFalse(adminUseCase.contains("public CompletableFuture<String> sweep("), "admin sweep usecase must expose typed actions instead of raw JSON");
         assertFalse(adminUseCase.contains("public CompletableFuture<String> kickAll("), "admin kick-all usecase must expose typed actions instead of raw JSON");
         assertFalse(adminUseCase.contains("public CompletableFuture<String> shutdownSafely("), "admin shutdown usecase must expose typed actions instead of raw JSON");
+        assertTrue(adminUseCase.contains("AdminNodeQueryClient adminNodeQueries"), "admin node reads must stay behind a typed core-client query boundary");
+        assertTrue(adminUseCase.contains("adminNodeQueries.nodeIslandsSummary"));
+        assertFalse(adminUseCase.contains("coreApiClient.listNodes"));
+        assertFalse(adminUseCase.contains("coreApiClient.nodeInfo"));
+        assertFalse(adminUseCase.contains("coreApiClient.nodeIslands"));
         assertTrue(adminUseCase.contains("coreApiClient.drainNode"));
         assertTrue(adminUseCase.contains("coreApiClient.shutdownNodeSafely"));
     }

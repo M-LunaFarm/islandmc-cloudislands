@@ -5,44 +5,46 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreclient.AdminNodeQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreAdminNodeQueryClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.NodeSummaryView;
 
 public final class IslandAdminNodeUseCase {
     private final CoreApiClient coreApiClient;
+    private final AdminNodeQueryClient adminNodeQueries;
 
     public IslandAdminNodeUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.adminNodeQueries = new CoreAdminNodeQueryClient(coreApiClient);
     }
 
-    private CompletableFuture<String> listNodeBodies() {
-        return coreApiClient.listNodes();
+    IslandAdminNodeUseCase(CoreApiClient coreApiClient, AdminNodeQueryClient adminNodeQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (adminNodeQueries == null) {
+            throw new IllegalArgumentException("adminNodeQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.adminNodeQueries = adminNodeQueries;
     }
 
     public CompletableFuture<AdminNodeSummary> listNodesSummary() {
-        return listNodeBodies().thenApply(IslandAdminNodeUseCase::summary);
-    }
-
-    private CompletableFuture<String> nodeInfoBody(String nodeId) {
-        String normalizedNodeId = requireNode(nodeId);
-        return coreApiClient.nodeInfo(normalizedNodeId);
+        return adminNodeQueries.listNodesSummary().thenApply(summary -> new AdminNodeSummary(summary.text()));
     }
 
     public CompletableFuture<NodeSummaryView> nodeInfoView(String nodeId) {
         String normalizedNodeId = requireNode(nodeId);
-        return nodeInfoBody(normalizedNodeId).thenApply(body -> PaperGuiViews.nodeSummary(normalizedNodeId, body));
-    }
-
-    private CompletableFuture<String> nodeIslandBodies(String nodeId, int limit) {
-        return coreApiClient.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 100)));
+        return adminNodeQueries.nodeInfo(normalizedNodeId).thenApply(IslandAdminNodeUseCase::nodeSummaryView);
     }
 
     public CompletableFuture<AdminNodeSummary> nodeIslandsSummary(String nodeId, int limit) {
-        return nodeIslandBodies(nodeId, limit).thenApply(IslandAdminNodeUseCase::summary);
+        return adminNodeQueries.nodeIslandsSummary(nodeId, limit).thenApply(summary -> new AdminNodeSummary(summary.text()));
     }
 
     private CompletableFuture<String> drainBody(String nodeId, MutationRunner runner) {
@@ -95,34 +97,20 @@ public final class IslandAdminNodeUseCase {
         return shutdownSafelyBody(nodeId, reason, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
-    private static AdminNodeSummary summary(String body) {
-        Object parsed = SimpleJson.parse(body);
-        Map<?, ?> root = SimpleJson.object(parsed);
-        if (!root.isEmpty()) {
-            String code = text(root, "code");
-            if (!code.isBlank()) {
-                return new AdminNodeSummary("code=" + code);
-            }
-            String nodeId = text(root, "nodeId");
-            if (!nodeId.isBlank()) {
-                long count = SimpleJson.number(root.get("count"));
-                return count > 0L
-                    ? new AdminNodeSummary("node=" + compactId(nodeId) + " count=" + count)
-                    : new AdminNodeSummary("node=" + compactId(nodeId));
-            }
-            List<?> nodes = SimpleJson.list(root.get("nodes"));
-            if (!nodes.isEmpty()) {
-                return new AdminNodeSummary("nodes=" + nodes.size());
-            }
-        }
-        List<?> values = SimpleJson.list(parsed);
-        if (!values.isEmpty()) {
-            return new AdminNodeSummary("nodes=" + values.size());
-        }
-        if (body == null || body.isBlank()) {
-            return new AdminNodeSummary("");
-        }
-        return new AdminNodeSummary(clip(body, 180));
+    private static NodeSummaryView nodeSummaryView(CoreGuiViews.NodeSummaryView view) {
+        return new NodeSummaryView(
+            view.nodeId(),
+            view.state(),
+            view.pool(),
+            view.players(),
+            view.softPlayerCap(),
+            view.hardPlayerCap(),
+            view.activeIslands(),
+            view.maxActiveIslands(),
+            view.activationQueue(),
+            view.maxActivationQueue(),
+            view.mspt()
+        );
     }
 
     private static AdminNodeActionResult actionResult(String body) {
@@ -161,20 +149,6 @@ public final class IslandAdminNodeUseCase {
 
     private static String text(Map<?, ?> object, String key) {
         return SimpleJson.text(object.get(key));
-    }
-
-    private static String compactId(String value) {
-        if (value == null || value.length() != 36 || !value.contains("-")) {
-            return value == null ? "" : value;
-        }
-        return new StringBuilder(8).append(value, 0, 8).toString();
-    }
-
-    private static String clip(String value, int maxLength) {
-        if (value.length() <= maxLength) {
-            return value;
-        }
-        return new StringBuilder(maxLength + 3).append(value, 0, maxLength).append("...").toString();
     }
 
     @FunctionalInterface

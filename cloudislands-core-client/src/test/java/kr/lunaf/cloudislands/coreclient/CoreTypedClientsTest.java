@@ -423,6 +423,38 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void adminNodeQueryClientReturnsTypedSummariesAndNodeInfo() {
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "listNodes" -> {
+                    calls.add("nodes");
+                    yield CompletableFuture.completedFuture("{\"nodes\":[{\"nodeId\":\"node-a\"},{\"nodeId\":\"node-b\"}]}");
+                }
+                case "nodeInfo" -> {
+                    calls.add("info:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"state":"READY","pool":"default","players":5,"softPlayerCap":50,"hardPlayerCap":80,"activeIslands":2,"maxActiveIslands":10,"activationQueue":1,"maxActivationQueue":5,"mspt":"12.5"}
+                        """);
+                }
+                case "nodeIslands" -> {
+                    calls.add("islands:" + args[0] + ":" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"nodeId\":\"node-a\",\"count\":2}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        AdminNodeQueryClient client = new CoreAdminNodeQueryClient(raw);
+
+        assertEquals("nodes=2", client.listNodesSummary().join().text());
+        assertEquals("READY", client.nodeInfo(" node-a ").join().state());
+        assertEquals("node=node-a count=2", client.nodeIslandsSummary("node-a", 500).join().text());
+        assertEquals(List.of("nodes", "info:node-a", "islands:node-a:100"), calls);
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

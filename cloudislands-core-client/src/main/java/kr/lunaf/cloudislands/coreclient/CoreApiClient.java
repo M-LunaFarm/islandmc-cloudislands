@@ -68,6 +68,10 @@ public interface CoreApiClient {
         return new CoreMemberQueryClient(this);
     }
 
+    default AdminNodeQueryClient adminNodes() {
+        return new CoreAdminNodeQueryClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);
