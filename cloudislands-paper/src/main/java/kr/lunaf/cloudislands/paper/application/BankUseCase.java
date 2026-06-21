@@ -51,7 +51,7 @@ public final class BankUseCase {
     public CompletableFuture<BankOperationResult> bank(UUID islandId) {
         requireIsland(islandId);
         return bankQueries.islandBank(islandId)
-            .thenApply(view -> BankOperationResult.success("", normalizedBalance(view.balance())));
+            .thenApply(view -> BankOperationResult.success(normalizedBalance(view.balance())));
     }
 
     public CompletableFuture<BankOperationResult> deposit(UUID islandId, UUID actorUuid, BigDecimal amount, MutationRunner runner) {
@@ -72,9 +72,9 @@ public final class BankUseCase {
                     .thenCompose(mutation -> {
                         if (!mutation.accepted()) {
                             return refundPlayer(actorUuid, amount)
-                                .thenApply(_ignored -> BankOperationResult.coreRejected(mutation.body(), mutation.balance(), mutation.code()));
+                                .thenApply(_ignored -> BankOperationResult.coreRejected(mutation.balance(), mutation.code()));
                         }
-                        return CompletableFuture.completedFuture(BankOperationResult.success(mutation.body(), mutation.balance()));
+                        return CompletableFuture.completedFuture(BankOperationResult.success(mutation.balance()));
                     })
                     .exceptionallyCompose(error -> refundPlayer(actorUuid, amount).thenCompose(_ignored -> CompletableFuture.failedFuture(error)));
             });
@@ -92,14 +92,14 @@ public final class BankUseCase {
         return runner.mutateIdempotent("island.bank.withdraw", () -> bankCommands.withdraw(islandId, actorUuid, normalizedAmount))
             .thenCompose(mutation -> {
                 if (!mutation.accepted()) {
-                    return CompletableFuture.completedFuture(BankOperationResult.coreRejected(mutation.body(), mutation.balance(), mutation.code()));
+                    return CompletableFuture.completedFuture(BankOperationResult.coreRejected(mutation.balance(), mutation.code()));
                 }
                 String balance = mutation.balance();
                 return economyBridge.deposit(actorUuid, amount, "CloudIslands island bank withdraw")
-                    .thenApply(_ignored -> BankOperationResult.success(mutation.body(), balance))
+                    .thenApply(_ignored -> BankOperationResult.success(balance))
                     .exceptionallyCompose(error -> runner.mutateIdempotent("island.bank.withdraw.rollback", () -> bankCommands.deposit(islandId, actorUuid, normalizedAmount))
-                        .thenApply(_ignored -> BankOperationResult.rolledBackAfterEconomyDepositFailure(mutation.body(), balance))
-                        .exceptionally(_rollbackError -> BankOperationResult.rollbackFailedAfterEconomyDepositFailure(mutation.body(), balance)));
+                        .thenApply(_ignored -> BankOperationResult.rolledBackAfterEconomyDepositFailure(balance))
+                        .exceptionally(_rollbackError -> BankOperationResult.rollbackFailedAfterEconomyDepositFailure(balance)));
             });
     }
 
@@ -162,29 +162,29 @@ public final class BankUseCase {
         ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE
     }
 
-    public record BankOperationResult(Status status, String body, String balance, String code) {
-        private static BankOperationResult success(String body, String balance) {
-            return new BankOperationResult(Status.SUCCESS, body, balance, "");
+    public record BankOperationResult(Status status, String balance, String code) {
+        private static BankOperationResult success(String balance) {
+            return new BankOperationResult(Status.SUCCESS, balance, "");
         }
 
         private static BankOperationResult economyUnavailable() {
-            return new BankOperationResult(Status.ECONOMY_UNAVAILABLE, "", "", "");
+            return new BankOperationResult(Status.ECONOMY_UNAVAILABLE, "", "");
         }
 
         private static BankOperationResult economyWithdrawDenied() {
-            return new BankOperationResult(Status.ECONOMY_WITHDRAW_DENIED, "", "", "INSUFFICIENT_FUNDS");
+            return new BankOperationResult(Status.ECONOMY_WITHDRAW_DENIED, "", "INSUFFICIENT_FUNDS");
         }
 
-        private static BankOperationResult coreRejected(String body, String balance, String code) {
-            return new BankOperationResult(Status.CORE_REJECTED, body, balance, code == null ? "" : code);
+        private static BankOperationResult coreRejected(String balance, String code) {
+            return new BankOperationResult(Status.CORE_REJECTED, balance, code == null ? "" : code);
         }
 
-        private static BankOperationResult rolledBackAfterEconomyDepositFailure(String body, String balance) {
-            return new BankOperationResult(Status.ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE, body, balance, "");
+        private static BankOperationResult rolledBackAfterEconomyDepositFailure(String balance) {
+            return new BankOperationResult(Status.ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE, balance, "");
         }
 
-        private static BankOperationResult rollbackFailedAfterEconomyDepositFailure(String body, String balance) {
-            return new BankOperationResult(Status.ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE, body, balance, "");
+        private static BankOperationResult rollbackFailedAfterEconomyDepositFailure(String balance) {
+            return new BankOperationResult(Status.ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE, balance, "");
         }
     }
 }

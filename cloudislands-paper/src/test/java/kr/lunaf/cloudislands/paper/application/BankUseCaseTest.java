@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.lang.reflect.RecordComponent;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -124,6 +126,13 @@ class BankUseCaseTest {
 
         assertEquals(BankUseCase.Status.SUCCESS, result.status());
         assertEquals("55", result.balance());
+    }
+
+    @Test
+    void bankOperationResultDoesNotExposeRawCoreBody() {
+        for (RecordComponent component : BankUseCase.BankOperationResult.class.getRecordComponents()) {
+            assertFalse(component.getName().equals("body"));
+        }
     }
 
     private CoreApiClient coreApiClient(ScriptedCoreBank core) {
