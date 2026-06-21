@@ -19,7 +19,7 @@ public final class IslandSettingsUseCase {
         this.coreApiClient = coreApiClient;
     }
 
-    public CompletableFuture<String> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess, MutationRunner runner) {
+    private CompletableFuture<String> setPublicAccessBody(UUID islandId, UUID actorUuid, boolean publicAccess, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
@@ -27,11 +27,11 @@ public final class IslandSettingsUseCase {
     }
 
     public CompletableFuture<SettingsActionResult> setPublicAccessAction(UUID islandId, UUID actorUuid, boolean publicAccess, MutationRunner runner) {
-        return setPublicAccess(islandId, actorUuid, publicAccess, runner)
+        return setPublicAccessBody(islandId, actorUuid, publicAccess, runner)
             .thenApply(body -> actionResult(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED"));
     }
 
-    public CompletableFuture<String> setLocked(UUID islandId, UUID actorUuid, boolean locked, MutationRunner runner) {
+    private CompletableFuture<String> setLockedBody(UUID islandId, UUID actorUuid, boolean locked, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
@@ -39,11 +39,11 @@ public final class IslandSettingsUseCase {
     }
 
     public CompletableFuture<SettingsActionResult> setLockedAction(UUID islandId, UUID actorUuid, boolean locked, MutationRunner runner) {
-        return setLocked(islandId, actorUuid, locked, runner)
+        return setLockedBody(islandId, actorUuid, locked, runner)
             .thenApply(body -> actionResult(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED"));
     }
 
-    public CompletableFuture<String> setName(UUID islandId, UUID actorUuid, String name, MutationRunner runner) {
+    private CompletableFuture<String> setNameBody(UUID islandId, UUID actorUuid, String name, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
@@ -51,13 +51,8 @@ public final class IslandSettingsUseCase {
     }
 
     public CompletableFuture<SettingsActionResult> setNameAction(UUID islandId, UUID actorUuid, String name, MutationRunner runner) {
-        return setName(islandId, actorUuid, name, runner)
+        return setNameBody(islandId, actorUuid, name, runner)
             .thenApply(body -> actionResult(body, "ISLAND_RENAMED"));
-    }
-
-    public CompletableFuture<String> listFlags(UUID islandId) {
-        requireIsland(islandId);
-        return coreApiClient.listIslandFlags(islandId);
     }
 
     public CompletableFuture<Map<IslandFlag, String>> flagValues(UUID islandId) {
@@ -65,7 +60,7 @@ public final class IslandSettingsUseCase {
         return CoreGuiViews.islandFlags(coreApiClient, islandId);
     }
 
-    public CompletableFuture<String> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
+    private CompletableFuture<String> setFlagBody(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireFlag(flag);
@@ -74,7 +69,7 @@ public final class IslandSettingsUseCase {
     }
 
     public CompletableFuture<SettingsActionResult> setFlagAction(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
-        return setFlag(islandId, actorUuid, flag, value, runner)
+        return setFlagBody(islandId, actorUuid, flag, value, runner)
             .thenApply(body -> actionResult(body, "FLAG_SET"));
     }
 

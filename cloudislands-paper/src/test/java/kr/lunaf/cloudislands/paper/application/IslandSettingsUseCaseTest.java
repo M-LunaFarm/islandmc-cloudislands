@@ -20,29 +20,15 @@ class IslandSettingsUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000040");
         UUID actorUuid = uuid("00000000-0000-0000-0000-000000000001");
 
-        assertEquals("{\"accepted\":true,\"code\":\"PUBLIC_ACCESS_ENABLED\"}", useCase.setPublicAccess(islandId, actorUuid, true, mutationRunner(calls)).join());
-        assertEquals("{\"accepted\":true,\"code\":\"ISLAND_UNLOCKED\"}", useCase.setLocked(islandId, actorUuid, false, mutationRunner(calls)).join());
-        assertEquals("{\"accepted\":true,\"code\":\"ISLAND_RENAMED\"}", useCase.setName(islandId, actorUuid, "My Island", mutationRunner(calls)).join());
-        assertEquals("{\"flags\":{\"PVP\":\"true\",\"FLY\":\"false\"}}", useCase.listFlags(islandId).join());
         Map<IslandFlag, String> flags = useCase.flagValues(islandId).join();
         assertEquals("true", flags.get(IslandFlag.PVP));
-        assertEquals("{\"accepted\":true,\"code\":\"FLAG_SET\",\"flag\":\"PVP\"}", useCase.setFlag(islandId, actorUuid, IslandFlag.PVP, "false", mutationRunner(calls)).join());
         assertEquals("PUBLIC_ACCESS_ENABLED", useCase.setPublicAccessAction(islandId, actorUuid, true, mutationRunner(calls)).join().code());
         assertEquals("ISLAND_UNLOCKED", useCase.setLockedAction(islandId, actorUuid, false, mutationRunner(calls)).join().code());
         assertEquals("ISLAND_RENAMED", useCase.setNameAction(islandId, actorUuid, "My Island", mutationRunner(calls)).join().code());
         assertEquals("FLAG_SET", useCase.setFlagAction(islandId, actorUuid, IslandFlag.PVP, "false", mutationRunner(calls)).join().code());
 
         assertEquals(List.of(
-            "audit:island.public-access.set",
-            "setIslandPublicAccessResult:true",
-            "audit:island.locked.set",
-            "setIslandLockedResult:false",
-            "audit:island.name.set",
-            "setIslandNameResult:My Island",
             "listIslandFlags",
-            "listIslandFlags",
-            "audit:island.flag.set",
-            "setIslandFlagResult:PVP:false",
             "audit:island.public-access.set",
             "setIslandPublicAccessResult:true",
             "audit:island.locked.set",
