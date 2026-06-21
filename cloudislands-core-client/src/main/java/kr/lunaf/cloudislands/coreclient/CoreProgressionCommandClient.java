@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -145,23 +146,20 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
     }
 
     private static String missionDefinitionsJson(List<MissionProviderDefinitionSnapshot> definitions) {
-        StringBuilder builder = new StringBuilder("[");
-        boolean first = true;
-        for (MissionProviderDefinitionSnapshot definition : definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"missionKey\":\"").append(escape(definition.missionKey())).append("\",")
-                .append("\"kind\":\"").append(escape(definition.kind())).append("\",")
-                .append("\"title\":\"").append(escape(definition.title())).append("\",")
-                .append("\"goal\":").append(Math.max(1L, definition.goal())).append(',')
-                .append("\"reward\":\"").append(escape(definition.reward())).append("\",")
-                .append("\"enabled\":").append(definition.enabled())
-                .append('}');
-        }
-        return builder.append(']').toString();
+        return SimpleJson.stringify((definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions).stream()
+            .map(CoreProgressionCommandClient::missionDefinitionJson)
+            .toList());
+    }
+
+    private static Map<String, Object> missionDefinitionJson(MissionProviderDefinitionSnapshot definition) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("missionKey", definition.missionKey());
+        values.put("kind", definition.kind());
+        values.put("title", definition.title());
+        values.put("goal", Math.max(1L, definition.goal()));
+        values.put("reward", definition.reward());
+        values.put("enabled", definition.enabled());
+        return values;
     }
 
     private static Instant instant(String value) {
@@ -189,22 +187,4 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 
-    private static String escape(String value) {
-        if (value == null) {
-            return "";
-        }
-        StringBuilder builder = new StringBuilder(value.length() + 8);
-        for (int i = 0; i < value.length(); i++) {
-            char current = value.charAt(i);
-            switch (current) {
-                case '"' -> builder.append("\\\"");
-                case '\\' -> builder.append("\\\\");
-                case '\n' -> builder.append("\\n");
-                case '\r' -> builder.append("\\r");
-                case '\t' -> builder.append("\\t");
-                default -> builder.append(current);
-            }
-        }
-        return builder.toString();
-    }
 }

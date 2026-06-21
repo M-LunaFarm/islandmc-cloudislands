@@ -15,12 +15,12 @@ public final class VelocityJsonFields {
 
     public static String arrayValue(String body, String field) {
         Object value = root(body).get(field);
-        return value instanceof List<?> ? toJson(value) : "";
+        return value instanceof List<?> ? SimpleJson.stringify(value) : "";
     }
 
     public static String objectValue(String body, String field) {
         Object value = root(body).get(field);
-        return value instanceof Map<?, ?> ? toJson(value) : "";
+        return value instanceof Map<?, ?> ? SimpleJson.stringify(value) : "";
     }
 
     public static boolean boolValue(String body, String field) {
@@ -172,46 +172,4 @@ public final class VelocityJsonFields {
         return !inString && objectDepth == 0 && arrayDepth == 0;
     }
 
-    private static String toJson(Object value) {
-        if (value instanceof Map<?, ?> map) {
-            StringBuilder builder = new StringBuilder("{");
-            boolean first = true;
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                if (!first) {
-                    builder.append(',');
-                }
-                first = false;
-                builder.append('"').append(escape(SimpleJson.text(entry.getKey()))).append("\":").append(toJson(entry.getValue()));
-            }
-            return builder.append('}').toString();
-        }
-        if (value instanceof List<?> list) {
-            StringBuilder builder = new StringBuilder("[");
-            boolean first = true;
-            for (Object item : list) {
-                if (!first) {
-                    builder.append(',');
-                }
-                first = false;
-                builder.append(toJson(item));
-            }
-            return builder.append(']').toString();
-        }
-        if (value instanceof Number || value instanceof Boolean) {
-            return String.valueOf(value);
-        }
-        if (value == null) {
-            return "null";
-        }
-        return "\"" + escape(SimpleJson.text(value)) + "\"";
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t");
-    }
 }

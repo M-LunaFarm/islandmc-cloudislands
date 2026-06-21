@@ -42,6 +42,49 @@ public final class SimpleJson {
         return 0L;
     }
 
+    public static String stringify(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            StringBuilder builder = new StringBuilder("{");
+            boolean first = true;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (!first) {
+                    builder.append(',');
+                }
+                first = false;
+                builder.append('"').append(escape(text(entry.getKey()))).append("\":").append(stringify(entry.getValue()));
+            }
+            return builder.append('}').toString();
+        }
+        if (value instanceof List<?> list) {
+            StringBuilder builder = new StringBuilder("[");
+            boolean first = true;
+            for (Object item : list) {
+                if (!first) {
+                    builder.append(',');
+                }
+                first = false;
+                builder.append(stringify(item));
+            }
+            return builder.append(']').toString();
+        }
+        if (value instanceof Number || value instanceof Boolean) {
+            return String.valueOf(value);
+        }
+        if (value == null) {
+            return "null";
+        }
+        return "\"" + escape(text(value)) + "\"";
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t");
+    }
+
     private static final class Cursor {
         private final String json;
         private int index;
