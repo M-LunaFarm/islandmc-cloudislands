@@ -1,8 +1,57 @@
 id: island.ranking
 rows: 6
 title-key: menu.ranking.title
+layout:
+  - "....T...."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "P...R...V"
+items:
+  T:
+    material: GOLD_BLOCK
+    name-key: ranking-menu-title
+    fallback-name: 섬 랭킹
+    lore-keys:
+      - ranking-menu-level-side
+      - ranking-menu-worth-side
+      - ranking-menu-review-side
+    fallback-lore:
+      - 레벨 TOP
+      - 가치 TOP
+      - 후기 TOP
+  P:
+    material: COMPASS
+    name-key: ranking-menu-public-islands-name
+    fallback-name: 공개 섬
+    lore-keys:
+      - ranking-menu-public-islands-command
+    fallback-lore:
+      - "/섬 방문"
+    action: public
+  R:
+    material: CLOCK
+    name-key: ranking-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - ranking-menu-refresh-command
+    fallback-lore:
+      - "/섬 랭킹"
+    action: open
+  V:
+    material: ENDER_PEARL
+    name-key: ranking-menu-random-visit-name
+    fallback-name: 랜덤 방문
+    lore-keys:
+      - ranking-menu-random-visit-command
+    fallback-lore:
+      - "/섬 랜덤방문"
+    action: random
 actions:
   open: island.ranking.open
   list: island.ranking.list
   visit: island.visit.target
+  public: island.visit.open
+  random: island.visit.random
   back: island.main.open

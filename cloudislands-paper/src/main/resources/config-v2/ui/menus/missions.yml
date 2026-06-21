@@ -1,6 +1,41 @@
 id: island.missions
 rows: 6
 title-key: menu.missions.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "M...R...C"
+items:
+  M:
+    material: BOOK
+    name-key: mission-menu-mission-name
+    fallback-name: 미션 보기
+    lore-keys:
+      - mission-menu-mission-command
+    fallback-lore:
+      - "/섬 미션"
+    data:
+      kind: MISSION
+    action: open
+  R:
+    material: CLOCK
+    name-key: mission-menu-refresh-name
+    fallback-name: 새로고침
+    action: open
+  C:
+    material: WRITABLE_BOOK
+    name-key: mission-menu-challenge-name
+    fallback-name: 챌린지 보기
+    lore-keys:
+      - mission-menu-challenge-command
+    fallback-lore:
+      - "/섬 챌린지"
+    data:
+      kind: CHALLENGE
+    action: open
 actions:
   open: island.missions.open
   complete: island.mission.complete

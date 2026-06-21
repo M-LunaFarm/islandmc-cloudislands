@@ -410,6 +410,36 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledRankingAndMissionMenuDefinitionsCoverNavigationDeclaratively() {
+        GuiMenuDefinition ranking = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/ranking.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition missions = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/missions.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.ranking", ranking.id());
+        assertEquals("T", ranking.itemAt(4).orElseThrow().symbol());
+        assertEquals("P", ranking.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.visit.open", ranking.action(ranking.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("R", ranking.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.ranking.open", ranking.action(ranking.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("V", ranking.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.visit.random", ranking.action(ranking.itemAt(53).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.missions", missions.id());
+        assertEquals("M", missions.itemAt(45).orElseThrow().symbol());
+        assertEquals("MISSION", missions.itemAt(45).orElseThrow().data().get("kind"));
+        assertEquals("island.missions.open", missions.action(missions.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("R", missions.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.missions.open", missions.action(missions.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("C", missions.itemAt(53).orElseThrow().symbol());
+        assertEquals("CHALLENGE", missions.itemAt(53).orElseThrow().data().get("kind"));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",

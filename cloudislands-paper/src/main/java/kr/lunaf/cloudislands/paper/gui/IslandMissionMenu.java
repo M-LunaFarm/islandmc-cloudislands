@@ -23,6 +23,14 @@ public final class IslandMissionMenu implements Listener {
     private static final String CHALLENGE_TITLE = "섬 챌린지";
     private static final String MISSION_MENU_ID = "island.missions";
     private static final String CHALLENGE_MENU_ID = "island.challenges";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/missions.yml",
+        new GuiMenuDefinition(MISSION_MENU_ID, 6, "menu.missions.title", Map.of(
+            "open", "island.missions.open",
+            "complete", "island.mission.complete",
+            "back", "island.main.open"
+        ))
+    );
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -46,11 +54,11 @@ public final class IslandMissionMenu implements Listener {
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, String kind, MessageRenderer messages) {
         boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
         GuiSession session = GuiSessions.begin(player, challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, challenge ? CHALLENGE_TITLE : MISSION_TITLE);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), challenge ? CHALLENGE_TITLE : MISSION_TITLE));
         PaperGuiViews.islandMissions(client, islandId, kind)
             .thenAccept(missions -> openSync(plugin, player, session, kind, missions, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, challenge ? CHALLENGE_TITLE : MISSION_TITLE, message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다."), "island.missions.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), challenge ? CHALLENGE_TITLE : MISSION_TITLE), message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다."), "island.missions.open", "island.main.open");
                 return null;
             });
     }
@@ -70,30 +78,25 @@ public final class IslandMissionMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (actionId.isBlank()) {
+            return;
+        }
+        Map<String, String> data = new java.util.LinkedHashMap<>(GuiItems.data(event.getCurrentItem()));
+        data.putIfAbsent("kind", mission ? "MISSION" : "CHALLENGE");
         player.closeInventory();
-        if (slot == 45) {
-            actions.execute(player, "island.missions.open", java.util.Map.of("kind", "MISSION"), GuiClick.from(event));
-            return;
+        if (actionId.equals("island.mission.complete")) {
+            data.putIfAbsent("label", mission ? "섬 미션" : "섬 챌린지");
         }
-        if (slot == 53) {
-            actions.execute(player, "island.missions.open", java.util.Map.of("kind", "CHALLENGE"), GuiClick.from(event));
-            return;
-        }
-        if (slot == 49) {
-            actions.execute(player, "island.missions.open", java.util.Map.of("kind", mission ? "MISSION" : "CHALLENGE"), GuiClick.from(event));
-            return;
-        }
-        String missionKey = GuiItems.data(event.getCurrentItem()).getOrDefault("missionKey", "");
-        if (missionKey.isBlank()) {
-            return;
-        }
-        actions.execute(player, "island.mission.complete", java.util.Map.of("kind", mission ? "MISSION" : "CHALLENGE", "missionKey", missionKey, "label", mission ? "섬 미션" : "섬 챌린지"), GuiClick.from(event));
+        actions.execute(player, actionId, data, GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String kind, List<MissionView> missions, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
-            Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, session, 54, challenge ? CHALLENGE_TITLE : MISSION_TITLE);
+            Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, session, MENU.size(), message(messages, MENU.titleKey(), challenge ? CHALLENGE_TITLE : MISSION_TITLE));
+            GuiMenuRenderer.populate(inventory, MENU, messages, item -> true);
+            MENU.itemAt(49).ifPresent(item -> inventory.setItem(49, GuiMenuRenderer.item(MENU, item, messages, Map.of("kind", challenge ? "CHALLENGE" : "MISSION"), List.of(challenge ? message(messages, "mission-menu-challenge-command", "/섬 챌린지") : message(messages, "mission-menu-mission-command", "/섬 미션")))));
             int slot = 0;
             for (MissionView mission : missions.stream().limit(45).toList()) {
                 inventory.setItem(slot++, missionItem(mission, messages));
@@ -101,9 +104,6 @@ public final class IslandMissionMenu implements Listener {
             if (missions.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "mission-menu-empty-title", "과제 없음"), message(messages, "mission-menu-empty", "현재 표시할 섬 과제가 없습니다.")));
             }
-            inventory.setItem(45, item(Material.BOOK, message(messages, "mission-menu-mission-name", "미션 보기"), message(messages, "mission-menu-mission-command", "/섬 미션")));
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "mission-menu-refresh-name", "새로고침"), challenge ? message(messages, "mission-menu-challenge-command", "/섬 챌린지") : message(messages, "mission-menu-mission-command", "/섬 미션")));
-            inventory.setItem(53, item(Material.WRITABLE_BOOK, message(messages, "mission-menu-challenge-name", "챌린지 보기"), message(messages, "mission-menu-challenge-command", "/섬 챌린지")));
             player.openInventory(inventory);
         });
     }
@@ -119,11 +119,7 @@ public final class IslandMissionMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
