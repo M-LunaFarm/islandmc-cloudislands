@@ -114,6 +114,9 @@ import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
+import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.ProgressionReviewRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
@@ -1953,17 +1956,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandRankSnapshot>> getTopByLevel(int limit) {
-            return client.topIslandsByLevel(limit).thenApply(PaperCloudIslandsApi::rankings);
+            return client.progression().topLevel(limit).thenApply(PaperCloudIslandsApi::rankings);
         }
 
         @Override
         public CompletableFuture<List<IslandRankSnapshot>> getTopByWorth(int limit) {
-            return client.topIslandsByWorth(limit).thenApply(PaperCloudIslandsApi::rankings);
+            return client.progression().topWorth(limit).thenApply(PaperCloudIslandsApi::rankings);
         }
 
         @Override
         public CompletableFuture<List<IslandReviewRankSnapshot>> getTopByReviews(int limit) {
-            return client.topIslandsByReviews(limit).thenApply(PaperCloudIslandsApi::reviewRankings);
+            return client.progression().topReviews(limit).thenApply(PaperCloudIslandsApi::reviewRankings);
         }
 
         @Override
@@ -1988,12 +1991,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandUpgradeSnapshot>> getUpgrades(UUID islandId) {
-            return client.listIslandUpgrades(islandId).thenApply(PaperCloudIslandsApi::upgrades);
+            return client.progression().upgrades(islandId).thenApply(views -> upgrades(islandId, views));
         }
 
         @Override
         public CompletableFuture<List<UpgradeRuleSnapshot>> getUpgradeRules() {
-            return client.listUpgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules);
+            return client.progression().upgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules);
         }
 
         @Override
@@ -2003,7 +2006,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandMissionSnapshot>> getMissions(UUID islandId, String kind) {
-            return client.listIslandMissions(islandId, kind).thenApply(PaperCloudIslandsApi::missions);
+            return client.progression().missions(islandId, kind).thenApply(views -> missions(islandId, kind, views));
         }
 
         @Override
@@ -3156,6 +3159,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return rankings;
     }
 
+    private static List<IslandRankSnapshot> rankings(List<ProgressionRankingEntryView> views) {
+        return views.stream()
+            .map(view -> new IslandRankSnapshot(
+                uuidValueOrZero(view.islandId()),
+                view.level(),
+                view.worth(),
+                Instant.EPOCH
+            ))
+            .toList();
+    }
+
     private static List<IslandReviewRankSnapshot> reviewRankings(String json) {
         List<IslandReviewRankSnapshot> rankings = new ArrayList<>();
         for (String object : objects(json, "rankings")) {
@@ -3167,6 +3181,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return rankings;
+    }
+
+    private static List<IslandReviewRankSnapshot> reviewRankings(List<ProgressionReviewRankingEntryView> views) {
+        return views.stream()
+            .map(view -> new IslandReviewRankSnapshot(
+                uuidValueOrZero(view.islandId()),
+                view.averageRating(),
+                intValue(view.reviewCount()),
+                Instant.EPOCH
+            ))
+            .toList();
     }
 
     private static List<IslandReviewSnapshot> reviews(String json) {
@@ -3247,6 +3272,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return upgrades;
     }
 
+    private static List<IslandUpgradeSnapshot> upgrades(UUID islandId, List<CoreGuiViews.UpgradeView> views) {
+        return views.stream()
+            .map(view -> new IslandUpgradeSnapshot(
+                islandId,
+                view.key(),
+                enumValue(UpgradeType.class, view.type().isBlank() ? "ISLAND_SIZE" : view.type(), UpgradeType.ISLAND_SIZE),
+                view.level(),
+                Instant.EPOCH
+            ))
+            .toList();
+    }
+
     private static UpgradePurchaseSnapshot upgradePurchase(String json) {
         return new UpgradePurchaseSnapshot(
             bool(json, "accepted", false),
@@ -3280,6 +3317,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return rules;
     }
 
+    private static List<UpgradeRuleSnapshot> upgradeRules(List<UpgradeRuleView> views) {
+        return views.stream()
+            .map(view -> new UpgradeRuleSnapshot(
+                view.key(),
+                enumValue(UpgradeType.class, view.type().isBlank() ? "ISLAND_SIZE" : view.type(), UpgradeType.ISLAND_SIZE),
+                intValue(view.maxLevel()),
+                view.baseCost().isBlank() ? "0" : view.baseCost(),
+                view.multiplier().isBlank() ? "1" : view.multiplier()
+            ))
+            .toList();
+    }
+
     private static List<BlockValueSnapshot> blockValues(String json) {
         List<BlockValueSnapshot> values = new ArrayList<>();
         for (String object : objects(json, "values")) {
@@ -3299,6 +3348,23 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             mission(object).ifPresent(missions::add);
         }
         return missions;
+    }
+
+    private static List<IslandMissionSnapshot> missions(UUID islandId, String kind, List<CoreGuiViews.MissionView> views) {
+        String safeKind = kind == null || kind.isBlank() ? "MISSION" : kind;
+        return views.stream()
+            .map(view -> new IslandMissionSnapshot(
+                islandId,
+                view.key(),
+                safeKind,
+                view.title(),
+                view.progress(),
+                view.goal(),
+                view.completed(),
+                view.reward(),
+                Instant.EPOCH
+            ))
+            .toList();
     }
 
     private static Optional<IslandMissionSnapshot> mission(String json) {
