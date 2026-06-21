@@ -111,6 +111,7 @@ import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
 import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
+import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
@@ -120,6 +121,8 @@ import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
+import kr.lunaf.cloudislands.coreclient.JobActionView;
+import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
 import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
@@ -2374,14 +2377,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> getRouteSession(UUID playerUuid) { return client.adminRoutes().debug(playerUuid).thenApply(PaperCloudIslandsApi::routeSession); }
         @Override public CompletableFuture<RouteDebugSnapshot> getRouteDebug() { return client.adminRoutes().debug(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug); }
         @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return clearRouteResult(playerUuid, ticketId).thenApply(_result -> null); }
-        @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return mutate("admin.route.clear", () -> client.clearRouteResult(playerUuid, ticketId)).thenApply(PaperCloudIslandsApi::routeClear); }
+        @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return mutate("admin.route.clear", () -> client.adminRoutes().clear(playerUuid, ticketId)).thenApply(PaperCloudIslandsApi::routeClear); }
         @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.jobs().list().thenApply(PaperCloudIslandsApi::jobs); }
         @Override public CompletableFuture<Void> retryJob(UUID jobId) { return retryJobResult(jobId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> retryJobResult(UUID jobId) { return mutate("admin.job.retry", () -> client.retryJobResult(jobId)).thenApply(body -> action(body, "JOB_RETRIED")); }
+        @Override public CompletableFuture<IslandActionResult> retryJobResult(UUID jobId) { return mutate("admin.job.retry", () -> client.jobCommands().retry(jobId)).thenApply(PaperCloudIslandsApi::action); }
         @Override public CompletableFuture<Void> cancelJob(UUID jobId) { return cancelJobResult(jobId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> cancelJobResult(UUID jobId) { return mutate("admin.job.cancel", () -> client.cancelJobResult(jobId)).thenApply(body -> action(body, "JOB_CANCELED")); }
+        @Override public CompletableFuture<IslandActionResult> cancelJobResult(UUID jobId) { return mutate("admin.job.cancel", () -> client.jobCommands().cancel(jobId)).thenApply(PaperCloudIslandsApi::action); }
         @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return recoverJobsResult(nodeId, minIdleMillis, maxJobs).thenApply(_result -> null); }
-        @Override public CompletableFuture<JobRecoveryResult> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) { return mutate("admin.jobs.recover", () -> client.recoverJobsResult(nodeId, minIdleMillis, maxJobs)).thenApply(PaperCloudIslandsApi::jobRecovery); }
+        @Override public CompletableFuture<JobRecoveryResult> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) { return mutate("admin.jobs.recover", () -> client.jobCommands().recover(nodeId, minIdleMillis, maxJobs)).thenApply(PaperCloudIslandsApi::jobRecovery); }
         @Override public CompletableFuture<Void> clearCache() { return clearCacheResult().thenApply(_result -> null); }
         @Override public CompletableFuture<CoreMaintenanceResult> clearCacheResult() { return mutate("admin.cache.clear", () -> client.clearCacheResult()).thenApply(body -> maintenance(body, false)); }
         @Override public CompletableFuture<Void> reload() { return reloadResult().thenApply(_result -> null); }
@@ -3027,6 +3030,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static IslandActionResult action(String json, String successCode) {
         boolean accepted = json.contains("\"accepted\":true");
         return new IslandActionResult(accepted, accepted ? successCode : text(json, "code", "FAILED"));
+    }
+
+    private static IslandActionResult action(JobActionView view) {
+        if (view == null) {
+            return new IslandActionResult(false, "FAILED");
+        }
+        return new IslandActionResult(view.accepted(), view.code().isBlank() ? (view.accepted() ? "ACCEPTED" : "FAILED") : view.code());
     }
 
     private static IslandActionResult actionCode(String json, String fallbackCode) {
@@ -4014,6 +4024,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
+    private static RouteClearResult routeClear(AdminRouteClearView view) {
+        if (view == null) {
+            return new RouteClearResult(false, false);
+        }
+        return new RouteClearResult(view.clearedSession(), view.clearedTicket());
+    }
+
     private static CoreMaintenanceResult maintenance(String json, boolean reloaded) {
         return new CoreMaintenanceResult(
             reloaded,
@@ -4025,6 +4042,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     private static JobRecoveryResult jobRecovery(String json) {
         boolean accepted = json != null && !json.isBlank() && !json.contains("\"error\"");
         return new JobRecoveryResult(accepted, accepted ? text(json, "recovered", scalar(json, "recovered")) : "", accepted ? "RECOVERED" : text(json, "code", "FAILED"));
+    }
+
+    private static JobRecoveryResult jobRecovery(JobRecoveryView view) {
+        if (view == null) {
+            return new JobRecoveryResult(false, "", "FAILED");
+        }
+        return new JobRecoveryResult(view.accepted(), view.accepted() ? view.recovered() : "", view.code().isBlank() ? (view.accepted() ? "RECOVERED" : "FAILED") : view.code());
     }
 
     private static void putPayloadIfPresent(Map<String, String> payload, String json, String field) {

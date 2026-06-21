@@ -464,6 +464,10 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.adminNodes().nodes()"), "Public API node snapshots must use typed admin node query client");
         assertTrue(source.contains("client.adminNodes().nodeSnapshot(nodeId)"), "Public API node lookup must use typed admin node query client");
         assertTrue(source.contains("client.adminNodes().nodeIslandRuntimes(nodeId, limit).thenApply(PaperCloudIslandsApi::nodeIslands)"), "Public API node islands must use typed admin node query client");
+        assertTrue(source.contains("client.adminRoutes().clear(playerUuid, ticketId)"), "Public API route clear must use typed admin route command client");
+        assertTrue(source.contains("client.jobCommands().retry(jobId)"), "Public API job retry must use typed job command client");
+        assertTrue(source.contains("client.jobCommands().cancel(jobId)"), "Public API job cancel must use typed job command client");
+        assertTrue(source.contains("client.jobCommands().recover(nodeId, minIdleMillis, maxJobs)"), "Public API job recovery must use typed job command client");
         assertTrue(!source.contains("return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for island lookup");
         assertTrue(!source.contains("return client.islandInfoByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for owner lookup");
         assertTrue(!source.contains("return client.adminIslandWhere(islandId).thenApply(PaperCloudIslandsApi::runtime);"), "Public API query surface must not use raw runtime JSON for runtime lookup");
@@ -507,6 +511,10 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("return client.listNodes().thenApply(PaperCloudIslandsApi::nodes);"), "Public API node snapshots must not use raw node JSON");
         assertTrue(!source.contains("return client.nodeInfo(nodeId).thenApply(PaperCloudIslandsApi::node);"), "Public API node lookup must not use raw node JSON");
         assertTrue(!source.contains("return client.nodeIslands(nodeId, limit).thenApply(PaperCloudIslandsApi::nodeIslands);"), "Public API node islands must not use raw node JSON");
+        assertTrue(!source.contains("return mutate(\"admin.route.clear\", () -> client.clearRouteResult(playerUuid, ticketId)).thenApply(PaperCloudIslandsApi::routeClear);"), "Public API route clear must not use raw route JSON");
+        assertTrue(!source.contains("return mutate(\"admin.job.retry\", () -> client.retryJobResult(jobId)).thenApply(body -> action(body, \"JOB_RETRIED\"));"), "Public API job retry must not use raw job JSON");
+        assertTrue(!source.contains("return mutate(\"admin.job.cancel\", () -> client.cancelJobResult(jobId)).thenApply(body -> action(body, \"JOB_CANCELED\"));"), "Public API job cancel must not use raw job JSON");
+        assertTrue(!source.contains("return mutate(\"admin.jobs.recover\", () -> client.recoverJobsResult(nodeId, minIdleMillis, maxJobs)).thenApply(PaperCloudIslandsApi::jobRecovery);"), "Public API job recovery must not use raw job JSON");
     }
 
     @Test
