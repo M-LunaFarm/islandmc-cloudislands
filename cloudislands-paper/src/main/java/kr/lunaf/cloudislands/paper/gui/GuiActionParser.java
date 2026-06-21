@@ -99,6 +99,16 @@ public final class GuiActionParser {
                     safeAction,
                     UUID.fromString(required(safeData, "inviteId"))
                 ));
+                case "island.members.page" -> Optional.of(new GuiAction.MemberPage(
+                    integer(safeData.get("page"))
+                ));
+                case "island.member.detail" -> Optional.of(new GuiAction.MemberDetail(
+                    UUID.fromString(required(safeData, "playerUuid")),
+                    safeData.getOrDefault("playerName", ""),
+                    safeData.getOrDefault("role", "unknown"),
+                    safeData.getOrDefault("presenceState", "UNKNOWN"),
+                    safeData.getOrDefault("lastSeenAt", "")
+                ));
                 case "island.permissions.page" -> Optional.of(new GuiAction.PermissionPage(
                     integer(safeData.get("page")),
                     integer(safeData.get("rolePage"))

@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -294,6 +294,50 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
 
         public boolean accept() {
             return actionId.equals("island.invite.accept");
+        }
+    }
+
+    record MemberPage(int page) implements GuiAction {
+        @Override
+        public String actionId() {
+            return "island.members.page";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("page", Integer.toString(Math.max(0, page)));
+        }
+    }
+
+    record MemberDetail(UUID playerUuid, String playerName, String role, String presenceState, String lastSeenAt) implements GuiAction {
+        public MemberDetail {
+            if (playerUuid == null) {
+                throw new IllegalArgumentException("playerUuid is required");
+            }
+            playerName = playerName == null ? "" : playerName.trim();
+            role = role == null || role.isBlank() ? "unknown" : role.trim();
+            presenceState = presenceState == null || presenceState.isBlank() ? "UNKNOWN" : presenceState.trim();
+            lastSeenAt = lastSeenAt == null ? "" : lastSeenAt.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return "island.member.detail";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of(
+                "playerUuid", playerUuid.toString(),
+                "playerName", playerName,
+                "role", role,
+                "presenceState", presenceState,
+                "lastSeenAt", lastSeenAt
+            );
+        }
+
+        public String displayName() {
+            return playerName.isBlank() ? playerUuid.toString() : playerName;
         }
     }
 

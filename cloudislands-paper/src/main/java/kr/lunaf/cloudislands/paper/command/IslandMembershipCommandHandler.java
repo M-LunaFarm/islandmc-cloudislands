@@ -238,6 +238,18 @@ final class IslandMembershipCommandHandler {
             }
             return true;
         }
+        if (action instanceof GuiAction.MemberPage memberPage) {
+            runtime.openIslandMemberMenu(player, memberPage.page());
+            return true;
+        }
+        if (action instanceof GuiAction.MemberDetail memberDetail) {
+            runtime.message(player, runtime.routeMessage("member-detail-title", "멤버 상세"));
+            runtime.message(player, "- " + runtime.routeMessage("member-detail-player", "플레이어: ") + memberDetail.displayName());
+            runtime.message(player, "- " + runtime.routeMessage("member-detail-role", "역할: ") + memberDetail.role());
+            runtime.message(player, "- " + runtime.routeMessage("member-detail-presence", "네트워크 상태: ") + memberDetail.presenceState());
+            runtime.message(player, "- " + runtime.routeMessage("member-detail-last-seen", "마지막 활동: ") + (memberDetail.lastSeenAt().isBlank() ? runtime.routeMessage("member-detail-last-seen-empty", "기록 없음") : memberDetail.lastSeenAt()));
+            return true;
+        }
         if (action instanceof GuiAction.MemberRoleChange roleChange) {
             if (!roleChange.confirmation()) {
                 boolean promote = roleChange.promote();
@@ -304,22 +316,11 @@ final class IslandMembershipCommandHandler {
                 runtime.openIslandMemberMenu(player);
                 yield true;
             }
-            case "island.member.detail" -> {
-                runtime.message(player, runtime.routeMessage("member-detail-title", "멤버 상세"));
-                runtime.message(player, "- " + runtime.routeMessage("member-detail-player", "플레이어: ") + data.getOrDefault("playerName", data.getOrDefault("playerUuid", "")));
-                runtime.message(player, "- " + runtime.routeMessage("member-detail-role", "역할: ") + data.getOrDefault("role", "unknown"));
-                runtime.message(player, "- " + runtime.routeMessage("member-detail-presence", "네트워크 상태: ") + data.getOrDefault("presenceState", "UNKNOWN"));
-                runtime.message(player, "- " + runtime.routeMessage("member-detail-last-seen", "마지막 활동: ") + data.getOrDefault("lastSeenAt", runtime.routeMessage("member-detail-last-seen-empty", "기록 없음")));
-                yield true;
-            }
             case "island.member.role" -> {
                 runtime.listIslandMembers(player);
                 yield true;
             }
-            case "island.members.page" -> {
-                runtime.openIslandMemberMenu(player, (int) runtime.longValue(data.getOrDefault("page", "0"), 0L));
-                yield true;
-            }
+            case "island.members.page" -> false;
             case "island.member.invite", "island.member.invite.help" -> {
                 runtime.message(player, runtime.routeMessage("member-invite-help", "멤버 초대는 /섬 초대 <플레이어> 로 요청합니다."));
                 yield true;
