@@ -52,13 +52,20 @@ class IslandNavigationUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000020");
         UUID reviewerUuid = uuid("00000000-0000-0000-0000-000000000001");
 
-        assertEquals("public", useCase.listPublicIslands(500).join());
-        assertEquals("reviews", useCase.listReviews(islandId, 0).join());
-        assertEquals("review", useCase.setReview(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join());
+        assertEquals(publicIslandsJson(islandId), useCase.listPublicIslands(500).join());
+        assertEquals("spawn", useCase.publicIslandViews(500).join().getFirst().name());
+        assertEquals(reviewsJson(islandId, reviewerUuid), useCase.listReviews(islandId, 0).join());
+        assertEquals(1L, useCase.reviewViews(islandId, 0).join().count());
+        assertEquals("{\"accepted\":true}", useCase.setReview(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join());
+        assertEquals(true, useCase.setReviewAction(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join().accepted());
 
         assertEquals(List.of(
             "listPublicIslands:100",
+            "listPublicIslands:100",
             "listIslandReviews:1",
+            "listIslandReviews:1",
+            "audit-idempotent:island.review.set",
+            "setIslandReview:5:nice",
             "audit-idempotent:island.review.set",
             "setIslandReview:5:nice"
         ), calls);
@@ -95,15 +102,15 @@ class IslandNavigationUseCaseTest {
                 }
                 case "listPublicIslands" -> {
                     calls.add("listPublicIslands:" + args[0]);
-                    yield CompletableFuture.completedFuture("public");
+                    yield CompletableFuture.completedFuture(publicIslandsJson(UUID.fromString("00000000-0000-0000-0000-000000000020")));
                 }
                 case "listIslandReviews" -> {
                     calls.add("listIslandReviews:" + args[1]);
-                    yield CompletableFuture.completedFuture("reviews");
+                    yield CompletableFuture.completedFuture(reviewsJson((UUID) args[0], UUID.fromString("00000000-0000-0000-0000-000000000001")));
                 }
                 case "setIslandReview" -> {
                     calls.add("setIslandReview:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("review");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });
@@ -132,5 +139,13 @@ class IslandNavigationUseCaseTest {
 
     private static UUID uuid(String value) {
         return UUID.fromString(value);
+    }
+
+    private static String publicIslandsJson(UUID islandId) {
+        return "{\"islands\":[{\"islandId\":\"" + islandId + "\",\"ownerUuid\":\"00000000-0000-0000-0000-000000000030\",\"name\":\"spawn\",\"level\":7,\"worth\":\"1200\"}]}";
+    }
+
+    private static String reviewsJson(UUID islandId, UUID reviewerUuid) {
+        return "{\"reviews\":[{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"rating\":5,\"comment\":\"nice\",\"createdAt\":\"2026-01-02T03:04:05Z\",\"updatedAt\":\"2026-01-03T04:05:06Z\"}],\"summary\":{\"count\":1,\"average\":5.00}}";
     }
 }

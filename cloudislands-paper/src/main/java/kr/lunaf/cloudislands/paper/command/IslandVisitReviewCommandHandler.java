@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -10,6 +9,10 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase;
+import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewActionResult;
+import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewListView;
+import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewView;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PublicIslandView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -97,8 +100,8 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void listPublicIslands(Player player, int limit) {
-        navigationUseCase.listPublicIslands(limit)
-            .thenAccept(body -> runtime.message(player, publicIslandListMessage(body)))
+        navigationUseCase.publicIslandViews(limit)
+            .thenAccept(islands -> runtime.message(player, publicIslandListMessage(islands)))
             .exceptionally(error -> {
                 runtime.message(player, "공개 섬 목록을 불러오지 못했습니다.");
                 return null;
@@ -107,8 +110,8 @@ final class IslandVisitReviewCommandHandler {
 
     private void listIslandReviews(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 후기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            navigationUseCase.listReviews(islandId, limit)
-                .thenAccept(body -> runtime.message(player, reviewListMessage(body)))
+            navigationUseCase.reviewViews(islandId, limit)
+                .thenAccept(reviews -> runtime.message(player, reviewListMessage(reviews)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 후기를 불러오지 못했습니다.");
                     return null;
@@ -134,11 +137,10 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void submitIslandReview(Player player, UUID islandId, int rating, String comment) {
-        navigationUseCase.setReview(islandId, player.getUniqueId(), rating, comment, runtime::mutateIdempotent)
-            .thenAccept(body -> {
-                String code = text(body, "code");
-                if (!code.isBlank()) {
-                    runtime.message(player, runtime.playerCodeMessage(code, "섬 평가를 저장하지 못했습니다."));
+        navigationUseCase.setReviewAction(islandId, player.getUniqueId(), rating, comment, runtime::mutateIdempotent)
+            .thenAccept(result -> {
+                if (!result.accepted()) {
+                    runtime.message(player, reviewFailureMessage(result));
                     return;
                 }
                 runtime.message(player, "섬 평가 저장 완료: " + rating + "/5");
@@ -149,67 +151,47 @@ final class IslandVisitReviewCommandHandler {
             });
     }
 
-    private static String publicIslandListMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "공개 섬이 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = body.indexOf("\"islands\"");
-        while (index >= 0 && index < body.length() && entries.size() < 20) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
+    private String reviewFailureMessage(ReviewActionResult result) {
+        return result.code().isBlank()
+            ? "섬 평가를 저장하지 못했습니다."
+            : runtime.playerCodeMessage(result.code(), "섬 평가를 저장하지 못했습니다.");
+    }
+
+    private static String publicIslandListMessage(List<PublicIslandView> islands) {
+        List<PublicIslandView> safeIslands = islands == null ? List.of() : islands;
+        java.util.ArrayList<String> entries = new java.util.ArrayList<>();
+        for (PublicIslandView island : safeIslands) {
+            if (entries.size() >= 20) {
                 break;
             }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
+            if (island.islandId().isBlank()) {
+                continue;
             }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = text(object, "name");
-                long level = (long) decimal(object, "level");
-                String worth = text(object, "worth");
-                if (worth.isBlank()) {
-                    worth = Long.toString((long) decimal(object, "worth"));
-                }
-                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? "이름 없는 섬" : name) + " (ID=" + compactId(islandId) + ", 레벨=" + level + ", 가치=" + worth + ")");
-            }
-            index = objectEnd + 1;
+            String name = island.name().isBlank() ? "이름 없는 섬" : island.name();
+            String worth = island.worth().isBlank() ? "0" : island.worth();
+            entries.add((entries.size() + 1) + ". " + name + " (ID=" + compactId(island.islandId()) + ", 레벨=" + island.level() + ", 가치=" + worth + ")");
         }
         return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
     }
 
-    private static String reviewListMessage(String body) {
-        if (body == null || body.isBlank()) {
+    private static String reviewListMessage(ReviewListView reviews) {
+        if (reviews == null || reviews.reviews().isEmpty()) {
             return "섬 후기가 없습니다.";
         }
-        long count = (long) decimal(body, "count");
-        String average = String.format(Locale.ROOT, "%.2f", decimal(body, "average"));
-        List<String> entries = new ArrayList<>();
-        int index = body.indexOf("\"reviews\"");
-        while (index >= 0 && index < body.length() && entries.size() < 10) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String reviewerUuid = text(object, "reviewerUuid");
-            long rating = (long) decimal(object, "rating");
-            String comment = text(object, "comment");
-            if (!reviewerUuid.isBlank()) {
-                entries.add(compactId(reviewerUuid) + "=" + rating + "/5" + (comment.isBlank() ? "" : " " + comment));
-            }
-            index = objectEnd + 1;
-        }
+        String average = String.format(Locale.ROOT, "%.2f", reviews.average());
+        List<String> entries = reviews.reviews().stream()
+            .limit(10)
+            .filter(review -> !review.reviewerUuid().isBlank())
+            .map(IslandVisitReviewCommandHandler::reviewEntry)
+            .toList();
         if (entries.isEmpty()) {
             return "섬 후기가 없습니다.";
         }
-        return "섬 후기: 평균=" + average + " 개수=" + count + " | " + String.join(" | ", entries);
+        return "섬 후기: 평균=" + average + " 개수=" + reviews.count() + " | " + String.join(" | ", entries);
+    }
+
+    private static String reviewEntry(ReviewView review) {
+        return compactId(review.reviewerUuid()) + "=" + review.rating() + "/5" + (review.comment().isBlank() ? "" : " " + review.comment());
     }
 
     private static String joined(String[] args, int start) {
@@ -247,92 +229,10 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private static String compactId(String value) {
-        return value == null || value.length() <= 8 ? String.valueOf(value) : value.substring(0, 8);
-    }
-
-    private static String text(String json, String key) {
-        if (json == null || key == null) {
-            return "";
+        if (value == null || value.length() <= 8) {
+            return String.valueOf(value);
         }
-        String pattern = "\"" + key + "\":\"";
-        int start = json.indexOf(pattern);
-        if (start < 0) {
-            return "";
-        }
-        int valueStart = start + pattern.length();
-        int valueEnd = jsonStringEnd(json, valueStart);
-        return valueEnd < 0 ? "" : unescape(json.substring(valueStart, valueEnd));
-    }
-
-    private static double decimal(String json, String key) {
-        if (json == null || key == null) {
-            return 0D;
-        }
-        String pattern = "\"" + key + "\":";
-        int start = json.indexOf(pattern);
-        if (start < 0) {
-            return 0D;
-        }
-        int valueStart = start + pattern.length();
-        int valueEnd = valueStart;
-        while (valueEnd < json.length()) {
-            char current = json.charAt(valueEnd);
-            if ((current >= '0' && current <= '9') || current == '-' || current == '+'
-                || current == '.' || current == 'e' || current == 'E') {
-                valueEnd++;
-            } else {
-                break;
-            }
-        }
-        try {
-            return Double.parseDouble(json.substring(valueStart, valueEnd));
-        } catch (RuntimeException ignored) {
-            return 0D;
-        }
-    }
-
-    private static int jsonStringEnd(String value, int start) {
-        boolean escaping = false;
-        for (int index = start; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (!escaping && current == '"') {
-                return index;
-            }
-            escaping = !escaping && current == '\\';
-        }
-        return -1;
-    }
-
-    private static String unescape(String value) {
-        StringBuilder builder = new StringBuilder(value.length());
-        boolean escaping = false;
-        for (int index = 0; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (!escaping) {
-                if (current == '\\') {
-                    escaping = true;
-                } else {
-                    builder.append(current);
-                }
-                continue;
-            }
-            switch (current) {
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                case '/' -> builder.append('/');
-                case 'b' -> builder.append('\b');
-                case 'f' -> builder.append('\f');
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                default -> builder.append(current);
-            }
-            escaping = false;
-        }
-        if (escaping) {
-            builder.append('\\');
-        }
-        return builder.toString();
+        return new StringBuilder(8).append(value, 0, 8).toString();
     }
 
     interface Runtime {
