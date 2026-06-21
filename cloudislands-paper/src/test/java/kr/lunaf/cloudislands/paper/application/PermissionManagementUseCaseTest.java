@@ -13,6 +13,8 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
+import kr.lunaf.cloudislands.coreclient.CorePermissionCommandClient;
+import kr.lunaf.cloudislands.coreclient.CorePermissionQueryClient;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
 import kr.lunaf.cloudislands.coreclient.PermissionMatrixView;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionActionResult;
@@ -163,6 +165,12 @@ class PermissionManagementUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> {
+                if (method.getName().equals("permissions")) {
+                    return new CorePermissionCommandClient((CoreApiClient) _proxy);
+                }
+                if (method.getName().equals("permissionQueries")) {
+                    return new CorePermissionQueryClient((CoreApiClient) _proxy);
+                }
                 if (method.getName().equals("setIslandPermissionResult") && args.length == 6) {
                     expectedVersions.add((String) args[5]);
                     return CompletableFuture.completedFuture("""
@@ -179,6 +187,8 @@ class PermissionManagementUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
+                case "permissions" -> new CorePermissionCommandClient((CoreApiClient) _proxy);
+                case "permissionQueries" -> new CorePermissionQueryClient((CoreApiClient) _proxy);
                 case "listIslandRoles" -> {
                     calls.add("listIslandRoles");
                     yield CompletableFuture.completedFuture("{\"roles\":[{\"role\":\"BUILDER\",\"weight\":50,\"displayName\":\"Builder\"}]}");

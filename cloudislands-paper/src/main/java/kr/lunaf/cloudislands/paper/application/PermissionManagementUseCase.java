@@ -8,8 +8,6 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
-import kr.lunaf.cloudislands.coreclient.CorePermissionCommandClient;
-import kr.lunaf.cloudislands.coreclient.CorePermissionQueryClient;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
 import kr.lunaf.cloudislands.coreclient.PermissionCommandClient;
 import kr.lunaf.cloudislands.coreclient.PermissionQueryClient;
@@ -23,11 +21,11 @@ public final class PermissionManagementUseCase {
     private final PermissionQueryClient permissionQueries;
 
     public PermissionManagementUseCase(CoreApiClient coreApiClient) {
-        this(coreApiClient, new CorePermissionCommandClient(coreApiClient), new CorePermissionQueryClient(coreApiClient));
+        this(coreApiClient, coreApiClient.permissions(), coreApiClient.permissionQueries());
     }
 
     PermissionManagementUseCase(CoreApiClient coreApiClient, PermissionCommandClient permissionCommands) {
-        this(coreApiClient, permissionCommands, new CorePermissionQueryClient(coreApiClient));
+        this(coreApiClient, permissionCommands, coreApiClient.permissionQueries());
     }
 
     PermissionManagementUseCase(CoreApiClient coreApiClient, PermissionCommandClient permissionCommands, PermissionQueryClient permissionQueries) {
