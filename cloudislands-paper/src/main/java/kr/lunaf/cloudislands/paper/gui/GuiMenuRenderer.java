@@ -62,6 +62,10 @@ public final class GuiMenuRenderer {
     }
 
     public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, Map<String, String> data, List<String> extraLore) {
+        return item(definition, item, messages, data, extraLore, null);
+    }
+
+    public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, Map<String, String> data, List<String> extraLore, String actionIdOverride) {
         java.util.LinkedHashMap<String, String> mergedData = new java.util.LinkedHashMap<>(item.data());
         if (data != null) {
             mergedData.putAll(data);
@@ -77,7 +81,7 @@ public final class GuiMenuRenderer {
         return GuiItems.action(
             material(item.materialKey()),
             message(messages, item.nameKey(), item.fallbackName()),
-            definition.action(item.actionKey(), item.actionKey()),
+            actionIdOverride == null ? definition.action(item.actionKey(), item.actionKey()) : actionIdOverride,
             mergedData,
             renderedLore.toArray(String[]::new)
         );

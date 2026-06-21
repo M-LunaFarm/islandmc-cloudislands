@@ -1,0 +1,25 @@
+id: island.confirmation
+rows: 3
+title-key: confirmation-menu-title
+layout:
+  - "....T...."
+  - "..C...A.."
+  - "........."
+items:
+  T:
+    material: PAPER
+    name-key: confirmation-menu-title
+    fallback-name: 작업 확인
+  C:
+    material: OAK_DOOR
+    name-key: confirmation-menu-cancel-name
+    fallback-name: 취소
+    action: cancel
+  A:
+    material: BARRIER
+    name-key: confirmation-menu-confirm-name
+    fallback-name: 확인
+    action: confirm
+actions:
+  cancel: gui.close
+  confirm: gui.close

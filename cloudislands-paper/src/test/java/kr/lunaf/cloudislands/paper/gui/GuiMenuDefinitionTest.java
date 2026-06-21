@@ -497,6 +497,22 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledConfirmationMenuDefinitionCoversConfirmationLayoutDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/confirmation.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.confirmation", definition.id());
+        assertEquals(27, definition.size());
+        assertEquals("T", definition.itemAt(4).orElseThrow().symbol());
+        assertEquals("C", definition.itemAt(11).orElseThrow().symbol());
+        assertEquals("gui.close", definition.action(definition.itemAt(11).orElseThrow().actionKey(), ""));
+        assertEquals("A", definition.itemAt(15).orElseThrow().symbol());
+        assertEquals("gui.close", definition.action(definition.itemAt(15).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",

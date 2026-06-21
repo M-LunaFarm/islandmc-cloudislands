@@ -13,8 +13,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public final class IslandConfirmationMenu implements Listener {
-    private static final String MENU_ID = "island.confirmation";
     private static final String TITLE = "작업 확인";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/confirmation.yml",
+        new GuiMenuDefinition("island.confirmation", 3, "confirmation-menu-title", Map.of(
+            "cancel", "gui.close",
+            "confirm", "gui.close"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -28,9 +35,9 @@ public final class IslandConfirmationMenu implements Listener {
     }
 
     public static void open(Player player, MessageRenderer messages, Confirmation confirmation) {
-        Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, "confirmation-menu-title", TITLE));
-        inventory.setItem(4, item(Material.PAPER, confirmation.title(), confirmation.description()));
-        inventory.setItem(11, GuiItems.action(Material.OAK_DOOR, message(messages, "confirmation-menu-cancel-name", "취소"), confirmation.cancelAction()));
+        Inventory inventory = GuiMenuRenderer.render(MENU, messages, TITLE, item -> true);
+        inventory.setItem(4, item(GuiMenuRenderer.material(MENU.itemAt(4).map(GuiMenuDefinition.MenuItem::materialKey).orElse("PAPER")), confirmation.title(), confirmation.description()));
+        MENU.itemAt(11).ifPresent(item -> inventory.setItem(11, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of(), confirmation.cancelAction())));
         inventory.setItem(15, GuiItems.action(confirmation.material(), confirmation.confirmName(), confirmation.confirmAction(), confirmation.data(), confirmation.confirmLore()));
         player.openInventory(inventory);
     }
@@ -68,11 +75,7 @@ public final class IslandConfirmationMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     public record Confirmation(

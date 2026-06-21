@@ -48,6 +48,7 @@ public final class PaperRuntimeConfigLoader {
         "ui/menus/bans.yml",
         "ui/menus/biome.yml",
         "ui/menus/chat.yml",
+        "ui/menus/confirmation.yml",
         "ui/menus/create.yml",
         "ui/menus/main.yml",
         "ui/menus/members.yml",
