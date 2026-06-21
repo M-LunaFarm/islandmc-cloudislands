@@ -305,9 +305,14 @@ class IslandCommandControllerPolicyTest {
         assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> deleteWarp("), "warp delete usecase must expose typed actions instead of raw JSON");
         assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> setWarpPublicAccess("), "warp access usecase must expose typed actions instead of raw JSON");
         assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> listPublicWarps("), "public warp list usecase must expose typed views instead of raw JSON");
-        assertTrue(homeWarpUseCase.contains("coreApiClient.setIslandHomeResult"));
-        assertTrue(homeWarpUseCase.contains("coreApiClient.setIslandWarpResult"));
-        assertTrue(homeWarpUseCase.contains("coreApiClient.deleteIslandWarpResult"));
+        assertTrue(homeWarpUseCase.contains("HomeWarpCommandClient homeWarpCommands"));
+        assertTrue(homeWarpUseCase.contains("homeWarpCommands.setHome"));
+        assertTrue(homeWarpUseCase.contains("homeWarpCommands.setWarp"));
+        assertTrue(homeWarpUseCase.contains("homeWarpCommands.deleteWarp"));
+        assertFalse(homeWarpUseCase.contains("coreApiClient.setIslandHomeResult"));
+        assertFalse(homeWarpUseCase.contains("coreApiClient.setIslandWarpResult"));
+        assertFalse(homeWarpUseCase.contains("coreApiClient.deleteIslandWarpResult"));
+        assertFalse(homeWarpUseCase.contains("coreApiClient.setIslandWarpPublicAccessResult"));
         assertTrue(homeWarpUseCase.contains("homeWarpQueries.publicWarps"));
         assertFalse(homeWarpUseCase.contains("PaperGuiViews.publicWarps(coreApiClient"));
     }

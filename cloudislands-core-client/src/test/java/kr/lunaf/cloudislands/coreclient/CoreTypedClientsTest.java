@@ -273,6 +273,44 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void homeWarpCommandClientReturnsTypedActionViews() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        kr.lunaf.cloudislands.api.model.IslandLocation location = new kr.lunaf.cloudislands.api.model.IslandLocation("world", 1.0d, 2.0d, 3.0d, 0.0f, 0.0f);
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "setIslandHomeResult" -> {
+                    calls.add("home:" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"HOME_SET\"}");
+                }
+                case "setIslandWarpResult" -> {
+                    calls.add("warp:" + args[2] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"WARP_SET\"}");
+                }
+                case "deleteIslandWarpResult" -> {
+                    calls.add("delete:" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"WARP_DELETED\"}");
+                }
+                case "setIslandWarpPublicAccessResult" -> {
+                    calls.add("access:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("plain-success");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        HomeWarpCommandClient client = new CoreHomeWarpCommandClient(raw);
+
+        assertEquals("HOME_SET", client.setHome(islandId, actorUuid, "home", location).join().code());
+        assertEquals("WARP_SET", client.setWarp(islandId, actorUuid, "spawn", location, true).join().code());
+        assertEquals("WARP_DELETED", client.deleteWarp(islandId, actorUuid, "spawn").join().code());
+        assertEquals("WARP_PUBLIC", client.setWarpPublicAccess(islandId, actorUuid, "spawn", true).join().code());
+        assertEquals(List.of("home:home", "warp:spawn:true", "delete:spawn", "access:spawn:true"), calls);
+    }
+
+    @Test
     void navigationQueryClientReturnsTypedProfilesPublicIslandsAndReviews() {
         UUID islandId = UUID.randomUUID();
         UUID reviewerUuid = UUID.randomUUID();

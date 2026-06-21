@@ -87,16 +87,22 @@ class IslandHomeWarpUseCaseTest {
     }
 
     private static IslandHomeWarpUseCase.MutationRunner mutationRunner(List<String> calls) {
-        return (auditAction, operation) -> {
-            calls.add("audit:" + auditAction);
-            return operation.get();
+        return new IslandHomeWarpUseCase.MutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, java.util.function.Supplier<CompletableFuture<T>> operation) {
+                calls.add("audit:" + auditAction);
+                return operation.get();
+            }
         };
     }
 
     private static IslandHomeWarpUseCase.IdempotentMutationRunner idempotentMutationRunner(List<String> calls) {
-        return (auditAction, operation) -> {
-            calls.add("audit:" + auditAction);
-            return operation.get();
+        return new IslandHomeWarpUseCase.IdempotentMutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, java.util.function.Supplier<CompletableFuture<T>> operation) {
+                calls.add("audit:" + auditAction);
+                return operation.get();
+            }
         };
     }
 

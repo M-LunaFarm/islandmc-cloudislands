@@ -56,6 +56,10 @@ public interface CoreApiClient {
         return new CoreHomeWarpQueryClient(this);
     }
 
+    default HomeWarpCommandClient homeWarpCommands() {
+        return new CoreHomeWarpCommandClient(this);
+    }
+
     default NavigationQueryClient navigation() {
         return new CoreNavigationQueryClient(this);
     }

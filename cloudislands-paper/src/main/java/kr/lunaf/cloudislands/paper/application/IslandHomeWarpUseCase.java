@@ -1,15 +1,16 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreHomeWarpCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreHomeWarpQueryClient;
+import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
+import kr.lunaf.cloudislands.coreclient.HomeWarpCommandClient;
 import kr.lunaf.cloudislands.coreclient.HomeWarpQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.HomeView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.IslandInfoView;
@@ -18,6 +19,7 @@ import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.WarpView;
 public final class IslandHomeWarpUseCase {
     private final CoreApiClient coreApiClient;
     private final HomeWarpQueryClient homeWarpQueries;
+    private final HomeWarpCommandClient homeWarpCommands;
 
     public IslandHomeWarpUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
@@ -25,43 +27,52 @@ public final class IslandHomeWarpUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.homeWarpQueries = new CoreHomeWarpQueryClient(coreApiClient);
+        this.homeWarpCommands = new CoreHomeWarpCommandClient(coreApiClient);
     }
 
     IslandHomeWarpUseCase(CoreApiClient coreApiClient, HomeWarpQueryClient homeWarpQueries) {
+        this(coreApiClient, homeWarpQueries, new CoreHomeWarpCommandClient(coreApiClient));
+    }
+
+    IslandHomeWarpUseCase(CoreApiClient coreApiClient, HomeWarpQueryClient homeWarpQueries, HomeWarpCommandClient homeWarpCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (homeWarpQueries == null) {
             throw new IllegalArgumentException("homeWarpQueries is required");
         }
+        if (homeWarpCommands == null) {
+            throw new IllegalArgumentException("homeWarpCommands is required");
+        }
         this.coreApiClient = coreApiClient;
         this.homeWarpQueries = homeWarpQueries;
+        this.homeWarpCommands = homeWarpCommands;
     }
 
-    private CompletableFuture<String> setHomeBody(UUID islandId, UUID actorUuid, String name, IslandLocation location, MutationRunner runner) {
+    private CompletableFuture<HomeWarpActionView> setHomeBody(UUID islandId, UUID actorUuid, String name, IslandLocation location, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireLocation(location);
         requireRunner(runner);
-        return runner.mutate("island.home.set", () -> coreApiClient.setIslandHomeResult(islandId, actorUuid, normalizeName(name), location));
+        return runner.mutate("island.home.set", () -> homeWarpCommands.setHome(islandId, actorUuid, normalizeName(name), location));
     }
 
     public CompletableFuture<HomeWarpActionResult> setHomeAction(UUID islandId, UUID actorUuid, String name, IslandLocation location, MutationRunner runner) {
         return setHomeBody(islandId, actorUuid, name, location, runner)
-            .thenApply(body -> actionResult(body, "HOME_SET"));
+            .thenApply(IslandHomeWarpUseCase::actionResult);
     }
 
-    private CompletableFuture<String> setWarpBody(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, MutationRunner runner) {
+    private CompletableFuture<HomeWarpActionView> setWarpBody(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireLocation(location);
         requireRunner(runner);
-        return runner.mutate("island.warp.set", () -> coreApiClient.setIslandWarpResult(islandId, actorUuid, normalizeName(name), location, publicAccess));
+        return runner.mutate("island.warp.set", () -> homeWarpCommands.setWarp(islandId, actorUuid, normalizeName(name), location, publicAccess));
     }
 
     public CompletableFuture<HomeWarpActionResult> setWarpAction(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, MutationRunner runner) {
         return setWarpBody(islandId, actorUuid, name, location, publicAccess, runner)
-            .thenApply(body -> actionResult(body, "WARP_SET"));
+            .thenApply(IslandHomeWarpUseCase::actionResult);
     }
 
     public CompletableFuture<List<HomeView>> homeViews(UUID islandId) {
@@ -79,28 +90,28 @@ public final class IslandHomeWarpUseCase {
         return homeWarpQueries.islandInfo(islandId).thenApply(IslandHomeWarpUseCase::islandInfoView);
     }
 
-    private CompletableFuture<String> deleteWarpBody(UUID islandId, UUID actorUuid, String name, IdempotentMutationRunner runner) {
+    private CompletableFuture<HomeWarpActionView> deleteWarpBody(UUID islandId, UUID actorUuid, String name, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireIdempotentRunner(runner);
-        return runner.mutateIdempotent("island.warp.delete", () -> coreApiClient.deleteIslandWarpResult(islandId, actorUuid, normalizeName(name)));
+        return runner.mutateIdempotent("island.warp.delete", () -> homeWarpCommands.deleteWarp(islandId, actorUuid, normalizeName(name)));
     }
 
     public CompletableFuture<HomeWarpActionResult> deleteWarpAction(UUID islandId, UUID actorUuid, String name, IdempotentMutationRunner runner) {
         return deleteWarpBody(islandId, actorUuid, name, runner)
-            .thenApply(body -> actionResult(body, "WARP_DELETED"));
+            .thenApply(IslandHomeWarpUseCase::actionResult);
     }
 
-    private CompletableFuture<String> setWarpPublicAccessBody(UUID islandId, UUID actorUuid, String name, boolean publicAccess, MutationRunner runner) {
+    private CompletableFuture<HomeWarpActionView> setWarpPublicAccessBody(UUID islandId, UUID actorUuid, String name, boolean publicAccess, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
-        return runner.mutate("island.warp.public-access.set", () -> coreApiClient.setIslandWarpPublicAccessResult(islandId, actorUuid, normalizeName(name), publicAccess));
+        return runner.mutate("island.warp.public-access.set", () -> homeWarpCommands.setWarpPublicAccess(islandId, actorUuid, normalizeName(name), publicAccess));
     }
 
     public CompletableFuture<HomeWarpActionResult> setWarpPublicAccessAction(UUID islandId, UUID actorUuid, String name, boolean publicAccess, MutationRunner runner) {
         return setWarpPublicAccessBody(islandId, actorUuid, name, publicAccess, runner)
-            .thenApply(body -> actionResult(body, publicAccess ? "WARP_PUBLIC" : "WARP_PRIVATE"));
+            .thenApply(IslandHomeWarpUseCase::actionResult);
     }
 
     public CompletableFuture<List<WarpView>> publicWarpViews(int limit, String category, String query) {
@@ -119,16 +130,8 @@ public final class IslandHomeWarpUseCase {
         return new IslandInfoView(view.name(), view.state(), view.islandId(), view.level(), view.worth(), view.publicAccess(), view.locked(), view.size(), view.border(), view.ownerUuid());
     }
 
-    private static HomeWarpActionResult actionResult(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new HomeWarpActionResult(accepted, code);
+    private static HomeWarpActionResult actionResult(HomeWarpActionView view) {
+        return new HomeWarpActionResult(view.accepted(), view.code());
     }
 
     private static void requireIsland(UUID islandId) {
@@ -167,12 +170,12 @@ public final class IslandHomeWarpUseCase {
 
     @FunctionalInterface
     public interface MutationRunner {
-        CompletableFuture<String> mutate(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     @FunctionalInterface
     public interface IdempotentMutationRunner {
-        CompletableFuture<String> mutateIdempotent(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     public record HomeWarpActionResult(boolean accepted, String code) {
