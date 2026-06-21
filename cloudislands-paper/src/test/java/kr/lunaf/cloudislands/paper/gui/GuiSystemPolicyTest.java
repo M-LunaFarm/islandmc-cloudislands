@@ -134,6 +134,14 @@ class GuiSystemPolicyTest {
 
         assertTrue(executor.contains("void execute(Player player, GuiAction action, GuiClick click)"), "executor boundary must not expose raw action id and payload map");
         assertFalse(executor.contains("String actionId, Map<String, String> data"), "executor boundary must receive parsed GuiAction objects");
+        assertFalse(actions.contains("record SnapshotRestore(String actionId, long snapshotNo, Map<String, String> data)"), "snapshot restore GUI actions must not carry raw action id and payload maps internally");
+        assertTrue(actions.contains("record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String confirmationToken)"), "snapshot restore GUI actions must use typed state plus an explicit confirmation token");
+        assertFalse(actions.contains("record WarpDelete(String actionId, String warpName, Map<String, String> data)"), "warp delete GUI actions must not carry raw action id and payload maps internally");
+        assertTrue(actions.contains("record WarpDelete(WarpDeleteType type, String warpName, String confirmationToken)"), "warp delete GUI actions must use typed state plus an explicit confirmation token");
+        assertFalse(actions.contains("record MemberRoleChange(String actionId, UUID playerUuid, Map<String, String> data)"), "member role GUI actions must not carry raw action id and payload maps internally");
+        assertTrue(actions.contains("record MemberRoleChange(MemberRoleChangeType type, UUID playerUuid, String confirmationToken)"), "member role GUI actions must use typed state plus an explicit confirmation token");
+        assertFalse(actions.contains("record BanPardon(String actionId, UUID playerUuid, Map<String, String> data)"), "ban pardon GUI actions must not carry raw action id and payload maps internally");
+        assertTrue(actions.contains("record BanPardon(BanPardonType type, UUID playerUuid, String confirmationToken)"), "ban pardon GUI actions must use typed state plus an explicit confirmation token");
         assertFalse(actions.contains("record MemberRemoval(String actionId, UUID playerUuid, Map<String, String> data)"), "member removal GUI actions must not carry raw action id and payload maps internally");
         assertTrue(actions.contains("record MemberRemoval(MemberRemovalType type, UUID playerUuid, String confirmationToken)"), "member removal GUI actions must use typed state plus an explicit confirmation token");
         assertTrue(controller.contains("backend.executeGuiAction(player, action, click)"), "command controller must forward typed GUI actions");

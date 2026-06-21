@@ -330,31 +330,56 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
     }
 
-    record SnapshotRestore(String actionId, long snapshotNo, Map<String, String> data) implements GuiAction {
+    record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String confirmationToken) implements GuiAction {
         public SnapshotRestore {
-            actionId = actionId == null ? "" : actionId.trim();
-            data = data == null ? Map.of() : Map.copyOf(data);
-            if (!actionId.equals("island.snapshot.restore.prepare") && !snapshotRestoreConfirmation(actionId)) {
-                throw new IllegalArgumentException("unsupported snapshot restore action");
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
             }
             if (snapshotNo <= 0L) {
                 throw new IllegalArgumentException("positive snapshotNo is required");
             }
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
         }
 
         @Override
         public Map<String, String> data() {
-            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>(data);
-            values.put("snapshotNo", Long.toString(snapshotNo));
-            return Map.copyOf(values);
+            if (type.confirmation()) {
+                return Map.of(
+                    "snapshotNo", Long.toString(snapshotNo),
+                    ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken
+                );
+            }
+            return Map.of("snapshotNo", Long.toString(snapshotNo));
         }
 
         public boolean confirmation() {
-            return snapshotRestoreConfirmation(actionId);
+            return type.confirmation();
+        }
+    }
+
+    enum SnapshotRestoreType {
+        PREPARE("island.snapshot.restore.prepare", false),
+        CONFIRM("island.snapshot.restore.confirm", true);
+
+        private final String actionId;
+        private final boolean confirmation;
+
+        SnapshotRestoreType(String actionId, boolean confirmation) {
+            this.actionId = actionId;
+            this.confirmation = confirmation;
         }
 
-        private static boolean snapshotRestoreConfirmation(String actionId) {
-            return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".snapshot.restore.confirm");
+        public String actionId() {
+            return actionId;
+        }
+
+        public boolean confirmation() {
+            return confirmation;
         }
     }
 
@@ -491,29 +516,54 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
     }
 
-    record WarpDelete(String actionId, String warpName, Map<String, String> data) implements GuiAction {
+    record WarpDelete(WarpDeleteType type, String warpName, String confirmationToken) implements GuiAction {
         public WarpDelete {
-            actionId = actionId == null ? "" : actionId.trim();
-            warpName = requiredName(warpName, "warpName");
-            data = data == null ? Map.of() : Map.copyOf(data);
-            if (!actionId.equals("island.warp.delete.prepare") && !warpDeleteConfirmation(actionId)) {
-                throw new IllegalArgumentException("unsupported warp delete action");
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
             }
+            warpName = requiredName(warpName, "warpName");
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
         }
 
         @Override
         public Map<String, String> data() {
-            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>(data);
-            values.put("warpName", warpName);
-            return Map.copyOf(values);
+            if (type.confirmation()) {
+                return Map.of(
+                    "warpName", warpName,
+                    ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken
+                );
+            }
+            return Map.of("warpName", warpName);
         }
 
         public boolean confirmation() {
-            return warpDeleteConfirmation(actionId);
+            return type.confirmation();
+        }
+    }
+
+    enum WarpDeleteType {
+        PREPARE("island.warp.delete.prepare", false),
+        CONFIRM("island.warp.delete.confirm", true);
+
+        private final String actionId;
+        private final boolean confirmation;
+
+        WarpDeleteType(String actionId, boolean confirmation) {
+            this.actionId = actionId;
+            this.confirmation = confirmation;
         }
 
-        private static boolean warpDeleteConfirmation(String actionId) {
-            return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".warp.delete.confirm");
+        public String actionId() {
+            return actionId;
+        }
+
+        public boolean confirmation() {
+            return confirmation;
         }
     }
 
@@ -610,68 +660,121 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
     }
 
-    record MemberRoleChange(String actionId, UUID playerUuid, Map<String, String> data) implements GuiAction {
+    record MemberRoleChange(MemberRoleChangeType type, UUID playerUuid, String confirmationToken) implements GuiAction {
         public MemberRoleChange {
-            actionId = actionId == null ? "" : actionId.trim();
-            data = data == null ? Map.of() : Map.copyOf(data);
-            if (!memberRolePrepare(actionId) && !memberRoleConfirmation(actionId)) {
-                throw new IllegalArgumentException("unsupported member role action");
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
             }
             if (playerUuid == null) {
                 throw new IllegalArgumentException("playerUuid is required");
             }
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
         }
 
         @Override
         public Map<String, String> data() {
-            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>(data);
-            values.put("playerUuid", playerUuid.toString());
-            return Map.copyOf(values);
+            if (type.confirmation()) {
+                return Map.of(
+                    "playerUuid", playerUuid.toString(),
+                    ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken
+                );
+            }
+            return Map.of("playerUuid", playerUuid.toString());
         }
 
         public boolean promote() {
-            return actionId.equals("island.member.promote.prepare") || actionId.equals("island.member.promote");
+            return type.promote();
         }
 
         public boolean confirmation() {
-            return memberRoleConfirmation(actionId);
-        }
-
-        private static boolean memberRolePrepare(String actionId) {
-            return actionId.equals("island.member.promote.prepare") || actionId.equals("island.member.demote.prepare");
-        }
-
-        private static boolean memberRoleConfirmation(String actionId) {
-            return ConfirmationTokenPolicy.requiresToken(actionId)
-                && (actionId.equals("island.member.promote") || actionId.equals("island.member.demote"));
+            return type.confirmation();
         }
     }
 
-    record BanPardon(String actionId, UUID playerUuid, Map<String, String> data) implements GuiAction {
+    enum MemberRoleChangeType {
+        PROMOTE_PREPARE("island.member.promote.prepare", true, false),
+        DEMOTE_PREPARE("island.member.demote.prepare", false, false),
+        PROMOTE_CONFIRM("island.member.promote", true, true),
+        DEMOTE_CONFIRM("island.member.demote", false, true);
+
+        private final String actionId;
+        private final boolean promote;
+        private final boolean confirmation;
+
+        MemberRoleChangeType(String actionId, boolean promote, boolean confirmation) {
+            this.actionId = actionId;
+            this.promote = promote;
+            this.confirmation = confirmation;
+        }
+
+        public String actionId() {
+            return actionId;
+        }
+
+        public boolean promote() {
+            return promote;
+        }
+
+        public boolean confirmation() {
+            return confirmation;
+        }
+    }
+
+    record BanPardon(BanPardonType type, UUID playerUuid, String confirmationToken) implements GuiAction {
         public BanPardon {
-            actionId = actionId == null ? "" : actionId.trim();
-            data = data == null ? Map.of() : Map.copyOf(data);
-            if (!actionId.equals("island.ban.pardon.prepare") && !banPardonConfirmation(actionId)) {
-                throw new IllegalArgumentException("unsupported ban pardon action");
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
             }
             if (playerUuid == null) {
                 throw new IllegalArgumentException("playerUuid is required");
             }
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
         }
 
         @Override
         public Map<String, String> data() {
-            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>(data);
-            values.put("playerUuid", playerUuid.toString());
-            return Map.copyOf(values);
+            if (type.confirmation()) {
+                return Map.of(
+                    "playerUuid", playerUuid.toString(),
+                    ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken
+                );
+            }
+            return Map.of("playerUuid", playerUuid.toString());
         }
 
         public boolean confirmation() {
-            return banPardonConfirmation(actionId);
+            return type.confirmation();
+        }
+    }
+
+    enum BanPardonType {
+        PREPARE("island.ban.pardon.prepare", false),
+        CONFIRM("island.ban.pardon.confirm", true);
+
+        private final String actionId;
+        private final boolean confirmation;
+
+        BanPardonType(String actionId, boolean confirmation) {
+            this.actionId = actionId;
+            this.confirmation = confirmation;
         }
 
-        private static boolean banPardonConfirmation(String actionId) {
-            return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".ban.pardon.confirm");
+        public String actionId() {
+            return actionId;
+        }
+
+        public boolean confirmation() {
+            return confirmation;
         }
     }
 

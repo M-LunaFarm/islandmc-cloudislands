@@ -21,9 +21,9 @@ public final class GuiActionParser {
         try {
             if (safeAction.equals("island.member.promote.prepare") || safeAction.equals("island.member.demote.prepare") || memberRoleConfirmation(safeAction)) {
                 return Optional.of(new GuiAction.MemberRoleChange(
-                    safeAction,
+                    memberRoleChangeType(safeAction),
                     UUID.fromString(required(safeData, "playerUuid")),
-                    safeData
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
             if (safeAction.equals("island.member.remove.prepare") || memberRemovalConfirmation(safeAction)) {
@@ -35,23 +35,23 @@ public final class GuiActionParser {
             }
             if (safeAction.equals("island.ban.pardon.prepare") || banPardonConfirmation(safeAction)) {
                 return Optional.of(new GuiAction.BanPardon(
-                    safeAction,
+                    safeAction.equals("island.ban.pardon.prepare") ? GuiAction.BanPardonType.PREPARE : GuiAction.BanPardonType.CONFIRM,
                     UUID.fromString(required(safeData, "playerUuid")),
-                    safeData
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
             if (safeAction.equals("island.snapshot.restore.prepare") || snapshotRestoreConfirmation(safeAction)) {
                 return Optional.of(new GuiAction.SnapshotRestore(
-                    safeAction,
+                    safeAction.equals("island.snapshot.restore.prepare") ? GuiAction.SnapshotRestoreType.PREPARE : GuiAction.SnapshotRestoreType.CONFIRM,
                     positiveLong(required(safeData, "snapshotNo")),
-                    safeData
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
             if (safeAction.equals("island.warp.delete.prepare") || warpDeleteConfirmation(safeAction)) {
                 return Optional.of(new GuiAction.WarpDelete(
-                    safeAction,
+                    safeAction.equals("island.warp.delete.prepare") ? GuiAction.WarpDeleteType.PREPARE : GuiAction.WarpDeleteType.CONFIRM,
                     required(safeData, "warpName"),
-                    safeData
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
             if (safeAction.equals(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION)) {
@@ -235,6 +235,16 @@ public final class GuiActionParser {
 
     private static boolean memberRemovalConfirmation(String actionId) {
         return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".member.remove.confirm");
+    }
+
+    private static GuiAction.MemberRoleChangeType memberRoleChangeType(String actionId) {
+        return switch (actionId) {
+            case "island.member.promote.prepare" -> GuiAction.MemberRoleChangeType.PROMOTE_PREPARE;
+            case "island.member.demote.prepare" -> GuiAction.MemberRoleChangeType.DEMOTE_PREPARE;
+            case "island.member.promote" -> GuiAction.MemberRoleChangeType.PROMOTE_CONFIRM;
+            case "island.member.demote" -> GuiAction.MemberRoleChangeType.DEMOTE_CONFIRM;
+            default -> throw new IllegalArgumentException("unsupported member role action");
+        };
     }
 
     private static boolean memberRoleConfirmation(String actionId) {
