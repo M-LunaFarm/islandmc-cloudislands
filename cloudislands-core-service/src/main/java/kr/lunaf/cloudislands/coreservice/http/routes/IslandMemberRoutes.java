@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -159,7 +161,7 @@ public final class IslandMemberRoutes implements RouteGroup {
             "expiresAt", expiresAt.toString()
         ));
         events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", IslandRole.TRUSTED.name(), "roleKey", IslandRole.TRUSTED.name(), "expiresAt", expiresAt.toString()));
-        CoreHttpResponses.write(exchange, 202, "{\"accepted\":true,\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\",\"role\":\"TRUSTED\",\"roleKey\":\"TRUSTED\",\"expiresAt\":\"" + expiresAt + "\",\"durationSeconds\":" + seconds + "}");
+        CoreHttpResponses.write(exchange, 202, temporaryTrustJson(islandId, playerUuid, expiresAt, seconds));
     }
 
     private void transferOwnership(HttpExchange exchange) throws IOException {
@@ -253,66 +255,72 @@ public final class IslandMemberRoutes implements RouteGroup {
     }
 
     static String membersJson(List<IslandMemberSnapshot> members, PlayerProfileRepository playerProfiles) {
-        StringBuilder builder = new StringBuilder("{\"members\":[");
-        boolean first = true;
+        List<Object> renderedMembers = new ArrayList<>();
         for (IslandMemberSnapshot member : members) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"islandId\":\"").append(member.islandId()).append("\",")
-                .append("\"playerUuid\":\"").append(member.playerUuid()).append("\",")
-                .append("\"role\":\"").append(member.effectiveRoleKey()).append("\",")
-                .append("\"roleKey\":\"").append(member.effectiveRoleKey()).append("\",")
-                .append("\"joinedAt\":\"").append(member.joinedAt()).append("\",")
-                .append("\"expiresAt\":").append(member.expiresAt() == null ? "null" : "\"" + member.expiresAt() + "\"");
+            LinkedHashMap<String, Object> rendered = memberMap(member);
             if (playerProfiles != null) {
-                appendProfile(builder, playerProfiles.find(member.playerUuid()));
+                rendered.putAll(profileMap(playerProfiles.find(member.playerUuid())));
             }
-            builder.append('}');
+            renderedMembers.add(rendered);
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("members", renderedMembers));
     }
 
-    private static void appendProfile(StringBuilder builder, PlayerIslandProfile profile) {
+    private static Map<String, Object> profileMap(PlayerIslandProfile profile) {
         String lastSeen = profile.lastSeenAt() == null || profile.lastSeenAt().equals(Instant.EPOCH) ? "" : profile.lastSeenAt().toString();
-        builder.append(",\"playerName\":\"").append(escape(profile.lastName())).append("\",")
-            .append("\"lastSeenAt\":\"").append(escape(lastSeen)).append("\",")
-            .append("\"presenceState\":\"").append(lastSeen.isBlank() ? "UNKNOWN" : "RECENT_ACTIVITY").append("\",")
-            .append("\"presenceSource\":\"CORE_PLAYER_PROFILE\"");
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("playerName", profile.lastName());
+        values.put("lastSeenAt", lastSeen);
+        values.put("presenceState", lastSeen.isBlank() ? "UNKNOWN" : "RECENT_ACTIVITY");
+        values.put("presenceSource", "CORE_PLAYER_PROFILE");
+        return values;
     }
 
     static String islandsJson(List<IslandSnapshot> islands) {
-        StringBuilder builder = new StringBuilder("{\"islands\":[");
-        boolean first = true;
+        List<Object> renderedIslands = new ArrayList<>();
         for (IslandSnapshot island : islands) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(islandJson(island));
+            renderedIslands.add(islandMap(island));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("islands", renderedIslands));
     }
 
-    private static String islandJson(IslandSnapshot island) {
-        return "{\"islandId\":\"" + island.islandId()
-            + "\",\"ownerUuid\":\"" + island.ownerUuid()
-            + "\",\"name\":\"" + escape(island.name())
-            + "\",\"state\":\"" + island.state()
-            + "\",\"size\":" + island.size()
-            + ",\"border\":" + island.size()
-            + ",\"level\":" + island.level()
-            + ",\"worth\":\"" + escape(island.worth())
-            + "\",\"publicAccess\":" + island.publicAccess()
-            + ",\"createdAt\":\"" + island.createdAt()
-            + "\",\"updatedAt\":\"" + island.updatedAt()
-            + "\"}";
+    static String temporaryTrustJson(UUID islandId, UUID playerUuid, Instant expiresAt, long seconds) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("islandId", islandId);
+        values.put("playerUuid", playerUuid);
+        values.put("role", "TRUSTED");
+        values.put("roleKey", "TRUSTED");
+        values.put("expiresAt", expiresAt);
+        values.put("durationSeconds", seconds);
+        return SimpleJson.stringify(values);
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    private static LinkedHashMap<String, Object> memberMap(IslandMemberSnapshot member) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", member.islandId());
+        values.put("playerUuid", member.playerUuid());
+        values.put("role", member.effectiveRoleKey());
+        values.put("roleKey", member.effectiveRoleKey());
+        values.put("joinedAt", member.joinedAt());
+        values.put("expiresAt", member.expiresAt());
+        return values;
+    }
+
+    private static Map<String, Object> islandMap(IslandSnapshot island) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", island.islandId());
+        values.put("ownerUuid", island.ownerUuid());
+        values.put("name", island.name());
+        values.put("state", island.state());
+        values.put("size", island.size());
+        values.put("border", island.size());
+        values.put("level", island.level());
+        values.put("worth", island.worth());
+        values.put("publicAccess", island.publicAccess());
+        values.put("createdAt", island.createdAt());
+        values.put("updatedAt", island.updatedAt());
+        return values;
     }
 
     private static String roleKey(String body, String fallback) {
