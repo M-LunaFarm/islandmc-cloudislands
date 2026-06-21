@@ -2,12 +2,16 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -93,7 +97,7 @@ public final class IslandReviewRoutes implements RouteGroup {
             "rating", Integer.toString(review.rating()),
             "operation", "REVIEW_SET"
         ));
-        CoreHttpResponses.write(exchange, 202, "{\"accepted\":true,\"review\":" + reviewJson(review) + "}");
+        CoreHttpResponses.write(exchange, 202, reviewAcceptedJson(review));
     }
 
     private void deleteReview(HttpExchange exchange) throws IOException {
@@ -116,51 +120,51 @@ public final class IslandReviewRoutes implements RouteGroup {
     static String reviewsJson(List<IslandReviewSnapshot> reviews) {
         int count = reviews.size();
         double average = reviews.stream().mapToInt(IslandReviewSnapshot::rating).average().orElse(0.0D);
-        StringBuilder builder = new StringBuilder("{\"reviews\":[");
-        boolean first = true;
+        List<Object> renderedReviews = new ArrayList<>();
         for (IslandReviewSnapshot review : reviews) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(reviewJson(review));
+            renderedReviews.add(reviewMap(review));
         }
-        return builder.append("],\"summary\":{\"count\":")
-            .append(count)
-            .append(",\"average\":")
-            .append(String.format(java.util.Locale.ROOT, "%.2f", average))
-            .append("}}")
-            .toString();
+        LinkedHashMap<String, Object> summary = new LinkedHashMap<>();
+        summary.put("count", count);
+        summary.put("average", new BigDecimal(String.format(java.util.Locale.ROOT, "%.2f", average)));
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("reviews", renderedReviews);
+        values.put("summary", summary);
+        return SimpleJson.stringify(values);
     }
 
     static String reviewJson(IslandReviewSnapshot review) {
-        return "{\"islandId\":\"" + review.islandId() + "\","
-            + "\"reviewerUuid\":\"" + review.reviewerUuid() + "\","
-            + "\"rating\":" + review.rating() + ","
-            + "\"comment\":\"" + escape(review.comment()) + "\","
-            + "\"createdAt\":\"" + review.createdAt() + "\","
-            + "\"updatedAt\":\"" + review.updatedAt() + "\"}";
+        return SimpleJson.stringify(reviewMap(review));
+    }
+
+    static String reviewAcceptedJson(IslandReviewSnapshot review) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("review", reviewMap(review));
+        return SimpleJson.stringify(values);
     }
 
     static String reviewRankingsJson(List<IslandReviewRankSnapshot> rankings) {
-        StringBuilder builder = new StringBuilder("{\"rankings\":[");
-        boolean first = true;
+        List<Object> renderedRankings = new ArrayList<>();
         for (IslandReviewRankSnapshot ranking : rankings) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"islandId\":\"").append(ranking.islandId()).append("\",")
-                .append("\"averageRating\":").append(String.format(java.util.Locale.ROOT, "%.2f", ranking.averageRating())).append(',')
-                .append("\"reviewCount\":").append(ranking.reviewCount()).append(',')
-                .append("\"updatedAt\":\"").append(ranking.updatedAt()).append("\"")
-                .append('}');
+            LinkedHashMap<String, Object> rendered = new LinkedHashMap<>();
+            rendered.put("islandId", ranking.islandId());
+            rendered.put("averageRating", new BigDecimal(String.format(java.util.Locale.ROOT, "%.2f", ranking.averageRating())));
+            rendered.put("reviewCount", ranking.reviewCount());
+            rendered.put("updatedAt", ranking.updatedAt());
+            renderedRankings.add(rendered);
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("rankings", renderedRankings));
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    private static Map<String, Object> reviewMap(IslandReviewSnapshot review) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", review.islandId());
+        values.put("reviewerUuid", review.reviewerUuid());
+        values.put("rating", review.rating());
+        values.put("comment", review.comment());
+        values.put("createdAt", review.createdAt());
+        values.put("updatedAt", review.updatedAt());
+        return values;
     }
 }
