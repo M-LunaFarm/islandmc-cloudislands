@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
@@ -83,15 +85,12 @@ public final class PlayerProfileRoutes implements RouteGroup {
     }
 
     static String playerProfileJson(PlayerIslandProfile profile) {
-        return "{\"playerUuid\":\"" + profile.playerUuid()
-            + "\",\"lastName\":\"" + escape(profile.lastName())
-            + "\",\"primaryIslandId\":" + profile.primaryIslandId().map(value -> "\"" + value + "\"").orElse("null")
-            + ",\"lastSeenAt\":\"" + profile.lastSeenAt()
-            + "\",\"locale\":\"" + escape(profile.locale())
-            + "\"}";
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("playerUuid", profile.playerUuid());
+        values.put("lastName", profile.lastName());
+        values.put("primaryIslandId", profile.primaryIslandId().orElse(null));
+        values.put("lastSeenAt", profile.lastSeenAt());
+        values.put("locale", profile.locale());
+        return SimpleJson.stringify(values);
     }
 }

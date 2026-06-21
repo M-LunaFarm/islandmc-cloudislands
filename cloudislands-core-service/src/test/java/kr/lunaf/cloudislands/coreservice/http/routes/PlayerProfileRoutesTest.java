@@ -2,10 +2,13 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import org.junit.jupiter.api.Test;
 
 class PlayerProfileRoutesTest {
@@ -29,12 +32,15 @@ class PlayerProfileRoutesTest {
     void playerProfileJsonIncludesLocale() {
         String json = PlayerProfileRoutes.playerProfileJson(new kr.lunaf.cloudislands.api.model.PlayerIslandProfile(
             java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"),
-            "Steve",
+            "Steve, \"Builder\"",
             java.util.Optional.empty(),
             java.time.Instant.EPOCH,
             "EN-US"
         ));
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
 
-        assertTrue(json.contains("\"locale\":\"en_us\""));
+        assertEquals("Steve, \"Builder\"", SimpleJson.text(root.get("lastName")));
+        assertNull(root.get("primaryIslandId"));
+        assertEquals("en_us", SimpleJson.text(root.get("locale")));
     }
 }
