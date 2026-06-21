@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreIslandLifecycleCommandClient implements IslandLifecycleCommandClient {
@@ -13,6 +15,20 @@ public final class CoreIslandLifecycleCommandClient implements IslandLifecycleCo
             throw new IllegalArgumentException("delegate is required");
         }
         this.delegate = delegate;
+    }
+
+    @Override
+    public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
+        requireId(playerUuid, "playerUuid");
+        String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
+        return delegate.createIsland(playerUuid, normalizedTemplateId);
+    }
+
+    @Override
+    public CompletableFuture<DeleteIslandResult> deleteIsland(UUID playerUuid, UUID islandId) {
+        requireId(playerUuid, "playerUuid");
+        requireId(islandId, "islandId");
+        return delegate.deleteIsland(playerUuid, islandId);
     }
 
     @Override

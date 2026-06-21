@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RouteAction;
@@ -839,6 +841,40 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void adminNodeCommandClientReturnsTypedActions() {
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "drainNode", "undrainNode", "sweepNode" -> {
+                    calls.add(method.getName() + ":" + args[0]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"" + method.getName() + "\"}");
+                }
+                case "kickAllNode", "shutdownNodeSafely" -> {
+                    calls.add(method.getName() + ":" + args[0] + ":" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"" + method.getName() + "\"}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        AdminNodeCommandClient client = new CoreAdminNodeCommandClient(raw);
+
+        assertEquals("drainNode", client.drainNode(" node-a ").join().operation());
+        assertEquals("undrainNode", client.undrainNode("node-a").join().operation());
+        assertEquals("sweepNode", client.sweepNode("node-a").join().operation());
+        assertEquals("kickAllNode", client.kickAllNode("node-a", "admin").join().operation());
+        assertEquals("shutdownNodeSafely", client.shutdownNodeSafely("node-a", "admin").join().operation());
+        assertEquals(List.of(
+            "drainNode:node-a",
+            "undrainNode:node-a",
+            "sweepNode:node-a",
+            "kickAllNode:node-a:admin",
+            "shutdownNodeSafely:node-a:admin"
+        ), calls);
+    }
+
+    @Test
     void lifecycleCommandClientReturnsTypedResetResult() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
@@ -847,6 +883,14 @@ class CoreTypedClientsTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
+                case "createIsland" -> {
+                    calls.add("create:" + args[1]);
+                    yield CompletableFuture.completedFuture(new CreateIslandResult(true, "CREATED", null, null));
+                }
+                case "deleteIsland" -> {
+                    calls.add("delete:" + args[1]);
+                    yield CompletableFuture.completedFuture(new DeleteIslandResult(true, "DELETED", (UUID) args[1]));
+                }
                 case "resetIslandResult" -> {
                     calls.add("reset:" + args[2]);
                     yield CompletableFuture.completedFuture("{\"accepted\":true}");
@@ -856,11 +900,13 @@ class CoreTypedClientsTest {
         );
         IslandLifecycleCommandClient client = new CoreIslandLifecycleCommandClient(raw);
 
+        assertEquals("CREATED", client.createIsland(actorUuid, " ").join().code());
+        assertEquals(islandId, client.deleteIsland(actorUuid, islandId).join().islandId());
         IslandLifecycleActionView result = client.resetIsland(islandId, actorUuid, " ").join();
 
         assertTrue(result.accepted());
         assertEquals("RESET_QUEUED", result.code());
-        assertEquals(List.of("reset:player-reset"), calls);
+        assertEquals(List.of("create:default", "delete:" + islandId, "reset:player-reset"), calls);
     }
 
     @Test

@@ -1,12 +1,13 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
+import kr.lunaf.cloudislands.coreclient.AdminNodeCommandClient;
 import kr.lunaf.cloudislands.coreclient.AdminNodeQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreAdminNodeCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreAdminNodeQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.NodeSummaryView;
@@ -14,6 +15,7 @@ import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.NodeSummaryVie
 public final class IslandAdminNodeUseCase {
     private final CoreApiClient coreApiClient;
     private final AdminNodeQueryClient adminNodeQueries;
+    private final AdminNodeCommandClient adminNodeCommands;
 
     public IslandAdminNodeUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
@@ -21,17 +23,26 @@ public final class IslandAdminNodeUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.adminNodeQueries = new CoreAdminNodeQueryClient(coreApiClient);
+        this.adminNodeCommands = new CoreAdminNodeCommandClient(coreApiClient);
     }
 
     IslandAdminNodeUseCase(CoreApiClient coreApiClient, AdminNodeQueryClient adminNodeQueries) {
+        this(coreApiClient, adminNodeQueries, new CoreAdminNodeCommandClient(coreApiClient));
+    }
+
+    IslandAdminNodeUseCase(CoreApiClient coreApiClient, AdminNodeQueryClient adminNodeQueries, AdminNodeCommandClient adminNodeCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (adminNodeQueries == null) {
             throw new IllegalArgumentException("adminNodeQueries is required");
         }
+        if (adminNodeCommands == null) {
+            throw new IllegalArgumentException("adminNodeCommands is required");
+        }
         this.coreApiClient = coreApiClient;
         this.adminNodeQueries = adminNodeQueries;
+        this.adminNodeCommands = adminNodeCommands;
     }
 
     public CompletableFuture<AdminNodeSummary> listNodesSummary() {
@@ -47,50 +58,50 @@ public final class IslandAdminNodeUseCase {
         return adminNodeQueries.nodeIslandsSummary(nodeId, limit).thenApply(summary -> new AdminNodeSummary(summary.text()));
     }
 
-    private CompletableFuture<String> drainBody(String nodeId, MutationRunner runner) {
+    private CompletableFuture<AdminNodeActionView> drainBody(String nodeId, MutationRunner runner) {
         requireMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
-        return runner.mutate("admin.node.drain", () -> coreApiClient.drainNode(normalizedNodeId));
+        return runner.mutate("admin.node.drain", () -> adminNodeCommands.drainNode(normalizedNodeId));
     }
 
     public CompletableFuture<AdminNodeActionResult> drainAction(String nodeId, MutationRunner runner) {
         return drainBody(nodeId, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
-    private CompletableFuture<String> undrainBody(String nodeId, MutationRunner runner) {
+    private CompletableFuture<AdminNodeActionView> undrainBody(String nodeId, MutationRunner runner) {
         requireMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
-        return runner.mutate("admin.node.undrain", () -> coreApiClient.undrainNode(normalizedNodeId));
+        return runner.mutate("admin.node.undrain", () -> adminNodeCommands.undrainNode(normalizedNodeId));
     }
 
     public CompletableFuture<AdminNodeActionResult> undrainAction(String nodeId, MutationRunner runner) {
         return undrainBody(nodeId, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
-    private CompletableFuture<String> sweepBody(String nodeId, MutationRunner runner) {
+    private CompletableFuture<AdminNodeActionView> sweepBody(String nodeId, MutationRunner runner) {
         requireMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
-        return runner.mutate("admin.node.sweep", () -> coreApiClient.sweepNode(normalizedNodeId));
+        return runner.mutate("admin.node.sweep", () -> adminNodeCommands.sweepNode(normalizedNodeId));
     }
 
     public CompletableFuture<AdminNodeActionResult> sweepAction(String nodeId, MutationRunner runner) {
         return sweepBody(nodeId, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
-    private CompletableFuture<String> kickAllBody(String nodeId, String reason, IdempotentMutationRunner runner) {
+    private CompletableFuture<AdminNodeActionView> kickAllBody(String nodeId, String reason, IdempotentMutationRunner runner) {
         requireIdempotentMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
-        return runner.mutateIdempotent("admin.node.kickall", () -> coreApiClient.kickAllNode(normalizedNodeId, normalizeReason(reason)));
+        return runner.mutateIdempotent("admin.node.kickall", () -> adminNodeCommands.kickAllNode(normalizedNodeId, normalizeReason(reason)));
     }
 
     public CompletableFuture<AdminNodeActionResult> kickAllAction(String nodeId, String reason, IdempotentMutationRunner runner) {
         return kickAllBody(nodeId, reason, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
-    private CompletableFuture<String> shutdownSafelyBody(String nodeId, String reason, IdempotentMutationRunner runner) {
+    private CompletableFuture<AdminNodeActionView> shutdownSafelyBody(String nodeId, String reason, IdempotentMutationRunner runner) {
         requireIdempotentMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
-        return runner.mutateIdempotent("admin.node.shutdown-safe", () -> coreApiClient.shutdownNodeSafely(normalizedNodeId, normalizeReason(reason)));
+        return runner.mutateIdempotent("admin.node.shutdown-safe", () -> adminNodeCommands.shutdownNodeSafely(normalizedNodeId, normalizeReason(reason)));
     }
 
     public CompletableFuture<AdminNodeActionResult> shutdownSafelyAction(String nodeId, String reason, IdempotentMutationRunner runner) {
@@ -113,15 +124,8 @@ public final class IslandAdminNodeUseCase {
         );
     }
 
-    private static AdminNodeActionResult actionResult(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = text(root, "code");
-        String nodeId = text(root, "nodeId");
-        String operation = text(root, "operation");
-        return new AdminNodeActionResult(accepted, code, nodeId, operation);
+    private static AdminNodeActionResult actionResult(AdminNodeActionView view) {
+        return new AdminNodeActionResult(view.accepted(), view.code(), view.nodeId(), view.operation());
     }
 
     private static String requireNode(String nodeId) {
@@ -147,18 +151,14 @@ public final class IslandAdminNodeUseCase {
         }
     }
 
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
     @FunctionalInterface
     public interface MutationRunner {
-        CompletableFuture<String> mutate(String auditAction, Supplier<CompletableFuture<String>> operation);
+        CompletableFuture<AdminNodeActionView> mutate(String auditAction, Supplier<CompletableFuture<AdminNodeActionView>> operation);
     }
 
     @FunctionalInterface
     public interface IdempotentMutationRunner {
-        CompletableFuture<String> mutateIdempotent(String auditAction, Supplier<CompletableFuture<String>> operation);
+        CompletableFuture<AdminNodeActionView> mutateIdempotent(String auditAction, Supplier<CompletableFuture<AdminNodeActionView>> operation);
     }
 
     public record AdminNodeSummary(String text) {

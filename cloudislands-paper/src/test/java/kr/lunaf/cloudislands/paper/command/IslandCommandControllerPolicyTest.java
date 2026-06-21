@@ -399,8 +399,10 @@ class IslandCommandControllerPolicyTest {
         assertFalse(lifecycleHandler.contains("coreApiClient.deleteIsland"));
         assertFalse(lifecycleHandler.contains("coreApiClient.resetIslandResult"));
         assertFalse(creationUseCase.contains("public CompletableFuture<String> reset("), "reset usecase must expose typed actions instead of raw JSON");
-        assertTrue(creationUseCase.contains("coreApiClient.createIsland"));
-        assertTrue(creationUseCase.contains("coreApiClient.deleteIsland"));
+        assertTrue(creationUseCase.contains("lifecycleCommands.createIsland"));
+        assertTrue(creationUseCase.contains("lifecycleCommands.deleteIsland"));
+        assertFalse(creationUseCase.contains("coreApiClient.createIsland"));
+        assertFalse(creationUseCase.contains("coreApiClient.deleteIsland"));
         assertTrue(creationUseCase.contains("IslandLifecycleCommandClient lifecycleCommands"), "reset mutation must stay behind a typed core-client command boundary");
         assertTrue(creationUseCase.contains("lifecycleCommands.resetIsland"));
         assertFalse(creationUseCase.contains("coreApiClient.resetIslandResult"));
@@ -516,8 +518,11 @@ class IslandCommandControllerPolicyTest {
         assertFalse(adminUseCase.contains("coreApiClient.listNodes"));
         assertFalse(adminUseCase.contains("coreApiClient.nodeInfo"));
         assertFalse(adminUseCase.contains("coreApiClient.nodeIslands"));
-        assertTrue(adminUseCase.contains("coreApiClient.drainNode"));
-        assertTrue(adminUseCase.contains("coreApiClient.shutdownNodeSafely"));
+        assertTrue(adminUseCase.contains("AdminNodeCommandClient adminNodeCommands"));
+        assertTrue(adminUseCase.contains("adminNodeCommands.drainNode"));
+        assertTrue(adminUseCase.contains("adminNodeCommands.shutdownNodeSafely"));
+        assertFalse(adminUseCase.contains("coreApiClient.drainNode"));
+        assertFalse(adminUseCase.contains("coreApiClient.shutdownNodeSafely"));
     }
 
     @Test

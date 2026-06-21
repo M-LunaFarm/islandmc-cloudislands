@@ -112,6 +112,10 @@ public interface CoreApiClient {
         return new CoreAdminNodeQueryClient(this);
     }
 
+    default AdminNodeCommandClient adminNodeCommands() {
+        return new CoreAdminNodeCommandClient(this);
+    }
+
     default IslandLifecycleCommandClient lifecycle() {
         return new CoreIslandLifecycleCommandClient(this);
     }

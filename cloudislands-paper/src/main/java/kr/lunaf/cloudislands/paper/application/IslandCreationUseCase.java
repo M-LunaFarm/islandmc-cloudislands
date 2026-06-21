@@ -36,14 +36,14 @@ public final class IslandCreationUseCase {
         requirePlayer(playerUuid);
         requireRunner(runner);
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
-        return runner.mutate("island.create", () -> coreApiClient.createIsland(playerUuid, normalizedTemplateId));
+        return runner.mutate("island.create", () -> lifecycleCommands.createIsland(playerUuid, normalizedTemplateId));
     }
 
     public CompletableFuture<DeleteIslandResult> delete(UUID playerUuid, UUID islandId, IdempotentMutationRunner runner) {
         requirePlayer(playerUuid);
         requireIsland(islandId);
         requireIdempotentRunner(runner);
-        return runner.mutateIdempotent("island.delete", () -> coreApiClient.deleteIsland(playerUuid, islandId));
+        return runner.mutateIdempotent("island.delete", () -> lifecycleCommands.deleteIsland(playerUuid, islandId));
     }
 
     private CompletableFuture<IslandActionResult> resetResult(UUID islandId, UUID actorUuid, String reason, IdempotentMutationRunner runner) {
