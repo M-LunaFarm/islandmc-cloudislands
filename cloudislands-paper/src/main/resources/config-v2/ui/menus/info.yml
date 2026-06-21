@@ -1,8 +1,101 @@
 id: island.info
 rows: 3
 title-key: menu.info.title
+layout:
+  - "........."
+  - ".ABCDE.S."
+  - "...RLMFOX"
+items:
+  A:
+    material: GRASS_BLOCK
+    name-key: info-menu-basic-title
+    fallback-name: 기본 정보
+  B:
+    material: EXPERIENCE_BOTTLE
+    name-key: info-menu-level-title
+    fallback-name: 레벨
+  C:
+    material: BARRIER
+    name-key: info-menu-access-title
+    fallback-name: 공개 상태
+  D:
+    material: MAP
+    name-key: info-menu-size-title
+    fallback-name: 크기와 경계
+  E:
+    material: PLAYER_HEAD
+    name-key: info-menu-owner-title
+    fallback-name: 소유자
+  S:
+    material: REDSTONE_TORCH
+    name-key: info-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - info-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: settings
+  R:
+    material: GOLD_BLOCK
+    name-key: info-menu-ranking-name
+    fallback-name: 섬 랭킹
+    lore-keys:
+      - info-menu-ranking-command
+    fallback-lore:
+      - "/섬 랭킹"
+    action: ranking
+  L:
+    material: CLOCK
+    name-key: info-menu-log-name
+    fallback-name: 섬 로그
+    lore-keys:
+      - info-menu-log-command
+    fallback-lore:
+      - "/섬 로그"
+    action: logs
+  M:
+    material: ANVIL
+    name-key: info-menu-recalculate-name
+    fallback-name: 레벨 다시 계산
+    lore-keys:
+      - info-menu-recalculate-command
+    fallback-lore:
+      - "/섬 레벨계산"
+    action: recalculate
+  F:
+    material: COMPASS
+    name-key: info-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - info-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: back
+  O:
+    material: CLOCK
+    name-key: info-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - info-menu-refresh-command
+    fallback-lore:
+      - "/섬 정보"
+    action: open
+  X:
+    material: OAK_DOOR
+    name-key: info-menu-close-name
+    fallback-name: 닫기
+    lore-keys:
+      - info-menu-close
+    fallback-lore:
+      - "메뉴를 닫습니다."
+    action: close
 actions:
   open: island.info.open
   worth: island.worth.show
   level: island.level.show
+  settings: island.settings.open
+  ranking: island.ranking.open
+  logs: island.logs.open
+  recalculate: island.level.recalculate
   back: island.main.open
+  close: gui.close

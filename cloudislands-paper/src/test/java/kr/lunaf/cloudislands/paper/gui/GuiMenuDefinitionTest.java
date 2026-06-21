@@ -129,6 +129,35 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledInfoMenuDefinitionCoversInfoNavigationDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/info.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.info", definition.id());
+        assertEquals(27, definition.size());
+        assertEquals("menu.info.title", definition.titleKey());
+        assertEquals("A", definition.itemAt(10).orElseThrow().symbol());
+        assertEquals("B", definition.itemAt(11).orElseThrow().symbol());
+        assertEquals("E", definition.itemAt(14).orElseThrow().symbol());
+        assertEquals("S", definition.itemAt(16).orElseThrow().symbol());
+        assertEquals("island.settings.open", definition.action(definition.itemAt(16).orElseThrow().actionKey(), ""));
+        assertEquals("R", definition.itemAt(21).orElseThrow().symbol());
+        assertEquals("island.ranking.open", definition.action(definition.itemAt(21).orElseThrow().actionKey(), ""));
+        assertEquals("L", definition.itemAt(22).orElseThrow().symbol());
+        assertEquals("island.logs.open", definition.action(definition.itemAt(22).orElseThrow().actionKey(), ""));
+        assertEquals("M", definition.itemAt(23).orElseThrow().symbol());
+        assertEquals("island.level.recalculate", definition.action(definition.itemAt(23).orElseThrow().actionKey(), ""));
+        assertEquals("F", definition.itemAt(24).orElseThrow().symbol());
+        assertEquals("island.main.open", definition.action(definition.itemAt(24).orElseThrow().actionKey(), ""));
+        assertEquals("O", definition.itemAt(25).orElseThrow().symbol());
+        assertEquals("island.info.open", definition.action(definition.itemAt(25).orElseThrow().actionKey(), ""));
+        assertEquals("X", definition.itemAt(26).orElseThrow().symbol());
+        assertEquals("gui.close", definition.action(definition.itemAt(26).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",
