@@ -6,7 +6,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CorePermissionCommandClient implements PermissionCommandClient {
     private final CoreApiClient delegate;
@@ -92,19 +91,8 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
     }
 
     private static PermissionActionView permissionAction(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = bool(root, "accepted", true);
-        accepted = accepted && !root.containsKey("error") && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new PermissionActionView(accepted, code);
-    }
-
-    private static boolean bool(Map<?, ?> object, String key, boolean fallback) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
+        Map<?, ?> root = CoreJson.object(body);
+        return new PermissionActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
     }
 
     private static void requirePermission(IslandPermission permission) {

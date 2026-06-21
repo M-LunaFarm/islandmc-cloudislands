@@ -56,7 +56,7 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
     }
 
     private static List<IslandNodeSnapshot> nodes(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         return SimpleJson.list(root.get("nodes")).stream()
             .map(SimpleJson::object)
             .map(node -> node(text(firstPresent(node, "nodeId", "id")), node))
@@ -69,7 +69,7 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
         if (body == null || body.isBlank()) {
             return Optional.empty();
         }
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         if (root.containsKey("error") || root.containsKey("code")) {
             return Optional.empty();
         }
@@ -116,7 +116,7 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
     }
 
     private static List<AdminIslandRuntimeView> runtimes(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         return SimpleJson.list(root.get("islands")).stream()
             .map(SimpleJson::object)
             .map(runtime -> new AdminIslandRuntimeView(

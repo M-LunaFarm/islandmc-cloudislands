@@ -40,7 +40,7 @@ public final class CoreNavigationQueryClient implements NavigationQueryClient {
     }
 
     private static ReviewListView reviewViews(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> summary = SimpleJson.object(root.get("summary"));
         List<ReviewView> reviews = SimpleJson.list(root.get("reviews")).stream()
             .map(SimpleJson::object)

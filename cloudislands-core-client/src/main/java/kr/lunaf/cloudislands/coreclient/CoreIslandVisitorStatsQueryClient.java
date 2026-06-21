@@ -25,7 +25,7 @@ public final class CoreIslandVisitorStatsQueryClient implements IslandVisitorSta
     }
 
     private static IslandVisitorStatsView stats(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         List<IslandVisitorStatsView.RecentVisitorView> recent = SimpleJson.list(root.get("recentVisitors")).stream()
             .map(SimpleJson::object)
             .map(visitor -> new IslandVisitorStatsView.RecentVisitorView(text(visitor, "visitorUuid"), text(visitor, "lastVisitedAt")))

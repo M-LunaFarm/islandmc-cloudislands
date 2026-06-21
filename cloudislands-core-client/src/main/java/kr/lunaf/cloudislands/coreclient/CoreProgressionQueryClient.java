@@ -81,7 +81,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     }
 
     private static LevelView levelView(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         return new LevelView(
             text(root, "islandId"),
             SimpleJson.number(root.get("level")),
@@ -91,7 +91,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     }
 
     private static ProgressionBlockDetailsView blockDetailsView(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> summary = SimpleJson.object(root.get("summary"));
         List<ProgressionBlockDetailView> blocks = SimpleJson.list(root.get("blocks")).stream()
             .map(SimpleJson::object)
