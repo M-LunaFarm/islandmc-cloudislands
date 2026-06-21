@@ -414,6 +414,13 @@ class IslandCommandControllerPolicyTest {
         assertFalse(memberUseCase.contains("public CompletableFuture<String> declineInvite("), "invite decline usecase must expose typed actions instead of raw JSON");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> setRole("), "member role usecase must expose typed actions instead of raw JSON");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> trustTemporarily("), "temporary trust usecase must expose typed actions instead of raw JSON");
+        assertTrue(memberUseCase.contains("MemberQueryClient memberQueries"), "member reads must stay behind a typed core-client query boundary");
+        assertTrue(memberUseCase.contains("memberQueries.playerProfileByName"));
+        assertTrue(memberUseCase.contains("memberQueries.pendingInvites"));
+        assertTrue(memberUseCase.contains("memberQueries.bans"));
+        assertFalse(memberUseCase.contains("coreApiClient.playerInfoByName("));
+        assertFalse(memberUseCase.contains("coreApiClient.listPendingInvites("));
+        assertFalse(memberUseCase.contains("coreApiClient.listIslandBans("));
         assertFalse(memberUseCase.contains("public CompletableFuture<String> transferOwnership("), "ownership transfer usecase must expose typed actions instead of raw JSON");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> banVisitor("), "visitor ban usecase must expose typed actions instead of raw JSON");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> pardonVisitor("), "visitor pardon usecase must expose typed actions instead of raw JSON");

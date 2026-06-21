@@ -347,6 +347,45 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void memberQueryClientReturnsTypedProfileInvitesAndBans() {
+        UUID playerUuid = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        UUID inviteId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "playerInfoByName" -> {
+                    calls.add("profile:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"playerUuid":"%s","primaryIslandId":"%s"}
+                        """.formatted(playerUuid, islandId));
+                }
+                case "listPendingInvites" -> {
+                    calls.add("invites");
+                    yield CompletableFuture.completedFuture("""
+                        {"invites":[{"inviteId":"%s","islandId":"%s","inviterUuid":"%s"}]}
+                        """.formatted(inviteId, islandId, playerUuid));
+                }
+                case "listIslandBans" -> {
+                    calls.add("bans");
+                    yield CompletableFuture.completedFuture("""
+                        {"bans":[{"bannedUuid":"%s","actorUuid":"%s","reason":"test"}]}
+                        """.formatted(playerUuid, islandId));
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        MemberQueryClient client = new CoreMemberQueryClient(raw);
+
+        assertEquals(playerUuid.toString(), client.playerProfileByName(" Alice ").join().playerUuid());
+        assertEquals(inviteId.toString(), client.pendingInvites(playerUuid).join().get(0).inviteId());
+        assertEquals("test", client.bans(islandId).join().get(0).reason());
+        assertEquals(List.of("profile:Alice", "invites", "bans"), calls);
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
