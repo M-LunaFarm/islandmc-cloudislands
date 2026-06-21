@@ -34,6 +34,10 @@ public final class CoreGuiViews {
         return client.islandInfo(islandId).thenApply(CoreGuiViews::islandInfo);
     }
 
+    public static IslandInfoView islandInfoView(String body) {
+        return islandInfo(body);
+    }
+
     public static CompletableFuture<BankView> islandBank(CoreApiClient client, UUID islandId) {
         return client.islandBank(islandId).thenApply(body -> {
             Map<?, ?> root = root(body);
@@ -65,8 +69,20 @@ public final class CoreGuiViews {
         return client.listIslandMembers(islandId).thenApply(CoreGuiViews::members);
     }
 
+    public static List<MemberView> memberViews(String body) {
+        return members(body);
+    }
+
     public static CompletableFuture<List<InviteView>> pendingInvites(CoreApiClient client, UUID playerUuid) {
         return client.listPendingInvites(playerUuid).thenApply(CoreGuiViews::invites);
+    }
+
+    public static List<InviteView> inviteViews(String body) {
+        return invites(body);
+    }
+
+    public static InviteView inviteView(String body) {
+        return invite(root(body));
     }
 
     public static CompletableFuture<List<PlayerIslandView>> playerIslands(CoreApiClient client, UUID playerUuid) {
@@ -79,6 +95,15 @@ public final class CoreGuiViews {
 
     public static CompletableFuture<List<BanView>> islandBans(CoreApiClient client, UUID islandId) {
         return client.listIslandBans(islandId).thenApply(CoreGuiViews::bans);
+    }
+
+    public static List<BanView> banViews(String body) {
+        return bans(body);
+    }
+
+    public static PlayerProfileView playerProfile(String body) {
+        Map<?, ?> root = root(body);
+        return new PlayerProfileView(text(root, "playerUuid"), text(root, "primaryIslandId"));
     }
 
     public static CompletableFuture<List<HomeView>> islandHomes(CoreApiClient client, UUID islandId) {
@@ -211,7 +236,8 @@ public final class CoreGuiViews {
                     text(object, "playerName"),
                     text(object, "lastSeenAt"),
                     text(object, "presenceState"),
-                    text(object, "presenceSource")
+                    text(object, "presenceSource"),
+                    text(object, "expiresAt")
                 ));
             }
         }
@@ -221,12 +247,16 @@ public final class CoreGuiViews {
     private static List<InviteView> invites(String body) {
         List<InviteView> invites = new ArrayList<>();
         for (Map<?, ?> object : entries(body)) {
-            String inviteId = text(object, "inviteId");
-            if (!inviteId.isBlank()) {
-                invites.add(new InviteView(inviteId, text(object, "islandId"), text(object, "inviterUuid"), text(object, "createdAt"), text(object, "expiresAt")));
+            InviteView invite = invite(object);
+            if (!invite.inviteId().isBlank()) {
+                invites.add(invite);
             }
         }
         return invites;
+    }
+
+    private static InviteView invite(Map<?, ?> object) {
+        return new InviteView(text(object, "inviteId"), text(object, "islandId"), text(object, "inviterUuid"), text(object, "createdAt"), text(object, "expiresAt"));
     }
 
     private static List<PlayerIslandView> playerIslands(String body) {
@@ -504,10 +534,16 @@ public final class CoreGuiViews {
     public record RankingView(int rank, String label, String islandId, long level, String worth) {
     }
 
-    public record MemberView(String playerUuid, String role, String joinedAt, String playerName, String lastSeenAt, String presenceState, String presenceSource) {
+    public record MemberView(String playerUuid, String role, String joinedAt, String playerName, String lastSeenAt, String presenceState, String presenceSource, String expiresAt) {
+        public MemberView(String playerUuid, String role, String joinedAt, String playerName, String lastSeenAt, String presenceState, String presenceSource) {
+            this(playerUuid, role, joinedAt, playerName, lastSeenAt, presenceState, presenceSource, "");
+        }
     }
 
     public record InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {
+    }
+
+    public record PlayerProfileView(String playerUuid, String primaryIslandId) {
     }
 
     public record PlayerIslandView(String islandId, String name, String state, String role, long level, String worth) {

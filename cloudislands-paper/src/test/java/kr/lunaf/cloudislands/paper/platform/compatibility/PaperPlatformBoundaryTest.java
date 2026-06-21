@@ -211,13 +211,13 @@ class PaperPlatformBoundaryTest {
 
         assertTrue(backend.contains("MemberManagementUseCase"), "Island command backend must own the member management usecase");
         assertTrue(backend.contains("memberManagement.removeMember("), "Command and GUI member removal must call the application usecase");
-        assertTrue(backend.contains("memberManagement.listMembers("), "Member list reads must call the application usecase");
-        assertTrue(backend.contains("memberManagement.playerInfoByName("), "Player profile lookups in member flows must call the application usecase");
+        assertTrue(backend.contains("memberManagement.listMemberViews("), "Member list reads must call the typed application usecase");
+        assertTrue(backend.contains("memberManagement.playerUuidByName("), "Player profile lookups in member flows must call the typed application usecase");
         assertTrue(backend.contains("memberManagement.resolveInviteByPlayerNameOrIslandName("), "Invite target resolution must live behind the application usecase");
-        assertTrue(backend.contains("memberManagement.createInvite("), "Member invite creation must call the application usecase");
-        assertTrue(backend.contains("memberManagement.acceptInvite("), "Invite accept must call the application usecase");
-        assertTrue(backend.contains("memberManagement.declineInvite("), "Invite decline must call the application usecase");
-        assertTrue(backend.contains("memberManagement.listBans("), "Ban list reads must call the application usecase");
+        assertTrue(backend.contains("memberManagement.createInviteView("), "Member invite creation must call the typed application usecase");
+        assertTrue(backend.contains("memberManagement.acceptInviteAction("), "Invite accept must call the typed application usecase");
+        assertTrue(backend.contains("memberManagement.declineInviteAction("), "Invite decline must call the typed application usecase");
+        assertTrue(backend.contains("memberManagement.listBanViews("), "Ban list reads must call the typed application usecase");
         assertTrue(backend.contains("memberManagement.setRole("), "Command and GUI member role changes must call the application usecase");
         assertTrue(backend.contains("memberManagement.trustTemporarily("), "Temporary trust changes must call the application usecase");
         assertTrue(backend.contains("memberManagement.transferOwnership("), "Ownership transfers must call the application usecase");

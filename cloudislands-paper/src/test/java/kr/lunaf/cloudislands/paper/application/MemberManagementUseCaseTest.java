@@ -51,6 +51,32 @@ class MemberManagementUseCaseTest {
         assertEquals(inviteId, useCase.resolveInviteByPlayerNameOrIslandName(playerUuid, "spawn").join());
     }
 
+    @Test
+    void typedMemberInviteAndBanViewsHideRawJsonFromCommandPresentation() {
+        UUID playerUuid = uuid("00000000-0000-0000-0000-000000000001");
+        UUID actorUuid = uuid("00000000-0000-0000-0000-000000000002");
+        UUID targetUuid = uuid("00000000-0000-0000-0000-000000000003");
+        UUID inviteId = uuid("00000000-0000-0000-0000-000000000010");
+        UUID islandId = uuid("00000000-0000-0000-0000-000000000020");
+
+        MemberManagementUseCase useCase = new MemberManagementUseCase(client(Map.of(
+            "listIslandMembers", "{\"members\":[{\"playerUuid\":\"" + targetUuid + "\",\"role\":\"TRUSTED\",\"expiresAt\":\"2026-06-21T10:00:00Z\"}]}",
+            "listPendingInvites", "{\"invites\":[{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\"}]}",
+            "createIslandInvite", "{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\"}",
+            "acceptIslandInviteResult", "{\"accepted\":true,\"code\":\"INVITE_ACCEPTED\"}",
+            "declineIslandInviteResult", "{\"accepted\":false,\"code\":\"INVITE_EXPIRED\"}",
+            "listIslandBans", "{\"bans\":[{\"bannedUuid\":\"" + targetUuid + "\",\"reason\":\"test\"}]}"
+        )));
+
+        assertEquals("TRUSTED", useCase.listMemberViews(islandId).join().get(0).role());
+        assertEquals("2026-06-21T10:00:00Z", useCase.listMemberViews(islandId).join().get(0).expiresAt());
+        assertEquals(inviteId.toString(), useCase.listPendingInviteViews(playerUuid).join().get(0).inviteId());
+        assertEquals(inviteId.toString(), useCase.createInviteView(islandId, actorUuid, targetUuid).join().inviteId());
+        assertEquals("ACCEPTED", useCase.acceptInviteAction(inviteId, playerUuid).join().code());
+        assertEquals("INVITE_EXPIRED", useCase.declineInviteAction(inviteId, playerUuid).join().code());
+        assertEquals("test", useCase.listBanViews(islandId).join().get(0).reason());
+    }
+
     private static CoreApiClient client(Map<String, String> bodies) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),

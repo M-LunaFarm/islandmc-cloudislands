@@ -1,9 +1,15 @@
 package kr.lunaf.cloudislands.paper.application;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.BanView;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.MemberView;
 
 public final class MemberManagementUseCase {
     private final CoreApiClient coreApiClient;
@@ -25,12 +31,21 @@ public final class MemberManagementUseCase {
         return coreApiClient.listIslandMembers(islandId);
     }
 
+    public CompletableFuture<List<MemberView>> listMemberViews(UUID islandId) {
+        requireIslandId(islandId);
+        return CoreGuiViews.islandMembers(coreApiClient, islandId);
+    }
+
     public CompletableFuture<String> playerInfoByName(String playerName) {
         String normalizedPlayerName = playerName == null ? "" : playerName.trim();
         if (normalizedPlayerName.isBlank()) {
             throw new IllegalArgumentException("playerName is required");
         }
         return coreApiClient.playerInfoByName(normalizedPlayerName);
+    }
+
+    public CompletableFuture<UUID> playerUuidByName(String playerName) {
+        return playerInfoByName(playerName).thenApply(body -> uuid(CoreGuiViews.playerProfile(body).playerUuid()));
     }
 
     public CompletableFuture<String> islandInfoByName(String islandName) {
@@ -46,9 +61,18 @@ public final class MemberManagementUseCase {
         return coreApiClient.createIslandInvite(islandId, actorUuid, targetUuid);
     }
 
+    public CompletableFuture<InviteView> createInviteView(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return createInvite(islandId, actorUuid, targetUuid).thenApply(CoreGuiViews::inviteView);
+    }
+
     public CompletableFuture<String> listPendingInvites(UUID playerUuid) {
         requirePlayerId(playerUuid);
         return coreApiClient.listPendingInvites(playerUuid);
+    }
+
+    public CompletableFuture<List<InviteView>> listPendingInviteViews(UUID playerUuid) {
+        requirePlayerId(playerUuid);
+        return CoreGuiViews.pendingInvites(coreApiClient, playerUuid);
     }
 
     public CompletableFuture<UUID> resolveInviteIdOrDirectId(UUID playerUuid, UUID inviteOrTargetUuid) {
@@ -73,8 +97,8 @@ public final class MemberManagementUseCase {
         if (normalizedTarget.isBlank()) {
             throw new IllegalArgumentException("target is required");
         }
-        return playerInfoByName(normalizedTarget)
-            .handle((body, error) -> error == null ? uuid(text(body, "playerUuid")) : null)
+        return playerUuidByName(normalizedTarget)
+            .handle((targetUuid, error) -> error == null ? targetUuid : null)
             .thenCompose(targetUuid -> {
                 if (targetUuid == null) {
                     return resolveInviteByIslandName(playerUuid, normalizedTarget);
@@ -102,9 +126,17 @@ public final class MemberManagementUseCase {
         return coreApiClient.acceptIslandInviteResult(inviteId, playerUuid);
     }
 
+    public CompletableFuture<IslandInviteActionResult> acceptInviteAction(UUID inviteId, UUID playerUuid) {
+        return acceptInvite(inviteId, playerUuid).thenApply(body -> inviteAction(body, "ACCEPTED"));
+    }
+
     public CompletableFuture<String> declineInvite(UUID inviteId, UUID playerUuid) {
         requireInviteAndPlayer(inviteId, playerUuid);
         return coreApiClient.declineIslandInviteResult(inviteId, playerUuid);
+    }
+
+    public CompletableFuture<IslandInviteActionResult> declineInviteAction(UUID inviteId, UUID playerUuid) {
+        return declineInvite(inviteId, playerUuid).thenApply(body -> inviteAction(body, "DECLINED"));
     }
 
     public CompletableFuture<String> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
@@ -147,6 +179,11 @@ public final class MemberManagementUseCase {
     public CompletableFuture<String> listBans(UUID islandId) {
         requireIslandId(islandId);
         return coreApiClient.listIslandBans(islandId);
+    }
+
+    public CompletableFuture<List<BanView>> listBanViews(UUID islandId) {
+        requireIslandId(islandId);
+        return CoreGuiViews.islandBans(coreApiClient, islandId);
     }
 
     private static void requireIslandId(UUID islandId) {
@@ -218,6 +255,18 @@ public final class MemberManagementUseCase {
 
     private static String text(String json, String key) {
         return SimpleJson.text(SimpleJson.object(SimpleJson.parse(json)).get(key));
+    }
+
+    private static IslandInviteActionResult inviteAction(String body, String successCode) {
+        java.util.Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        boolean accepted = bool(root, "accepted");
+        String code = SimpleJson.text(root.get("code"));
+        return new IslandInviteActionResult(accepted, accepted ? successCode : (code.isBlank() ? "FAILED" : code));
+    }
+
+    private static boolean bool(java.util.Map<?, ?> object, String key) {
+        Object value = object.get(key);
+        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
     }
 
     private static UUID uuid(String value) {
