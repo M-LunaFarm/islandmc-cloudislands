@@ -29,11 +29,14 @@ class RouteTicketRoutesTest {
 
     @Test
     void masksRouteNonces() {
-        String masked = RouteTicketRoutes.maskRouteNonces("{\"nonce\":\"secret\",\"nested\":{\"nonce\":\"second\"}}");
+        String masked = RouteTicketRoutes.maskRouteNonces("{\"nonce\":\"sec\\\"ret\",\"nested\":{\"nonce\":\"second\"}}");
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(masked));
+        Map<?, ?> nested = SimpleJson.object(root.get("nested"));
 
-        assertFalse(masked.contains("secret"));
+        assertFalse(masked.contains("sec\\\"ret"));
         assertFalse(masked.contains("second"));
-        assertTrue(masked.contains("\"nonce\":\"hidden\""));
+        assertEquals("hidden", SimpleJson.text(root.get("nonce")));
+        assertEquals("hidden", SimpleJson.text(nested.get("nonce")));
     }
 
     @Test

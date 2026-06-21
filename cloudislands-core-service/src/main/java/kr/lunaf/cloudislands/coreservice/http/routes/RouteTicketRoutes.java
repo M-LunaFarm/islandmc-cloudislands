@@ -2,10 +2,13 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.RoutingOrchestrator;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
@@ -189,7 +192,10 @@ public final class RouteTicketRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         if (playerUuid.equals(EMPTY_UUID)) {
-            CoreHttpResponses.write(exchange, 200, "{\"sessions\":" + maskRouteNonces(routeSessionsJson(sessions)) + ",\"tickets\":" + maskRouteNonces(tickets.toJson()) + "}");
+            CoreHttpResponses.write(exchange, 200, maskRouteNonces(SimpleJson.stringify(Map.of(
+                "sessions", SimpleJson.object(SimpleJson.parse(routeSessionsJson(sessions))),
+                "tickets", SimpleJson.object(SimpleJson.parse(tickets.toJson()))
+            ))));
             return;
         }
         PlayerRouteSession session = sessions.findAny(playerUuid).orElse(null);
@@ -232,7 +238,11 @@ public final class RouteTicketRoutes implements RouteGroup {
             "clearedSession", Boolean.toString(clearedSession),
             "clearedTicket", Boolean.toString(clearedTicket)
         ));
-        CoreHttpResponses.write(exchange, 202, "{\"clearedSession\":" + clearedSession + ",\"clearedTicket\":" + clearedTicket + ",\"reason\":\"" + escape(clearReason) + "\"}");
+        CoreHttpResponses.write(exchange, 202, SimpleJson.stringify(Map.of(
+            "clearedSession", clearedSession,
+            "clearedTicket", clearedTicket,
+            "reason", clearReason
+        )));
     }
 
     private Map<String, String> ticketFailureFields(RouteTicket ticket, String reason) {
@@ -247,29 +257,23 @@ public final class RouteTicketRoutes implements RouteGroup {
     }
 
     static String routeDebugJson(UUID playerUuid, PlayerRouteSession session, RouteTicket ticket) {
-        return "{\"playerUuid\":\"" + playerUuid
-            + "\",\"session\":" + (session == null ? "null" : maskRouteNonces(sessionJson(session)))
-            + ",\"ticket\":" + (ticket == null ? "null" : maskRouteNonces(RoutingOrchestrator.toJson(ticket)))
-            + "}";
+        LinkedHashMap<String, Object> root = new LinkedHashMap<>();
+        root.put("playerUuid", playerUuid);
+        root.put("session", session == null ? null : maskedJsonObject(sessionJson(session)));
+        root.put("ticket", ticket == null ? null : maskedJsonObject(RoutingOrchestrator.toJson(ticket)));
+        return SimpleJson.stringify(root);
     }
 
     static String maskRouteNonces(String json) {
-        String needle = "\"nonce\":\"";
-        StringBuilder masked = new StringBuilder(json);
-        int start = masked.indexOf(needle);
-        while (start >= 0) {
-            int valueStart = start + needle.length();
-            int valueEnd = masked.indexOf("\"", valueStart);
-            if (valueEnd < 0) {
-                break;
+        try {
+            Object parsed = SimpleJson.parse(json);
+            if (parsed == null) {
+                return json;
             }
-            masked.replace(valueStart, valueEnd, "hidden");
-            start = masked.indexOf(needle, valueStart + "hidden".length());
-        }
-        if (masked.length() == json.length() && masked.indexOf(needle) < 0) {
+            return SimpleJson.stringify(maskNonceValue(parsed));
+        } catch (RuntimeException ignored) {
             return json;
         }
-        return masked.toString();
     }
 
     static String routeSessionsJson(RouteSessionStore sessions) {
@@ -286,7 +290,26 @@ public final class RouteTicketRoutes implements RouteGroup {
         return RouteSessionJson.session(session);
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    private static Object maskedJsonObject(String json) {
+        return SimpleJson.object(SimpleJson.parse(maskRouteNonces(json)));
+    }
+
+    private static Object maskNonceValue(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            LinkedHashMap<String, Object> masked = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                String key = SimpleJson.text(entry.getKey());
+                masked.put(key, key.equals("nonce") ? "hidden" : maskNonceValue(entry.getValue()));
+            }
+            return masked;
+        }
+        if (value instanceof List<?> list) {
+            java.util.ArrayList<Object> masked = new java.util.ArrayList<>();
+            for (Object item : list) {
+                masked.add(maskNonceValue(item));
+            }
+            return masked;
+        }
+        return value;
     }
 }
