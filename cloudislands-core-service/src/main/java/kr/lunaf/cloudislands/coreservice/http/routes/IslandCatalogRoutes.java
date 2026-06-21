@@ -2,7 +2,9 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -10,6 +12,8 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreservice.RoutingOrchestrator;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
@@ -19,7 +23,6 @@ import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
-import kr.lunaf.cloudislands.coreservice.RoutingOrchestrator;
 import kr.lunaf.cloudislands.coreservice.workflow.CreateIslandWorkflow;
 
 public final class IslandCatalogRoutes implements RouteGroup {
@@ -87,37 +90,42 @@ public final class IslandCatalogRoutes implements RouteGroup {
     }
 
     static String createResultJson(CreateIslandResult result) {
-        String ticketJson = result.ticket() == null ? "null" : RoutingOrchestrator.toJson(result.ticket());
-        String islandId = result.island() == null ? "" : result.island().islandId().toString();
-        return "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + islandId + "\",\"ticket\":" + ticketJson + "}";
+        Object ticket = result.ticket() == null ? null : SimpleJson.parse(RoutingOrchestrator.toJson(result.ticket()));
+        Object islandId = result.island() == null ? "" : result.island().islandId();
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", result.accepted());
+        values.put("code", result.code());
+        values.put("islandId", islandId);
+        values.put("ticket", ticket);
+        return SimpleJson.stringify(values);
     }
 
     static String islandsJson(List<IslandSnapshot> islands) {
-        StringBuilder builder = new StringBuilder("{\"islands\":[");
-        boolean first = true;
+        List<Object> renderedIslands = new ArrayList<>();
         for (IslandSnapshot island : islands) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(islandJson(island));
+            renderedIslands.add(islandMap(island));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("islands", renderedIslands));
     }
 
     static String islandJson(IslandSnapshot island) {
-        return "{\"islandId\":\"" + island.islandId()
-            + "\",\"ownerUuid\":\"" + island.ownerUuid()
-            + "\",\"name\":\"" + escape(island.name())
-            + "\",\"state\":\"" + island.state()
-            + "\",\"size\":" + island.size()
-            + ",\"border\":" + island.size()
-            + ",\"level\":" + island.level()
-            + ",\"worth\":\"" + escape(island.worth())
-            + "\",\"publicAccess\":" + island.publicAccess()
-            + ",\"createdAt\":\"" + island.createdAt()
-            + "\",\"updatedAt\":\"" + island.updatedAt()
-            + "\"}";
+        return SimpleJson.stringify(islandMap(island));
+    }
+
+    private static Map<String, Object> islandMap(IslandSnapshot island) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", island.islandId());
+        values.put("ownerUuid", island.ownerUuid());
+        values.put("name", island.name());
+        values.put("state", island.state());
+        values.put("size", island.size());
+        values.put("border", island.size());
+        values.put("level", island.level());
+        values.put("worth", island.worth());
+        values.put("publicAccess", island.publicAccess());
+        values.put("createdAt", island.createdAt());
+        values.put("updatedAt", island.updatedAt());
+        return values;
     }
 
     static int queryInteger(HttpExchange exchange, String key, int fallback, int min, int max) {
@@ -137,9 +145,5 @@ public final class IslandCatalogRoutes implements RouteGroup {
             }
         }
         return Math.max(min, Math.min(fallback, max));
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
