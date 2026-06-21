@@ -809,6 +809,75 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void memberCommandClientReturnsTypedActionsAndInviteViews() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+        UUID inviteId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "removeIslandMemberResult" -> {
+                    calls.add("remove");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"MEMBER_REMOVED\"}");
+                }
+                case "createIslandInvite" -> {
+                    calls.add("invite");
+                    yield CompletableFuture.completedFuture("{\"inviteId\":\"%s\",\"islandId\":\"%s\",\"inviterUuid\":\"%s\"}".formatted(inviteId, islandId, actorUuid));
+                }
+                case "acceptIslandInviteResult" -> {
+                    calls.add("accept");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"INVITE_ACCEPTED\"}");
+                }
+                case "declineIslandInviteResult" -> {
+                    calls.add("decline");
+                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"INVITE_EXPIRED\"}");
+                }
+                case "setIslandMemberResult" -> {
+                    calls.add("role:" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"MEMBER_ROLE_SET\"}");
+                }
+                case "trustIslandMemberTemporary" -> {
+                    calls.add("trust:" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"TEMP_TRUST_SET\",\"expiresAt\":\"later\"}");
+                }
+                case "transferIslandOwnershipResult" -> {
+                    calls.add("transfer");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"OWNERSHIP_TRANSFERRED\"}");
+                }
+                case "banIslandVisitorResult" -> {
+                    calls.add("ban:" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"VISITOR_BAN_DENIED\"}");
+                }
+                case "pardonIslandVisitorResult" -> {
+                    calls.add("pardon");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"VISITOR_PARDONED\"}");
+                }
+                case "kickIslandVisitorResult" -> {
+                    calls.add("kick");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"VISITOR_KICKED\"}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        MemberCommandClient client = new CoreMemberCommandClient(raw);
+
+        assertEquals("MEMBER_REMOVED", client.removeMember(islandId, actorUuid, targetUuid).join().code());
+        assertEquals(inviteId.toString(), client.createInvite(islandId, actorUuid, targetUuid).join().inviteId());
+        assertEquals("ACCEPTED", client.acceptInvite(inviteId, targetUuid).join().code());
+        assertEquals("INVITE_EXPIRED", client.declineInvite(inviteId, targetUuid).join().code());
+        assertEquals("MEMBER_ROLE_SET", client.setRole(islandId, actorUuid, targetUuid, "trusted").join().code());
+        assertEquals("later", client.trustTemporarily(islandId, actorUuid, targetUuid, 60L).join().expiresAt());
+        assertEquals("OWNERSHIP_TRANSFERRED", client.transferOwnership(islandId, actorUuid, targetUuid).join().code());
+        assertFalse(client.banVisitor(islandId, actorUuid, targetUuid, "reason").join().accepted());
+        assertEquals("VISITOR_PARDONED", client.pardonVisitor(islandId, actorUuid, targetUuid).join().code());
+        assertEquals("VISITOR_KICKED", client.kickVisitor(islandId, actorUuid, targetUuid).join().code());
+        assertEquals(List.of("remove", "invite", "accept", "decline", "role:trusted", "trust:60", "transfer", "ban:reason", "pardon", "kick"), calls);
+    }
+
+    @Test
     void adminNodeQueryClientReturnsTypedSummariesAndNodeInfo() {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(

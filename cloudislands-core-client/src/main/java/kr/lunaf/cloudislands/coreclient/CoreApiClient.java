@@ -108,6 +108,10 @@ public interface CoreApiClient {
         return new CoreMemberQueryClient(this);
     }
 
+    default MemberCommandClient memberCommands() {
+        return new CoreMemberCommandClient(this);
+    }
+
     default AdminNodeQueryClient adminNodes() {
         return new CoreAdminNodeQueryClient(this);
     }
