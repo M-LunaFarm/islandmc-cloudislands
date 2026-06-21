@@ -2650,7 +2650,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind) { return completeMissionResult(islandId, actorUuid, missionKey, kind).thenApply(_result -> null); }
         @Override public CompletableFuture<Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind) { return mutateIdempotent("island.mission.complete", () -> client.progressionCommands().completeMission(islandId, actorUuid, missionKey, kind)).thenApply(PaperCloudIslandsApi::mission); }
         @Override public CompletableFuture<Optional<IslandMissionSnapshot>> progressMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) { return mutateIdempotent("island.mission.progress", () -> client.progressionCommands().progressMission(islandId, actorUuid, missionKey, kind, amount)).thenApply(PaperCloudIslandsApi::mission); }
-        @Override public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) { return mutate("island.mission-provider.register", () -> client.registerMissionProvider(providerId, missionDefinitionsJson(definitions))).thenApply(PaperCloudIslandsApi::missionDefinitions); }
+        @Override public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) { return mutate("island.mission-provider.register", () -> client.progressionCommands().registerMissionProvider(providerId, definitions)); }
         @Override public CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message) { return sendChatResult(islandId, actorUuid, channel, message).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message) { return mutate("island.chat.send", () -> client.communicationCommands().sendChat(islandId, actorUuid, channel, message)).thenApply(PaperCloudIslandsApi::chatResult); }
         @Override public CompletableFuture<Void> sendIslandChat(UUID islandId, UUID actorUuid, String message) { return sendIslandChatResult(islandId, actorUuid, message).thenApply(_result -> null); }
@@ -3752,43 +3752,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             view.reward(),
             view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
         ));
-    }
-
-    private static List<MissionProviderDefinitionSnapshot> missionDefinitions(String json) {
-        List<MissionProviderDefinitionSnapshot> definitions = new ArrayList<>();
-        for (String object : objects(json, "missions")) {
-            definitions.add(new MissionProviderDefinitionSnapshot(
-                text(object, "providerId", ""),
-                text(object, "missionKey", ""),
-                text(object, "kind", "MISSION"),
-                text(object, "title", ""),
-                longValue(object, "goal", 1L),
-                text(object, "reward", ""),
-                bool(object, "enabled", true),
-                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return definitions;
-    }
-
-    private static String missionDefinitionsJson(List<MissionProviderDefinitionSnapshot> definitions) {
-        StringBuilder builder = new StringBuilder("[");
-        boolean first = true;
-        for (MissionProviderDefinitionSnapshot definition : definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"missionKey\":\"").append(escape(definition.missionKey())).append("\",")
-                .append("\"kind\":\"").append(escape(definition.kind())).append("\",")
-                .append("\"title\":\"").append(escape(definition.title())).append("\",")
-                .append("\"goal\":").append(Math.max(1L, definition.goal())).append(',')
-                .append("\"reward\":\"").append(escape(definition.reward())).append("\",")
-                .append("\"enabled\":").append(definition.enabled())
-                .append('}');
-        }
-        return builder.append(']').toString();
     }
 
     private static List<IslandSnapshotRecord> snapshots(String json) {

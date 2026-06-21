@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -1118,15 +1119,30 @@ class CoreTypedClientsTest {
                         {"accepted":true,"code":"MISSION_COMPLETED","islandId":"%s","missionKey":"starter","kind":"CHALLENGE","title":"Starter","progress":2,"goal":2,"completed":true,"reward":"10","updatedAt":"2026-01-02T03:04:05Z"}
                         """.formatted(islandId));
                 }
+                case "registerMissionProvider" -> {
+                    calls.add("register:" + args[0] + ":" + args[1]);
+                    yield CompletableFuture.completedFuture("""
+                        {"missions":[{"providerId":"addon-one","missionKey":"starter","kind":"MISSION","title":"Starter","goal":3,"reward":"money:5","enabled":true,"updatedAt":"2026-01-02T03:04:05Z"}]}
+                        """);
+                }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
         ProgressionCommandClient client = new CoreProgressionCommandClient(raw);
+        List<MissionProviderDefinitionSnapshot> definitions = List.of(new MissionProviderDefinitionSnapshot(
+            "addon-one",
+            "Starter",
+            "MISSION",
+            "Starter \"Mission\"",
+            3L,
+            "money:5"
+        ));
 
         LevelView level = client.recalculateLevel(islandId, actorUuid).join();
         ProgressionUpgradePurchaseView upgrade = client.purchaseUpgrade(islandId, actorUuid, "generator").join();
         ProgressionMissionCompletionView progress = client.progressMission(islandId, actorUuid, "starter", "CHALLENGE", 1L).join();
         ProgressionMissionCompletionView mission = client.completeMission(islandId, actorUuid, "starter", "CHALLENGE").join();
+        List<MissionProviderDefinitionSnapshot> registered = client.registerMissionProvider("addon-one", definitions).join();
 
         assertEquals(8L, level.level());
         assertEquals(islandId.toString(), level.islandId());
@@ -1143,7 +1159,16 @@ class CoreTypedClientsTest {
         assertEquals(2L, mission.goal());
         assertTrue(mission.completed());
         assertEquals("Starter", mission.title());
-        assertEquals(List.of("recalculate", "purchase:generator", "progress:starter:CHALLENGE:1", "mission:starter:CHALLENGE"), calls);
+        assertEquals("addon-one", registered.getFirst().providerId());
+        assertEquals("starter", registered.getFirst().missionKey());
+        assertEquals(3L, registered.getFirst().goal());
+        assertEquals(List.of(
+            "recalculate",
+            "purchase:generator",
+            "progress:starter:CHALLENGE:1",
+            "mission:starter:CHALLENGE",
+            "register:addon-one:[{\"missionKey\":\"starter\",\"kind\":\"MISSION\",\"title\":\"Starter \\\"Mission\\\"\",\"goal\":3,\"reward\":\"money:5\",\"enabled\":true}]"
+        ), calls);
     }
 
     @Test

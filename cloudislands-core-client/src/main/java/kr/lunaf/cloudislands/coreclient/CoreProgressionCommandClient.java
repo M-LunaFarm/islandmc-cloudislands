@@ -1,8 +1,11 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreProgressionCommandClient implements ProgressionCommandClient {
@@ -46,6 +49,13 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
         return delegate.progressIslandMission(islandId, actorUuid, missionKey == null ? "" : missionKey, normalizedKind, amount)
             .thenApply(body -> missionCompletionResult(body, islandId, missionKey, normalizedKind));
+    }
+
+    @Override
+    public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) {
+        String normalizedProviderId = providerId == null || providerId.isBlank() ? "cloudislands" : providerId.trim();
+        return delegate.registerMissionProvider(normalizedProviderId, missionDefinitionsJson(definitions))
+            .thenApply(CoreProgressionCommandClient::missionDefinitions);
     }
 
     private static ProgressionUpgradePurchaseView upgradePurchaseResult(String body, String fallbackKey) {
@@ -113,6 +123,58 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         );
     }
 
+    private static List<MissionProviderDefinitionSnapshot> missionDefinitions(String body) {
+        Object parsed = SimpleJson.parse(body == null || body.isBlank() ? "{}" : body);
+        List<?> entries = parsed instanceof List<?> ? SimpleJson.list(parsed) : SimpleJson.list(SimpleJson.object(parsed).get("missions"));
+        return entries.stream()
+            .map(entry -> missionDefinition(SimpleJson.object(entry)))
+            .toList();
+    }
+
+    private static MissionProviderDefinitionSnapshot missionDefinition(Map<?, ?> object) {
+        return new MissionProviderDefinitionSnapshot(
+            text(object, "providerId"),
+            text(object, "missionKey"),
+            text(object, "kind").isBlank() ? "MISSION" : text(object, "kind"),
+            text(object, "title"),
+            SimpleJson.number(object.get("goal")),
+            text(object, "reward"),
+            bool(object.get("enabled"), true),
+            instant(text(object, "updatedAt"))
+        );
+    }
+
+    private static String missionDefinitionsJson(List<MissionProviderDefinitionSnapshot> definitions) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (MissionProviderDefinitionSnapshot definition : definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('{')
+                .append("\"missionKey\":\"").append(escape(definition.missionKey())).append("\",")
+                .append("\"kind\":\"").append(escape(definition.kind())).append("\",")
+                .append("\"title\":\"").append(escape(definition.title())).append("\",")
+                .append("\"goal\":").append(Math.max(1L, definition.goal())).append(',')
+                .append("\"reward\":\"").append(escape(definition.reward())).append("\",")
+                .append("\"enabled\":").append(definition.enabled())
+                .append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    private static Instant instant(String value) {
+        if (value == null || value.isBlank()) {
+            return Instant.EPOCH;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (RuntimeException ignored) {
+            return Instant.EPOCH;
+        }
+    }
+
     private static boolean accepted(Map<?, ?> root) {
         return !root.containsKey("error")
             && !Boolean.FALSE.equals(root.get("accepted"))
@@ -131,5 +193,24 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
 
     private static boolean bool(Object value, boolean fallback) {
         return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
+    }
+
+    private static String escape(String value) {
+        if (value == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(value.length() + 8);
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            switch (current) {
+                case '"' -> builder.append("\\\"");
+                case '\\' -> builder.append("\\\\");
+                case '\n' -> builder.append("\\n");
+                case '\r' -> builder.append("\\r");
+                case '\t' -> builder.append("\\t");
+                default -> builder.append(current);
+            }
+        }
+        return builder.toString();
     }
 }

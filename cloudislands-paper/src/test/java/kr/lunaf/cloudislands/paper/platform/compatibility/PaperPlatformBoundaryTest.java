@@ -254,6 +254,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.bankCommands().withdraw(islandId, actorUuid, amount.toPlainString())"), "Bank withdraw must use the typed bank command client");
         assertTrue(source.contains("client.routingCommands().publishRouteSessionResult(ticket)"), "Route session publish must use the typed routing command client");
         assertTrue(source.contains("client.lifecycle().repairIsland(islandId, reason)"), "Island repair must use the typed lifecycle command client");
+        assertTrue(source.contains("client.progressionCommands().registerMissionProvider(providerId, definitions)"), "Mission provider registration must use the typed progression command client");
 
         assertTrue(!source.contains("client.activateIslandResult(islandId)"), "Paper public API must not call raw activation JSON endpoints");
         assertTrue(!source.contains("client.deactivateIslandResult(islandId)"), "Paper public API must not call raw deactivation JSON endpoints");
@@ -296,6 +297,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("client.withdrawIslandBank(islandId, actorUuid, amount.toPlainString())"), "Paper public API must not call raw bank withdraw JSON endpoints");
         assertTrue(!source.contains("client.publishRouteSessionResult(ticket)"), "Paper public API must not call raw route session publish JSON endpoints");
         assertTrue(!source.contains("client.repairIslandResult(islandId, reason)"), "Paper public API must not call raw repair JSON endpoints");
+        assertTrue(!source.contains("client.registerMissionProvider(providerId, missionDefinitionsJson(definitions))"), "Paper public API must not call raw mission provider JSON endpoints");
     }
 
     @Test
