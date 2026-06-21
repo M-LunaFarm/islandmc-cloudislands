@@ -129,6 +129,14 @@ public final class GuiActionParser {
                     safeData.getOrDefault("createdAt", ""),
                     safeData.getOrDefault("payload", "")
                 ));
+                case "island.mission.complete" -> Optional.of(new GuiAction.MissionComplete(
+                    required(safeData, "missionKey"),
+                    safeData.getOrDefault("kind", "MISSION"),
+                    safeData.getOrDefault("label", "섬 미션")
+                ));
+                case "island.upgrade.purchase" -> Optional.of(new GuiAction.UpgradePurchase(
+                    required(safeData, "upgradeKey")
+                ));
                 default -> GuiActionSchema.registered(safeAction)
                     ? Optional.of(new GuiAction.Raw(safeAction, safeData))
                     : Optional.empty();

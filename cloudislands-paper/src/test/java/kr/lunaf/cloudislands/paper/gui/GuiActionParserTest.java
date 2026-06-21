@@ -31,6 +31,8 @@ class GuiActionParserTest {
         assertTrue(GuiActionParser.parse("island.permissions.set", Map.of("role", "MEMBER", "permission", "NOPE")).isEmpty());
         assertTrue(GuiActionParser.parse("island.role.weight.adjust", Map.of("role", "BUILDER", "weight", "-1")).isEmpty());
         assertTrue(GuiActionParser.parse("island.log.detail", Map.of("actorUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.mission.complete", Map.of("missionKey", "")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.upgrade.purchase", Map.of("upgradeKey", "")).isEmpty());
         assertTrue(GuiActionParser.parse("island.member.remove.prepare", Map.of("playerUuid", "not-a-uuid")).isEmpty());
     }
 
@@ -101,6 +103,19 @@ class GuiActionParserTest {
             "createdAt", "now",
             "payload", "amount=100"
         ), action.data());
+    }
+
+    @Test
+    void parsesProgressionMutationsIntoTypedActions() {
+        GuiAction mission = GuiActionParser.parse("island.mission.complete", Map.of("missionKey", " starter ", "kind", " challenge ", "label", " 섬 챌린지 ")).orElseThrow();
+        GuiAction upgrade = GuiActionParser.parse("island.upgrade.purchase", Map.of("upgradeKey", " max-members ")).orElseThrow();
+
+        assertTrue(mission instanceof GuiAction.MissionComplete);
+        assertEquals("island.mission.complete", mission.actionId());
+        assertEquals(Map.of("missionKey", "starter", "kind", "CHALLENGE", "label", "섬 챌린지"), mission.data());
+        assertTrue(upgrade instanceof GuiAction.UpgradePurchase);
+        assertEquals("island.upgrade.purchase", upgrade.actionId());
+        assertEquals(Map.of("upgradeKey", "max-members"), upgrade.data());
     }
 
     @Test

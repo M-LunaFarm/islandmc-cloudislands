@@ -145,6 +145,14 @@ final class IslandProgressionCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.MissionComplete missionComplete) {
+            completeTask(player, missionComplete.missionKey(), missionComplete.kind(), missionComplete.label());
+            return true;
+        }
+        if (action instanceof GuiAction.UpgradePurchase upgradePurchase) {
+            purchaseUpgrade(player, upgradePurchase.upgradeKey());
+            return true;
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {

@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -449,6 +449,40 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
                 "createdAt", createdAt,
                 "payload", payload
             );
+        }
+    }
+
+    record MissionComplete(String missionKey, String kind, String label) implements GuiAction {
+        public MissionComplete {
+            missionKey = requiredName(missionKey, "missionKey");
+            kind = kind == null || kind.isBlank() ? "MISSION" : kind.trim().toUpperCase(Locale.ROOT);
+            label = label == null || label.isBlank() ? "섬 미션" : label.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return "island.mission.complete";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("missionKey", missionKey, "kind", kind, "label", label);
+        }
+    }
+
+    record UpgradePurchase(String upgradeKey) implements GuiAction {
+        public UpgradePurchase {
+            upgradeKey = requiredName(upgradeKey, "upgradeKey");
+        }
+
+        @Override
+        public String actionId() {
+            return "island.upgrade.purchase";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("upgradeKey", upgradeKey);
         }
     }
 
