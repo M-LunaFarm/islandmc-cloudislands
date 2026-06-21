@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -99,8 +98,11 @@ final class IslandSettingsCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, boolean rightClick) {
+        if (action instanceof GuiAction.FlagSet flagSet) {
+            setFlag(player, flagSet.flag(), rightClick ? "false" : "true");
+            return true;
+        }
         String actionId = action.actionId();
-        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.settings.open" -> {
                 openSettings(player);
@@ -120,10 +122,6 @@ final class IslandSettingsCommandHandler {
             }
             case "island.flags.list" -> {
                 listFlags(player);
-                yield true;
-            }
-            case "island.flag.set" -> {
-                setFlag(player, data.getOrDefault("flag", ""), rightClick ? "false" : "true");
                 yield true;
             }
             default -> false;
@@ -210,14 +208,18 @@ final class IslandSettingsCommandHandler {
     }
 
     private void setFlag(Player player, String flagName, String value) {
+        IslandFlag flag = islandFlag(flagName);
+        if (flag == null) {
+            runtime.message(player, runtime.routeMessage("input-flag-invalid", "올바른 섬 플래그를 입력해주세요."));
+            return;
+        }
+        setFlag(player, flag, value);
+    }
+
+    private void setFlag(Player player, IslandFlag flag, String value) {
         runtime.currentIsland(player, "섬 안에서만 플래그를 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
                 runtime.message(player, runtime.routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
-                return;
-            }
-            IslandFlag flag = islandFlag(flagName);
-            if (flag == null) {
-                runtime.message(player, runtime.routeMessage("input-flag-invalid", "올바른 섬 플래그를 입력해주세요."));
                 return;
             }
             runtime.mutate("island.flag.set", () -> coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value))

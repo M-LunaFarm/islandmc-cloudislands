@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
@@ -43,6 +44,9 @@ public final class GuiActionParser {
                 case "island.biome.set" -> Optional.of(new GuiAction.BiomeSet(
                     required(safeData, "biomeKey")
                 ));
+                case "island.flag.set" -> Optional.of(new GuiAction.FlagSet(
+                    enumValue(IslandFlag.class, required(safeData, "flag"))
+                ));
                 case "island.limit.set" -> Optional.of(new GuiAction.LimitSet(
                     required(safeData, "limitKey"),
                     nonNegativeLong(required(safeData, "value"))
@@ -53,7 +57,7 @@ public final class GuiActionParser {
                 ));
                 case "island.permissions.set" -> Optional.of(new GuiAction.ChangePermission(
                     new RoleId(required(safeData, "role")),
-                    IslandPermission.valueOf(required(safeData, "permission").toUpperCase(java.util.Locale.ROOT).replace('-', '_')),
+                    enumValue(IslandPermission.class, required(safeData, "permission")),
                     safeData.getOrDefault("expectedVersion", "")
                 ));
                 default -> GuiActionSchema.registered(safeAction)
@@ -110,5 +114,9 @@ public final class GuiActionParser {
             throw new IllegalArgumentException(key + " is required");
         }
         return value.trim();
+    }
+
+    private static <E extends Enum<E>> E enumValue(Class<E> type, String value) {
+        return Enum.valueOf(type, value.toUpperCase(java.util.Locale.ROOT).replace('-', '_'));
     }
 }

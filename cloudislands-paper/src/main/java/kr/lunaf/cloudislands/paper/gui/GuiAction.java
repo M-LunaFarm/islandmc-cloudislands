@@ -4,10 +4,11 @@ import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.LimitSet, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -104,6 +105,24 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
         @Override
         public Map<String, String> data() {
             return Map.of("biomeKey", biomeKey);
+        }
+    }
+
+    record FlagSet(IslandFlag flag) implements GuiAction {
+        public FlagSet {
+            if (flag == null) {
+                throw new IllegalArgumentException("flag is required");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return "island.flag.set";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("flag", flag.name());
         }
     }
 
