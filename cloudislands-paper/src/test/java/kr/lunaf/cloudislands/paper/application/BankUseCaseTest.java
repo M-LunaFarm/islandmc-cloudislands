@@ -14,6 +14,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
+import kr.lunaf.cloudislands.coreclient.CoreBankCommandClient;
+import kr.lunaf.cloudislands.coreclient.CoreBankQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import org.junit.jupiter.api.Test;
 
@@ -140,6 +142,8 @@ class BankUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
+                case "bank" -> new CoreBankQueryClient((CoreApiClient) _proxy);
+                case "bankCommands" -> new CoreBankCommandClient((CoreApiClient) _proxy);
                 case "islandBank" -> CompletableFuture.completedFuture("{\"balance\":\"55\"}");
                 case "depositIslandBank" -> core.deposit((String) args[2]);
                 case "withdrawIslandBank" -> core.withdraw((String) args[2]);

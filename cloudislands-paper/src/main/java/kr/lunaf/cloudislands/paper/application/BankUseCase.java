@@ -8,8 +8,6 @@ import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.BankCommandClient;
 import kr.lunaf.cloudislands.coreclient.BankMutationView;
 import kr.lunaf.cloudislands.coreclient.BankQueryClient;
-import kr.lunaf.cloudislands.coreclient.CoreBankCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreBankQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class BankUseCase {
@@ -23,13 +21,13 @@ public final class BankUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.bankQueries = new CoreBankQueryClient(coreApiClient);
-        this.bankCommands = new CoreBankCommandClient(coreApiClient);
+        this.bankQueries = coreApiClient.bank();
+        this.bankCommands = coreApiClient.bankCommands();
         this.economyBridge = economyBridge;
     }
 
     BankUseCase(CoreApiClient coreApiClient, BankQueryClient bankQueries, EconomyBridge economyBridge) {
-        this(coreApiClient, bankQueries, new CoreBankCommandClient(coreApiClient), economyBridge);
+        this(coreApiClient, bankQueries, coreApiClient.bankCommands(), economyBridge);
     }
 
     BankUseCase(CoreApiClient coreApiClient, BankQueryClient bankQueries, BankCommandClient bankCommands, EconomyBridge economyBridge) {
