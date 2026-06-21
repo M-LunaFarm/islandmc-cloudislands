@@ -33,7 +33,7 @@ public final class IslandCreationUseCase {
         return runner.mutateIdempotent("island.delete", () -> coreApiClient.deleteIsland(playerUuid, islandId));
     }
 
-    public CompletableFuture<String> reset(UUID islandId, UUID actorUuid, String reason, IdempotentMutationRunner runner) {
+    private CompletableFuture<String> resetBody(UUID islandId, UUID actorUuid, String reason, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requirePlayer(actorUuid);
         requireIdempotentRunner(runner);
@@ -42,7 +42,7 @@ public final class IslandCreationUseCase {
     }
 
     public CompletableFuture<IslandActionResult> resetAction(UUID islandId, UUID actorUuid, String reason, IdempotentMutationRunner runner) {
-        return reset(islandId, actorUuid, reason, runner)
+        return resetBody(islandId, actorUuid, reason, runner)
             .thenApply(body -> actionResult(body, "RESET_QUEUED"));
     }
 

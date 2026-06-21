@@ -309,9 +309,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(lifecycleHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(lifecycleHandler.contains("IslandCreationUseCase"));
         assertTrue(lifecycleHandler.contains("creationUseCase.create("));
+        assertTrue(lifecycleHandler.contains("creationUseCase.resetAction("));
         assertFalse(lifecycleHandler.contains("coreApiClient.createIsland"));
         assertFalse(lifecycleHandler.contains("coreApiClient.deleteIsland"));
         assertFalse(lifecycleHandler.contains("coreApiClient.resetIslandResult"));
+        assertFalse(creationUseCase.contains("public CompletableFuture<String> reset("), "reset usecase must expose typed actions instead of raw JSON");
         assertTrue(creationUseCase.contains("coreApiClient.createIsland"));
         assertTrue(creationUseCase.contains("coreApiClient.deleteIsland"));
         assertTrue(creationUseCase.contains("coreApiClient.resetIslandResult"));

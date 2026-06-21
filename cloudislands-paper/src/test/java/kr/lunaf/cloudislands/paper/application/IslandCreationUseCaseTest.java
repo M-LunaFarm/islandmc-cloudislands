@@ -22,7 +22,6 @@ class IslandCreationUseCaseTest {
 
         assertEquals("CREATED", useCase.create(playerUuid, "", mutationRunner(calls)).join().code());
         assertEquals(islandId, useCase.delete(playerUuid, islandId, idempotentRunner(calls)).join().islandId());
-        assertEquals("{\"accepted\":true,\"code\":\"RESET_QUEUED\"}", useCase.reset(islandId, playerUuid, "", idempotentRunner(calls)).join());
         assertEquals("RESET_QUEUED", useCase.resetAction(islandId, playerUuid, "", idempotentRunner(calls)).join().code());
 
         assertEquals(List.of(
@@ -30,8 +29,6 @@ class IslandCreationUseCaseTest {
             "createIsland:default",
             "audit-idempotent:island.delete",
             "deleteIsland:" + islandId,
-            "audit-idempotent:island.reset",
-            "resetIslandResult:player-reset",
             "audit-idempotent:island.reset",
             "resetIslandResult:player-reset"
         ), calls);
