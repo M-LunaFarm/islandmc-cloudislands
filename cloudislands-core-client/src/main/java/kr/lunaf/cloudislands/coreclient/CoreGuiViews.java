@@ -394,7 +394,7 @@ public final class CoreGuiViews {
                 key = text(object, "upgradeKey");
             }
             if (!key.isBlank()) {
-                upgrades.add(new UpgradeView(key, text(object, "type"), intValue(object, "level")));
+                upgrades.add(new UpgradeView(key, text(object, "type"), intValue(object, "level"), text(object, "generatorKey")));
             }
         }
         return upgrades;
@@ -639,7 +639,16 @@ public final class CoreGuiViews {
     public record RoleView(String role, int weight, String displayName) {
     }
 
-    public record UpgradeView(String key, String type, int level) {
+    public record UpgradeView(String key, String type, int level, String generatorKey) {
+        public UpgradeView(String key, String type, int level) {
+            this(key, type, level, "");
+        }
+
+        public UpgradeView {
+            key = key == null ? "" : key;
+            type = type == null ? "" : type;
+            generatorKey = generatorKey == null ? "" : generatorKey;
+        }
     }
 
     public record MissionView(String key, String title, long progress, long goal, boolean completed, String reward) {

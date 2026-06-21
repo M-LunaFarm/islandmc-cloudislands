@@ -3,8 +3,8 @@ package kr.lunaf.cloudislands.paper.limit;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 
 public final class IslandLimitCache {
     private static final long TTL_MILLIS = 30_000L;
@@ -23,8 +23,8 @@ public final class IslandLimitCache {
         }
         Map<String, Long> fallbackValues = cached == null ? Map.of() : cached.values();
         cache.put(islandId, new CachedLimits(fallbackValues, now + 5_000L));
-        client.listIslandLimits(islandId)
-            .thenAccept(body -> cache.put(islandId, new CachedLimits(parse(body), System.currentTimeMillis() + TTL_MILLIS)))
+        client.environment().limitViews(islandId)
+            .thenAccept(views -> cache.put(islandId, new CachedLimits(limitValues(views), System.currentTimeMillis() + TTL_MILLIS)))
             .exceptionally(exception -> {
                 cache.put(islandId, new CachedLimits(fallbackValues, System.currentTimeMillis() + TTL_MILLIS));
                 return null;
@@ -40,16 +40,14 @@ public final class IslandLimitCache {
         cache.clear();
     }
 
-    private Map<String, Long> parse(String json) {
-        if (json == null || json.isBlank()) {
+    private Map<String, Long> limitValues(java.util.List<CoreGuiViews.LimitView> views) {
+        if (views == null || views.isEmpty()) {
             return Map.of();
         }
         Map<String, Long> values = new ConcurrentHashMap<>();
-        for (Object item : SimpleJson.list(SimpleJson.parse(json))) {
-            Map<?, ?> object = SimpleJson.object(item);
-            String limitKey = SimpleJson.text(object.get("limitKey"));
-            if (!limitKey.isBlank()) {
-                values.put(limitKey.toUpperCase(), SimpleJson.number(object.get("value")));
+        for (CoreGuiViews.LimitView view : views) {
+            if (view != null && !view.key().isBlank()) {
+                values.put(view.key().toUpperCase(), view.value());
             }
         }
         return Map.copyOf(values);

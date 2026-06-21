@@ -313,6 +313,24 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void runtimeCachesUseTypedQueryClients() throws Exception {
+        Path root = repositoryRoot();
+        String limitCache = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/limit/IslandLimitCache.java"));
+        String generatorCache = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/GeneratorLevelCache.java"));
+        String cropCache = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/CropGrowthLevelCache.java"));
+
+        assertTrue(limitCache.contains("client.environment().limitViews(islandId)"), "Limit cache must use typed environment query client");
+        assertTrue(generatorCache.contains("client.progression().upgrades(islandId)"), "Generator cache must use typed progression query client");
+        assertTrue(cropCache.contains("client.progression().upgrades(islandId)"), "Crop cache must use typed progression query client");
+        assertTrue(!limitCache.contains("SimpleJson"), "Limit cache must not parse Core JSON directly");
+        assertTrue(!generatorCache.contains("SimpleJson"), "Generator cache must not parse Core JSON directly");
+        assertTrue(!cropCache.contains("SimpleJson"), "Crop cache must not parse Core JSON directly");
+        assertTrue(!limitCache.contains("client.listIslandLimits("), "Limit cache must not call raw Core API directly");
+        assertTrue(!generatorCache.contains("client.listIslandUpgrades("), "Generator cache must not call raw Core API directly");
+        assertTrue(!cropCache.contains("client.listIslandUpgrades("), "Crop cache must not call raw Core API directly");
+    }
+
+    @Test
     void memberRemovalFlowsThroughApplicationUsecase() throws Exception {
         Path root = repositoryRoot();
         String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));

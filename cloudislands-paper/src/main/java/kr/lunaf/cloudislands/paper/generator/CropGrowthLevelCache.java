@@ -3,8 +3,8 @@ package kr.lunaf.cloudislands.paper.generator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 
 public final class CropGrowthLevelCache {
     private static final long TTL_MILLIS = 30_000L;
@@ -23,8 +23,8 @@ public final class CropGrowthLevelCache {
         }
         int fallback = cached == null ? 1 : cached.level();
         cache.put(islandId, new CachedLevel(fallback, now + 5_000L));
-        client.listIslandUpgrades(islandId)
-            .thenAccept(body -> cache.put(islandId, new CachedLevel(parseCropLevel(body), System.currentTimeMillis() + TTL_MILLIS)))
+        client.progression().upgrades(islandId)
+            .thenAccept(upgrades -> cache.put(islandId, new CachedLevel(cropLevel(upgrades), System.currentTimeMillis() + TTL_MILLIS)))
             .exceptionally(exception -> {
                 cache.put(islandId, new CachedLevel(fallback, System.currentTimeMillis() + TTL_MILLIS));
                 return null;
@@ -40,14 +40,13 @@ public final class CropGrowthLevelCache {
         cache.clear();
     }
 
-    private int parseCropLevel(String json) {
-        if (json == null || json.isBlank()) {
+    private int cropLevel(java.util.List<CoreGuiViews.UpgradeView> upgrades) {
+        if (upgrades == null || upgrades.isEmpty()) {
             return 1;
         }
-        for (Object item : SimpleJson.list(SimpleJson.parse(json))) {
-            Map<?, ?> object = SimpleJson.object(item);
-            if ("crop".equalsIgnoreCase(SimpleJson.text(object.get("upgradeKey")))) {
-                return Math.max(1, (int) SimpleJson.number(object.get("level")));
+        for (CoreGuiViews.UpgradeView upgrade : upgrades) {
+            if (upgrade != null && "crop".equalsIgnoreCase(upgrade.key())) {
+                return Math.max(1, upgrade.level());
             }
         }
         return 1;

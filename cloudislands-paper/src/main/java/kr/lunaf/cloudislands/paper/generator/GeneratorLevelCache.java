@@ -3,8 +3,8 @@ package kr.lunaf.cloudislands.paper.generator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 
 public final class GeneratorLevelCache {
     private static final long TTL_MILLIS = 30_000L;
@@ -33,8 +33,8 @@ public final class GeneratorLevelCache {
         }
         GeneratorProfile fallback = cached == null ? new GeneratorProfile(defaultGeneratorKey, 1) : cached.profile();
         cache.put(islandId, new CachedLevel(fallback, now + 5_000L));
-        client.listIslandUpgrades(islandId)
-            .thenAccept(body -> cache.put(islandId, new CachedLevel(parseGeneratorProfile(body), System.currentTimeMillis() + TTL_MILLIS)))
+        client.progression().upgrades(islandId)
+            .thenAccept(upgrades -> cache.put(islandId, new CachedLevel(generatorProfile(upgrades), System.currentTimeMillis() + TTL_MILLIS)))
             .exceptionally(exception -> {
                 cache.put(islandId, new CachedLevel(fallback, System.currentTimeMillis() + TTL_MILLIS));
                 return null;
@@ -54,19 +54,21 @@ public final class GeneratorLevelCache {
         return TTL_MILLIS / 1000L;
     }
 
-    private GeneratorProfile parseGeneratorProfile(String json) {
-        if (json == null || json.isBlank()) {
+    private GeneratorProfile generatorProfile(java.util.List<CoreGuiViews.UpgradeView> upgrades) {
+        if (upgrades == null || upgrades.isEmpty()) {
             return new GeneratorProfile(defaultGeneratorKey, 1);
         }
         GeneratorProfile selected = new GeneratorProfile(defaultGeneratorKey, 1);
-        for (Object item : SimpleJson.list(SimpleJson.parse(json))) {
-            Map<?, ?> object = SimpleJson.object(item);
-            String upgradeKey = normalizeKey(SimpleJson.text(object.get("upgradeKey")));
+        for (CoreGuiViews.UpgradeView upgrade : upgrades) {
+            if (upgrade == null) {
+                continue;
+            }
+            String upgradeKey = normalizeKey(upgrade.key());
             if (!isGeneratorUpgrade(upgradeKey)) {
                 continue;
             }
-            int level = level(object);
-            String generatorKey = normalizeKey(SimpleJson.text(object.get("generatorKey")));
+            int level = Math.max(1, upgrade.level());
+            String generatorKey = normalizeKey(upgrade.generatorKey());
             if (generatorKey.equals("default")) {
                 generatorKey = generatorKey(upgradeKey);
             }
@@ -75,10 +77,6 @@ public final class GeneratorLevelCache {
             }
         }
         return selected;
-    }
-
-    private int level(Map<?, ?> object) {
-        return Math.max(1, (int) SimpleJson.number(object.get("level")));
     }
 
     private boolean isGeneratorUpgrade(String upgradeKey) {

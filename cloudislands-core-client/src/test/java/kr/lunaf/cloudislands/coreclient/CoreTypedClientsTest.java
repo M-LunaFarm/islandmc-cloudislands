@@ -1048,7 +1048,7 @@ class CoreTypedClientsTest {
                 case "listIslandUpgrades" -> {
                     calls.add("upgrades");
                     yield CompletableFuture.completedFuture("""
-                        {"upgrades":[{"upgradeKey":"generator:ore","type":"GENERATOR","level":3}]}
+                        {"upgrades":[{"upgradeKey":"generator","type":"GENERATOR","level":3,"generatorKey":"ore"}]}
                         """);
                 }
                 case "listUpgradeRules" -> {
@@ -1082,7 +1082,9 @@ class CoreTypedClientsTest {
         assertEquals("worth", rankings.worths().get(0).label());
         assertEquals("reviews", rankings.reviews().get(0).label());
         assertEquals("4.50", rankings.reviews().get(0).worth());
-        assertEquals("generator:ore", client.upgrades(islandId).join().get(0).key());
+        CoreGuiViews.UpgradeView upgrade = client.upgrades(islandId).join().get(0);
+        assertEquals("generator", upgrade.key());
+        assertEquals("ore", upgrade.generatorKey());
         assertEquals("MAX_MEMBERS", client.upgradeRules().join().get(0).type());
         assertEquals("starter", client.missions(islandId, null).join().get(0).key());
 
