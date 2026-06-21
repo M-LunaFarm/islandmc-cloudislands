@@ -111,6 +111,7 @@ import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
 import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
+import kr.lunaf.cloudislands.coreclient.AdminMaintenanceResultView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
@@ -122,6 +123,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
+import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
@@ -2205,12 +2207,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandRuntimeSnapshot> activate(UUID islandId, String preferredPool) {
-            return mutate("runtime.island.activate", () -> client.activateIsland(islandId)).thenCompose(_body -> client.adminIslands().runtime(islandId)).thenApply(PaperCloudIslandsApi::runtime);
+            return mutate("runtime.island.activate", () -> client.lifecycle().activateIsland(islandId)).thenCompose(_body -> client.adminIslands().runtime(islandId)).thenApply(PaperCloudIslandsApi::runtime);
         }
 
         @Override
         public CompletableFuture<IslandActionResult> activateResult(UUID islandId, String preferredPool) {
-            return mutate("runtime.island.activate", () -> client.activateIslandResult(islandId)).thenApply(body -> actionCode(body, "ACTIVATED"));
+            return mutate("runtime.island.activate", () -> client.lifecycle().activateIsland(islandId)).thenApply(view -> action(view, "ACTIVATED"));
         }
 
         @Override
@@ -2220,7 +2222,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> deactivateResult(UUID islandId) {
-            return mutate("runtime.island.deactivate", () -> client.deactivateIslandResult(islandId)).thenApply(body -> actionCode(body, "DEACTIVATED"));
+            return mutate("runtime.island.deactivate", () -> client.lifecycle().deactivateIsland(islandId)).thenApply(view -> action(view, "DEACTIVATED"));
         }
 
         @Override
@@ -2355,26 +2357,26 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> shutdownNodeSafely(String nodeId, String reason) { return shutdownNodeSafelyResult(nodeId, reason).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> shutdownNodeSafelyResult(String nodeId, String reason) { return mutateIdempotent("admin.node.shutdown-safe", () -> client.adminNodeCommands().shutdownNodeSafely(nodeId, reason)).thenApply(view -> action(view, "NODE_SHUTDOWN_SAFE_REQUESTED")); }
         @Override public CompletableFuture<Void> activateIsland(UUID islandId) { return activateIslandResult(islandId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> activateIslandResult(UUID islandId) { return mutate("admin.island.activate", () -> client.activateIslandResult(islandId)).thenApply(body -> actionCode(body, "ACTIVATE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> activateIslandResult(UUID islandId) { return mutate("admin.island.activate", () -> client.lifecycle().activateIsland(islandId)).thenApply(view -> action(view, "ACTIVATE_REQUESTED")); }
         @Override public CompletableFuture<Void> deactivateIsland(UUID islandId) { return deactivateIslandResult(islandId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> deactivateIslandResult(UUID islandId) { return mutate("admin.island.deactivate", () -> client.deactivateIslandResult(islandId)).thenApply(body -> actionCode(body, "DEACTIVATE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> deactivateIslandResult(UUID islandId) { return mutate("admin.island.deactivate", () -> client.lifecycle().deactivateIsland(islandId)).thenApply(view -> action(view, "DEACTIVATE_REQUESTED")); }
         @Override public CompletableFuture<Void> migrateIsland(UUID islandId, String targetNode) { return migrateIslandResult(islandId, targetNode).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode) { return mutateIdempotent("admin.island.migrate", () -> client.migrateIslandResult(islandId, targetNode)).thenApply(body -> actionCode(body, "MIGRATED")); }
+        @Override public CompletableFuture<IslandActionResult> migrateIslandResult(UUID islandId, String targetNode) { return mutateIdempotent("admin.island.migrate", () -> client.lifecycle().migrateIsland(islandId, targetNode)).thenApply(view -> action(view, "MIGRATED")); }
         @Override public CompletableFuture<Void> saveIsland(UUID islandId) { return saveIslandResult(islandId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> saveIslandResult(UUID islandId) { return mutate("admin.island.save", () -> client.requestIslandSaveResult(islandId, "ADMIN_SAVE")).thenApply(body -> actionCode(body, "SAVE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> saveIslandResult(UUID islandId) { return mutate("admin.island.save", () -> client.lifecycle().saveIsland(islandId, "ADMIN_SAVE")).thenApply(view -> action(view, "SAVE_REQUESTED")); }
         @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return snapshotIslandResult(islandId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason) { return mutate("admin.island.snapshot", () -> client.requestIslandSnapshotResult(islandId, reason)).thenApply(body -> actionCode(body, "SNAPSHOT_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason) { return mutate("admin.island.snapshot", () -> client.lifecycle().snapshotIsland(islandId, reason)).thenApply(view -> action(view, "SNAPSHOT_REQUESTED")); }
         @Override public CompletableFuture<List<IslandSnapshotRecord>> listIslandSnapshots(UUID islandId, int limit) { return client.snapshots().listSnapshots(islandId, limit).thenApply(views -> snapshots(islandId, views)); }
         @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return restoreIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo) { return mutateIdempotent("admin.island.restore", () -> client.restoreIslandSnapshotResult(islandId, snapshotNo)).thenApply(body -> actionCode(body, "RESTORE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo) { return mutateIdempotent("admin.island.restore", () -> client.lifecycle().restoreIslandSnapshot(islandId, snapshotNo)).thenApply(view -> action(view, "RESTORE_REQUESTED")); }
         @Override public CompletableFuture<Void> rollbackIsland(UUID islandId, long snapshotNo) { return rollbackIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> rollbackIslandResult(UUID islandId, long snapshotNo) { return mutateIdempotent("admin.island.rollback", () -> client.rollbackIslandSnapshotResult(islandId, snapshotNo)).thenApply(body -> actionCode(body, "ROLLBACK_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> rollbackIslandResult(UUID islandId, long snapshotNo) { return mutateIdempotent("admin.island.rollback", () -> client.lifecycle().rollbackIslandSnapshot(islandId, snapshotNo)).thenApply(view -> action(view, "ROLLBACK_REQUESTED")); }
         @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return quarantineIslandResult(islandId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason) { return mutateIdempotent("admin.island.quarantine", () -> client.quarantineIslandResult(islandId, reason)).thenApply(body -> actionCode(body, "QUARANTINED")); }
+        @Override public CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason) { return mutateIdempotent("admin.island.quarantine", () -> client.lifecycle().quarantineIsland(islandId, reason)).thenApply(view -> action(view, "QUARANTINED")); }
         @Override public CompletableFuture<Void> repairIsland(UUID islandId, String reason) { return repairIslandResult(islandId, reason).thenApply(_result -> null); }
         @Override public CompletableFuture<Optional<IslandRuntimeSnapshot>> repairIslandResult(UUID islandId, String reason) { return mutateIdempotent("admin.island.repair", () -> client.repairIslandResult(islandId, reason)).thenApply(PaperCloudIslandsApi::runtimeOptional); }
         @Override public CompletableFuture<Void> deleteIsland(UUID islandId) { return adminDeleteIslandResult(islandId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return mutateIdempotent("admin.island.delete", () -> client.adminDeleteIslandResult(islandId)).thenApply(body -> action(body, "ISLAND_DELETED")); }
+        @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return mutateIdempotent("admin.island.delete", () -> client.lifecycle().adminDeleteIsland(islandId)).thenApply(view -> action(view, "ISLAND_DELETED")); }
         @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return mutate("admin.route.teleport", () -> client.adminIslandTeleport(playerUuid, islandId)); }
         @Override public CompletableFuture<RoutePlan> resolveAdminTeleport(UUID playerUuid, UUID islandId) { return createAdminTeleportTicket(playerUuid, islandId).thenApply(PaperCloudIslandsApi::plan); }
         @Override public CompletableFuture<Optional<RouteTicket>> getRouteTicket(UUID ticketId) { return client.adminRoutes().ticket(ticketId).thenApply(ticket -> ticket.map(PaperCloudIslandsApi::routeTicket)); }
@@ -2390,9 +2392,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) { return recoverJobsResult(nodeId, minIdleMillis, maxJobs).thenApply(_result -> null); }
         @Override public CompletableFuture<JobRecoveryResult> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) { return mutate("admin.jobs.recover", () -> client.jobCommands().recover(nodeId, minIdleMillis, maxJobs)).thenApply(PaperCloudIslandsApi::jobRecovery); }
         @Override public CompletableFuture<Void> clearCache() { return clearCacheResult().thenApply(_result -> null); }
-        @Override public CompletableFuture<CoreMaintenanceResult> clearCacheResult() { return mutate("admin.cache.clear", () -> client.clearCacheResult()).thenApply(body -> maintenance(body, false)); }
+        @Override public CompletableFuture<CoreMaintenanceResult> clearCacheResult() { return mutate("admin.cache.clear", () -> client.adminMaintenance().clearCache()).thenApply(PaperCloudIslandsApi::maintenance); }
         @Override public CompletableFuture<Void> reload() { return reloadResult().thenApply(_result -> null); }
-        @Override public CompletableFuture<CoreMaintenanceResult> reloadResult() { return mutate("admin.core.reload", () -> client.reloadResult()).thenApply(body -> maintenance(body, bool(body, "reloaded", false))); }
+        @Override public CompletableFuture<CoreMaintenanceResult> reloadResult() { return mutate("admin.core.reload", () -> client.adminMaintenance().reload()).thenApply(PaperCloudIslandsApi::maintenance); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid) { return client.playerProfiles().profile(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return mutate("admin.player.primary-island.set", () -> client.playerProfileCommands().setPrimaryIsland(playerUuid, islandId)).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return mutate("admin.player.primary-island.clear", () -> client.playerProfileCommands().clearPrimaryIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile); }
@@ -3044,6 +3046,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static IslandActionResult action(AdminNodeActionView view, String fallbackCode) {
+        if (view == null) {
+            return new IslandActionResult(false, "FAILED");
+        }
+        return new IslandActionResult(view.accepted(), view.code().isBlank() ? (view.accepted() ? fallbackCode : "FAILED") : view.code());
+    }
+
+    private static IslandActionResult action(IslandLifecycleActionView view, String fallbackCode) {
         if (view == null) {
             return new IslandActionResult(false, "FAILED");
         }
@@ -4113,6 +4122,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             reloaded,
             integer(json, "clearedSessions", 0),
             integer(json, "clearedTickets", 0)
+        );
+    }
+
+    private static CoreMaintenanceResult maintenance(AdminMaintenanceResultView view) {
+        if (view == null) {
+            return new CoreMaintenanceResult(false, 0, 0);
+        }
+        return new CoreMaintenanceResult(
+            view.reloaded(),
+            Math.toIntExact(view.clearedSessions()),
+            Math.toIntExact(view.clearedTickets())
         );
     }
 

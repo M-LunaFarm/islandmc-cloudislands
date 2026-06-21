@@ -210,6 +210,36 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void paperPublicApiUsesTypedLifecycleAndMaintenanceClients() throws Exception {
+        Path root = repositoryRoot();
+        String source = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"));
+
+        assertTrue(source.contains("client.lifecycle().activateIsland(islandId)"), "Island activation must use the typed lifecycle client");
+        assertTrue(source.contains("client.lifecycle().deactivateIsland(islandId)"), "Island deactivation must use the typed lifecycle client");
+        assertTrue(source.contains("client.lifecycle().migrateIsland(islandId, targetNode)"), "Island migration must use the typed lifecycle client");
+        assertTrue(source.contains("client.lifecycle().saveIsland(islandId, \"ADMIN_SAVE\")"), "Island saves must use the typed lifecycle client");
+        assertTrue(source.contains("client.lifecycle().snapshotIsland(islandId, reason)"), "Island snapshots must use the typed lifecycle client");
+        assertTrue(source.contains("client.lifecycle().restoreIslandSnapshot(islandId, snapshotNo)"), "Snapshot restores must use the typed lifecycle client");
+        assertTrue(source.contains("client.lifecycle().rollbackIslandSnapshot(islandId, snapshotNo)"), "Snapshot rollbacks must use the typed lifecycle client");
+        assertTrue(source.contains("client.lifecycle().quarantineIsland(islandId, reason)"), "Island quarantine must use the typed lifecycle client");
+        assertTrue(source.contains("client.lifecycle().adminDeleteIsland(islandId)"), "Admin island deletion must use the typed lifecycle client");
+        assertTrue(source.contains("client.adminMaintenance().clearCache()"), "Cache clearing must use the typed maintenance client");
+        assertTrue(source.contains("client.adminMaintenance().reload()"), "Reload must use the typed maintenance client");
+
+        assertTrue(!source.contains("client.activateIslandResult(islandId)"), "Paper public API must not call raw activation JSON endpoints");
+        assertTrue(!source.contains("client.deactivateIslandResult(islandId)"), "Paper public API must not call raw deactivation JSON endpoints");
+        assertTrue(!source.contains("client.migrateIslandResult(islandId, targetNode)"), "Paper public API must not call raw migration JSON endpoints");
+        assertTrue(!source.contains("client.requestIslandSaveResult(islandId, \"ADMIN_SAVE\")"), "Paper public API must not call raw save JSON endpoints");
+        assertTrue(!source.contains("client.requestIslandSnapshotResult(islandId, reason)"), "Paper public API must not call raw snapshot JSON endpoints");
+        assertTrue(!source.contains("client.restoreIslandSnapshotResult(islandId, snapshotNo)"), "Paper public API must not call raw restore JSON endpoints");
+        assertTrue(!source.contains("client.rollbackIslandSnapshotResult(islandId, snapshotNo)"), "Paper public API must not call raw rollback JSON endpoints");
+        assertTrue(!source.contains("client.quarantineIslandResult(islandId, reason)"), "Paper public API must not call raw quarantine JSON endpoints");
+        assertTrue(!source.contains("client.adminDeleteIslandResult(islandId)"), "Paper public API must not call raw admin delete JSON endpoints");
+        assertTrue(!source.contains("client.clearCacheResult()"), "Paper public API must not call raw cache maintenance JSON endpoints");
+        assertTrue(!source.contains("client.reloadResult()"), "Paper public API must not call raw reload maintenance JSON endpoints");
+    }
+
+    @Test
     void memberRemovalFlowsThroughApplicationUsecase() throws Exception {
         Path root = repositoryRoot();
         String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
