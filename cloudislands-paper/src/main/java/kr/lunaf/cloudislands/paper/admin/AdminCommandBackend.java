@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
+import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
@@ -805,9 +806,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[1].equalsIgnoreCase("info")) {
             UUID lookupId = uuidOrNull(args[2]);
             if (lookupId != null) {
-                run(sender, "Island info", coreApiClient.adminIslandInfo(lookupId).thenApply(this::islandInfoMessage));
+                run(sender, "Island info", coreApiClient.adminIslands().info(lookupId).thenApply(this::islandInfoMessage));
             } else {
-                run(sender, "Island info", coreApiClient.islandInfoByName(args[2]).thenApply(this::islandInfoMessage));
+                run(sender, "Island info", coreApiClient.adminIslands().infoByName(args[2]).thenApply(this::islandInfoMessage));
             }
             return true;
         }
@@ -827,7 +828,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("where")) {
-            run(sender, "Island where", coreApiClient.adminIslandWhere(islandId).thenApply(this::runtimeInfoMessage));
+            run(sender, "Island where", coreApiClient.adminIslands().runtime(islandId).thenApply(this::runtimeInfoMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("visitor-stats") || args[1].equalsIgnoreCase("visitors")) {
@@ -1873,40 +1874,30 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return targetId != null && targetId.length() == 36 && targetId.indexOf('-') > 0 ? shortId(targetId) : targetId;
     }
 
-    private String islandInfoMessage(String body) {
-        String code = textValue(body, "code");
-        if (!code.isBlank()) {
-            return adminText("admin-command-island-info-failed-prefix", "Island: failed code=") + code;
+    private String islandInfoMessage(CoreGuiViews.IslandInfoView island) {
+        if (island.islandId().isBlank()) {
+            return adminText("admin-command-island-info-failed-prefix", "Island: failed code=") + "ISLAND_NOT_FOUND";
         }
-        String islandId = textValue(body, "islandId");
-        String ownerUuid = textValue(body, "ownerUuid");
-        String name = textValue(body, "name");
-        String state = textValue(body, "state");
-        return adminText("admin-command-island-info-id-prefix", "Island: id=") + shortId(islandId)
-            + adminText("admin-command-island-info-owner-prefix", " owner=") + shortId(ownerUuid)
-            + (name.isBlank() ? "" : adminText("admin-command-island-info-name-prefix", " name=") + name)
-            + adminText("admin-command-island-info-state-prefix", " state=") + (state.isBlank() ? "UNKNOWN" : state)
-            + adminText("admin-command-island-info-size-prefix", " size=") + longValue(body, "size")
-            + adminText("admin-command-island-info-level-prefix", " level=") + longValue(body, "level")
-            + adminText("admin-command-island-info-worth-prefix", " worth=") + textValue(body, "worth")
-            + adminText("admin-command-island-info-public-prefix", " public=") + boolValue(body, "publicAccess");
+        return adminText("admin-command-island-info-id-prefix", "Island: id=") + shortId(island.islandId())
+            + adminText("admin-command-island-info-owner-prefix", " owner=") + shortId(island.ownerUuid())
+            + (island.name().isBlank() ? "" : adminText("admin-command-island-info-name-prefix", " name=") + island.name())
+            + adminText("admin-command-island-info-state-prefix", " state=") + (island.state().isBlank() ? "UNKNOWN" : island.state())
+            + adminText("admin-command-island-info-size-prefix", " size=") + island.size()
+            + adminText("admin-command-island-info-level-prefix", " level=") + island.level()
+            + adminText("admin-command-island-info-worth-prefix", " worth=") + island.worth()
+            + adminText("admin-command-island-info-public-prefix", " public=") + island.publicAccess();
     }
 
-    private String runtimeInfoMessage(String body) {
-        String code = textValue(body, "code");
-        if (!code.isBlank()) {
-            return adminText("admin-command-runtime-failed-prefix", "Island runtime: failed code=") + code;
+    private String runtimeInfoMessage(AdminIslandRuntimeView runtime) {
+        if (!runtime.code().isBlank()) {
+            return adminText("admin-command-runtime-failed-prefix", "Island runtime: failed code=") + runtime.code();
         }
-        String islandId = textValue(body, "islandId");
-        String state = textValue(body, "state");
-        String activeNode = textValue(body, "activeNode");
-        String activeWorld = textValue(body, "activeWorld");
-        return adminText("admin-command-runtime-island-prefix", "Island runtime: island=") + shortId(islandId)
-            + adminText("admin-command-runtime-state-prefix", " state=") + (state.isBlank() ? "UNKNOWN" : state)
-            + (activeNode.isBlank() ? "" : adminText("admin-command-runtime-node-prefix", " node=") + activeNode)
-            + (activeWorld.isBlank() ? "" : adminText("admin-command-runtime-world-prefix", " world=") + activeWorld)
-            + (body.contains("\"cellX\":null") || body.contains("\"cellZ\":null") ? "" : adminText("admin-command-runtime-cell-prefix", " cell=") + longValue(body, "cellX") + "," + longValue(body, "cellZ"))
-            + adminText("admin-command-runtime-fence-prefix", " fence=") + longValue(body, "fencingToken");
+        return adminText("admin-command-runtime-island-prefix", "Island runtime: island=") + shortId(runtime.islandId())
+            + adminText("admin-command-runtime-state-prefix", " state=") + (runtime.state().isBlank() ? "UNKNOWN" : runtime.state())
+            + (runtime.activeNode().isBlank() ? "" : adminText("admin-command-runtime-node-prefix", " node=") + runtime.activeNode())
+            + (runtime.activeWorld().isBlank() ? "" : adminText("admin-command-runtime-world-prefix", " world=") + runtime.activeWorld())
+            + (runtime.hasCell() ? adminText("admin-command-runtime-cell-prefix", " cell=") + runtime.cellX() + "," + runtime.cellZ() : "")
+            + adminText("admin-command-runtime-fence-prefix", " fence=") + runtime.fencingToken();
     }
 
     private String playerInfoMessage(PlayerProfileView profile) {
