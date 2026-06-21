@@ -63,22 +63,16 @@ final class IslandSnapshotCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
-        String actionId = action.actionId();
-        Map<String, String> data = action.data();
-        return switch (actionId) {
-            case "island.snapshots.open" -> {
-                openSnapshotMenu(player);
-                yield true;
-            }
-            case "island.snapshots.list" -> {
-                listSnapshots(player, 10);
-                yield true;
-            }
-            case "island.snapshot.create" -> {
-                requestSnapshot(player, data.getOrDefault("reason", "manual"));
-                yield true;
-            }
-            case "island.snapshot.restore.prepare" -> {
+        if (action instanceof GuiAction.SnapshotCreate snapshotCreate) {
+            requestSnapshot(player, snapshotCreate.reason());
+            return true;
+        }
+        if (action instanceof GuiAction.SnapshotRestore snapshotRestore) {
+            if (snapshotRestore.confirmation()) {
+                if (runtime.confirmationAccepted(player, action, click)) {
+                    restoreSnapshot(player, snapshotRestore.snapshotNo());
+                }
+            } else {
                 runtime.openConfirmation(
                     player,
                     runtime.routeMessage("snapshot-restore-confirm-title", "스냅샷 복원 확인"),
@@ -86,16 +80,21 @@ final class IslandSnapshotCommandHandler {
                     Material.CHEST,
                     runtime.routeMessage("snapshot-restore-confirm-name", "스냅샷 복원"),
                     "island.snapshot.restore.confirm",
-                    Map.of("snapshotNo", data.getOrDefault("snapshotNo", "0")),
+                    Map.of("snapshotNo", Long.toString(snapshotRestore.snapshotNo())),
                     runtime.routeMessage("snapshot-restore-confirm-lore", "클릭하면 Core에 스냅샷 복원을 요청합니다."),
                     "island.snapshots.open"
                 );
+            }
+            return true;
+        }
+        String actionId = action.actionId();
+        return switch (actionId) {
+            case "island.snapshots.open" -> {
+                openSnapshotMenu(player);
                 yield true;
             }
-            case "island.snapshot.restore.confirm" -> {
-                if (runtime.confirmationAccepted(player, action, click)) {
-                    restoreSnapshot(player, SnapshotUseCase.positiveSnapshotNo(data.get("snapshotNo")));
-                }
+            case "island.snapshots.list" -> {
+                listSnapshots(player, 10);
                 yield true;
             }
             default -> false;

@@ -52,10 +52,25 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesSnapshotActionsIntoTypedActions() {
+        GuiAction create = GuiActionParser.parse("island.snapshot.create", Map.of("reason", " manual save ")).orElseThrow();
+        GuiAction restore = GuiActionParser.parse("island.snapshot.restore.prepare", Map.of("snapshotNo", "7")).orElseThrow();
+
+        assertTrue(create instanceof GuiAction.SnapshotCreate);
+        assertEquals("island.snapshot.create", create.actionId());
+        assertEquals(Map.of("reason", "manual save"), create.data());
+        assertTrue(restore instanceof GuiAction.SnapshotRestore);
+        assertEquals("island.snapshot.restore.prepare", restore.actionId());
+        assertEquals(Map.of("snapshotNo", "7"), restore.data());
+    }
+
+    @Test
     void rejectsUnregisteredActionIdsInsteadOfExecutingRawMaps() {
         assertTrue(GuiActionParser.parse("island.member.remvoe", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
         assertTrue(GuiActionParser.parse("island.unknown.open", Map.of()).isEmpty());
         assertTrue(GuiActionParser.parse("island.bank.withdraw", Map.of("amount", "0")).isEmpty());
         assertTrue(GuiActionParser.parse("island.bank.deposit", Map.of("amount", "abc")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.snapshot.restore.prepare", Map.of("snapshotNo", "0")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.snapshot.restore.confirm", Map.of("snapshotNo", "abc")).isEmpty());
     }
 }

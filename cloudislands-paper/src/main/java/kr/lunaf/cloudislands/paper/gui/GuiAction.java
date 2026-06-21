@@ -6,7 +6,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -40,6 +40,50 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
 
         public boolean deposit() {
             return actionId.equals("island.bank.deposit");
+        }
+    }
+
+    record SnapshotCreate(String reason) implements GuiAction {
+        public SnapshotCreate {
+            reason = reason == null || reason.isBlank() ? "manual" : reason.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return "island.snapshot.create";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("reason", reason);
+        }
+    }
+
+    record SnapshotRestore(String actionId, long snapshotNo, Map<String, String> data) implements GuiAction {
+        public SnapshotRestore {
+            actionId = actionId == null ? "" : actionId.trim();
+            data = data == null ? Map.of() : Map.copyOf(data);
+            if (!actionId.equals("island.snapshot.restore.prepare") && !snapshotRestoreConfirmation(actionId)) {
+                throw new IllegalArgumentException("unsupported snapshot restore action");
+            }
+            if (snapshotNo <= 0L) {
+                throw new IllegalArgumentException("positive snapshotNo is required");
+            }
+        }
+
+        @Override
+        public Map<String, String> data() {
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>(data);
+            values.put("snapshotNo", Long.toString(snapshotNo));
+            return Map.copyOf(values);
+        }
+
+        public boolean confirmation() {
+            return snapshotRestoreConfirmation(actionId);
+        }
+
+        private static boolean snapshotRestoreConfirmation(String actionId) {
+            return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".snapshot.restore.confirm");
         }
     }
 

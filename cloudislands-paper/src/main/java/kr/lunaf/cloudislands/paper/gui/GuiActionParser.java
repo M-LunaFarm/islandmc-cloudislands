@@ -25,10 +25,20 @@ public final class GuiActionParser {
                     safeData
                 ));
             }
+            if (safeAction.equals("island.snapshot.restore.prepare") || snapshotRestoreConfirmation(safeAction)) {
+                return Optional.of(new GuiAction.SnapshotRestore(
+                    safeAction,
+                    positiveLong(required(safeData, "snapshotNo")),
+                    safeData
+                ));
+            }
             return switch (safeAction) {
                 case "island.bank.deposit", "island.bank.withdraw" -> Optional.of(new GuiAction.BankAmount(
                     safeAction,
                     positiveDecimal(required(safeData, "amount"))
+                ));
+                case "island.snapshot.create" -> Optional.of(new GuiAction.SnapshotCreate(
+                    safeData.getOrDefault("reason", "manual")
                 ));
                 case "island.permissions.page" -> Optional.of(new GuiAction.PermissionPage(
                     integer(safeData.get("page")),
@@ -52,6 +62,10 @@ public final class GuiActionParser {
         return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".member.remove.confirm");
     }
 
+    private static boolean snapshotRestoreConfirmation(String actionId) {
+        return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".snapshot.restore.confirm");
+    }
+
     private static int integer(String value) {
         if (value == null || value.isBlank()) {
             return 0;
@@ -65,6 +79,14 @@ public final class GuiActionParser {
             throw new IllegalArgumentException("positive amount is required");
         }
         return amount;
+    }
+
+    private static long positiveLong(String value) {
+        long parsed = Long.parseLong(value.trim());
+        if (parsed <= 0L) {
+            throw new IllegalArgumentException("positive value is required");
+        }
+        return parsed;
     }
 
     private static String required(Map<String, String> data, String key) {
