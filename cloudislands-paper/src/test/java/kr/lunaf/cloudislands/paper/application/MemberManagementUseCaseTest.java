@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreIslandQueryClient;
+import kr.lunaf.cloudislands.coreclient.CoreMemberCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreMemberQueryClient;
 import org.junit.jupiter.api.Test;
 
@@ -122,6 +123,9 @@ class MemberManagementUseCaseTest {
                 }
                 if (method.getName().equals("members")) {
                     return new CoreMemberQueryClient((CoreApiClient) _proxy);
+                }
+                if (method.getName().equals("memberCommands")) {
+                    return new CoreMemberCommandClient((CoreApiClient) _proxy);
                 }
                 String value = bodies.get(method.getName());
                 if ("ERROR".equals(value)) {

@@ -5,8 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreMemberCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.BanView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.MemberView;
@@ -26,17 +24,17 @@ public final class MemberManagementUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.islandQueries = new CoreIslandQueryClient(coreApiClient);
+        this.islandQueries = coreApiClient.islands();
         this.memberQueries = coreApiClient.members();
-        this.memberCommands = new CoreMemberCommandClient(coreApiClient);
+        this.memberCommands = coreApiClient.memberCommands();
     }
 
     MemberManagementUseCase(CoreApiClient coreApiClient, IslandQueryClient islandQueries) {
-        this(coreApiClient, islandQueries, coreApiClient.members(), new CoreMemberCommandClient(coreApiClient));
+        this(coreApiClient, islandQueries, coreApiClient.members(), coreApiClient.memberCommands());
     }
 
     MemberManagementUseCase(CoreApiClient coreApiClient, IslandQueryClient islandQueries, MemberQueryClient memberQueries) {
-        this(coreApiClient, islandQueries, memberQueries, new CoreMemberCommandClient(coreApiClient));
+        this(coreApiClient, islandQueries, memberQueries, coreApiClient.memberCommands());
     }
 
     MemberManagementUseCase(CoreApiClient coreApiClient, IslandQueryClient islandQueries, MemberQueryClient memberQueries, MemberCommandClient memberCommands) {
