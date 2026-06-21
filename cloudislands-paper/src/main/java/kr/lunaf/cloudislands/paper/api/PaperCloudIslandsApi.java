@@ -111,6 +111,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
+import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
@@ -1937,8 +1938,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandFlagsSnapshot> getFlags(UUID islandId) {
-            return client.listIslandFlags(islandId).thenApply(PaperCloudIslandsApi::flags);
+            return client.environment().flagValues(islandId).thenApply(values -> flags(islandId, values));
         }
+
         @Override
         public CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId) {
             return client.islandBiome(islandId).thenApply(PaperCloudIslandsApi::biome);
@@ -1946,7 +1948,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandLimitSnapshot>> getLimits(UUID islandId) {
-            return client.listIslandLimits(islandId).thenApply(PaperCloudIslandsApi::limits);
+            return client.environment().limitViews(islandId).thenApply(views -> limits(islandId, views));
         }
 
         @Override
@@ -2001,7 +2003,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<BlockValueSnapshot>> getBlockValues() {
-            return client.listBlockValues().thenApply(PaperCloudIslandsApi::blockValues);
+            return client.blockValues().list().thenApply(PaperCloudIslandsApi::blockValues);
         }
 
         @Override
@@ -3102,12 +3104,37 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new IslandFlagsSnapshot(uuid(json, "islandId", new UUID(0L, 0L)), Map.copyOf(values));
     }
 
+    private static IslandFlagsSnapshot flags(UUID islandId, Map<IslandFlag, String> values) {
+        Map<IslandFlag, String> safeValues = new EnumMap<>(IslandFlag.class);
+        if (values != null) {
+            values.forEach((flag, value) -> {
+                if (flag != null && value != null) {
+                    safeValues.put(flag, value);
+                }
+            });
+        }
+        return new IslandFlagsSnapshot(islandId == null ? new UUID(0L, 0L) : islandId, Map.copyOf(safeValues));
+    }
+
     private static List<IslandLimitSnapshot> limits(String json) {
         List<IslandLimitSnapshot> limits = new ArrayList<>();
         for (String object : objects(json, "limits")) {
             limits.add(limit(object));
         }
         return limits;
+    }
+
+    private static List<IslandLimitSnapshot> limits(UUID islandId, List<CoreGuiViews.LimitView> views) {
+        UUID safeIslandId = islandId == null ? new UUID(0L, 0L) : islandId;
+        return (views == null ? List.<CoreGuiViews.LimitView>of() : views).stream()
+            .map(view -> new IslandLimitSnapshot(
+                safeIslandId,
+                view.key(),
+                view.value(),
+                new UUID(0L, 0L),
+                instant(view.updatedAt())
+            ))
+            .toList();
     }
 
     private static IslandLimitSnapshot limit(String json) {
@@ -3365,6 +3392,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return values;
+    }
+
+    private static List<BlockValueSnapshot> blockValues(List<BlockValueView> views) {
+        return (views == null ? List.<BlockValueView>of() : views).stream()
+            .map(view -> new BlockValueSnapshot(
+                view.materialKey(),
+                view.worth(),
+                view.levelPoints(),
+                view.limit()
+            ))
+            .toList();
     }
 
     private static List<IslandMissionSnapshot> missions(String json) {
