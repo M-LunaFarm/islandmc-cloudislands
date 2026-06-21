@@ -1816,6 +1816,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
         }
     }
 
+    private static String text(Map<?, ?> root, String key, String fallback) {
+        String value = SimpleJson.text(root.get(key));
+        return value.isBlank() ? fallback : value;
+    }
+
     private boolean adminProtected(String path) {
         return path.startsWith("/v1/admin")
             || path.equals("/v1/audit")
@@ -1916,72 +1921,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
             return "AUDIT_READ";
         }
         return path.startsWith("/v1/admin") ? "AUDIT_READ" : "";
-    }
-
-    private static String text(String json, String field, String fallback) {
-        String needle = "\"" + field + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return fallback;
-        }
-        int valueStart = start + needle.length();
-        int end = jsonStringEnd(json, valueStart);
-        return end < 0 ? fallback : unescape(json.substring(valueStart, end));
-    }
-
-    private static int jsonStringEnd(String json, int start) {
-        boolean escaped = false;
-        for (int i = start; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (c == '"') {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static String unescape(String value) {
-        StringBuilder builder = new StringBuilder(value.length());
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (c != '\\' || i + 1 >= value.length()) {
-                builder.append(c);
-                continue;
-            }
-            char next = value.charAt(++i);
-            switch (next) {
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                case '/' -> builder.append('/');
-                case 'b' -> builder.append('\b');
-                case 'f' -> builder.append('\f');
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                case 'u' -> {
-                    if (i + 4 < value.length()) {
-                        try {
-                            builder.append((char) Integer.parseInt(value.substring(i + 1, i + 5), 16));
-                            i += 4;
-                        } catch (NumberFormatException ignored) {
-                            builder.append("\\u");
-                        }
-                    } else {
-                        builder.append("\\u");
-                    }
-                }
-                default -> builder.append(next);
-            }
-        }
-        return builder.toString();
     }
 
     private static String escape(String value) {
@@ -2123,23 +2062,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
         return builder.toString();
     }
 
-    private static UUID uuid(String json, String field, UUID fallback) {
-        try {
-            return UUID.fromString(text(json, field, fallback.toString()));
-        } catch (IllegalArgumentException ignored) {
-            return fallback;
-        }
-    }
-
     private static final class RouteSessionJson {
         static PlayerRouteSession parse(String json) {
+            Map<?, ?> root = resultObject(json);
             return new PlayerRouteSession(
-                uuid(json, "playerUuid", new UUID(0L, 0L)),
-                uuid(json, "ticketId", new UUID(0L, 0L)),
-                text(json, "targetNode", ""),
-                text(json, "targetServerName", ""),
-                text(json, "nonce", ""),
-                Instant.parse(text(json, "expiresAt", Instant.now().toString()))
+                uuid(root, "playerUuid", new UUID(0L, 0L)),
+                uuid(root, "ticketId", new UUID(0L, 0L)),
+                text(root, "targetNode", ""),
+                text(root, "targetServerName", ""),
+                text(root, "nonce", ""),
+                Instant.parse(text(root, "expiresAt", Instant.now().toString()))
             );
         }
     }

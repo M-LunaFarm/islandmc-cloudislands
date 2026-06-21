@@ -175,6 +175,45 @@ class CoreMutationContextTest {
     }
 
     @Test
+    void jdkClientParsesRouteSessionsWithStructuredJson() throws Exception {
+        UUID ticketId = UUID.randomUUID();
+        UUID playerUuid = UUID.randomUUID();
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/routes/session/find", exchange -> {
+            requestBodies.put("find", new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            byte[] body = ("""
+                {
+                  "playerUuid" : "%s",
+                  "ticketId" : "%s",
+                  "targetNode" : "node-\\"a",
+                  "targetServerName" : "island-\\"a",
+                  "nonce" : "nonce-\\"a",
+                  "expiresAt" : "2026-06-21T00:00:30Z"
+                }
+                """.formatted(playerUuid, ticketId)).getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            var session = client.findRouteSession(playerUuid, "node\"a").join().orElseThrow();
+
+            assertEquals(playerUuid, session.playerUuid());
+            assertEquals(ticketId, session.ticketId());
+            assertEquals("node-\"a", session.targetNode());
+            assertEquals("island-\"a", session.targetServerName());
+            assertEquals("nonce-\"a", session.nonce());
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"nodeId\":\"node\\\"a\"}", requestBodies.get("find"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void jdkClientBuildsProgressionLimitSnapshotAndLogPayloadsWithStructuredHelper() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
