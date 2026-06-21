@@ -230,8 +230,8 @@ abstract class VelocityActionSupport {
             action.accept(islandId);
             return;
         }
-        coreApiClient.islandInfoByOwner(player.getUniqueId()).thenAccept(body -> {
-            UUID resolvedIslandId = parseUuid(jsonValue(body, "islandId"));
+        coreApiClient.islands().getIslandByOwner(player.getUniqueId()).thenAccept(island -> {
+            UUID resolvedIslandId = parseUuid(island.islandId());
             if (resolvedIslandId.equals(emptyIslandId)) {
                 player.sendMessage(Component.text(missingMessage));
                 return;

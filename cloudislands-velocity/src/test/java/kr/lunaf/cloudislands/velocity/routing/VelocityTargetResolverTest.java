@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.velocity.routing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Optional;
@@ -53,6 +54,9 @@ class VelocityTargetResolverTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
             (proxy, method, args) -> {
+                if (method.isDefault()) {
+                    return InvocationHandler.invokeDefault(proxy, method, args);
+                }
                 String response = responses.get(method.getName());
                 if (response != null) {
                     return CompletableFuture.completedFuture(response);

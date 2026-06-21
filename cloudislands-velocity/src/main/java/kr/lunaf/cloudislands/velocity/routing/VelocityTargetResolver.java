@@ -1,13 +1,12 @@
 package kr.lunaf.cloudislands.velocity.routing;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.matchingObjectEnd;
-
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.Optional;
 import java.util.function.Function;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 
 public final class VelocityTargetResolver {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -30,22 +29,22 @@ public final class VelocityTargetResolver {
         }
         UUID parsed = parseUuid(target);
         if (!parsed.equals(EMPTY_UUID)) {
-            return coreApiClient.listPendingInvites(playerUuid).thenApply(body -> {
-                UUID inviteId = findInviteId(body, parsed);
+            return coreApiClient.members().pendingInvites(playerUuid).thenApply(invites -> {
+                UUID inviteId = findInviteId(invites, parsed);
                 return inviteId.equals(EMPTY_UUID) ? parsed : inviteId;
             });
         }
         Optional<UUID> online = onlinePlayerLookup.apply(target);
         if (online.isPresent()) {
-            return coreApiClient.listPendingInvites(playerUuid).thenApply(body -> findInviteId(body, online.get()));
+            return coreApiClient.members().pendingInvites(playerUuid).thenApply(invites -> findInviteId(invites, online.get()));
         }
-        return coreApiClient.playerInfoByName(target)
-            .handle((body, error) -> error == null ? parseUuid(jsonValue(body, "playerUuid")) : EMPTY_UUID)
+        return coreApiClient.members().playerProfileByName(target)
+            .handle((profile, error) -> error == null ? parseUuid(profile.playerUuid()) : EMPTY_UUID)
             .thenCompose(targetUuid -> {
                 if (targetUuid.equals(EMPTY_UUID)) {
                     return resolveInviteIslandName(playerUuid, target);
                 }
-                return coreApiClient.listPendingInvites(playerUuid).thenCompose(invites -> {
+                return coreApiClient.members().pendingInvites(playerUuid).thenCompose(invites -> {
                     UUID inviteId = findInviteId(invites, targetUuid);
                     return inviteId.equals(EMPTY_UUID)
                         ? resolveInviteIslandName(playerUuid, target)
@@ -55,8 +54,8 @@ public final class VelocityTargetResolver {
     }
 
     public CompletableFuture<UUID> resolveInviteIslandName(UUID playerUuid, String islandName) {
-        return coreApiClient.islandInfoByName(islandName)
-            .thenCompose(body -> coreApiClient.listPendingInvites(playerUuid).thenApply(invites -> findInviteId(invites, parseUuid(jsonValue(body, "islandId")))));
+        return coreApiClient.islands().findIslandByName(islandName)
+            .thenCompose(island -> coreApiClient.members().pendingInvites(playerUuid).thenApply(invites -> findInviteId(invites, parseUuid(island.islandId()))));
     }
 
     public CompletableFuture<UUID> resolvePlayerUuid(String target) {
@@ -71,7 +70,7 @@ public final class VelocityTargetResolver {
         if (online.isPresent()) {
             return CompletableFuture.completedFuture(online.get());
         }
-        return coreApiClient.playerInfoByName(target).thenApply(body -> parseUuid(jsonValue(body, "playerUuid")));
+        return coreApiClient.members().playerProfileByName(target).thenApply(profile -> parseUuid(profile.playerUuid()));
     }
 
     public CompletableFuture<UUID> resolveIslandId(String target) {
@@ -82,7 +81,7 @@ public final class VelocityTargetResolver {
         if (!parsed.equals(EMPTY_UUID)) {
             return CompletableFuture.completedFuture(parsed);
         }
-        return coreApiClient.islandInfoByName(target).thenApply(body -> parseUuid(jsonValue(body, "islandId")));
+        return coreApiClient.islands().findIslandByName(target).thenApply(island -> parseUuid(island.islandId()));
     }
 
     public static UUID parseUuid(String value) {
@@ -93,27 +92,15 @@ public final class VelocityTargetResolver {
         }
     }
 
-    static UUID findInviteId(String body, UUID targetUuid) {
-        String invites = kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.arrayValue(body, "invites");
-        if (invites.isBlank()) {
-            invites = body == null ? "" : body;
-        }
-        int index = 0;
-        while (index < invites.length()) {
-            int objectStart = invites.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(invites, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = invites.substring(objectStart, objectEnd + 1);
-            UUID inviteId = parseUuid(jsonValue(object, "inviteId"));
-            if (targetUuid.equals(inviteId) || targetUuid.equals(parseUuid(jsonValue(object, "islandId"))) || targetUuid.equals(parseUuid(jsonValue(object, "inviterUuid")))) {
+    static UUID findInviteId(List<CoreGuiViews.InviteView> invites, UUID targetUuid) {
+        for (CoreGuiViews.InviteView invite : invites == null ? List.<CoreGuiViews.InviteView>of() : invites) {
+            UUID inviteId = parseUuid(invite.inviteId());
+            if (targetUuid.equals(inviteId)
+                || targetUuid.equals(parseUuid(invite.islandId()))
+                || targetUuid.equals(parseUuid(invite.inviterUuid()))
+                || targetUuid.equals(parseUuid(invite.targetUuid()))) {
                 return inviteId;
             }
-            index = objectEnd + 1;
         }
         return EMPTY_UUID;
     }
