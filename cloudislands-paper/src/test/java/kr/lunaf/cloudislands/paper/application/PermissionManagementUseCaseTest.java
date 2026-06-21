@@ -10,6 +10,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.MutationResult;
+import kr.lunaf.cloudislands.coreclient.PermissionMatrixView;
 import org.junit.jupiter.api.Test;
 
 class PermissionManagementUseCaseTest {
@@ -22,7 +24,7 @@ class PermissionManagementUseCaseTest {
         UUID actorUuid = UUID.randomUUID();
         List<String> auditActions = new ArrayList<>();
 
-        String body = useCase.saveSequentially(
+        String version = useCase.saveSequentially(
             islandId,
             actorUuid,
             List.of(
@@ -36,8 +38,29 @@ class PermissionManagementUseCaseTest {
         ).join();
 
         assertEquals(List.of("v1", "v2"), expectedVersions);
-        assertEquals(List.of("island.permission.batch-save", "island.permission.batch-save"), auditActions);
-        assertEquals("{\"version\":\"v3\"}", body);
+        assertEquals(List.of("island.permission.batch-save"), auditActions);
+        assertEquals("v3", version);
+    }
+
+    @Test
+    void sequentialSaveTypedReturnsPermissionMatrixWithoutLeakingRawJsonToApplication() {
+        List<String> expectedVersions = new ArrayList<>();
+        CoreApiClient client = coreApiClient(expectedVersions);
+        PermissionManagementUseCase useCase = new PermissionManagementUseCase(client);
+
+        MutationResult<PermissionMatrixView> result = useCase.saveSequentiallyTyped(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            List.of(
+                new PermissionManagementUseCase.PermissionChange("builder", IslandPermission.BUILD, true, "v1"),
+                new PermissionManagementUseCase.PermissionChange("member", IslandPermission.OPEN_CONTAINER, false, "stale")
+            )
+        ).join();
+
+        assertEquals(List.of("v1", "v2"), expectedVersions);
+        assertEquals("v3", result.version());
+        assertEquals("MEMBER", result.value().rules().get(0).role());
+        assertEquals("OPEN_CONTAINER", result.value().rules().get(0).permission());
     }
 
     @Test
@@ -88,7 +111,9 @@ class PermissionManagementUseCaseTest {
             (_proxy, method, args) -> {
                 if (method.getName().equals("setIslandPermissionResult") && args.length == 6) {
                     expectedVersions.add((String) args[5]);
-                    return CompletableFuture.completedFuture("{\"version\":\"v" + (expectedVersions.size() + 1) + "\"}");
+                    return CompletableFuture.completedFuture("""
+                        {"version":"v%s","rules":[{"role":"%s","permission":"%s","allowed":%s}]}
+                        """.formatted(expectedVersions.size() + 1, args[2], args[3], args[4]));
                 }
                 throw new UnsupportedOperationException(method.getName());
             }

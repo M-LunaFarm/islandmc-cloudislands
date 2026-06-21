@@ -7,15 +7,29 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CorePermissionCommandClient;
+import kr.lunaf.cloudislands.coreclient.MutationResult;
+import kr.lunaf.cloudislands.coreclient.PermissionCommandClient;
+import kr.lunaf.cloudislands.coreclient.PermissionMatrixView;
+import kr.lunaf.cloudislands.coreclient.UpdatePermissionsRequest;
 
 public final class PermissionManagementUseCase {
     private final CoreApiClient coreApiClient;
+    private final PermissionCommandClient permissionCommands;
 
     public PermissionManagementUseCase(CoreApiClient coreApiClient) {
+        this(coreApiClient, new CorePermissionCommandClient(coreApiClient));
+    }
+
+    PermissionManagementUseCase(CoreApiClient coreApiClient, PermissionCommandClient permissionCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
+        if (permissionCommands == null) {
+            throw new IllegalArgumentException("permissionCommands is required");
+        }
         this.coreApiClient = coreApiClient;
+        this.permissionCommands = permissionCommands;
     }
 
     public CompletableFuture<String> listPermissions(UUID islandId) {
@@ -69,20 +83,17 @@ public final class PermissionManagementUseCase {
     }
 
     public CompletableFuture<String> saveSequentially(UUID islandId, UUID actorUuid, List<PermissionChange> changes, MutationRunner runner) {
+        requireRunner(runner);
+        return runner.mutate("island.permission.batch-save", () -> saveSequentiallyTyped(islandId, actorUuid, changes).thenApply(MutationResult::version));
+    }
+
+    public CompletableFuture<MutationResult<PermissionMatrixView>> saveSequentiallyTyped(UUID islandId, UUID actorUuid, List<PermissionChange> changes) {
         requireIsland(islandId);
         requireActor(actorUuid);
-        requireRunner(runner);
-        CompletableFuture<String> chain = CompletableFuture.completedFuture("");
-        for (PermissionChange change : changes == null ? List.<PermissionChange>of() : changes) {
-            chain = chain.thenCompose(previousBody -> {
-                String previousVersion = text(previousBody, "version");
-                String expectedVersion = previousVersion.isBlank() ? change.expectedVersion() : previousVersion;
-                return runner.mutate("island.permission.batch-save", () ->
-                    coreApiClient.setIslandPermissionResult(islandId, actorUuid, change.roleKey(), change.permission(), change.allowed(), expectedVersion)
-                );
-            });
-        }
-        return chain;
+        List<UpdatePermissionsRequest.Change> typedChanges = (changes == null ? List.<PermissionChange>of() : changes).stream()
+            .map(change -> new UpdatePermissionsRequest.Change(change.roleKey(), change.permission(), change.allowed(), change.expectedVersion()))
+            .toList();
+        return permissionCommands.updatePermissions(new UpdatePermissionsRequest(islandId, actorUuid, typedChanges));
     }
 
     private static void requireIsland(UUID islandId) {
@@ -107,62 +118,6 @@ public final class PermissionManagementUseCase {
         if (runner == null) {
             throw new IllegalArgumentException("runner is required");
         }
-    }
-
-    private static String text(String json, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = json == null ? -1 : json.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        int valueStart = start + needle.length();
-        int end = jsonStringEnd(json, valueStart);
-        return end < 0 ? "" : unescape(json.substring(valueStart, end));
-    }
-
-    private static int jsonStringEnd(String value, int start) {
-        boolean escaped = false;
-        for (int index = start; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (current == '"') {
-                return index;
-            }
-        }
-        return -1;
-    }
-
-    private static String unescape(String value) {
-        StringBuilder builder = new StringBuilder();
-        boolean escaped = false;
-        for (int index = 0; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (!escaped) {
-                if (current == '\\') {
-                    escaped = true;
-                } else {
-                    builder.append(current);
-                }
-                continue;
-            }
-            switch (current) {
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                default -> builder.append(current);
-            }
-            escaped = false;
-        }
-        return builder.toString();
     }
 
     @FunctionalInterface
