@@ -1,8 +1,46 @@
 id: island.biome
-rows: 6
+rows: 3
 title-key: menu.biome.title
+layout:
+  - "....C...."
+  - "........."
+  - "....R.S.M"
+items:
+  C:
+    material: GRASS_BLOCK
+    name-key: biome-menu-current-name
+    fallback-name: 현재 바이옴
+    action: show
+  R:
+    material: CLOCK
+    name-key: biome-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - biome-menu-refresh-command
+    fallback-lore:
+      - "/섬 바이옴"
+    action: open
+  S:
+    material: COMPARATOR
+    name-key: biome-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - biome-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: back
+  M:
+    material: COMPASS
+    name-key: biome-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - biome-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: main
 actions:
   open: island.biome.open
   show: island.biome.show
   set: island.biome.set
   back: island.settings.open
+  main: island.main.open

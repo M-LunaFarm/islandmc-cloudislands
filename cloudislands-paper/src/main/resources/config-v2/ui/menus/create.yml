@@ -1,6 +1,29 @@
 id: island.create
-rows: 6
+rows: 3
 title-key: menu.create.title
+layout:
+  - "........."
+  - "........."
+  - "M...R...."
+items:
+  M:
+    material: COMPASS
+    name-key: create-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - create-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: back
+  R:
+    material: CLOCK
+    name-key: create-menu-refresh-name
+    fallback-name: 템플릿 새로고침
+    lore-keys:
+      - create-menu-refresh-command
+    fallback-lore:
+      - "/섬 생성메뉴"
+    action: open
 actions:
   open: island.create.open
   create: island.create

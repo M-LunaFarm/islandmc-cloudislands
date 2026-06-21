@@ -321,6 +321,36 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledCreateAndBiomeMenuDefinitionsMatchRuntimeInventoryShape() {
+        GuiMenuDefinition create = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/create.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition biome = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/biome.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.create", create.id());
+        assertEquals(27, create.size());
+        assertEquals("M", create.itemAt(18).orElseThrow().symbol());
+        assertEquals("island.main.open", create.action(create.itemAt(18).orElseThrow().actionKey(), ""));
+        assertEquals("R", create.itemAt(22).orElseThrow().symbol());
+        assertEquals("island.create.open", create.action(create.itemAt(22).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.biome", biome.id());
+        assertEquals(27, biome.size());
+        assertEquals("C", biome.itemAt(4).orElseThrow().symbol());
+        assertEquals("island.biome.show", biome.action(biome.itemAt(4).orElseThrow().actionKey(), ""));
+        assertEquals("R", biome.itemAt(22).orElseThrow().symbol());
+        assertEquals("island.biome.open", biome.action(biome.itemAt(22).orElseThrow().actionKey(), ""));
+        assertEquals("S", biome.itemAt(24).orElseThrow().symbol());
+        assertEquals("island.settings.open", biome.action(biome.itemAt(24).orElseThrow().actionKey(), ""));
+        assertEquals("M", biome.itemAt(26).orElseThrow().symbol());
+        assertEquals("island.main.open", biome.action(biome.itemAt(26).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",

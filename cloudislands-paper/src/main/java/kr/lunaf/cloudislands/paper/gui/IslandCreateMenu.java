@@ -18,9 +18,17 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandCreateMenu implements Listener {
-    private static final String MENU_ID = "island.create";
     private static final String TITLE_KEY = "create-menu-title";
     private static final String TITLE = "섬 템플릿 선택";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/create.yml",
+        new GuiMenuDefinition("island.create", 3, TITLE_KEY, java.util.Map.of(
+            "open", "island.create.open",
+            "create", "island.create",
+            "back", "island.main.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -43,11 +51,11 @@ public final class IslandCreateMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.templates(client)
             .thenAccept(templates -> openSync(plugin, player, session, templates, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "create-menu-load-failed", "섬 템플릿을 불러오지 못했습니다."), "island.create.open", "island.main.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "create-menu-load-failed", "섬 템플릿을 불러오지 못했습니다."), "island.create.open", "island.main.open");
                 return null;
             });
     }
@@ -71,7 +79,7 @@ public final class IslandCreateMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<TemplateView> templates, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 27, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             List<TemplateView> enabled = templates.stream().filter(TemplateView::enabled).limit(14).toList();
             if (enabled.isEmpty()) {
                 enabled = List.of(new TemplateView("default", message(messages, "create-menu-default-template", "기본 섬"), true, ""));
@@ -80,8 +88,6 @@ public final class IslandCreateMenu implements Listener {
             for (int index = 0; index < enabled.size() && index < templateSlots.length; index++) {
                 inventory.setItem(templateSlots[index], item(enabled.get(index), messages));
             }
-            inventory.setItem(18, button(Material.COMPASS, message(messages, "create-menu-main-menu-name", "메인 메뉴"), message(messages, "create-menu-main-menu-command", "/섬 메뉴")));
-            inventory.setItem(22, button(Material.CLOCK, message(messages, "create-menu-refresh-name", "템플릿 새로고침"), message(messages, "create-menu-refresh-command", "/섬 생성메뉴")));
             player.openInventory(inventory);
         });
     }
@@ -102,16 +108,7 @@ public final class IslandCreateMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
-    }
-
-    private static ItemStack button(Material material, String name, String... lore) {
-        String actionId = material == Material.COMPASS ? "island.main.open" : "island.create.open";
-        return GuiItems.action(material, name, actionId, lore);
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
 }
