@@ -7,8 +7,6 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
-import kr.lunaf.cloudislands.coreclient.CoreNavigationCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreNavigationQueryClient;
 import kr.lunaf.cloudislands.coreclient.NavigationCommandClient;
 import kr.lunaf.cloudislands.coreclient.NavigationQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PublicIslandView;
@@ -23,12 +21,12 @@ public final class IslandNavigationUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.navigationQueries = new CoreNavigationQueryClient(coreApiClient);
-        this.navigationCommands = new CoreNavigationCommandClient(coreApiClient);
+        this.navigationQueries = coreApiClient.navigation();
+        this.navigationCommands = coreApiClient.navigationCommands();
     }
 
     IslandNavigationUseCase(CoreApiClient coreApiClient, NavigationQueryClient navigationQueries) {
-        this(coreApiClient, navigationQueries, new CoreNavigationCommandClient(coreApiClient));
+        this(coreApiClient, navigationQueries, coreApiClient.navigationCommands());
     }
 
     IslandNavigationUseCase(CoreApiClient coreApiClient, NavigationQueryClient navigationQueries, NavigationCommandClient navigationCommands) {

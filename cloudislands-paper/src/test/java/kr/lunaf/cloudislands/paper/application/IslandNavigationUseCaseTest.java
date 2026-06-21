@@ -11,6 +11,8 @@ import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreNavigationCommandClient;
+import kr.lunaf.cloudislands.coreclient.CoreNavigationQueryClient;
 import org.junit.jupiter.api.Test;
 
 class IslandNavigationUseCaseTest {
@@ -69,6 +71,8 @@ class IslandNavigationUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
+                case "navigation" -> new CoreNavigationQueryClient((CoreApiClient) _proxy);
+                case "navigationCommands" -> new CoreNavigationCommandClient((CoreApiClient) _proxy);
                 case "playerInfoByName" -> {
                     String target = (String) args[0];
                     calls.add("playerInfoByName:" + target);
