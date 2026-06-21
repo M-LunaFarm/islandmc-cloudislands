@@ -1055,7 +1055,7 @@ final class IslandCommandBackend {
 
     private void listIslandMembers(Player player) {
         currentIsland(player, "섬 안에서만 멤버를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandMembers(islandId)
+            memberManagement.listMembers(islandId)
                 .thenAccept(body -> message(player, memberListMessage(body)))
                 .exceptionally(error -> {
                     message(player, "섬 멤버를 불러오지 못했습니다.");
@@ -1095,7 +1095,7 @@ final class IslandCommandBackend {
     }
 
     private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid) {
-        mutate("island.invite.create", () -> coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid))
+        mutate("island.invite.create", () -> memberManagement.createInvite(islandId, player.getUniqueId(), targetUuid))
             .thenAccept(body -> message(player, actionResultMessage("섬 초대", text(body, "inviteId"), body)))
             .exceptionally(error -> {
                 message(player, "섬 초대를 보내지 못했습니다.");
@@ -1104,7 +1104,7 @@ final class IslandCommandBackend {
     }
 
     private void listPendingInvites(Player player) {
-        coreApiClient.listPendingInvites(player.getUniqueId())
+        memberManagement.listPendingInvites(player.getUniqueId())
             .thenAccept(body -> message(player, inviteListMessage(body)))
             .exceptionally(error -> {
                 message(player, "섬 초대 목록을 불러오지 못했습니다.");
@@ -1117,7 +1117,7 @@ final class IslandCommandBackend {
             message(player, routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
             return;
         }
-        mutate("island.invite.accept", () -> coreApiClient.acceptIslandInviteResult(inviteId, player.getUniqueId()))
+            mutate("island.invite.accept", () -> memberManagement.acceptInvite(inviteId, player.getUniqueId()))
             .thenAccept(body -> message(player, inviteActionMessage("섬 초대 수락", inviteId, body)))
             .exceptionally(error -> {
                 message(player, "섬 초대를 수락하지 못했습니다.");
@@ -1143,7 +1143,7 @@ final class IslandCommandBackend {
             message(player, routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
             return;
         }
-        mutate("island.invite.decline", () -> coreApiClient.declineIslandInviteResult(inviteId, player.getUniqueId()))
+            mutate("island.invite.decline", () -> memberManagement.declineInvite(inviteId, player.getUniqueId()))
             .thenAccept(body -> message(player, inviteActionMessage("섬 초대 거절", inviteId, body)))
             .exceptionally(error -> {
                 message(player, "섬 초대를 거절하지 못했습니다.");
@@ -1167,14 +1167,14 @@ final class IslandCommandBackend {
     private CompletableFuture<UUID> resolveInviteTarget(Player player, String target) {
         UUID parsed = uuid(target);
         if (parsed != null) {
-            return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> {
+            return memberManagement.listPendingInvites(player.getUniqueId()).thenApply(body -> {
                 UUID inviteId = findInviteId(body, parsed);
                 return inviteId == null ? parsed : inviteId;
             });
         }
         Player online = plugin.getServer().getPlayerExact(target);
         if (online != null) {
-            return coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(body -> findInviteId(body, online.getUniqueId()));
+            return memberManagement.listPendingInvites(player.getUniqueId()).thenApply(body -> findInviteId(body, online.getUniqueId()));
         }
         return coreApiClient.playerInfoByName(target)
             .handle((body, error) -> error == null ? uuid(text(body, "playerUuid")) : null)
@@ -1182,7 +1182,7 @@ final class IslandCommandBackend {
                 if (playerUuid == null) {
                     return resolveInviteIslandName(player, target);
                 }
-                return coreApiClient.listPendingInvites(player.getUniqueId()).thenCompose(invites -> {
+                return memberManagement.listPendingInvites(player.getUniqueId()).thenCompose(invites -> {
                     UUID inviteId = findInviteId(invites, playerUuid);
                     return inviteId == null ? resolveInviteIslandName(player, target) : CompletableFuture.completedFuture(inviteId);
                 });
@@ -1191,7 +1191,7 @@ final class IslandCommandBackend {
 
     private CompletableFuture<UUID> resolveInviteIslandName(Player player, String islandName) {
         return coreApiClient.islandInfoByName(islandName)
-            .thenCompose(body -> coreApiClient.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, uuid(text(body, "islandId")))));
+            .thenCompose(body -> memberManagement.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, uuid(text(body, "islandId")))));
     }
 
     private UUID findInviteId(String body, UUID targetUuid) {
@@ -1381,7 +1381,7 @@ final class IslandCommandBackend {
 
     private void listIslandBans(Player player) {
         currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandBans(islandId)
+            memberManagement.listBans(islandId)
                 .thenAccept(body -> message(player, banListMessage(body)))
                 .exceptionally(error -> {
                     message(player, "섬 밴 목록을 불러오지 못했습니다.");

@@ -19,6 +19,31 @@ public final class MemberManagementUseCase {
         return coreApiClient.removeIslandMemberResult(islandId, actorUuid, targetUuid);
     }
 
+    public CompletableFuture<String> listMembers(UUID islandId) {
+        requireIslandId(islandId);
+        return coreApiClient.listIslandMembers(islandId);
+    }
+
+    public CompletableFuture<String> createInvite(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        requireIds(islandId, actorUuid, targetUuid);
+        return coreApiClient.createIslandInvite(islandId, actorUuid, targetUuid);
+    }
+
+    public CompletableFuture<String> listPendingInvites(UUID playerUuid) {
+        requirePlayerId(playerUuid);
+        return coreApiClient.listPendingInvites(playerUuid);
+    }
+
+    public CompletableFuture<String> acceptInvite(UUID inviteId, UUID playerUuid) {
+        requireInviteAndPlayer(inviteId, playerUuid);
+        return coreApiClient.acceptIslandInviteResult(inviteId, playerUuid);
+    }
+
+    public CompletableFuture<String> declineInvite(UUID inviteId, UUID playerUuid) {
+        requireInviteAndPlayer(inviteId, playerUuid);
+        return coreApiClient.declineIslandInviteResult(inviteId, playerUuid);
+    }
+
     public CompletableFuture<String> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
         requireIds(islandId, actorUuid, targetUuid);
         String normalizedRoleKey = roleKey == null ? "" : roleKey.trim();
@@ -56,10 +81,32 @@ public final class MemberManagementUseCase {
         return coreApiClient.kickIslandVisitorResult(islandId, actorUuid, targetUuid);
     }
 
-    private static void requireIds(UUID islandId, UUID actorUuid, UUID targetUuid) {
+    public CompletableFuture<String> listBans(UUID islandId) {
+        requireIslandId(islandId);
+        return coreApiClient.listIslandBans(islandId);
+    }
+
+    private static void requireIslandId(UUID islandId) {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
+    }
+
+    private static void requirePlayerId(UUID playerUuid) {
+        if (playerUuid == null) {
+            throw new IllegalArgumentException("playerUuid is required");
+        }
+    }
+
+    private static void requireInviteAndPlayer(UUID inviteId, UUID playerUuid) {
+        if (inviteId == null) {
+            throw new IllegalArgumentException("inviteId is required");
+        }
+        requirePlayerId(playerUuid);
+    }
+
+    private static void requireIds(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        requireIslandId(islandId);
         if (actorUuid == null) {
             throw new IllegalArgumentException("actorUuid is required");
         }
