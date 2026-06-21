@@ -42,7 +42,7 @@ final class IslandAdminNodeCommandHandler {
     private boolean handleAdminNodeAction(Player player, GuiAction.AdminNodeAction action, GuiClick click) {
         return switch (action.type()) {
             case OPEN -> {
-                openAdminNodeMenu(player, adminNodeId(action.data()));
+                openAdminNodeMenu(player, adminNodeId(action));
                 yield true;
             }
             case LIST -> {
@@ -50,50 +50,50 @@ final class IslandAdminNodeCommandHandler {
                 yield true;
             }
             case INFO -> {
-                refreshAdminNodeInfo(player, adminNodeId(action.data()));
+                refreshAdminNodeInfo(player, adminNodeId(action));
                 yield true;
             }
             case ISLANDS -> {
-                listAdminNodeIslands(player, adminNodeId(action.data()));
+                listAdminNodeIslands(player, adminNodeId(action));
                 yield true;
             }
             case DRAIN -> {
-                drainAdminNode(player, adminNodeId(action.data()));
+                drainAdminNode(player, adminNodeId(action));
                 yield true;
             }
             case UNDRAIN -> {
-                undrainAdminNode(player, adminNodeId(action.data()));
+                undrainAdminNode(player, adminNodeId(action));
                 yield true;
             }
             case SWEEP -> {
-                sweepAdminNode(player, adminNodeId(action.data()));
+                sweepAdminNode(player, adminNodeId(action));
                 yield true;
             }
             case KICKALL_PREPARE -> {
-                openAdminNodeKickAllConfirmation(player, adminNodeId(action.data()));
+                openAdminNodeKickAllConfirmation(player, adminNodeId(action));
                 yield true;
             }
             case SHUTDOWN_SAFE_PREPARE -> {
-                openAdminNodeShutdownConfirmation(player, adminNodeId(action.data()));
+                openAdminNodeShutdownConfirmation(player, adminNodeId(action));
                 yield true;
             }
             case KICKALL_CONFIRM -> {
                 if (runtime.confirmationAccepted(player, action, click)) {
-                    kickAllAdminNode(player, adminNodeId(action.data()), action.reason());
+                    kickAllAdminNode(player, adminNodeId(action), action.reason());
                 }
                 yield true;
             }
             case SHUTDOWN_SAFE_CONFIRM -> {
                 if (runtime.confirmationAccepted(player, action, click)) {
-                    shutdownAdminNodeSafely(player, adminNodeId(action.data()), action.reason());
+                    shutdownAdminNodeSafely(player, adminNodeId(action), action.reason());
                 }
                 yield true;
             }
         };
     }
 
-    private String adminNodeId(Map<String, String> data) {
-        String nodeId = data == null ? configuredNodeId : data.getOrDefault("nodeId", configuredNodeId);
+    private String adminNodeId(GuiAction.AdminNodeAction action) {
+        String nodeId = action == null ? configuredNodeId : action.nodeId();
         return nodeId == null || nodeId.isBlank() ? configuredNodeId : nodeId;
     }
 

@@ -687,6 +687,15 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void adminNodeGuiUsesTypedActionFieldsInsteadOfRawMaps() throws Exception {
+        Path root = repositoryRoot();
+        String handler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
+
+        assertTrue(handler.contains("adminNodeId(GuiAction.AdminNodeAction action)"), "Admin node GUI handler must resolve node ids from the typed action");
+        assertTrue(!handler.contains("adminNodeId(action.data())"), "Admin node GUI handler must not re-read node ids from raw action maps");
+    }
+
+    @Test
     void permissionMenuCoversFullApiPermissionEnum() throws Exception {
         Path root = repositoryRoot();
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
