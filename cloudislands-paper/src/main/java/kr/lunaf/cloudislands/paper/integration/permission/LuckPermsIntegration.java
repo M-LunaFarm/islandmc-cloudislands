@@ -25,4 +25,12 @@ public final class LuckPermsIntegration extends PolicyBackedCloudIntegration {
     public IntegrationResult onIslandDeactivate(IntegrationContext context) {
         return guardedObservationHook("permission-bypass-scope-deactivate", context, "permissionNode", "bypassScope");
     }
+
+    @Override
+    protected String externalApiCall(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "permission-bypass-scope-activate", "permission-bypass-scope-deactivate" -> "LuckPerms#contextManager+cachedData";
+            default -> "";
+        };
+    }
 }

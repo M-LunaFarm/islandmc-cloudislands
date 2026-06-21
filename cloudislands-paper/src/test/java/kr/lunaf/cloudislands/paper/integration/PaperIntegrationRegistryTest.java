@@ -73,6 +73,7 @@ class PaperIntegrationRegistryTest {
         assertTrue(missingResult.message().contains("missing metadata"));
         assertTrue(missingResult.message().contains("cell"));
         assertTrue(missingResult.message().contains("bundleKey"));
+        assertEquals("CoreProtectAPI#performLookup", missingResult.details().get("external.api"));
 
         IntegrationContext exportContext = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:export:2", Map.of(
             "world", "islands",
@@ -95,6 +96,7 @@ class PaperIntegrationRegistryTest {
         assertEquals("12,-4", exportResult.details().get("manifest.cell"));
         assertEquals("bundles/island.tar.zst", exportResult.details().get("manifest.bundleKey"));
         assertEquals("coreprotect:export:2", exportResult.details().get("manifest.idempotencyKey"));
+        assertEquals("CoreProtectAPI#performLookup", exportResult.details().get("external.api"));
 
         IntegrationContext restoreContext = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:restore:1", Map.of(
             "world", "islands",
@@ -108,6 +110,7 @@ class PaperIntegrationRegistryTest {
         assertEquals("3600", restoreResult.details().get("metadata.rollbackSeconds"));
         assertEquals("3600", restoreResult.details().get("manifest.metadata.rollbackSeconds"));
         assertEquals("true", restoreResult.details().get("nodeOwnsIsland"));
+        assertEquals("CoreProtectAPI#performRollback", restoreResult.details().get("external.api"));
     }
 
     @Test
@@ -192,6 +195,7 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.SUCCESS, result.status());
         assertEquals("world-edit", result.details().get("manifest.category"));
         assertEquals("schematic-restore", result.details().get("manifest.operation"));
+        assertEquals("ClipboardReader#read+EditSession#paste", result.details().get("external.api"));
     }
 
     @Test
@@ -203,6 +207,7 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.FAILED, result.status());
         assertTrue(result.message().contains("cell"));
         assertTrue(result.message().contains("bundleKey"));
+        assertEquals("ClipboardReader#read+EditSession#paste", result.details().get("external.api"));
     }
 
     @Test
@@ -221,6 +226,7 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.FAILED, denied.status());
         assertTrue(denied.message().contains("externalBlockIds"));
         assertTrue(denied.message().contains("coreBlockValueKeys"));
+        assertEquals("ItemsAdder registry#serializeCustomBlockState", denied.details().get("external.api"));
 
         IntegrationResult allowed = integration.restoreState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 21L, true, "itemsadder:restore:1", Map.of(
             "world", "islands",
@@ -232,6 +238,7 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.SUCCESS, allowed.status());
         assertEquals("custom-items", allowed.details().get("manifest.category"));
         assertEquals("itemsadder:ruby_ore,itemsadder:ruby_block", allowed.details().get("manifest.metadata.externalBlockIds"));
+        assertEquals("ItemsAdder registry#restoreCustomBlockState", allowed.details().get("external.api"));
     }
 
     @Test
@@ -250,6 +257,7 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.FAILED, denied.status());
         assertTrue(denied.message().contains("spawnerCountKey"));
         assertTrue(denied.message().contains("bundleKey"));
+        assertEquals("RoseStacker API#serializeStackedEntitiesAndSpawners", denied.details().get("external.api"));
 
         IntegrationResult allowed = integration.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 31L, true, "stacker:export:2", Map.of(
             "world", "islands",
@@ -270,6 +278,7 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.SUCCESS, restored.status());
         assertEquals("stacker", restored.details().get("manifest.category"));
         assertEquals("limits.spawners.effective", restored.details().get("manifest.metadata.spawnerCountKey"));
+        assertEquals("RoseStacker API#restoreStackedEntitiesAndSpawners", restored.details().get("external.api"));
     }
 
     @Test
@@ -282,7 +291,9 @@ class PaperIntegrationRegistryTest {
         ));
 
         assertFalse(luckPerms.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
-        assertEquals(IntegrationResult.Status.SUCCESS, luckPerms.onIslandActivate(noIslandContext).status());
+        IntegrationResult luckPermsResult = luckPerms.onIslandActivate(noIslandContext);
+        assertEquals(IntegrationResult.Status.SUCCESS, luckPermsResult.status());
+        assertEquals("LuckPerms#contextManager+cachedData", luckPermsResult.details().get("external.api"));
 
         IntegrationResult missingPlan = plan.exportState(new IntegrationContext(null, "", 0L, false, "", Map.of("analyticsScope", "island-presence")));
         assertEquals(IntegrationResult.Status.FAILED, missingPlan.status());
@@ -293,6 +304,7 @@ class PaperIntegrationRegistryTest {
             "bundleKey", "bundles/analytics.json"
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, exportedPlan.status());
+        assertEquals("PlanAPI#queryService", exportedPlan.details().get("external.api"));
     }
 
     @Test

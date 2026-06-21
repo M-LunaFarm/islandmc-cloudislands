@@ -38,4 +38,14 @@ public final class CustomItemIntegration extends PolicyBackedCloudIntegration {
     public IntegrationResult restoreState(IntegrationContext context) {
         return guardedStateHook("custom-item-restore", context, "world", "cell", "externalBlockIds", "coreBlockValueKeys", "bundleKey");
     }
+
+    @Override
+    protected String externalApiCall(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "custom-item-index-activate" -> pluginName() + " registry#resolveCustomBlockIds";
+            case "custom-item-index-deactivate", "custom-item-export" -> pluginName() + " registry#serializeCustomBlockState";
+            case "custom-item-restore" -> pluginName() + " registry#restoreCustomBlockState";
+            default -> "";
+        };
+    }
 }

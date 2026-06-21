@@ -38,4 +38,13 @@ public final class CoreProtectIntegration extends PolicyBackedCloudIntegration {
     public IntegrationResult restoreState(IntegrationContext context) {
         return guardedStateHook("rollback-restore", context, "world", "cell", "rollbackSeconds", "bundleKey");
     }
+
+    @Override
+    protected String externalApiCall(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "audit-activate", "audit-deactivate", "audit-export" -> "CoreProtectAPI#performLookup";
+            case "rollback-restore" -> "CoreProtectAPI#performRollback";
+            default -> "";
+        };
+    }
 }

@@ -31,4 +31,13 @@ public final class PlanIntegration extends PolicyBackedCloudIntegration {
     public IntegrationResult exportState(IntegrationContext context) {
         return guardedObservationHook("analytics-export", context, "analyticsScope", "bundleKey");
     }
+
+    @Override
+    protected String externalApiCall(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "presence-activate", "presence-deactivate" -> "PlanAPI#playerContainer";
+            case "analytics-export" -> "PlanAPI#queryService";
+            default -> "";
+        };
+    }
 }

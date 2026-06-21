@@ -96,6 +96,12 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
         LinkedHashMap<String, String> details = new LinkedHashMap<>();
         details.put("plugin", pluginName);
         details.put("operation", operation == null ? "" : operation);
+        details.put("external.plugin", pluginName);
+        details.put("external.operation", operation == null ? "" : operation);
+        String externalApi = externalApiCall(operation);
+        if (!externalApi.isBlank()) {
+            details.put("external.api", externalApi);
+        }
         if (context == null) {
             return details;
         }
@@ -108,6 +114,10 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
             .sorted(Map.Entry.comparingByKey())
             .forEach(entry -> details.put("metadata." + entry.getKey(), entry.getValue()));
         return details;
+    }
+
+    protected String externalApiCall(String operation) {
+        return "";
     }
 
     private static int compareVersions(String actual, String minimum) {

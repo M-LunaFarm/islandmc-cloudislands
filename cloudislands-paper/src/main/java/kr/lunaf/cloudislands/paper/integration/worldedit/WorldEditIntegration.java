@@ -32,4 +32,14 @@ public final class WorldEditIntegration extends PolicyBackedCloudIntegration {
     public IntegrationResult restoreState(IntegrationContext context) {
         return guardedStateHook("schematic-restore", context, "world", "cell", "bundleKey");
     }
+
+    @Override
+    protected String externalApiCall(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "clipboard-activate" -> "WorldEdit#newEditSession";
+            case "schematic-export" -> "ClipboardWriter#write";
+            case "schematic-restore" -> "ClipboardReader#read+EditSession#paste";
+            default -> "";
+        };
+    }
 }
