@@ -46,6 +46,7 @@ import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
+import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
@@ -194,7 +195,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return handleBlockValues(sender, args);
         }
         if (args[0].equalsIgnoreCase("upgrade-rules")) {
-            run(sender, "Upgrade rules", coreApiClient.listUpgradeRules().thenApply(this::upgradeRulesMessage));
+            run(sender, "Upgrade rules", coreApiClient.progression().upgradeRules().thenApply(this::upgradeRulesMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) {
@@ -1993,34 +1994,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(resolvedTarget);
     }
 
-    private String upgradeRulesMessage(String body) {
-        String rules = arrayValue(body, "rules");
-        if (rules.isBlank()) {
+    private String upgradeRulesMessage(List<UpgradeRuleView> rules) {
+        if (rules.isEmpty()) {
             return adminText("admin-command-upgrade-rules-empty", "Upgrade rules: empty");
         }
         List<String> entries = new ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < rules.length()) {
-            int objectStart = rules.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(rules, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            total++;
+        for (UpgradeRuleView rule : rules) {
             if (entries.size() < 10) {
-                String object = rules.substring(objectStart, objectEnd + 1);
-                entries.add(textValue(object, "upgradeKey")
-                    + adminText("admin-command-upgrade-rules-type-prefix", " type=") + textValue(object, "type")
-                    + adminText("admin-command-upgrade-rules-max-prefix", " max=") + longValue(object, "maxLevel")
-                    + adminText("admin-command-upgrade-rules-base-prefix", " base=") + textValue(object, "baseCost"));
+                entries.add(rule.key()
+                    + adminText("admin-command-upgrade-rules-type-prefix", " type=") + rule.type()
+                    + adminText("admin-command-upgrade-rules-max-prefix", " max=") + rule.maxLevel()
+                    + adminText("admin-command-upgrade-rules-base-prefix", " base=") + rule.baseCost());
             }
-            index = objectEnd + 1;
         }
-        return adminText("admin-command-upgrade-rules-total-prefix", "Upgrade rules: total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return adminText("admin-command-upgrade-rules-total-prefix", "Upgrade rules: total=") + rules.size() + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     private String maintenanceMessage(String label, String body) {

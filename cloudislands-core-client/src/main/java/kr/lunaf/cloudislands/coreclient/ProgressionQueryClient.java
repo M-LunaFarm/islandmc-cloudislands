@@ -19,5 +19,7 @@ public interface ProgressionQueryClient {
 
     CompletableFuture<List<CoreGuiViews.UpgradeView>> upgrades(UUID islandId);
 
+    CompletableFuture<List<UpgradeRuleView>> upgradeRules();
+
     CompletableFuture<List<CoreGuiViews.MissionView>> missions(UUID islandId, String kind);
 }

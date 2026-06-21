@@ -842,6 +842,12 @@ class CoreTypedClientsTest {
                         {"upgrades":[{"upgradeKey":"generator:ore","type":"GENERATOR","level":3}]}
                         """);
                 }
+                case "listUpgradeRules" -> {
+                    calls.add("rules");
+                    yield CompletableFuture.completedFuture("""
+                        {"rules":[{"upgradeKey":"members","type":"MAX_MEMBERS","maxLevel":5,"baseCost":"7500","multiplier":"2"}]}
+                        """);
+                }
                 case "listIslandMissions" -> {
                     calls.add("missions:" + args[1]);
                     yield CompletableFuture.completedFuture("""
@@ -864,6 +870,7 @@ class CoreTypedClientsTest {
         assertEquals("reviews", rankings.reviews().get(0).label());
         assertEquals("4.50", rankings.reviews().get(0).worth());
         assertEquals("generator:ore", client.upgrades(islandId).join().get(0).key());
+        assertEquals("MAX_MEMBERS", client.upgradeRules().join().get(0).type());
         assertEquals("starter", client.missions(islandId, null).join().get(0).key());
 
         assertEquals(List.of(
@@ -876,6 +883,7 @@ class CoreTypedClientsTest {
             "topIslandsByWorth:2",
             "reviews:2",
             "upgrades",
+            "rules",
             "missions:MISSION"
         ), calls);
     }

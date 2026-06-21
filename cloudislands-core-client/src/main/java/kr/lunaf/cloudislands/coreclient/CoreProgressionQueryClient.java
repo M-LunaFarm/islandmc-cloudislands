@@ -64,6 +64,11 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     }
 
     @Override
+    public CompletableFuture<List<UpgradeRuleView>> upgradeRules() {
+        return delegate.listUpgradeRules().thenApply(CoreProgressionQueryClient::upgradeRuleViews);
+    }
+
+    @Override
     public CompletableFuture<List<CoreGuiViews.MissionView>> missions(UUID islandId, String kind) {
         requireIsland(islandId);
         return CoreGuiViews.islandMissions(delegate, islandId, kind == null || kind.isBlank() ? "MISSION" : kind);
@@ -110,6 +115,19 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
                 SimpleJson.number(object.get("reviewCount"))
             ))
             .filter(entry -> !entry.islandId().isBlank())
+            .toList();
+    }
+
+    private static List<UpgradeRuleView> upgradeRuleViews(String body) {
+        return entries(body).stream()
+            .map(object -> new UpgradeRuleView(
+                text(object, "upgradeKey"),
+                text(object, "type"),
+                SimpleJson.number(object.get("maxLevel")),
+                text(object, "baseCost"),
+                text(object, "multiplier")
+            ))
+            .filter(rule -> !rule.key().isBlank())
             .toList();
     }
 
