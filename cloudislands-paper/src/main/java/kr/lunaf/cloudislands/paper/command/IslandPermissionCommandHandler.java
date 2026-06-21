@@ -13,6 +13,8 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase;
+import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionActionResult;
+import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionView;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
@@ -37,8 +39,8 @@ final class IslandPermissionCommandHandler {
 
     void listIslandPermissions(Player player) {
         runtime.currentIsland(player, "섬 안에서만 권한을 확인할 수 있습니다.").ifPresent(islandId -> {
-            permissionUseCase.listPermissions(islandId)
-                .thenAccept(body -> runtime.message(player, permissionListMessage(body)))
+            permissionUseCase.listPermissionViews(islandId)
+                .thenAccept(permissions -> runtime.message(player, permissionListMessage(permissions)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 권한을 불러오지 못했습니다.");
                     return null;
@@ -48,8 +50,8 @@ final class IslandPermissionCommandHandler {
 
     void listIslandRoles(Player player) {
         runtime.currentIsland(player, "섬 안에서만 역할을 확인할 수 있습니다.").ifPresent(islandId -> {
-            permissionUseCase.listRoles(islandId)
-                .thenAccept(body -> runtime.message(player, roleListMessage(body)))
+            permissionUseCase.listRoleViews(islandId)
+                .thenAccept(roles -> runtime.message(player, roleListMessage(roles)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 역할을 불러오지 못했습니다.");
                     return null;
@@ -195,8 +197,8 @@ final class IslandPermissionCommandHandler {
             }
             boolean allowed = booleanValue(allowedValue);
             PermissionManagementUseCase.PermissionChange change = new PermissionManagementUseCase.PermissionChange(roleKey, permission, allowed, "");
-            permissionUseCase.setPermission(islandId, player.getUniqueId(), change, runtime::mutate)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 권한 변경 " + roleKey + ":" + permission.name() + "=" + allowed, roleKey, body)))
+            permissionUseCase.setPermissionAction(islandId, player.getUniqueId(), change, runtime::mutate)
+                .thenAccept(result -> runtime.message(player, permissionActionMessage(result, "섬 권한 변경 완료: " + roleKey + ":" + permission.name() + "=" + allowed, "섬 권한을 변경하지 못했습니다.")))
                 .exceptionally(error -> {
                     runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 권한을 변경하지 못했습니다."));
                     return null;
@@ -217,8 +219,8 @@ final class IslandPermissionCommandHandler {
             }
             boolean allowed = booleanValue(allowedValue);
             runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                permissionUseCase.setPermissionOverride(islandId, player.getUniqueId(), targetUuid, permission, allowed, runtime::mutate)
-                    .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 권한 예외 변경 " + permission.name() + "=" + allowed, targetUuid, body)))
+                permissionUseCase.setPermissionOverrideAction(islandId, player.getUniqueId(), targetUuid, permission, allowed, runtime::mutate)
+                    .thenAccept(result -> runtime.message(player, permissionActionMessage(result, "섬 권한 예외 변경 완료: " + compactId(targetUuid.toString()) + ":" + permission.name() + "=" + allowed, "섬 권한 예외를 변경하지 못했습니다.")))
                     .exceptionally(error -> {
                         runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 권한 예외를 변경하지 못했습니다."));
                         return null;
@@ -276,55 +278,24 @@ final class IslandPermissionCommandHandler {
         }
     }
 
-    private String permissionListMessage(String body) {
+    private String permissionListMessage(List<PermissionView> permissions) {
         List<String> entries = new ArrayList<>();
         List<String> overrides = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
+        for (PermissionView permission : permissions) {
+            if (!permission.role().isBlank()) {
+                entries.add(permission.role() + ":" + permission.permission() + "=" + (permission.allowed() ? "허용" : "거부"));
+            } else if (!permission.playerUuid().isBlank()) {
+                overrides.add(compactId(permission.playerUuid()) + ":" + permission.permission() + "=" + (permission.allowed() ? "허용" : "거부"));
             }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String role = text(object, "role");
-            String permission = text(object, "permission");
-            if (!role.isBlank() && !permission.isBlank()) {
-                entries.add(role + ":" + permission + "=" + (bool(object, "allowed") ? "허용" : "거부"));
-            } else {
-                String playerUuid = text(object, "playerUuid");
-                if (!playerUuid.isBlank() && !permission.isBlank()) {
-                    overrides.add(compactId(playerUuid) + ":" + permission + "=" + (bool(object, "allowed") ? "허용" : "거부"));
-                }
-            }
-            index = objectEnd + 1;
         }
         String base = entries.isEmpty() ? "섬 권한 규칙이 없습니다." : "섬 권한: " + String.join(", ", entries);
         return overrides.isEmpty() ? base : base + " / 예외: " + String.join(", ", overrides);
     }
 
-    private String roleListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String role = text(object, "role");
-            if (!role.isBlank()) {
-                entries.add(role + "(weight=" + (long) decimal(object, "weight") + ", name=" + text(object, "displayName") + ")");
-            }
-            index = objectEnd + 1;
-        }
+    private String roleListMessage(List<RoleView> roles) {
+        List<String> entries = roles.stream()
+            .map(role -> role.role() + "(weight=" + role.weight() + ", name=" + role.displayName() + ")")
+            .toList();
         return entries.isEmpty() ? "섬 커스텀 역할이 없습니다." : "섬 역할: " + String.join(", ", entries);
     }
 
@@ -332,97 +303,15 @@ final class IslandPermissionCommandHandler {
         return "섬 역할 저장 완료: " + role.role() + " weight=" + role.weight() + " name=" + role.displayName();
     }
 
-    private String text(String json, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return "";
+    private String permissionActionMessage(PermissionActionResult result, String successMessage, String failureMessage) {
+        if (result.accepted()) {
+            return successMessage;
         }
-        int valueStart = start + needle.length();
-        int end = jsonStringEnd(json, valueStart);
-        return end < 0 ? "" : unescape(json.substring(valueStart, end));
-    }
-
-    private double decimal(String json, String key) {
-        String needle = "\"" + key + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return 0.0D;
-        }
-        int valueStart = start + needle.length();
-        int end = valueStart;
-        while (end < json.length()) {
-            char current = json.charAt(end);
-            if ((current >= '0' && current <= '9') || current == '-' || current == '+' || current == '.') {
-                end++;
-                continue;
-            }
-            break;
-        }
-        try {
-            return Double.parseDouble(json.substring(valueStart, end));
-        } catch (RuntimeException ignored) {
-            return 0.0D;
-        }
-    }
-
-    private boolean bool(String json, String key) {
-        String needle = "\"" + key + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return false;
-        }
-        int valueStart = start + needle.length();
-        return json.startsWith("true", valueStart);
+        return result.code().isBlank() ? failureMessage : failureMessage + " 사유=" + result.code();
     }
 
     private String compactId(String value) {
         return value != null && value.length() == 36 && value.indexOf('-') > 0 ? value.substring(0, 8) : value;
-    }
-
-    private int jsonStringEnd(String value, int start) {
-        boolean escaped = false;
-        for (int i = start; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (current == '"') {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private String unescape(String value) {
-        StringBuilder builder = new StringBuilder();
-        boolean escaped = false;
-        for (int i = 0; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (!escaped) {
-                if (current == '\\') {
-                    escaped = true;
-                } else {
-                    builder.append(current);
-                }
-                continue;
-            }
-            switch (current) {
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                default -> builder.append(current);
-            }
-            escaped = false;
-        }
-        return builder.toString();
     }
 
     interface Runtime {

@@ -15,6 +15,8 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
 import kr.lunaf.cloudislands.coreclient.PermissionMatrixView;
+import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionActionResult;
+import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionView;
 import org.junit.jupiter.api.Test;
 
 class PermissionManagementUseCaseTest {
@@ -81,14 +83,14 @@ class PermissionManagementUseCaseTest {
         PermissionManagementUseCase useCase = new PermissionManagementUseCase(client);
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
-        UUID targetUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.fromString("00000000-0000-0000-0000-000000000080");
 
-        assertEquals("roles", useCase.listRoles(islandId).join());
-        assertEquals("permissions", useCase.listPermissions(islandId).join());
+        assertEquals("{\"roles\":[{\"role\":\"BUILDER\",\"weight\":50,\"displayName\":\"Builder\"}]}", useCase.listRoles(islandId).join());
+        assertEquals("{\"rules\":[{\"role\":\"BUILDER\",\"permission\":\"BUILD\",\"allowed\":true},{\"playerUuid\":\"%s\",\"permission\":\"BREAK\",\"allowed\":false}]}".formatted(targetUuid), useCase.listPermissions(islandId).join());
         assertTrue(useCase.upsertRole(islandId, actorUuid, "builder", 50, "", mutationRunner(calls)).join().contains("\"role\":\"BUILDER\""));
         assertTrue(useCase.resetRole(islandId, actorUuid, "builder", idempotentRunner(calls)).join().contains("\"role\":\"BUILDER\""));
-        assertEquals("set", useCase.setPermission(islandId, actorUuid, new PermissionManagementUseCase.PermissionChange("builder", IslandPermission.BUILD, true, ""), mutationRunner(calls)).join());
-        assertEquals("override", useCase.setPermissionOverride(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false, mutationRunner(calls)).join());
+        assertEquals("{\"accepted\":true,\"code\":\"PERMISSION_SET\"}", useCase.setPermission(islandId, actorUuid, new PermissionManagementUseCase.PermissionChange("builder", IslandPermission.BUILD, true, ""), mutationRunner(calls)).join());
+        assertEquals("{\"accepted\":true,\"code\":\"PERMISSION_OVERRIDE_SET\"}", useCase.setPermissionOverride(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false, mutationRunner(calls)).join());
 
         assertEquals(List.of(
             "listIslandRoles",
@@ -102,6 +104,34 @@ class PermissionManagementUseCaseTest {
             "audit:island.permission.override.set",
             "override:BREAK:false"
         ), calls);
+    }
+
+    @Test
+    void permissionReadsAndMutationsCanReturnTypedResultsBehindUsecaseBoundaries() {
+        List<String> calls = new ArrayList<>();
+        CoreApiClient client = commandClient(calls);
+        PermissionManagementUseCase useCase = new PermissionManagementUseCase(client);
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+
+        List<RoleView> roles = useCase.listRoleViews(islandId).join();
+        assertEquals("BUILDER", roles.get(0).role());
+        assertEquals(50, roles.get(0).weight());
+
+        List<PermissionView> permissions = useCase.listPermissionViews(islandId).join();
+        assertEquals("BUILDER", permissions.get(0).role());
+        assertEquals("BUILD", permissions.get(0).permission());
+        assertTrue(permissions.get(0).allowed());
+        assertEquals("BREAK", permissions.get(1).permission());
+
+        PermissionActionResult set = useCase.setPermissionAction(islandId, actorUuid, new PermissionManagementUseCase.PermissionChange("builder", IslandPermission.BUILD, true, ""), mutationRunner(calls)).join();
+        assertTrue(set.accepted());
+        assertEquals("PERMISSION_SET", set.code());
+
+        PermissionActionResult override = useCase.setPermissionOverrideAction(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false, mutationRunner(calls)).join();
+        assertTrue(override.accepted());
+        assertEquals("PERMISSION_OVERRIDE_SET", override.code());
     }
 
     @Test
@@ -150,11 +180,11 @@ class PermissionManagementUseCaseTest {
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listIslandRoles" -> {
                     calls.add("listIslandRoles");
-                    yield CompletableFuture.completedFuture("roles");
+                    yield CompletableFuture.completedFuture("{\"roles\":[{\"role\":\"BUILDER\",\"weight\":50,\"displayName\":\"Builder\"}]}");
                 }
                 case "listIslandPermissions" -> {
                     calls.add("listIslandPermissions");
-                    yield CompletableFuture.completedFuture("permissions");
+                    yield CompletableFuture.completedFuture("{\"rules\":[{\"role\":\"BUILDER\",\"permission\":\"BUILD\",\"allowed\":true},{\"playerUuid\":\"00000000-0000-0000-0000-000000000080\",\"permission\":\"BREAK\",\"allowed\":false}]}");
                 }
                 case "upsertIslandRole" -> {
                     calls.add("upsert:" + args[2] + ":" + args[3] + ":" + args[4]);
@@ -170,11 +200,11 @@ class PermissionManagementUseCaseTest {
                 }
                 case "setIslandPermissionResult" -> {
                     calls.add("set:" + args[2] + ":" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("set");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PERMISSION_SET\"}");
                 }
                 case "setIslandPermissionOverride" -> {
                     calls.add("override:" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("override");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PERMISSION_OVERRIDE_SET\"}");
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
