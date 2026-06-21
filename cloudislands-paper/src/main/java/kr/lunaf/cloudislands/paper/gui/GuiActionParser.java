@@ -33,6 +33,13 @@ public final class GuiActionParser {
                     safeData
                 ));
             }
+            if (safeAction.equals("island.warp.delete.prepare") || warpDeleteConfirmation(safeAction)) {
+                return Optional.of(new GuiAction.WarpDelete(
+                    safeAction,
+                    required(safeData, "warpName"),
+                    safeData
+                ));
+            }
             return switch (safeAction) {
                 case "island.bank.deposit", "island.bank.withdraw" -> Optional.of(new GuiAction.BankAmount(
                     safeAction,
@@ -53,6 +60,26 @@ public final class GuiActionParser {
                 ));
                 case "island.visit.target" -> Optional.of(new GuiAction.VisitTarget(
                     required(safeData, "target")
+                ));
+                case "island.home" -> Optional.of(new GuiAction.HomeTeleport(
+                    required(safeData, "homeName")
+                ));
+                case "island.home.set" -> Optional.of(new GuiAction.HomeSet(
+                    required(safeData, "homeName")
+                ));
+                case "island.warp.teleport" -> Optional.of(new GuiAction.WarpTeleport(
+                    required(safeData, "warpName"),
+                    optionalUuid(safeData, "islandId")
+                ));
+                case "island.warp.public", "island.warp.private" -> Optional.of(new GuiAction.WarpAccess(
+                    safeAction,
+                    required(safeData, "warpName"),
+                    false
+                ));
+                case "island.warp.public.toggle" -> Optional.of(new GuiAction.WarpAccess(
+                    safeAction,
+                    required(safeData, "warpName"),
+                    bool(required(safeData, "publicAccess"))
                 ));
                 case "island.permissions.page" -> Optional.of(new GuiAction.PermissionPage(
                     integer(safeData.get("page")),
@@ -78,6 +105,10 @@ public final class GuiActionParser {
 
     private static boolean snapshotRestoreConfirmation(String actionId) {
         return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".snapshot.restore.confirm");
+    }
+
+    private static boolean warpDeleteConfirmation(String actionId) {
+        return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".warp.delete.confirm");
     }
 
     private static int integer(String value) {
@@ -117,6 +148,25 @@ public final class GuiActionParser {
             throw new IllegalArgumentException(key + " is required");
         }
         return value.trim();
+    }
+
+    private static boolean bool(String value) {
+        String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalized.equals("true")) {
+            return true;
+        }
+        if (normalized.equals("false")) {
+            return false;
+        }
+        throw new IllegalArgumentException("boolean value is required");
+    }
+
+    private static UUID optionalUuid(Map<String, String> data, String key) {
+        String value = data.get(key);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return UUID.fromString(value.trim());
     }
 
     private static <E extends Enum<E>> E enumValue(Class<E> type, String value) {

@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -171,6 +171,111 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
         }
     }
 
+    record HomeTeleport(String homeName) implements GuiAction {
+        public HomeTeleport {
+            homeName = requiredName(homeName, "homeName");
+        }
+
+        @Override
+        public String actionId() {
+            return "island.home";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("homeName", homeName);
+        }
+    }
+
+    record HomeSet(String homeName) implements GuiAction {
+        public HomeSet {
+            homeName = requiredName(homeName, "homeName");
+        }
+
+        @Override
+        public String actionId() {
+            return "island.home.set";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("homeName", homeName);
+        }
+    }
+
+    record WarpTeleport(String warpName, UUID islandId) implements GuiAction {
+        public WarpTeleport {
+            warpName = requiredName(warpName, "warpName");
+        }
+
+        @Override
+        public String actionId() {
+            return "island.warp.teleport";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            if (islandId == null) {
+                return Map.of("warpName", warpName);
+            }
+            return Map.of("warpName", warpName, "islandId", islandId.toString());
+        }
+    }
+
+    record WarpDelete(String actionId, String warpName, Map<String, String> data) implements GuiAction {
+        public WarpDelete {
+            actionId = actionId == null ? "" : actionId.trim();
+            warpName = requiredName(warpName, "warpName");
+            data = data == null ? Map.of() : Map.copyOf(data);
+            if (!actionId.equals("island.warp.delete.prepare") && !warpDeleteConfirmation(actionId)) {
+                throw new IllegalArgumentException("unsupported warp delete action");
+            }
+        }
+
+        @Override
+        public Map<String, String> data() {
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>(data);
+            values.put("warpName", warpName);
+            return Map.copyOf(values);
+        }
+
+        public boolean confirmation() {
+            return warpDeleteConfirmation(actionId);
+        }
+
+        private static boolean warpDeleteConfirmation(String actionId) {
+            return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".warp.delete.confirm");
+        }
+    }
+
+    record WarpAccess(String actionId, String warpName, boolean publicAccess) implements GuiAction {
+        public WarpAccess {
+            actionId = actionId == null ? "" : actionId.trim();
+            warpName = requiredName(warpName, "warpName");
+            if (!actionId.equals("island.warp.public") && !actionId.equals("island.warp.private") && !actionId.equals("island.warp.public.toggle")) {
+                throw new IllegalArgumentException("unsupported warp access action");
+            }
+        }
+
+        @Override
+        public Map<String, String> data() {
+            if (actionId.equals("island.warp.public.toggle")) {
+                return Map.of("warpName", warpName, "publicAccess", Boolean.toString(publicAccess));
+            }
+            return Map.of("warpName", warpName);
+        }
+
+        public boolean targetPublicAccess() {
+            if (actionId.equals("island.warp.public")) {
+                return true;
+            }
+            if (actionId.equals("island.warp.private")) {
+                return false;
+            }
+            return !publicAccess;
+        }
+    }
+
     record PermissionPage(int page, int rolePage) implements GuiAction {
         @Override
         public String actionId() {
@@ -230,5 +335,13 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
         private static boolean memberRemovalConfirmation(String actionId) {
             return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".member.remove.confirm");
         }
+    }
+
+    private static String requiredName(String value, String field) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return normalized;
     }
 }

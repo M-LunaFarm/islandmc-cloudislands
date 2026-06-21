@@ -140,68 +140,56 @@ final class IslandHomeWarpCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
-        String actionId = action.actionId();
-        Map<String, String> data = action.data();
-        return switch (actionId) {
-            case "island.home" -> {
-                if (click.right()) {
-                    openHomeMenu(player);
-                } else {
-                    teleportHome(player, data.getOrDefault("homeName", "default"));
-                }
-                yield true;
-            }
-            case "island.homes.open" -> {
+        if (action instanceof GuiAction.HomeTeleport homeTeleport) {
+            if (click.right()) {
                 openHomeMenu(player);
-                yield true;
+            } else {
+                teleportHome(player, homeTeleport.homeName());
             }
-            case "island.home.set" -> {
-                setHome(player, data.getOrDefault("homeName", "default"));
-                yield true;
+            return true;
+        }
+        if (action instanceof GuiAction.HomeSet homeSet) {
+            setHome(player, homeSet.homeName());
+            return true;
+        }
+        if (action instanceof GuiAction.WarpTeleport warpTeleport) {
+            if (warpTeleport.islandId() != null) {
+                runtime.routeWarp(player, warpTeleport.islandId(), warpTeleport.warpName());
+            } else {
+                teleportWarp(player, warpTeleport.warpName());
             }
-            case "island.warps.open" -> {
-                openWarpMenu(player);
-                yield true;
-            }
-            case "island.warp.teleport" -> {
-                String islandId = data.getOrDefault("islandId", "");
-                String warpName = data.getOrDefault("warpName", "default");
-                UUID uuid = uuid(islandId);
-                if (uuid != null) {
-                    runtime.routeWarp(player, uuid, warpName);
-                } else {
-                    teleportWarp(player, warpName);
-                }
-                yield true;
-            }
-            case "island.warp.delete.prepare" -> {
+            return true;
+        }
+        if (action instanceof GuiAction.WarpDelete warpDelete) {
+            if (!warpDelete.confirmation()) {
                 runtime.openConfirmation(player,
                     runtime.routeMessage("warp-delete-confirm-title", "워프 삭제 확인"),
                     runtime.routeMessage("warp-delete-confirm-description", "워프를 삭제하면 해당 이름으로 이동할 수 없습니다."),
                     Material.ENDER_PEARL,
                     runtime.routeMessage("warp-delete-confirm-name", "워프 삭제"),
                     "island.warp.delete.confirm",
-                    Map.of("warpName", data.getOrDefault("warpName", "default")),
+                    Map.of("warpName", warpDelete.warpName()),
                     runtime.routeMessage("warp-delete-confirm-lore", "클릭하면 Core에 워프 삭제를 요청합니다."),
                     "island.warps.open");
+                return true;
+            }
+            if (runtime.confirmationAccepted(player, action, click)) {
+                deleteWarp(player, warpDelete.warpName());
+            }
+            return true;
+        }
+        if (action instanceof GuiAction.WarpAccess warpAccess) {
+            setWarpPublicAccess(player, warpAccess.warpName(), warpAccess.targetPublicAccess());
+            return true;
+        }
+        String actionId = action.actionId();
+        return switch (actionId) {
+            case "island.homes.open" -> {
+                openHomeMenu(player);
                 yield true;
             }
-            case "island.warp.delete.confirm" -> {
-                if (runtime.confirmationAccepted(player, action, click)) {
-                    deleteWarp(player, data.getOrDefault("warpName", "default"));
-                }
-                yield true;
-            }
-            case "island.warp.public" -> {
-                setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), true);
-                yield true;
-            }
-            case "island.warp.private" -> {
-                setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), false);
-                yield true;
-            }
-            case "island.warp.public.toggle" -> {
-                setWarpPublicAccess(player, data.getOrDefault("warpName", "default"), !Boolean.parseBoolean(data.getOrDefault("publicAccess", "false")));
+            case "island.warps.open" -> {
+                openWarpMenu(player);
                 yield true;
             }
             default -> false;

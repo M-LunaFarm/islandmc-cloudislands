@@ -101,6 +101,30 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesHomeAndWarpActionsIntoTypedActions() {
+        GuiAction home = GuiActionParser.parse("island.home", Map.of("homeName", " default ")).orElseThrow();
+        GuiAction homeSet = GuiActionParser.parse("island.home.set", Map.of("homeName", " farm ")).orElseThrow();
+        GuiAction warp = GuiActionParser.parse("island.warp.teleport", Map.of("warpName", " shop ", "islandId", "00000000-0000-0000-0000-000000000000")).orElseThrow();
+        GuiAction toggle = GuiActionParser.parse("island.warp.public.toggle", Map.of("warpName", " shop ", "publicAccess", "false")).orElseThrow();
+        GuiAction delete = GuiActionParser.parse("island.warp.delete.prepare", Map.of("warpName", " shop ")).orElseThrow();
+        GuiAction confirm = GuiActionParser.parse("island.warp.delete.confirm", Map.of("warpName", " shop ", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.warp.delete.confirm"))).orElseThrow();
+
+        assertTrue(home instanceof GuiAction.HomeTeleport);
+        assertEquals(Map.of("homeName", "default"), home.data());
+        assertTrue(homeSet instanceof GuiAction.HomeSet);
+        assertEquals(Map.of("homeName", "farm"), homeSet.data());
+        assertTrue(warp instanceof GuiAction.WarpTeleport);
+        assertEquals(Map.of("warpName", "shop", "islandId", "00000000-0000-0000-0000-000000000000"), warp.data());
+        assertTrue(toggle instanceof GuiAction.WarpAccess);
+        assertEquals(Map.of("warpName", "shop", "publicAccess", "false"), toggle.data());
+        assertTrue(((GuiAction.WarpAccess) toggle).targetPublicAccess());
+        assertTrue(delete instanceof GuiAction.WarpDelete);
+        assertEquals(Map.of("warpName", "shop"), delete.data());
+        assertTrue(confirm instanceof GuiAction.WarpDelete);
+        assertEquals(Map.of("warpName", "shop", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.warp.delete.confirm")), confirm.data());
+    }
+
+    @Test
     void rejectsUnregisteredActionIdsInsteadOfExecutingRawMaps() {
         assertTrue(GuiActionParser.parse("island.member.remvoe", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
         assertTrue(GuiActionParser.parse("island.unknown.open", Map.of()).isEmpty());
@@ -115,5 +139,11 @@ class GuiActionParserTest {
         assertTrue(GuiActionParser.parse("island.flag.set", Map.of("flag", "")).isEmpty());
         assertTrue(GuiActionParser.parse("island.flag.set", Map.of("flag", "NOPE")).isEmpty());
         assertTrue(GuiActionParser.parse("island.visit.target", Map.of("target", "")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.home", Map.of("homeName", "")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.home.set", Map.of()).isEmpty());
+        assertTrue(GuiActionParser.parse("island.warp.teleport", Map.of("warpName", "")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.warp.teleport", Map.of("warpName", "shop", "islandId", "nope")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.warp.public.toggle", Map.of("warpName", "shop", "publicAccess", "maybe")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.warp.delete.prepare", Map.of("warpName", "")).isEmpty());
     }
 }
