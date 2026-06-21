@@ -384,76 +384,7 @@ final class IslandMembershipCommandHandler {
                 default -> false;
             };
         }
-        String actionId = action.actionId();
-        Map<String, String> data = action.data();
-        return switch (actionId) {
-            case "island.members.open" -> {
-                runtime.openIslandMemberMenu(player);
-                yield true;
-            }
-            case "island.member.role" -> {
-                runtime.listIslandMembers(player);
-                yield true;
-            }
-            case "island.members.page" -> false;
-            case "island.member.invite", "island.member.invite.help" -> {
-                runtime.message(player, runtime.routeMessage("member-invite-help", "멤버 초대는 /섬 초대 <플레이어> 로 요청합니다."));
-                yield true;
-            }
-            case "island.member.list" -> {
-                runtime.listIslandMembers(player);
-                yield true;
-            }
-            case "island.invites.open" -> {
-                IslandInviteMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
-                yield true;
-            }
-            case "island.bans.open" -> {
-                runtime.openIslandBanMenu(player);
-                yield true;
-            }
-            case "island.bans.list" -> {
-                runtime.listIslandBans(player);
-                yield true;
-            }
-            case "island.permissions.open" -> {
-                runtime.openIslandPermissionMenu(player);
-                yield true;
-            }
-            case "island.permissions.page" -> {
-                runtime.openIslandPermissionMenu(player, (int) runtime.longValue(data.getOrDefault("page", "0"), 0L), (int) runtime.longValue(data.getOrDefault("rolePage", "0"), 0L));
-                yield true;
-            }
-            case "island.permissions.list" -> {
-                runtime.listIslandPermissions(player);
-                yield true;
-            }
-            case "island.permissions.save" -> {
-                runtime.saveStagedIslandPermissions(player);
-                yield true;
-            }
-            case "island.permissions.reset" -> {
-                runtime.resetStagedIslandPermissions(player);
-                yield true;
-            }
-            case "island.permissions.set" -> {
-                runtime.stageIslandPermission(player, data.getOrDefault("role", ""), data.getOrDefault("permission", ""), click.right() ? "false" : "true", data.getOrDefault("expectedVersion", ""));
-                yield true;
-            }
-            case "island.roles.open" -> {
-                runtime.openIslandRoleMenu(player);
-                yield true;
-            }
-            case "island.role.weight.adjust" -> {
-                runtime.adjustIslandRoleWeight(player, data.getOrDefault("role", ""), data.getOrDefault("weight", "0"), data.getOrDefault("displayName", ""), click);
-                yield true;
-            }
-            case "island.roles.list" -> {
-                runtime.listIslandRoles(player);
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     interface Runtime {

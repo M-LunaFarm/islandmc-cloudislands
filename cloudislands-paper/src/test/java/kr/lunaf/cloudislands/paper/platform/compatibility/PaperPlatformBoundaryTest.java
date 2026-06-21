@@ -516,8 +516,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(menu.contains("PERMISSIONS_PER_PAGE"), "Permission GUI must paginate the full permission matrix");
         assertTrue(!menu.contains("List.of(\"BUILD\", \"BREAK\", \"INTERACT\""), "Permission GUI must not hard-code the legacy 8-permission subset");
         assertTrue(!menu.contains("private static final List<String> ROLES"), "Permission GUI must not hard-code a fixed role matrix");
-        assertTrue(membershipHandler.contains("case \"island.permissions.page\""), "Permission GUI page action must be registered");
-        assertTrue(membershipHandler.contains("data.getOrDefault(\"rolePage\""), "Permission GUI page action must route role page state");
+        assertTrue(membershipHandler.contains("action instanceof GuiAction.PermissionPage"), "Permission GUI page action must be registered as a typed GUI action");
+        assertTrue(membershipHandler.contains("permissionPage.rolePage()"), "Permission GUI page action must route role page state");
     }
 
     @Test
@@ -529,7 +529,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(menu.contains("MEMBERS_PER_PAGE"), "Member GUI must declare a page size");
         assertTrue(menu.contains(".skip((long) safePage * MEMBERS_PER_PAGE)"), "Member GUI must page through members instead of truncating to the first 45");
         assertTrue(menu.contains("\"island.members.page\""), "Member GUI must expose page navigation actions");
-        assertTrue(membershipHandler.contains("case \"island.members.page\""), "Member GUI page action must be registered");
+        assertTrue(membershipHandler.contains("action instanceof GuiAction.MemberPage"), "Member GUI page action must be registered as a typed GUI action");
     }
 
     @Test
@@ -615,9 +615,9 @@ class PaperPlatformBoundaryTest {
         String membershipHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
 
-        assertTrue(membershipHandler.contains("case \"island.permissions.set\""), "Permission cells must stage edits instead of immediately writing Core state");
+        assertTrue(membershipHandler.contains("action instanceof GuiAction.ChangePermission"), "Permission cells must stage edits through typed GUI actions");
         assertTrue(membershipHandler.contains("runtime.stageIslandPermission"), "Permission cells must stage edits instead of immediately writing Core state");
-        assertTrue(membershipHandler.contains("case \"island.permissions.save\""), "Permission save must be the only GUI save action");
+        assertTrue(membershipHandler.contains("case PERMISSIONS_SAVE"), "Permission save must be the only GUI save action");
         assertTrue(membershipHandler.contains("runtime.saveStagedIslandPermissions"), "Permission save must be the only GUI save action");
         assertTrue(backend.contains("IslandPermissionCommandHandler"), "Permission commands must be extracted from the backend");
         assertTrue(permissionHandler.contains("stagedPermissionChanges"), "Permission edits must have a dirty session store");
@@ -626,7 +626,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(permissionHandler.contains("GuiStateMenus.openConflict"), "Permission save failures must show Conflict/Error recovery state");
         assertTrue(menu.contains("\"island.permissions.save\""), "Permission menu must expose an explicit save button");
         assertTrue(menu.contains("\"island.permissions.reset\""), "Permission menu must expose a reset/cancel button");
-        assertTrue(!membershipHandler.contains("case \"island.permissions.set\" -> setIslandPermission"), "Permission cell clicks must not call the immediate mutation path");
+        assertTrue(!membershipHandler.contains("case \"island.permissions.set\""), "Permission cell clicks must not use raw string fallback routing");
     }
 
     @Test
@@ -640,7 +640,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(menu.contains("\"island.role.weight.adjust\""), "Role GUI must expose a direct role edit action");
         assertTrue(menu.contains("GuiItems.action(Material.PAPER"), "Role list control must use PDC action metadata");
         assertTrue(menu.contains("GuiItems.action(Material.COMPARATOR"), "Role permission control must use PDC action metadata");
-        assertTrue(membershipHandler.contains("case \"island.role.weight.adjust\""), "Role edit action must be registered");
+        assertTrue(membershipHandler.contains("action instanceof GuiAction.RoleWeightAdjust"), "Role edit action must be registered as a typed GUI action");
         assertTrue(membershipHandler.contains("runtime.adjustIslandRoleWeight"), "Role edit action must route to the role weight adjuster");
         assertTrue(permissionHandler.contains("upsertIslandRole(player, roleKey, updatedWeight, displayName)"), "Role edit action must call the Core role mutation with dynamic role keys");
         assertTrue(permissionHandler.contains("resetIslandRole(player, roleKey)"), "Role edit action must support reset through the Core role mutation");
