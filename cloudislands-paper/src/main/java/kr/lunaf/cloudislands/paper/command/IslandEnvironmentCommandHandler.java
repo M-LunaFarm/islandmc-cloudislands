@@ -447,10 +447,6 @@ final class IslandEnvironmentCommandHandler {
 
         String playerCodeMessage(String code, String fallback);
 
-        String actionResultMessage(String label, UUID targetId, String body);
-
-        String actionResultMessage(String label, String targetId, String body);
-
         String coreWriteFailureMessage(Throwable error, String fallback);
 
         <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);

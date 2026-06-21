@@ -365,16 +365,6 @@ final class IslandCommandBackend {
             }
 
             @Override
-            public String actionResultMessage(String label, UUID targetId, String body) {
-                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
-            }
-
-            @Override
-            public String actionResultMessage(String label, String targetId, String body) {
-                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
-            }
-
-            @Override
             public String coreWriteFailureMessage(Throwable error, String fallback) {
                 return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
             }
@@ -1576,24 +1566,6 @@ final class IslandCommandBackend {
         return actionStatusMessage(label, targetId == null ? "" : targetId.toString(), result != null && result.accepted(), result == null ? "" : result.code());
     }
 
-    private String actionResultMessage(String label, UUID targetId, String body) {
-        return actionResultMessage(label, targetId == null ? "" : targetId.toString(), body);
-    }
-
-    private String actionResultMessage(String label, String targetId, String body) {
-        boolean rejected = resultRejected(body);
-        String code = text(body == null ? "" : body, "code");
-        StringBuilder builder = new StringBuilder(label)
-            .append(rejected ? " 실패" : " 완료");
-        if (targetId != null && !targetId.isBlank()) {
-            builder.append(": 대상=").append(compactId(targetId));
-        }
-        if (!code.isBlank()) {
-            builder.append(" 사유=").append(code);
-        }
-        return builder.toString();
-    }
-
     private String actionStatusMessage(String label, String targetId, boolean accepted, String code) {
         StringBuilder builder = new StringBuilder(label)
             .append(accepted ? " 완료" : " 실패");
@@ -1604,10 +1576,6 @@ final class IslandCommandBackend {
             builder.append(" 사유=").append(code);
         }
         return builder.toString();
-    }
-
-    private boolean resultRejected(String body) {
-        return body == null || body.contains("\"error\"") || body.contains("\"accepted\":false") || body.contains("\"applied\":false");
     }
 
     private String compactId(String value) {
