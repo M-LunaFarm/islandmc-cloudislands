@@ -11,13 +11,15 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.coreclient.CoreRoutingCommandClient;
+import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import net.kyori.adventure.bossbar.BossBar;
 
 public final class RouteTicketRouter {
-    private final CoreApiClient coreApiClient;
+    private final RoutingCommandClient routingCommands;
     private final int routeWaitSeconds;
     private final VelocityMessages messages;
     private final VelocityRoutingMetrics metrics;
@@ -31,7 +33,7 @@ public final class RouteTicketRouter {
             VelocityRoutingMetrics metrics,
             RouteFallbackService fallbackService,
             RouteProgressPresenter progressPresenter) {
-        this.coreApiClient = coreApiClient;
+        this.routingCommands = new CoreRoutingCommandClient(coreApiClient);
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
         this.messages = messages;
         this.metrics = metrics;
@@ -76,7 +78,7 @@ public final class RouteTicketRouter {
         String target = routeTargetName(ticket);
         String progressValue = RouteProgressPresenter.progressValue(attempt);
         progressPresenter.preparing(player, bossBar, messages.text("route-loading-progress", "target", target, "progress", progressValue), messages.text("route-preparing-progress", "target", target, "progress", progressValue), attempt);
-        coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
+        routingCommands.routeTicketStatus(ticket).thenAccept(status -> {
             Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
             if (ready.isPresent()) {
                 String readyTarget = routeTargetName(ready.get());
@@ -138,7 +140,7 @@ public final class RouteTicketRouter {
             clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
             return;
         }
-        coreApiClient.publishRouteSession(ticket).thenRun(() -> {
+        routingCommands.publishRouteSession(ticket).thenRun(() -> {
             String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
             connectWithTicket(player, ticket, targetServerName);
         }).exceptionally(error -> {
@@ -186,7 +188,7 @@ public final class RouteTicketRouter {
         if (ticket == null) {
             return;
         }
-        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
+        routingCommands.clearRoute(ticket, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
     }
 
     private String routeFailureMessage(Throwable error, String fallback) {

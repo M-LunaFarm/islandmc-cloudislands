@@ -31,7 +31,7 @@ class RouteTicketRouterPolicyTest {
     void readyTicketsPublishSessionBeforeVelocityConnect() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/routing/RouteTicketRouter.java"));
 
-        int publish = source.indexOf("coreApiClient.publishRouteSession(ticket)");
+        int publish = source.indexOf("routingCommands.publishRouteSession(ticket)");
         int connect = source.indexOf("connectWithTicket(player, ticket, targetServerName)");
 
         assertTrue(publish > 0, "READY route tickets must publish a Core route session");
@@ -54,7 +54,7 @@ class RouteTicketRouterPolicyTest {
         )) {
             assertTrue(source.contains("clearFailedRoute(ticket, \"" + reason + "\")"), reason);
         }
-        assertTrue(source.contains("coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason"), "failure cleanup must call Core route clear with an explicit reason");
+        assertTrue(source.contains("routingCommands.clearRoute(ticket, reason"), "failure cleanup must call Core route clear with an explicit reason");
     }
 
     @Test
@@ -132,10 +132,10 @@ class RouteTicketRouterPolicyTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
             (_proxy, method, args) -> {
-                if (method.getName().equals("publishRouteSession")) {
+                if (method.getName().equals("publishRouteSessionResult")) {
                     RouteTicket ticket = (RouteTicket) args[0];
                     calls.add("publishRouteSession:" + ticket.ticketId());
-                    return CompletableFuture.completedFuture(null);
+                    return CompletableFuture.completedFuture("{\"ok\":true}");
                 }
                 if (method.getName().equals("clearRoute") && args.length == 3) {
                     calls.add("clearRoute:" + args[1] + ":" + args[2]);
