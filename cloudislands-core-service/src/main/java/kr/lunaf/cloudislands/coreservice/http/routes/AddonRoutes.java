@@ -1,11 +1,16 @@
 package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -669,10 +674,6 @@ public final class AddonRoutes implements RouteGroup {
         });
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
     private static Map<String, String> tableStateValues(String table, Map<String, String> values) {
         if (values == null || values.isEmpty()) {
             return Map.of();
@@ -829,20 +830,15 @@ public final class AddonRoutes implements RouteGroup {
             : safe;
     }
 
-    private static String addonStateJson(Map<String, String> values) {
-        StringBuilder builder = new StringBuilder("{\"values\":{");
-        boolean first = true;
+    static String addonStateJson(Map<String, String> values) {
+        LinkedHashMap<String, Object> renderedValues = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : (values == null ? Map.<String, String>of() : values).entrySet()) {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
+            renderedValues.put(entry.getKey(), entry.getValue());
         }
-        return builder.append("}}").toString();
+        return SimpleJson.stringify(Map.of("values", renderedValues));
     }
 
     private static void publishAddonStateChanged(GlobalEventPublisher events, Map<String, String> fields) {
@@ -855,34 +851,32 @@ public final class AddonRoutes implements RouteGroup {
         events.publish(CloudIslandEventType.ADDON_STATE_CHANGED.name(), Map.copyOf(payload));
     }
 
-    private static String addonStateSummaryJson(Map<String, Integer> globalCounts, Map<String, Integer> islandCounts) {
-        java.util.TreeSet<String> addonIds = new java.util.TreeSet<>();
+    static String addonStateSummaryJson(Map<String, Integer> globalCounts, Map<String, Integer> islandCounts) {
+        TreeSet<String> addonIds = new TreeSet<>();
         addonIds.addAll(globalCounts == null ? Map.<String, Integer>of().keySet() : globalCounts.keySet());
         addonIds.addAll(islandCounts == null ? Map.<String, Integer>of().keySet() : islandCounts.keySet());
-        StringBuilder builder = new StringBuilder("{\"stateOwnership\":\"core-addon-state-store\","
-            + "\"registeredAddonRequired\":false,"
-            + "\"orphanStatePolicy\":\"preserve-for-reinstall-or-admin-clear\","
-            + "\"missingAddonStatePolicy\":\"ignored-by-island-lifecycle\","
-            + "\"tableKeyPrefix\":\"" + AddonStateRepository.TABLE_STATE_KEY_SHAPE + "\","
-            + "\"maxAddonIdLength\":" + AddonStateRepository.MAX_ADDON_ID_LENGTH + ","
-            + "\"maxKeyLength\":" + AddonStateRepository.MAX_KEY_LENGTH + ","
-            + "\"maxValueLength\":" + AddonStateRepository.MAX_VALUE_LENGTH + ","
-            + "\"maxKeysPerAddon\":" + AddonStateRepository.MAX_KEYS_PER_ADDON + ","
-            + "\"addons\":[");
-        boolean first = true;
+        List<Object> addons = new ArrayList<>();
         for (String addonId : addonIds) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
             int globalKeys = globalCounts == null ? 0 : globalCounts.getOrDefault(addonId, 0);
             int islandKeys = islandCounts == null ? 0 : islandCounts.getOrDefault(addonId, 0);
-            builder.append("{\"addonId\":\"").append(escape(addonId))
-                .append("\",\"globalKeys\":").append(globalKeys)
-                .append(",\"islandKeys\":").append(islandKeys)
-                .append(",\"totalKeys\":").append(globalKeys + islandKeys)
-                .append('}');
+            LinkedHashMap<String, Object> addon = new LinkedHashMap<>();
+            addon.put("addonId", addonId);
+            addon.put("globalKeys", globalKeys);
+            addon.put("islandKeys", islandKeys);
+            addon.put("totalKeys", globalKeys + islandKeys);
+            addons.add(addon);
         }
-        return builder.append("]}").toString();
+        LinkedHashMap<String, Object> root = new LinkedHashMap<>();
+        root.put("stateOwnership", "core-addon-state-store");
+        root.put("registeredAddonRequired", false);
+        root.put("orphanStatePolicy", "preserve-for-reinstall-or-admin-clear");
+        root.put("missingAddonStatePolicy", "ignored-by-island-lifecycle");
+        root.put("tableKeyPrefix", AddonStateRepository.TABLE_STATE_KEY_SHAPE);
+        root.put("maxAddonIdLength", AddonStateRepository.MAX_ADDON_ID_LENGTH);
+        root.put("maxKeyLength", AddonStateRepository.MAX_KEY_LENGTH);
+        root.put("maxValueLength", AddonStateRepository.MAX_VALUE_LENGTH);
+        root.put("maxKeysPerAddon", AddonStateRepository.MAX_KEYS_PER_ADDON);
+        root.put("addons", addons);
+        return SimpleJson.stringify(root);
     }
 }
