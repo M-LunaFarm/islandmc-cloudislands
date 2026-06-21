@@ -1,12 +1,6 @@
 id: island.permissions
 rows: 6
 title-key: menu.permissions.title
-roles:
-  - CO_OWNER
-  - MODERATOR
-  - MEMBER
-  - TRUSTED
-  - VISITOR
 permissions:
   - BUILD
   - BREAK
@@ -16,8 +10,75 @@ permissions:
   - USE_REDSTONE
   - ATTACK_PLAYER
   - ATTACK_MOB
-footer-actions:
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "ONPQSRLGB"
+items:
+  O:
+    material: ARROW
+    name-key: permission-menu-prev-role-page-name
+    fallback-name: 이전 역할
+    action: role-prev
+  N:
+    material: ARROW
+    name-key: permission-menu-next-role-page-name
+    fallback-name: 다음 역할
+    action: role-next
+  P:
+    material: ARROW
+    name-key: permission-menu-prev-page-name
+    fallback-name: 이전 권한
+    action: permission-prev
+  Q:
+    material: ARROW
+    name-key: permission-menu-next-page-name
+    fallback-name: 다음 권한
+    action: permission-next
+  S:
+    material: EMERALD_BLOCK
+    name-key: permission-menu-save-name
+    fallback-name: 변경 저장
+    lore-keys:
+      - permission-menu-save-lore
+    fallback-lore:
+      - 임시 변경 사항을 한 번에 저장합니다.
+    action: save
+  R:
+    material: CLOCK
+    name-key: permission-menu-reset-name
+    fallback-name: 변경 취소
+    lore-keys:
+      - permission-menu-reset-lore
+    fallback-lore:
+      - 임시 변경 사항을 버리고 다시 불러옵니다.
+    action: reset
+  L:
+    material: NAME_TAG
+    name-key: permission-menu-role-name
+    fallback-name: 역할 설정
+    action: roles
+  G:
+    material: MAP
+    name-key: permission-menu-page-name
+    fallback-name: 페이지
+    action: list
+  B:
+    material: OAK_DOOR
+    name-key: permission-menu-settings-name
+    fallback-name: 뒤로
+    action: back
+actions:
+  page: island.permissions.page
   save: island.permissions.save
   reset: island.permissions.reset
   roles: island.roles.open
+  list: island.permissions.list
   back: island.settings.open
+  role-prev: island.permissions.page
+  role-next: island.permissions.page
+  permission-prev: island.permissions.page
+  permission-next: island.permissions.page

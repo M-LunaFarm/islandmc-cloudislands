@@ -207,6 +207,33 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledPermissionMenuDefinitionCoversFooterControlsDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/permissions.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.permissions", definition.id());
+        assertEquals(54, definition.size());
+        assertEquals("menu.permissions.title", definition.titleKey());
+        assertEquals("O", definition.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.permissions.page", definition.action(definition.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("N", definition.itemAt(46).orElseThrow().symbol());
+        assertEquals("P", definition.itemAt(47).orElseThrow().symbol());
+        assertEquals("Q", definition.itemAt(48).orElseThrow().symbol());
+        assertEquals("S", definition.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.permissions.save", definition.action(definition.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("R", definition.itemAt(50).orElseThrow().symbol());
+        assertEquals("island.permissions.reset", definition.action(definition.itemAt(50).orElseThrow().actionKey(), ""));
+        assertEquals("L", definition.itemAt(51).orElseThrow().symbol());
+        assertEquals("island.roles.open", definition.action(definition.itemAt(51).orElseThrow().actionKey(), ""));
+        assertEquals("G", definition.itemAt(52).orElseThrow().symbol());
+        assertEquals("island.permissions.list", definition.action(definition.itemAt(52).orElseThrow().actionKey(), ""));
+        assertEquals("B", definition.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.settings.open", definition.action(definition.itemAt(53).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",
