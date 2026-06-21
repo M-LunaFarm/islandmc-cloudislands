@@ -37,6 +37,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
+import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
 import kr.lunaf.cloudislands.coreclient.JobView;
@@ -829,7 +830,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("visitor-stats") || args[1].equalsIgnoreCase("visitors")) {
-            run(sender, "Island visitor stats", coreApiClient.islandVisitorStats(islandId, 10).thenApply(body -> actionResultMessage("Visitor stats", islandId.toString(), body)));
+            run(sender, "Island visitor stats", coreApiClient.visitorStats().stats(islandId, 10).thenApply(this::visitorStatsMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("tp")) {
@@ -1852,6 +1853,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             builder.append(adminText("admin-command-action-result-storage-path-prefix", " storagePath=")).append(action.storagePath());
         }
         return builder.toString();
+    }
+
+    private String visitorStatsMessage(IslandVisitorStatsView stats) {
+        List<String> recent = stats.recentVisitors().stream()
+            .limit(5)
+            .map(visitor -> shortId(visitor.visitorUuid()) + (visitor.lastVisitedAt().isBlank() ? "" : "@" + visitor.lastVisitedAt()))
+            .toList();
+        return adminText("admin-command-visitor-stats-prefix", "Visitor stats: island=") + shortId(stats.islandId())
+            + adminText("admin-command-visitor-stats-total-prefix", " total=") + stats.totalVisits()
+            + adminText("admin-command-visitor-stats-unique-prefix", " unique=") + stats.uniqueVisitors()
+            + (recent.isEmpty() ? "" : adminText("admin-command-visitor-stats-recent-prefix", " recent=") + String.join(",", recent));
     }
 
     private String adminCodeDetail(String code) {

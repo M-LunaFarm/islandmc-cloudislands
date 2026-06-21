@@ -92,6 +92,10 @@ public interface CoreApiClient {
         return new CoreNavigationCommandClient(this);
     }
 
+    default IslandVisitorStatsQueryClient visitorStats() {
+        return new CoreIslandVisitorStatsQueryClient(this);
+    }
+
     default RoutingCommandClient routingCommands() {
         return new CoreRoutingCommandClient(this);
     }

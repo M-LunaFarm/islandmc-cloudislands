@@ -111,6 +111,6 @@ class AdminCommandBackendPolicyTest {
         String adminSurface = source + "\n" + catalog;
 
         assertTrue(adminSurface.contains("ciadmin island visitor-stats <island>"), "Visitor stats command must be listed in help");
-        assertTrue(source.contains("coreApiClient.islandVisitorStats"), "Visitor stats command must call the Core visitor stats API");
+        assertTrue(source.contains("coreApiClient.visitorStats().stats"), "Visitor stats command must use the typed Core visitor stats API");
     }
 }

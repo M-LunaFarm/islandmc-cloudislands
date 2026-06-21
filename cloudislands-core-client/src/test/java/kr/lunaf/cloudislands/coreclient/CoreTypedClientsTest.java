@@ -305,6 +305,38 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void visitorStatsClientReturnsTypedRecentVisitors() {
+        UUID islandId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "islandVisitorStats" -> {
+                    calls.add(args[0] + ":" + args[1]);
+                    yield CompletableFuture.completedFuture("""
+                        {"islandId":"%s","totalVisits":12,"uniqueVisitors":3,"recentVisitors":[
+                          {"visitorUuid":"visitor-a","lastVisitedAt":"now"},
+                          {"visitorUuid":"visitor-b","lastVisitedAt":"later"}
+                        ]}
+                        """.formatted(args[0]));
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        IslandVisitorStatsQueryClient client = new CoreIslandVisitorStatsQueryClient(raw);
+
+        IslandVisitorStatsView stats = client.stats(islandId, 500).join();
+
+        assertEquals(islandId.toString(), stats.islandId());
+        assertEquals(12L, stats.totalVisits());
+        assertEquals(3L, stats.uniqueVisitors());
+        assertEquals("visitor-a", stats.recentVisitors().get(0).visitorUuid());
+        assertEquals("later", stats.recentVisitors().get(1).lastVisitedAt());
+        assertEquals(List.of(islandId + ":100"), calls);
+    }
+
+    @Test
     void snapshotCommandClientReturnsTypedActionViews() {
         UUID islandId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
