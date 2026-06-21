@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.coreclient.CoreGuiViews.BanView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.MemberView;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
+import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase.MemberActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
@@ -81,7 +82,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-remove-player-required", "추방할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.removeIslandMember(player, args[1]);
+            removeIslandMember(player, args[1]);
             return true;
         }
         if (subcommand.equals("trust") || subcommand.equals("신뢰")) {
@@ -90,9 +91,9 @@ final class IslandMembershipCommandHandler {
                 return true;
             }
             if (args.length > 2) {
-                runtime.trustIslandMemberTemporary(player, args[1], args[2]);
+                trustIslandMemberTemporary(player, args[1], args[2]);
             } else {
-                runtime.setIslandMemberRole(player, args[1], "TRUSTED", "섬 신뢰 멤버로 설정했습니다.");
+                setIslandMemberRole(player, args[1], "TRUSTED", "섬 신뢰 멤버로 설정했습니다.");
             }
             return true;
         }
@@ -101,7 +102,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-untrust-player-required", "신뢰 해제할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.setIslandMemberRole(player, args[1], "MEMBER", "섬 신뢰를 해제했습니다.");
+            setIslandMemberRole(player, args[1], "MEMBER", "섬 신뢰를 해제했습니다.");
             return true;
         }
         if (subcommand.equals("promote") || subcommand.equals("승급")) {
@@ -109,7 +110,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-promote-player-required", "승급할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.setIslandMemberRole(player, args[1], "MODERATOR", "섬 멤버를 승급했습니다.");
+            setIslandMemberRole(player, args[1], "MODERATOR", "섬 멤버를 승급했습니다.");
             return true;
         }
         if (subcommand.equals("demote") || subcommand.equals("강등")) {
@@ -117,7 +118,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-demote-player-required", "강등할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.setIslandMemberRole(player, args[1], "MEMBER", "섬 멤버를 강등했습니다.");
+            setIslandMemberRole(player, args[1], "MEMBER", "섬 멤버를 강등했습니다.");
             return true;
         }
         if (subcommand.equals("setrole") || subcommand.equals("role-set") || subcommand.equals("역할설정")) {
@@ -130,7 +131,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-member-role-invalid", "올바른 멤버 역할을 입력해주세요. 예: MEMBER, MODERATOR, BUILDER"));
                 return true;
             }
-            runtime.setIslandMemberRole(player, args[1], roleKey, "섬 멤버 역할을 " + roleKey + "(으)로 변경했습니다.");
+            setIslandMemberRole(player, args[1], roleKey, "섬 멤버 역할을 " + roleKey + "(으)로 변경했습니다.");
             return true;
         }
         if (subcommand.equals("roles") || subcommand.equals("role-menu") || subcommand.equals("역할")) {
@@ -172,7 +173,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-transfer-player-required", "양도할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.transferIslandOwnership(player, args[1]);
+            transferIslandOwnership(player, args[1]);
             return true;
         }
         if (subcommand.equals("ban") || subcommand.equals("밴")) {
@@ -278,7 +279,7 @@ final class IslandMembershipCommandHandler {
                 return true;
             }
             if (runtime.confirmationAccepted(player, action, click)) {
-                runtime.setIslandMemberRole(
+                setIslandMemberRole(
                     player,
                     roleChange.playerUuid().toString(),
                     roleChange.promote() ? "MODERATOR" : "MEMBER",
@@ -300,7 +301,7 @@ final class IslandMembershipCommandHandler {
                 return true;
             }
             if (runtime.confirmationAccepted(player, action, click)) {
-                runtime.removeIslandMember(player, memberRemoval.playerUuid().toString());
+                removeIslandMember(player, memberRemoval.playerUuid().toString());
             }
             return true;
         }
@@ -452,6 +453,75 @@ final class IslandMembershipCommandHandler {
             });
     }
 
+    private void removeIslandMember(Player player, String target) {
+        runtime.currentIsland(player, "섬 안에서만 멤버를 추방할 수 있습니다.").ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.MANAGE_MEMBERS)) {
+                runtime.message(player, runtime.routeMessage("member-remove-denied", "섬 멤버를 추방할 권한이 없습니다."));
+                return;
+            }
+            runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                runtime.mutateIdempotent("island.member.remove", () -> memberManagement.removeMemberAction(islandId, player.getUniqueId(), targetUuid))
+                    .thenAccept(result -> runtime.message(player, memberActionMessage("섬 멤버 제거", targetUuid, result)))
+                    .exceptionally(error -> {
+                        runtime.message(player, "섬 멤버를 제거하지 못했습니다.");
+                        return null;
+                    });
+            });
+        });
+    }
+
+    private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage) {
+        runtime.currentIsland(player, "섬 안에서만 멤버 역할을 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
+                runtime.message(player, runtime.routeMessage("member-role-denied", "섬 멤버 역할을 변경할 권한이 없습니다."));
+                return;
+            }
+            runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                runtime.mutate("island.member.role.set", () -> memberManagement.setRoleAction(islandId, player.getUniqueId(), targetUuid, roleKey))
+                    .thenAccept(result -> runtime.message(player, memberActionMessage(successMessage, targetUuid, result)))
+                    .exceptionally(error -> {
+                        runtime.message(player, "섬 멤버 역할을 변경하지 못했습니다.");
+                        return null;
+                    });
+            });
+        });
+    }
+
+    private void trustIslandMemberTemporary(Player player, String target, String duration) {
+        long seconds = parseDurationSeconds(duration, 3600L);
+        if (seconds <= 0L) {
+            runtime.message(player, "신뢰 기간을 올바르게 입력해주세요. 예: 30m, 2h, 1d");
+            return;
+        }
+        runtime.currentIsland(player, "섬 안에서만 임시 신뢰를 설정할 수 있습니다.").ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
+                runtime.message(player, runtime.routeMessage("member-role-denied", "섬 멤버 역할을 변경할 권한이 없습니다."));
+                return;
+            }
+            runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                runtime.mutate("island.member.temp-trust", () -> memberManagement.trustTemporarilyAction(islandId, player.getUniqueId(), targetUuid, seconds))
+                    .thenAccept(result -> runtime.message(player, memberActionMessage("섬 임시 신뢰 설정 " + formatDuration(seconds), targetUuid, result) + (result.expiresAt().isBlank() ? "" : " 만료=" + result.expiresAt())))
+                    .exceptionally(error -> {
+                        runtime.message(player, "섬 임시 신뢰를 설정하지 못했습니다.");
+                        return null;
+                    });
+            });
+        });
+    }
+
+    private void transferIslandOwnership(Player player, String target) {
+        runtime.currentIsland(player, "섬 안에서만 소유권을 양도할 수 있습니다.").ifPresent(islandId -> {
+            runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                runtime.mutateIdempotent("island.ownership.transfer", () -> memberManagement.transferOwnershipAction(islandId, player.getUniqueId(), targetUuid))
+                    .thenAccept(result -> runtime.message(player, memberActionMessage("섬 소유권 양도", targetUuid, result)))
+                    .exceptionally(error -> {
+                        runtime.message(player, "섬 소유권을 양도하지 못했습니다.");
+                        return null;
+                    });
+            });
+        });
+    }
+
     private void listPendingInvites(Player player) {
         memberManagement.listPendingInviteViews(player.getUniqueId())
             .thenAccept(invites -> runtime.message(player, inviteListMessage(invites)))
@@ -572,6 +642,10 @@ final class IslandMembershipCommandHandler {
         return actionStatusMessage("섬 초대", inviteId, true, "");
     }
 
+    private static String memberActionMessage(String label, UUID targetId, MemberActionResult result) {
+        return actionStatusMessage(label, targetId == null ? "" : targetId.toString(), result != null && result.accepted(), result == null ? "" : result.code());
+    }
+
     private static String actionStatusMessage(String label, String targetId, boolean accepted, String code) {
         StringBuilder builder = new StringBuilder(label)
             .append(accepted ? " 완료" : " 실패");
@@ -589,6 +663,42 @@ final class IslandMembershipCommandHandler {
             return value == null ? "" : value;
         }
         return value.substring(0, 8);
+    }
+
+    private long parseDurationSeconds(String value, long fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
+        long multiplier = 1L;
+        if (normalized.endsWith("m")) {
+            multiplier = 60L;
+            normalized = normalized.substring(0, normalized.length() - 1);
+        } else if (normalized.endsWith("h")) {
+            multiplier = 3600L;
+            normalized = normalized.substring(0, normalized.length() - 1);
+        } else if (normalized.endsWith("d")) {
+            multiplier = 86400L;
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        long amount = runtime.longValue(normalized, -1L);
+        if (amount <= 0L) {
+            return -1L;
+        }
+        return Math.max(60L, Math.min(amount * multiplier, 2_592_000L));
+    }
+
+    private static String formatDuration(long seconds) {
+        if (seconds % 86400L == 0L) {
+            return (seconds / 86400L) + "d";
+        }
+        if (seconds % 3600L == 0L) {
+            return (seconds / 3600L) + "h";
+        }
+        if (seconds % 60L == 0L) {
+            return (seconds / 60L) + "m";
+        }
+        return seconds + "s";
     }
 
     private static UUID uuid(String value) {
@@ -624,17 +734,13 @@ final class IslandMembershipCommandHandler {
 
         <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
 
+        <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
+
+        CompletableFuture<UUID> resolvePlayerUuid(String value);
+
         void openIslandMemberMenu(Player player);
 
         void openIslandMemberMenu(Player player, int page);
-
-        void removeIslandMember(Player player, String target);
-
-        void setIslandMemberRole(Player player, String target, String roleKey, String successMessage);
-
-        void trustIslandMemberTemporary(Player player, String target, String duration);
-
-        void transferIslandOwnership(Player player, String target);
 
         void banIslandVisitor(Player player, String target, String reason);
 

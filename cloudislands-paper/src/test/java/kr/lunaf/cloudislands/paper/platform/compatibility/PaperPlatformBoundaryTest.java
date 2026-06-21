@@ -247,7 +247,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(!memberPresentation.contains("jsonStringEnd("), "Presentation code must not parse Core JSON string fields manually");
         assertTrue(!memberPresentation.contains("unescape("), "Presentation code must not carry JSON string unescape helpers");
         assertTrue(!memberPresentation.contains("Double.parseDouble(json.substring"), "Presentation code must not parse Core JSON numbers manually");
-        assertTrue(membership.contains("runtime.removeIslandMember(player"), "GUI confirmation and command routing must share the same member removal boundary");
+        assertTrue(membership.contains("private void removeIslandMember(Player player, String target)"), "GUI confirmation and command routing must share the same member removal boundary");
         assertTrue(usecase.contains("memberCommands.removeMember("), "The application usecase must call typed member command client for removal");
         assertTrue(usecase.contains("islandQueries.listMembers("), "The application usecase must read members through the typed island query client");
         assertTrue(!usecase.contains("public CompletableFuture<String> listMembers("), "Member list usecase must expose typed views instead of raw JSON");

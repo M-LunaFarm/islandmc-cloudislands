@@ -697,6 +697,16 @@ final class IslandCommandBackend {
             }
 
             @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+            }
+
+            @Override
+            public CompletableFuture<UUID> resolvePlayerUuid(String value) {
+                return IslandCommandBackend.this.resolvePlayerUuid(value);
+            }
+
+            @Override
             public void openIslandMemberMenu(Player player) {
                 IslandCommandBackend.this.openIslandMemberMenu(player);
             }
@@ -704,26 +714,6 @@ final class IslandCommandBackend {
             @Override
             public void openIslandMemberMenu(Player player, int page) {
                 IslandCommandBackend.this.openIslandMemberMenu(player, page);
-            }
-
-            @Override
-            public void removeIslandMember(Player player, String target) {
-                IslandCommandBackend.this.removeIslandMember(player, target);
-            }
-
-            @Override
-            public void setIslandMemberRole(Player player, String target, String roleKey, String successMessage) {
-                IslandCommandBackend.this.setIslandMemberRole(player, target, roleKey, successMessage);
-            }
-
-            @Override
-            public void trustIslandMemberTemporary(Player player, String target, String duration) {
-                IslandCommandBackend.this.trustIslandMemberTemporary(player, target, duration);
-            }
-
-            @Override
-            public void transferIslandOwnership(Player player, String target) {
-                IslandCommandBackend.this.transferIslandOwnership(player, target);
             }
 
             @Override
@@ -981,75 +971,6 @@ final class IslandCommandBackend {
         currentIsland(player, "섬 안에서만 멤버 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMemberMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player), page));
     }
 
-    private void removeIslandMember(Player player, String target) {
-        currentIsland(player, "섬 안에서만 멤버를 추방할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_MEMBERS)) {
-                message(player, routeMessage("member-remove-denied", "섬 멤버를 추방할 권한이 없습니다."));
-                return;
-            }
-            resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.member.remove", () -> memberManagement.removeMemberAction(islandId, player.getUniqueId(), targetUuid))
-                    .thenAccept(result -> message(player, memberActionMessage("섬 멤버 제거", targetUuid, result)))
-                    .exceptionally(error -> {
-                        message(player, "섬 멤버를 제거하지 못했습니다.");
-                        return null;
-                    });
-            });
-        });
-    }
-
-    private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage) {
-        currentIsland(player, "섬 안에서만 멤버 역할을 변경할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                message(player, routeMessage("member-role-denied", "섬 멤버 역할을 변경할 권한이 없습니다."));
-                return;
-            }
-            resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutate("island.member.role.set", () -> memberManagement.setRoleAction(islandId, player.getUniqueId(), targetUuid, roleKey))
-                    .thenAccept(result -> message(player, memberActionMessage(successMessage, targetUuid, result)))
-                    .exceptionally(error -> {
-                        message(player, "섬 멤버 역할을 변경하지 못했습니다.");
-                        return null;
-                    });
-            });
-        });
-    }
-
-    private void trustIslandMemberTemporary(Player player, String target, String duration) {
-        long seconds = parseDurationSeconds(duration, 3600L);
-        if (seconds <= 0L) {
-            message(player, "신뢰 기간을 올바르게 입력해주세요. 예: 30m, 2h, 1d");
-            return;
-        }
-        currentIsland(player, "섬 안에서만 임시 신뢰를 설정할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_ROLES)) {
-                message(player, routeMessage("member-role-denied", "섬 멤버 역할을 변경할 권한이 없습니다."));
-                return;
-            }
-            resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutate("island.member.temp-trust", () -> memberManagement.trustTemporarilyAction(islandId, player.getUniqueId(), targetUuid, seconds))
-                    .thenAccept(result -> message(player, memberActionMessage("섬 임시 신뢰 설정 " + formatDuration(seconds), targetUuid, result) + (result.expiresAt().isBlank() ? "" : " 만료=" + result.expiresAt())))
-                    .exceptionally(error -> {
-                        message(player, "섬 임시 신뢰를 설정하지 못했습니다.");
-                        return null;
-                    });
-            });
-        });
-    }
-
-    private void transferIslandOwnership(Player player, String target) {
-        currentIsland(player, "섬 안에서만 소유권을 양도할 수 있습니다.").ifPresent(islandId -> {
-            resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.ownership.transfer", () -> memberManagement.transferOwnershipAction(islandId, player.getUniqueId(), targetUuid))
-                    .thenAccept(result -> message(player, memberActionMessage("섬 소유권 양도", targetUuid, result)))
-                    .exceptionally(error -> {
-                        message(player, "섬 소유권을 양도하지 못했습니다.");
-                        return null;
-                    });
-            });
-        });
-    }
-
     private void banIslandVisitor(Player player, String target, String reason) {
         currentIsland(player, "섬 안에서만 방문자를 밴할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.BAN_VISITOR)) {
@@ -1210,42 +1131,6 @@ final class IslandCommandBackend {
 
     private long number(String value, long fallback) {
         return longValue(value, fallback);
-    }
-
-    private long parseDurationSeconds(String value, long fallback) {
-        if (value == null || value.isBlank()) {
-            return fallback;
-        }
-        String normalized = value.trim().toLowerCase(Locale.ROOT);
-        long multiplier = 1L;
-        if (normalized.endsWith("m")) {
-            multiplier = 60L;
-            normalized = normalized.substring(0, normalized.length() - 1);
-        } else if (normalized.endsWith("h")) {
-            multiplier = 3600L;
-            normalized = normalized.substring(0, normalized.length() - 1);
-        } else if (normalized.endsWith("d")) {
-            multiplier = 86400L;
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-        long amount = longValue(normalized, -1L);
-        if (amount <= 0L) {
-            return -1L;
-        }
-        return Math.max(60L, Math.min(amount * multiplier, 2_592_000L));
-    }
-
-    private String formatDuration(long seconds) {
-        if (seconds % 86400L == 0L) {
-            return (seconds / 86400L) + "d";
-        }
-        if (seconds % 3600L == 0L) {
-            return (seconds / 3600L) + "h";
-        }
-        if (seconds % 60L == 0L) {
-            return (seconds / 60L) + "m";
-        }
-        return seconds + "s";
     }
 
     private UUID uuid(String value) {
