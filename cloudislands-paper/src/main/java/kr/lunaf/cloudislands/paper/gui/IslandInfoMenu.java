@@ -6,14 +6,11 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandInfoMenu implements Listener {
@@ -85,11 +82,21 @@ public final class IslandInfoMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, GuiSession session, IslandInfoView view, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
-            inventory.setItem(10, item(Material.GRASS_BLOCK, message(messages, "info-menu-basic-title", "기본 정보"), message(messages, "info-menu-island-name", "섬 이름: ") + fallback(view.name(), message(messages, "info-menu-no-name", "이름 없음")), message(messages, "info-menu-state", "상태: ") + fallback(view.state(), message(messages, "info-menu-unknown", "알 수 없음")), message(messages, "info-menu-island-id", "섬 ID: ") + shortId(view.islandId(), messages)));
-            inventory.setItem(11, item(Material.EXPERIENCE_BOTTLE, message(messages, "info-menu-level-title", "레벨"), message(messages, "info-menu-level", "레벨: ") + view.level(), message(messages, "info-menu-worth", "가치: ") + fallback(view.worth(), "0")));
-            inventory.setItem(12, item(Material.BARRIER, message(messages, "info-menu-access-title", "공개 상태"), message(messages, "info-menu-public-access", "공개 여부: ") + yesNo(view.publicAccess(), messages), message(messages, "info-menu-locked", "잠금 여부: ") + yesNo(view.locked(), messages)));
-            inventory.setItem(13, item(Material.MAP, message(messages, "info-menu-size-title", "크기와 경계"), message(messages, "info-menu-size", "섬 크기: ") + view.size(), message(messages, "info-menu-border", "경계: ") + view.border()));
-            inventory.setItem(14, item(Material.PLAYER_HEAD, message(messages, "info-menu-owner-title", "소유자"), message(messages, "info-menu-owner", "소유자: ") + shortId(view.ownerUuid(), messages)));
+            setInfoItem(inventory, 10, messages,
+                message(messages, "info-menu-island-name", "섬 이름: ") + fallback(view.name(), message(messages, "info-menu-no-name", "이름 없음")),
+                message(messages, "info-menu-state", "상태: ") + fallback(view.state(), message(messages, "info-menu-unknown", "알 수 없음")),
+                message(messages, "info-menu-island-id", "섬 ID: ") + shortId(view.islandId(), messages));
+            setInfoItem(inventory, 11, messages,
+                message(messages, "info-menu-level", "레벨: ") + view.level(),
+                message(messages, "info-menu-worth", "가치: ") + fallback(view.worth(), "0"));
+            setInfoItem(inventory, 12, messages,
+                message(messages, "info-menu-public-access", "공개 여부: ") + yesNo(view.publicAccess(), messages),
+                message(messages, "info-menu-locked", "잠금 여부: ") + yesNo(view.locked(), messages));
+            setInfoItem(inventory, 13, messages,
+                message(messages, "info-menu-size", "섬 크기: ") + view.size(),
+                message(messages, "info-menu-border", "경계: ") + view.border());
+            setInfoItem(inventory, 14, messages,
+                message(messages, "info-menu-owner", "소유자: ") + shortId(view.ownerUuid(), messages));
             player.openInventory(inventory);
         });
     }
@@ -98,15 +105,9 @@ public final class IslandInfoMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
+    private static void setInfoItem(Inventory inventory, int slot, MessageRenderer messages, String... lore) {
+        MENU.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(lore))));
     }
 
     private static String fallback(String value, String fallback) {

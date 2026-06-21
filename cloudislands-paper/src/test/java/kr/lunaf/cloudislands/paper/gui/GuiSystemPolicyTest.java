@@ -157,6 +157,21 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void infoMenuStaticPanelsRenderFromMenuDefinition() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandInfoMenu.java"));
+        String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/info.yml"));
+
+        assertTrue(config.contains("material: GRASS_BLOCK"), "info menu basic panel material must live in config-v2");
+        assertTrue(config.contains("material: EXPERIENCE_BOTTLE"), "info menu level panel material must live in config-v2");
+        assertTrue(config.contains("material: PLAYER_HEAD"), "info menu owner panel material must live in config-v2");
+        assertTrue(menu.contains("MENU.itemAt(slot)"), "info menu dynamic panels must render the configured menu item");
+        assertTrue(menu.contains("GuiMenuRenderer.item(MENU, item, messages"), "info menu panels must use the shared config-backed renderer");
+        assertFalse(menu.contains("Material.GRASS_BLOCK"), "info menu must not hard-code the basic panel material");
+        assertFalse(menu.contains("Material.EXPERIENCE_BOTTLE"), "info menu must not hard-code the level panel material");
+        assertFalse(menu.contains("Material.PLAYER_HEAD"), "info menu must not hard-code the owner panel material");
+    }
+
+    @Test
     void guiSessionsAreRevisionGuardedAndClearedOnPluginDisable() throws Exception {
         String sessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));
