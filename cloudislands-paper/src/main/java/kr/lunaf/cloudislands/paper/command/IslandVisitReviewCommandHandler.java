@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -18,11 +19,13 @@ import org.bukkit.plugin.Plugin;
 final class IslandVisitReviewCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final IslandNavigationUseCase navigationUseCase;
     private final Runtime runtime;
 
     IslandVisitReviewCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.navigationUseCase = new IslandNavigationUseCase(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -86,44 +89,15 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void routeVisitTarget(Player player, String target) {
-        UUID islandId = uuid(target);
-        if (islandId != null) {
-            routeVisit(player, islandId);
-            return;
-        }
-        coreApiClient.playerInfoByName(target).thenAccept(body -> {
-            UUID primaryIslandId = uuid(text(body, "primaryIslandId"));
-            if (primaryIslandId != null) {
-                UUID ownerUuid = uuid(text(body, "playerUuid"));
-                if (ownerUuid != null) {
-                    runtime.routeTicket(player, runtime.mutate("route.ticket.visit.owner", () -> coreApiClient.createVisitTicketForOwner(player.getUniqueId(), ownerUuid)), "해당 섬에 방문할 수 없습니다.");
-                } else {
-                    routeVisit(player, primaryIslandId);
-                }
-                return;
-            }
-            routeVisitName(player, target);
-        }).exceptionally(error -> {
-            routeVisitName(player, target);
-            return null;
-        });
-    }
-
-    private void routeVisitName(Player player, String islandName) {
-        runtime.routeTicket(player, runtime.mutate("route.ticket.visit.name", () -> coreApiClient.createVisitTicket(player.getUniqueId(), islandName)), "해당 섬에 방문할 수 없습니다.");
-    }
-
-    private void routeVisit(Player player, UUID islandId) {
-        runtime.routeTicket(player, runtime.mutate("route.ticket.visit", () -> coreApiClient.createVisitTicket(player.getUniqueId(), islandId)), "해당 섬에 방문할 수 없습니다.");
+        runtime.routeTicket(player, navigationUseCase.resolveVisitTarget(player.getUniqueId(), target, runtime::mutate), "해당 섬에 방문할 수 없습니다.");
     }
 
     private void routeRandomVisit(Player player) {
-        runtime.routeTicket(player, runtime.mutate("route.ticket.random-visit", () -> coreApiClient.createRandomVisitTicket(player.getUniqueId())), "방문 가능한 공개 섬을 찾지 못했습니다.");
+        runtime.routeTicket(player, navigationUseCase.createRandomVisitTicket(player.getUniqueId(), runtime::mutate), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }
 
     private void listPublicIslands(Player player, int limit) {
-        int cappedLimit = Math.max(1, Math.min(limit, 100));
-        coreApiClient.listPublicIslands(cappedLimit)
+        navigationUseCase.listPublicIslands(limit)
             .thenAccept(body -> runtime.message(player, publicIslandListMessage(body)))
             .exceptionally(error -> {
                 runtime.message(player, "공개 섬 목록을 불러오지 못했습니다.");
@@ -133,7 +107,7 @@ final class IslandVisitReviewCommandHandler {
 
     private void listIslandReviews(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 후기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandReviews(islandId, Math.max(1, Math.min(limit, 100)))
+            navigationUseCase.listReviews(islandId, limit)
                 .thenAccept(body -> runtime.message(player, reviewListMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 후기를 불러오지 못했습니다.");
@@ -160,7 +134,7 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void submitIslandReview(Player player, UUID islandId, int rating, String comment) {
-        runtime.mutateIdempotent("island.review.set", () -> coreApiClient.setIslandReview(islandId, player.getUniqueId(), rating, comment))
+        navigationUseCase.setReview(islandId, player.getUniqueId(), rating, comment, runtime::mutateIdempotent)
             .thenAccept(body -> {
                 String code = text(body, "code");
                 if (!code.isBlank()) {

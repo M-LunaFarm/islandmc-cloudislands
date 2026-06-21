@@ -209,6 +209,7 @@ class IslandCommandControllerPolicyTest {
     void visitReviewCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String visitReviewHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandVisitReviewCommandHandler.java"));
+        String navigationUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandNavigationUseCase.java"));
 
         assertTrue(backend.contains("private final IslandVisitReviewCommandHandler visitReviewCommands;"));
         assertTrue(routerSource().contains("visitReviewCommands.handleCommand(player, subcommand, args)"));
@@ -220,10 +221,16 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("rateIslandReview("), "review mutation logic belongs in IslandVisitReviewCommandHandler");
         assertTrue(visitReviewHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(visitReviewHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
-        assertTrue(visitReviewHandler.contains("coreApiClient.createVisitTicket"));
-        assertTrue(visitReviewHandler.contains("coreApiClient.createRandomVisitTicket"));
-        assertTrue(visitReviewHandler.contains("coreApiClient.listPublicIslands"));
-        assertTrue(visitReviewHandler.contains("coreApiClient.setIslandReview"));
+        assertTrue(visitReviewHandler.contains("IslandNavigationUseCase"));
+        assertTrue(visitReviewHandler.contains("navigationUseCase.resolveVisitTarget"));
+        assertFalse(visitReviewHandler.contains("coreApiClient.createVisitTicket"));
+        assertFalse(visitReviewHandler.contains("coreApiClient.createRandomVisitTicket"));
+        assertFalse(visitReviewHandler.contains("coreApiClient.listPublicIslands"));
+        assertFalse(visitReviewHandler.contains("coreApiClient.setIslandReview"));
+        assertTrue(navigationUseCase.contains("coreApiClient.createVisitTicket"));
+        assertTrue(navigationUseCase.contains("coreApiClient.createRandomVisitTicket"));
+        assertTrue(navigationUseCase.contains("coreApiClient.listPublicIslands"));
+        assertTrue(navigationUseCase.contains("coreApiClient.setIslandReview"));
     }
 
     @Test
