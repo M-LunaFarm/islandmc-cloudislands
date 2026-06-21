@@ -200,6 +200,46 @@ class CoreMutationContextTest {
         }
     }
 
+    @Test
+    void jdkClientBuildsBlockAndRankingPayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/blocks/delta", exchange -> respond(exchange, requestBodies, "blockDelta", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/blocks", exchange -> respond(exchange, requestBodies, "blockDetails", "{\"blocks\":[],\"summary\":{}}"));
+        server.createContext("/v1/islands/level/recalculate", exchange -> respond(exchange, requestBodies, "recalculate", "{\"level\":1}"));
+        server.createContext("/v1/rankings/level", exchange -> respond(exchange, requestBodies, "rankLevel", "{\"rankings\":[]}"));
+        server.createContext("/v1/rankings/worth", exchange -> respond(exchange, requestBodies, "rankWorth", "{\"rankings\":[]}"));
+        server.createContext("/v1/rankings/reviews", exchange -> respond(exchange, requestBodies, "rankReviews", "{\"rankings\":[]}"));
+        server.createContext("/v1/islands/public", exchange -> respond(exchange, requestBodies, "publicIslands", "{\"islands\":[]}"));
+        server.createContext("/v1/admin/block-values", exchange -> respond(exchange, requestBodies, "blockValue", "{\"accepted\":true}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.recordBlockDeltaResult(islandId, "minecraft:diamond\"block", 3L).join();
+            client.islandBlockDetails(islandId, 25).join();
+            client.recalculateIslandLevel(islandId, actorUuid).join();
+            client.topIslandsByLevel(10).join();
+            client.topIslandsByWorth(11).join();
+            client.topIslandsByReviews(12).join();
+            client.listPublicIslands(13).join();
+            client.setBlockValueResult(actorUuid, "minecraft:emerald\"block", "100.50", 20L, 64L).join();
+
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"materialKey\":\"minecraft:diamond\\\"block\",\"delta\":3}", requestBodies.get("blockDelta"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":25}", requestBodies.get("blockDetails"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\"}", requestBodies.get("recalculate"));
+            assertEquals("{\"limit\":10}", requestBodies.get("rankLevel"));
+            assertEquals("{\"limit\":11}", requestBodies.get("rankWorth"));
+            assertEquals("{\"limit\":12}", requestBodies.get("rankReviews"));
+            assertEquals("{\"limit\":13}", requestBodies.get("publicIslands"));
+            assertEquals("{\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:emerald\\\"block\",\"worth\":\"100.50\",\"levelPoints\":20,\"limit\":64}", requestBodies.get("blockValue"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
     private static void respond(com.sun.net.httpserver.HttpExchange exchange, ConcurrentMap<String, String> requestBodies, String key, String responseBody) throws java.io.IOException {
         requestBodies.put(key, new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
         byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);

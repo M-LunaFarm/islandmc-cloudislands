@@ -473,7 +473,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> recordBlockDeltaResult(UUID islandId, String materialKey, long delta) {
-        return postWithResultBody("/v1/islands/blocks/delta", "{\"islandId\":\"" + islandId + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"delta\":" + delta + "}");
+        return postWithResultBody("/v1/islands/blocks/delta", jsonObject("islandId", islandId, "materialKey", materialKey, "delta", delta));
     }
 
     @Override
@@ -483,32 +483,32 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> islandBlockDetails(UUID islandId, int limit) {
-        return post("/v1/islands/blocks", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
+        return post("/v1/islands/blocks", jsonObject("islandId", islandId, "limit", limit));
     }
 
     @Override
     public CompletableFuture<String> recalculateIslandLevel(UUID islandId, UUID actorUuid) {
-        return post("/v1/islands/level/recalculate", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\"}");
+        return post("/v1/islands/level/recalculate", jsonObject("islandId", islandId, "actorUuid", actorUuid));
     }
 
     @Override
     public CompletableFuture<String> topIslandsByLevel(int limit) {
-        return post("/v1/rankings/level", "{\"limit\":" + limit + "}");
+        return post("/v1/rankings/level", jsonObject("limit", limit));
     }
 
     @Override
     public CompletableFuture<String> topIslandsByWorth(int limit) {
-        return post("/v1/rankings/worth", "{\"limit\":" + limit + "}");
+        return post("/v1/rankings/worth", jsonObject("limit", limit));
     }
 
     @Override
     public CompletableFuture<String> topIslandsByReviews(int limit) {
-        return post("/v1/rankings/reviews", "{\"limit\":" + limit + "}");
+        return post("/v1/rankings/reviews", jsonObject("limit", limit));
     }
 
     @Override
     public CompletableFuture<String> listPublicIslands(int limit) {
-        return post("/v1/islands/public", "{\"limit\":" + limit + "}");
+        return post("/v1/islands/public", jsonObject("limit", limit));
     }
 
     @Override
@@ -518,7 +518,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
-        return postWithResultBody("/v1/admin/block-values", "{\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"worth\":\"" + escape(worth) + "\",\"levelPoints\":" + levelPoints + ",\"limit\":" + limit + "}");
+        return postWithResultBody("/v1/admin/block-values", jsonObject("actorUuid", actorUuid, "materialKey", materialKey, "worth", worth, "levelPoints", levelPoints, "limit", limit));
     }
 
     @Override
