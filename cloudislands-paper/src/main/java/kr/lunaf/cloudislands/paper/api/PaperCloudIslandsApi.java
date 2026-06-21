@@ -1980,7 +1980,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandSnapshot>> getPublicIslands(int limit) {
-            return client.listPublicIslands(limit).thenApply(PaperCloudIslandsApi::islands);
+            return client.navigation().publicIslands(limit).thenApply(PaperCloudIslandsApi::publicIslands);
         }
 
         @Override
@@ -2103,7 +2103,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandSnapshot>> getJoinedIslands(UUID playerUuid) {
-            return client.listPlayerIslands(playerUuid).thenApply(PaperCloudIslandsApi::islands);
+            return CoreGuiViews.playerIslands(client, playerUuid).thenApply(PaperCloudIslandsApi::playerIslands);
         }
 
         @Override
@@ -2672,6 +2672,56 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             island(object).ifPresent(islands::add);
         }
         return islands;
+    }
+
+    private static List<IslandSnapshot> playerIslands(List<CoreGuiViews.PlayerIslandView> views) {
+        return views.stream()
+            .map(PaperCloudIslandsApi::playerIsland)
+            .flatMap(Optional::stream)
+            .toList();
+    }
+
+    private static Optional<IslandSnapshot> playerIsland(CoreGuiViews.PlayerIslandView view) {
+        if (view == null || view.islandId() == null || view.islandId().isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(new IslandSnapshot(
+            uuidValueOrZero(view.islandId()),
+            new UUID(0L, 0L),
+            view.name() == null || view.name().isBlank() ? view.islandId() : view.name(),
+            enumValue(IslandState.class, view.state() == null || view.state().isBlank() ? "INACTIVE_READY" : view.state(), IslandState.INACTIVE_READY),
+            0,
+            view.level(),
+            view.worth() == null || view.worth().isBlank() ? "0" : view.worth(),
+            false,
+            Instant.EPOCH,
+            Instant.EPOCH
+        ));
+    }
+
+    private static List<IslandSnapshot> publicIslands(List<CoreGuiViews.PublicIslandView> views) {
+        return views.stream()
+            .map(PaperCloudIslandsApi::publicIsland)
+            .flatMap(Optional::stream)
+            .toList();
+    }
+
+    private static Optional<IslandSnapshot> publicIsland(CoreGuiViews.PublicIslandView view) {
+        if (view == null || view.islandId() == null || view.islandId().isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(new IslandSnapshot(
+            uuidValueOrZero(view.islandId()),
+            uuidValueOrZero(view.ownerUuid()),
+            view.name() == null || view.name().isBlank() ? view.islandId() : view.name(),
+            IslandState.ACTIVE,
+            0,
+            view.level(),
+            view.worth() == null || view.worth().isBlank() ? "0" : view.worth(),
+            true,
+            Instant.EPOCH,
+            Instant.EPOCH
+        ));
     }
 
     private static IslandRegionSnapshot region(IslandRegion region) {

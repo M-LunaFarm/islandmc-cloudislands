@@ -424,9 +424,13 @@ class PaperPlatformBoundaryTest {
 
         assertTrue(source.contains("client.islands().getIsland(islandId).thenApply(PaperCloudIslandsApi::island)"), "Public API island lookup must use typed island query client");
         assertTrue(source.contains("client.islands().getIslandByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island)"), "Public API owner lookup must use typed island query client");
+        assertTrue(source.contains("client.navigation().publicIslands(limit).thenApply(PaperCloudIslandsApi::publicIslands)"), "Public API public island list must use typed navigation query client");
+        assertTrue(source.contains("CoreGuiViews.playerIslands(client, playerUuid).thenApply(PaperCloudIslandsApi::playerIslands)"), "Public API joined island list must use typed Core views");
         assertTrue(source.contains("client.bank().islandBank(islandId).thenApply(bank -> bank(islandId, bank))"), "Public API bank lookup must use typed bank query client");
         assertTrue(!source.contains("return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for island lookup");
         assertTrue(!source.contains("return client.islandInfoByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for owner lookup");
+        assertTrue(!source.contains("return client.listPublicIslands(limit).thenApply(PaperCloudIslandsApi::islands);"), "Public API query surface must not use raw island JSON for public island lists");
+        assertTrue(!source.contains("return client.listPlayerIslands(playerUuid).thenApply(PaperCloudIslandsApi::islands);"), "Public API query surface must not use raw island JSON for joined island lists");
         assertTrue(!source.contains("return client.islandBank(islandId).thenApply(PaperCloudIslandsApi::bank);"), "Public API query surface must not use raw bank JSON for bank lookup");
     }
 
@@ -969,6 +973,9 @@ class PaperPlatformBoundaryTest {
             for (int index = 0; index < lines.size(); index++) {
                 String line = lines.get(index);
                 if (line.contains(".thenCompose(_body -> client.")) {
+                    continue;
+                }
+                if (line.contains("client.bank().islandBank(")) {
                     continue;
                 }
                 if (containsAnyText(line, "coreApiClient.", "client.", "coreClient.")
