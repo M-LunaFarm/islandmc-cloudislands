@@ -55,7 +55,7 @@ public final class IslandCommandController implements CommandExecutor, TabComple
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, String nodeId) {
         this.backend = new IslandCommandBackend(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, new kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway(), new kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway(plugin), nodeId);
-        this.tabCompleter = new IslandCommandTabCompleter(plugin);
+        this.tabCompleter = new IslandCommandTabCompleter(plugin, protection);
     }
 
     @Override

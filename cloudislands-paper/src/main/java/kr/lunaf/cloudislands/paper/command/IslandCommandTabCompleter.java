@@ -6,6 +6,8 @@ import java.util.Locale;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.common.permission.IslandPermissionSystemPolicy;
+import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -16,9 +18,15 @@ import org.jetbrains.annotations.NotNull;
 
 final class IslandCommandTabCompleter implements TabCompleter {
     private final Plugin plugin;
+    private final ProtectionController protection;
 
     IslandCommandTabCompleter(Plugin plugin) {
+        this(plugin, null);
+    }
+
+    IslandCommandTabCompleter(Plugin plugin, ProtectionController protection) {
         this.plugin = plugin;
+        this.protection = protection;
     }
 
     @Override
@@ -62,13 +70,13 @@ final class IslandCommandTabCompleter implements TabCompleter {
                 return literalMatches(List.of("minecraft:cobblestone", "minecraft:dirt", "minecraft:oak_log", "minecraft:iron_ingot"), args[1]);
             }
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
-                return literalMatches(memberRoleNamesWithVisitor(), args[1]);
+                return literalMatches(roleCatalog(sender, true), args[1]);
             }
             if (first.equals("permission-exception") || first.equals("권한예외")) {
                 return onlinePlayerMatches(args[1]);
             }
             if (first.equals("role-upsert") || first.equals("role-edit") || first.equals("역할편집")) {
-                return literalMatches(memberRoleNames(), args[1]);
+                return literalMatches(roleCatalog(sender, false), args[1]);
             }
             if (first.equals("biome") || first.equals("바이옴")) {
                 return literalMatches(List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"), args[1]);
@@ -87,7 +95,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
             return literalMatches(List.of("true", "false", "on", "off", "허용", "거부"), args[3]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정"))) {
-            return literalMatches(memberRoleNames(), args[2]);
+            return literalMatches(roleCatalog(sender, false), args[2]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("rate") || args[0].equalsIgnoreCase("review") || args[0].equals("평가"))) {
             return literalMatches(List.of("5", "4", "3", "2", "1"), args[2]);
@@ -158,15 +166,23 @@ final class IslandCommandTabCompleter implements TabCompleter {
     }
 
     private List<String> memberRoleNames() {
-        return java.util.Arrays.stream(IslandRole.values())
+        return IslandPermissionSystemPolicy.baseRoles().stream()
             .filter(role -> role.islandMemberRole() && role != IslandRole.OWNER)
             .map(Enum::name)
             .toList();
     }
 
-    private List<String> memberRoleNamesWithVisitor() {
+    private List<String> roleCatalog(CommandSender sender, boolean includeVisitor) {
+        if (sender instanceof Player player && protection != null) {
+            java.util.Optional<kr.lunaf.cloudislands.common.protection.IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
+            if (region.isPresent()) {
+                return protection.roleCatalog(region.get().islandId(), includeVisitor);
+            }
+        }
         List<String> names = new ArrayList<>(memberRoleNames());
-        names.add(IslandRole.VISITOR.name());
+        if (includeVisitor) {
+            names.add(IslandRole.VISITOR.name());
+        }
         return names;
     }
 

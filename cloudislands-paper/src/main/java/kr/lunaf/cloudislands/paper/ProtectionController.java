@@ -86,6 +86,10 @@ public final class ProtectionController {
         return permissionCache.role(islandId, playerUuid);
     }
 
+    public java.util.List<String> roleCatalog(UUID islandId, boolean includeVisitor) {
+        return permissionCache.roleCatalog(islandId, includeVisitor);
+    }
+
     public boolean memberOrTrusted(UUID islandId, UUID playerUuid) {
         String roleKey = permissionCache.roleKey(islandId, playerUuid);
         return !roleKey.equals(IslandRole.VISITOR.name()) && !roleKey.equals(IslandRole.BANNED.name());

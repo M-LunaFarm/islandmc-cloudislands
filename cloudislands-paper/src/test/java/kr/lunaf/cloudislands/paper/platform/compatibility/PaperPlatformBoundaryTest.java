@@ -682,6 +682,24 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void roleTabCompletionUsesCachedRoleCatalog() throws Exception {
+        Path root = repositoryRoot();
+        String completer = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
+        String controller = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));
+        String protection = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/ProtectionController.java"));
+        String cache = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/cache/LocalIslandPermissionCache.java"));
+        String sync = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionCacheSyncService.java"));
+
+        assertTrue(!completer.contains("IslandRole.values()"), "role tab completion must not be fixed to the enum role list");
+        assertTrue(controller.contains("new IslandCommandTabCompleter(plugin, protection)"), "tab completion must receive the protection/cache boundary");
+        assertTrue(completer.contains("protection.roleCatalog"), "tab completion must read the current island role catalog");
+        assertTrue(protection.contains("roleCatalog(UUID islandId"), "ProtectionController must expose the cached role catalog");
+        assertTrue(cache.contains("putRoleDefinition"), "permission cache must store Core role definitions");
+        assertTrue(cache.contains("roleCatalog(UUID islandId"), "permission cache must expose role catalog suggestions");
+        assertTrue(sync.contains("client.listIslandRoles"), "permission cache sync must hydrate role catalog from Core roles");
+    }
+
+    @Test
     void paperPresentationUsesCoreProfileLocaleCache() throws Exception {
         Path root = repositoryRoot();
         String bootstrap = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"));

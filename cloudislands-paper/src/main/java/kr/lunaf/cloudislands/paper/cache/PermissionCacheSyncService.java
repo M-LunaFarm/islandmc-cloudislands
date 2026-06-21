@@ -31,6 +31,7 @@ public final class PermissionCacheSyncService {
         try {
             cache.invalidate(islandId);
             loadMembers(islandId, client.listIslandMembers(islandId).join());
+            loadRoles(islandId, client.listIslandRoles(islandId).join());
             loadRules(islandId, client.listIslandPermissions(islandId).join());
             loadFlags(islandId, client.listIslandFlags(islandId).join());
         } catch (RuntimeException exception) {
@@ -69,6 +70,15 @@ public final class PermissionCacheSyncService {
         for (Map<?, ?> object : objects(json, "overrides")) {
             try {
                 cache.putPlayerOverride(islandId, UUID.fromString(text(object, "playerUuid")), IslandPermission.valueOf(text(object, "permission")), bool(object, "allowed"));
+            } catch (RuntimeException ignored) {
+            }
+        }
+    }
+
+    private void loadRoles(UUID islandId, String json) {
+        for (Map<?, ?> object : objects(json, "roles")) {
+            try {
+                cache.putRoleDefinition(islandId, roleKey(object, ""));
             } catch (RuntimeException ignored) {
             }
         }
