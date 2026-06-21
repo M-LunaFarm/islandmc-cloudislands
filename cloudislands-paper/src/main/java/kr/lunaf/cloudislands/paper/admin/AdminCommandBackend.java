@@ -919,12 +919,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 }
                 UUID islandId = uuid(sender, args[3]);
                 if (islandId != null) {
-                    run(sender, "Player setisland", coreApiClient.setPlayerIsland(playerUuid, islandId).thenApply(body -> actionResultMessage("Player setisland", playerUuid.toString(), body)));
+                    run(sender, "Player setisland", coreApiClient.playerProfileCommands().setPrimaryIsland(playerUuid, islandId).thenApply(profile -> playerActionMessage("Player setisland", profile)));
                 }
                 return;
             }
             if (args[1].equalsIgnoreCase("clearisland")) {
-                run(sender, "Player clearisland", coreApiClient.clearPlayerIsland(playerUuid).thenApply(body -> actionResultMessage("Player clearisland", playerUuid.toString(), body)));
+                run(sender, "Player clearisland", coreApiClient.playerProfileCommands().clearPrimaryIsland(playerUuid).thenApply(profile -> playerActionMessage("Player clearisland", profile)));
                 return;
             }
             sendCommandUsage(sender, List.of(
@@ -1893,6 +1893,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         String islandId = profile.primaryIslandId();
         return adminText("admin-command-player-info-uuid-prefix", "Player: uuid=") + shortId(playerUuid)
             + (lastName.isBlank() ? "" : adminText("admin-command-player-info-name-prefix", " name=") + lastName)
+            + (islandId.isBlank() ? adminText("admin-command-player-info-island-none", " island=none") : adminText("admin-command-player-info-island-prefix", " island=") + shortId(islandId));
+    }
+
+    private String playerActionMessage(String label, PlayerProfileView profile) {
+        if (profile.playerUuid().isBlank()) {
+            return label + adminText("admin-command-player-action-failed-code-prefix", ": failed code=") + "PLAYER_NOT_FOUND";
+        }
+        String islandId = profile.primaryIslandId();
+        return label
+            + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=")
+            + shortId(profile.playerUuid())
             + (islandId.isBlank() ? adminText("admin-command-player-info-island-none", " island=none") : adminText("admin-command-player-info-island-prefix", " island=") + shortId(islandId));
     }
 
