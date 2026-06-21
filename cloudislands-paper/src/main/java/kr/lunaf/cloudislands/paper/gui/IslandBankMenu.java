@@ -1,11 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.BankView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -81,15 +81,21 @@ public final class IslandBankMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, GuiSession session, BankView view, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
-            inventory.setItem(4, GuiItems.action(Material.GOLD_BLOCK, message(messages, "bank-menu-balance-name", "잔액"), "",
-                message(messages, "bank-menu-current-balance", "현재 잔액: ") + (view.balance().isBlank() ? "0" : view.balance()),
-                view.updatedAt().isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + view.updatedAt()));
+            setBalanceItem(inventory, messages, view);
             player.openInventory(inventory);
         });
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
         return GuiMenuRenderer.message(messages, key, fallback);
+    }
+
+    private static void setBalanceItem(Inventory inventory, MessageRenderer messages, BankView view) {
+        MENU.itemAt(4)
+            .ifPresent(item -> inventory.setItem(4, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(
+                message(messages, "bank-menu-current-balance", "현재 잔액: ") + (view.balance().isBlank() ? "0" : view.balance()),
+                view.updatedAt().isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + view.updatedAt()
+            ), "")));
     }
 
 }
