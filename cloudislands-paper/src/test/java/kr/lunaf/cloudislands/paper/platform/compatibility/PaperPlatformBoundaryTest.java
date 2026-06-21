@@ -204,6 +204,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(backend.contains("MemberManagementUseCase"), "Island command backend must own the member management usecase");
         assertTrue(backend.contains("memberManagement.removeMember("), "Command and GUI member removal must call the application usecase");
         assertTrue(backend.contains("memberManagement.listMembers("), "Member list reads must call the application usecase");
+        assertTrue(backend.contains("memberManagement.playerInfoByName("), "Player profile lookups in member flows must call the application usecase");
+        assertTrue(backend.contains("memberManagement.islandInfoByName("), "Island-name invite lookups must call the application usecase");
         assertTrue(backend.contains("memberManagement.createInvite("), "Member invite creation must call the application usecase");
         assertTrue(backend.contains("memberManagement.acceptInvite("), "Invite accept must call the application usecase");
         assertTrue(backend.contains("memberManagement.declineInvite("), "Invite decline must call the application usecase");
@@ -214,6 +216,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(backend.contains("memberManagement.kickVisitor("), "Visitor kicks must call the application usecase");
         assertTrue(!backend.contains("coreApiClient.removeIslandMemberResult("), "Presentation code must not call member removal Core API directly");
         assertTrue(!backend.contains("coreApiClient.listIslandMembers("), "Presentation code must not call member list Core API directly");
+        assertTrue(!backend.contains("coreApiClient.playerInfoByName("), "Presentation code must not call player lookup Core API directly");
+        assertTrue(!backend.contains("coreApiClient.islandInfoByName("), "Presentation code must not call island-name lookup Core API directly");
         assertTrue(!backend.contains("coreApiClient.createIslandInvite("), "Presentation code must not call invite creation Core API directly");
         assertTrue(!backend.contains("coreApiClient.acceptIslandInviteResult("), "Presentation code must not call invite accept Core API directly");
         assertTrue(!backend.contains("coreApiClient.declineIslandInviteResult("), "Presentation code must not call invite decline Core API directly");
@@ -227,6 +231,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(membership.contains("runtime.removeIslandMember(player"), "GUI confirmation and command routing must share the same member removal boundary");
         assertTrue(usecase.contains("coreApiClient.removeIslandMemberResult("), "The application usecase must own the Core member removal call");
         assertTrue(usecase.contains("coreApiClient.listIslandMembers("), "The application usecase must own the Core member list call");
+        assertTrue(usecase.contains("coreApiClient.playerInfoByName("), "The application usecase must own the Core player lookup call");
+        assertTrue(usecase.contains("coreApiClient.islandInfoByName("), "The application usecase must own the Core island-name lookup call");
         assertTrue(usecase.contains("coreApiClient.createIslandInvite("), "The application usecase must own the Core invite creation call");
         assertTrue(usecase.contains("coreApiClient.acceptIslandInviteResult("), "The application usecase must own the Core invite accept call");
         assertTrue(usecase.contains("coreApiClient.declineIslandInviteResult("), "The application usecase must own the Core invite decline call");

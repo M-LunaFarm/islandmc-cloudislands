@@ -24,6 +24,22 @@ public final class MemberManagementUseCase {
         return coreApiClient.listIslandMembers(islandId);
     }
 
+    public CompletableFuture<String> playerInfoByName(String playerName) {
+        String normalizedPlayerName = playerName == null ? "" : playerName.trim();
+        if (normalizedPlayerName.isBlank()) {
+            throw new IllegalArgumentException("playerName is required");
+        }
+        return coreApiClient.playerInfoByName(normalizedPlayerName);
+    }
+
+    public CompletableFuture<String> islandInfoByName(String islandName) {
+        String normalizedIslandName = islandName == null ? "" : islandName.trim();
+        if (normalizedIslandName.isBlank()) {
+            throw new IllegalArgumentException("islandName is required");
+        }
+        return coreApiClient.islandInfoByName(normalizedIslandName);
+    }
+
     public CompletableFuture<String> createInvite(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.createIslandInvite(islandId, actorUuid, targetUuid);

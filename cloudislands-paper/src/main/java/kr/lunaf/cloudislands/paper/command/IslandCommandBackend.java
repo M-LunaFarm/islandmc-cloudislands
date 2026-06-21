@@ -1084,7 +1084,7 @@ final class IslandCommandBackend {
                 sendIslandInvite(player, islandId, online == null ? parsed : online.getUniqueId());
                 return;
             }
-            coreApiClient.playerInfoByName(target).thenAccept(body -> {
+            memberManagement.playerInfoByName(target).thenAccept(body -> {
                 UUID profileUuid = uuid(text(body, "playerUuid"));
                 sendIslandInvite(player, islandId, profileUuid == null ? plugin.getServer().getOfflinePlayer(target).getUniqueId() : profileUuid);
             }).exceptionally(error -> {
@@ -1176,7 +1176,7 @@ final class IslandCommandBackend {
         if (online != null) {
             return memberManagement.listPendingInvites(player.getUniqueId()).thenApply(body -> findInviteId(body, online.getUniqueId()));
         }
-        return coreApiClient.playerInfoByName(target)
+        return memberManagement.playerInfoByName(target)
             .handle((body, error) -> error == null ? uuid(text(body, "playerUuid")) : null)
             .thenCompose(playerUuid -> {
                 if (playerUuid == null) {
@@ -1190,7 +1190,7 @@ final class IslandCommandBackend {
     }
 
     private CompletableFuture<UUID> resolveInviteIslandName(Player player, String islandName) {
-        return coreApiClient.islandInfoByName(islandName)
+        return memberManagement.islandInfoByName(islandName)
             .thenCompose(body -> memberManagement.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, uuid(text(body, "islandId")))));
     }
 
@@ -1605,7 +1605,7 @@ final class IslandCommandBackend {
         if (parsed != null) {
             return CompletableFuture.completedFuture(parsed);
         }
-        return coreApiClient.playerInfoByName(value)
+        return memberManagement.playerInfoByName(value)
             .thenApply(body -> {
                 UUID profileUuid = uuid(text(body, "playerUuid"));
                 return profileUuid == null ? plugin.getServer().getOfflinePlayer(value).getUniqueId() : profileUuid;
