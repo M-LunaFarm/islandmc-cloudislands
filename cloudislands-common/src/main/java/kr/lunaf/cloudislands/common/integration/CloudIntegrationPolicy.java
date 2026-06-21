@@ -60,6 +60,7 @@ public final class CloudIntegrationPolicy {
         "custom-items",
         "stacker",
         "spawner",
+        "permission",
         "economy"
     );
 

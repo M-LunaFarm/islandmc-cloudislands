@@ -12,7 +12,10 @@ public final class LuckPermsIntegration extends PolicyBackedCloudIntegration {
             IntegrationCapability.DETECT,
             IntegrationCapability.VALIDATE_VERSION,
             IntegrationCapability.ISLAND_ACTIVATE,
-            IntegrationCapability.ISLAND_DEACTIVATE
+            IntegrationCapability.ISLAND_DEACTIVATE,
+            IntegrationCapability.STATE_EXPORT,
+            IntegrationCapability.STATE_RESTORE,
+            IntegrationCapability.RUNTIME_AUTHORITY
         ));
     }
 
@@ -27,9 +30,21 @@ public final class LuckPermsIntegration extends PolicyBackedCloudIntegration {
     }
 
     @Override
+    public IntegrationResult exportState(IntegrationContext context) {
+        return guardedStateHook("permission-context-export", context, "world", "cell", "permissionNode", "bypassScope", "contextKey", "bundleKey");
+    }
+
+    @Override
+    public IntegrationResult restoreState(IntegrationContext context) {
+        return guardedStateHook("permission-context-restore", context, "world", "cell", "permissionNode", "bypassScope", "contextKey", "bundleKey");
+    }
+
+    @Override
     protected String externalApiCall(String operation) {
         return switch (operation == null ? "" : operation) {
             case "permission-bypass-scope-activate", "permission-bypass-scope-deactivate" -> "LuckPerms#contextManager+cachedData";
+            case "permission-context-export" -> "LuckPerms#userManager+trackManager#saveContextState";
+            case "permission-context-restore" -> "LuckPerms#userManager+trackManager#restoreContextState";
             default -> "";
         };
     }

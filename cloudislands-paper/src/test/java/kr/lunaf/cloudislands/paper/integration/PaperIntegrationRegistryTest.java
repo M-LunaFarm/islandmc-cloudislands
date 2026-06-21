@@ -282,19 +282,48 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void luckPermsAndPlanAdaptersStayObservationOnlyForCoreAuthority() {
+    void luckPermsAndPlanAdaptersDeclareCorrectAuthorityBoundaries() {
         LuckPermsIntegration luckPerms = new LuckPermsIntegration();
         PlanIntegration plan = new PlanIntegration();
-        IntegrationContext noIslandContext = new IntegrationContext(null, "", 0L, false, "", Map.of(
+        IntegrationContext luckPermsContext = new IntegrationContext(UUID.randomUUID(), "island-node-01", 42L, true, "luckperms:activate:1", Map.of(
             "permissionNode", "cloudislands.admin.bypass",
             "bypassScope", "network"
         ));
 
-        assertFalse(luckPerms.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
-        IntegrationResult luckPermsResult = luckPerms.onIslandActivate(noIslandContext);
+        assertTrue(luckPerms.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
+        assertTrue(luckPerms.capabilities().contains(IntegrationCapability.STATE_EXPORT));
+        assertTrue(luckPerms.capabilities().contains(IntegrationCapability.STATE_RESTORE));
+        assertTrue(CloudIntegrationPolicy.requiresRuntimeAuthority("LuckPerms", false));
+        IntegrationResult luckPermsResult = luckPerms.onIslandActivate(luckPermsContext);
         assertEquals(IntegrationResult.Status.SUCCESS, luckPermsResult.status());
         assertEquals("LuckPerms#contextManager+cachedData", luckPermsResult.details().get("external.api"));
 
+        IntegrationResult deniedLuckPermsExport = luckPerms.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 42L, true, "luckperms:export:1", Map.of(
+            "world", "islands",
+            "cell", "4,5",
+            "permissionNode", "cloudislands.island.member",
+            "bypassScope", "island"
+        )));
+        assertEquals(IntegrationResult.Status.FAILED, deniedLuckPermsExport.status());
+        assertTrue(deniedLuckPermsExport.message().contains("contextKey"));
+        assertTrue(deniedLuckPermsExport.message().contains("bundleKey"));
+        assertEquals("LuckPerms#userManager+trackManager#saveContextState", deniedLuckPermsExport.details().get("external.api"));
+
+        IntegrationResult restoredLuckPerms = luckPerms.restoreState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 42L, true, "luckperms:restore:1", Map.of(
+            "world", "islands",
+            "cell", "4,5",
+            "permissionNode", "cloudislands.island.member",
+            "bypassScope", "island",
+            "contextKey", "cloudislands:island",
+            "bundleKey", "bundles/luckperms-context.json"
+        )));
+        assertEquals(IntegrationResult.Status.SUCCESS, restoredLuckPerms.status());
+        assertEquals("permission", restoredLuckPerms.details().get("manifest.category"));
+        assertEquals("permission-context-restore", restoredLuckPerms.details().get("manifest.operation"));
+        assertEquals("cloudislands:island", restoredLuckPerms.details().get("manifest.metadata.contextKey"));
+        assertEquals("LuckPerms#userManager+trackManager#restoreContextState", restoredLuckPerms.details().get("external.api"));
+
+        assertFalse(plan.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
         IntegrationResult missingPlan = plan.exportState(new IntegrationContext(null, "", 0L, false, "", Map.of("analyticsScope", "island-presence")));
         assertEquals(IntegrationResult.Status.FAILED, missingPlan.status());
         assertTrue(missingPlan.message().contains("bundleKey"));
