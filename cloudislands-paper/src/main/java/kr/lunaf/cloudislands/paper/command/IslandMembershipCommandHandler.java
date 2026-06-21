@@ -3,12 +3,15 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.BanView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.MemberView;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -37,7 +40,7 @@ final class IslandMembershipCommandHandler {
             return true;
         }
         if (subcommand.equals("member-list") || subcommand.equals("멤버목록")) {
-            runtime.listIslandMembers(player);
+            listIslandMembers(player);
             return true;
         }
         if (subcommand.equals("invite") || subcommand.equals("초대")) {
@@ -200,7 +203,7 @@ final class IslandMembershipCommandHandler {
             return true;
         }
         if (subcommand.equals("ban-list")) {
-            runtime.listIslandBans(player);
+            listIslandBans(player);
             return true;
         }
         if (subcommand.equals("permissions") || subcommand.equals("permission-menu") || subcommand.equals("permission") || subcommand.equals("perms") || subcommand.equals("권한")) {
@@ -347,7 +350,7 @@ final class IslandMembershipCommandHandler {
                     yield true;
                 }
                 case MEMBER_ROLE, MEMBER_LIST -> {
-                    runtime.listIslandMembers(player);
+                    listIslandMembers(player);
                     yield true;
                 }
                 case MEMBER_INVITE, MEMBER_INVITE_HELP -> {
@@ -363,7 +366,7 @@ final class IslandMembershipCommandHandler {
                     yield true;
                 }
                 case BANS_LIST -> {
-                    runtime.listIslandBans(player);
+                    listIslandBans(player);
                     yield true;
                 }
                 case PERMISSIONS_OPEN -> {
@@ -394,6 +397,28 @@ final class IslandMembershipCommandHandler {
             };
         }
         return false;
+    }
+
+    private void listIslandMembers(Player player) {
+        runtime.currentIsland(player, "섬 안에서만 멤버를 확인할 수 있습니다.").ifPresent(islandId -> {
+            memberManagement.listMemberViews(islandId)
+                .thenAccept(members -> runtime.message(player, memberListMessage(members)))
+                .exceptionally(error -> {
+                    runtime.message(player, "섬 멤버를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listIslandBans(Player player) {
+        runtime.currentIsland(player, "섬 안에서만 밴 목록을 볼 수 있습니다.").ifPresent(islandId -> {
+            memberManagement.listBanViews(islandId)
+                .thenAccept(bans -> runtime.message(player, banListMessage(bans)))
+                .exceptionally(error -> {
+                    runtime.message(player, "섬 밴 목록을 불러오지 못했습니다.");
+                    return null;
+                });
+        });
     }
 
     private void listPendingInvites(Player player) {
@@ -469,6 +494,31 @@ final class IslandMembershipCommandHandler {
         return memberManagement.resolveInviteByPlayerNameOrIslandName(player.getUniqueId(), target);
     }
 
+    private static String memberListMessage(List<MemberView> members) {
+        List<String> entries = new ArrayList<>();
+        for (MemberView member : members == null ? List.<MemberView>of() : members) {
+            String playerUuid = member.playerUuid();
+            String role = member.role();
+            String expiresAt = member.expiresAt();
+            if (!playerUuid.isBlank()) {
+                entries.add(compactId(playerUuid) + (role.isBlank() ? "" : " 역할=" + role) + (expiresAt.isBlank() ? "" : " 만료=" + expiresAt));
+            }
+        }
+        return entries.isEmpty() ? "섬 멤버가 없습니다." : "섬 멤버: " + String.join(", ", entries);
+    }
+
+    private static String banListMessage(List<BanView> bans) {
+        List<String> entries = new ArrayList<>();
+        for (BanView ban : bans == null ? List.<BanView>of() : bans) {
+            String bannedUuid = ban.bannedUuid();
+            String reason = ban.reason();
+            if (!bannedUuid.isBlank()) {
+                entries.add(bannedUuid + (reason.isBlank() ? "" : " " + reason));
+            }
+        }
+        return entries.isEmpty() ? "섬 밴 목록이 비어 있습니다." : "섬 밴 목록: " + String.join(", ", entries);
+    }
+
     private static String inviteListMessage(List<InviteView> invites) {
         List<String> entries = new ArrayList<>();
         for (InviteView invite : invites == null ? List.<InviteView>of() : invites) {
@@ -532,9 +582,9 @@ final class IslandMembershipCommandHandler {
 
         int defaultRoleWeight(String roleKey);
 
-        <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
+        Optional<UUID> currentIsland(Player player, String missingMessage);
 
-        void listIslandMembers(Player player);
+        <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
 
         void openIslandMemberMenu(Player player);
 
@@ -557,8 +607,6 @@ final class IslandMembershipCommandHandler {
         void kickIslandVisitor(Player player, String target);
 
         void openIslandBanMenu(Player player);
-
-        void listIslandBans(Player player);
 
         void listIslandPermissions(Player player);
 

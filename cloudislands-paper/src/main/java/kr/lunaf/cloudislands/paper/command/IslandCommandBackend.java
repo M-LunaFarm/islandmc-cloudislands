@@ -17,9 +17,7 @@ import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
-import kr.lunaf.cloudislands.coreclient.CoreGuiViews.BanView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
-import kr.lunaf.cloudislands.coreclient.CoreGuiViews.MemberView;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.paper.ProtectionController;
@@ -685,13 +683,13 @@ final class IslandCommandBackend {
             }
 
             @Override
-            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+                return IslandCommandBackend.this.currentIsland(player, missingMessage);
             }
 
             @Override
-            public void listIslandMembers(Player player) {
-                IslandCommandBackend.this.listIslandMembers(player);
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
             }
 
             @Override
@@ -747,11 +745,6 @@ final class IslandCommandBackend {
             @Override
             public void openIslandBanMenu(Player player) {
                 IslandCommandBackend.this.openIslandBanMenu(player);
-            }
-
-            @Override
-            public void listIslandBans(Player player) {
-                IslandCommandBackend.this.listIslandBans(player);
             }
 
             @Override
@@ -981,17 +974,6 @@ final class IslandCommandBackend {
         routingCommands.clearRouteLoading(event.getPlayer());
     }
 
-    private void listIslandMembers(Player player) {
-        currentIsland(player, "섬 안에서만 멤버를 확인할 수 있습니다.").ifPresent(islandId -> {
-            memberManagement.listMemberViews(islandId)
-                .thenAccept(members -> message(player, memberListMessage(members)))
-                .exceptionally(error -> {
-                    message(player, "섬 멤버를 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
     private void openIslandMemberMenu(Player player) {
         openIslandMemberMenu(player, 0);
     }
@@ -1187,17 +1169,6 @@ final class IslandCommandBackend {
         return true;
     }
 
-    private void listIslandBans(Player player) {
-        currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> {
-            memberManagement.listBanViews(islandId)
-                .thenAccept(bans -> message(player, banListMessage(bans)))
-                .exceptionally(error -> {
-                    message(player, "섬 밴 목록을 불러오지 못했습니다.");
-                    return null;
-                });
-        });
-    }
-
     private void openIslandBanMenu(Player player) {
         currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> IslandBanMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
     }
@@ -1239,31 +1210,6 @@ final class IslandCommandBackend {
             location.getYaw(),
             location.getPitch()
         );
-    }
-
-    private String memberListMessage(List<MemberView> members) {
-        List<String> entries = new ArrayList<>();
-        for (MemberView member : members == null ? List.<MemberView>of() : members) {
-            String playerUuid = member.playerUuid();
-            String role = member.role();
-            String expiresAt = member.expiresAt();
-            if (!playerUuid.isBlank()) {
-                entries.add(compactId(playerUuid) + (role.isBlank() ? "" : " 역할=" + role) + (expiresAt.isBlank() ? "" : " 만료=" + expiresAt));
-            }
-        }
-        return entries.isEmpty() ? "섬 멤버가 없습니다." : "섬 멤버: " + String.join(", ", entries);
-    }
-
-    private String banListMessage(List<BanView> bans) {
-        List<String> entries = new ArrayList<>();
-        for (BanView ban : bans == null ? List.<BanView>of() : bans) {
-            String bannedUuid = ban.bannedUuid();
-            String reason = ban.reason();
-            if (!bannedUuid.isBlank()) {
-                entries.add(bannedUuid + (reason.isBlank() ? "" : " " + reason));
-            }
-        }
-        return entries.isEmpty() ? "섬 밴 목록이 비어 있습니다." : "섬 밴 목록: " + String.join(", ", entries);
     }
 
     private String joined(String[] args, int start) {
