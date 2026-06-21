@@ -439,6 +439,11 @@ class IslandCommandControllerPolicyTest {
         assertFalse(permissionUseCase.contains("public CompletableFuture<String> setPermission("), "permission mutation usecase must expose typed actions instead of raw JSON");
         assertFalse(permissionUseCase.contains("public CompletableFuture<String> setPermissionOverride("), "permission override usecase must expose typed actions instead of raw JSON");
         assertFalse(permissionUseCase.contains("public CompletableFuture<String> saveSequentially("), "permission save usecase must expose typed mutation results instead of raw strings");
+        assertTrue(permissionUseCase.contains("PermissionQueryClient permissionQueries"), "permission reads must stay behind a typed core-client query boundary");
+        assertTrue(permissionUseCase.contains("permissionQueries.permissions"));
+        assertTrue(permissionUseCase.contains("permissionQueries.roles"));
+        assertFalse(permissionUseCase.contains("coreApiClient.listIslandPermissions"));
+        assertFalse(permissionUseCase.contains("CoreGuiViews.islandRoles(coreApiClient"));
     }
 
     @Test

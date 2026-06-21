@@ -9,45 +9,51 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
 import kr.lunaf.cloudislands.coreclient.CorePermissionCommandClient;
+import kr.lunaf.cloudislands.coreclient.CorePermissionQueryClient;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
 import kr.lunaf.cloudislands.coreclient.PermissionCommandClient;
+import kr.lunaf.cloudislands.coreclient.PermissionQueryClient;
 import kr.lunaf.cloudislands.coreclient.PermissionMatrixView;
 import kr.lunaf.cloudislands.coreclient.UpdatePermissionsRequest;
 
 public final class PermissionManagementUseCase {
     private final CoreApiClient coreApiClient;
     private final PermissionCommandClient permissionCommands;
+    private final PermissionQueryClient permissionQueries;
 
     public PermissionManagementUseCase(CoreApiClient coreApiClient) {
-        this(coreApiClient, new CorePermissionCommandClient(coreApiClient));
+        this(coreApiClient, new CorePermissionCommandClient(coreApiClient), new CorePermissionQueryClient(coreApiClient));
     }
 
     PermissionManagementUseCase(CoreApiClient coreApiClient, PermissionCommandClient permissionCommands) {
+        this(coreApiClient, permissionCommands, new CorePermissionQueryClient(coreApiClient));
+    }
+
+    PermissionManagementUseCase(CoreApiClient coreApiClient, PermissionCommandClient permissionCommands, PermissionQueryClient permissionQueries) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (permissionCommands == null) {
             throw new IllegalArgumentException("permissionCommands is required");
         }
+        if (permissionQueries == null) {
+            throw new IllegalArgumentException("permissionQueries is required");
+        }
         this.coreApiClient = coreApiClient;
         this.permissionCommands = permissionCommands;
-    }
-
-    private CompletableFuture<String> listPermissionBodies(UUID islandId) {
-        requireIsland(islandId);
-        return coreApiClient.listIslandPermissions(islandId);
+        this.permissionQueries = permissionQueries;
     }
 
     public CompletableFuture<List<PermissionView>> listPermissionViews(UUID islandId) {
-        return listPermissionBodies(islandId).thenApply(PermissionManagementUseCase::permissionViews);
+        requireIsland(islandId);
+        return permissionQueries.permissions(islandId).thenApply(views -> views.stream().map(PermissionManagementUseCase::permissionView).toList());
     }
 
     public CompletableFuture<List<RoleView>> listRoleViews(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandRoles(coreApiClient, islandId);
+        return permissionQueries.roles(islandId);
     }
 
     public CompletableFuture<MutationResult<RoleView>> upsertRoleTyped(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName, MutationRunner runner) {
@@ -135,19 +141,8 @@ public final class PermissionManagementUseCase {
         }
     }
 
-    private static List<PermissionView> permissionViews(String body) {
-        return entries(body).stream()
-            .map(object -> {
-                String permission = text(object, "permission");
-                String role = text(object, "role");
-                String playerUuid = text(object, "playerUuid");
-                if (permission.isBlank() || (role.isBlank() && playerUuid.isBlank())) {
-                    return null;
-                }
-                return new PermissionView(role, playerUuid, permission, bool(object, "allowed"));
-            })
-            .filter(java.util.Objects::nonNull)
-            .toList();
+    private static PermissionView permissionView(kr.lunaf.cloudislands.coreclient.PermissionAssignmentView view) {
+        return new PermissionView(view.role(), view.playerUuid(), view.permission(), view.allowed());
     }
 
     private static PermissionActionResult permissionAction(String body, String successCode) {
@@ -161,32 +156,8 @@ public final class PermissionManagementUseCase {
         return new PermissionActionResult(accepted, code);
     }
 
-    private static List<Map<?, ?>> entries(String body) {
-        Object parsed = SimpleJson.parse(body);
-        if (parsed instanceof List<?>) {
-            return SimpleJson.list(parsed).stream()
-                .map(SimpleJson::object)
-                .filter(map -> !map.isEmpty())
-                .toList();
-        }
-        Map<?, ?> root = SimpleJson.object(parsed);
-        for (Object value : root.values()) {
-            if (value instanceof List<?>) {
-                return SimpleJson.list(value).stream()
-                    .map(SimpleJson::object)
-                    .filter(map -> !map.isEmpty())
-                    .toList();
-            }
-        }
-        return root.isEmpty() ? List.of() : List.of(root);
-    }
-
     private static String text(Map<?, ?> object, String key) {
         return SimpleJson.text(object.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key) {
-        return bool(object, key, false);
     }
 
     private static boolean bool(Map<?, ?> object, String key, boolean fallback) {

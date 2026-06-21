@@ -95,6 +95,43 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void permissionQueryClientReturnsTypedAssignmentsAndRoles() {
+        UUID islandId = UUID.randomUUID();
+        UUID playerUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "listIslandPermissions" -> {
+                    calls.add("permissions");
+                    yield CompletableFuture.completedFuture("""
+                        {"version":"v1","rules":[{"role":"BUILDER","permission":"BUILD","allowed":true},{"playerUuid":"%s","permission":"BREAK","allowed":false}]}
+                        """.formatted(playerUuid));
+                }
+                case "listIslandRoles" -> {
+                    calls.add("roles");
+                    yield CompletableFuture.completedFuture("""
+                        {"roles":[{"role":"BUILDER","weight":50,"displayName":"Builder"}]}
+                        """);
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        PermissionQueryClient client = new CorePermissionQueryClient(raw);
+
+        List<PermissionAssignmentView> permissions = client.permissions(islandId).join();
+        List<CoreGuiViews.RoleView> roles = client.roles(islandId).join();
+
+        assertEquals(List.of("permissions", "roles"), calls);
+        assertEquals("BUILDER", permissions.get(0).role());
+        assertEquals(playerUuid.toString(), permissions.get(1).playerUuid());
+        assertFalse(permissions.get(1).allowed());
+        assertEquals("v1", permissions.get(1).version());
+        assertEquals("BUILDER", roles.get(0).role());
+    }
+
+    @Test
     void environmentQueryClientReturnsTypedEnvironmentViews() {
         UUID islandId = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(

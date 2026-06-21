@@ -32,6 +32,10 @@ public interface CoreApiClient {
         return new CorePermissionCommandClient(this);
     }
 
+    default PermissionQueryClient permissionQueries() {
+        return new CorePermissionQueryClient(this);
+    }
+
     default SnapshotQueryClient snapshots() {
         return new CoreSnapshotQueryClient(this);
     }
