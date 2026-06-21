@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -12,6 +13,20 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
     String actionId();
 
     Map<String, String> data();
+
+    default String confirmationToken() {
+        return data().getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "");
+    }
+
+    default String stableFingerprint(GuiClick click) {
+        StringBuilder builder = new StringBuilder(actionId())
+            .append('|')
+            .append(click == null ? GuiClick.UNSUPPORTED.name() : click.name());
+        data().entrySet().stream()
+            .sorted(Comparator.comparing(Map.Entry::getKey))
+            .forEach(entry -> builder.append('|').append(entry.getKey()).append('=').append(entry.getValue()));
+        return builder.toString();
+    }
 
     record Close() implements GuiAction {
         @Override
@@ -65,6 +80,11 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
         public boolean confirmation() {
             return type.confirmation();
+        }
+
+        @Override
+        public String confirmationToken() {
+            return confirmationToken;
         }
     }
 
@@ -360,6 +380,11 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         public boolean confirmation() {
             return type.confirmation();
         }
+
+        @Override
+        public String confirmationToken() {
+            return confirmationToken;
+        }
     }
 
     enum SnapshotRestoreType {
@@ -544,6 +569,11 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         public boolean confirmation() {
             return type.confirmation();
         }
+
+        @Override
+        public String confirmationToken() {
+            return confirmationToken;
+        }
     }
 
     enum WarpDeleteType {
@@ -694,6 +724,11 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         public boolean confirmation() {
             return type.confirmation();
         }
+
+        @Override
+        public String confirmationToken() {
+            return confirmationToken;
+        }
     }
 
     enum MemberRoleChangeType {
@@ -754,6 +789,11 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
         public boolean confirmation() {
             return type.confirmation();
+        }
+
+        @Override
+        public String confirmationToken() {
+            return confirmationToken;
         }
     }
 
@@ -1005,6 +1045,11 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
         public boolean confirmation() {
             return type.confirmation();
+        }
+
+        @Override
+        public String confirmationToken() {
+            return confirmationToken;
         }
     }
 

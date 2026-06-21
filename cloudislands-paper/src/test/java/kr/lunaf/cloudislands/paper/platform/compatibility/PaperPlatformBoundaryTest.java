@@ -696,6 +696,18 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void guiRuntimePoliciesUseTypedActionsInsteadOfRawActionMaps() throws Exception {
+        Path root = repositoryRoot();
+        String commandBackend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String dedupePolicy = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionDedupePolicy.java"));
+
+        assertTrue(commandBackend.contains("ConfirmationTokenPolicy.confirmed(action, click)"), "GUI confirmation checks must use typed GuiAction tokens");
+        assertTrue(!commandBackend.contains("ConfirmationTokenPolicy.confirmed(action.actionId(), action.data(), click)"), "GUI confirmation checks must not re-read raw action maps");
+        assertTrue(dedupePolicy.contains("action.stableFingerprint(click)"), "GUI action dedupe must use GuiAction's typed fingerprint boundary");
+        assertTrue(!dedupePolicy.contains("action.data().entrySet()"), "GUI action dedupe must not inspect raw action maps directly");
+    }
+
+    @Test
     void permissionMenuCoversFullApiPermissionEnum() throws Exception {
         Path root = repositoryRoot();
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));

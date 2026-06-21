@@ -49,6 +49,20 @@ public final class ConfirmationTokenPolicy {
         return token(actionId).equals(data.get(TOKEN_KEY));
     }
 
+    public static boolean confirmed(GuiAction action, GuiClick click) {
+        if (action == null) {
+            return false;
+        }
+        String actionId = action.actionId();
+        if (!requiresToken(actionId)) {
+            return true;
+        }
+        if (click != GuiClick.LEFT) {
+            return false;
+        }
+        return token(actionId).equals(action.confirmationToken());
+    }
+
     public static String token(String actionId) {
         return "CONFIRM:" + actionId;
     }

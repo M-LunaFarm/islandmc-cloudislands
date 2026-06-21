@@ -908,7 +908,7 @@ final class IslandCommandBackend {
     }
 
     private boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
-        if (action != null && ConfirmationTokenPolicy.confirmed(action.actionId(), action.data(), click)) {
+        if (ConfirmationTokenPolicy.confirmed(action, click)) {
             return true;
         }
         message(player, routeMessage("confirmation-token-invalid", "확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));

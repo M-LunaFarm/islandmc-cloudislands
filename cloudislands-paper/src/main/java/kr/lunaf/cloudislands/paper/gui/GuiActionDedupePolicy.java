@@ -1,7 +1,5 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.Comparator;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,7 +25,7 @@ final class GuiActionDedupePolicy {
         if (windowMillis == 0L) {
             return true;
         }
-        String fingerprint = fingerprint(action, click);
+        String fingerprint = action.stableFingerprint(click);
         AtomicBoolean accepted = new AtomicBoolean(true);
         lastActions.compute(playerId, (_id, previous) -> {
             if (previous != null && previous.fingerprint().equals(fingerprint) && nowMillis - previous.atMillis() < windowMillis) {
@@ -38,16 +36,6 @@ final class GuiActionDedupePolicy {
             return new LastAction(fingerprint, nowMillis);
         });
         return accepted.get();
-    }
-
-    private static String fingerprint(GuiAction action, GuiClick click) {
-        StringBuilder builder = new StringBuilder(action.actionId())
-            .append('|')
-            .append(click == null ? GuiClick.UNSUPPORTED.name() : click.name());
-        action.data().entrySet().stream()
-            .sorted(Comparator.comparing(Map.Entry::getKey))
-            .forEach(entry -> builder.append('|').append(entry.getKey()).append('=').append(entry.getValue()));
-        return builder.toString();
     }
 
     private record LastAction(String fingerprint, long atMillis) {

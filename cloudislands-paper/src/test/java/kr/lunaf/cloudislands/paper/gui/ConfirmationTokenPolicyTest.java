@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class ConfirmationTokenPolicyTest {
@@ -28,8 +29,26 @@ class ConfirmationTokenPolicyTest {
     }
 
     @Test
+    void confirmsTypedGuiActionsWithoutReReadingPayloadMapsAtCallSites() {
+        GuiAction action = new GuiAction.MemberRemoval(
+            GuiAction.MemberRemovalType.CONFIRM,
+            UUID.fromString("00000000-0000-0000-0000-000000000001"),
+            ConfirmationTokenPolicy.token(ConfirmationTokenPolicy.MEMBER_REMOVE_CONFIRM_ACTION)
+        );
+
+        assertTrue(ConfirmationTokenPolicy.confirmed(action, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(action, GuiClick.RIGHT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(new GuiAction.MemberRemoval(
+            GuiAction.MemberRemovalType.CONFIRM,
+            UUID.fromString("00000000-0000-0000-0000-000000000001"),
+            ConfirmationTokenPolicy.token(ConfirmationTokenPolicy.WARP_DELETE_CONFIRM_ACTION)
+        ), GuiClick.LEFT));
+    }
+
+    @Test
     void nonConfirmedActionsRemainPassThrough() {
         assertTrue(ConfirmationTokenPolicy.confirmed("island.permissions.open", Map.of(), GuiClick.RIGHT));
+        assertTrue(ConfirmationTokenPolicy.confirmed(new GuiAction.NoPayload(GuiAction.NoPayloadType.PERMISSIONS_OPEN), GuiClick.RIGHT));
         assertFalse(ConfirmationTokenPolicy.requiresToken("island.permissions.open"));
     }
 }
