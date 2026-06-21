@@ -110,6 +110,7 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
+import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.config.PaperAddonConfigFile;
@@ -2106,7 +2107,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Optional<PlayerIslandProfile>> getProfile(UUID playerUuid) {
-            return client.playerInfo(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile);
+            return client.playerProfiles().profile(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile);
         }
 
         @Override
@@ -2364,7 +2365,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<CoreMaintenanceResult> clearCacheResult() { return mutate("admin.cache.clear", () -> client.clearCacheResult()).thenApply(body -> maintenance(body, false)); }
         @Override public CompletableFuture<Void> reload() { return reloadResult().thenApply(_result -> null); }
         @Override public CompletableFuture<CoreMaintenanceResult> reloadResult() { return mutate("admin.core.reload", () -> client.reloadResult()).thenApply(body -> maintenance(body, bool(body, "reloaded", false))); }
-        @Override public CompletableFuture<Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid) { return client.playerInfo(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
+        @Override public CompletableFuture<Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid) { return client.playerProfiles().profile(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return mutate("admin.player.primary-island.set", () -> client.setPlayerIsland(playerUuid, islandId)).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return mutate("admin.player.primary-island.clear", () -> client.clearPlayerIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_result -> null); }
@@ -2696,6 +2697,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             primaryIslandId == null || primaryIslandId.isBlank() ? Optional.empty() : Optional.of(uuid(json, "primaryIslandId", new UUID(0L, 0L))),
             instant(text(json, "lastSeenAt", Instant.EPOCH.toString())),
             text(json, "locale", "ko_kr")
+        ));
+    }
+
+    private static Optional<PlayerIslandProfile> playerProfile(PlayerProfileView profile) {
+        UUID playerUuid = uuidValue(profile.playerUuid());
+        if (playerUuid == null) {
+            return Optional.empty();
+        }
+        UUID primaryIslandId = uuidValue(profile.primaryIslandId());
+        return Optional.of(new PlayerIslandProfile(
+            playerUuid,
+            profile.lastName(),
+            Optional.ofNullable(primaryIslandId),
+            instant(profile.lastSeenAt().isBlank() ? Instant.EPOCH.toString() : profile.lastSeenAt()),
+            profile.locale()
         ));
     }
 
@@ -3739,6 +3755,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static UUID nullableUuid(String json, String field) {
         String value = nullableText(json, field);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return uuidValue(value);
+    }
+
+    private static UUID uuidValue(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
