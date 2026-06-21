@@ -128,11 +128,14 @@ class GuiSystemPolicyTest {
     @Test
     void executorBoundaryUsesTypedActions() throws Exception {
         String executor = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionExecutor.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiAction.java"));
         String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
 
         assertTrue(executor.contains("void execute(Player player, GuiAction action, GuiClick click)"), "executor boundary must not expose raw action id and payload map");
         assertFalse(executor.contains("String actionId, Map<String, String> data"), "executor boundary must receive parsed GuiAction objects");
+        assertFalse(actions.contains("record MemberRemoval(String actionId, UUID playerUuid, Map<String, String> data)"), "member removal GUI actions must not carry raw action id and payload maps internally");
+        assertTrue(actions.contains("record MemberRemoval(MemberRemovalType type, UUID playerUuid, String confirmationToken)"), "member removal GUI actions must use typed state plus an explicit confirmation token");
         assertTrue(controller.contains("backend.executeGuiAction(player, action, click)"), "command controller must forward typed GUI actions");
         assertTrue(backend.contains("void executeGuiAction(Player player, GuiAction action, GuiClick click)"), "command backend must accept typed GUI actions");
     }

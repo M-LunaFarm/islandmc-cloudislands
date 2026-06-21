@@ -873,31 +873,56 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
     }
 
-    record MemberRemoval(String actionId, UUID playerUuid, Map<String, String> data) implements GuiAction {
+    record MemberRemoval(MemberRemovalType type, UUID playerUuid, String confirmationToken) implements GuiAction {
         public MemberRemoval {
-            actionId = actionId == null ? "" : actionId.trim();
-            data = data == null ? Map.of() : Map.copyOf(data);
-            if (!actionId.equals("island.member.remove.prepare") && !memberRemovalConfirmation(actionId)) {
-                throw new IllegalArgumentException("unsupported member removal action");
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
             }
             if (playerUuid == null) {
                 throw new IllegalArgumentException("playerUuid is required");
             }
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
         }
 
         @Override
         public Map<String, String> data() {
-            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>(data);
-            values.put("playerUuid", playerUuid.toString());
-            return Map.copyOf(values);
+            if (type.confirmation()) {
+                return Map.of(
+                    "playerUuid", playerUuid.toString(),
+                    ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken
+                );
+            }
+            return Map.of("playerUuid", playerUuid.toString());
         }
 
         public boolean confirmation() {
-            return memberRemovalConfirmation(actionId);
+            return type.confirmation();
+        }
+    }
+
+    enum MemberRemovalType {
+        PREPARE("island.member.remove.prepare", false),
+        CONFIRM("island.member.remove.confirm", true);
+
+        private final String actionId;
+        private final boolean confirmation;
+
+        MemberRemovalType(String actionId, boolean confirmation) {
+            this.actionId = actionId;
+            this.confirmation = confirmation;
         }
 
-        private static boolean memberRemovalConfirmation(String actionId) {
-            return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".member.remove.confirm");
+        public String actionId() {
+            return actionId;
+        }
+
+        public boolean confirmation() {
+            return confirmation;
         }
     }
 

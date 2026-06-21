@@ -28,9 +28,9 @@ public final class GuiActionParser {
             }
             if (safeAction.equals("island.member.remove.prepare") || memberRemovalConfirmation(safeAction)) {
                 return Optional.of(new GuiAction.MemberRemoval(
-                    safeAction,
+                    safeAction.equals("island.member.remove.prepare") ? GuiAction.MemberRemovalType.PREPARE : GuiAction.MemberRemovalType.CONFIRM,
                     UUID.fromString(required(safeData, "playerUuid")),
-                    safeData
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
             if (safeAction.equals("island.ban.pardon.prepare") || banPardonConfirmation(safeAction)) {
