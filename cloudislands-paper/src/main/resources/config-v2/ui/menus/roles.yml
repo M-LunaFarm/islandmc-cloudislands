@@ -1,6 +1,47 @@
 id: island.roles
-rows: 6
+rows: 3
 title-key: menu.roles.title
+layout:
+  - "........."
+  - "........."
+  - "LPR.....S"
+items:
+  L:
+    material: PAPER
+    name-key: role-menu-list-name
+    fallback-name: 역할 목록
+    lore-keys:
+      - role-menu-list-lore
+    fallback-lore:
+      - Core 역할 카탈로그를 채팅에 출력합니다.
+    action: list
+  P:
+    material: COMPARATOR
+    name-key: role-menu-permission-name
+    fallback-name: 권한 설정
+    lore-keys:
+      - role-menu-permission-lore
+    fallback-lore:
+      - 역할별 권한 매트릭스를 엽니다.
+    action: permissions
+  R:
+    material: CLOCK
+    name-key: role-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - role-menu-refresh-lore
+    fallback-lore:
+      - Core에서 역할을 다시 불러옵니다.
+    action: open
+  S:
+    material: REDSTONE_TORCH
+    name-key: role-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - role-menu-settings-lore
+    fallback-lore:
+      - 섬 설정으로 돌아갑니다.
+    action: settings
 actions:
   open: island.roles.open
   list: island.roles.list

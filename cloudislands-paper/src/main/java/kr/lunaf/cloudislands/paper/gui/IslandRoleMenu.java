@@ -20,7 +20,17 @@ import org.bukkit.plugin.Plugin;
 public final class IslandRoleMenu implements Listener {
     private static final String TITLE_KEY = "role-menu-title";
     private static final String TITLE = "섬 역할 설정";
-    private static final String MENU_ID = "island.roles";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/roles.yml",
+        new GuiMenuDefinition("island.roles", 3, TITLE_KEY, Map.of(
+            "open", "island.roles.open",
+            "list", "island.roles.list",
+            "adjust-weight", "island.role.weight.adjust",
+            "permissions", "island.permissions.open",
+            "settings", "island.settings.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -43,11 +53,11 @@ public final class IslandRoleMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandRoles(client, islandId)
             .thenAccept(roles -> openSync(plugin, player, session, roles, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "role-menu-load-failed", "섬 역할을 불러오지 못했습니다."), "island.roles.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "role-menu-load-failed", "섬 역할을 불러오지 못했습니다."), "island.roles.open", "island.settings.open");
                 return null;
             });
     }
@@ -75,7 +85,7 @@ public final class IslandRoleMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<RoleView> roles, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 27, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             int slot = 0;
             for (RoleView role : roles.stream().limit(18).toList()) {
                 inventory.setItem(slot++, roleItem(role, messages));
@@ -83,10 +93,6 @@ public final class IslandRoleMenu implements Listener {
             if (roles.isEmpty()) {
                 inventory.setItem(13, item(Material.GRAY_DYE, message(messages, "role-menu-empty-title", "커스텀 역할 없음"), message(messages, "role-menu-empty-example", "Core 역할 카탈로그가 비어 있습니다.")));
             }
-            inventory.setItem(18, GuiItems.action(Material.PAPER, message(messages, "role-menu-list-name", "역할 목록"), "island.roles.list", message(messages, "role-menu-list-lore", "Core 역할 카탈로그를 채팅에 출력합니다.")));
-            inventory.setItem(19, GuiItems.action(Material.COMPARATOR, message(messages, "role-menu-permission-name", "권한 설정"), "island.permissions.open", message(messages, "role-menu-permission-lore", "역할별 권한 매트릭스를 엽니다.")));
-            inventory.setItem(20, GuiItems.action(Material.CLOCK, message(messages, "role-menu-refresh-name", "새로고침"), "island.roles.open", message(messages, "role-menu-refresh-lore", "Core에서 역할을 다시 불러옵니다.")));
-            inventory.setItem(26, GuiItems.action(Material.REDSTONE_TORCH, message(messages, "role-menu-settings-name", "설정"), "island.settings.open", message(messages, "role-menu-settings-lore", "섬 설정으로 돌아갑니다.")));
             player.openInventory(inventory);
         });
     }
@@ -104,11 +110,7 @@ public final class IslandRoleMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static Material material(String role) {

@@ -158,6 +158,26 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledRoleMenuDefinitionCoversRoleControlsDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/roles.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.roles", definition.id());
+        assertEquals(27, definition.size());
+        assertEquals("menu.roles.title", definition.titleKey());
+        assertEquals("L", definition.itemAt(18).orElseThrow().symbol());
+        assertEquals("island.roles.list", definition.action(definition.itemAt(18).orElseThrow().actionKey(), ""));
+        assertEquals("P", definition.itemAt(19).orElseThrow().symbol());
+        assertEquals("island.permissions.open", definition.action(definition.itemAt(19).orElseThrow().actionKey(), ""));
+        assertEquals("R", definition.itemAt(20).orElseThrow().symbol());
+        assertEquals("island.roles.open", definition.action(definition.itemAt(20).orElseThrow().actionKey(), ""));
+        assertEquals("S", definition.itemAt(26).orElseThrow().symbol());
+        assertEquals("island.settings.open", definition.action(definition.itemAt(26).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",
