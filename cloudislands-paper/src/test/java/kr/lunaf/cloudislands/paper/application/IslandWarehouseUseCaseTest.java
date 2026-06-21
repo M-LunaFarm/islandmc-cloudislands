@@ -19,7 +19,6 @@ class IslandWarehouseUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000030");
         UUID actorUuid = uuid("00000000-0000-0000-0000-000000000001");
 
-        assertEquals("{\"items\":[{\"materialKey\":\"STONE\",\"amount\":12},{\"materialKey\":\"DIRT\",\"amount\":7}]}", useCase.list(islandId, 500).join());
         List<IslandWarehouseUseCase.WarehouseItemView> items = useCase.listItems(islandId, 500).join();
         assertEquals("STONE", items.get(0).materialKey());
         assertEquals(12L, items.get(0).amount());
@@ -32,7 +31,6 @@ class IslandWarehouseUseCaseTest {
         assertEquals(false, withdraw.accepted());
         assertEquals("NO_STOCK", withdraw.code());
         assertEquals(List.of(
-            "islandWarehouse:100",
             "islandWarehouse:100",
             "audit:island.warehouse.deposit",
             "depositIslandWarehouse:STONE:12",

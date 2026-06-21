@@ -18,13 +18,13 @@ public final class IslandWarehouseUseCase {
         this.coreApiClient = coreApiClient;
     }
 
-    public CompletableFuture<String> list(UUID islandId, int limit) {
+    private CompletableFuture<String> listBody(UUID islandId, int limit) {
         requireIsland(islandId);
         return coreApiClient.islandWarehouse(islandId, Math.max(1, Math.min(limit, 100)));
     }
 
     public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
-        return list(islandId, limit).thenApply(IslandWarehouseUseCase::itemViews);
+        return listBody(islandId, limit).thenApply(IslandWarehouseUseCase::itemViews);
     }
 
     public CompletableFuture<WarehouseOperationResult> deposit(UUID islandId, UUID actorUuid, String materialKey, long amount, MutationRunner runner) {

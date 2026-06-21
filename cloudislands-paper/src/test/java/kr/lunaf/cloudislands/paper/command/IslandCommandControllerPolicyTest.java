@@ -113,11 +113,12 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("changeIslandWarehouse("), "warehouse mutation logic belongs in IslandWarehouseCommandHandler");
         assertTrue(warehouseHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(warehouseHandler.contains("IslandWarehouseUseCase"));
-        assertTrue(warehouseHandler.contains("warehouseUseCase.list"));
+        assertTrue(warehouseHandler.contains("warehouseUseCase.listItems"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.deposit"));
         assertFalse(warehouseHandler.contains("coreApiClient.islandWarehouse"));
         assertFalse(warehouseHandler.contains("coreApiClient.depositIslandWarehouse"));
         assertFalse(warehouseHandler.contains("coreApiClient.withdrawIslandWarehouse"));
+        assertFalse(warehouseUseCase.contains("public CompletableFuture<String> list("), "warehouse list usecase must expose typed item views instead of raw JSON");
         assertTrue(warehouseUseCase.contains("coreApiClient.islandWarehouse"));
         assertTrue(warehouseUseCase.contains("coreApiClient.depositIslandWarehouse"));
         assertTrue(warehouseUseCase.contains("coreApiClient.withdrawIslandWarehouse"));
