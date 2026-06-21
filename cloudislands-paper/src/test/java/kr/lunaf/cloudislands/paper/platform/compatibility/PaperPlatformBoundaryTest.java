@@ -1038,7 +1038,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(protection.contains("roleCatalog(UUID islandId"), "ProtectionController must expose the cached role catalog");
         assertTrue(cache.contains("putRoleDefinition"), "permission cache must store Core role definitions");
         assertTrue(cache.contains("roleCatalog(UUID islandId"), "permission cache must expose role catalog suggestions");
-        assertTrue(sync.contains("new CorePermissionQueryClient(client)"), "permission cache sync must use the typed Core permission query boundary");
+        assertTrue(sync.contains("client.permissionQueries()"), "permission cache sync must use the typed Core permission query boundary");
         assertTrue(sync.contains("permissions.roles(islandId)"), "permission cache sync must hydrate role catalog from typed Core roles");
     }
 
@@ -1243,6 +1243,12 @@ class PaperPlatformBoundaryTest {
             for (int index = 0; index < lines.size(); index++) {
                 String line = lines.get(index);
                 if (line.contains(".thenCompose(_body -> client.")) {
+                    continue;
+                }
+                if (line.contains("= coreApiClient.") && line.contains("();")) {
+                    continue;
+                }
+                if (line.contains("this(coreApiClient,") && line.contains("coreApiClient.") && line.contains("()")) {
                     continue;
                 }
                 if (line.contains("client.bank().islandBank(") || line.contains("client.bank().snapshot(")) {
