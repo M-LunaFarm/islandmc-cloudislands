@@ -229,6 +229,17 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.runtimeCommands().recordBlockDelta(islandId, materialKey, delta)"), "Block deltas must use the typed runtime command client");
         assertTrue(source.contains("client.runtimeCommands().completeJob(nodeId, jobId, payload)"), "Runtime job completion must use the typed runtime command client");
         assertTrue(source.contains("client.runtimeCommands().failJob(nodeId, jobId, errorMessage)"), "Runtime job failure must use the typed runtime command client");
+        assertTrue(source.contains("client.lifecycle().resetIsland(islandId, actorUuid, reason)"), "Island reset must use the typed lifecycle command client");
+        assertTrue(source.contains("client.memberCommands().createInvite(islandId, inviterUuid, targetUuid)"), "Invite creation must use the typed member command client");
+        assertTrue(source.contains("client.memberCommands().acceptInvite(inviteId, playerUuid)"), "Invite acceptance must use the typed member command client");
+        assertTrue(source.contains("client.memberCommands().declineInvite(inviteId, playerUuid)"), "Invite decline must use the typed member command client");
+        assertTrue(source.contains("client.memberCommands().banVisitor(islandId, actorUuid, targetUuid, reason)"), "Visitor bans must use the typed member command client");
+        assertTrue(source.contains("client.memberCommands().pardonVisitor(islandId, actorUuid, targetUuid)"), "Visitor pardons must use the typed member command client");
+        assertTrue(source.contains("client.memberCommands().removeMember(islandId, actorUuid, targetUuid)"), "Member removal must use the typed member command client");
+        assertTrue(source.contains("client.memberCommands().transferOwnership(islandId, actorUuid, targetUuid)"), "Ownership transfer must use the typed member command client");
+        assertTrue(source.contains("client.permissions().setPermission(islandId, actorUuid, role.name(), permission, allowed)"), "Permission mutation must use the typed permission command client");
+        assertTrue(source.contains("client.permissions().upsertRole(islandId, actorUuid, role.name(), weight, displayName)"), "Role upsert must use the typed permission command client");
+        assertTrue(source.contains("client.permissions().resetRole(islandId, actorUuid, role.name())"), "Role reset must use the typed permission command client");
 
         assertTrue(!source.contains("client.activateIslandResult(islandId)"), "Paper public API must not call raw activation JSON endpoints");
         assertTrue(!source.contains("client.deactivateIslandResult(islandId)"), "Paper public API must not call raw deactivation JSON endpoints");
@@ -245,6 +256,18 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("client.recordBlockDeltaResult(islandId, materialKey, delta)"), "Paper public API must not call raw block delta JSON endpoints");
         assertTrue(!source.contains("client.completeJobResult(nodeId, jobId, payload)"), "Paper public API must not call raw runtime job completion JSON endpoints");
         assertTrue(!source.contains("client.failJobResult(nodeId, jobId, errorMessage)"), "Paper public API must not call raw runtime job failure JSON endpoints");
+        assertTrue(!source.contains("client.resetIslandResult(islandId, actorUuid, reason)"), "Paper public API must not call raw reset JSON endpoints");
+        assertTrue(!source.contains("client.createIslandInvite(islandId, inviterUuid, targetUuid)"), "Paper public API must not call raw invite JSON endpoints");
+        assertTrue(!source.contains("client.acceptIslandInviteResult(inviteId, playerUuid)"), "Paper public API must not call raw invite accept JSON endpoints");
+        assertTrue(!source.contains("client.declineIslandInviteResult(inviteId, playerUuid)"), "Paper public API must not call raw invite decline JSON endpoints");
+        assertTrue(!source.contains("client.banIslandVisitorResult(islandId, actorUuid, targetUuid, reason)"), "Paper public API must not call raw visitor ban JSON endpoints");
+        assertTrue(!source.contains("client.pardonIslandVisitorResult(islandId, actorUuid, targetUuid)"), "Paper public API must not call raw visitor pardon JSON endpoints");
+        assertTrue(!source.contains("client.removeIslandMemberResult(islandId, actorUuid, targetUuid)"), "Paper public API must not call raw member removal JSON endpoints");
+        assertTrue(!source.contains("client.setIslandMemberResult(islandId, actorUuid, targetUuid"), "Paper public API must not call raw member role JSON endpoints");
+        assertTrue(!source.contains("client.transferIslandOwnershipResult(islandId, actorUuid, targetUuid)"), "Paper public API must not call raw ownership transfer JSON endpoints");
+        assertTrue(!source.contains("client.setIslandPermissionResult(islandId, actorUuid, role, permission, allowed)"), "Paper public API must not call raw permission JSON endpoints");
+        assertTrue(!source.contains("client.upsertIslandRole(islandId, actorUuid, role, weight, displayName)"), "Paper public API must not call raw role upsert JSON endpoints");
+        assertTrue(!source.contains("client.resetIslandRole(islandId, actorUuid, role)"), "Paper public API must not call raw role reset JSON endpoints");
     }
 
     @Test
