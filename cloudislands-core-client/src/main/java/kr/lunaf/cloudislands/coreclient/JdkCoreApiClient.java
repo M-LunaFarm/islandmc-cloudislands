@@ -654,37 +654,46 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
-        return postWithResultBody("/v1/routes/home", "{\"playerUuid\":\"" + playerUuid + "\",\"homeName\":\"" + escape(homeName) + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return postWithResultBody("/v1/routes/home", jsonObject("playerUuid", playerUuid, "homeName", homeName)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) {
-        return postWithResultBody("/v1/routes/visit", "{\"playerUuid\":\"" + visitorUuid + "\",\"islandId\":\"" + targetIslandId + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "islandId", targetIslandId)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) {
-        return postWithResultBody("/v1/routes/visit", "{\"playerUuid\":\"" + visitorUuid + "\",\"islandName\":\"" + escape(islandName) + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "islandName", islandName)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
-        return postWithResultBody("/v1/routes/visit", "{\"playerUuid\":\"" + visitorUuid + "\",\"ownerUuid\":\"" + ownerUuid + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "ownerUuid", ownerUuid)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
-        return postWithResultBody("/v1/routes/random", "{\"playerUuid\":\"" + visitorUuid + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return postWithResultBody("/v1/routes/random", jsonObject("playerUuid", visitorUuid)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
-        return postWithResultBody("/v1/routes/warp", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\",\"warpName\":\"" + escape(warpName) + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return postWithResultBody("/v1/routes/warp", jsonObject("playerUuid", playerUuid, "islandId", islandId, "warpName", warpName)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch) {
-        return postWithResultBody("/v1/routes/migration-return", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\",\"targetNode\":\"" + escape(targetNode) + "\",\"localX\":" + localX + ",\"localY\":" + localY + ",\"localZ\":" + localZ + ",\"yaw\":" + yaw + ",\"pitch\":" + pitch + "}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return postWithResultBody("/v1/routes/migration-return", jsonObject(
+            "playerUuid", playerUuid,
+            "islandId", islandId,
+            "targetNode", targetNode,
+            "localX", localX,
+            "localY", localY,
+            "localZ", localZ,
+            "yaw", yaw,
+            "pitch", pitch
+        )).thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override

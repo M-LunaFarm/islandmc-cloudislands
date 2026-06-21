@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -84,8 +85,10 @@ class CoreMutationContextTest {
         UUID ticketId = UUID.randomUUID();
         UUID playerUuid = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/v1/routes/home", exchange -> {
+            requestBodies.put("home", new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             byte[] body = ("""
                 {
                   "ticketId" : "%s",
@@ -104,6 +107,7 @@ class CoreMutationContextTest {
             exchange.close();
         });
         server.createContext("/v1/routes/visit", exchange -> {
+            requestBodies.put("visit", new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             byte[] body = "{\"accepted\" : false,\"code\" : \"NO_ROUTE\",\"message\" : \"no route\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(409, body.length);
             exchange.getResponseBody().write(body);
@@ -113,7 +117,7 @@ class CoreMutationContextTest {
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
-            var ticket = client.createHomeTicket(playerUuid, "default").join();
+            var ticket = client.createHomeTicket(playerUuid, "spawn\"main").join();
             CompletionException failure = assertThrows(CompletionException.class, () -> client.createVisitTicket(playerUuid, islandId).join());
             CoreApiException apiFailure = assertInstanceOf(CoreApiException.class, failure.getCause());
 
@@ -122,6 +126,8 @@ class CoreMutationContextTest {
             assertEquals("node-a", ticket.targetNode());
             assertEquals("NO_ROUTE", apiFailure.code());
             assertEquals("no route", apiFailure.getMessage());
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"homeName\":\"spawn\\\"main\"}", requestBodies.get("home"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}", requestBodies.get("visit"));
         } finally {
             server.stop(0);
         }
