@@ -1,92 +1,35 @@
 package kr.lunaf.cloudislands.velocity.message;
 
+import java.util.List;
+import java.util.Map;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
+
 public final class VelocityJsonFields {
     private VelocityJsonFields() {
     }
 
     public static String jsonValue(String json, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = json == null ? -1 : json.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length();
-        int end = json.indexOf('"', start);
-        return end < 0 ? "" : json.substring(start, end);
+        Object value = root(json).get(key);
+        return value instanceof Map<?, ?> || value instanceof List<?> ? "" : SimpleJson.text(value);
     }
 
     public static String arrayValue(String body, String field) {
-        String needle = "\"" + field + "\":[";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length() - 1;
-        int depth = 0;
-        for (int i = start; i < body.length(); i++) {
-            char current = body.charAt(i);
-            if (current == '[') {
-                depth++;
-            } else if (current == ']') {
-                depth--;
-                if (depth == 0) {
-                    return body.substring(start, i + 1);
-                }
-            }
-        }
-        return "";
+        Object value = root(body).get(field);
+        return value instanceof List<?> ? toJson(value) : "";
     }
 
     public static String objectValue(String body, String field) {
-        String needle = "\"" + field + "\":{";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length() - 1;
-        int depth = 0;
-        for (int i = start; i < body.length(); i++) {
-            char current = body.charAt(i);
-            if (current == '{') {
-                depth++;
-            } else if (current == '}') {
-                depth--;
-                if (depth == 0) {
-                    return body.substring(start, i + 1);
-                }
-            }
-        }
-        return "";
+        Object value = root(body).get(field);
+        return value instanceof Map<?, ?> ? toJson(value) : "";
     }
 
     public static boolean boolValue(String body, String field) {
-        String needle = "\"" + field + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return false;
-        }
-        start += needle.length();
-        while (start < body.length() && Character.isWhitespace(body.charAt(start))) {
-            start++;
-        }
-        return body.startsWith("true", start);
+        Object value = root(body).get(field);
+        return value instanceof Boolean booleanValue ? booleanValue : Boolean.parseBoolean(SimpleJson.text(value));
     }
 
     public static long longValue(String body, String field) {
-        String needle = "\"" + field + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return 0L;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && (body.charAt(end) == '-' || Character.isDigit(body.charAt(end)))) {
-            end++;
-        }
-        if (end == start) {
-            return 0L;
-        }
-        return parseLong(body.substring(start, end));
+        return SimpleJson.number(root(body).get(field));
     }
 
     public static long parseLong(String value) {
@@ -98,18 +41,12 @@ public final class VelocityJsonFields {
     }
 
     public static double doubleValue(String body, String field) {
-        String needle = "\"" + field + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return 0.0D;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && (body.charAt(end) == '-' || body.charAt(end) == '+' || body.charAt(end) == '.' || Character.isDigit(body.charAt(end)))) {
-            end++;
+        Object value = root(body).get(field);
+        if (value instanceof Number number) {
+            return number.doubleValue();
         }
         try {
-            return Double.parseDouble(body.substring(start, end));
+            return Double.parseDouble(SimpleJson.text(value));
         } catch (RuntimeException ignored) {
             return 0.0D;
         }
@@ -118,6 +55,13 @@ public final class VelocityJsonFields {
     public static int countObjects(String array) {
         if (array == null || array.isBlank()) {
             return 0;
+        }
+        Object parsed = value(array);
+        if (parsed instanceof List<?> list) {
+            return (int) list.stream()
+                .map(SimpleJson::object)
+                .filter(object -> !object.isEmpty())
+                .count();
         }
         int count = 0;
         int index = 0;
@@ -141,8 +85,25 @@ public final class VelocityJsonFields {
             return -1;
         }
         int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
         for (int i = objectStart; i < value.length(); i++) {
             char current = value.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (current == '\\' && inString) {
+                escaped = true;
+                continue;
+            }
+            if (current == '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) {
+                continue;
+            }
             if (current == '{') {
                 depth++;
             } else if (current == '}') {
@@ -153,5 +114,104 @@ public final class VelocityJsonFields {
             }
         }
         return -1;
+    }
+
+    private static Map<?, ?> root(String json) {
+        return SimpleJson.object(value(json));
+    }
+
+    private static Object value(String json) {
+        if (!balanced(json)) {
+            return null;
+        }
+        try {
+            return SimpleJson.parse(json);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static boolean balanced(String json) {
+        if (json == null || json.isBlank()) {
+            return false;
+        }
+        int objectDepth = 0;
+        int arrayDepth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = 0; i < json.length(); i++) {
+            char current = json.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (current == '\\' && inString) {
+                escaped = true;
+                continue;
+            }
+            if (current == '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) {
+                continue;
+            }
+            if (current == '{') {
+                objectDepth++;
+            } else if (current == '}') {
+                objectDepth--;
+            } else if (current == '[') {
+                arrayDepth++;
+            } else if (current == ']') {
+                arrayDepth--;
+            }
+            if (objectDepth < 0 || arrayDepth < 0) {
+                return false;
+            }
+        }
+        return !inString && objectDepth == 0 && arrayDepth == 0;
+    }
+
+    private static String toJson(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            StringBuilder builder = new StringBuilder("{");
+            boolean first = true;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (!first) {
+                    builder.append(',');
+                }
+                first = false;
+                builder.append('"').append(escape(SimpleJson.text(entry.getKey()))).append("\":").append(toJson(entry.getValue()));
+            }
+            return builder.append('}').toString();
+        }
+        if (value instanceof List<?> list) {
+            StringBuilder builder = new StringBuilder("[");
+            boolean first = true;
+            for (Object item : list) {
+                if (!first) {
+                    builder.append(',');
+                }
+                first = false;
+                builder.append(toJson(item));
+            }
+            return builder.append(']').toString();
+        }
+        if (value instanceof Number || value instanceof Boolean) {
+            return String.valueOf(value);
+        }
+        if (value == null) {
+            return "null";
+        }
+        return "\"" + escape(SimpleJson.text(value)) + "\"";
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t");
     }
 }

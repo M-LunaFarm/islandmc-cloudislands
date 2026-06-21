@@ -29,6 +29,15 @@ class VelocityJsonFieldsTest {
     }
 
     @Test
+    void readsEscapedStringsWithoutBreakingObjectBoundaries() {
+        String body = "{\"name\":\"Island \\\"A\\\"\",\"items\":[{\"id\":\"a}\",\"label\":\"quote \\\" inside\"}]}";
+
+        assertEquals("Island \"A\"", VelocityJsonFields.jsonValue(body, "name"));
+        assertEquals("[{\"id\":\"a}\",\"label\":\"quote \\\" inside\"}]", VelocityJsonFields.arrayValue(body, "items"));
+        assertEquals(1, VelocityJsonFields.countObjects(VelocityJsonFields.arrayValue(body, "items")));
+    }
+
+    @Test
     void returnsSafeDefaultsForMissingOrInvalidInput() {
         assertEquals("", VelocityJsonFields.jsonValue(null, "name"));
         assertEquals("", VelocityJsonFields.arrayValue("{\"items\":[{\"id\":\"a\"}", "items"));
