@@ -20,7 +20,6 @@ class IslandCommunicationUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000020");
         UUID actorUuid = uuid("00000000-0000-0000-0000-000000000001");
 
-        assertEquals("{\"accepted\":true}", useCase.sendChat(islandId, actorUuid, "team", " hello ", mutationRunner(calls)).join());
         ChatActionResult chat = useCase.sendChatAction(islandId, actorUuid, "team", " hello ", mutationRunner(calls)).join();
         assertEquals(true, chat.accepted());
         assertEquals("CHAT_SENT", chat.code());
@@ -29,8 +28,6 @@ class IslandCommunicationUseCaseTest {
         assertEquals("00000000-0000-0000-0000-000000000001", logs.get(0).actorUuid());
 
         assertEquals(List.of(
-            "audit:island.chat.send",
-            "sendIslandChat:TEAM:hello",
             "audit:island.chat.send",
             "sendIslandChat:TEAM:hello",
             "listIslandLogs:30"

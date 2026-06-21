@@ -20,7 +20,7 @@ public final class IslandCommunicationUseCase {
         this.coreApiClient = coreApiClient;
     }
 
-    public CompletableFuture<String> sendChat(UUID islandId, UUID actorUuid, String channel, String message, MutationRunner runner) {
+    private CompletableFuture<String> sendChatBody(UUID islandId, UUID actorUuid, String channel, String message, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
@@ -33,7 +33,7 @@ public final class IslandCommunicationUseCase {
     }
 
     public CompletableFuture<ChatActionResult> sendChatAction(UUID islandId, UUID actorUuid, String channel, String message, MutationRunner runner) {
-        return sendChat(islandId, actorUuid, channel, message, runner)
+        return sendChatBody(islandId, actorUuid, channel, message, runner)
             .thenApply(body -> chatAction(body, "CHAT_SENT"));
     }
 
