@@ -3056,8 +3056,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (parsed != null) {
             return CompletableFuture.completedFuture(parsed);
         }
-        return coreApiClient.islandInfoByName(value).thenApply(body -> {
-            UUID islandId = uuidValue(body, "islandId");
+        return coreApiClient.adminIslands().infoByName(value).thenApply(island -> {
+            UUID islandId = uuidOrNull(island.islandId());
             if (islandId == null) {
                 sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + value);
             }
