@@ -5,8 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreWarehouseCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreWarehouseQueryClient;
 import kr.lunaf.cloudislands.coreclient.WarehouseCommandClient;
 import kr.lunaf.cloudislands.coreclient.WarehouseMutationView;
 import kr.lunaf.cloudislands.coreclient.WarehouseQueryClient;
@@ -21,12 +19,12 @@ public final class IslandWarehouseUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.warehouseQueries = new CoreWarehouseQueryClient(coreApiClient);
-        this.warehouseCommands = new CoreWarehouseCommandClient(coreApiClient);
+        this.warehouseQueries = coreApiClient.warehouse();
+        this.warehouseCommands = coreApiClient.warehouseCommands();
     }
 
     IslandWarehouseUseCase(CoreApiClient coreApiClient, WarehouseQueryClient warehouseQueries) {
-        this(coreApiClient, warehouseQueries, new CoreWarehouseCommandClient(coreApiClient));
+        this(coreApiClient, warehouseQueries, coreApiClient.warehouseCommands());
     }
 
     IslandWarehouseUseCase(CoreApiClient coreApiClient, WarehouseQueryClient warehouseQueries, WarehouseCommandClient warehouseCommands) {

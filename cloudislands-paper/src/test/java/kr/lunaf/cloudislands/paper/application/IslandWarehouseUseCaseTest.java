@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreWarehouseCommandClient;
+import kr.lunaf.cloudislands.coreclient.CoreWarehouseQueryClient;
 import org.junit.jupiter.api.Test;
 
 class IslandWarehouseUseCaseTest {
@@ -56,6 +58,8 @@ class IslandWarehouseUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
+                case "warehouse" -> new CoreWarehouseQueryClient((CoreApiClient) _proxy);
+                case "warehouseCommands" -> new CoreWarehouseCommandClient((CoreApiClient) _proxy);
                 case "islandWarehouse" -> {
                     calls.add("islandWarehouse:" + args[1]);
                     yield CompletableFuture.completedFuture("{\"items\":[{\"materialKey\":\"STONE\",\"amount\":12},{\"materialKey\":\"DIRT\",\"amount\":7}]}");
