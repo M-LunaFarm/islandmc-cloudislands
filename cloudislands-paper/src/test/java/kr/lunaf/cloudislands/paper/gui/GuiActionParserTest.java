@@ -102,6 +102,28 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesLifecycleAndMembershipNavigationIntoTypedActions() {
+        assertNoPayloadType("island.create.open", GuiAction.NoPayloadType.CREATE_OPEN);
+        assertNoPayloadType("island.danger.open", GuiAction.NoPayloadType.DANGER_OPEN);
+        assertNoPayloadType("island.danger.reset.prepare", GuiAction.NoPayloadType.DANGER_RESET_PREPARE);
+        assertNoPayloadType("island.danger.delete.prepare", GuiAction.NoPayloadType.DANGER_DELETE_PREPARE);
+        assertNoPayloadType("island.members.open", GuiAction.NoPayloadType.MEMBERS_OPEN);
+        assertNoPayloadType("island.member.role", GuiAction.NoPayloadType.MEMBER_ROLE);
+        assertNoPayloadType("island.member.invite", GuiAction.NoPayloadType.MEMBER_INVITE);
+        assertNoPayloadType("island.member.invite.help", GuiAction.NoPayloadType.MEMBER_INVITE_HELP);
+        assertNoPayloadType("island.member.list", GuiAction.NoPayloadType.MEMBER_LIST);
+        assertNoPayloadType("island.invites.open", GuiAction.NoPayloadType.INVITES_OPEN);
+        assertNoPayloadType("island.bans.open", GuiAction.NoPayloadType.BANS_OPEN);
+        assertNoPayloadType("island.bans.list", GuiAction.NoPayloadType.BANS_LIST);
+        assertNoPayloadType("island.permissions.open", GuiAction.NoPayloadType.PERMISSIONS_OPEN);
+        assertNoPayloadType("island.permissions.list", GuiAction.NoPayloadType.PERMISSIONS_LIST);
+        assertNoPayloadType("island.permissions.save", GuiAction.NoPayloadType.PERMISSIONS_SAVE);
+        assertNoPayloadType("island.permissions.reset", GuiAction.NoPayloadType.PERMISSIONS_RESET);
+        assertNoPayloadType("island.roles.open", GuiAction.NoPayloadType.ROLES_OPEN);
+        assertNoPayloadType("island.roles.list", GuiAction.NoPayloadType.ROLES_LIST);
+    }
+
+    @Test
     void parsesCreateAndDangerConfirmActionsIntoTypedActions() {
         GuiAction create = GuiActionParser.parse("island.create", Map.of("templateId", " starter ")).orElseThrow();
         GuiAction reset = GuiActionParser.parse(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION, DangerousGuiActionPolicy.resetConfirmationData()).orElseThrow();

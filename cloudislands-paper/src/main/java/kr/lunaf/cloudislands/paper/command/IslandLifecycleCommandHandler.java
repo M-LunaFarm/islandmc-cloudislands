@@ -75,6 +75,27 @@ final class IslandLifecycleCommandHandler {
             }
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload) {
+            return switch (noPayload.type()) {
+                case CREATE_OPEN -> {
+                    IslandCreateMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
+                    yield true;
+                }
+                case DANGER_OPEN -> {
+                    IslandDangerMenu.open(player, runtime.messagesFor(player));
+                    yield true;
+                }
+                case DANGER_RESET_PREPARE -> {
+                    IslandDangerMenu.openResetConfirm(player, runtime.messagesFor(player));
+                    yield true;
+                }
+                case DANGER_DELETE_PREPARE -> {
+                    IslandDangerMenu.openDeleteConfirm(player, runtime.messagesFor(player));
+                    yield true;
+                }
+                default -> false;
+            };
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {

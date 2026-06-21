@@ -331,6 +331,59 @@ final class IslandMembershipCommandHandler {
                 click);
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload) {
+            return switch (noPayload.type()) {
+                case MEMBERS_OPEN -> {
+                    runtime.openIslandMemberMenu(player);
+                    yield true;
+                }
+                case MEMBER_ROLE, MEMBER_LIST -> {
+                    runtime.listIslandMembers(player);
+                    yield true;
+                }
+                case MEMBER_INVITE, MEMBER_INVITE_HELP -> {
+                    runtime.message(player, runtime.routeMessage("member-invite-help", "멤버 초대는 /섬 초대 <플레이어> 로 요청합니다."));
+                    yield true;
+                }
+                case INVITES_OPEN -> {
+                    IslandInviteMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
+                    yield true;
+                }
+                case BANS_OPEN -> {
+                    runtime.openIslandBanMenu(player);
+                    yield true;
+                }
+                case BANS_LIST -> {
+                    runtime.listIslandBans(player);
+                    yield true;
+                }
+                case PERMISSIONS_OPEN -> {
+                    runtime.openIslandPermissionMenu(player);
+                    yield true;
+                }
+                case PERMISSIONS_LIST -> {
+                    runtime.listIslandPermissions(player);
+                    yield true;
+                }
+                case PERMISSIONS_SAVE -> {
+                    runtime.saveStagedIslandPermissions(player);
+                    yield true;
+                }
+                case PERMISSIONS_RESET -> {
+                    runtime.resetStagedIslandPermissions(player);
+                    yield true;
+                }
+                case ROLES_OPEN -> {
+                    runtime.openIslandRoleMenu(player);
+                    yield true;
+                }
+                case ROLES_LIST -> {
+                    runtime.listIslandRoles(player);
+                    yield true;
+                }
+                default -> false;
+            };
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {
