@@ -107,11 +107,14 @@ import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
+import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
+import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
+import kr.lunaf.cloudislands.coreclient.AdminEventView;
+import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
-import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
@@ -2379,12 +2382,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return mutate("admin.player.primary-island.clear", () -> client.playerProfileCommands().clearPrimaryIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return mutate("admin.block-value.set", () -> client.setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit)).thenApply(body -> action(body, "BLOCK_VALUE_SET")); }
-        @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.listEvents().thenApply(PaperCloudIslandsApi::events); }
-        @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents(int limit) { return client.listEvents(limit).thenApply(PaperCloudIslandsApi::events); }
-        @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatch() { return client.listEvents().thenApply(PaperCloudIslandsApi::eventBatch); }
-        @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatch(int limit) { return client.listEvents(limit).thenApply(PaperCloudIslandsApi::eventBatch); }
-        @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatchSince(long sinceSeq, int limit) { return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch); }
-        @Override public CompletableFuture<List<AuditLogSnapshot>> listAuditLogs() { return client.listAuditLogs().thenApply(PaperCloudIslandsApi::auditLogs); }
+        @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.adminEvents().list(100).thenApply(PaperCloudIslandsApi::events); }
+        @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents(int limit) { return client.adminEvents().list(limit).thenApply(PaperCloudIslandsApi::events); }
+        @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatch() { return client.adminEvents().list(100).thenApply(PaperCloudIslandsApi::eventBatch); }
+        @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatch(int limit) { return client.adminEvents().list(limit).thenApply(PaperCloudIslandsApi::eventBatch); }
+        @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatchSince(long sinceSeq, int limit) { return client.adminEvents().listSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch); }
+        @Override public CompletableFuture<List<AuditLogSnapshot>> listAuditLogs() { return client.adminAudit().list(100).thenApply(PaperCloudIslandsApi::auditLogs); }
 
         @Override
         public CompletableFuture<List<String>> listNodes() {
@@ -2483,17 +2486,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<GlobalEventSnapshot>> listGlobalEvents() {
-            return client.listEvents().thenApply(PaperCloudIslandsApi::events);
+            return client.adminEvents().list(100).thenApply(PaperCloudIslandsApi::events);
         }
 
         @Override
         public CompletableFuture<List<GlobalEventSnapshot>> listGlobalEvents(int limit) {
-            return client.listEvents(limit).thenApply(PaperCloudIslandsApi::events);
+            return client.adminEvents().list(limit).thenApply(PaperCloudIslandsApi::events);
         }
 
         @Override
         public CompletableFuture<List<GlobalEventSnapshot>> listGlobalEventsSince(long sinceSeq, int limit) {
-            return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::events);
+            return client.adminEvents().listSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::events);
         }
 
         @Override
@@ -2517,17 +2520,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<GlobalEventBatchSnapshot> listGlobalEventBatch() {
-            return client.listEvents().thenApply(PaperCloudIslandsApi::eventBatch);
+            return client.adminEvents().list(100).thenApply(PaperCloudIslandsApi::eventBatch);
         }
 
         @Override
         public CompletableFuture<GlobalEventBatchSnapshot> listGlobalEventBatch(int limit) {
-            return client.listEvents(limit).thenApply(PaperCloudIslandsApi::eventBatch);
+            return client.adminEvents().list(limit).thenApply(PaperCloudIslandsApi::eventBatch);
         }
 
         @Override
         public CompletableFuture<GlobalEventBatchSnapshot> listGlobalEventBatchSince(long sinceSeq, int limit) {
-            return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch);
+            return client.adminEvents().listSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch);
         }
     }
 
@@ -3761,11 +3764,34 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return events;
     }
 
+    private static List<GlobalEventSnapshot> events(AdminEventStreamView stream) {
+        return (stream == null ? List.<AdminEventView>of() : stream.events()).stream()
+            .map(PaperCloudIslandsApi::event)
+            .toList();
+    }
+
+    private static GlobalEventSnapshot event(AdminEventView view) {
+        return new GlobalEventSnapshot(
+            view == null ? 0L : view.seq(),
+            view == null ? "" : view.type(),
+            view == null ? Map.of() : view.fields(),
+            instant(view == null ? "" : view.occurredAt())
+        );
+    }
+
     private static GlobalEventBatchSnapshot eventBatch(String json) {
         return new GlobalEventBatchSnapshot(
             longValue(json, "oldestSeq", 0L),
             longValue(json, "latestSeq", 0L),
             events(json)
+        );
+    }
+
+    private static GlobalEventBatchSnapshot eventBatch(AdminEventStreamView stream) {
+        return new GlobalEventBatchSnapshot(
+            stream == null ? 0L : stream.oldestSeq(),
+            stream == null ? 0L : stream.latestSeq(),
+            events(stream)
         );
     }
 
@@ -3784,6 +3810,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return audit;
+    }
+
+    private static List<AuditLogSnapshot> auditLogs(List<AdminAuditEntryView> views) {
+        return (views == null ? List.<AdminAuditEntryView>of() : views).stream()
+            .map(view -> new AuditLogSnapshot(
+                uuidValueOrZero(view.id()),
+                uuidValue(view.actorUuid()),
+                view.actorType(),
+                view.action(),
+                view.targetType(),
+                view.targetId(),
+                view.payload(),
+                instant(view.createdAt())
+            ))
+            .toList();
     }
 
     private static Optional<RouteTicket> routeTicket(String json) {

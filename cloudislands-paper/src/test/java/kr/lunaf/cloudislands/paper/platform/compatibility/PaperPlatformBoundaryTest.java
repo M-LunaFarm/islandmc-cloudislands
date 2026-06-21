@@ -447,6 +447,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.bank().islandBank(islandId).thenApply(bank -> bank(islandId, bank))"), "Public API bank lookup must use typed bank query client");
         assertTrue(source.contains("client.warehouse().listItems(islandId, limit).thenApply(PaperCloudIslandsApi::warehouseItems)"), "Public API warehouse lookup must use typed warehouse query client");
         assertTrue(source.contains("client.visitorStats().stats(islandId, limit).thenApply(PaperCloudIslandsApi::visitorStats)"), "Public API visitor stats must use typed visitor stats query client");
+        assertTrue(source.contains("client.adminEvents().list(limit).thenApply(PaperCloudIslandsApi::events)"), "Public API events must use typed admin event query client");
+        assertTrue(source.contains("client.adminEvents().listSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch)"), "Public API event batches must use typed admin event query client");
+        assertTrue(source.contains("client.adminAudit().list(100).thenApply(PaperCloudIslandsApi::auditLogs)"), "Public API audit logs must use typed admin audit query client");
         assertTrue(!source.contains("return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for island lookup");
         assertTrue(!source.contains("return client.islandInfoByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for owner lookup");
         assertTrue(!source.contains("return client.listIslandMembers(islandId).thenApply(PaperCloudIslandsApi::members);"), "Public API query surface must not use raw member JSON for members");
@@ -472,6 +475,10 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("return client.islandBank(islandId).thenApply(PaperCloudIslandsApi::bank);"), "Public API query surface must not use raw bank JSON for bank lookup");
         assertTrue(!source.contains("return client.islandWarehouse(islandId, limit).thenApply(PaperCloudIslandsApi::warehouseItems);"), "Public API query surface must not use raw warehouse JSON for warehouse lookup");
         assertTrue(!source.contains("return client.islandVisitorStats(islandId, limit).thenApply(PaperCloudIslandsApi::visitorStats);"), "Public API query surface must not use raw visitor stats JSON for visitor stats");
+        assertTrue(!source.contains("return client.listEvents().thenApply(PaperCloudIslandsApi::events);"), "Public API query surface must not use raw event JSON for events");
+        assertTrue(!source.contains("return client.listEvents(limit).thenApply(PaperCloudIslandsApi::events);"), "Public API query surface must not use raw event JSON for bounded events");
+        assertTrue(!source.contains("return client.listEventsSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch);"), "Public API query surface must not use raw event JSON for event batches");
+        assertTrue(!source.contains("return client.listAuditLogs().thenApply(PaperCloudIslandsApi::auditLogs);"), "Public API query surface must not use raw audit JSON for audit logs");
     }
 
     @Test
