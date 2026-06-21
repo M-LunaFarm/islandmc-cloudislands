@@ -2,12 +2,15 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandWarehouseItemSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -125,27 +128,31 @@ public final class IslandWarehouseRoutes implements RouteGroup {
     }
 
     static String warehouseJson(List<IslandWarehouseItemSnapshot> items) {
-        StringBuilder builder = new StringBuilder("{\"items\":[");
-        boolean first = true;
+        List<Object> renderedItems = new ArrayList<>();
         for (IslandWarehouseItemSnapshot item : items) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(itemJson(item));
+            renderedItems.add(itemMap(item));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("items", renderedItems));
     }
 
     static String changeJson(IslandWarehouseRepository.ChangeResult result) {
-        return "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"item\":" + itemJson(result.item()) + "}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", result.accepted());
+        values.put("code", result.code());
+        values.put("item", itemMap(result.item()));
+        return SimpleJson.stringify(values);
     }
 
     static String itemJson(IslandWarehouseItemSnapshot item) {
-        return "{\"islandId\":\"" + item.islandId() + "\",\"materialKey\":\"" + escape(item.materialKey()) + "\",\"amount\":" + item.amount() + ",\"updatedAt\":\"" + item.updatedAt() + "\"}";
+        return SimpleJson.stringify(itemMap(item));
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    private static Map<String, Object> itemMap(IslandWarehouseItemSnapshot item) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", item.islandId());
+        values.put("materialKey", item.materialKey());
+        values.put("amount", item.amount());
+        values.put("updatedAt", item.updatedAt());
+        return values;
     }
 }
