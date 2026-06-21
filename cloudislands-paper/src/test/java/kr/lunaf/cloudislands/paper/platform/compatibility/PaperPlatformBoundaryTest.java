@@ -674,6 +674,7 @@ class PaperPlatformBoundaryTest {
         List<Path> commandSources = commandActionSources(root);
         List<Path> actionSources = new ArrayList<>(commandSources);
         actionSources.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/BankUseCase.java"));
+        actionSources.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/SnapshotUseCase.java"));
         List<Path> files = new ArrayList<>(actionSources);
         files.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"));
         String violations = files.stream()

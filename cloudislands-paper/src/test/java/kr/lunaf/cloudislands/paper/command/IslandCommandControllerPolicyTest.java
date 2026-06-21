@@ -81,16 +81,22 @@ class IslandCommandControllerPolicyTest {
     void snapshotCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String snapshotHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSnapshotCommandHandler.java"));
+        String snapshotUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/SnapshotUseCase.java"));
 
         assertTrue(backend.contains("private final IslandSnapshotCommandHandler snapshotCommands;"));
         assertTrue(routerSource().contains("snapshotCommands.handleCommand(player, subcommand, args)"));
         assertTrue(routerSource().contains("snapshotCommands.handleGuiAction(player, action"));
-        assertFalse(backend.contains("requestIslandSnapshot("), "snapshot create logic belongs in IslandSnapshotCommandHandler");
-        assertFalse(backend.contains("restoreIslandSnapshot("), "snapshot restore logic belongs in IslandSnapshotCommandHandler");
+        assertFalse(backend.contains("requestIslandSnapshot("), "snapshot create logic belongs in SnapshotUseCase");
+        assertFalse(backend.contains("restoreIslandSnapshot("), "snapshot restore logic belongs in SnapshotUseCase");
         assertTrue(snapshotHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(snapshotHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
-        assertTrue(snapshotHandler.contains("coreApiClient.requestIslandSnapshotResult"));
-        assertTrue(snapshotHandler.contains("coreApiClient.restoreIslandSnapshotResult"));
+        assertTrue(snapshotHandler.contains("private final SnapshotUseCase snapshotUseCase;"));
+        assertTrue(snapshotHandler.contains("snapshotUseCase.requestSnapshot("));
+        assertTrue(snapshotHandler.contains("snapshotUseCase.restoreSnapshot("));
+        assertFalse(snapshotHandler.contains("coreApiClient.requestIslandSnapshotResult"), "snapshot mutation logic belongs in SnapshotUseCase");
+        assertFalse(snapshotHandler.contains("coreApiClient.restoreIslandSnapshotResult"), "snapshot mutation logic belongs in SnapshotUseCase");
+        assertTrue(snapshotUseCase.contains("coreApiClient.requestIslandSnapshotResult"));
+        assertTrue(snapshotUseCase.contains("coreApiClient.restoreIslandSnapshotResult"));
     }
 
     @Test

@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.SnapshotUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
@@ -19,11 +20,13 @@ import org.bukkit.plugin.Plugin;
 final class IslandSnapshotCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final SnapshotUseCase snapshotUseCase;
     private final Runtime runtime;
 
     IslandSnapshotCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.snapshotUseCase = new SnapshotUseCase(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -53,7 +56,7 @@ final class IslandSnapshotCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-snapshot-number-required", "복원할 스냅샷 번호를 입력해주세요."));
                 return true;
             }
-            restoreSnapshot(player, longValue(args[1], 0L));
+            restoreSnapshot(player, SnapshotUseCase.positiveSnapshotNo(args[1]));
             return true;
         }
         return false;
@@ -91,7 +94,7 @@ final class IslandSnapshotCommandHandler {
             }
             case "island.snapshot.restore.confirm" -> {
                 if (runtime.confirmationAccepted(player, action, click)) {
-                    restoreSnapshot(player, longValue(data.getOrDefault("snapshotNo", "0"), 0L));
+                    restoreSnapshot(player, SnapshotUseCase.positiveSnapshotNo(data.get("snapshotNo")));
                 }
                 yield true;
             }
@@ -101,7 +104,7 @@ final class IslandSnapshotCommandHandler {
 
     private void listSnapshots(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 스냅샷을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandSnapshots(islandId, Math.max(1, Math.min(limit, 20)))
+            snapshotUseCase.listSnapshots(islandId, limit)
                 .thenAccept(body -> runtime.message(player, snapshotListMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 스냅샷을 불러오지 못했습니다.");
@@ -120,7 +123,7 @@ final class IslandSnapshotCommandHandler {
                 runtime.message(player, runtime.routeMessage("snapshot-create-denied", "섬 스냅샷을 생성할 관리자 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.snapshot.create", () -> coreApiClient.requestIslandSnapshotResult(islandId, reason))
+            snapshotUseCase.requestSnapshot(islandId, reason, runtime::mutate)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 스냅샷 생성 요청", islandId, body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 스냅샷 생성을 요청하지 못했습니다.");
@@ -139,7 +142,7 @@ final class IslandSnapshotCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요."));
                 return;
             }
-            runtime.mutateIdempotent("island.snapshot.restore", () -> coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo))
+            snapshotUseCase.restoreSnapshot(islandId, snapshotNo, runtime::mutateIdempotent)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 스냅샷 복원 요청 #" + snapshotNo, islandId, body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 스냅샷 복원을 요청하지 못했습니다.");
@@ -190,14 +193,6 @@ final class IslandSnapshotCommandHandler {
     private static int integer(String value, int fallback) {
         try {
             return Integer.parseInt(value);
-        } catch (NumberFormatException exception) {
-            return fallback;
-        }
-    }
-
-    private static long longValue(String value, long fallback) {
-        try {
-            return Long.parseLong(value);
         } catch (NumberFormatException exception) {
             return fallback;
         }
