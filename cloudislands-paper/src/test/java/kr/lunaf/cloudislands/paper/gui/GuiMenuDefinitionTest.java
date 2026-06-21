@@ -139,4 +139,30 @@ class GuiMenuDefinitionTest {
         assertEquals("B", definition.itemAt(22).orElseThrow().symbol());
         assertEquals("island.settings.open", definition.action(definition.itemAt(22).orElseThrow().actionKey(), ""));
     }
+
+    @Test
+    void bundledDangerConfirmDefinitionsCoverConfirmationActionsDeclaratively() {
+        GuiMenuDefinition reset = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/danger-reset-confirm.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition delete = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/danger-delete-confirm.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.danger.reset-confirm", reset.id());
+        assertEquals(27, reset.size());
+        assertEquals("C", reset.itemAt(11).orElseThrow().symbol());
+        assertEquals("island.danger.open", reset.action(reset.itemAt(11).orElseThrow().actionKey(), ""));
+        assertEquals("R", reset.itemAt(15).orElseThrow().symbol());
+        assertEquals("island.danger.reset.confirm", reset.action(reset.itemAt(15).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.danger.delete-confirm", delete.id());
+        assertEquals(27, delete.size());
+        assertEquals("C", delete.itemAt(11).orElseThrow().symbol());
+        assertEquals("island.danger.open", delete.action(delete.itemAt(11).orElseThrow().actionKey(), ""));
+        assertEquals("D", delete.itemAt(15).orElseThrow().symbol());
+        assertEquals("island.danger.delete.confirm", delete.action(delete.itemAt(15).orElseThrow().actionKey(), ""));
+    }
 }

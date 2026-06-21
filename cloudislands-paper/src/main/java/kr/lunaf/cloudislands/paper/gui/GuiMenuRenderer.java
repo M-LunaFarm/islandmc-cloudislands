@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Material;
@@ -52,11 +53,16 @@ public final class GuiMenuRenderer {
         }
     }
 
-    private static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages) {
+    public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages) {
+        return item(definition, item, messages, Map.of());
+    }
+
+    public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, Map<String, String> data) {
         return GuiItems.action(
             material(item.materialKey()),
             message(messages, item.nameKey(), item.fallbackName()),
             definition.action(item.actionKey(), item.actionKey()),
+            data == null ? Map.of() : data,
             lore(item, messages).toArray(String[]::new)
         );
     }

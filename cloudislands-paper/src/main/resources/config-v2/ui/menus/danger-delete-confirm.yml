@@ -1,0 +1,27 @@
+id: island.danger.delete-confirm
+rows: 3
+title-key: menu.danger.delete-confirm.title
+layout:
+  - "........."
+  - "..C...D.."
+  - "........."
+items:
+  C:
+    material: OAK_DOOR
+    name-key: danger-confirm-cancel-name
+    fallback-name: 취소
+    action: cancel
+  D:
+    material: LAVA_BUCKET
+    name-key: danger-delete-confirm-name
+    fallback-name: 삭제 요청
+    lore-keys:
+      - danger-delete-confirm-line-1
+      - danger-delete-confirm-line-2
+    fallback-lore:
+      - "섬을 삭제 요청 상태로 전환합니다."
+      - "복구 유예와 감사 로그는 Core 정책을 따릅니다."
+    action: confirm
+actions:
+  cancel: island.danger.open
+  confirm: island.danger.delete.confirm

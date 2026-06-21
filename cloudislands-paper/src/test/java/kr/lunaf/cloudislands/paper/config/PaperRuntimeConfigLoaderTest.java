@@ -31,6 +31,8 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("GuiActionSchema.registeredActionIds()"), "Paper runtime menu validation must use the runtime GUI action registry");
         assertTrue(loader.contains("\"ui/menus/main.yml\""), "Paper runtime loader must discover bundled config-v2 menu files");
         assertTrue(loader.contains("\"ui/menus/bank.yml\""), "Paper runtime loader must discover expanded config-v2 menu files");
+        assertTrue(loader.contains("\"ui/menus/danger-reset-confirm.yml\""), "Paper runtime loader must discover dangerous action confirmation menu files");
+        assertTrue(loader.contains("\"ui/menus/danger-delete-confirm.yml\""), "Paper runtime loader must discover dangerous action confirmation menu files");
         assertTrue(loader.contains("\"ui/menus/warps.yml\""), "Paper runtime loader must discover expanded config-v2 menu files");
         assertTrue(loader.contains("\"ui/messages/en_us.yml\""), "Paper runtime loader must discover all bundled locale files");
         assertTrue(loader.contains("mapMessagesV2"), "Paper runtime loader must map active locale messages into the runtime snapshot");

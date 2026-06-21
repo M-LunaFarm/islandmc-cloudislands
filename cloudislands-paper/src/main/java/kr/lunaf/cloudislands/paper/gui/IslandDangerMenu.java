@@ -1,7 +1,7 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.util.Map;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -18,10 +18,24 @@ public final class IslandDangerMenu implements Listener {
             "back", "island.settings.open"
         ))
     );
+    private static final GuiMenuDefinition RESET_CONFIRM_MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/danger-reset-confirm.yml",
+        new GuiMenuDefinition("island.danger.reset-confirm", 3, "menu.danger.reset-confirm.title", java.util.Map.of(
+            "cancel", "island.danger.open",
+            "confirm", "island.danger.reset.confirm"
+        ))
+    );
+    private static final GuiMenuDefinition DELETE_CONFIRM_MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/danger-delete-confirm.yml",
+        new GuiMenuDefinition("island.danger.delete-confirm", 3, "menu.danger.delete-confirm.title", java.util.Map.of(
+            "cancel", "island.danger.open",
+            "confirm", "island.danger.delete.confirm"
+        ))
+    );
     private static final String TITLE = "섬 위험 작업";
     private static final String MENU_ID = MENU.id();
-    private static final String RESET_CONFIRM_MENU_ID = "island.danger.reset-confirm";
-    private static final String DELETE_CONFIRM_MENU_ID = "island.danger.delete-confirm";
+    private static final String RESET_CONFIRM_MENU_ID = RESET_CONFIRM_MENU.id();
+    private static final String DELETE_CONFIRM_MENU_ID = DELETE_CONFIRM_MENU.id();
     private static final String RESET_CONFIRM_TITLE = "섬 리셋 확인";
     private static final String DELETE_CONFIRM_TITLE = "섬 삭제 확인";
     private final MessageRenderer messages;
@@ -54,20 +68,14 @@ public final class IslandDangerMenu implements Listener {
     }
 
     public static void openResetConfirm(Player player, MessageRenderer messages) {
-        Inventory inventory = GuiInventories.create(RESET_CONFIRM_MENU_ID, 27, RESET_CONFIRM_TITLE);
-        inventory.setItem(11, GuiItems.action(Material.OAK_DOOR, message(messages, "danger-confirm-cancel-name", "취소"), "island.danger.open"));
-        inventory.setItem(15, GuiItems.action(Material.TNT, message(messages, "danger-reset-confirm-name", "리셋 실행"), "island.danger.reset.confirm", DangerousGuiActionPolicy.resetConfirmationData(),
-            message(messages, "danger-reset-confirm-line-1", "월드 블록과 엔티티가 초기화됩니다."),
-            message(messages, "danger-reset-confirm-line-2", "멤버·은행·권한은 유지됩니다.")));
+        Inventory inventory = GuiMenuRenderer.render(RESET_CONFIRM_MENU, messages, RESET_CONFIRM_TITLE);
+        attachConfirmData(inventory, RESET_CONFIRM_MENU, messages, DangerousGuiActionPolicy.resetConfirmationData());
         player.openInventory(inventory);
     }
 
     public static void openDeleteConfirm(Player player, MessageRenderer messages) {
-        Inventory inventory = GuiInventories.create(DELETE_CONFIRM_MENU_ID, 27, DELETE_CONFIRM_TITLE);
-        inventory.setItem(11, GuiItems.action(Material.OAK_DOOR, message(messages, "danger-confirm-cancel-name", "취소"), "island.danger.open"));
-        inventory.setItem(15, GuiItems.action(Material.LAVA_BUCKET, message(messages, "danger-delete-confirm-name", "삭제 요청"), "island.danger.delete.confirm", DangerousGuiActionPolicy.deleteConfirmationData(),
-            message(messages, "danger-delete-confirm-line-1", "섬을 삭제 요청 상태로 전환합니다."),
-            message(messages, "danger-delete-confirm-line-2", "복구 유예와 감사 로그는 Core 정책을 따릅니다.")));
+        Inventory inventory = GuiMenuRenderer.render(DELETE_CONFIRM_MENU, messages, DELETE_CONFIRM_TITLE);
+        attachConfirmData(inventory, DELETE_CONFIRM_MENU, messages, DangerousGuiActionPolicy.deleteConfirmationData());
         player.openInventory(inventory);
     }
 
@@ -94,7 +102,21 @@ public final class IslandDangerMenu implements Listener {
         actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
     }
 
-    private static String message(MessageRenderer messages, String key, String fallback) {
-        return GuiMenuRenderer.message(messages, key, fallback);
+    private static void attachConfirmData(Inventory inventory, GuiMenuDefinition menu, MessageRenderer messages, Map<String, String> data) {
+        int slot = slot(menu, "confirm");
+        if (slot < 0) {
+            return;
+        }
+        menu.itemAt(slot).ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(menu, item, messages, data)));
+    }
+
+    private static int slot(GuiMenuDefinition menu, String actionKey) {
+        for (int slot = 0; slot < menu.size(); slot++) {
+            GuiMenuDefinition.MenuItem item = menu.itemAt(slot).orElse(null);
+            if (item != null && item.actionKey().equals(actionKey)) {
+                return slot;
+            }
+        }
+        return -1;
     }
 }

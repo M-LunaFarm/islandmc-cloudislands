@@ -1,0 +1,27 @@
+id: island.danger.reset-confirm
+rows: 3
+title-key: menu.danger.reset-confirm.title
+layout:
+  - "........."
+  - "..C...R.."
+  - "........."
+items:
+  C:
+    material: OAK_DOOR
+    name-key: danger-confirm-cancel-name
+    fallback-name: 취소
+    action: cancel
+  R:
+    material: TNT
+    name-key: danger-reset-confirm-name
+    fallback-name: 리셋 실행
+    lore-keys:
+      - danger-reset-confirm-line-1
+      - danger-reset-confirm-line-2
+    fallback-lore:
+      - "월드 블록과 엔티티가 초기화됩니다."
+      - "멤버·은행·권한은 유지됩니다."
+    action: confirm
+actions:
+  cancel: island.danger.open
+  confirm: island.danger.reset.confirm

@@ -53,6 +53,8 @@ public final class PaperRuntimeConfigLoader {
         "ui/menus/members.yml",
         "ui/menus/permissions.yml",
         "ui/menus/danger.yml",
+        "ui/menus/danger-reset-confirm.yml",
+        "ui/menus/danger-delete-confirm.yml",
         "ui/menus/flags.yml",
         "ui/menus/homes.yml",
         "ui/menus/info.yml",
