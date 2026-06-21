@@ -51,7 +51,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
-        return post("/v1/islands", "{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"" + templateId + "\"}")
+        return post("/v1/islands", jsonObject("playerUuid", playerUuid, "templateId", templateId))
             .thenApply(JdkCoreApiClient::parseCreateIslandResult);
     }
 
@@ -68,22 +68,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> resetIslandResult(UUID islandId, UUID actorUuid, String reason) {
-        return postWithResultBody("/v1/islands/reset", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/islands/reset", jsonObject("islandId", islandId, "actorUuid", actorUuid, "reason", reason));
     }
 
     @Override
     public CompletableFuture<String> islandInfo(UUID islandId) {
-        return post("/v1/islands/info", "{\"islandId\":\"" + islandId + "\"}");
+        return post("/v1/islands/info", jsonObject("islandId", islandId));
     }
 
     @Override
     public CompletableFuture<String> islandInfoByOwner(UUID ownerUuid) {
-        return post("/v1/islands/info", "{\"ownerUuid\":\"" + ownerUuid + "\"}");
+        return post("/v1/islands/info", jsonObject("ownerUuid", ownerUuid));
     }
 
     @Override
     public CompletableFuture<String> islandInfoByName(String name) {
-        return post("/v1/islands/info", "{\"name\":\"" + escape(name) + "\"}");
+        return post("/v1/islands/info", jsonObject("name", name));
     }
 
     @Override
@@ -535,17 +535,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listIslandUpgrades(UUID islandId) {
-        return post("/v1/islands/upgrades", "{\"islandId\":\"" + islandId + "\"}");
+        return post("/v1/islands/upgrades", jsonObject("islandId", islandId));
     }
 
     @Override
     public CompletableFuture<String> purchaseIslandUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) {
-        return postWithResultBody("/v1/islands/upgrades/purchase", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"upgradeKey\":\"" + escape(upgradeKey) + "\"}");
+        return postWithResultBody("/v1/islands/upgrades/purchase", jsonObject("islandId", islandId, "actorUuid", actorUuid, "upgradeKey", upgradeKey));
     }
 
     @Override
     public CompletableFuture<String> listIslandMissions(UUID islandId, String kind) {
-        return post("/v1/islands/missions", "{\"islandId\":\"" + islandId + "\",\"kind\":\"" + escape(kind) + "\"}");
+        return post("/v1/islands/missions", jsonObject("islandId", islandId, "kind", kind));
     }
 
     @Override
@@ -555,53 +555,53 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
-        return postWithResultBody("/v1/islands/missions/complete", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"" + escape(missionKey) + "\",\"kind\":\"" + escape(kind) + "\"}");
+        return postWithResultBody("/v1/islands/missions/complete", jsonObject("islandId", islandId, "actorUuid", actorUuid, "missionKey", missionKey, "kind", kind));
     }
 
     @Override
     public CompletableFuture<String> progressIslandMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
-        return postWithResultBody("/v1/islands/missions/progress", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"" + escape(missionKey) + "\",\"kind\":\"" + escape(kind) + "\",\"amount\":" + Math.max(0L, amount) + "}");
+        return postWithResultBody("/v1/islands/missions/progress", jsonObject("islandId", islandId, "actorUuid", actorUuid, "missionKey", missionKey, "kind", kind, "amount", Math.max(0L, amount)));
     }
 
     @Override
     public CompletableFuture<String> registerMissionProvider(String providerId, String definitionsJson) {
         String definitions = definitionsJson == null || definitionsJson.isBlank() ? "[]" : definitionsJson;
-        return postWithResultBody("/v1/addons/missions/register", "{\"providerId\":\"" + escape(providerId) + "\",\"missions\":" + definitions + "}");
+        return postWithResultBody("/v1/addons/missions/register", jsonObject("providerId", providerId, "missions", rawJson(definitions)));
     }
 
     @Override
     public CompletableFuture<String> listIslandLimits(UUID islandId) {
-        return post("/v1/islands/limits", "{\"islandId\":\"" + islandId + "\"}");
+        return post("/v1/islands/limits", jsonObject("islandId", islandId));
     }
 
     @Override
     public CompletableFuture<String> setIslandLimit(UUID islandId, UUID actorUuid, String limitKey, long value) {
-        return post("/v1/islands/limits/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"limitKey\":\"" + escape(limitKey) + "\",\"value\":" + value + "}");
+        return post("/v1/islands/limits/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "limitKey", limitKey, "value", value));
     }
 
     @Override
     public CompletableFuture<String> sendIslandChat(UUID islandId, UUID actorUuid, String channel, String message) {
-        return post("/v1/islands/chat", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"channel\":\"" + escape(channel) + "\",\"message\":\"" + escape(message) + "\"}");
+        return post("/v1/islands/chat", jsonObject("islandId", islandId, "actorUuid", actorUuid, "channel", channel, "message", message));
     }
 
     @Override
     public CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit) {
-        return post("/v1/islands/snapshots", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
+        return post("/v1/islands/snapshots", jsonObject("islandId", islandId, "limit", limit));
     }
 
     @Override
     public CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId) {
-        return postWithResultBody("/v1/islands/snapshots/record", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"reason\":\"" + escape(reason) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"nodeId\":\"" + escape(nodeId) + "\"}");
+        return postWithResultBody("/v1/islands/snapshots/record", jsonObject("islandId", islandId, "snapshotNo", snapshotNo, "storagePath", storagePath, "reason", reason, "checksum", checksum, "sizeBytes", sizeBytes, "nodeId", nodeId));
     }
 
     @Override
     public CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
-        return postWithResultBody("/v1/islands/snapshots/record", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"reason\":\"" + escape(reason) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"nodeId\":\"" + escape(nodeId) + "\",\"fencingToken\":" + fencingToken + "}");
+        return postWithResultBody("/v1/islands/snapshots/record", jsonObject("islandId", islandId, "snapshotNo", snapshotNo, "storagePath", storagePath, "reason", reason, "checksum", checksum, "sizeBytes", sizeBytes, "nodeId", nodeId, "fencingToken", fencingToken));
     }
 
     @Override
     public CompletableFuture<String> requestIslandSaveResult(UUID islandId, String reason) {
-        return postWithResultBody("/v1/admin/islands/save", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/admin/islands/save", jsonObject("islandId", islandId, "reason", reason));
     }
 
     @Override
@@ -611,7 +611,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> requestIslandSnapshotResult(UUID islandId, String reason) {
-        return postWithResultBody("/v1/admin/islands/snapshot", "{\"islandId\":\"" + islandId + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/admin/islands/snapshot", jsonObject("islandId", islandId, "reason", reason));
     }
 
     @Override
@@ -621,17 +621,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> restoreIslandSnapshotResult(UUID islandId, long snapshotNo) {
-        return postWithResultBody("/v1/admin/islands/restore", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + "}");
+        return postWithResultBody("/v1/admin/islands/restore", jsonObject("islandId", islandId, "snapshotNo", snapshotNo));
     }
 
     @Override
     public CompletableFuture<String> rollbackIslandSnapshotResult(UUID islandId, long snapshotNo) {
-        return postWithResultBody("/v1/admin/islands/rollback", "{\"islandId\":\"" + islandId + "\",\"snapshotNo\":" + snapshotNo + "}");
+        return postWithResultBody("/v1/admin/islands/rollback", jsonObject("islandId", islandId, "snapshotNo", snapshotNo));
     }
 
     @Override
     public CompletableFuture<String> listIslandLogs(UUID islandId, int limit) {
-        return post("/v1/islands/logs", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
+        return post("/v1/islands/logs", jsonObject("islandId", islandId, "limit", limit));
     }
 
     @Override
@@ -2008,11 +2008,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     private static void appendJsonValue(StringBuilder builder, Object value) {
+        if (value instanceof RawJson rawJson) {
+            builder.append(rawJson.value());
+            return;
+        }
         if (value instanceof Number || value instanceof Boolean) {
             builder.append(value);
             return;
         }
         builder.append('"').append(escape(value == null ? "" : String.valueOf(value))).append('"');
+    }
+
+    private static RawJson rawJson(String value) {
+        return new RawJson(value == null || value.isBlank() ? "{}" : value);
+    }
+
+    private record RawJson(String value) {
     }
 
     private static String warpPayload(UUID islandId, UUID actorUuid, String name, String category, IslandLocation location, boolean publicAccess) {

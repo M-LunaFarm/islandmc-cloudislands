@@ -84,6 +84,38 @@ class CoreMutationContextTest {
     }
 
     @Test
+    void jdkClientBuildsLifecycleAndInfoPayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID playerUuid = UUID.randomUUID();
+        UUID ownerUuid = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands", exchange -> respond(exchange, requestBodies, "create", "{\"accepted\":true,\"code\":\"CREATED\"}"));
+        server.createContext("/v1/islands/reset", exchange -> respond(exchange, requestBodies, "reset", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/info", exchange -> respond(exchange, requestBodies, "info", "{\"islandId\":\"" + islandId + "\"}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.createIsland(playerUuid, "template\"one").join();
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"template\\\"one\"}", requestBodies.get("create"));
+
+            client.resetIslandResult(islandId, actorUuid, "reset \"reason\"").join();
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"reason\":\"reset \\\"reason\\\"\"}", requestBodies.get("reset"));
+
+            client.islandInfo(islandId).join();
+            assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("info"));
+            client.islandInfoByOwner(ownerUuid).join();
+            assertEquals("{\"ownerUuid\":\"" + ownerUuid + "\"}", requestBodies.get("info"));
+            client.islandInfoByName("island \"name\"").join();
+            assertEquals("{\"name\":\"island \\\"name\\\"\"}", requestBodies.get("info"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void jdkClientParsesRouteTicketResultsWithStructuredJson() throws Exception {
         UUID ticketId = UUID.randomUUID();
         UUID playerUuid = UUID.randomUUID();
@@ -131,6 +163,72 @@ class CoreMutationContextTest {
             assertEquals("no route", apiFailure.getMessage());
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"homeName\":\"spawn\\\"main\"}", requestBodies.get("home"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}", requestBodies.get("visit"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void jdkClientBuildsProgressionLimitSnapshotAndLogPayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/upgrades", exchange -> respond(exchange, requestBodies, "upgrades", "{\"upgrades\":[]}"));
+        server.createContext("/v1/islands/upgrades/purchase", exchange -> respond(exchange, requestBodies, "upgradePurchase", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/missions", exchange -> respond(exchange, requestBodies, "missions", "{\"missions\":[]}"));
+        server.createContext("/v1/islands/missions/complete", exchange -> respond(exchange, requestBodies, "missionComplete", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/missions/progress", exchange -> respond(exchange, requestBodies, "missionProgress", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/missions/register", exchange -> respond(exchange, requestBodies, "missionRegister", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/limits", exchange -> respond(exchange, requestBodies, "limits", "{\"limits\":[]}"));
+        server.createContext("/v1/islands/limits/set", exchange -> respond(exchange, requestBodies, "limitSet", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/chat", exchange -> respond(exchange, requestBodies, "chat", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/snapshots", exchange -> respond(exchange, requestBodies, "snapshots", "{\"snapshots\":[]}"));
+        server.createContext("/v1/islands/snapshots/record", exchange -> respond(exchange, requestBodies, "snapshotRecord", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/save", exchange -> respond(exchange, requestBodies, "save", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/snapshot", exchange -> respond(exchange, requestBodies, "snapshot", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/restore", exchange -> respond(exchange, requestBodies, "restore", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/rollback", exchange -> respond(exchange, requestBodies, "rollback", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/logs", exchange -> respond(exchange, requestBodies, "logs", "{\"logs\":[]}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.listIslandUpgrades(islandId).join();
+            client.purchaseIslandUpgrade(islandId, actorUuid, "generator\"speed").join();
+            client.listIslandMissions(islandId, "MISSION\"DAILY").join();
+            client.completeIslandMission(islandId, actorUuid, "starter\"mission", "CHALLENGE").join();
+            client.progressIslandMission(islandId, actorUuid, "starter\"mission", "CHALLENGE", -5L).join();
+            client.registerMissionProvider("provider\"one", "[{\"missionKey\":\"starter\"}]").join();
+            client.listIslandLimits(islandId).join();
+            client.setIslandLimit(islandId, actorUuid, "HOPPER\"LIMIT", 64L).join();
+            client.sendIslandChat(islandId, actorUuid, "team\"chat", "hello \"team\"").join();
+            client.listIslandSnapshots(islandId, 15).join();
+            client.recordIslandSnapshot(islandId, 7L, "snapshots/base\"one.tar", "manual \"save\"", "abc\"123", 4096L, "node\"a").join();
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"snapshotNo\":7,\"storagePath\":\"snapshots/base\\\"one.tar\",\"reason\":\"manual \\\"save\\\"\",\"checksum\":\"abc\\\"123\",\"sizeBytes\":4096,\"nodeId\":\"node\\\"a\"}", requestBodies.get("snapshotRecord"));
+            client.recordIslandSnapshot(islandId, 8L, "snapshots/base\"two.tar", "auto \"save\"", "def\"456", 8192L, "node\"b", 123L).join();
+            client.requestIslandSaveResult(islandId, "save \"now\"").join();
+            client.requestIslandSnapshotResult(islandId, "snapshot \"now\"").join();
+            client.restoreIslandSnapshotResult(islandId, 7L).join();
+            client.rollbackIslandSnapshotResult(islandId, 6L).join();
+            client.listIslandLogs(islandId, 25).join();
+
+            assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("upgrades"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"upgradeKey\":\"generator\\\"speed\"}", requestBodies.get("upgradePurchase"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"kind\":\"MISSION\\\"DAILY\"}", requestBodies.get("missions"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\"}", requestBodies.get("missionComplete"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\",\"amount\":0}", requestBodies.get("missionProgress"));
+            assertEquals("{\"providerId\":\"provider\\\"one\",\"missions\":[{\"missionKey\":\"starter\"}]}", requestBodies.get("missionRegister"));
+            assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("limits"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"limitKey\":\"HOPPER\\\"LIMIT\",\"value\":64}", requestBodies.get("limitSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"channel\":\"team\\\"chat\",\"message\":\"hello \\\"team\\\"\"}", requestBodies.get("chat"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":15}", requestBodies.get("snapshots"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"snapshotNo\":8,\"storagePath\":\"snapshots/base\\\"two.tar\",\"reason\":\"auto \\\"save\\\"\",\"checksum\":\"def\\\"456\",\"sizeBytes\":8192,\"nodeId\":\"node\\\"b\",\"fencingToken\":123}", requestBodies.get("snapshotRecord"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"reason\":\"save \\\"now\\\"\"}", requestBodies.get("save"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"reason\":\"snapshot \\\"now\\\"\"}", requestBodies.get("snapshot"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"snapshotNo\":7}", requestBodies.get("restore"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"snapshotNo\":6}", requestBodies.get("rollback"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":25}", requestBodies.get("logs"));
         } finally {
             server.stop(0);
         }
