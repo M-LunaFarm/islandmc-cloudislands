@@ -18,6 +18,8 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
+import kr.lunaf.cloudislands.coreclient.AdminNodeSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
@@ -30,6 +32,7 @@ import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
 import kr.lunaf.cloudislands.coreclient.JobView;
@@ -738,36 +741,36 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
-            run(sender, "Node list", coreApiClient.listNodes().thenApply(this::nodeListSummaryMessage));
+            run(sender, "Node list", coreApiClient.adminNodes().listNodesSummary().thenApply(summary -> adminNodeSummaryMessage("Nodes", summary)));
             return true;
         }
         String targetNode = args.length > 2 ? args[2] : nodeId;
         if (args[1].equalsIgnoreCase("info")) {
-            run(sender, "Node info", coreApiClient.nodeInfo(targetNode).thenApply(this::appendLevelScanSummary));
+            run(sender, "Node info", coreApiClient.adminNodes().nodeInfo(targetNode).thenApply(this::nodeInfoMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("islands")) {
-            run(sender, "Node islands", coreApiClient.nodeIslands(targetNode, nodeIslandLimit(args)).thenApply(this::nodeIslandListMessage));
+            run(sender, "Node islands", coreApiClient.adminNodes().nodeIslandsSummary(targetNode, nodeIslandLimit(args)).thenApply(summary -> adminNodeSummaryMessage(adminText("admin-command-node-island-status-title", "노드 섬 현황"), summary)));
             return true;
         }
         if (args[1].equalsIgnoreCase("drain")) {
-            run(sender, "Node drain", coreApiClient.drainNode(targetNode).thenApply(body -> nodeActionSummaryMessage("Node drain", targetNode, body)));
+            run(sender, "Node drain", coreApiClient.adminNodeCommands().drainNode(targetNode).thenApply(result -> nodeActionSummaryMessage("Node drain", targetNode, result)));
             return true;
         }
         if (args[1].equalsIgnoreCase("undrain")) {
-            run(sender, "Node undrain", coreApiClient.undrainNode(targetNode).thenApply(body -> nodeActionSummaryMessage("Node undrain", targetNode, body)));
+            run(sender, "Node undrain", coreApiClient.adminNodeCommands().undrainNode(targetNode).thenApply(result -> nodeActionSummaryMessage("Node undrain", targetNode, result)));
             return true;
         }
         if (args[1].equalsIgnoreCase("sweep")) {
-            run(sender, "Node sweep", coreApiClient.sweepNode(targetNode).thenApply(this::nodeSweepMessage));
+            run(sender, "Node sweep", coreApiClient.adminNodeCommands().sweepNode(targetNode).thenApply(result -> nodeActionSummaryMessage("Node sweep", targetNode, result)));
             return true;
         }
         if (args[1].equalsIgnoreCase("kickall")) {
-            run(sender, "Node kickall", coreApiClient.kickAllNode(targetNode, args.length > 3 ? joined(args, 3) : "admin").thenApply(body -> nodeActionSummaryMessage("Node kickall", targetNode, body)));
+            run(sender, "Node kickall", coreApiClient.adminNodeCommands().kickAllNode(targetNode, args.length > 3 ? joined(args, 3) : "admin").thenApply(result -> nodeActionSummaryMessage("Node kickall", targetNode, result)));
             return true;
         }
         if (args[1].equalsIgnoreCase("shutdown-safe")) {
-            run(sender, "Node shutdown-safe", coreApiClient.shutdownNodeSafely(targetNode, args.length > 3 ? joined(args, 3) : "admin").thenApply(body -> nodeActionSummaryMessage("Node shutdown-safe", targetNode, body)));
+            run(sender, "Node shutdown-safe", coreApiClient.adminNodeCommands().shutdownNodeSafely(targetNode, args.length > 3 ? joined(args, 3) : "admin").thenApply(result -> nodeActionSummaryMessage("Node shutdown-safe", targetNode, result)));
             return true;
         }
         sendCommandUsage(sender, List.of(
@@ -2690,6 +2693,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return args.length > 3 ? (int) Math.max(1L, Math.min(number(args[3], 50L), 200L)) : 50;
     }
 
+    private String adminNodeSummaryMessage(String label, AdminNodeSummaryView summary) {
+        return label + (summary.text().isBlank() ? "" : ": " + summary.text());
+    }
+
+    private String nodeInfoMessage(CoreGuiViews.NodeSummaryView node) {
+        return (node.nodeId().isBlank() ? adminText("admin-command-node-default-id", "node") : node.nodeId())
+            + " " + (node.state().isBlank() ? "UNKNOWN" : node.state())
+            + (node.pool().isBlank() ? "" : " pool=" + node.pool())
+            + adminText("admin-command-node-players-prefix", " players=") + node.players() + "/" + node.softPlayerCap() + "/" + node.hardPlayerCap()
+            + adminText("admin-command-node-islands-prefix", " islands=") + node.activeIslands() + "/" + node.maxActiveIslands()
+            + adminText("admin-command-node-queue-prefix", " queue=") + node.activationQueue() + "/" + node.maxActivationQueue()
+            + (node.mspt().isBlank() ? "" : adminText("admin-command-node-mspt-prefix", " mspt=") + node.mspt());
+    }
+
     private String nodeListSummaryMessage(String body) {
         String nodes = arrayValue(body, "nodes");
         if (nodes.isBlank()) {
@@ -2850,6 +2867,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return label + ": " + (boolValue(body, "accepted") ? adminText("admin-command-node-action-accepted", "accepted") : adminText("admin-command-node-action-rejected", "rejected")) + adminText("admin-command-node-action-node-prefix", " node=") + nodeId + adminText("admin-command-node-action-code-prefix", " code=") + code;
         }
         return label + ": " + (boolValue(body, "accepted") ? adminText("admin-command-node-action-accepted", "accepted") : adminText("admin-command-node-action-requested", "requested")) + adminText("admin-command-node-action-node-prefix", " node=") + nodeId;
+    }
+
+    private String nodeActionSummaryMessage(String label, String requestedNodeId, AdminNodeActionView result) {
+        String effectiveNodeId = result.nodeId().isBlank() ? requestedNodeId : result.nodeId();
+        String status = result.accepted() ? adminText("admin-command-node-action-accepted", "accepted") : adminText("admin-command-node-action-rejected", "rejected");
+        String operation = result.operation().isBlank() ? "" : " operation=" + result.operation();
+        String code = result.code().isBlank() ? "" : adminText("admin-command-node-action-code-prefix", " code=") + result.code();
+        return label + ": " + status + adminText("admin-command-node-action-node-prefix", " node=") + effectiveNodeId + operation + code;
     }
 
     private String arrayValue(String body, String field) {
