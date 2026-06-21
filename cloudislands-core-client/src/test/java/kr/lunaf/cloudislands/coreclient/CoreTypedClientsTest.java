@@ -1186,6 +1186,52 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void adminRouteClientReturnsTypedTicketsAndClearResults() {
+        UUID ticketId = UUID.randomUUID();
+        UUID playerUuid = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "routeTicket" -> {
+                    calls.add("ticket:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"ticket":{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetType":"home","homeName":"base","expiresAt":"soon"}}
+                        """.formatted(args[0], playerUuid, islandId));
+                }
+                case "routeTicketForPlayer" -> {
+                    calls.add("player:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"VISIT","state":"PENDING","targetNode":"node-b"}
+                        """.formatted(ticketId, args[0], islandId));
+                }
+                case "clearRouteResult" -> {
+                    calls.add("clear:" + args[0] + ":" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"clearedSession\":true,\"clearedTicket\":false,\"reason\":\"MANUAL_CLEAR\"}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        AdminRouteClient client = new CoreAdminRouteClient(raw);
+
+        AdminRouteTicketView ticket = client.ticket(ticketId).join().orElseThrow();
+        AdminRouteTicketView playerTicket = client.ticketForPlayer(playerUuid).join().orElseThrow();
+        AdminRouteClearView clear = client.clear(playerUuid, ticketId).join();
+
+        assertEquals(ticketId.toString(), ticket.ticketId());
+        assertEquals("HOME", ticket.action());
+        assertEquals("home", ticket.targetType());
+        assertEquals("base", ticket.homeName());
+        assertEquals("VISIT", playerTicket.action());
+        assertTrue(clear.clearedSession());
+        assertFalse(clear.clearedTicket());
+        assertEquals("MANUAL_CLEAR", clear.reason());
+        assertEquals(List.of("ticket:" + ticketId, "player:" + playerUuid, "clear:" + playerUuid + ":" + ticketId), calls);
+    }
+
+    @Test
     void lifecycleCommandClientReturnsTypedResetResult() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

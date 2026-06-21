@@ -156,6 +156,10 @@ public interface CoreApiClient {
         return new CoreBlockValueCommandClient(this);
     }
 
+    default AdminRouteClient adminRoutes() {
+        return new CoreAdminRouteClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

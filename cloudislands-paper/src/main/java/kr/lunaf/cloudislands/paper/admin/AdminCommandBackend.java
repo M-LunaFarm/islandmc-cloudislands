@@ -18,6 +18,8 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
+import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
 import kr.lunaf.cloudislands.common.config.ConfigDiff;
 import kr.lunaf.cloudislands.common.config.ConfigIssue;
 import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
@@ -1020,13 +1022,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
             UUID ticketId = uuidOrNull(args[2]);
             if (ticketId != null) {
-                run(sender, "Route ticket", coreApiClient.routeTicket(ticketId).thenApply(this::routeTicketMessage));
+                run(sender, "Route ticket", coreApiClient.adminRoutes().ticket(ticketId).thenApply(this::routeTicketMessage));
             } else {
                 resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
                     if (playerUuid == null) {
                         return;
                     }
-                    run(sender, "Route ticket", coreApiClient.routeTicketForPlayer(playerUuid).thenApply(this::routeTicketMessage));
+                    run(sender, "Route ticket", coreApiClient.adminRoutes().ticketForPlayer(playerUuid).thenApply(this::routeTicketMessage));
                 }).exceptionally(error -> {
                     sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
                     return null;
@@ -1047,7 +1049,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 if (playerUuid == null) {
                     return;
                 }
-                run(sender, "Route clear", coreApiClient.clearRoute(playerUuid, ticketId).thenApply(this::routeClearMessage));
+                run(sender, "Route clear", coreApiClient.adminRoutes().clear(playerUuid, ticketId).thenApply(this::routeClearMessage));
             }).exceptionally(error -> {
                 sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
                 return null;
@@ -2562,23 +2564,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + (ticketEntries.isEmpty() ? "" : " [" + String.join(" | ", ticketEntries) + "]");
     }
 
-    private String routeTicketMessage(String body) {
-        if (body == null || body.isBlank()) {
+    private String routeTicketMessage(java.util.Optional<AdminRouteTicketView> ticket) {
+        if (ticket.isEmpty()) {
             return adminText("admin-command-route-ticket-not-found", "Route ticket: not found");
         }
-        String code = textValue(body, "code");
-        if (!code.isBlank()) {
-            return adminText("admin-command-route-ticket-failed-prefix", "Route ticket: failed code=") + code;
-        }
-        return adminText("admin-command-route-ticket-prefix", "Route ticket: ") + ticketSummary(body);
+        return adminText("admin-command-route-ticket-prefix", "Route ticket: ") + ticketSummary(ticket.get());
     }
 
-    private String routeClearMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return adminText("admin-command-route-clear-no-response", "Route clear: no response");
-        }
-        String reason = textValue(body, "reason");
-        return adminText("admin-command-route-clear-session-prefix", "Route clear: session=") + boolValue(body, "clearedSession") + adminText("admin-command-route-clear-ticket-prefix", " ticket=") + boolValue(body, "clearedTicket") + (reason.isBlank() ? "" : adminText("admin-command-route-clear-reason-prefix", " reason=") + reason);
+    private String routeClearMessage(AdminRouteClearView result) {
+        return adminText("admin-command-route-clear-session-prefix", "Route clear: session=") + result.clearedSession() + adminText("admin-command-route-clear-ticket-prefix", " ticket=") + result.clearedTicket() + (result.reason().isBlank() ? "" : adminText("admin-command-route-clear-reason-prefix", " reason=") + result.reason());
     }
 
     private String snapshotListMessage(String body) {
@@ -2675,6 +2669,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + (targetType.isBlank() && targetName.isBlank() ? "" : " target=" + (targetType.isBlank() ? "-" : targetType) + (targetName.isBlank() ? "" : ":" + targetName))
             + (islandId.isBlank() ? "" : adminText("admin-command-route-ticket-island-prefix", " island=") + shortId(islandId))
             + (nodeId.isBlank() ? "" : adminText("admin-command-route-ticket-node-prefix", " node=") + nodeId);
+    }
+
+    private String ticketSummary(AdminRouteTicketView ticket) {
+        String targetName = !ticket.homeName().isBlank() ? ticket.homeName() : ticket.warpName();
+        return shortId(ticket.ticketId())
+            + " " + (ticket.action().isBlank() ? "UNKNOWN" : ticket.action())
+            + " " + (ticket.state().isBlank() ? "UNKNOWN" : ticket.state())
+            + (ticket.targetType().isBlank() && targetName.isBlank() ? "" : " target=" + (ticket.targetType().isBlank() ? "-" : ticket.targetType()) + (targetName.isBlank() ? "" : ":" + targetName))
+            + (ticket.islandId().isBlank() ? "" : adminText("admin-command-route-ticket-island-prefix", " island=") + shortId(ticket.islandId()))
+            + (ticket.targetNode().isBlank() ? "" : adminText("admin-command-route-ticket-node-prefix", " node=") + ticket.targetNode());
     }
 
     private String shortId(String value) {
