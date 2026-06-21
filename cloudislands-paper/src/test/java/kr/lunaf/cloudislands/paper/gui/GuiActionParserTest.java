@@ -138,10 +138,10 @@ class GuiActionParserTest {
     }
 
     @Test
-    void preservesRegisteredRawActions() {
+    void parsesCloseIntoTypedAction() {
         GuiAction action = GuiActionParser.parse("gui.close", Map.of()).orElseThrow();
 
-        assertTrue(action instanceof GuiAction.Raw);
+        assertTrue(action instanceof GuiAction.Close);
         assertEquals("gui.close", action.actionId());
         assertEquals(Map.of(), action.data());
     }

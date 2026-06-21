@@ -121,6 +121,10 @@ final class IslandCommandRouter {
         if (action == null) {
             return;
         }
+        if (action instanceof GuiAction.Close) {
+            player.closeInventory();
+            return;
+        }
         if (action instanceof GuiAction.MainOpen) {
             sendCommandList(player, "섬", "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
             return;

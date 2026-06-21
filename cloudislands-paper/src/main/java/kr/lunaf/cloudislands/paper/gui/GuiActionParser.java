@@ -68,6 +68,7 @@ public final class GuiActionParser {
                 ));
             }
             return switch (safeAction) {
+                case "gui.close" -> Optional.of(new GuiAction.Close());
                 case "admin.node.open" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.OPEN, safeData));
                 case "admin.node.list" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.LIST, safeData));
                 case "admin.node.info" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.INFO, safeData));
