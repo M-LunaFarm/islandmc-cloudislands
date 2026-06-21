@@ -449,11 +449,15 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("subcommand.equals(\"members\")"));
         assertTrue(membershipHandler.contains("case PERMISSIONS_OPEN"));
         assertTrue(membershipHandler.contains("private void listPendingInvites(Player player)"), "invite list execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("private void inviteIslandMember(Player player, String target)"), "invite creation execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid)"), "invite creation mutation belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void acceptIslandInviteTarget(Player player, String target)"), "invite accept execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void declineIslandInviteTarget(Player player, String target)"), "invite decline execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void listIslandMembers(Player player)"), "member list execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void listIslandBans(Player player)"), "ban list execution belongs in IslandMembershipCommandHandler");
         assertFalse(backend.contains("private void listPendingInvites(Player player)"), "invite list execution must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private void inviteIslandMember(Player player, String target)"), "invite creation execution must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid)"), "invite creation mutation must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void acceptIslandInviteTarget(Player player, String target)"), "invite accept execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void declineIslandInviteTarget(Player player, String target)"), "invite decline execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void listIslandMembers(Player player)"), "member list execution must not stay in IslandCommandBackend");

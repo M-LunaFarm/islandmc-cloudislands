@@ -17,7 +17,6 @@ import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
-import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.paper.ProtectionController;
@@ -688,6 +687,11 @@ final class IslandCommandBackend {
             }
 
             @Override
+            public boolean allowed(Player player, IslandPermission permission) {
+                return IslandCommandBackend.this.allowed(player, permission);
+            }
+
+            @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
                 return IslandCommandBackend.this.mutate(auditAction, operation);
             }
@@ -700,11 +704,6 @@ final class IslandCommandBackend {
             @Override
             public void openIslandMemberMenu(Player player, int page) {
                 IslandCommandBackend.this.openIslandMemberMenu(player, page);
-            }
-
-            @Override
-            public void inviteIslandMember(Player player, String target) {
-                IslandCommandBackend.this.inviteIslandMember(player, target);
             }
 
             @Override
@@ -980,36 +979,6 @@ final class IslandCommandBackend {
 
     private void openIslandMemberMenu(Player player, int page) {
         currentIsland(player, "섬 안에서만 멤버 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMemberMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player), page));
-    }
-
-    private void inviteIslandMember(Player player, String target) {
-        currentIsland(player, "섬 안에서만 플레이어를 초대할 수 있습니다.").ifPresent(islandId -> {
-            if (!allowed(player, IslandPermission.MANAGE_MEMBERS)) {
-                message(player, routeMessage("member-invite-denied", "섬 멤버를 초대할 권한이 없습니다."));
-                return;
-            }
-            Player online = plugin.getServer().getPlayerExact(target);
-            UUID parsed = uuid(target);
-            if (online != null || parsed != null) {
-                sendIslandInvite(player, islandId, online == null ? parsed : online.getUniqueId());
-                return;
-            }
-            memberManagement.playerUuidByName(target).thenAccept(profileUuid -> {
-                sendIslandInvite(player, islandId, profileUuid == null ? plugin.getServer().getOfflinePlayer(target).getUniqueId() : profileUuid);
-            }).exceptionally(error -> {
-                sendIslandInvite(player, islandId, plugin.getServer().getOfflinePlayer(target).getUniqueId());
-                return null;
-            });
-        });
-    }
-
-    private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid) {
-        mutate("island.invite.create", () -> memberManagement.createInviteView(islandId, player.getUniqueId(), targetUuid))
-            .thenAccept(invite -> message(player, inviteCreatedMessage(invite)))
-            .exceptionally(error -> {
-                message(player, "섬 초대를 보내지 못했습니다.");
-                return null;
-            });
     }
 
     private void removeIslandMember(Player player, String target) {
@@ -1346,11 +1315,6 @@ final class IslandCommandBackend {
             routeMessage("core-service-home-fallback", CoreApiDegradedModePolicy.HOME_FALLBACK_MESSAGE)
         );
         return true;
-    }
-
-    private String inviteCreatedMessage(InviteView invite) {
-        String inviteId = invite == null ? "" : invite.inviteId();
-        return actionStatusMessage("섬 초대", inviteId, true, "");
     }
 
     private String memberActionMessage(String label, UUID targetId, MemberActionResult result) {

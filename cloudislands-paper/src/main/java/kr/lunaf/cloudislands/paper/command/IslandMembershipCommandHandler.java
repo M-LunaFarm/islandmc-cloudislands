@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.BanView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
@@ -48,7 +49,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-invite-player-required", "초대할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.inviteIslandMember(player, args[1]);
+            inviteIslandMember(player, args[1]);
             return true;
         }
         if (subcommand.equals("invites") || subcommand.equals("invite-menu") || subcommand.equals("초대목록")) {
@@ -421,6 +422,36 @@ final class IslandMembershipCommandHandler {
         });
     }
 
+    private void inviteIslandMember(Player player, String target) {
+        runtime.currentIsland(player, "섬 안에서만 플레이어를 초대할 수 있습니다.").ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.MANAGE_MEMBERS)) {
+                runtime.message(player, runtime.routeMessage("member-invite-denied", "섬 멤버를 초대할 권한이 없습니다."));
+                return;
+            }
+            Player online = plugin.getServer().getPlayerExact(target);
+            UUID parsed = uuid(target);
+            if (online != null || parsed != null) {
+                sendIslandInvite(player, islandId, online == null ? parsed : online.getUniqueId());
+                return;
+            }
+            memberManagement.playerUuidByName(target).thenAccept(profileUuid -> {
+                sendIslandInvite(player, islandId, profileUuid == null ? plugin.getServer().getOfflinePlayer(target).getUniqueId() : profileUuid);
+            }).exceptionally(error -> {
+                sendIslandInvite(player, islandId, plugin.getServer().getOfflinePlayer(target).getUniqueId());
+                return null;
+            });
+        });
+    }
+
+    private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid) {
+        runtime.mutate("island.invite.create", () -> memberManagement.createInviteView(islandId, player.getUniqueId(), targetUuid))
+            .thenAccept(invite -> runtime.message(player, inviteCreatedMessage(invite)))
+            .exceptionally(error -> {
+                runtime.message(player, "섬 초대를 보내지 못했습니다.");
+                return null;
+            });
+    }
+
     private void listPendingInvites(Player player) {
         memberManagement.listPendingInviteViews(player.getUniqueId())
             .thenAccept(invites -> runtime.message(player, inviteListMessage(invites)))
@@ -536,6 +567,11 @@ final class IslandMembershipCommandHandler {
         return actionStatusMessage(label, inviteId == null ? "" : inviteId.toString(), result != null && result.applied(), result == null ? "" : result.code());
     }
 
+    private static String inviteCreatedMessage(InviteView invite) {
+        String inviteId = invite == null ? "" : invite.inviteId();
+        return actionStatusMessage("섬 초대", inviteId, true, "");
+    }
+
     private static String actionStatusMessage(String label, String targetId, boolean accepted, String code) {
         StringBuilder builder = new StringBuilder(label)
             .append(accepted ? " 완료" : " 실패");
@@ -584,13 +620,13 @@ final class IslandMembershipCommandHandler {
 
         Optional<UUID> currentIsland(Player player, String missingMessage);
 
+        boolean allowed(Player player, IslandPermission permission);
+
         <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
 
         void openIslandMemberMenu(Player player);
 
         void openIslandMemberMenu(Player player, int page);
-
-        void inviteIslandMember(Player player, String target);
 
         void removeIslandMember(Player player, String target);
 
