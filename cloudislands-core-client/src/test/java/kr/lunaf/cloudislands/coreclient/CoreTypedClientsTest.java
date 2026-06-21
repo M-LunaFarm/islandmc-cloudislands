@@ -24,6 +24,9 @@ class CoreTypedClientsTest {
                 case "islandInfo" -> CompletableFuture.completedFuture("""
                     {"islandId":"%s","name":"Spawn","state":"ACTIVE","level":12,"worth":"34.50","publicAccess":true,"locked":false,"size":300,"border":310,"ownerUuid":"owner"}
                     """.formatted(islandId));
+                case "islandInfoByName" -> CompletableFuture.completedFuture("""
+                    {"islandId":"%s","name":"Named","state":"ACTIVE","level":1}
+                    """.formatted(islandId));
                 case "listIslandMembers" -> CompletableFuture.completedFuture("""
                     {"members":[
                       {"playerUuid":"p1","role":"OWNER","joinedAt":"t1","playerName":"Alice"},
@@ -37,11 +40,15 @@ class CoreTypedClientsTest {
         IslandQueryClient client = new CoreIslandQueryClient(raw);
 
         CoreGuiViews.IslandInfoView island = client.getIsland(islandId).join();
+        CoreGuiViews.IslandInfoView namedIsland = client.findIslandByName(" Named ").join();
+        List<CoreGuiViews.MemberView> members = client.listMembers(islandId).join();
         MemberPage firstPage = client.listMembers(islandId, new MemberCursor(0, 2)).join();
         MemberPage secondPage = client.listMembers(islandId, firstPage.nextCursor()).join();
 
         assertEquals("Spawn", island.name());
+        assertEquals("Named", namedIsland.name());
         assertEquals(12L, island.level());
+        assertEquals(3, members.size());
         assertEquals(2, firstPage.members().size());
         assertTrue(firstPage.hasNext());
         assertEquals("Bob", firstPage.members().get(1).playerName());

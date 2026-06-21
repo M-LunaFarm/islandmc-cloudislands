@@ -21,10 +21,22 @@ public final class CoreIslandQueryClient implements IslandQueryClient {
     }
 
     @Override
+    public CompletableFuture<CoreGuiViews.IslandInfoView> findIslandByName(String islandName) {
+        String normalizedIslandName = requireName(islandName);
+        return delegate.islandInfoByName(normalizedIslandName).thenApply(CoreGuiViews::islandInfoView);
+    }
+
+    @Override
+    public CompletableFuture<List<CoreGuiViews.MemberView>> listMembers(UUID islandId) {
+        requireIsland(islandId);
+        return CoreGuiViews.islandMembers(delegate, islandId);
+    }
+
+    @Override
     public CompletableFuture<MemberPage> listMembers(UUID islandId, MemberCursor cursor) {
         requireIsland(islandId);
         MemberCursor safeCursor = cursor == null ? MemberCursor.firstPage(45) : cursor;
-        return CoreGuiViews.islandMembers(delegate, islandId).thenApply(members -> page(members, safeCursor));
+        return listMembers(islandId).thenApply(members -> page(members, safeCursor));
     }
 
     private static MemberPage page(List<CoreGuiViews.MemberView> members, MemberCursor cursor) {
@@ -40,5 +52,13 @@ public final class CoreIslandQueryClient implements IslandQueryClient {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
+    }
+
+    private static String requireName(String islandName) {
+        String normalizedIslandName = islandName == null ? "" : islandName.trim();
+        if (normalizedIslandName.isBlank()) {
+            throw new IllegalArgumentException("islandName is required");
+        }
+        return normalizedIslandName;
     }
 }

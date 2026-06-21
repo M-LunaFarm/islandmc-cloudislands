@@ -6,19 +6,39 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreIslandQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.BanView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.MemberView;
+import kr.lunaf.cloudislands.coreclient.IslandQueryClient;
 
 public final class MemberManagementUseCase {
     private final CoreApiClient coreApiClient;
+    private final IslandQueryClient islandQueries;
 
     public MemberManagementUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.islandQueries = new CoreIslandQueryClient(coreApiClient);
+    }
+
+    MemberManagementUseCase(CoreApiClient coreApiClient, IslandQueryClient islandQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (islandQueries == null) {
+            throw new IllegalArgumentException("islandQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.islandQueries = islandQueries;
+    }
+
+    public CompletableFuture<List<MemberView>> listMemberViews(UUID islandId) {
+        requireIslandId(islandId);
+        return islandQueries.listMembers(islandId);
     }
 
     private CompletableFuture<String> removeMemberBody(UUID islandId, UUID actorUuid, UUID targetUuid) {
@@ -28,16 +48,6 @@ public final class MemberManagementUseCase {
 
     public CompletableFuture<MemberActionResult> removeMemberAction(UUID islandId, UUID actorUuid, UUID targetUuid) {
         return removeMemberBody(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "MEMBER_REMOVED"));
-    }
-
-    private CompletableFuture<String> listMembersBody(UUID islandId) {
-        requireIslandId(islandId);
-        return coreApiClient.listIslandMembers(islandId);
-    }
-
-    public CompletableFuture<List<MemberView>> listMemberViews(UUID islandId) {
-        requireIslandId(islandId);
-        return listMembersBody(islandId).thenApply(CoreGuiViews::memberViews);
     }
 
     private CompletableFuture<String> playerInfoByNameBody(String playerName) {
@@ -50,14 +60,6 @@ public final class MemberManagementUseCase {
 
     public CompletableFuture<UUID> playerUuidByName(String playerName) {
         return playerInfoByNameBody(playerName).thenApply(body -> uuid(CoreGuiViews.playerProfile(body).playerUuid()));
-    }
-
-    private CompletableFuture<String> islandInfoByNameBody(String islandName) {
-        String normalizedIslandName = islandName == null ? "" : islandName.trim();
-        if (normalizedIslandName.isBlank()) {
-            throw new IllegalArgumentException("islandName is required");
-        }
-        return coreApiClient.islandInfoByName(normalizedIslandName);
     }
 
     private CompletableFuture<String> createInviteBody(UUID islandId, UUID actorUuid, UUID targetUuid) {
@@ -118,9 +120,9 @@ public final class MemberManagementUseCase {
         if (normalizedIslandName.isBlank()) {
             throw new IllegalArgumentException("islandName is required");
         }
-        return islandInfoByNameBody(normalizedIslandName)
-            .thenCompose(body -> {
-                UUID islandId = uuid(text(body, "islandId"));
+        return islandQueries.findIslandByName(normalizedIslandName)
+            .thenCompose(island -> {
+                UUID islandId = uuid(island.islandId());
                 return islandId == null ? CompletableFuture.completedFuture(null) : resolveInviteByPlayerUuid(playerUuid, islandId);
             });
     }
