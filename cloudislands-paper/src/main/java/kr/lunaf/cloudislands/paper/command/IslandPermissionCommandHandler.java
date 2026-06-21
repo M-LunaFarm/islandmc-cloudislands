@@ -36,7 +36,7 @@ final class IslandPermissionCommandHandler {
 
     void listIslandPermissions(Player player) {
         runtime.currentIsland(player, "섬 안에서만 권한을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandPermissions(islandId)
+            permissionUseCase.listPermissions(islandId)
                 .thenAccept(body -> runtime.message(player, permissionListMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 권한을 불러오지 못했습니다.");
@@ -47,7 +47,7 @@ final class IslandPermissionCommandHandler {
 
     void listIslandRoles(Player player) {
         runtime.currentIsland(player, "섬 안에서만 역할을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandRoles(islandId)
+            permissionUseCase.listRoles(islandId)
                 .thenAccept(body -> runtime.message(player, roleListMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 역할을 불러오지 못했습니다.");
@@ -141,7 +141,7 @@ final class IslandPermissionCommandHandler {
                 runtime.message(player, runtime.routeMessage("role-edit-denied", "섬 역할을 편집할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.role.upsert", () -> coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), roleKey, weight, displayName.isBlank() ? roleKey : displayName))
+            permissionUseCase.upsertRole(islandId, player.getUniqueId(), roleKey, weight, displayName, runtime::mutate)
                 .thenAccept(body -> runtime.message(player, "섬 역할 저장 완료: " + text(body, "role") + " weight=" + (long) decimal(body, "weight") + " name=" + text(body, "displayName")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 역할을 저장하지 못했습니다.");
@@ -171,7 +171,7 @@ final class IslandPermissionCommandHandler {
                 runtime.message(player, runtime.routeMessage("role-reset-denied", "섬 역할을 초기화할 권한이 없습니다."));
                 return;
             }
-            runtime.mutateIdempotent("island.role.reset", () -> coreApiClient.resetIslandRole(islandId, player.getUniqueId(), roleKey))
+            permissionUseCase.resetRole(islandId, player.getUniqueId(), roleKey, runtime::mutateIdempotent)
                 .thenAccept(body -> runtime.message(player, "섬 역할 초기화 완료: " + text(body, "role")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 역할을 초기화하지 못했습니다.");
@@ -193,7 +193,8 @@ final class IslandPermissionCommandHandler {
                 return;
             }
             boolean allowed = booleanValue(allowedValue);
-            runtime.mutate("island.permission.set", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), roleKey, permission, allowed))
+            PermissionManagementUseCase.PermissionChange change = new PermissionManagementUseCase.PermissionChange(roleKey, permission, allowed, "");
+            permissionUseCase.setPermission(islandId, player.getUniqueId(), change, runtime::mutate)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 권한 변경 " + roleKey + ":" + permission.name() + "=" + allowed, roleKey, body)))
                 .exceptionally(error -> {
                     runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 권한을 변경하지 못했습니다."));
@@ -215,7 +216,7 @@ final class IslandPermissionCommandHandler {
             }
             boolean allowed = booleanValue(allowedValue);
             runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                runtime.mutate("island.permission.override.set", () -> coreApiClient.setIslandPermissionOverride(islandId, player.getUniqueId(), targetUuid, permission, allowed))
+                permissionUseCase.setPermissionOverride(islandId, player.getUniqueId(), targetUuid, permission, allowed, runtime::mutate)
                     .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 권한 예외 변경 " + permission.name() + "=" + allowed, targetUuid, body)))
                     .exceptionally(error -> {
                         runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 권한 예외를 변경하지 못했습니다."));
