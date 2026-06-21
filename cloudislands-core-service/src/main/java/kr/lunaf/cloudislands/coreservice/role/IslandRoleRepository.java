@@ -2,15 +2,12 @@ package kr.lunaf.cloudislands.coreservice.role;
 
 import java.util.List;
 import java.util.UUID;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.RoleDefinition;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
 public interface IslandRoleRepository {
-    IslandRoleSnapshot upsert(UUID islandId, IslandRole role, int weight, String displayName);
     IslandRoleSnapshot upsertKey(UUID islandId, String roleKey, int weight, String displayName);
-    boolean reset(UUID islandId, IslandRole role);
     boolean resetKey(UUID islandId, String roleKey);
     List<IslandRoleSnapshot> list(UUID islandId);
 

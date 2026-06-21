@@ -46,6 +46,7 @@ class DynamicIslandRoleRepositoryTest {
 
         String repository = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/role/IslandRoleRepository.java"));
         assertFalse(repository.contains("IslandRole.values()"), "Core role catalog must not iterate enum identities");
+        assertFalse(repository.contains("IslandRole role"), "Core role mutation contract must use role keys, not enum identities");
         assertTrue(repository.contains("RoleDefinition.defaultMemberRoles()"), "Core role catalog must use RoleId-backed role definitions");
     }
 

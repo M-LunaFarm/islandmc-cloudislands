@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
@@ -24,24 +23,10 @@ public final class CachingIslandRoleRepository implements IslandRoleRepository {
     }
 
     @Override
-    public IslandRoleSnapshot upsert(UUID islandId, IslandRole role, int weight, String displayName) {
-        IslandRoleSnapshot snapshot = delegate.upsert(islandId, role, weight, displayName);
-        cache(islandId, delegate.list(islandId));
-        return snapshot;
-    }
-
-    @Override
     public IslandRoleSnapshot upsertKey(UUID islandId, String roleKey, int weight, String displayName) {
         IslandRoleSnapshot snapshot = delegate.upsertKey(islandId, roleKey, weight, displayName);
         cache(islandId, delegate.list(islandId));
         return snapshot;
-    }
-
-    @Override
-    public boolean reset(UUID islandId, IslandRole role) {
-        boolean removed = delegate.reset(islandId, role);
-        cache(islandId, delegate.list(islandId));
-        return removed;
     }
 
     @Override
@@ -122,7 +107,7 @@ public final class CachingIslandRoleRepository implements IslandRoleRepository {
     private static String roleKey(String object) {
         String roleKey = JsonFields.text(object, "roleKey", "");
         if (roleKey.isBlank()) {
-            roleKey = JsonFields.text(object, "role", IslandRole.MEMBER.name());
+            roleKey = JsonFields.text(object, "role", "MEMBER");
         }
         return IslandRoleRepository.normalizeRoleKey(roleKey);
     }

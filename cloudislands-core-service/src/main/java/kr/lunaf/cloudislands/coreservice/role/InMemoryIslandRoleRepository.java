@@ -11,21 +11,11 @@ public final class InMemoryIslandRoleRepository implements IslandRoleRepository 
     private final Map<UUID, Map<String, IslandRoleSnapshot>> roles = new ConcurrentHashMap<>();
 
     @Override
-    public IslandRoleSnapshot upsert(UUID islandId, kr.lunaf.cloudislands.api.model.IslandRole role, int weight, String displayName) {
-        return upsertKey(islandId, role.name(), weight, displayName);
-    }
-
-    @Override
     public IslandRoleSnapshot upsertKey(UUID islandId, String roleKey, int weight, String displayName) {
         String normalizedRoleKey = IslandRoleRepository.normalizeRoleKey(roleKey);
         IslandRoleSnapshot snapshot = new IslandRoleSnapshot(islandId, normalizedRoleKey, weight, displayName == null ? "" : displayName);
         roles.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(normalizedRoleKey, snapshot);
         return snapshot;
-    }
-
-    @Override
-    public boolean reset(UUID islandId, kr.lunaf.cloudislands.api.model.IslandRole role) {
-        return resetKey(islandId, role.name());
     }
 
     @Override

@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import javax.sql.DataSource;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 
 public final class JdbcIslandRoleRepository implements IslandRoleRepository {
@@ -16,11 +15,6 @@ public final class JdbcIslandRoleRepository implements IslandRoleRepository {
 
     public JdbcIslandRoleRepository(DataSource dataSource) {
         this.dataSource = dataSource;
-    }
-
-    @Override
-    public IslandRoleSnapshot upsert(UUID islandId, IslandRole role, int weight, String displayName) {
-        return upsertKey(islandId, role.name(), weight, displayName);
     }
 
     @Override
@@ -37,11 +31,6 @@ public final class JdbcIslandRoleRepository implements IslandRoleRepository {
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to write island role", exception);
         }
-    }
-
-    @Override
-    public boolean reset(UUID islandId, IslandRole role) {
-        return resetKey(islandId, role.name());
     }
 
     @Override
