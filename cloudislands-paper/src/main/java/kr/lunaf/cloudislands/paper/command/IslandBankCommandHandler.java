@@ -69,14 +69,7 @@ final class IslandBankCommandHandler {
             openBankMenu(player);
             return true;
         }
-        String actionId = action.actionId();
-        return switch (actionId) {
-            case "island.bank.open" -> {
-                openBankMenu(player);
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private void showBank(Player player) {

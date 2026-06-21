@@ -100,18 +100,7 @@ final class IslandSnapshotCommandHandler {
                 default -> false;
             };
         }
-        String actionId = action.actionId();
-        return switch (actionId) {
-            case "island.snapshots.open" -> {
-                openSnapshotMenu(player);
-                yield true;
-            }
-            case "island.snapshots.list" -> {
-                listSnapshots(player, 10);
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private void listSnapshots(Player player, int limit) {
