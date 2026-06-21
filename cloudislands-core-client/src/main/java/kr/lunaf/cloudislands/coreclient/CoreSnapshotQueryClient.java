@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 
 public final class CoreSnapshotQueryClient implements SnapshotQueryClient {
     private final CoreApiClient delegate;
@@ -15,10 +16,11 @@ public final class CoreSnapshotQueryClient implements SnapshotQueryClient {
     }
 
     @Override
-    public CompletableFuture<List<CoreGuiViews.SnapshotView>> listSnapshots(UUID islandId, int limit) {
+    public CompletableFuture<List<IslandSnapshotRecord>> records(UUID islandId, int limit) {
         requireIsland(islandId);
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        return CoreGuiViews.islandSnapshots(delegate, islandId, safeLimit);
+        return delegate.listIslandSnapshots(islandId, safeLimit)
+            .thenApply(CoreSnapshotJson::records);
     }
 
     private static void requireIsland(UUID islandId) {

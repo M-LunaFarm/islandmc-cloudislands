@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreSnapshotCommandClient;
+import kr.lunaf.cloudislands.coreclient.CoreSnapshotQueryClient;
 import org.junit.jupiter.api.Test;
 
 class SnapshotUseCaseTest {
@@ -88,11 +90,13 @@ class SnapshotUseCaseTest {
     private CoreApiClient coreApiClient(ScriptedCoreSnapshots core) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "listIslandSnapshots" -> core.list((int) args[1]);
-                case "requestIslandSnapshotResult" -> core.request((String) args[1]);
-                case "restoreIslandSnapshotResult" -> core.restore((long) args[1]);
+	            new Class<?>[] { CoreApiClient.class },
+	            (_proxy, method, args) -> switch (method.getName()) {
+	                case "snapshots" -> new CoreSnapshotQueryClient((CoreApiClient) _proxy);
+	                case "snapshotCommands" -> new CoreSnapshotCommandClient((CoreApiClient) _proxy);
+	                case "listIslandSnapshots" -> core.list((int) args[1]);
+	                case "requestIslandSnapshotResult" -> core.request((String) args[1]);
+	                case "restoreIslandSnapshotResult" -> core.restore((long) args[1]);
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );

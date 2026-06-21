@@ -5,8 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreSnapshotCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreSnapshotQueryClient;
 import kr.lunaf.cloudislands.coreclient.SnapshotActionView;
 import kr.lunaf.cloudislands.coreclient.SnapshotCommandClient;
 import kr.lunaf.cloudislands.coreclient.SnapshotQueryClient;
@@ -21,12 +19,12 @@ public final class SnapshotUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.snapshotQueries = new CoreSnapshotQueryClient(coreApiClient);
-        this.snapshotCommands = new CoreSnapshotCommandClient(coreApiClient);
+        this.snapshotQueries = coreApiClient.snapshots();
+        this.snapshotCommands = coreApiClient.snapshotCommands();
     }
 
     SnapshotUseCase(CoreApiClient coreApiClient, SnapshotQueryClient snapshotQueries) {
-        this(coreApiClient, snapshotQueries, new CoreSnapshotCommandClient(coreApiClient));
+        this(coreApiClient, snapshotQueries, coreApiClient.snapshotCommands());
     }
 
     SnapshotUseCase(CoreApiClient coreApiClient, SnapshotQueryClient snapshotQueries, SnapshotCommandClient snapshotCommands) {

@@ -586,7 +586,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("private static List<IslandLimitSnapshot> limits(String json)"), "Public API must not keep raw limit JSON converters");
         assertTrue(source.contains("client.blockValues().list().thenApply(PaperCloudIslandsApi::blockValues)"), "Public API block values must use typed block value query client");
         assertTrue(source.contains("client.members().bans(islandId).thenApply(views -> bans(islandId, views))"), "Public API bans must use typed member query client");
-        assertTrue(source.contains("client.snapshots().listSnapshots(islandId, limit).thenApply(views -> snapshots(islandId, views))"), "Public API snapshots must use typed snapshot query client");
+        assertTrue(source.contains("client.snapshots().records(islandId, limit)"), "Public API snapshots must use typed snapshot query client");
         assertTrue(source.contains("client.communication().listLogs(islandId, limit).thenApply(views -> logs(islandId, views))"), "Public API logs must use typed communication query client");
         assertTrue(source.contains("client.bank().snapshot(islandId)"), "Public API bank lookup must use the typed bank DTO query client");
         assertTrue(source.contains("client.warehouse().listItems(islandId, limit).thenApply(PaperCloudIslandsApi::warehouseItems)"), "Public API warehouse lookup must use typed warehouse query client");
@@ -1249,6 +1249,9 @@ class PaperPlatformBoundaryTest {
                     continue;
                 }
                 if (line.contains("client.members().bans(") || line.contains("client.progression().")) {
+                    continue;
+                }
+                if (line.contains("client.snapshots().records(")) {
                     continue;
                 }
                 if (containsAnyText(line, "coreApiClient.", "client.", "coreClient.")

@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.coreclient;
 
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -51,8 +50,7 @@ public final class CoreSnapshotCommandClient implements SnapshotCommandClient {
     }
 
     private static SnapshotActionView snapshotAction(String body, String successCode) {
-        Map<?, ?> root = CoreJson.object(body);
-        return new SnapshotActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
+        return CoreSnapshotJson.action(body, successCode);
     }
 
     private static String normalizeReason(String reason) {

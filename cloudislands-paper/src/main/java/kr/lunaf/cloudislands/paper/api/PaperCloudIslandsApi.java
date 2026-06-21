@@ -2043,7 +2043,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandSnapshotRecord>> getSnapshots(UUID islandId, int limit) {
-            return client.snapshots().listSnapshots(islandId, limit).thenApply(views -> snapshots(islandId, views));
+            return client.snapshots().records(islandId, limit);
         }
 
         @Override
@@ -2375,7 +2375,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> saveIslandResult(UUID islandId) { return mutate("admin.island.save", () -> client.lifecycle().saveIsland(islandId, "ADMIN_SAVE")).thenApply(view -> action(view, "SAVE_REQUESTED")); }
         @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return snapshotIslandResult(islandId, reason).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason) { return mutate("admin.island.snapshot", () -> client.lifecycle().snapshotIsland(islandId, reason)).thenApply(view -> action(view, "SNAPSHOT_REQUESTED")); }
-        @Override public CompletableFuture<List<IslandSnapshotRecord>> listIslandSnapshots(UUID islandId, int limit) { return client.snapshots().listSnapshots(islandId, limit).thenApply(views -> snapshots(islandId, views)); }
+        @Override public CompletableFuture<List<IslandSnapshotRecord>> listIslandSnapshots(UUID islandId, int limit) { return client.snapshots().records(islandId, limit); }
         @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return restoreIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo) { return mutateIdempotent("admin.island.restore", () -> client.lifecycle().restoreIslandSnapshot(islandId, snapshotNo)).thenApply(view -> action(view, "RESTORE_REQUESTED")); }
         @Override public CompletableFuture<Void> rollbackIsland(UUID islandId, long snapshotNo) { return rollbackIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
@@ -3362,22 +3362,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             view.reward(),
             view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
         ));
-    }
-
-    private static List<IslandSnapshotRecord> snapshots(UUID islandId, List<CoreGuiViews.SnapshotView> views) {
-        return views.stream()
-            .map(view -> new IslandSnapshotRecord(
-                new UUID(0L, 0L),
-                islandId,
-                view.snapshotNo(),
-                view.storagePath(),
-                view.reason(),
-                new UUID(0L, 0L),
-                view.checksum(),
-                view.sizeBytes(),
-                view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt())
-            ))
-            .toList();
     }
 
     private static List<IslandLogRecord> logs(UUID islandId, List<CoreGuiViews.LogEntryView> views) {

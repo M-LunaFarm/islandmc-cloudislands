@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteAction;
@@ -343,8 +344,14 @@ class CoreTypedClientsTest {
         );
         SnapshotQueryClient client = new CoreSnapshotQueryClient(raw);
 
+        IslandSnapshotRecord record = client.records(islandId, 500).join().get(0);
         CoreGuiViews.SnapshotView snapshot = client.listSnapshots(islandId, 500).join().get(0);
 
+        assertEquals(7L, record.snapshotNo());
+        assertEquals("manual", record.reason());
+        assertEquals(4096L, record.sizeBytes());
+        assertEquals("abcdef1234567890", record.checksum());
+        assertEquals("snapshots/7.tar", record.storagePath());
         assertEquals(7L, snapshot.snapshotNo());
         assertEquals("manual", snapshot.reason());
         assertEquals(4096L, snapshot.sizeBytes());

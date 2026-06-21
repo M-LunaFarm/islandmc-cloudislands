@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
@@ -37,6 +38,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final Duration timeout;
     private final HttpClient httpClient;
     private final JdkBankClient bankClient;
+    private final JdkSnapshotClient snapshotClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -49,6 +51,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.timeout = timeout == null || timeout.isNegative() || timeout.isZero() ? Duration.ofSeconds(5) : timeout;
         this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
         this.bankClient = new JdkBankClient();
+        this.snapshotClient = new JdkSnapshotClient();
     }
 
     @Override
@@ -59,6 +62,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public BankCommandClient bankCommands() {
         return bankClient;
+    }
+
+    @Override
+    public SnapshotQueryClient snapshots() {
+        return snapshotClient;
+    }
+
+    @Override
+    public SnapshotCommandClient snapshotCommands() {
+        return snapshotClient;
     }
 
     @Override
@@ -683,6 +696,71 @@ public final class JdkCoreApiClient implements CoreApiClient {
             requireId(actorUuid, "actorUuid");
             return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
                 .thenApply(CoreBankJson::mutation);
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkSnapshotClient implements SnapshotQueryClient, SnapshotCommandClient {
+        @Override
+        public CompletableFuture<List<IslandSnapshotRecord>> records(UUID islandId, int limit) {
+            requireId(islandId, "islandId");
+            return post("/v1/islands/snapshots", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))))
+                .thenApply(CoreSnapshotJson::records);
+        }
+
+        @Override
+        public CompletableFuture<SnapshotActionView> recordSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
+            requireId(islandId, "islandId");
+            if (snapshotNo <= 0L) {
+                throw new IllegalArgumentException("positive snapshotNo is required");
+            }
+            String payload = fencingToken > 0L
+                ? jsonObject(
+                    "islandId", islandId,
+                    "snapshotNo", snapshotNo,
+                    "storagePath", storagePath == null ? "" : storagePath.trim(),
+                    "reason", reason == null || reason.isBlank() ? "manual" : reason.trim(),
+                    "checksum", checksum == null ? "" : checksum.trim(),
+                    "sizeBytes", Math.max(0L, sizeBytes),
+                    "nodeId", nodeId == null ? "" : nodeId.trim(),
+                    "fencingToken", fencingToken
+                )
+                : jsonObject(
+                    "islandId", islandId,
+                    "snapshotNo", snapshotNo,
+                    "storagePath", storagePath == null ? "" : storagePath.trim(),
+                    "reason", reason == null || reason.isBlank() ? "manual" : reason.trim(),
+                    "checksum", checksum == null ? "" : checksum.trim(),
+                    "sizeBytes", Math.max(0L, sizeBytes),
+                    "nodeId", nodeId == null ? "" : nodeId.trim()
+                );
+            return postWithResultBody(
+                    "/v1/islands/snapshots/record",
+                    payload
+                )
+                .thenApply(body -> CoreSnapshotJson.action(body, "SNAPSHOT_RECORDED"));
+        }
+
+        @Override
+        public CompletableFuture<SnapshotActionView> requestSnapshot(UUID islandId, String reason) {
+            requireId(islandId, "islandId");
+            return postWithResultBody("/v1/admin/islands/snapshot", jsonObject("islandId", islandId, "reason", reason == null || reason.isBlank() ? "manual" : reason.trim()))
+                .thenApply(body -> CoreSnapshotJson.action(body, "SNAPSHOT_REQUESTED"));
+        }
+
+        @Override
+        public CompletableFuture<SnapshotActionView> restoreSnapshot(UUID islandId, long snapshotNo) {
+            requireId(islandId, "islandId");
+            if (snapshotNo <= 0L) {
+                throw new IllegalArgumentException("positive snapshotNo is required");
+            }
+            return postWithResultBody("/v1/admin/islands/restore", jsonObject("islandId", islandId, "snapshotNo", snapshotNo))
+                .thenApply(body -> CoreSnapshotJson.action(body, "RESTORE_REQUESTED"));
         }
 
         private void requireId(UUID id, String name) {

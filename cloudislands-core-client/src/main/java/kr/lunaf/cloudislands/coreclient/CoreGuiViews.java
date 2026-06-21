@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreGuiViews {
@@ -155,7 +156,13 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<SnapshotView>> islandSnapshots(CoreApiClient client, UUID islandId, int limit) {
-        return client.listIslandSnapshots(islandId, limit).thenApply(CoreGuiViews::snapshots);
+        return client.snapshots().records(islandId, limit).thenApply(CoreGuiViews::snapshots);
+    }
+
+    private static List<SnapshotView> snapshots(List<IslandSnapshotRecord> records) {
+        return records.stream()
+            .map(CoreSnapshotJson::view)
+            .toList();
     }
 
     public static CompletableFuture<List<LogEntryView>> islandLogs(CoreApiClient client, UUID islandId, int limit) {
@@ -431,17 +438,6 @@ public final class CoreGuiViews {
             }
         }
         return limits;
-    }
-
-    private static List<SnapshotView> snapshots(String body) {
-        List<SnapshotView> snapshots = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            long snapshotNo = longValue(object, "snapshotNo");
-            if (snapshotNo > 0) {
-                snapshots.add(new SnapshotView(snapshotNo, text(object, "reason"), longValue(object, "sizeBytes"), text(object, "createdAt"), text(object, "checksum"), text(object, "storagePath")));
-            }
-        }
-        return snapshots;
     }
 
     private static List<LogEntryView> logs(String body) {
