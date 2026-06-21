@@ -117,12 +117,16 @@ import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
+import kr.lunaf.cloudislands.coreclient.BankMutationView;
 import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
+import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
+import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
+import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
 import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
@@ -141,6 +145,7 @@ import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.ReviewListView;
 import kr.lunaf.cloudislands.coreclient.ReviewView;
 import kr.lunaf.cloudislands.coreclient.RuntimeActionView;
+import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
@@ -2597,7 +2602,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) { return transferOwnershipResult(islandId, actorUuid, targetUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> transferOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid) { return mutateIdempotent("island.ownership.transfer", () -> client.memberCommands().transferOwnership(islandId, actorUuid, targetUuid)).thenApply(view -> action(view, "OWNERSHIP_TRANSFERRED")); }
         @Override public CompletableFuture<Void> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return setFlagResult(islandId, actorUuid, flag, value).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return mutate("island.flag.set", () -> client.setIslandFlagResult(islandId, actorUuid, flag, value)).thenApply(body -> action(body, "FLAG_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value) { return mutate("island.flag.set", () -> client.environmentCommands().setFlag(islandId, actorUuid, flag, value)).thenApply(view -> action(view, "FLAG_SET")); }
         @Override public CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return setPermissionResult(islandId, actorUuid, role, permission, allowed).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) { return mutate("island.permission.set", () -> client.permissions().setPermission(islandId, actorUuid, role.name(), permission, allowed)).thenApply(view -> action(view, "PERMISSION_SET")); }
         @Override public CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) { return upsertRoleResult(islandId, actorUuid, role, weight, displayName).thenApply(_result -> null); }
@@ -2605,7 +2610,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> resetRole(UUID islandId, UUID actorUuid, IslandRole role) { return resetRoleResult(islandId, actorUuid, role).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, IslandRole role) { return mutateIdempotent("island.role.reset", () -> client.permissions().resetRole(islandId, actorUuid, role.name())).thenApply(PaperCloudIslandsApi::roleResetAction); }
         @Override public CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked) { return setLockedResult(islandId, actorUuid, locked).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked) { return mutate("island.locked.set", () -> client.setIslandLockedResult(islandId, actorUuid, locked)).thenApply(body -> action(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED")); }
+        @Override public CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked) { return mutate("island.locked.set", () -> client.settingsCommands().setLocked(islandId, actorUuid, locked)).thenApply(view -> action(view, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED")); }
         @Override public CompletableFuture<Void> lockIsland(UUID islandId, UUID actorUuid) { return lockIslandResult(islandId, actorUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> lockIslandResult(UUID islandId, UUID actorUuid) { return setLockedResult(islandId, actorUuid, true); }
         @Override public CompletableFuture<Void> unlockIsland(UUID islandId, UUID actorUuid) { return unlockIslandResult(islandId, actorUuid).thenApply(_result -> null); }
@@ -2613,25 +2618,25 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, IslandLocation location) { return setHomeResult(islandId, actorUuid, location).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, IslandLocation location) { return setHomeResult(islandId, actorUuid, "default", location); }
         @Override public CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return setHomeResult(islandId, actorUuid, name, location).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return mutate("island.home.set", () -> client.setIslandHomeResult(islandId, actorUuid, name, location)).thenApply(body -> action(body, "HOME_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return mutate("island.home.set", () -> client.homeWarpCommands().setHome(islandId, actorUuid, name, location)).thenApply(view -> action(view, "HOME_SET")); }
         @Override public CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey) { return setBiomeResult(islandId, actorUuid, biomeKey).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setBiomeResult(UUID islandId, UUID actorUuid, String biomeKey) { return mutate("island.biome.set", () -> client.setIslandBiomeResult(islandId, actorUuid, biomeKey)).thenApply(body -> action(body, "BIOME_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setBiomeResult(UUID islandId, UUID actorUuid, String biomeKey) { return mutate("island.biome.set", () -> client.environmentCommands().setBiome(islandId, actorUuid, biomeKey)).thenApply(view -> action(view, "BIOME_SET")); }
         @Override public CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) { return setLimitResult(islandId, actorUuid, limitKey, value).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandLimitSnapshot> setLimitResult(UUID islandId, UUID actorUuid, String limitKey, long value) { return mutate("island.limit.set", () -> client.setIslandLimit(islandId, actorUuid, limitKey, value)).thenApply(PaperCloudIslandsApi::limit); }
+        @Override public CompletableFuture<IslandLimitSnapshot> setLimitResult(UUID islandId, UUID actorUuid, String limitKey, long value) { return mutate("island.limit.set", () -> client.environmentCommands().setLimit(islandId, actorUuid, limitKey, value)).thenApply(view -> limit(islandId, actorUuid, view)); }
         @Override public CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return createWarpResult(islandId, actorUuid, name, location).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> createWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) { return setWarpResult(islandId, actorUuid, name, location, false); }
         @Override public CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return setWarpResult(islandId, actorUuid, name, location, publicAccess).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return mutate("island.warp.set", () -> client.setIslandWarpResult(islandId, actorUuid, name, location, publicAccess)).thenApply(body -> action(body, "WARP_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) { return mutate("island.warp.set", () -> client.homeWarpCommands().setWarp(islandId, actorUuid, name, location, publicAccess)).thenApply(view -> action(view, "WARP_SET")); }
         @Override public CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name) { return deleteWarpResult(islandId, actorUuid, name).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> deleteWarpResult(UUID islandId, UUID actorUuid, String name) { return mutateIdempotent("island.warp.delete", () -> client.deleteIslandWarpResult(islandId, actorUuid, name)).thenApply(body -> action(body, "WARP_DELETED")); }
+        @Override public CompletableFuture<IslandActionResult> deleteWarpResult(UUID islandId, UUID actorUuid, String name) { return mutateIdempotent("island.warp.delete", () -> client.homeWarpCommands().deleteWarp(islandId, actorUuid, name)).thenApply(view -> action(view, "WARP_DELETED")); }
         @Override public CompletableFuture<Void> setWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess) { return setWarpPublicAccessResult(islandId, actorUuid, name, publicAccess).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setWarpPublicAccessResult(UUID islandId, UUID actorUuid, String name, boolean publicAccess) { return mutate("island.warp.public-access.set", () -> client.setIslandWarpPublicAccessResult(islandId, actorUuid, name, publicAccess)).thenApply(body -> action(body, publicAccess ? "WARP_PUBLIC_ACCESS_ENABLED" : "WARP_PUBLIC_ACCESS_DISABLED")); }
+        @Override public CompletableFuture<IslandActionResult> setWarpPublicAccessResult(UUID islandId, UUID actorUuid, String name, boolean publicAccess) { return mutate("island.warp.public-access.set", () -> client.homeWarpCommands().setWarpPublicAccess(islandId, actorUuid, name, publicAccess)).thenApply(view -> action(view, publicAccess ? "WARP_PUBLIC_ACCESS_ENABLED" : "WARP_PUBLIC_ACCESS_DISABLED")); }
         @Override public CompletableFuture<Void> publishWarp(UUID islandId, UUID actorUuid, String name) { return publishWarpResult(islandId, actorUuid, name).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> publishWarpResult(UUID islandId, UUID actorUuid, String name) { return setWarpPublicAccessResult(islandId, actorUuid, name, true); }
         @Override public CompletableFuture<Void> privatizeWarp(UUID islandId, UUID actorUuid, String name) { return privatizeWarpResult(islandId, actorUuid, name).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> privatizeWarpResult(UUID islandId, UUID actorUuid, String name) { return setWarpPublicAccessResult(islandId, actorUuid, name, false); }
         @Override public CompletableFuture<Void> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) { return setPublicAccessResult(islandId, actorUuid, publicAccess).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess) { return mutate("island.public-access.set", () -> client.setIslandPublicAccessResult(islandId, actorUuid, publicAccess)).thenApply(body -> action(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED")); }
+        @Override public CompletableFuture<IslandActionResult> setPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess) { return mutate("island.public-access.set", () -> client.settingsCommands().setPublicAccess(islandId, actorUuid, publicAccess)).thenApply(view -> action(view, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED")); }
         @Override public CompletableFuture<Void> publishIsland(UUID islandId, UUID actorUuid) { return publishIslandResult(islandId, actorUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> publishIslandResult(UUID islandId, UUID actorUuid) { return setPublicAccessResult(islandId, actorUuid, true); }
         @Override public CompletableFuture<Void> privatizeIsland(UUID islandId, UUID actorUuid) { return privatizeIslandResult(islandId, actorUuid).thenApply(_result -> null); }
@@ -2646,15 +2651,15 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Optional<IslandMissionSnapshot>> progressMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) { return mutateIdempotent("island.mission.progress", () -> client.progressionCommands().progressMission(islandId, actorUuid, missionKey, kind, amount)).thenApply(PaperCloudIslandsApi::mission); }
         @Override public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) { return mutate("island.mission-provider.register", () -> client.registerMissionProvider(providerId, missionDefinitionsJson(definitions))).thenApply(PaperCloudIslandsApi::missionDefinitions); }
         @Override public CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message) { return sendChatResult(islandId, actorUuid, channel, message).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message) { return mutate("island.chat.send", () -> client.sendIslandChat(islandId, actorUuid, channel, message)).thenApply(PaperCloudIslandsApi::chatResult); }
+        @Override public CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message) { return mutate("island.chat.send", () -> client.communicationCommands().sendChat(islandId, actorUuid, channel, message)).thenApply(PaperCloudIslandsApi::chatResult); }
         @Override public CompletableFuture<Void> sendIslandChat(UUID islandId, UUID actorUuid, String message) { return sendIslandChatResult(islandId, actorUuid, message).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandChatResult> sendIslandChatResult(UUID islandId, UUID actorUuid, String message) { return sendChatResult(islandId, actorUuid, "ISLAND", message); }
         @Override public CompletableFuture<Void> sendTeamChat(UUID islandId, UUID actorUuid, String message) { return sendTeamChatResult(islandId, actorUuid, message).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandChatResult> sendTeamChatResult(UUID islandId, UUID actorUuid, String message) { return sendChatResult(islandId, actorUuid, "TEAM", message); }
         @Override public CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return depositBankResult(islandId, actorUuid, amount).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandBankChangeSnapshot> depositBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.deposit", () -> client.depositIslandBank(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankDeposit); }
+        @Override public CompletableFuture<IslandBankChangeSnapshot> depositBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.deposit", () -> client.bankCommands().deposit(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankDeposit); }
         @Override public CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return withdrawBankResult(islandId, actorUuid, amount).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.withdraw", () -> client.withdrawIslandBank(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankChange); }
+        @Override public CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.withdraw", () -> client.bankCommands().withdraw(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankChange); }
 
         private CompletableFuture<Optional<IslandInviteSnapshot>> pendingInvite(UUID playerUuid, java.util.function.Predicate<IslandInviteSnapshot> predicate) {
             return client.members().pendingInvites(playerUuid)
@@ -3084,6 +3089,27 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new IslandActionResult(view.accepted(), view.accepted() ? fallbackCode : (view.code().isBlank() ? "FAILED" : view.code()));
     }
 
+    private static IslandActionResult action(EnvironmentActionView view, String fallbackCode) {
+        if (view == null) {
+            return new IslandActionResult(false, "FAILED");
+        }
+        return new IslandActionResult(view.accepted(), view.accepted() ? fallbackCode : (view.code().isBlank() ? "FAILED" : view.code()));
+    }
+
+    private static IslandActionResult action(SettingsActionView view, String fallbackCode) {
+        if (view == null) {
+            return new IslandActionResult(false, "FAILED");
+        }
+        return new IslandActionResult(view.accepted(), view.accepted() ? fallbackCode : (view.code().isBlank() ? "FAILED" : view.code()));
+    }
+
+    private static IslandActionResult action(HomeWarpActionView view, String fallbackCode) {
+        if (view == null) {
+            return new IslandActionResult(false, "FAILED");
+        }
+        return new IslandActionResult(view.accepted(), view.accepted() ? fallbackCode : (view.code().isBlank() ? "FAILED" : view.code()));
+    }
+
     private static IslandActionResult roleResetAction(MutationResult<CoreGuiViews.RoleView> result) {
         boolean changed = result != null
             && result.changed()
@@ -3318,6 +3344,16 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
+    private static IslandLimitSnapshot limit(UUID islandId, UUID actorUuid, EnvironmentActionView view) {
+        return new IslandLimitSnapshot(
+            view == null || view.islandId().isBlank() ? (islandId == null ? new UUID(0L, 0L) : islandId) : uuidValueOrZero(view.islandId()),
+            view == null ? "" : view.key(),
+            view == null ? 0L : view.value(),
+            view == null || view.updatedBy().isBlank() ? (actorUuid == null ? new UUID(0L, 0L) : actorUuid) : uuidValueOrZero(view.updatedBy()),
+            view == null || view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
+        );
+    }
+
     private static IslandBankSnapshot bank(String json) {
         return new IslandBankSnapshot(
             uuid(json, "islandId", new UUID(0L, 0L)),
@@ -3339,6 +3375,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new IslandBankChangeSnapshot(accepted, accepted ? "DEPOSITED" : text(json, "code", "FAILED"), json == null || json.isBlank() || json.contains("\"bank\":null") ? null : bank(json));
     }
 
+    private static IslandBankChangeSnapshot bankDeposit(BankMutationView view) {
+        if (view == null) {
+            return new IslandBankChangeSnapshot(false, "FAILED", null);
+        }
+        return bankDeposit(view.body());
+    }
+
     private static IslandBankChangeSnapshot bankChange(String json) {
         return new IslandBankChangeSnapshot(
             bool(json, "accepted", false),
@@ -3347,12 +3390,26 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
+    private static IslandBankChangeSnapshot bankChange(BankMutationView view) {
+        if (view == null) {
+            return new IslandBankChangeSnapshot(false, "FAILED", null);
+        }
+        return bankChange(view.body());
+    }
+
     private static IslandChatResult chatResult(String json) {
         return new IslandChatResult(
             bool(json, "accepted", false),
             text(json, "channel", ""),
             text(json, "message", "")
         );
+    }
+
+    private static IslandChatResult chatResult(ChatActionView view) {
+        if (view == null) {
+            return new IslandChatResult(false, "", "");
+        }
+        return new IslandChatResult(view.accepted(), view.channel(), view.message());
     }
 
     private static boolean hasError(String json) {

@@ -53,7 +53,10 @@ public final class CoreIslandEnvironmentCommandClient implements IslandEnvironme
             accepted,
             code,
             firstText(root, "limitKey", "biomeKey", "flag", "key"),
-            SimpleJson.number(root.get("value"))
+            SimpleJson.number(root.get("value")),
+            text(root, "islandId"),
+            text(root, "updatedBy"),
+            text(root, "updatedAt")
         );
     }
 

@@ -240,6 +240,18 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.permissions().setPermission(islandId, actorUuid, role.name(), permission, allowed)"), "Permission mutation must use the typed permission command client");
         assertTrue(source.contains("client.permissions().upsertRole(islandId, actorUuid, role.name(), weight, displayName)"), "Role upsert must use the typed permission command client");
         assertTrue(source.contains("client.permissions().resetRole(islandId, actorUuid, role.name())"), "Role reset must use the typed permission command client");
+        assertTrue(source.contains("client.environmentCommands().setFlag(islandId, actorUuid, flag, value)"), "Flag mutation must use the typed environment command client");
+        assertTrue(source.contains("client.environmentCommands().setBiome(islandId, actorUuid, biomeKey)"), "Biome mutation must use the typed environment command client");
+        assertTrue(source.contains("client.environmentCommands().setLimit(islandId, actorUuid, limitKey, value)"), "Limit mutation must use the typed environment command client");
+        assertTrue(source.contains("client.settingsCommands().setLocked(islandId, actorUuid, locked)"), "Lock mutation must use the typed settings command client");
+        assertTrue(source.contains("client.settingsCommands().setPublicAccess(islandId, actorUuid, publicAccess)"), "Public access mutation must use the typed settings command client");
+        assertTrue(source.contains("client.homeWarpCommands().setHome(islandId, actorUuid, name, location)"), "Home mutation must use the typed home/warp command client");
+        assertTrue(source.contains("client.homeWarpCommands().setWarp(islandId, actorUuid, name, location, publicAccess)"), "Warp mutation must use the typed home/warp command client");
+        assertTrue(source.contains("client.homeWarpCommands().deleteWarp(islandId, actorUuid, name)"), "Warp deletion must use the typed home/warp command client");
+        assertTrue(source.contains("client.homeWarpCommands().setWarpPublicAccess(islandId, actorUuid, name, publicAccess)"), "Warp visibility mutation must use the typed home/warp command client");
+        assertTrue(source.contains("client.communicationCommands().sendChat(islandId, actorUuid, channel, message)"), "Chat mutation must use the typed communication command client");
+        assertTrue(source.contains("client.bankCommands().deposit(islandId, actorUuid, amount.toPlainString())"), "Bank deposit must use the typed bank command client");
+        assertTrue(source.contains("client.bankCommands().withdraw(islandId, actorUuid, amount.toPlainString())"), "Bank withdraw must use the typed bank command client");
 
         assertTrue(!source.contains("client.activateIslandResult(islandId)"), "Paper public API must not call raw activation JSON endpoints");
         assertTrue(!source.contains("client.deactivateIslandResult(islandId)"), "Paper public API must not call raw deactivation JSON endpoints");
@@ -268,6 +280,18 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("client.setIslandPermissionResult(islandId, actorUuid, role, permission, allowed)"), "Paper public API must not call raw permission JSON endpoints");
         assertTrue(!source.contains("client.upsertIslandRole(islandId, actorUuid, role, weight, displayName)"), "Paper public API must not call raw role upsert JSON endpoints");
         assertTrue(!source.contains("client.resetIslandRole(islandId, actorUuid, role)"), "Paper public API must not call raw role reset JSON endpoints");
+        assertTrue(!source.contains("client.setIslandFlagResult(islandId, actorUuid, flag, value)"), "Paper public API must not call raw flag JSON endpoints");
+        assertTrue(!source.contains("client.setIslandBiomeResult(islandId, actorUuid, biomeKey)"), "Paper public API must not call raw biome JSON endpoints");
+        assertTrue(!source.contains("client.setIslandLimit(islandId, actorUuid, limitKey, value)"), "Paper public API must not call raw limit JSON endpoints");
+        assertTrue(!source.contains("client.setIslandLockedResult(islandId, actorUuid, locked)"), "Paper public API must not call raw lock JSON endpoints");
+        assertTrue(!source.contains("client.setIslandPublicAccessResult(islandId, actorUuid, publicAccess)"), "Paper public API must not call raw public-access JSON endpoints");
+        assertTrue(!source.contains("client.setIslandHomeResult(islandId, actorUuid, name, location)"), "Paper public API must not call raw home JSON endpoints");
+        assertTrue(!source.contains("client.setIslandWarpResult(islandId, actorUuid, name, location, publicAccess)"), "Paper public API must not call raw warp JSON endpoints");
+        assertTrue(!source.contains("client.deleteIslandWarpResult(islandId, actorUuid, name)"), "Paper public API must not call raw warp delete JSON endpoints");
+        assertTrue(!source.contains("client.setIslandWarpPublicAccessResult(islandId, actorUuid, name, publicAccess)"), "Paper public API must not call raw warp visibility JSON endpoints");
+        assertTrue(!source.contains("client.sendIslandChat(islandId, actorUuid, channel, message)"), "Paper public API must not call raw chat JSON endpoints");
+        assertTrue(!source.contains("client.depositIslandBank(islandId, actorUuid, amount.toPlainString())"), "Paper public API must not call raw bank deposit JSON endpoints");
+        assertTrue(!source.contains("client.withdrawIslandBank(islandId, actorUuid, amount.toPlainString())"), "Paper public API must not call raw bank withdraw JSON endpoints");
     }
 
     @Test

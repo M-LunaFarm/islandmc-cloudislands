@@ -38,7 +38,7 @@ public final class CoreCommunicationCommandClient implements CommunicationComman
         if (code.isBlank()) {
             code = accepted ? successCode : "FAILED";
         }
-        return new ChatActionView(accepted, code);
+        return new ChatActionView(accepted, code, SimpleJson.text(root.get("channel")), SimpleJson.text(root.get("message")));
     }
 
     private static void requireId(UUID id, String name) {

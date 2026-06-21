@@ -244,7 +244,7 @@ class CoreTypedClientsTest {
                 }
                 case "setIslandLimit" -> {
                     calls.add("limit:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"LIMIT_SET\",\"limitKey\":\"HOPPER\",\"value\":64}");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"LIMIT_SET\",\"islandId\":\"%s\",\"updatedBy\":\"%s\",\"updatedAt\":\"2026-06-21T00:00:00Z\",\"limitKey\":\"HOPPER\",\"value\":64}".formatted(islandId, actorUuid));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
@@ -259,6 +259,9 @@ class CoreTypedClientsTest {
         assertEquals("BORDER_VISIBLE", flag.key());
         assertEquals("HOPPER", limit.key());
         assertEquals(64L, limit.value());
+        assertEquals(islandId.toString(), limit.islandId());
+        assertEquals(actorUuid.toString(), limit.updatedBy());
+        assertEquals("2026-06-21T00:00:00Z", limit.updatedAt());
         assertEquals(List.of("biome:PLAINS", "flag:BORDER_VISIBLE:true", "limit:HOPPER:64"), calls);
     }
 
@@ -664,7 +667,7 @@ class CoreTypedClientsTest {
             (_proxy, method, args) -> switch (method.getName()) {
                 case "sendIslandChat" -> {
                     calls.add("chat:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"CHAT_SENT\"}");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"CHAT_SENT\",\"channel\":\"TEAM\",\"message\":\"hello\"}");
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
@@ -675,6 +678,8 @@ class CoreTypedClientsTest {
 
         assertTrue(chat.accepted());
         assertEquals("CHAT_SENT", chat.code());
+        assertEquals("TEAM", chat.channel());
+        assertEquals("hello", chat.message());
         assertEquals(List.of("chat:TEAM:hello"), calls);
     }
 
