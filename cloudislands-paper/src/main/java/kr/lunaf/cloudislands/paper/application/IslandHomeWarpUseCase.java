@@ -9,6 +9,8 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.HomeView;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.WarpView;
 
 public final class IslandHomeWarpUseCase {
@@ -52,14 +54,29 @@ public final class IslandHomeWarpUseCase {
         return coreApiClient.listIslandHomes(islandId);
     }
 
+    public CompletableFuture<List<HomeView>> homeViews(UUID islandId) {
+        requireIsland(islandId);
+        return PaperGuiViews.islandHomes(coreApiClient, islandId);
+    }
+
     public CompletableFuture<String> listWarps(UUID islandId) {
         requireIsland(islandId);
         return coreApiClient.listIslandWarps(islandId);
     }
 
+    public CompletableFuture<List<WarpView>> warpViews(UUID islandId) {
+        requireIsland(islandId);
+        return PaperGuiViews.islandWarps(coreApiClient, islandId);
+    }
+
     public CompletableFuture<String> islandInfo(UUID islandId) {
         requireIsland(islandId);
         return coreApiClient.islandInfo(islandId);
+    }
+
+    public CompletableFuture<IslandInfoView> islandInfoView(UUID islandId) {
+        requireIsland(islandId);
+        return PaperGuiViews.islandInfo(coreApiClient, islandId);
     }
 
     public CompletableFuture<String> deleteWarp(UUID islandId, UUID actorUuid, String name, IdempotentMutationRunner runner) {

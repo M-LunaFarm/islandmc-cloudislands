@@ -24,9 +24,12 @@ class IslandHomeWarpUseCaseTest {
         assertEquals("HOME_SET", useCase.setHomeAction(islandId, actorUuid, "home", location, mutationRunner(calls)).join().code());
         assertEquals("warp-set", useCase.setWarp(islandId, actorUuid, "spawn", location, false, mutationRunner(calls)).join());
         assertEquals("WARP_SET", useCase.setWarpAction(islandId, actorUuid, "spawn", location, false, mutationRunner(calls)).join().code());
-        assertEquals("homes", useCase.listHomes(islandId).join());
-        assertEquals("warps", useCase.listWarps(islandId).join());
-        assertEquals("info", useCase.islandInfo(islandId).join());
+        assertEquals(homesJson(), useCase.listHomes(islandId).join());
+        assertEquals("home", useCase.homeViews(islandId).join().getFirst().name());
+        assertEquals(warpsJson(islandId), useCase.listWarps(islandId).join());
+        assertEquals("spawn", useCase.warpViews(islandId).join().getFirst().name());
+        assertEquals(infoJson(islandId), useCase.islandInfo(islandId).join());
+        assertEquals("Island", useCase.islandInfoView(islandId).join().name());
         assertEquals("deleted", useCase.deleteWarp(islandId, actorUuid, "spawn", idempotentMutationRunner(calls)).join());
         assertEquals("WARP_DELETED", useCase.deleteWarpAction(islandId, actorUuid, "spawn", idempotentMutationRunner(calls)).join().code());
         assertEquals("access", useCase.setWarpPublicAccess(islandId, actorUuid, "spawn", true, mutationRunner(calls)).join());
@@ -44,7 +47,10 @@ class IslandHomeWarpUseCaseTest {
             "audit:island.warp.set",
             "setIslandWarpResult:spawn:false",
             "listIslandHomes",
+            "listIslandHomes",
             "listIslandWarps",
+            "listIslandWarps",
+            "islandInfo",
             "islandInfo",
             "audit:island.warp.delete",
             "deleteIslandWarpResult:spawn",
@@ -74,15 +80,15 @@ class IslandHomeWarpUseCaseTest {
                 }
                 case "listIslandHomes" -> {
                     calls.add("listIslandHomes");
-                    yield CompletableFuture.completedFuture("homes");
+                    yield CompletableFuture.completedFuture(homesJson());
                 }
                 case "listIslandWarps" -> {
                     calls.add("listIslandWarps");
-                    yield CompletableFuture.completedFuture("warps");
+                    yield CompletableFuture.completedFuture(warpsJson(UUID.fromString("00000000-0000-0000-0000-000000000060")));
                 }
                 case "islandInfo" -> {
                     calls.add("islandInfo");
-                    yield CompletableFuture.completedFuture("info");
+                    yield CompletableFuture.completedFuture(infoJson(UUID.fromString("00000000-0000-0000-0000-000000000060")));
                 }
                 case "deleteIslandWarpResult" -> {
                     calls.add("deleteIslandWarpResult:" + args[2]);
@@ -120,5 +126,17 @@ class IslandHomeWarpUseCaseTest {
 
     private static String publicWarpsJson(UUID islandId) {
         return "{\"warps\":[{\"islandId\":\"" + islandId + "\",\"name\":\"spawn\",\"location\":{\"worldName\":\"world\",\"x\":1.0,\"y\":2.0,\"z\":3.0},\"publicAccess\":true,\"category\":\"market\"}]}";
+    }
+
+    private static String homesJson() {
+        return "{\"homes\":[{\"name\":\"home\",\"location\":{\"worldName\":\"world\",\"x\":1.0,\"y\":2.0,\"z\":3.0},\"createdAt\":\"now\"}]}";
+    }
+
+    private static String warpsJson(UUID islandId) {
+        return "{\"warps\":[{\"islandId\":\"" + islandId + "\",\"name\":\"spawn\",\"location\":{\"worldName\":\"world\",\"x\":1.0,\"y\":2.0,\"z\":3.0},\"publicAccess\":true,\"category\":\"default\"}]}";
+    }
+
+    private static String infoJson(UUID islandId) {
+        return "{\"islandId\":\"" + islandId + "\",\"name\":\"Island\",\"state\":\"ACTIVE\",\"level\":3,\"worth\":\"12.5\",\"publicAccess\":true,\"locked\":false,\"size\":100,\"border\":100,\"ownerUuid\":\"00000000-0000-0000-0000-000000000001\"}";
     }
 }

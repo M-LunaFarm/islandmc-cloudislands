@@ -472,16 +472,6 @@ final class IslandCommandBackend {
             }
 
             @Override
-            public String pointListMessage(String body, String label, String emptyMessage) {
-                return IslandCommandBackend.this.pointListMessage(body, label, emptyMessage);
-            }
-
-            @Override
-            public IslandHomeWarpCommandHandler.Point point(String body, String requestedName, String fallbackWorldName) {
-                return IslandCommandBackend.this.point(body, requestedName, fallbackWorldName);
-            }
-
-            @Override
             public void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
                 IslandCommandBackend.this.moveToPoint(player, point, missingMessage, successMessage);
             }
@@ -497,8 +487,8 @@ final class IslandCommandBackend {
             }
 
             @Override
-            public boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, String islandInfo) {
-                return IslandCommandBackend.this.publicWarpAllowed(player, point, islandInfo);
+            public boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, boolean islandPublicAccess) {
+                return IslandCommandBackend.this.publicWarpAllowed(player, point, islandPublicAccess);
             }
 
             @Override
@@ -1337,9 +1327,9 @@ final class IslandCommandBackend {
         ).allowed();
     }
 
-    private boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, String islandInfo) {
+    private boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, boolean islandPublicAccess) {
         return point.publicAccess()
-            && bool(islandInfo, "publicAccess")
+            && islandPublicAccess
             && protection.checkSystemFlag(player.getLocation().getBlock(), IslandFlag.PUBLIC_WARPS).allowed();
     }
 
@@ -1353,11 +1343,6 @@ final class IslandCommandBackend {
             location.getYaw(),
             location.getPitch()
         );
-    }
-
-    private String pointListMessage(String body, String label, String emptyMessage) {
-        List<String> names = names(body);
-        return names.isEmpty() ? emptyMessage : label + ": " + String.join(", ", names);
     }
 
     private String memberListMessage(List<MemberView> members) {
@@ -1499,38 +1484,6 @@ final class IslandCommandBackend {
             .exceptionally(error -> plugin.getServer().getOfflinePlayer(value).getUniqueId());
     }
 
-    private IslandHomeWarpCommandHandler.Point point(String body, String requestedName, String fallbackWorldName) {
-        if (body == null || body.isBlank()) {
-            return null;
-        }
-        String target = requestedName == null || requestedName.isBlank() ? "default" : requestedName;
-        int index = 0;
-        while (index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                return null;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                return null;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            if (target.equalsIgnoreCase(text(object, "name"))) {
-                return new IslandHomeWarpCommandHandler.Point(
-                    text(object, "worldName").isBlank() ? fallbackWorldName : text(object, "worldName"),
-                    decimal(object, "localX"),
-                    decimal(object, "localY"),
-                    decimal(object, "localZ"),
-                    (float) decimal(object, "yaw"),
-                    (float) decimal(object, "pitch"),
-                    bool(object, "publicAccess")
-                );
-            }
-            index = objectEnd + 1;
-        }
-        return null;
-    }
-
     private void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             if (point == null) {
@@ -1659,29 +1612,6 @@ final class IslandCommandBackend {
 
     private String compactId(String value) {
         return value != null && value.length() == 36 && value.indexOf('-') > 0 ? value.substring(0, 8) : value;
-    }
-
-    private List<String> names(String body) {
-        if (body == null || body.isBlank()) {
-            return List.of();
-        }
-        List<String> names = new ArrayList<>();
-        String needle = "\"name\":\"";
-        int index = 0;
-        while (index < body.length()) {
-            int start = body.indexOf(needle, index);
-            if (start < 0) {
-                break;
-            }
-            int valueStart = start + needle.length();
-            int end = jsonStringEnd(body, valueStart);
-            if (end < 0) {
-                break;
-            }
-            names.add(unescape(body.substring(valueStart, end)));
-            index = end + 1;
-        }
-        return names;
     }
 
     private int jsonStringEnd(String value, int start) {

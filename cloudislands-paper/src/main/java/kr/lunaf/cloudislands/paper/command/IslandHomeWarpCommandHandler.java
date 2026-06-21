@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.command;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -10,6 +11,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandHomeWarpUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandHomeWarpUseCase.HomeWarpActionResult;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.HomeView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.WarpView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -235,8 +237,8 @@ final class IslandHomeWarpCommandHandler {
 
     private void listHomes(Player player) {
         runtime.currentIsland(player, "섬 안에서만 홈 목록을 볼 수 있습니다.").ifPresent(islandId -> {
-            homeWarpUseCase.listHomes(islandId)
-                .thenAccept(body -> runtime.message(player, runtime.pointListMessage(body, "섬 홈", "섬 홈이 없습니다.")))
+            homeWarpUseCase.homeViews(islandId)
+                .thenAccept(homes -> runtime.message(player, homeListMessage(homes)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 홈을 불러오지 못했습니다.");
                     return null;
@@ -246,8 +248,8 @@ final class IslandHomeWarpCommandHandler {
 
     private void listWarps(Player player) {
         runtime.currentIsland(player, "섬 안에서만 워프 목록을 볼 수 있습니다.").ifPresent(islandId -> {
-            homeWarpUseCase.listWarps(islandId)
-                .thenAccept(body -> runtime.message(player, runtime.pointListMessage(body, "섬 워프", "섬 워프가 없습니다.")))
+            homeWarpUseCase.warpViews(islandId)
+                .thenAccept(warps -> runtime.message(player, warpListMessage(warps)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 워프를 불러오지 못했습니다.");
                     return null;
@@ -269,8 +271,8 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("home-teleport-denied", "섬 홈으로 이동할 권한이 없습니다."));
                 return;
             }
-            homeWarpUseCase.listHomes(islandId)
-                .thenAccept(body -> runtime.moveToPoint(player, runtime.point(body, name, player.getWorld().getName()), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
+            homeWarpUseCase.homeViews(islandId)
+                .thenAccept(homes -> runtime.moveToPoint(player, homePoint(homes, name, player.getWorld().getName()), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
                 .exceptionally(error -> {
                     if (runtime.coreUnavailable(error) && runtime.teleportLocalDefaultHome(player)) {
                         return null;
@@ -283,15 +285,15 @@ final class IslandHomeWarpCommandHandler {
 
     private void teleportWarp(Player player, String name) {
         runtime.currentIsland(player, "섬 안에서만 워프로 이동할 수 있습니다.").ifPresent(islandId -> {
-            homeWarpUseCase.listWarps(islandId)
-                .thenAccept(body -> {
-                    Point point = runtime.point(body, name, player.getWorld().getName());
+            homeWarpUseCase.warpViews(islandId)
+                .thenAccept(warps -> {
+                    Point point = warpPoint(warps, name, player.getWorld().getName());
                     if (point == null) {
                         runtime.moveToPoint(player, null, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
                         return;
                     }
-                    homeWarpUseCase.islandInfo(islandId).thenAccept(info -> {
-                        if (!runtime.publicWarpAllowed(player, point, info) && !runtime.allowed(player, IslandPermission.INTERACT)) {
+                    homeWarpUseCase.islandInfoView(islandId).thenAccept(info -> {
+                        if (!runtime.publicWarpAllowed(player, point, info.publicAccess()) && !runtime.allowed(player, IslandPermission.INTERACT)) {
                             runtime.message(player, runtime.routeMessage("warp-teleport-denied", "섬 워프로 이동할 권한이 없습니다."));
                             return;
                         }
@@ -344,7 +346,59 @@ final class IslandHomeWarpCommandHandler {
             .exceptionally(error -> {
                 runtime.message(player, "공개 워프 목록을 불러오지 못했습니다.");
                 return null;
-            });
+        });
+    }
+
+    private static String homeListMessage(List<HomeView> homes) {
+        StringBuilder message = new StringBuilder();
+        for (HomeView home : homes == null ? List.<HomeView>of() : homes) {
+            if (home.name().isBlank()) {
+                continue;
+            }
+            if (!message.isEmpty()) {
+                message.append(", ");
+            }
+            message.append(home.name());
+        }
+        return message.isEmpty() ? "섬 홈이 없습니다." : "섬 홈: " + message;
+    }
+
+    private static String warpListMessage(List<WarpView> warps) {
+        StringBuilder message = new StringBuilder();
+        for (WarpView warp : warps == null ? List.<WarpView>of() : warps) {
+            if (warp.name().isBlank()) {
+                continue;
+            }
+            if (!message.isEmpty()) {
+                message.append(", ");
+            }
+            message.append(warp.name());
+        }
+        return message.isEmpty() ? "섬 워프가 없습니다." : "섬 워프: " + message;
+    }
+
+    private static Point homePoint(List<HomeView> homes, String requestedName, String fallbackWorldName) {
+        String target = normalizeName(requestedName);
+        for (HomeView home : homes == null ? List.<HomeView>of() : homes) {
+            if (target.equalsIgnoreCase(home.name())) {
+                return new Point(fallbackWorldName, home.x(), home.y(), home.z(), 0.0f, 0.0f, false);
+            }
+        }
+        return null;
+    }
+
+    private static Point warpPoint(List<WarpView> warps, String requestedName, String fallbackWorldName) {
+        String target = normalizeName(requestedName);
+        for (WarpView warp : warps == null ? List.<WarpView>of() : warps) {
+            if (target.equalsIgnoreCase(warp.name())) {
+                return new Point(fallbackWorldName, warp.x(), warp.y(), warp.z(), 0.0f, 0.0f, warp.publicAccess());
+            }
+        }
+        return null;
+    }
+
+    private static String normalizeName(String name) {
+        return name == null || name.isBlank() ? "default" : name;
     }
 
     private static String publicWarpListMessage(java.util.List<WarpView> warps, String category, String query) {
@@ -433,17 +487,13 @@ final class IslandHomeWarpCommandHandler {
 
         IslandLocation location(Location location);
 
-        String pointListMessage(String body, String label, String emptyMessage);
-
-        Point point(String body, String requestedName, String fallbackWorldName);
-
         void moveToPoint(Player player, Point point, String missingMessage, String successMessage);
 
         boolean teleportLocalDefaultHome(Player player);
 
         boolean coreUnavailable(Throwable error);
 
-        boolean publicWarpAllowed(Player player, Point point, String islandInfo);
+        boolean publicWarpAllowed(Player player, Point point, boolean islandPublicAccess);
 
         void routeWarp(Player player, UUID islandId, String warpName);
 
