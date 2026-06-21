@@ -2,8 +2,12 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -58,37 +62,29 @@ public final class NodeRoutes implements RouteGroup {
     }
 
     static String nodeIslandsJson(String nodeId, List<IslandRuntimeSnapshot> runtimes) {
-        StringBuilder builder = new StringBuilder("{\"nodeId\":\"").append(escape(nodeId)).append("\",\"count\":").append(runtimes.size()).append(",\"islands\":[");
-        boolean first = true;
+        List<Object> renderedRuntimes = new ArrayList<>();
         for (IslandRuntimeSnapshot runtime : runtimes) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(runtimeJson(runtime));
+            renderedRuntimes.add(runtimeMap(runtime));
         }
-        return builder.append("]}").toString();
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("nodeId", nodeId);
+        values.put("count", runtimes.size());
+        values.put("islands", renderedRuntimes);
+        return SimpleJson.stringify(values);
     }
 
-    private static String runtimeJson(IslandRuntimeSnapshot runtime) {
-        return "{\"islandId\":\"" + runtime.islandId()
-            + "\",\"state\":\"" + runtime.state()
-            + "\",\"activeNode\":" + nullable(runtime.activeNode())
-            + ",\"activeWorld\":" + nullable(runtime.activeWorld())
-            + ",\"cellX\":" + (runtime.cellX() == null ? "null" : runtime.cellX())
-            + ",\"cellZ\":" + (runtime.cellZ() == null ? "null" : runtime.cellZ())
-            + ",\"leaseOwner\":" + nullable(runtime.leaseOwner())
-            + ",\"fencingToken\":" + runtime.fencingToken()
-            + ",\"activatedAt\":" + nullable(runtime.activatedAt() == null ? null : runtime.activatedAt().toString())
-            + ",\"lastHeartbeat\":" + nullable(runtime.lastHeartbeat() == null ? null : runtime.lastHeartbeat().toString())
-            + "}";
-    }
-
-    private static String nullable(String value) {
-        return value == null ? "null" : "\"" + escape(value) + "\"";
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    private static Map<String, Object> runtimeMap(IslandRuntimeSnapshot runtime) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", runtime.islandId());
+        values.put("state", runtime.state());
+        values.put("activeNode", runtime.activeNode());
+        values.put("activeWorld", runtime.activeWorld());
+        values.put("cellX", runtime.cellX());
+        values.put("cellZ", runtime.cellZ());
+        values.put("leaseOwner", runtime.leaseOwner());
+        values.put("fencingToken", runtime.fencingToken());
+        values.put("activatedAt", runtime.activatedAt());
+        values.put("lastHeartbeat", runtime.lastHeartbeat());
+        return values;
     }
 }

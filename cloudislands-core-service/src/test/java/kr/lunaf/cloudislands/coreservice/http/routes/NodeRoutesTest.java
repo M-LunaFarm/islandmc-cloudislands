@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import org.junit.jupiter.api.Test;
 
 class NodeRoutesTest {
@@ -41,10 +43,14 @@ class NodeRoutesTest {
         );
 
         String json = NodeRoutes.nodeIslandsJson("island-1", List.of(runtime));
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
+        Map<?, ?> renderedRuntime = SimpleJson.object(SimpleJson.list(root.get("islands")).get(0));
 
-        assertTrue(json.contains("\"nodeId\":\"island-1\""));
-        assertTrue(json.contains("\"count\":1"));
-        assertTrue(json.contains("\"state\":\"ACTIVE\""));
-        assertTrue(json.contains("\"activeWorld\":\"ci_world\""));
+        assertEquals("island-1", SimpleJson.text(root.get("nodeId")));
+        assertEquals(1, ((Number) root.get("count")).intValue());
+        assertEquals("ACTIVE", SimpleJson.text(renderedRuntime.get("state")));
+        assertEquals("ci_world", SimpleJson.text(renderedRuntime.get("activeWorld")));
+        assertEquals(7L, ((Number) renderedRuntime.get("fencingToken")).longValue());
+        assertEquals("2026-01-01T00:00:05Z", SimpleJson.text(renderedRuntime.get("lastHeartbeat")));
     }
 }
