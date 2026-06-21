@@ -24,13 +24,13 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("redactDiagnostic"), "Diagnostics export must redact secrets");
         assertTrue(source.contains("coreApiClient.storageStatus()"), "Diagnostics export must include storage health");
         assertTrue(source.contains("coreApiClient.metrics()"), "Diagnostics export must include metrics");
-        assertTrue(source.contains("coreApiClient.debugRoutes(new UUID(0L, 0L))"), "Diagnostics export must include route ticket debug state");
+        assertTrue(source.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Diagnostics export must include typed route ticket debug state");
         assertTrue(source.contains("diagnosticSection(\"route-debug\""), "Diagnostics bundle must have a route debug section");
         assertTrue(source.contains("diagnosticSection(\"heartbeat-lag\""), "Diagnostics bundle must have a heartbeat lag section");
         assertTrue(source.contains("heartbeatLagDiagnosticBody"), "Diagnostics export must summarize heartbeat lag from node state");
         assertTrue(source.contains("\"staleNodeCount\""), "Heartbeat diagnostics must expose stale node count");
         assertTrue(source.contains("\"heartbeatTimeoutSeconds\""), "Heartbeat diagnostics must expose heartbeat timeout");
-        assertTrue(source.contains("coreApiClient.listAuditLogs(25)"), "Diagnostics export must include bounded audit context");
+        assertTrue(source.contains("coreApiClient.adminAudit().list(25)"), "Diagnostics export must include bounded typed audit context");
         assertTrue(source.contains("configValidationDiagnosticSection"), "Diagnostics export must include local config validation");
         assertTrue(source.contains("effectiveConfigDiagnosticSection"), "Diagnostics export must include redacted effective config");
         assertTrue(source.contains("## config-validation"), "Diagnostics bundle must have a config validation section");
