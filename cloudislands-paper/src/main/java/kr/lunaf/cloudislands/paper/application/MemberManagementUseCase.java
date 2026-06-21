@@ -51,6 +51,11 @@ public final class MemberManagementUseCase {
         return coreApiClient.pardonIslandVisitorResult(islandId, actorUuid, targetUuid);
     }
 
+    public CompletableFuture<String> kickVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        requireIds(islandId, actorUuid, targetUuid);
+        return coreApiClient.kickIslandVisitorResult(islandId, actorUuid, targetUuid);
+    }
+
     private static void requireIds(UUID islandId, UUID actorUuid, UUID targetUuid) {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");

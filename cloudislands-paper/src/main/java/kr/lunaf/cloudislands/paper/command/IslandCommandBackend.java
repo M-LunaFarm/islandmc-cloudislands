@@ -1339,7 +1339,7 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.visitor.kick", () -> coreApiClient.kickIslandVisitorResult(islandId, player.getUniqueId(), targetUuid))
+                mutateIdempotent("island.visitor.kick", () -> memberManagement.kickVisitor(islandId, player.getUniqueId(), targetUuid))
                     .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                         if (resultRejected(body)) {
                             player.sendMessage(playerMessage(actionResultMessage("섬 방문자 추방", targetUuid, body)));
