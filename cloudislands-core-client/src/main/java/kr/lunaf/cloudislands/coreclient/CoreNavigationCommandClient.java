@@ -17,6 +17,12 @@ public final class CoreNavigationCommandClient implements NavigationCommandClien
     }
 
     @Override
+    public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
+        requireId(playerUuid, "playerUuid");
+        return delegate.createHomeTicket(playerUuid, homeName == null || homeName.isBlank() ? "default" : homeName.trim());
+    }
+
+    @Override
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID islandId) {
         requireId(visitorUuid, "visitorUuid");
         requireId(islandId, "islandId");

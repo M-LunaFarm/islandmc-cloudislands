@@ -87,14 +87,14 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowRouteRequest(player)) {
             return;
         }
-        routeFuture(player, coreApiClient.createHomeTicket(player.getUniqueId(), homeName), "현재 섬 서비스 일부 기능이 점검 중입니다.");
+        routeFuture(player, coreApiClient.navigationCommands().createHomeTicket(player.getUniqueId(), homeName), "현재 섬 서비스 일부 기능이 점검 중입니다.");
     }
 
     public void routeVisit(Player player, UUID targetIslandId) {
         if (!allowRouteRequest(player)) {
             return;
         }
-        routeFuture(player, coreApiClient.createVisitTicket(player.getUniqueId(), targetIslandId), "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.");
+        routeFuture(player, coreApiClient.navigationCommands().createVisitTicket(player.getUniqueId(), targetIslandId), "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.");
     }
 
     public void routeVisitOwner(Player player, UUID ownerUuid) {
@@ -105,7 +105,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowRouteRequest(player)) {
             return;
         }
-        routeFuture(player, coreApiClient.createVisitTicketForOwner(player.getUniqueId(), ownerUuid), "해당 섬에 방문할 수 없습니다.");
+        routeFuture(player, coreApiClient.navigationCommands().createVisitTicketForOwner(player.getUniqueId(), ownerUuid), "해당 섬에 방문할 수 없습니다.");
     }
 
     public void routeVisitName(Player player, String islandName) {
@@ -116,7 +116,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowRouteRequest(player)) {
             return;
         }
-        routeFuture(player, coreApiClient.createVisitTicket(player.getUniqueId(), islandName), "해당 섬에 방문할 수 없습니다.");
+        routeFuture(player, coreApiClient.navigationCommands().createVisitTicket(player.getUniqueId(), islandName), "해당 섬에 방문할 수 없습니다.");
     }
 
     public void routeVisitNamedTarget(Player player, String targetName) {
@@ -179,7 +179,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowRouteRequest(player)) {
             return;
         }
-        routeFuture(player, coreApiClient.createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
+        routeFuture(player, coreApiClient.navigationCommands().createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }
 
     public void listPublicIslands(Player player, int limit) {
@@ -190,7 +190,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowRouteRequest(player)) {
             return;
         }
-        routeFuture(player, coreApiClient.createWarpTicket(player.getUniqueId(), targetIslandId, warpName), "해당 워프로 이동할 수 없습니다.");
+        routeFuture(player, coreApiClient.routingCommands().createWarpTicket(player.getUniqueId(), targetIslandId, warpName), "해당 워프로 이동할 수 없습니다.");
     }
 
     public void listWarps(Player player, UUID islandId) {

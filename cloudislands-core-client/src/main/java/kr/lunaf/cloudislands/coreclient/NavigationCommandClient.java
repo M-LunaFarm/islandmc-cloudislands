@@ -5,6 +5,8 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 
 public interface NavigationCommandClient {
+    CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
+
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID islandId);
 
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName);
