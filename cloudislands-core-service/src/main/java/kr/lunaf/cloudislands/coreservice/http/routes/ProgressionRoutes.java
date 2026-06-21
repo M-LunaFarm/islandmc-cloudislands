@@ -2,12 +2,16 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -210,89 +214,61 @@ public final class ProgressionRoutes implements RouteGroup {
         return false;
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
     private static String levelJson(kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot snapshot) {
-        return "{\"islandId\":\"" + snapshot.islandId() + "\",\"level\":" + snapshot.level() + ",\"worth\":\"" + snapshot.worth().toPlainString() + "\",\"calculatedAt\":\"" + snapshot.updatedAt() + "\"}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", snapshot.islandId());
+        values.put("level", snapshot.level());
+        values.put("worth", snapshot.worth().toPlainString());
+        values.put("calculatedAt", snapshot.updatedAt());
+        return SimpleJson.stringify(values);
     }
 
     private static String rankingsJson(java.util.List<kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot> rankings) {
-        StringBuilder builder = new StringBuilder("{\"rankings\":[");
-        boolean first = true;
+        List<Object> renderedRankings = new ArrayList<>();
         for (kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot ranking : rankings) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(levelJson(ranking));
+            renderedRankings.add(levelMap(ranking));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("rankings", renderedRankings));
     }
 
     private static String upgradeRulesJson(java.util.List<UpgradeRule> rules) {
-        StringBuilder builder = new StringBuilder("{\"rules\":[");
-        boolean first = true;
+        List<Object> renderedRules = new ArrayList<>();
         for (UpgradeRule rule : rules) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"upgradeKey\":\"").append(rule.upgradeKey()).append("\",")
-                .append("\"type\":\"").append(rule.type()).append("\",")
-                .append("\"maxLevel\":").append(rule.maxLevel()).append(',')
-                .append("\"baseCost\":\"").append(rule.baseCost().toPlainString()).append("\",")
-                .append("\"multiplier\":\"").append(rule.multiplier().toPlainString()).append("\"")
-                .append('}');
+            LinkedHashMap<String, Object> rendered = new LinkedHashMap<>();
+            rendered.put("upgradeKey", rule.upgradeKey());
+            rendered.put("type", rule.type());
+            rendered.put("maxLevel", rule.maxLevel());
+            rendered.put("baseCost", rule.baseCost().toPlainString());
+            rendered.put("multiplier", rule.multiplier().toPlainString());
+            renderedRules.add(rendered);
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("rules", renderedRules));
     }
 
     private static String blockValuesJson(Map<String, RankingRecalculationService.BlockValue> values) {
-        StringBuilder builder = new StringBuilder("{\"values\":[");
-        boolean first = true;
+        List<Object> renderedValues = new ArrayList<>();
         for (Map.Entry<String, RankingRecalculationService.BlockValue> entry : values.entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
             RankingRecalculationService.BlockValue value = entry.getValue();
-            builder.append('{')
-                .append("\"materialKey\":\"").append(escape(entry.getKey())).append("\",")
-                .append("\"worth\":\"").append(value.worth().toPlainString()).append("\",")
-                .append("\"levelPoints\":").append(value.levelPoints()).append(',')
-                .append("\"limit\":").append(value.limit())
-                .append('}');
+            LinkedHashMap<String, Object> rendered = new LinkedHashMap<>();
+            rendered.put("materialKey", entry.getKey());
+            rendered.put("worth", value.worth().toPlainString());
+            rendered.put("levelPoints", value.levelPoints());
+            rendered.put("limit", value.limit());
+            renderedValues.add(rendered);
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("values", renderedValues));
     }
 
     static String missionsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> missions) {
-        StringBuilder builder = new StringBuilder("{\"missions\":[");
-        boolean first = true;
+        List<Object> renderedMissions = new ArrayList<>();
         for (kr.lunaf.cloudislands.api.model.IslandMissionSnapshot mission : missions) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(missionJson(mission));
+            renderedMissions.add(missionMap(mission));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("missions", renderedMissions));
     }
 
     static String missionJson(kr.lunaf.cloudislands.api.model.IslandMissionSnapshot mission) {
-        return "{\"islandId\":\"" + mission.islandId()
-            + "\",\"missionKey\":\"" + escape(mission.missionKey())
-            + "\",\"kind\":\"" + escape(mission.kind())
-            + "\",\"title\":\"" + escape(mission.title())
-            + "\",\"progress\":" + mission.progress()
-            + ",\"goal\":" + mission.goal()
-            + ",\"completed\":" + mission.completed()
-            + ",\"reward\":\"" + escape(mission.reward())
-            + "\",\"updatedAt\":\"" + mission.updatedAt()
-            + "\"}";
+        return SimpleJson.stringify(missionMap(mission));
     }
 
     static java.util.List<MissionProviderDefinitionSnapshot> missionDefinitions(String json, String providerId) {
@@ -316,46 +292,68 @@ public final class ProgressionRoutes implements RouteGroup {
     }
 
     static String missionDefinitionsJson(java.util.List<MissionProviderDefinitionSnapshot> definitions) {
-        StringBuilder builder = new StringBuilder("{\"missions\":[");
-        boolean first = true;
+        List<Object> renderedDefinitions = new ArrayList<>();
         for (MissionProviderDefinitionSnapshot definition : definitions) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"providerId\":\"").append(escape(definition.providerId())).append("\",")
-                .append("\"missionKey\":\"").append(escape(definition.missionKey())).append("\",")
-                .append("\"kind\":\"").append(escape(definition.kind())).append("\",")
-                .append("\"title\":\"").append(escape(definition.title())).append("\",")
-                .append("\"goal\":").append(definition.goal()).append(',')
-                .append("\"reward\":\"").append(escape(definition.reward())).append("\",")
-                .append("\"enabled\":").append(definition.enabled()).append(',')
-                .append("\"updatedAt\":\"").append(definition.updatedAt()).append("\"")
-                .append('}');
+            renderedDefinitions.add(definitionMap(definition));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("missions", renderedDefinitions));
     }
 
     static String limitsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandLimitSnapshot> limits) {
-        StringBuilder builder = new StringBuilder("{\"limits\":[");
-        boolean first = true;
+        List<Object> renderedLimits = new ArrayList<>();
         for (kr.lunaf.cloudislands.api.model.IslandLimitSnapshot limit : limits) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(limitJson(limit));
+            renderedLimits.add(limitMap(limit));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("limits", renderedLimits));
     }
 
     static String limitJson(kr.lunaf.cloudislands.api.model.IslandLimitSnapshot limit) {
-        return "{\"islandId\":\"" + limit.islandId()
-            + "\",\"limitKey\":\"" + escape(limit.limitKey())
-            + "\",\"value\":" + limit.value()
-            + ",\"updatedBy\":\"" + limit.updatedBy()
-            + "\",\"updatedAt\":\"" + limit.updatedAt()
-            + "\"}";
+        return SimpleJson.stringify(limitMap(limit));
+    }
+
+    private static Map<String, Object> levelMap(kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot snapshot) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", snapshot.islandId());
+        values.put("level", snapshot.level());
+        values.put("worth", snapshot.worth().toPlainString());
+        values.put("calculatedAt", snapshot.updatedAt());
+        return values;
+    }
+
+    private static Map<String, Object> missionMap(kr.lunaf.cloudislands.api.model.IslandMissionSnapshot mission) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", mission.islandId());
+        values.put("missionKey", mission.missionKey());
+        values.put("kind", mission.kind());
+        values.put("title", mission.title());
+        values.put("progress", mission.progress());
+        values.put("goal", mission.goal());
+        values.put("completed", mission.completed());
+        values.put("reward", mission.reward());
+        values.put("updatedAt", mission.updatedAt());
+        return values;
+    }
+
+    private static Map<String, Object> definitionMap(MissionProviderDefinitionSnapshot definition) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("providerId", definition.providerId());
+        values.put("missionKey", definition.missionKey());
+        values.put("kind", definition.kind());
+        values.put("title", definition.title());
+        values.put("goal", definition.goal());
+        values.put("reward", definition.reward());
+        values.put("enabled", definition.enabled());
+        values.put("updatedAt", definition.updatedAt());
+        return values;
+    }
+
+    private static Map<String, Object> limitMap(kr.lunaf.cloudislands.api.model.IslandLimitSnapshot limit) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", limit.islandId());
+        values.put("limitKey", limit.limitKey());
+        values.put("value", limit.value());
+        values.put("updatedBy", limit.updatedBy());
+        values.put("updatedAt", limit.updatedAt());
+        return values;
     }
 }
