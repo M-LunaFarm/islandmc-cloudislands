@@ -1,6 +1,43 @@
 id: island.snapshots
 rows: 6
 title-key: menu.snapshots.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "C...R...S"
+items:
+  C:
+    material: CHEST
+    name-key: snapshot-menu-create-name
+    fallback-name: 새 스냅샷 생성
+    lore-keys:
+      - snapshot-menu-create-command
+    fallback-lore:
+      - "/섬 스냅샷생성 manual"
+    data:
+      reason: manual
+    action: create
+  R:
+    material: CLOCK
+    name-key: snapshot-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - snapshot-menu-refresh-command
+    fallback-lore:
+      - "/섬 스냅샷"
+    action: open
+  S:
+    material: COMPARATOR
+    name-key: snapshot-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - snapshot-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: settings
 actions:
   open: island.snapshots.open
   list: island.snapshots.list
@@ -8,3 +45,4 @@ actions:
   restore-prepare: island.snapshot.restore.prepare
   restore-confirm: island.snapshot.restore.confirm
   back: island.danger.open
+  settings: island.settings.open

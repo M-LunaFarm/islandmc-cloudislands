@@ -1,8 +1,45 @@
 id: island.upgrades
 rows: 6
 title-key: menu.upgrades.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "B...R...S"
+items:
+  B:
+    material: GOLD_BLOCK
+    name-key: upgrade-menu-bank-name
+    fallback-name: 섬 은행
+    lore-keys:
+      - upgrade-menu-bank-command
+    fallback-lore:
+      - "/섬 은행"
+    action: bank
+  R:
+    material: CLOCK
+    name-key: upgrade-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - upgrade-menu-refresh-command
+    fallback-lore:
+      - "/섬 업그레이드"
+    action: open
+  S:
+    material: COMPARATOR
+    name-key: upgrade-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - upgrade-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: settings
 actions:
   open: island.upgrades.open
   list: island.upgrades.list
   purchase: island.upgrade.purchase
+  bank: island.bank.open
+  settings: island.settings.open
   back: island.main.open

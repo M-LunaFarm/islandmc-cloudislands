@@ -282,6 +282,45 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledBanSnapshotAndUpgradeMenuDefinitionsCoverFooterControlsDeclaratively() {
+        GuiMenuDefinition bans = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/bans.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition snapshots = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/snapshots.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition upgrades = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/upgrades.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.bans", bans.id());
+        assertEquals("R", bans.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.bans.open", bans.action(bans.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("S", bans.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.settings.open", bans.action(bans.itemAt(53).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.snapshots", snapshots.id());
+        assertEquals("C", snapshots.itemAt(45).orElseThrow().symbol());
+        assertEquals("manual", snapshots.itemAt(45).orElseThrow().data().get("reason"));
+        assertEquals("island.snapshot.create", snapshots.action(snapshots.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("R", snapshots.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.snapshots.open", snapshots.action(snapshots.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("S", snapshots.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.settings.open", snapshots.action(snapshots.itemAt(53).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.upgrades", upgrades.id());
+        assertEquals("B", upgrades.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.bank.open", upgrades.action(upgrades.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("R", upgrades.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.upgrades.open", upgrades.action(upgrades.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("S", upgrades.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.settings.open", upgrades.action(upgrades.itemAt(53).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",

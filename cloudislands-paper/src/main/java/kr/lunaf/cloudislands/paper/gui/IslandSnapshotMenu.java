@@ -20,7 +20,19 @@ import org.bukkit.plugin.Plugin;
 public final class IslandSnapshotMenu implements Listener {
     private static final String TITLE_KEY = "snapshot-menu-title";
     private static final String TITLE = "섬 스냅샷";
-    private static final String MENU_ID = "island.snapshots";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/snapshots.yml",
+        new GuiMenuDefinition("island.snapshots", 6, TITLE_KEY, Map.of(
+            "open", "island.snapshots.open",
+            "list", "island.snapshots.list",
+            "create", "island.snapshot.create",
+            "restore-prepare", "island.snapshot.restore.prepare",
+            "restore-confirm", "island.snapshot.restore.confirm",
+            "back", "island.danger.open",
+            "settings", "island.settings.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -65,22 +77,10 @@ public final class IslandSnapshotMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
-        player.closeInventory();
-        if (slot == 45) {
-            actions.execute(player, "island.snapshot.create", java.util.Map.of("reason", "manual"), GuiClick.from(event));
-            return;
-        }
-        if (slot == 49) {
-            actions.execute(player, "island.snapshots.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 53) {
-            actions.execute(player, "island.settings.open", GuiClick.from(event));
-            return;
-        }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
         String snapshotNo = data.getOrDefault("snapshotNo", "");
         if (!snapshotNo.isBlank()) {
+            player.closeInventory();
             if (event.isShiftClick() && event.isRightClick()) {
                 actions.execute(player, "island.snapshot.restore.prepare", java.util.Map.of("snapshotNo", String.valueOf(snapshotNo)), GuiClick.from(event));
                 return;
@@ -94,22 +94,22 @@ public final class IslandSnapshotMenu implements Listener {
             player.sendMessage("- " + message(messages, "snapshot-menu-reason", "사유: ") + fallback(data.get("reason"), message(messages, "snapshot-menu-none", "없음")));
             player.sendMessage("- " + message(messages, "snapshot-menu-size", "크기: ") + fallback(data.get("sizeBytes"), "0") + message(messages, "snapshot-menu-size-unit", " bytes"));
             player.sendMessage("- " + message(messages, "snapshot-menu-created-at", "생성 시각: ") + fallback(data.get("createdAt"), message(messages, "snapshot-menu-no-created-info", "생성 정보 없음")));
+            return;
+        }
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (!actionId.isBlank()) {
+            player.closeInventory();
+            actions.execute(player, actionId, data, GuiClick.from(event));
         }
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<SnapshotView> snapshots, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
-            inventory.setItem(45, item(Material.CHEST, message(messages, "snapshot-menu-create-name", "새 스냅샷 생성"), message(messages, "snapshot-menu-create-command", "/섬 스냅샷생성 manual")));
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "snapshot-menu-refresh-name", "새로고침"), message(messages, "snapshot-menu-refresh-command", "/섬 스냅샷")));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             int slot = 0;
             if (snapshots.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "snapshot-menu-empty-title", "스냅샷 없음"), message(messages, "snapshot-menu-empty", "아직 생성된 섬 스냅샷이 없습니다.")));
@@ -118,7 +118,6 @@ public final class IslandSnapshotMenu implements Listener {
                     inventory.setItem(slot++, snapshotItem(snapshot, messages));
                 }
             }
-            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "snapshot-menu-settings-name", "설정"), message(messages, "snapshot-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }

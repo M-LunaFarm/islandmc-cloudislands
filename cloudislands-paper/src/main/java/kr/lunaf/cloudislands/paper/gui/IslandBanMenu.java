@@ -19,7 +19,18 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandBanMenu implements Listener {
     private static final String TITLE = "방문자 밴 목록";
-    private static final String MENU_ID = "island.bans";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/bans.yml",
+        new GuiMenuDefinition("island.bans", 6, "menu.bans.title", Map.of(
+            "open", "island.bans.open",
+            "list", "island.bans.list",
+            "pardon-prepare", "island.ban.pardon.prepare",
+            "pardon-confirm", "island.ban.pardon.confirm",
+            "back", "island.members.open",
+            "settings", "island.settings.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -42,11 +53,11 @@ public final class IslandBanMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandBans(client, islandId)
             .thenAccept(bans -> openSync(plugin, player, session, bans, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다."), "island.bans.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다."), "island.bans.open", "island.settings.open");
                 return null;
             });
     }
@@ -64,17 +75,18 @@ public final class IslandBanMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
-        player.closeInventory();
-        if (slot == 49) {
-            actions.execute(player, "island.bans.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 53) {
-            actions.execute(player, "island.settings.open", GuiClick.from(event));
-            return;
-        }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
         String bannedUuid = data.getOrDefault("playerUuid", "");
+        if (bannedUuid.isBlank()) {
+            String actionId = GuiItems.actionId(event.getCurrentItem());
+            if (actionId.isBlank()) {
+                return;
+            }
+            player.closeInventory();
+            actions.execute(player, actionId, data, GuiClick.from(event));
+            return;
+        }
+        player.closeInventory();
         if (bannedUuid.isBlank()) {
             return;
         }
@@ -92,7 +104,7 @@ public final class IslandBanMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<BanView> bans, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, TITLE);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             if (bans.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "ban-menu-empty-title", "밴 기록 없음"), message(messages, "ban-menu-empty", "현재 밴된 방문자가 없습니다.")));
             } else {
@@ -100,8 +112,6 @@ public final class IslandBanMenu implements Listener {
                     inventory.setItem(index, banItem(bans.get(index), messages));
                 }
             }
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "ban-menu-refresh-name", "새로고침"), message(messages, "ban-menu-refresh-command", "/섬 밴목록")));
-            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "ban-menu-settings-name", "설정"), message(messages, "ban-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
@@ -124,11 +134,7 @@ public final class IslandBanMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

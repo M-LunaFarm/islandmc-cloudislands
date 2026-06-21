@@ -1,9 +1,36 @@
 id: island.bans
 rows: 6
 title-key: menu.bans.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "....R...S"
+items:
+  R:
+    material: CLOCK
+    name-key: ban-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - ban-menu-refresh-command
+    fallback-lore:
+      - "/섬 밴목록"
+    action: open
+  S:
+    material: COMPARATOR
+    name-key: ban-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - ban-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: settings
 actions:
   open: island.bans.open
   list: island.bans.list
   pardon-prepare: island.ban.pardon.prepare
   pardon-confirm: island.ban.pardon.confirm
   back: island.members.open
+  settings: island.settings.open

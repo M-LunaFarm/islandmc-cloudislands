@@ -20,7 +20,18 @@ import org.bukkit.plugin.Plugin;
 
 public final class IslandUpgradeMenu implements Listener {
     private static final String TITLE = "섬 업그레이드";
-    private static final String MENU_ID = "island.upgrades";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/upgrades.yml",
+        new GuiMenuDefinition("island.upgrades", 6, "menu.upgrades.title", Map.of(
+            "open", "island.upgrades.open",
+            "list", "island.upgrades.list",
+            "purchase", "island.upgrade.purchase",
+            "bank", "island.bank.open",
+            "settings", "island.settings.open",
+            "back", "island.main.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -43,11 +54,11 @@ public final class IslandUpgradeMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandUpgrades(client, islandId)
             .thenAccept(upgrades -> openSync(plugin, player, session, upgrades, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다."), "island.upgrades.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다."), "island.upgrades.open", "island.settings.open");
                 return null;
             });
     }
@@ -65,29 +76,24 @@ public final class IslandUpgradeMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
-        player.closeInventory();
-        if (slot == 45) {
-            actions.execute(player, "island.bank.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 49) {
-            actions.execute(player, "island.upgrades.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 53) {
-            actions.execute(player, "island.settings.open", GuiClick.from(event));
-            return;
-        }
-        String key = GuiItems.data(event.getCurrentItem()).getOrDefault("upgradeKey", "");
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        String key = data.getOrDefault("upgradeKey", "");
         if (key.isBlank()) {
+            if (actionId.isBlank()) {
+                return;
+            }
+            player.closeInventory();
+            actions.execute(player, actionId, data, GuiClick.from(event));
             return;
         }
+        player.closeInventory();
         actions.execute(player, "island.upgrade.purchase", java.util.Map.of("upgradeKey", key), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<UpgradeView> upgrades, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, TITLE);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             int slot = 0;
             for (UpgradeView upgrade : upgrades.stream().limit(45).toList()) {
                 inventory.setItem(slot++, upgradeItem(upgrade, messages));
@@ -95,9 +101,6 @@ public final class IslandUpgradeMenu implements Listener {
             if (upgrades.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "upgrade-menu-empty-title", "업그레이드 없음"), message(messages, "upgrade-menu-empty", "Core API에 등록된 섬 업그레이드가 없습니다.")));
             }
-            inventory.setItem(45, item(Material.GOLD_BLOCK, message(messages, "upgrade-menu-bank-name", "섬 은행"), message(messages, "upgrade-menu-bank-command", "/섬 은행")));
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "upgrade-menu-refresh-name", "새로고침"), message(messages, "upgrade-menu-refresh-command", "/섬 업그레이드")));
-            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "upgrade-menu-settings-name", "설정"), message(messages, "upgrade-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
@@ -125,11 +128,7 @@ public final class IslandUpgradeMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static ItemStack item(Material material, String name, String... lore) {
