@@ -1,0 +1,8 @@
+id: island.biome
+rows: 6
+title-key: menu.biome.title
+actions:
+  open: island.biome.open
+  show: island.biome.show
+  set: island.biome.set
+  back: island.settings.open

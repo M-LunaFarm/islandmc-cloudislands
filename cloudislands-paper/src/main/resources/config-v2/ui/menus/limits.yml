@@ -1,0 +1,8 @@
+id: island.limits
+rows: 6
+title-key: menu.limits.title
+actions:
+  open: island.limits.open
+  list: island.limits.list
+  set: island.limit.set
+  back: island.settings.open

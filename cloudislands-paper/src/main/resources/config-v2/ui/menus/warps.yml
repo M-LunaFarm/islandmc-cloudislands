@@ -1,0 +1,12 @@
+id: island.warps
+rows: 6
+title-key: menu.warps.title
+actions:
+  open: island.warps.open
+  teleport: island.warp.teleport
+  public-toggle: island.warp.public.toggle
+  public: island.warp.public
+  private: island.warp.private
+  delete-prepare: island.warp.delete.prepare
+  delete-confirm: island.warp.delete.confirm
+  back: island.main.open

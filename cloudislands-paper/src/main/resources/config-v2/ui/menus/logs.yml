@@ -1,0 +1,8 @@
+id: island.logs
+rows: 6
+title-key: menu.logs.title
+actions:
+  open: island.logs.open
+  list: island.logs.list
+  detail: island.log.detail
+  back: island.chat.open

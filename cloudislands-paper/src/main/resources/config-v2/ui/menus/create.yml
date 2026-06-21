@@ -1,0 +1,7 @@
+id: island.create
+rows: 6
+title-key: menu.create.title
+actions:
+  open: island.create.open
+  create: island.create
+  back: island.main.open

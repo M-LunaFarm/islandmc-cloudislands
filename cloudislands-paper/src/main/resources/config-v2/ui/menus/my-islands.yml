@@ -1,0 +1,8 @@
+id: island.my-islands
+rows: 6
+title-key: menu.my-islands.title
+actions:
+  open: island.list.open
+  visit: island.visit.target
+  create: island.create.open
+  back: island.main.open

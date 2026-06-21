@@ -1,0 +1,9 @@
+id: island.bans
+rows: 6
+title-key: menu.bans.title
+actions:
+  open: island.bans.open
+  list: island.bans.list
+  pardon-prepare: island.ban.pardon.prepare
+  pardon-confirm: island.ban.pardon.confirm
+  back: island.members.open

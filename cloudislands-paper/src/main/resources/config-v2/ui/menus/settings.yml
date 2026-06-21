@@ -1,0 +1,12 @@
+id: island.settings
+rows: 6
+title-key: menu.settings.title
+actions:
+  open: island.settings.open
+  public-toggle: island.public.toggle
+  lock-toggle: island.lock.toggle
+  flags: island.flags.open
+  limits: island.limits.open
+  biome: island.biome.open
+  danger: island.danger.open
+  back: island.main.open

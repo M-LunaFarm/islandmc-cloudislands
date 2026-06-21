@@ -1,0 +1,8 @@
+id: island.info
+rows: 3
+title-key: menu.info.title
+actions:
+  open: island.info.open
+  worth: island.worth.show
+  level: island.level.show
+  back: island.main.open

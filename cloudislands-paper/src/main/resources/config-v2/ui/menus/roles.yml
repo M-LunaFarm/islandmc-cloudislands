@@ -1,0 +1,9 @@
+id: island.roles
+rows: 6
+title-key: menu.roles.title
+actions:
+  open: island.roles.open
+  list: island.roles.list
+  adjust-weight: island.role.weight.adjust
+  permissions: island.permissions.open
+  settings: island.settings.open

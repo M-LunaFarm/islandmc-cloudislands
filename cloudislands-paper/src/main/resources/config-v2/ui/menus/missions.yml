@@ -1,0 +1,7 @@
+id: island.missions
+rows: 6
+title-key: menu.missions.title
+actions:
+  open: island.missions.open
+  complete: island.mission.complete
+  back: island.main.open

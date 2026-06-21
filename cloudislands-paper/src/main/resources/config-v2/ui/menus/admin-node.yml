@@ -1,0 +1,14 @@
+id: admin.node
+rows: 6
+title-key: menu.admin-node.title
+actions:
+  open: admin.node.open
+  list: admin.node.list
+  info: admin.node.info
+  islands: admin.node.islands
+  drain: admin.node.drain
+  undrain: admin.node.undrain
+  sweep: admin.node.sweep
+  kickall: admin.node.kickall.prepare
+  shutdown-safe: admin.node.shutdown-safe.prepare
+  close: gui.close

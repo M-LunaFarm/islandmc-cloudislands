@@ -1,0 +1,8 @@
+id: island.bank
+rows: 3
+title-key: menu.bank.title
+actions:
+  open: island.bank.open
+  deposit: island.bank.deposit
+  withdraw: island.bank.withdraw
+  back: island.main.open

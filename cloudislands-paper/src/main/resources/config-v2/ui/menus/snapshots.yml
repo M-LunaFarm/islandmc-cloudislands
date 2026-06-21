@@ -1,0 +1,10 @@
+id: island.snapshots
+rows: 6
+title-key: menu.snapshots.title
+actions:
+  open: island.snapshots.open
+  list: island.snapshots.list
+  create: island.snapshot.create
+  restore-prepare: island.snapshot.restore.prepare
+  restore-confirm: island.snapshot.restore.confirm
+  back: island.danger.open

@@ -1,0 +1,9 @@
+id: island.visit
+rows: 6
+title-key: menu.visit.title
+actions:
+  open: island.visit.open
+  public: island.visit.public.open
+  random: island.visit.random
+  target: island.visit.target
+  back: island.main.open

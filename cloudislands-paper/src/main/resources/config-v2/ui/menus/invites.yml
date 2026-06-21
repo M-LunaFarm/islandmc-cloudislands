@@ -1,0 +1,8 @@
+id: island.invites
+rows: 6
+title-key: menu.invites.title
+actions:
+  open: island.invites.open
+  accept: island.invite.accept
+  decline: island.invite.decline
+  back: island.members.open

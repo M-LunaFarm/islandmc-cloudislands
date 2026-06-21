@@ -1,0 +1,8 @@
+id: island.flags
+rows: 6
+title-key: menu.flags.title
+actions:
+  open: island.flags.open
+  list: island.flags.list
+  set: island.flag.set
+  back: island.settings.open

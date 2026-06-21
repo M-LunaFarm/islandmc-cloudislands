@@ -1,0 +1,8 @@
+id: island.homes
+rows: 6
+title-key: menu.homes.title
+actions:
+  open: island.homes.open
+  home: island.home
+  set: island.home.set
+  back: island.main.open

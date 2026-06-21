@@ -1,0 +1,8 @@
+id: island.upgrades
+rows: 6
+title-key: menu.upgrades.title
+actions:
+  open: island.upgrades.open
+  list: island.upgrades.list
+  purchase: island.upgrade.purchase
+  back: island.main.open

@@ -1,0 +1,8 @@
+id: island.ranking
+rows: 6
+title-key: menu.ranking.title
+actions:
+  open: island.ranking.open
+  list: island.ranking.list
+  visit: island.visit.target
+  back: island.main.open
