@@ -322,6 +322,15 @@ final class IslandMembershipCommandHandler {
                 changePermission.expectedVersion());
             return true;
         }
+        if (action instanceof GuiAction.RoleWeightAdjust roleWeight) {
+            runtime.adjustIslandRoleWeight(
+                player,
+                roleWeight.roleId().value(),
+                Integer.toString(roleWeight.weight()),
+                roleWeight.displayName(),
+                click);
+            return true;
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {

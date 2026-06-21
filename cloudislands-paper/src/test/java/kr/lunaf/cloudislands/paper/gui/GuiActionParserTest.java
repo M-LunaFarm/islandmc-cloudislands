@@ -29,6 +29,7 @@ class GuiActionParserTest {
     void rejectsMalformedKnownActionsInsteadOfExecutingRawMaps() {
         assertTrue(GuiActionParser.parse("island.permissions.set", Map.of("role", "", "permission", "BUILD")).isEmpty());
         assertTrue(GuiActionParser.parse("island.permissions.set", Map.of("role", "MEMBER", "permission", "NOPE")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.role.weight.adjust", Map.of("role", "BUILDER", "weight", "-1")).isEmpty());
         assertTrue(GuiActionParser.parse("island.member.remove.prepare", Map.of("playerUuid", "not-a-uuid")).isEmpty());
     }
 
@@ -71,6 +72,15 @@ class GuiActionParserTest {
         assertTrue(action instanceof GuiAction.LimitSet);
         assertEquals("island.limit.set", action.actionId());
         assertEquals(Map.of("limitKey", "REDSTONE_BLOCKS", "value", "12"), action.data());
+    }
+
+    @Test
+    void parsesRoleWeightAdjustIntoTypedAction() {
+        GuiAction action = GuiActionParser.parse("island.role.weight.adjust", Map.of("role", "builder", "weight", "42", "displayName", " Builder ")).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.RoleWeightAdjust);
+        assertEquals("island.role.weight.adjust", action.actionId());
+        assertEquals(Map.of("role", "BUILDER", "weight", "42", "displayName", "Builder"), action.data());
     }
 
     @Test

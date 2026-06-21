@@ -118,6 +118,11 @@ public final class GuiActionParser {
                     enumValue(IslandPermission.class, required(safeData, "permission")),
                     safeData.getOrDefault("expectedVersion", "")
                 ));
+                case "island.role.weight.adjust" -> Optional.of(new GuiAction.RoleWeightAdjust(
+                    new RoleId(required(safeData, "role")),
+                    nonNegativeInteger(required(safeData, "weight")),
+                    safeData.getOrDefault("displayName", "")
+                ));
                 default -> GuiActionSchema.registered(safeAction)
                     ? Optional.of(new GuiAction.Raw(safeAction, safeData))
                     : Optional.empty();
@@ -174,6 +179,14 @@ public final class GuiActionParser {
     private static long nonNegativeLong(String value) {
         long parsed = Long.parseLong(value.trim());
         if (parsed < 0L) {
+            throw new IllegalArgumentException("non-negative value is required");
+        }
+        return parsed;
+    }
+
+    private static int nonNegativeInteger(String value) {
+        int parsed = Integer.parseInt(value.trim());
+        if (parsed < 0) {
             throw new IllegalArgumentException("non-negative value is required");
         }
         return parsed;

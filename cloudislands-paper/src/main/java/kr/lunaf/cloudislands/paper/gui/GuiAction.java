@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.RoleWeightAdjust, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -403,6 +403,28 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
 
         private static boolean banPardonConfirmation(String actionId) {
             return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".ban.pardon.confirm");
+        }
+    }
+
+    record RoleWeightAdjust(RoleId roleId, int weight, String displayName) implements GuiAction {
+        public RoleWeightAdjust {
+            if (roleId == null) {
+                throw new IllegalArgumentException("roleId is required");
+            }
+            if (weight < 0) {
+                throw new IllegalArgumentException("weight must be non-negative");
+            }
+            displayName = displayName == null ? "" : displayName.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return "island.role.weight.adjust";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("role", roleId.value(), "weight", Integer.toString(weight), "displayName", displayName);
         }
     }
 
