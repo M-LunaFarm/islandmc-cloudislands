@@ -54,6 +54,9 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkHomeWarpClient homeWarpClient;
     private final JdkIslandClient islandClient;
     private final JdkMemberQueryClient memberQueryClient;
+    private final JdkPlayerProfileClient playerProfileClient;
+    private final JdkTemplateClient templateClient;
+    private final JdkJobClient jobClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -73,6 +76,9 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.homeWarpClient = new JdkHomeWarpClient();
         this.islandClient = new JdkIslandClient();
         this.memberQueryClient = new JdkMemberQueryClient();
+        this.playerProfileClient = new JdkPlayerProfileClient();
+        this.templateClient = new JdkTemplateClient();
+        this.jobClient = new JdkJobClient();
     }
 
     @Override
@@ -138,6 +144,36 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public MemberQueryClient members() {
         return memberQueryClient;
+    }
+
+    @Override
+    public PlayerProfileQueryClient playerProfiles() {
+        return playerProfileClient;
+    }
+
+    @Override
+    public PlayerProfileCommandClient playerProfileCommands() {
+        return playerProfileClient;
+    }
+
+    @Override
+    public TemplateQueryClient templates() {
+        return templateClient;
+    }
+
+    @Override
+    public TemplateCommandClient templateCommands() {
+        return templateClient;
+    }
+
+    @Override
+    public JobQueryClient jobs() {
+        return jobClient;
+    }
+
+    @Override
+    public JobCommandClient jobCommands() {
+        return jobClient;
     }
 
     @Override
@@ -1153,6 +1189,147 @@ public final class JdkCoreApiClient implements CoreApiClient {
         private void requireId(UUID id, String name) {
             if (id == null) {
                 throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkPlayerProfileClient implements PlayerProfileQueryClient, PlayerProfileCommandClient {
+        @Override
+        public CompletableFuture<PlayerProfileView> profile(UUID playerUuid) {
+            requireId(playerUuid, "playerUuid");
+            return postWithResultBody("/v1/admin/players/info", jsonObject("playerUuid", playerUuid))
+                .thenApply(CorePlayerProfileJson::profile);
+        }
+
+        @Override
+        public CompletableFuture<PlayerProfileView> findByName(String lastName) {
+            String normalized = lastName == null ? "" : lastName.trim();
+            if (normalized.isBlank()) {
+                throw new IllegalArgumentException("lastName is required");
+            }
+            return post("/v1/players/info", jsonObject("lastName", normalized))
+                .thenApply(CorePlayerProfileJson::profile);
+        }
+
+        @Override
+        public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName) {
+            requireId(playerUuid, "playerUuid");
+            return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName))
+                .thenApply(CorePlayerProfileJson::profile);
+        }
+
+        @Override
+        public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName, String locale) {
+            requireId(playerUuid, "playerUuid");
+            return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName, "locale", locale == null ? "" : locale))
+                .thenApply(CorePlayerProfileJson::profile);
+        }
+
+        @Override
+        public CompletableFuture<PlayerProfileView> setLocale(UUID playerUuid, String locale) {
+            requireId(playerUuid, "playerUuid");
+            return postWithResultBody("/v1/players/locale", jsonObject("playerUuid", playerUuid, "locale", locale == null ? "" : locale))
+                .thenApply(CorePlayerProfileJson::profile);
+        }
+
+        @Override
+        public CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId) {
+            requireId(playerUuid, "playerUuid");
+            requireId(islandId, "islandId");
+            return postWithResultBody("/v1/admin/players/setisland", jsonObject("playerUuid", playerUuid, "islandId", islandId))
+                .thenApply(CorePlayerProfileJson::profile);
+        }
+
+        @Override
+        public CompletableFuture<PlayerProfileView> clearPrimaryIsland(UUID playerUuid) {
+            requireId(playerUuid, "playerUuid");
+            return postWithResultBody("/v1/admin/players/clearisland", jsonObject("playerUuid", playerUuid))
+                .thenApply(CorePlayerProfileJson::profile);
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkTemplateClient implements TemplateQueryClient, TemplateCommandClient {
+        @Override
+        public CompletableFuture<List<TemplateView>> list() {
+            return postWithResultBody("/v1/admin/templates/list", "{}")
+                .thenApply(CoreTemplateJson::templates);
+        }
+
+        @Override
+        public CompletableFuture<TemplateView> upsert(String templateId, String displayName, boolean enabled, String minNodeVersion) {
+            String safeTemplateId = requireTemplateId(templateId);
+            return postWithResultBody("/v1/admin/templates/upsert", jsonObject(
+                "templateId", safeTemplateId,
+                "displayName", displayName == null ? "" : displayName,
+                "enabled", enabled,
+                "minNodeVersion", minNodeVersion == null ? "" : minNodeVersion
+            )).thenApply(CoreTemplateJson::template);
+        }
+
+        @Override
+        public CompletableFuture<TemplateView> enable(String templateId) {
+            return postWithResultBody("/v1/admin/templates/enable", jsonObject("templateId", requireTemplateId(templateId)))
+                .thenApply(CoreTemplateJson::template);
+        }
+
+        @Override
+        public CompletableFuture<TemplateView> disable(String templateId) {
+            return postWithResultBody("/v1/admin/templates/disable", jsonObject("templateId", requireTemplateId(templateId)))
+                .thenApply(CoreTemplateJson::template);
+        }
+
+        private String requireTemplateId(String templateId) {
+            String normalized = templateId == null ? "" : templateId.trim();
+            if (normalized.isBlank()) {
+                throw new IllegalArgumentException("templateId is required");
+            }
+            return normalized;
+        }
+    }
+
+    private final class JdkJobClient implements JobQueryClient, JobCommandClient {
+        @Override
+        public CompletableFuture<List<JobView>> list() {
+            return postWithResultBody("/v1/admin/jobs/list", "{}")
+                .thenApply(CoreJobJson::jobs);
+        }
+
+        @Override
+        public CompletableFuture<JobActionView> retry(UUID jobId) {
+            requireId(jobId);
+            return postWithResultBody("/v1/admin/jobs/retry", jsonObject("jobId", jobId))
+                .thenApply(body -> CoreJobJson.action(body, "JOB_RETRIED"));
+        }
+
+        @Override
+        public CompletableFuture<JobActionView> cancel(UUID jobId) {
+            requireId(jobId);
+            return postWithResultBody("/v1/admin/jobs/cancel", jsonObject("jobId", jobId))
+                .thenApply(body -> CoreJobJson.action(body, "JOB_CANCELED"));
+        }
+
+        @Override
+        public CompletableFuture<JobRecoveryView> recover(String nodeId, long minIdleMillis, int maxJobs) {
+            String safeNodeId = nodeId == null ? "" : nodeId.trim();
+            if (safeNodeId.isBlank()) {
+                throw new IllegalArgumentException("nodeId is required");
+            }
+            return postWithResultBody("/v1/admin/jobs/recover", jsonObject(
+                "nodeId", safeNodeId,
+                "minIdleMillis", Math.max(0L, minIdleMillis),
+                "maxJobs", Math.max(1, maxJobs)
+            )).thenApply(CoreJobJson::recovery);
+        }
+
+        private void requireId(UUID jobId) {
+            if (jobId == null) {
+                throw new IllegalArgumentException("jobId is required");
             }
         }
     }
