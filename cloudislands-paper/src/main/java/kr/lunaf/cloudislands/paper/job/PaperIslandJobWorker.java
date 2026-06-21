@@ -32,6 +32,7 @@ public final class PaperIslandJobWorker {
     private final PermissionCacheSyncService permissionSync;
     private final String nodeId;
     private final PlatformScheduler scheduler;
+    private final PaperJobCompletionReporter completionReporter;
     private TaskHandle task;
     private volatile int consecutiveFailures;
     private volatile int inFlightJobs;
@@ -58,6 +59,11 @@ public final class PaperIslandJobWorker {
         this.permissionSync = permissionSync;
         this.nodeId = nodeId;
         this.scheduler = scheduler == null ? new BukkitPlatformScheduler(plugin) : scheduler;
+        this.completionReporter = new PaperJobCompletionReporter(
+            this.nodeId,
+            this.jobSource::complete,
+            message -> this.plugin.getLogger().warning(message)
+        );
     }
 
     public void start(long intervalTicks) {
@@ -145,7 +151,7 @@ public final class PaperIslandJobWorker {
             } else {
                 jobSource.fail(nodeId, job.jobId(), result.state());
             }
-        } catch (CompletionReportFailedException ignored) {
+        } catch (PaperJobCompletionReporter.CompletionReportFailedException ignored) {
             return;
         } catch (RuntimeException exception) {
             jobSource.fail(nodeId, job.jobId(), exception.getMessage());
@@ -221,19 +227,6 @@ public final class PaperIslandJobWorker {
     }
 
     private void reportComplete(IslandJob job, Map<String, String> payload) {
-        try {
-            jobSource.complete(nodeId, job.jobId(), payload);
-        } catch (RuntimeException exception) {
-            plugin.getLogger().warning("CloudIslands job completion report failed; leaving claimed job for retry: " + job.jobId() + " " + exception.getMessage());
-            throw new CompletionReportFailedException(exception);
-        }
-    }
-
-    private static final class CompletionReportFailedException extends RuntimeException {
-        private static final long serialVersionUID = 1L;
-
-        private CompletionReportFailedException(Throwable cause) {
-            super(cause);
-        }
+        completionReporter.report(job.jobId(), payload);
     }
 }
