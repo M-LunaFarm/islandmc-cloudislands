@@ -204,8 +204,12 @@ class PaperPlatformBoundaryTest {
         assertTrue(backend.contains("MemberManagementUseCase"), "Island command backend must own the member management usecase");
         assertTrue(backend.contains("memberManagement.removeMember("), "Command and GUI member removal must call the application usecase");
         assertTrue(!backend.contains("coreApiClient.removeIslandMemberResult("), "Presentation code must not call member removal Core API directly");
+        assertTrue(!backend.contains("coreApiClient.banIslandVisitorResult("), "Presentation code must not call visitor ban Core API directly");
+        assertTrue(!backend.contains("coreApiClient.pardonIslandVisitorResult("), "Presentation code must not call visitor pardon Core API directly");
         assertTrue(membership.contains("runtime.removeIslandMember(player"), "GUI confirmation and command routing must share the same member removal boundary");
         assertTrue(usecase.contains("coreApiClient.removeIslandMemberResult("), "The application usecase must own the Core member removal call");
+        assertTrue(usecase.contains("coreApiClient.banIslandVisitorResult("), "The application usecase must own the Core visitor ban call");
+        assertTrue(usecase.contains("coreApiClient.pardonIslandVisitorResult("), "The application usecase must own the Core visitor pardon call");
     }
 
     @Test

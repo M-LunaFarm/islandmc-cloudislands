@@ -15,6 +15,21 @@ public final class MemberManagementUseCase {
     }
 
     public CompletableFuture<String> removeMember(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        requireIds(islandId, actorUuid, targetUuid);
+        return coreApiClient.removeIslandMemberResult(islandId, actorUuid, targetUuid);
+    }
+
+    public CompletableFuture<String> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) {
+        requireIds(islandId, actorUuid, targetUuid);
+        return coreApiClient.banIslandVisitorResult(islandId, actorUuid, targetUuid, reason == null ? "" : reason);
+    }
+
+    public CompletableFuture<String> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        requireIds(islandId, actorUuid, targetUuid);
+        return coreApiClient.pardonIslandVisitorResult(islandId, actorUuid, targetUuid);
+    }
+
+    private static void requireIds(UUID islandId, UUID actorUuid, UUID targetUuid) {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
@@ -24,6 +39,5 @@ public final class MemberManagementUseCase {
         if (targetUuid == null) {
             throw new IllegalArgumentException("targetUuid is required");
         }
-        return coreApiClient.removeIslandMemberResult(islandId, actorUuid, targetUuid);
     }
 }

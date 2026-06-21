@@ -1298,7 +1298,7 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.visitor.ban", () -> coreApiClient.banIslandVisitorResult(islandId, player.getUniqueId(), targetUuid, reason))
+                mutateIdempotent("island.visitor.ban", () -> memberManagement.banVisitor(islandId, player.getUniqueId(), targetUuid, reason))
                     .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                         if (resultRejected(body)) {
                             player.sendMessage(playerMessage(actionResultMessage("섬 방문자 밴", targetUuid, body)));
@@ -1322,7 +1322,7 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.visitor.pardon", () -> coreApiClient.pardonIslandVisitorResult(islandId, player.getUniqueId(), targetUuid))
+                mutateIdempotent("island.visitor.pardon", () -> memberManagement.pardonVisitor(islandId, player.getUniqueId(), targetUuid))
                     .thenAccept(body -> message(player, actionResultMessage("섬 방문자 밴 해제", targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 방문자 밴을 해제하지 못했습니다.");
