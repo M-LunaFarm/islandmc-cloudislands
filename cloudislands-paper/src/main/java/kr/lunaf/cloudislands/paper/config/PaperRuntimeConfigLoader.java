@@ -68,7 +68,8 @@ public final class PaperRuntimeConfigLoader {
         "ui/menus/upgrades.yml",
         "ui/menus/visit.yml",
         "ui/menus/warps.yml",
-        "ui/messages/ko_kr.yml"
+        "ui/messages/ko_kr.yml",
+        "ui/messages/en_us.yml"
     );
 
     private PaperRuntimeConfigLoader() {
@@ -210,6 +211,8 @@ public final class PaperRuntimeConfigLoader {
                 setIfPresent(yaml, mapped, "superiorskyblock2.enabled", "migration.superiorskyblock2.enabled");
             } else if (name.endsWith("ui/scoreboard.yml")) {
                 setIfPresent(yaml, mapped, "lines", "messages.scoreboard-lines");
+            } else if (name.contains("/ui/messages/")) {
+                mapMessagesV2(yaml, mapped, name);
             }
         }
         return mapped;
@@ -276,6 +279,31 @@ public final class PaperRuntimeConfigLoader {
         }
     }
 
+    private static void mapMessagesV2(FileConfiguration source, FileConfiguration target, String sourceName) {
+        String locale = localeFromMessageSource(sourceName);
+        String activeLocale = normalizeLocale(target.getString("plugin.language", "ko_kr"));
+        if (!locale.equals(activeLocale)) {
+            return;
+        }
+        for (String key : source.getKeys(true)) {
+            if (source.isString(key)) {
+                target.set("messages.translations." + key, source.getString(key));
+            }
+        }
+    }
+
+    private static String localeFromMessageSource(String sourceName) {
+        String normalized = sourceName == null ? "" : sourceName.replace('\\', '/');
+        int slash = normalized.lastIndexOf('/');
+        String file = slash < 0 ? normalized : normalized.substring(slash + 1);
+        int dot = file.lastIndexOf('.');
+        return normalizeLocale(dot < 0 ? file : file.substring(0, dot));
+    }
+
+    private static String normalizeLocale(String value) {
+        return value == null || value.isBlank() ? "ko_kr" : value.trim().toLowerCase(Locale.ROOT).replace('-', '_');
+    }
+
     private static YamlConfiguration yaml(String value, String sourceName) {
         YamlConfiguration yaml = new YamlConfiguration();
         try {
@@ -304,7 +332,7 @@ public final class PaperRuntimeConfigLoader {
         Map<String, String> translations = new HashMap<>();
         ConfigurationSection section = config.getConfigurationSection("messages.translations");
         if (section != null) {
-            for (String key : section.getKeys(false)) {
+            for (String key : section.getKeys(true)) {
                 String value = section.getString(key);
                 if (value != null) {
                     translations.put(key, value);

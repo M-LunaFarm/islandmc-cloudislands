@@ -31,6 +31,11 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("\"ui/menus/main.yml\""), "Paper runtime loader must discover bundled config-v2 menu files");
         assertTrue(loader.contains("\"ui/menus/bank.yml\""), "Paper runtime loader must discover expanded config-v2 menu files");
         assertTrue(loader.contains("\"ui/menus/warps.yml\""), "Paper runtime loader must discover expanded config-v2 menu files");
+        assertTrue(loader.contains("\"ui/messages/en_us.yml\""), "Paper runtime loader must discover all bundled locale files");
+        assertTrue(loader.contains("mapMessagesV2"), "Paper runtime loader must map active locale messages into the runtime snapshot");
+        assertTrue(loader.contains("localeFromMessageSource"), "Paper runtime loader must only apply the active locale message file");
+        assertTrue(loader.contains("target.set(\"messages.translations.\" + key"), "Config v2 locale messages must feed runtime translations");
+        assertTrue(loader.contains("section.getKeys(true)"), "runtime message snapshots must support nested locale yaml keys");
         assertTrue(loader.contains("requireValidSnapshot"), "Paper runtime loader must reject invalid effective runtime snapshots");
         assertTrue(loader.contains("ConfigV2Loader.load"), "Paper runtime loader must create a ConfigSnapshot from mapped config-v2 sources");
         assertTrue(loader.contains("\"node.id\", \"node.id\""), "Config v2 node id must feed runtime node identity");
