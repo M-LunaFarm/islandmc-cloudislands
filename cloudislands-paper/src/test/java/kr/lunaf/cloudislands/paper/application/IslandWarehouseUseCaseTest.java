@@ -19,7 +19,10 @@ class IslandWarehouseUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000030");
         UUID actorUuid = uuid("00000000-0000-0000-0000-000000000001");
 
-        assertEquals("items", useCase.list(islandId, 500).join());
+        assertEquals("{\"items\":[{\"materialKey\":\"STONE\",\"amount\":12},{\"materialKey\":\"DIRT\",\"amount\":7}]}", useCase.list(islandId, 500).join());
+        List<IslandWarehouseUseCase.WarehouseItemView> items = useCase.listItems(islandId, 500).join();
+        assertEquals("STONE", items.get(0).materialKey());
+        assertEquals(12L, items.get(0).amount());
         IslandWarehouseUseCase.WarehouseOperationResult deposit = useCase.deposit(islandId, actorUuid, "STONE", 12L, mutationRunner(calls)).join();
         IslandWarehouseUseCase.WarehouseOperationResult withdraw = useCase.withdraw(islandId, actorUuid, "DIRT", 7L, mutationRunner(calls)).join();
 
@@ -29,6 +32,7 @@ class IslandWarehouseUseCaseTest {
         assertEquals(false, withdraw.accepted());
         assertEquals("NO_STOCK", withdraw.code());
         assertEquals(List.of(
+            "islandWarehouse:100",
             "islandWarehouse:100",
             "audit:island.warehouse.deposit",
             "depositIslandWarehouse:STONE:12",
@@ -56,7 +60,7 @@ class IslandWarehouseUseCaseTest {
             (_proxy, method, args) -> switch (method.getName()) {
                 case "islandWarehouse" -> {
                     calls.add("islandWarehouse:" + args[1]);
-                    yield CompletableFuture.completedFuture("items");
+                    yield CompletableFuture.completedFuture("{\"items\":[{\"materialKey\":\"STONE\",\"amount\":12},{\"materialKey\":\"DIRT\",\"amount\":7}]}");
                 }
                 case "depositIslandWarehouse" -> {
                     calls.add("depositIslandWarehouse:" + args[2] + ":" + args[3]);

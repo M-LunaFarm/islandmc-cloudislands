@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,6 +8,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase;
+import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase.WarehouseItemView;
 import org.bukkit.entity.Player;
 
 final class IslandWarehouseCommandHandler {
@@ -46,8 +46,8 @@ final class IslandWarehouseCommandHandler {
 
     private void listWarehouse(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 창고를 확인할 수 있습니다.").ifPresent(islandId -> {
-            warehouseUseCase.list(islandId, limit)
-                .thenAccept(body -> runtime.message(player, warehouseListMessage(body)))
+            warehouseUseCase.listItems(islandId, limit)
+                .thenAccept(items -> runtime.message(player, warehouseListMessage(items)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 창고를 불러오지 못했습니다.");
                     return null;
@@ -69,12 +69,12 @@ final class IslandWarehouseCommandHandler {
             CompletableFuture<IslandWarehouseUseCase.WarehouseOperationResult> request = deposit
                 ? warehouseUseCase.deposit(islandId, player.getUniqueId(), materialKey, amount, runtime::mutateIdempotent)
                 : warehouseUseCase.withdraw(islandId, player.getUniqueId(), materialKey, amount, runtime::mutateIdempotent);
-            request.thenAccept(body -> {
-                    if (!body.accepted()) {
-                        runtime.message(player, runtime.playerCodeMessage(body.code(), deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
+            request.thenAccept(result -> {
+                    if (!result.accepted()) {
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
                         return;
                     }
-                    runtime.message(player, (deposit ? "섬 창고 입금 완료: " : "섬 창고 출금 완료: ") + body.materialKey() + " x" + body.amount());
+                    runtime.message(player, (deposit ? "섬 창고 입금 완료: " : "섬 창고 출금 완료: ") + result.materialKey() + " x" + result.amount());
                 })
                 .exceptionally(error -> {
                     runtime.message(player, runtime.coreWriteFailureMessage(error, deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
@@ -83,29 +83,11 @@ final class IslandWarehouseCommandHandler {
         });
     }
 
-    private static String warehouseListMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "섬 창고가 비어 있습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = body.indexOf("\"items\"");
-        while (index >= 0 && index < body.length() && entries.size() < 20) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String materialKey = text(object, "materialKey");
-            long amount = (long) decimal(object, "amount");
-            if (!materialKey.isBlank() && amount > 0L) {
-                entries.add(materialKey + " x" + amount);
-            }
-            index = objectEnd + 1;
-        }
+    private static String warehouseListMessage(List<WarehouseItemView> items) {
+        List<String> entries = items.stream()
+            .limit(20)
+            .map(item -> item.materialKey() + " x" + item.amount())
+            .toList();
         return entries.isEmpty() ? "섬 창고가 비어 있습니다." : "섬 창고: " + String.join(", ", entries);
     }
 
@@ -122,59 +104,6 @@ final class IslandWarehouseCommandHandler {
             return Long.parseLong(value);
         } catch (NumberFormatException exception) {
             return fallback;
-        }
-    }
-
-    private static String text(String json, String key) {
-        String marker = "\"" + key + "\"";
-        int keyIndex = json.indexOf(marker);
-        if (keyIndex < 0) {
-            return "";
-        }
-        int colon = json.indexOf(':', keyIndex + marker.length());
-        if (colon < 0) {
-            return "";
-        }
-        int start = json.indexOf('"', colon + 1);
-        if (start < 0) {
-            return "";
-        }
-        int end = json.indexOf('"', start + 1);
-        if (end < 0) {
-            return "";
-        }
-        return json.substring(start + 1, end);
-    }
-
-    private static double decimal(String json, String key) {
-        String marker = "\"" + key + "\"";
-        int keyIndex = json.indexOf(marker);
-        if (keyIndex < 0) {
-            return 0.0d;
-        }
-        int colon = json.indexOf(':', keyIndex + marker.length());
-        if (colon < 0) {
-            return 0.0d;
-        }
-        int end = colon + 1;
-        while (end < json.length() && " \t\r\n".indexOf(json.charAt(end)) >= 0) {
-            end++;
-        }
-        int start = end;
-        while (end < json.length()) {
-            char current = json.charAt(end);
-            if (!(Character.isDigit(current) || current == '-' || current == '.')) {
-                break;
-            }
-            end++;
-        }
-        if (start == end) {
-            return 0.0d;
-        }
-        try {
-            return Double.parseDouble(json.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0.0d;
         }
     }
 

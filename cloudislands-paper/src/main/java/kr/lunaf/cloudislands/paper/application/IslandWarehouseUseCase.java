@@ -1,8 +1,11 @@
 package kr.lunaf.cloudislands.paper.application;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class IslandWarehouseUseCase {
@@ -18,6 +21,10 @@ public final class IslandWarehouseUseCase {
     public CompletableFuture<String> list(UUID islandId, int limit) {
         requireIsland(islandId);
         return coreApiClient.islandWarehouse(islandId, Math.max(1, Math.min(limit, 100)));
+    }
+
+    public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
+        return list(islandId, limit).thenApply(IslandWarehouseUseCase::itemViews);
     }
 
     public CompletableFuture<WarehouseOperationResult> deposit(UUID islandId, UUID actorUuid, String materialKey, long amount, MutationRunner runner) {
@@ -70,57 +77,39 @@ public final class IslandWarehouseUseCase {
         }
     }
 
-    private static String text(String json, String key) {
-        String marker = "\"" + key + "\"";
-        int keyIndex = json == null ? -1 : json.indexOf(marker);
-        if (keyIndex < 0) {
-            return "";
-        }
-        int colon = json.indexOf(':', keyIndex + marker.length());
-        if (colon < 0) {
-            return "";
-        }
-        int start = json.indexOf('"', colon + 1);
-        if (start < 0) {
-            return "";
-        }
-        int end = json.indexOf('"', start + 1);
-        if (end < 0) {
-            return "";
-        }
-        return json.substring(start + 1, end);
+    private static List<WarehouseItemView> itemViews(String body) {
+        return entries(body).stream()
+            .map(object -> new WarehouseItemView(text(object, "materialKey"), SimpleJson.number(object.get("amount"))))
+            .filter(item -> !item.materialKey().isBlank() && item.amount() > 0L)
+            .toList();
     }
 
-    private static double decimal(String json, String key) {
-        String marker = "\"" + key + "\"";
-        int keyIndex = json == null ? -1 : json.indexOf(marker);
-        if (keyIndex < 0) {
-            return 0.0d;
+    private static List<Map<?, ?>> entries(String body) {
+        Object parsed = SimpleJson.parse(body);
+        if (parsed instanceof List<?>) {
+            return SimpleJson.list(parsed).stream()
+                .map(SimpleJson::object)
+                .filter(map -> !map.isEmpty())
+                .toList();
         }
-        int colon = json.indexOf(':', keyIndex + marker.length());
-        if (colon < 0) {
-            return 0.0d;
-        }
-        int end = colon + 1;
-        while (end < json.length() && " \t\r\n".indexOf(json.charAt(end)) >= 0) {
-            end++;
-        }
-        int start = end;
-        while (end < json.length()) {
-            char current = json.charAt(end);
-            if (!(Character.isDigit(current) || current == '-' || current == '.')) {
-                break;
+        Map<?, ?> root = SimpleJson.object(parsed);
+        for (Object value : root.values()) {
+            if (value instanceof List<?>) {
+                return SimpleJson.list(value).stream()
+                    .map(SimpleJson::object)
+                    .filter(map -> !map.isEmpty())
+                    .toList();
             }
-            end++;
         }
-        if (start == end) {
-            return 0.0d;
-        }
-        try {
-            return Double.parseDouble(json.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0.0d;
-        }
+        return root.isEmpty() ? List.of() : List.of(root);
+    }
+
+    private static Map<?, ?> root(String body) {
+        return SimpleJson.object(SimpleJson.parse(body));
+    }
+
+    private static String text(Map<?, ?> object, String key) {
+        return SimpleJson.text(object.get(key));
     }
 
     @FunctionalInterface
@@ -130,8 +119,17 @@ public final class IslandWarehouseUseCase {
 
     public record WarehouseOperationResult(boolean accepted, String code, String materialKey, long amount) {
         private static WarehouseOperationResult fromBody(String body) {
-            boolean accepted = body == null || !body.contains("\"accepted\":false");
-            return new WarehouseOperationResult(accepted, text(body, "code"), text(body, "materialKey"), (long) decimal(body, "amount"));
+            Map<?, ?> root = root(body);
+            boolean accepted = !root.containsKey("error")
+                && !Boolean.FALSE.equals(root.get("accepted"))
+                && !Boolean.FALSE.equals(root.get("applied"));
+            return new WarehouseOperationResult(accepted, text(root, "code"), text(root, "materialKey"), SimpleJson.number(root.get("amount")));
+        }
+    }
+
+    public record WarehouseItemView(String materialKey, long amount) {
+        public WarehouseItemView {
+            materialKey = materialKey == null ? "" : materialKey;
         }
     }
 }
