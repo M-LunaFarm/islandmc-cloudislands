@@ -1467,7 +1467,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             message(player, failureMessage);
             return;
         }
-        CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
+        CompletableFuture.runAsync(() -> coreApiClient.routingCommands().routeTicketStatus(ticket).thenAccept(status -> {
             if (status.isPresent()) {
                 routeTicket(player, status.get(), failureMessage, attempt + 1);
             } else {
@@ -1480,7 +1480,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
-        coreApiClient.publishRouteSession(ticket)
+        coreApiClient.routingCommands().publishRouteSession(ticket)
             .thenRun(() -> connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode())))
             .exceptionally(error -> {
                 clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
@@ -1520,7 +1520,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private void clearFailedRoute(RouteTicket ticket, String reason) {
-        coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason).exceptionally(error -> null);
+        coreApiClient.routingCommands().clearRoute(ticket, reason).exceptionally(error -> null);
     }
 
     private void run(CommandSender sender, String action, CompletableFuture<String> future) {
