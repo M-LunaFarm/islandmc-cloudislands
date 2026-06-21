@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -10,6 +9,15 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase;
+import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase.BlockDetailsView;
+import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase.BlockDetailView;
+import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase.IslandLevelView;
+import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase.MissionCompletionResult;
+import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase.RankingEntryView;
+import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase.ReviewRankingEntryView;
+import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase.UpgradePurchaseResult;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MissionView;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.UpgradeView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
@@ -197,8 +205,8 @@ final class IslandProgressionCommandHandler {
 
     private void showLevel(Player player) {
         runtime.currentIsland(player, "섬 안에서만 레벨을 확인할 수 있습니다.").ifPresent(islandId -> {
-            progressionUseCase.islandInfo(islandId)
-                .thenAccept(body -> runtime.message(player, "섬 레벨: " + (long) decimal(body, "level")))
+            progressionUseCase.islandLevel(islandId)
+                .thenAccept(level -> runtime.message(player, "섬 레벨: " + level.level()))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 레벨을 불러오지 못했습니다.");
                     return null;
@@ -208,11 +216,8 @@ final class IslandProgressionCommandHandler {
 
     private void showWorth(Player player) {
         runtime.currentIsland(player, "섬 안에서만 가치를 확인할 수 있습니다.").ifPresent(islandId -> {
-            progressionUseCase.islandInfo(islandId)
-                .thenAccept(body -> {
-                    String worth = text(body, "worth");
-                    runtime.message(player, "섬 가치: " + (worth.isBlank() ? "0" : worth));
-                })
+            progressionUseCase.islandLevel(islandId)
+                .thenAccept(level -> runtime.message(player, "섬 가치: " + level.worth()))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 가치를 불러오지 못했습니다.");
                     return null;
@@ -222,8 +227,8 @@ final class IslandProgressionCommandHandler {
 
     private void showBlockDetails(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 블록 상세를 확인할 수 있습니다.").ifPresent(islandId -> {
-            progressionUseCase.blockDetails(islandId, limit)
-                .thenAccept(body -> runtime.message(player, blockDetailsMessage(body)))
+            progressionUseCase.blockDetailsView(islandId, limit)
+                .thenAccept(details -> runtime.message(player, blockDetailsMessage(details)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 블록 상세를 불러오지 못했습니다.");
                     return null;
@@ -238,16 +243,16 @@ final class IslandProgressionCommandHandler {
     private void listRanking(Player player, boolean worthRanking, int limit) {
         int cappedLimit = Math.max(1, Math.min(limit, 100));
         if (worthRanking) {
-            progressionUseCase.topIslandsByWorth(cappedLimit)
-                .thenAccept(body -> runtime.message(player, rankingMessage(body, "섬 가치 랭킹", "worth")))
+            progressionUseCase.topWorthViews(cappedLimit)
+                .thenAccept(rankings -> runtime.message(player, rankingMessage(rankings, "섬 가치 랭킹", "worth")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 가치 랭킹을 불러오지 못했습니다.");
                     return null;
                 });
             return;
         }
-        progressionUseCase.topIslandsByLevel(cappedLimit)
-            .thenAccept(body -> runtime.message(player, rankingMessage(body, "섬 레벨 랭킹", "level")))
+        progressionUseCase.topLevelViews(cappedLimit)
+            .thenAccept(rankings -> runtime.message(player, rankingMessage(rankings, "섬 레벨 랭킹", "level")))
             .exceptionally(error -> {
                 runtime.message(player, "섬 레벨 랭킹을 불러오지 못했습니다.");
                 return null;
@@ -256,8 +261,8 @@ final class IslandProgressionCommandHandler {
 
     private void listReviewRanking(Player player, int limit) {
         int cappedLimit = Math.max(1, Math.min(limit, 100));
-        progressionUseCase.topIslandsByReviews(cappedLimit)
-            .thenAccept(body -> runtime.message(player, reviewRankingMessage(body)))
+        progressionUseCase.topReviewViews(cappedLimit)
+            .thenAccept(rankings -> runtime.message(player, reviewRankingMessage(rankings)))
             .exceptionally(error -> {
                 runtime.message(player, "섬 후기 랭킹을 불러오지 못했습니다.");
                 return null;
@@ -272,11 +277,8 @@ final class IslandProgressionCommandHandler {
             }
             player.sendActionBar(Component.text(runtime.routeMessage("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
             CompletableFuture<Void> rescan = levelScanService == null ? CompletableFuture.completedFuture(null) : levelScanService.rescanIsland(islandId);
-            rescan.thenCompose(ignored -> progressionUseCase.recalculateLevel(islandId, player.getUniqueId()))
-                .thenAccept(body -> {
-                    String worth = text(body, "worth");
-                    runtime.message(player, "섬 레벨 계산 완료: 레벨 " + (long) decimal(body, "level") + " / 가치 " + (worth.isBlank() ? "0" : worth));
-                })
+            rescan.thenCompose(_ignored -> progressionUseCase.recalculateLevelView(islandId, player.getUniqueId()))
+                .thenAccept(level -> runtime.message(player, "섬 레벨 계산 완료: 레벨 " + level.level() + " / 가치 " + level.worth()))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 레벨을 계산하지 못했습니다.");
                     return null;
@@ -286,8 +288,8 @@ final class IslandProgressionCommandHandler {
 
     private void listUpgrades(Player player) {
         runtime.currentIsland(player, "섬 안에서만 업그레이드를 확인할 수 있습니다.").ifPresent(islandId -> {
-            progressionUseCase.listUpgrades(islandId)
-                .thenAccept(body -> runtime.message(player, upgradeListMessage(body)))
+            progressionUseCase.upgradeViews(islandId)
+                .thenAccept(upgrades -> runtime.message(player, upgradeListMessage(upgrades)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 업그레이드를 불러오지 못했습니다.");
                     return null;
@@ -297,8 +299,8 @@ final class IslandProgressionCommandHandler {
 
     private void showGenerator(Player player) {
         runtime.currentIsland(player, "섬 안에서만 생성기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            progressionUseCase.listUpgrades(islandId)
-                .thenAccept(body -> runtime.message(player, generatorInfoMessage(body)))
+            progressionUseCase.upgradeViews(islandId)
+                .thenAccept(upgrades -> runtime.message(player, generatorInfoMessage(upgrades)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 생성기를 불러오지 못했습니다.");
                     return null;
@@ -316,15 +318,13 @@ final class IslandProgressionCommandHandler {
                 runtime.message(player, runtime.routeMessage("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다."));
                 return;
             }
-            progressionUseCase.purchaseUpgrade(islandId, player.getUniqueId(), upgradeKey, runtime::mutateIdempotent)
-                .thenAccept(body -> {
-                    String key = text(body, "upgradeKey");
-                    String cost = text(body, "cost");
-                    if (body.contains("\"accepted\":false")) {
-                        runtime.message(player, runtime.playerCodeMessage(text(body, "code"), "섬 업그레이드를 구매하지 못했습니다."));
+            progressionUseCase.purchaseUpgradeResult(islandId, player.getUniqueId(), upgradeKey, runtime::mutateIdempotent)
+                .thenAccept(result -> {
+                    if (!result.accepted()) {
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), "섬 업그레이드를 구매하지 못했습니다."));
                         return;
                     }
-                    runtime.message(player, "섬 업그레이드 구매 완료: " + (key.isBlank() ? upgradeKey : key) + " Lv." + (long) decimal(body, "level") + " / 비용 " + (cost.isBlank() ? "0" : cost));
+                    runtime.message(player, upgradePurchaseMessage(result, upgradeKey));
                 })
                 .exceptionally(error -> {
                     runtime.message(player, "섬 업그레이드를 구매하지 못했습니다.");
@@ -335,8 +335,8 @@ final class IslandProgressionCommandHandler {
 
     private void listMissions(Player player, String kind, String label) {
         runtime.currentIsland(player, "섬 안에서만 " + label + "을 확인할 수 있습니다.").ifPresent(islandId -> {
-            progressionUseCase.listMissions(islandId, kind)
-                .thenAccept(body -> runtime.message(player, missionListMessage(body, label)))
+            progressionUseCase.missionViews(islandId, kind)
+                .thenAccept(missions -> runtime.message(player, missionListMessage(missions, label)))
                 .exceptionally(error -> {
                     runtime.message(player, label + "을 불러오지 못했습니다.");
                     return null;
@@ -358,15 +358,13 @@ final class IslandProgressionCommandHandler {
 
     private void completeTask(Player player, String missionKey, String kind, String label) {
         runtime.currentIsland(player, "섬 안에서만 " + label + "을 완료할 수 있습니다.").ifPresent(islandId -> {
-            progressionUseCase.completeMission(islandId, player.getUniqueId(), missionKey, kind, runtime::mutateIdempotent)
-                .thenAccept(body -> {
-                    if (resultRejected(body)) {
-                        runtime.message(player, runtime.playerCodeMessage(text(body, "code"), label + "을 완료하지 못했습니다."));
+            progressionUseCase.completeMissionResult(islandId, player.getUniqueId(), missionKey, kind, runtime::mutateIdempotent)
+                .thenAccept(result -> {
+                    if (!result.accepted()) {
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), label + "을 완료하지 못했습니다."));
                         return;
                     }
-                    String title = text(body, "title");
-                    String reward = text(body, "reward");
-                    runtime.message(player, label + " 완료: " + (title.isBlank() ? missionKey : title) + (reward.isBlank() ? "" : " / 보상 " + reward));
+                    runtime.message(player, missionCompletionMessage(result, missionKey, label));
                 })
                 .exceptionally(error -> {
                     runtime.message(player, label + "을 완료하지 못했습니다.");
@@ -386,174 +384,92 @@ final class IslandProgressionCommandHandler {
         return (int) longValue(args[index], 10L);
     }
 
-    private static String rankingMessage(String body, String label, String valueKey) {
-        if (body == null || body.isBlank()) {
-            return label + ": 기록이 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < body.length() && entries.size() < 10) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
+    private static String rankingMessage(List<RankingEntryView> rankings, String label, String valueKey) {
+        List<String> entries = new java.util.ArrayList<>();
+        for (RankingEntryView ranking : rankings == null ? List.<RankingEntryView>of() : rankings) {
+            if (entries.size() >= 10) {
                 break;
             }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = text(object, "name");
-                String value = valueKey.equals("worth") ? text(object, valueKey) : Long.toString((long) decimal(object, valueKey));
-                String valueLabel = valueKey.equals("worth") ? "가치" : "레벨";
-                entries.add((entries.size() + 1) + ". " + (name.isBlank() ? "이름 없는 섬" : name) + " (ID=" + compactId(islandId) + ", " + valueLabel + "=" + value + ")");
-            }
-            index = objectEnd + 1;
+            String value = valueKey.equals("worth") ? ranking.worth() : Long.toString(ranking.level());
+            String valueLabel = valueKey.equals("worth") ? "가치" : "레벨";
+            entries.add((entries.size() + 1) + ". " + ranking.name() + " (ID=" + compactId(ranking.islandId()) + ", " + valueLabel + "=" + value + ")");
         }
         return entries.isEmpty() ? label + ": 기록이 없습니다." : label + ": " + String.join(" | ", entries);
     }
 
-    private static String reviewRankingMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "섬 후기 랭킹: 기록이 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < body.length() && entries.size() < 10) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
+    private static String reviewRankingMessage(List<ReviewRankingEntryView> rankings) {
+        List<String> entries = new java.util.ArrayList<>();
+        for (ReviewRankingEntryView ranking : rankings == null ? List.<ReviewRankingEntryView>of() : rankings) {
+            if (entries.size() >= 10) {
                 break;
             }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                String rating = String.format(Locale.ROOT, "%.2f", decimal(object, "averageRating"));
-                long count = (long) decimal(object, "reviewCount");
-                entries.add((entries.size() + 1) + ". ID=" + compactId(islandId) + " 평점=" + rating + "/5 후기=" + count);
-            }
-            index = objectEnd + 1;
+            String rating = String.format(Locale.ROOT, "%.2f", ranking.averageRating());
+            entries.add((entries.size() + 1) + ". ID=" + compactId(ranking.islandId()) + " 평점=" + rating + "/5 후기=" + ranking.reviewCount());
         }
         return entries.isEmpty() ? "섬 후기 랭킹: 기록이 없습니다." : "섬 후기 랭킹: " + String.join(" | ", entries);
     }
 
-    private static String blockDetailsMessage(String body) {
-        if (body == null || body.isBlank()) {
+    private static String blockDetailsMessage(BlockDetailsView details) {
+        if (details == null || details.blocks().isEmpty()) {
             return "섬 블록 기록이 없습니다.";
         }
-        String totalWorth = text(body, "totalWorth");
-        long totalLevelPoints = (long) decimal(body, "totalLevelPoints");
-        List<String> entries = new ArrayList<>();
-        int index = body.indexOf("\"blocks\"");
-        while (index >= 0 && index < body.length() && entries.size() < 20) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
+        List<String> entries = new java.util.ArrayList<>();
+        for (BlockDetailView block : details.blocks()) {
+            if (entries.size() >= 20) {
                 break;
             }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String materialKey = text(object, "materialKey");
-            long count = (long) decimal(object, "count");
-            String worth = text(object, "totalWorth");
-            long points = (long) decimal(object, "levelPoints");
-            if (!materialKey.isBlank()) {
-                entries.add(materialKey + " x" + count + " 가치=" + (worth.isBlank() ? "0" : worth) + " 점수=" + points);
-            }
-            index = objectEnd + 1;
+            entries.add(block.materialKey() + " x" + block.count() + " 가치=" + block.totalWorth() + " 점수=" + block.levelPoints());
         }
         return entries.isEmpty()
             ? "섬 블록 기록이 없습니다."
-            : "섬 블록상세: 총가치=" + (totalWorth.isBlank() ? "0" : totalWorth) + " 총점수=" + totalLevelPoints + " | " + String.join(" | ", entries);
+            : "섬 블록상세: 총가치=" + details.totalWorth() + " 총점수=" + details.totalLevelPoints() + " | " + String.join(" | ", entries);
     }
 
-    private static String generatorInfoMessage(String body) {
+    private static String generatorInfoMessage(List<UpgradeView> upgrades) {
         String generatorKey = "default";
         long level = 1L;
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String upgradeKey = text(object, "upgradeKey");
+        for (UpgradeView upgrade : upgrades == null ? List.<UpgradeView>of() : upgrades) {
+            String upgradeKey = upgrade.key();
             String normalized = upgradeKey.toLowerCase(Locale.ROOT);
             if (normalized.equals("generator") || normalized.startsWith("generator:")) {
-                long currentLevel = Math.max(1L, (long) decimal(object, "level"));
-                String currentKey = text(object, "generatorKey");
-                if (currentKey.isBlank()) {
-                    int separator = upgradeKey.indexOf(':');
-                    currentKey = separator < 0 ? "default" : upgradeKey.substring(separator + 1);
-                }
+                long currentLevel = Math.max(1L, upgrade.level());
+                String currentKey = generatorKey(upgradeKey);
                 if (currentLevel > level || (currentLevel == level && generatorKey.equals("default") && !currentKey.equalsIgnoreCase("default"))) {
                     level = currentLevel;
-                    generatorKey = currentKey.isBlank() ? "default" : currentKey;
+                    generatorKey = currentKey;
                 }
             }
-            index = objectEnd + 1;
         }
         return "섬 생성기: key=" + generatorKey + " level=" + level + " / 업그레이드: /섬 업그레이드구매 generator";
     }
 
-    private static String upgradeListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String key = text(object, "upgradeKey");
-            if (!key.isBlank()) {
-                entries.add(key + " Lv." + (long) decimal(object, "level"));
-            }
-            index = objectEnd + 1;
-        }
+    private static String generatorKey(String upgradeKey) {
+        String[] parts = upgradeKey.split(":", 2);
+        return parts.length < 2 || parts[1].isBlank() ? "default" : parts[1];
+    }
+
+    private static String upgradeListMessage(List<UpgradeView> upgrades) {
+        List<String> entries = (upgrades == null ? List.<UpgradeView>of() : upgrades).stream()
+            .map(upgrade -> upgrade.key() + " Lv." + upgrade.level())
+            .toList();
         return entries.isEmpty() ? "섬 업그레이드가 없습니다." : "섬 업그레이드: " + String.join(", ", entries);
     }
 
-    private static String missionListMessage(String body, String label) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String key = text(object, "missionKey");
-            if (!key.isBlank()) {
-                String title = text(object, "title");
-                String state = bool(object, "completed") ? "완료" : ((long) decimal(object, "progress") + "/" + (long) decimal(object, "goal"));
-                entries.add(key + "(" + (title.isBlank() ? key : title) + ", " + state + ")");
-            }
-            index = objectEnd + 1;
-        }
+    private static String missionListMessage(List<MissionView> missions, String label) {
+        List<String> entries = (missions == null ? List.<MissionView>of() : missions).stream()
+            .map(mission -> mission.key() + "(" + (mission.title().isBlank() ? mission.key() : mission.title()) + ", " + (mission.completed() ? "완료" : mission.progress() + "/" + mission.goal()) + ")")
+            .toList();
         return entries.isEmpty() ? label + "이 없습니다." : label + ": " + String.join(", ", entries);
     }
 
-    private static boolean resultRejected(String body) {
-        return body == null || body.isBlank() || body.contains("\"accepted\":false");
+    private static String upgradePurchaseMessage(UpgradePurchaseResult result, String fallbackKey) {
+        String key = result.upgradeKey().isBlank() ? fallbackKey : result.upgradeKey();
+        return "섬 업그레이드 구매 완료: " + key + " Lv." + result.level() + " / 비용 " + result.cost();
+    }
+
+    private static String missionCompletionMessage(MissionCompletionResult result, String fallbackKey, String label) {
+        String title = result.title().isBlank() ? fallbackKey : result.title();
+        return label + " 완료: " + title + (result.reward().isBlank() ? "" : " / 보상 " + result.reward());
     }
 
     private static int integer(String value, int fallback) {
@@ -572,106 +488,11 @@ final class IslandProgressionCommandHandler {
         }
     }
 
-    private static String text(String json, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        int valueStart = start + needle.length();
-        int end = jsonStringEnd(json, valueStart);
-        return end < 0 ? "" : unescape(json.substring(valueStart, end));
-    }
-
-    private static double decimal(String json, String key) {
-        String needle = "\"" + key + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return 0.0D;
-        }
-        int valueStart = start + needle.length();
-        int end = valueStart;
-        while (end < json.length()) {
-            char current = json.charAt(end);
-            if ((current >= '0' && current <= '9') || current == '-' || current == '+' || current == '.') {
-                end++;
-                continue;
-            }
-            break;
-        }
-        try {
-            return Double.parseDouble(json.substring(valueStart, end));
-        } catch (RuntimeException ignored) {
-            return 0.0D;
-        }
-    }
-
-    private static boolean bool(String json, String key) {
-        String needle = "\"" + key + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return false;
-        }
-        int valueStart = start + needle.length();
-        return json.startsWith("true", valueStart);
-    }
-
     private static String compactId(String value) {
         if (value == null || value.length() <= 8) {
             return value == null ? "" : value;
         }
-        return value.substring(0, 8);
-    }
-
-    private static int jsonStringEnd(String value, int start) {
-        boolean escaping = false;
-        for (int index = start; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (escaping) {
-                escaping = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaping = true;
-                continue;
-            }
-            if (current == '"') {
-                return index;
-            }
-        }
-        return -1;
-    }
-
-    private static String unescape(String value) {
-        StringBuilder builder = new StringBuilder(value.length());
-        boolean escaping = false;
-        for (int index = 0; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (!escaping) {
-                if (current == '\\') {
-                    escaping = true;
-                } else {
-                    builder.append(current);
-                }
-                continue;
-            }
-            switch (current) {
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                case '/' -> builder.append('/');
-                case 'b' -> builder.append('\b');
-                case 'f' -> builder.append('\f');
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                default -> builder.append(current);
-            }
-            escaping = false;
-        }
-        if (escaping) {
-            builder.append('\\');
-        }
-        return builder.toString();
+        return new StringBuilder(8).append(value, 0, 8).toString();
     }
 
     interface Runtime {
