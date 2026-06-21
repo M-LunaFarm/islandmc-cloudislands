@@ -254,6 +254,14 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.bankCommands().withdraw(islandId, actorUuid, amount.toPlainString())"), "Bank withdraw must use the typed bank command client");
         assertTrue(!source.contains("bankDeposit(view.body())"), "Bank deposit results must not be reparsed from raw Core JSON");
         assertTrue(!source.contains("bankChange(view.body())"), "Bank withdraw results must not be reparsed from raw Core JSON");
+        assertTrue(!source.contains("private static Optional<IslandSnapshot> island(String json)"), "Island info must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<IslandHomeSnapshot> homes(String json)"), "Home lists must not keep raw JSON converters");
+        assertTrue(!source.contains("private static IslandVisitorStatsSnapshot visitorStats(String json)"), "Visitor stats must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<IslandUpgradeSnapshot> upgrades(String json)"), "Upgrade lists must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<BlockValueSnapshot> blockValues(String json)"), "Block values must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<IslandMissionSnapshot> missions(String json)"), "Mission lists must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<IslandSnapshotRecord> snapshots(String json)"), "Snapshot lists must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<IslandLogRecord> logs(String json)"), "Log lists must not keep raw JSON converters");
         assertTrue(source.contains("client.routingCommands().publishRouteSessionResult(ticket)"), "Route session publish must use the typed routing command client");
         assertTrue(source.contains("client.lifecycle().repairIsland(islandId, reason)"), "Island repair must use the typed lifecycle command client");
         assertTrue(source.contains("client.progressionCommands().registerMissionProvider(providerId, definitions)"), "Mission provider registration must use the typed progression command client");

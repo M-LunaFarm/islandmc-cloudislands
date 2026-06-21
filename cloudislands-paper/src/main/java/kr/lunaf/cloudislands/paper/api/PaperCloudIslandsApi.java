@@ -2669,24 +2669,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
     }
 
-    private static Optional<IslandSnapshot> island(String json) {
-        if (json == null || json.isBlank() || json.contains("\"error\"")) {
-            return Optional.empty();
-        }
-        return Optional.of(new IslandSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            uuid(json, "ownerUuid", new UUID(0L, 0L)),
-            text(json, "name", ""),
-            enumValue(IslandState.class, text(json, "state", "INACTIVE_READY"), IslandState.INACTIVE_READY),
-            integer(json, "size", 0),
-            longValue(json, "level", 0L),
-            text(json, "worth", "0"),
-            bool(json, "publicAccess", false),
-            instant(text(json, "createdAt", Instant.EPOCH.toString())),
-            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
-        ));
-    }
-
     private static Optional<IslandSnapshot> island(CoreGuiViews.IslandInfoView view) {
         if (view == null || view.islandId() == null || view.islandId().isBlank()) {
             return Optional.empty();
@@ -2703,14 +2685,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             instant(view.createdAt()),
             instant(view.updatedAt())
         ));
-    }
-
-    private static List<IslandSnapshot> islands(String json) {
-        List<IslandSnapshot> islands = new ArrayList<>();
-        for (String object : objects(json, "islands")) {
-            island(object).ifPresent(islands::add);
-        }
-        return islands;
     }
 
     private static List<IslandSnapshot> playerIslands(List<CoreGuiViews.PlayerIslandView> views) {
@@ -2778,30 +2752,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static IslandBoundarySnapshot boundary(String json) {
-        UUID islandId = uuid(json, "islandId", new UUID(0L, 0L));
-        int size = integer(json, "size", 0);
-        return new IslandBoundarySnapshot(islandId, size, integer(json, "border", size));
-    }
-
     private static IslandBoundarySnapshot boundary(CoreGuiViews.IslandInfoView view) {
         int size = intValue(view == null ? 0L : view.size());
         return new IslandBoundarySnapshot(view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.islandId()), size, intValue(view == null ? size : view.border()));
     }
 
-    private static IslandSizeSnapshot size(String json) {
-        UUID islandId = uuid(json, "islandId", new UUID(0L, 0L));
-        int size = integer(json, "size", 0);
-        return new IslandSizeSnapshot(islandId, size, integer(json, "border", size));
-    }
-
     private static IslandSizeSnapshot size(CoreGuiViews.IslandInfoView view) {
         int size = intValue(view == null ? 0L : view.size());
         return new IslandSizeSnapshot(view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.islandId()), size, intValue(view == null ? size : view.border()));
-    }
-
-    private static IslandWorthSnapshot worth(String json) {
-        return new IslandWorthSnapshot(uuid(json, "islandId", new UUID(0L, 0L)), text(json, "worth", "0"));
     }
 
     private static IslandWorthSnapshot worth(CoreGuiViews.IslandInfoView view) {
@@ -3097,25 +3055,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new IslandActionResult(view.accepted(), view.code().isBlank() ? (view.accepted() ? fallbackCode : "FAILED") : view.code());
     }
 
-    private static IslandActionResult actionCode(String json, String fallbackCode) {
-        boolean accepted = json.contains("\"accepted\":true");
-        return new IslandActionResult(accepted, text(json, "code", accepted ? fallbackCode : "FAILED"));
-    }
-
-    private static List<IslandHomeSnapshot> homes(String json) {
-        List<IslandHomeSnapshot> homes = new ArrayList<>();
-        for (String object : objects(json, "homes")) {
-            homes.add(new IslandHomeSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                text(object, "name", "default"),
-                location(object),
-                uuid(object, "createdBy", new UUID(0L, 0L)),
-                instant(text(object, "createdAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return homes;
-    }
-
     private static List<IslandHomeSnapshot> homes(UUID fallbackIslandId, List<CoreGuiViews.HomeView> views) {
         return views.stream()
             .map(view -> new IslandHomeSnapshot(
@@ -3126,22 +3065,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt())
             ))
             .toList();
-    }
-
-    private static List<IslandWarpSnapshot> warps(String json) {
-        List<IslandWarpSnapshot> warps = new ArrayList<>();
-        for (String object : objects(json, "warps")) {
-            warps.add(new IslandWarpSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                text(object, "name", "default"),
-                location(object),
-                bool(object, "publicAccess", false),
-                uuid(object, "createdBy", new UUID(0L, 0L)),
-                instant(text(object, "createdAt", Instant.EPOCH.toString())),
-                text(object, "category", "default")
-            ));
-        }
-        return warps;
     }
 
     private static List<IslandWarpSnapshot> warps(UUID fallbackIslandId, List<CoreGuiViews.WarpView> views) {
@@ -3249,14 +3172,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static IslandBankSnapshot bank(String json) {
-        return new IslandBankSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            text(json, "balance", "0"),
-            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
-        );
-    }
-
     private static IslandBankSnapshot bank(UUID islandId, CoreGuiViews.BankView view) {
         return new IslandBankSnapshot(
             islandId == null ? new UUID(0L, 0L) : islandId,
@@ -3294,33 +3209,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new IslandBankChangeSnapshot(view.accepted(), code, bank);
     }
 
-    private static IslandChatResult chatResult(String json) {
-        return new IslandChatResult(
-            bool(json, "accepted", false),
-            text(json, "channel", ""),
-            text(json, "message", "")
-        );
-    }
-
     private static IslandChatResult chatResult(ChatActionView view) {
         if (view == null) {
             return new IslandChatResult(false, "", "");
         }
         return new IslandChatResult(view.accepted(), view.channel(), view.message());
-    }
-
-    private static boolean hasError(String json) {
-        return json == null || json.isBlank() || json.contains("\"error\"");
-    }
-
-    private static IslandLevelSnapshot level(String json) {
-        String calculatedAt = text(json, "calculatedAt", text(json, "updatedAt", Instant.EPOCH.toString()));
-        return new IslandLevelSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            longValue(json, "level", 0L),
-            text(json, "worth", "0"),
-            instant(calculatedAt)
-        );
     }
 
     private static IslandLevelSnapshot level(LevelView view) {
@@ -3347,19 +3240,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static List<IslandRankSnapshot> rankings(String json) {
-        List<IslandRankSnapshot> rankings = new ArrayList<>();
-        for (String object : objects(json, "rankings")) {
-            rankings.add(new IslandRankSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                longValue(object, "level", 0L),
-                text(object, "worth", "0"),
-                instant(text(object, "calculatedAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return rankings;
-    }
-
     private static List<IslandRankSnapshot> rankings(List<ProgressionRankingEntryView> views) {
         return views.stream()
             .map(view -> new IslandRankSnapshot(
@@ -3371,19 +3251,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             .toList();
     }
 
-    private static List<IslandReviewRankSnapshot> reviewRankings(String json) {
-        List<IslandReviewRankSnapshot> rankings = new ArrayList<>();
-        for (String object : objects(json, "rankings")) {
-            rankings.add(new IslandReviewRankSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                decimal(object, "averageRating", 0.0D),
-                integer(object, "reviewCount", 0),
-                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return rankings;
-    }
-
     private static List<IslandReviewRankSnapshot> reviewRankings(List<ProgressionReviewRankingEntryView> views) {
         return views.stream()
             .map(view -> new IslandReviewRankSnapshot(
@@ -3393,21 +3260,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 Instant.EPOCH
             ))
             .toList();
-    }
-
-    private static List<IslandReviewSnapshot> reviews(String json) {
-        List<IslandReviewSnapshot> reviews = new ArrayList<>();
-        for (String object : objects(json, "reviews")) {
-            reviews.add(new IslandReviewSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                uuid(object, "reviewerUuid", new UUID(0L, 0L)),
-                integer(object, "rating", 1),
-                text(object, "comment", ""),
-                instant(text(object, "createdAt", Instant.EPOCH.toString())),
-                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return reviews;
     }
 
     private static List<IslandReviewSnapshot> reviews(UUID islandId, ReviewListView view) {
@@ -3422,22 +3274,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 instant(review.updatedAt())
             ))
             .toList();
-    }
-
-    private static IslandVisitorStatsSnapshot visitorStats(String json) {
-        List<IslandVisitorStatsSnapshot.RecentVisitor> recentVisitors = new ArrayList<>();
-        for (String object : objects(json, "recentVisitors")) {
-            recentVisitors.add(new IslandVisitorStatsSnapshot.RecentVisitor(
-                text(object, "visitorUuid", ""),
-                instant(text(object, "lastVisitedAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return new IslandVisitorStatsSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            longValue(json, "totalVisits", 0L),
-            longValue(json, "uniqueVisitors", 0L),
-            recentVisitors
-        );
     }
 
     private static IslandVisitorStatsSnapshot visitorStats(IslandVisitorStatsView view) {
@@ -3455,19 +3291,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static List<IslandWarehouseItemSnapshot> warehouseItems(String json) {
-        List<IslandWarehouseItemSnapshot> items = new ArrayList<>();
-        for (String object : objects(json, "items")) {
-            items.add(new IslandWarehouseItemSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                text(object, "materialKey", ""),
-                longValue(object, "amount", 0L),
-                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return items;
-    }
-
     private static List<IslandWarehouseItemSnapshot> warehouseItems(List<WarehouseItemView> views) {
         return views.stream()
             .map(view -> new IslandWarehouseItemSnapshot(
@@ -3477,14 +3300,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
             ))
             .toList();
-    }
-
-    private static List<IslandUpgradeSnapshot> upgrades(String json) {
-        List<IslandUpgradeSnapshot> upgrades = new ArrayList<>();
-        for (String object : objects(json, "upgrades")) {
-            upgrades.add(upgrade(object));
-        }
-        return upgrades;
     }
 
     private static List<IslandUpgradeSnapshot> upgrades(UUID islandId, List<CoreGuiViews.UpgradeView> views) {
@@ -3497,15 +3312,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 Instant.EPOCH
             ))
             .toList();
-    }
-
-    private static UpgradePurchaseSnapshot upgradePurchase(String json) {
-        return new UpgradePurchaseSnapshot(
-            bool(json, "accepted", false),
-            text(json, "code", ""),
-            text(json, "cost", "0"),
-            json == null || json.contains("\"upgrade\":null") ? null : upgrade(json)
-        );
     }
 
     private static UpgradePurchaseSnapshot upgradePurchase(ProgressionUpgradePurchaseView view) {
@@ -3524,30 +3330,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new UpgradePurchaseSnapshot(view.accepted(), view.code(), view.cost(), upgrade);
     }
 
-    private static IslandUpgradeSnapshot upgrade(String json) {
-        return new IslandUpgradeSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            text(json, "upgradeKey", ""),
-            enumValue(UpgradeType.class, text(json, "type", "ISLAND_SIZE"), UpgradeType.ISLAND_SIZE),
-            integer(json, "level", 0),
-            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
-        );
-    }
-
-    private static List<UpgradeRuleSnapshot> upgradeRules(String json) {
-        List<UpgradeRuleSnapshot> rules = new ArrayList<>();
-        for (String object : objects(json, "rules")) {
-            rules.add(new UpgradeRuleSnapshot(
-                text(object, "upgradeKey", ""),
-                enumValue(UpgradeType.class, text(object, "type", "ISLAND_SIZE"), UpgradeType.ISLAND_SIZE),
-                integer(object, "maxLevel", 0),
-                text(object, "baseCost", "0"),
-                text(object, "multiplier", "1")
-            ));
-        }
-        return rules;
-    }
-
     private static List<UpgradeRuleSnapshot> upgradeRules(List<UpgradeRuleView> views) {
         return views.stream()
             .map(view -> new UpgradeRuleSnapshot(
@@ -3560,19 +3342,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             .toList();
     }
 
-    private static List<BlockValueSnapshot> blockValues(String json) {
-        List<BlockValueSnapshot> values = new ArrayList<>();
-        for (String object : objects(json, "values")) {
-            values.add(new BlockValueSnapshot(
-                text(object, "materialKey", ""),
-                text(object, "worth", "0"),
-                longValue(object, "levelPoints", 0L),
-                longValue(object, "limit", 0L)
-            ));
-        }
-        return values;
-    }
-
     private static List<BlockValueSnapshot> blockValues(List<BlockValueView> views) {
         return (views == null ? List.<BlockValueView>of() : views).stream()
             .map(view -> new BlockValueSnapshot(
@@ -3582,14 +3351,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 view.limit()
             ))
             .toList();
-    }
-
-    private static List<IslandMissionSnapshot> missions(String json) {
-        List<IslandMissionSnapshot> missions = new ArrayList<>();
-        for (String object : objects(json, "missions")) {
-            mission(object).ifPresent(missions::add);
-        }
-        return missions;
     }
 
     private static List<IslandMissionSnapshot> missions(UUID islandId, String kind, List<CoreGuiViews.MissionView> views) {
@@ -3609,23 +3370,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             .toList();
     }
 
-    private static Optional<IslandMissionSnapshot> mission(String json) {
-        if (json == null || json.isBlank() || json.contains("\"error\"")) {
-            return Optional.empty();
-        }
-        return Optional.of(new IslandMissionSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            text(json, "missionKey", ""),
-            text(json, "kind", "MISSION"),
-            text(json, "title", ""),
-            longValue(json, "progress", 0L),
-            longValue(json, "goal", 0L),
-            bool(json, "completed", false),
-            text(json, "reward", ""),
-            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
-        ));
-    }
-
     private static Optional<IslandMissionSnapshot> mission(ProgressionMissionCompletionView view) {
         if (view == null || view.missionKey().isBlank()) {
             return Optional.empty();
@@ -3641,24 +3385,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             view.reward(),
             view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
         ));
-    }
-
-    private static List<IslandSnapshotRecord> snapshots(String json) {
-        List<IslandSnapshotRecord> snapshots = new ArrayList<>();
-        for (String object : objects(json, "snapshots")) {
-            snapshots.add(new IslandSnapshotRecord(
-                uuid(object, "snapshotId", new UUID(0L, 0L)),
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                longValue(object, "snapshotNo", 0L),
-                text(object, "storagePath", ""),
-                text(object, "reason", ""),
-                uuid(object, "createdBy", new UUID(0L, 0L)),
-                text(object, "checksum", ""),
-                longValue(object, "sizeBytes", 0L),
-                instant(text(object, "createdAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return snapshots;
     }
 
     private static List<IslandSnapshotRecord> snapshots(UUID islandId, List<CoreGuiViews.SnapshotView> views) {
@@ -3677,21 +3403,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             .toList();
     }
 
-    private static List<IslandLogRecord> logs(String json) {
-        List<IslandLogRecord> logs = new ArrayList<>();
-        for (String object : objects(json, "logs")) {
-            logs.add(new IslandLogRecord(
-                uuid(object, "logId", new UUID(0L, 0L)),
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                uuid(object, "actorUuid", new UUID(0L, 0L)),
-                text(object, "action", ""),
-                stringMap(object, "payload"),
-                instant(text(object, "createdAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return logs;
-    }
-
     private static List<IslandLogRecord> logs(UUID islandId, List<CoreGuiViews.LogEntryView> views) {
         return views.stream()
             .map(view -> new IslandLogRecord(
@@ -3703,17 +3414,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt())
             ))
             .toList();
-    }
-
-    private static IslandLocation location(String json) {
-        return new IslandLocation(
-            text(json, "worldName", ""),
-            decimal(json, "localX", 0.5D),
-            decimal(json, "localY", 100.0D),
-            decimal(json, "localZ", 0.5D),
-            (float) decimal(json, "yaw", 0.0D),
-            (float) decimal(json, "pitch", 0.0D)
-        );
     }
 
     private static IslandLocation location(double x, double y, double z) {
