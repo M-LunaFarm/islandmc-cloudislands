@@ -301,6 +301,18 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void activationSaveTasksUseTypedSnapshotAndLifecycleClients() throws Exception {
+        Path root = repositoryRoot();
+        String emptySaveTask = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/activation/EmptyIslandSaveTask.java"));
+        String periodicSaveTask = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/activation/PeriodicIslandSaveTask.java"));
+
+        assertTrue(emptySaveTask.contains("coreApiClient.lifecycle().deactivateIsland(activeIsland.islandId())"), "Empty island deactivation must use the typed lifecycle client");
+        assertTrue(!emptySaveTask.contains("coreApiClient.deactivateIsland(activeIsland.islandId())"), "Empty island deactivation must not call the raw lifecycle endpoint");
+        assertTrue(periodicSaveTask.contains("coreApiClient.snapshotCommands().recordSnapshot("), "Periodic snapshot records must use the typed snapshot client");
+        assertTrue(!periodicSaveTask.contains("coreApiClient.recordIslandSnapshot("), "Periodic snapshot records must not call the raw snapshot endpoint");
+    }
+
+    @Test
     void memberRemovalFlowsThroughApplicationUsecase() throws Exception {
         Path root = repositoryRoot();
         String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));

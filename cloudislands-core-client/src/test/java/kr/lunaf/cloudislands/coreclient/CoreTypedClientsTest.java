@@ -616,6 +616,10 @@ class CoreTypedClientsTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
+                case "recordIslandSnapshot" -> {
+                    calls.add("record:" + args[1] + ":" + args[3] + ":" + args[7]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"RECORDED\"}");
+                }
                 case "requestIslandSnapshotResult" -> {
                     calls.add("request:" + args[1]);
                     yield CompletableFuture.completedFuture("{\"code\":\"SNAPSHOT_REQUESTED\"}");
@@ -629,9 +633,10 @@ class CoreTypedClientsTest {
         );
         SnapshotCommandClient client = new CoreSnapshotCommandClient(raw);
 
+        assertEquals("RECORDED", client.recordSnapshot(islandId, 9L, " snapshots/latest.tar ", " periodic ", "abc", 2048L, " node-a ", 123L).join().code());
         assertEquals("SNAPSHOT_REQUESTED", client.requestSnapshot(islandId, "  ").join().code());
         assertEquals("RESTORE_REQUESTED", client.restoreSnapshot(islandId, 7L).join().code());
-        assertEquals(List.of("request:manual", "restore:7"), calls);
+        assertEquals(List.of("record:9:periodic:123", "request:manual", "restore:7"), calls);
     }
 
     @Test

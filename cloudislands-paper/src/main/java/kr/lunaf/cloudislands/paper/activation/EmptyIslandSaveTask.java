@@ -97,7 +97,7 @@ public final class EmptyIslandSaveTask {
         try {
             saveService.save(activeIsland.islandId(), activeIsland);
             retryQueue.remove(activeIsland.islandId());
-            coreApiClient.deactivateIsland(activeIsland.islandId()).exceptionally(error -> {
+            coreApiClient.lifecycle().deactivateIsland(activeIsland.islandId()).exceptionally(error -> {
                 plugin.getLogger().warning("Empty island deactivate request failed for " + activeIsland.islandId());
                 scheduler.runGlobal(() -> savedWhileEmpty.remove(activeIsland.islandId()));
                 return null;

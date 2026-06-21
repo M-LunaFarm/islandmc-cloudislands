@@ -16,6 +16,25 @@ public final class CoreSnapshotCommandClient implements SnapshotCommandClient {
     }
 
     @Override
+    public CompletableFuture<SnapshotActionView> recordSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
+        requireId(islandId, "islandId");
+        if (snapshotNo <= 0L) {
+            throw new IllegalArgumentException("positive snapshotNo is required");
+        }
+        return delegate.recordIslandSnapshot(
+                islandId,
+                snapshotNo,
+                textOrEmpty(storagePath),
+                normalizeReason(reason),
+                textOrEmpty(checksum),
+                Math.max(0L, sizeBytes),
+                textOrEmpty(nodeId),
+                fencingToken
+            )
+            .thenApply(body -> snapshotAction(body, "SNAPSHOT_RECORDED"));
+    }
+
+    @Override
     public CompletableFuture<SnapshotActionView> requestSnapshot(UUID islandId, String reason) {
         requireId(islandId, "islandId");
         return delegate.requestIslandSnapshotResult(islandId, normalizeReason(reason))
@@ -48,6 +67,10 @@ public final class CoreSnapshotCommandClient implements SnapshotCommandClient {
             return "manual";
         }
         return reason.trim();
+    }
+
+    private static String textOrEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private static String text(Map<?, ?> object, String key) {
