@@ -9,6 +9,8 @@ public interface ProgressionQueryClient {
 
     CompletableFuture<ProgressionBlockDetailsView> blockDetails(UUID islandId, int limit);
 
+    CompletableFuture<CoreGuiViews.RankingData> rankings(int limit);
+
     CompletableFuture<List<ProgressionRankingEntryView>> topWorth(int limit);
 
     CompletableFuture<List<ProgressionRankingEntryView>> topLevel(int limit);

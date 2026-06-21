@@ -714,6 +714,11 @@ class CoreTypedClientsTest {
         assertEquals("12.50", client.topWorth(500).join().get(0).worth());
         assertEquals(7L, client.topLevel(0).join().get(0).level());
         assertEquals(2L, client.topReviews(10).join().get(0).reviewCount());
+        CoreGuiViews.RankingData rankings = client.rankings(2).join();
+        assertEquals("level", rankings.levels().get(0).label());
+        assertEquals("worth", rankings.worths().get(0).label());
+        assertEquals("reviews", rankings.reviews().get(0).label());
+        assertEquals("4.50", rankings.reviews().get(0).worth());
         assertEquals("generator:ore", client.upgrades(islandId).join().get(0).key());
         assertEquals("starter", client.missions(islandId, null).join().get(0).key());
 
@@ -723,6 +728,9 @@ class CoreTypedClientsTest {
             "topIslandsByWorth:100",
             "topIslandsByLevel:1",
             "reviews:10",
+            "topIslandsByLevel:2",
+            "topIslandsByWorth:2",
+            "reviews:2",
             "upgrades",
             "missions:MISSION"
         ), calls);

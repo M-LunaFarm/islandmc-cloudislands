@@ -58,11 +58,7 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<RankingData> rankings(CoreApiClient client, int limit) {
-        CompletableFuture<String> level = client.topIslandsByLevel(limit);
-        CompletableFuture<String> worth = client.topIslandsByWorth(limit);
-        CompletableFuture<String> reviews = client.topIslandsByReviews(limit);
-        return level.thenCombine(worth, (levelBody, worthBody) -> new RankingData(rankings(levelBody, "level"), rankings(worthBody, "worth"), List.of()))
-            .thenCombine(reviews, (data, reviewBody) -> new RankingData(data.levels(), data.worths(), reviewRankings(reviewBody)));
+        return new CoreProgressionQueryClient(client).rankings(limit);
     }
 
     public static CompletableFuture<List<MemberView>> islandMembers(CoreApiClient client, UUID islandId) {

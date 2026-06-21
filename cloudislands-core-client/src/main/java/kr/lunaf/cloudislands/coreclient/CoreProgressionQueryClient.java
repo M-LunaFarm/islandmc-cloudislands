@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -26,6 +27,19 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     public CompletableFuture<ProgressionBlockDetailsView> blockDetails(UUID islandId, int limit) {
         requireIsland(islandId);
         return delegate.islandBlockDetails(islandId, boundedLimit(limit)).thenApply(CoreProgressionQueryClient::blockDetailsView);
+    }
+
+    @Override
+    public CompletableFuture<CoreGuiViews.RankingData> rankings(int limit) {
+        CompletableFuture<List<ProgressionRankingEntryView>> levels = topLevel(limit);
+        CompletableFuture<List<ProgressionRankingEntryView>> worths = topWorth(limit);
+        CompletableFuture<List<ProgressionReviewRankingEntryView>> reviews = topReviews(limit);
+        return levels.thenCombine(worths, (levelViews, worthViews) -> new CoreGuiViews.RankingData(
+                rankingViews(levelViews, "level"),
+                rankingViews(worthViews, "worth"),
+                List.of()
+            ))
+            .thenCombine(reviews, (data, reviewViews) -> new CoreGuiViews.RankingData(data.levels(), data.worths(), reviewRankingViews(reviewViews)));
     }
 
     @Override
@@ -97,6 +111,34 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
             ))
             .filter(entry -> !entry.islandId().isBlank())
             .toList();
+    }
+
+    private static List<CoreGuiViews.RankingView> rankingViews(List<ProgressionRankingEntryView> entries, String label) {
+        List<ProgressionRankingEntryView> safeEntries = entries == null ? List.of() : entries;
+        List<CoreGuiViews.RankingView> rankings = new java.util.ArrayList<>();
+        for (ProgressionRankingEntryView entry : safeEntries) {
+            if (!entry.islandId().isBlank()) {
+                rankings.add(new CoreGuiViews.RankingView(rankings.size() + 1, label, entry.islandId(), entry.level(), entry.worth()));
+            }
+        }
+        return rankings;
+    }
+
+    private static List<CoreGuiViews.RankingView> reviewRankingViews(List<ProgressionReviewRankingEntryView> entries) {
+        List<ProgressionReviewRankingEntryView> safeEntries = entries == null ? List.of() : entries;
+        List<CoreGuiViews.RankingView> rankings = new java.util.ArrayList<>();
+        for (ProgressionReviewRankingEntryView entry : safeEntries) {
+            if (!entry.islandId().isBlank()) {
+                rankings.add(new CoreGuiViews.RankingView(
+                    rankings.size() + 1,
+                    "reviews",
+                    entry.islandId(),
+                    entry.reviewCount(),
+                    String.format(Locale.ROOT, "%.2f", entry.averageRating())
+                ));
+            }
+        }
+        return rankings;
     }
 
     private static List<Map<?, ?>> entries(String body) {

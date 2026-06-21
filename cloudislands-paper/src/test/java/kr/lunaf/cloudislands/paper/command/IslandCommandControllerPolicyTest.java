@@ -168,6 +168,7 @@ class IslandCommandControllerPolicyTest {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String progressionHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandProgressionCommandHandler.java"));
         String progressionUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandProgressionUseCase.java"));
+        String paperGuiViews = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/view/PaperGuiViews.java"));
 
         assertTrue(backend.contains("private final IslandProgressionCommandHandler progressionCommands;"));
         assertTrue(routerSource().contains("progressionCommands.handleCommand(player, subcommand, args)"));
@@ -205,6 +206,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(progressionUseCase.contains("progressionQueries.blockDetails"));
         assertTrue(progressionUseCase.contains("progressionQueries.topWorth"));
         assertTrue(progressionUseCase.contains("progressionQueries.upgrades"));
+        assertTrue(paperGuiViews.contains("new CoreProgressionQueryClient(client).rankings(limit)"), "ranking GUI reads must stay behind a typed progression query boundary");
+        assertFalse(paperGuiViews.contains("CoreGuiViews.rankings(client"), "ranking GUI reads must not call raw Core GUI ranking helpers directly");
         assertTrue(progressionUseCase.contains("ProgressionCommandClient progressionCommands"), "progression mutations must stay behind a typed core-client command boundary");
         assertTrue(progressionUseCase.contains("progressionCommands.recalculateLevel"));
         assertTrue(progressionUseCase.contains("progressionCommands.purchaseUpgrade"));
