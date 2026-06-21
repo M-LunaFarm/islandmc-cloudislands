@@ -2,7 +2,9 @@ package kr.lunaf.cloudislands.api.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -21,6 +23,7 @@ public interface IslandEventService {
     default GlobalEventSubscription subscribeGlobalEvents(long sinceSeq, int limit, long intervalTicks, Consumer<List<GlobalEventSnapshot>> listener) {
         Objects.requireNonNull(listener, "listener");
         AtomicLong cursor = new AtomicLong(Math.max(0L, sinceSeq));
+        Set<String> deliveredEventIds = ConcurrentHashMap.newKeySet();
         int safeLimit = Math.max(1, limit);
         long safeIntervalMillis = Math.max(50L, Math.max(1L, intervalTicks) * 50L);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(task -> {
@@ -34,6 +37,7 @@ public interface IslandEventService {
                     long previousSequence = cursor.get();
                     List<GlobalEventSnapshot> freshEvents = events.stream()
                         .filter(event -> event.sequence() > previousSequence)
+                        .filter(event -> deliveredEventIds.add(event.eventId()))
                         .toList();
                     if (freshEvents.isEmpty()) {
                         return;
