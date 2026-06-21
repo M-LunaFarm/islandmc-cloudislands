@@ -55,6 +55,29 @@ class JobCompletionServiceTest {
     }
 
     @Test
+    void sameTokenSaveCompletionFromStaleNodeDoesNotRecordSnapshot() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        JobCompletionService service = service(runtimes, events, snapshots);
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 5, 3, 8L);
+
+        service.completed(job(IslandJobType.SAVE_ISLAND, "island-1", Map.of(
+            "fencingToken", "8",
+            "snapshotNo", "14",
+            "storagePath", "islands/" + ISLAND + "/snapshots/000014/bundle.tar.zst",
+            "checksum", "stale-node",
+            "sizeBytes", "1024"
+        )));
+
+        assertTrue(snapshots.list(ISLAND, 10).isEmpty());
+        assertEquals(IslandState.ACTIVE, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals("island-2", runtimes.find(ISLAND).orElseThrow().activeNode());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name()));
+        assertTrue(events.toJson().contains("STALE_NODE_COMPLETION"));
+    }
+
+    @Test
     void staleDeleteCompletionDoesNotMoveRuntimeTowardDelete() {
         InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
         InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
