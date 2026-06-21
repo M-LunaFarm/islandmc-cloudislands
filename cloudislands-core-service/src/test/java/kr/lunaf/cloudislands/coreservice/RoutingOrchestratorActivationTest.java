@@ -7,6 +7,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -105,6 +106,43 @@ class RoutingOrchestratorActivationTest {
         assertEquals(8L, delegate.find(ISLAND).orElseThrow().fencingToken());
     }
 
+    @Test
+    void routeToActiveIslandOnDownNodeMarksRecoveryInsteadOfIssuingReadyTicket() {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC));
+        RecordingEvents events = new RecordingEvents();
+        RoutingOrchestrator orchestrator = new RoutingOrchestrator(
+            new StaticNodeRegistry(List.of(node("island-2", "Island-2", NodeState.DOWN, 0, 12, 20.0, 0))),
+            new NodeAllocator(Duration.ofSeconds(5)),
+            tickets,
+            islands,
+            new InMemoryIslandMetadataRepository(),
+            runtimes,
+            new InMemoryIslandTemplateRepository(),
+            jobs,
+            events,
+            "island",
+            Duration.ofSeconds(30),
+            Duration.ofSeconds(120)
+        );
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "owner-island");
+        islands.setState(ISLAND, IslandState.ACTIVE);
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 42L);
+
+        RoutePreparationResult result = orchestrator.prepareHomeRoute(OWNER);
+
+        assertEquals(409, result.status());
+        assertTrue(result.body().contains("\"code\":\"NODE_UNAVAILABLE\""));
+        assertEquals(IslandState.RECOVERY_REQUIRED, islands.findById(ISLAND).orElseThrow().state());
+        assertEquals(IslandState.RECOVERY_REQUIRED, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(0L, tickets.countsByState().get("READY"));
+        assertTrue(jobs.snapshot().isEmpty());
+        assertTrue(events.events().stream().anyMatch(event -> event.type().equals("ISLAND_RECOVERY_REQUIRED")
+            && event.fields().getOrDefault("reason", "").equals("active_node_state_down")));
+    }
+
     private RoutingOrchestrator orchestrator(InMemoryIslandRepository islands, IslandRuntimeRepository runtimes, InMemoryIslandJobPublisher jobs, InMemoryRouteTicketStore tickets) {
         return new RoutingOrchestrator(
             new StaticNodeRegistry(List.of(node("island-2", "Island-2", 20, 120, 20.0, 0))),
@@ -123,12 +161,16 @@ class RoutingOrchestratorActivationTest {
     }
 
     private NodeLoad node(String nodeId, String velocityServerName, int players, int activeIslands, double mspt, int activationQueue) {
+        return node(nodeId, velocityServerName, NodeState.READY, players, activeIslands, mspt, activationQueue);
+    }
+
+    private NodeLoad node(String nodeId, String velocityServerName, NodeState state, int players, int activeIslands, double mspt, int activationQueue) {
         return new NodeLoad(
             nodeId,
             "island",
             velocityServerName,
             "1.2.0",
-            NodeState.READY,
+            state,
             players,
             90,
             110,
@@ -188,6 +230,22 @@ class RoutingOrchestratorActivationTest {
         @Override
         public void publish(String eventType, Map<String, String> fields) {
         }
+    }
+
+    private static final class RecordingEvents implements GlobalEventPublisher {
+        private final List<RecordedEvent> events = new ArrayList<>();
+
+        @Override
+        public void publish(String eventType, Map<String, String> fields) {
+            events.add(new RecordedEvent(eventType, Map.copyOf(fields)));
+        }
+
+        List<RecordedEvent> events() {
+            return List.copyOf(events);
+        }
+    }
+
+    private record RecordedEvent(String type, Map<String, String> fields) {
     }
 
     private static final class BlockingRuntimeRepository implements IslandRuntimeRepository {
