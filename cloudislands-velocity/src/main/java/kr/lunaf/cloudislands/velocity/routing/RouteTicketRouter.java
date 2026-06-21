@@ -33,7 +33,7 @@ public final class RouteTicketRouter {
             VelocityRoutingMetrics metrics,
             RouteFallbackService fallbackService,
             RouteProgressPresenter progressPresenter) {
-        this.routingCommands = new CoreRoutingCommandClient(coreApiClient);
+        this.routingCommands = coreApiClient == null ? null : new CoreRoutingCommandClient(coreApiClient);
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
         this.messages = messages;
         this.metrics = metrics;
@@ -78,7 +78,7 @@ public final class RouteTicketRouter {
         String target = routeTargetName(ticket);
         String progressValue = RouteProgressPresenter.progressValue(attempt);
         progressPresenter.preparing(player, bossBar, messages.text("route-loading-progress", "target", target, "progress", progressValue), messages.text("route-preparing-progress", "target", target, "progress", progressValue), attempt);
-        routingCommands.routeTicketStatus(ticket).thenAccept(status -> {
+        routingCommands().routeTicketStatus(ticket).thenAccept(status -> {
             Optional<RouteTicket> ready = status.filter(value -> value.state().name().equals("READY"));
             if (ready.isPresent()) {
                 String readyTarget = routeTargetName(ready.get());
@@ -140,7 +140,7 @@ public final class RouteTicketRouter {
             clearFailedRoute(ticket, "PLAYER_DISCONNECTED");
             return;
         }
-        routingCommands.publishRouteSession(ticket).thenRun(() -> {
+        routingCommands().publishRouteSession(ticket).thenRun(() -> {
             String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
             connectWithTicket(player, ticket, targetServerName);
         }).exceptionally(error -> {
@@ -188,7 +188,14 @@ public final class RouteTicketRouter {
         if (ticket == null) {
             return;
         }
-        routingCommands.clearRoute(ticket, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
+        routingCommands().clearRoute(ticket, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
+    }
+
+    private RoutingCommandClient routingCommands() {
+        if (routingCommands == null) {
+            throw new IllegalStateException("routingCommands is required");
+        }
+        return routingCommands;
     }
 
     private String routeFailureMessage(Throwable error, String fallback) {

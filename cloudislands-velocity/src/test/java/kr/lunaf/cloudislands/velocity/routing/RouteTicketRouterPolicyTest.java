@@ -31,7 +31,7 @@ class RouteTicketRouterPolicyTest {
     void readyTicketsPublishSessionBeforeVelocityConnect() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/routing/RouteTicketRouter.java"));
 
-        int publish = source.indexOf("routingCommands.publishRouteSession(ticket)");
+        int publish = source.indexOf("routingCommands().publishRouteSession(ticket)");
         int connect = source.indexOf("connectWithTicket(player, ticket, targetServerName)");
 
         assertTrue(publish > 0, "READY route tickets must publish a Core route session");
@@ -54,7 +54,7 @@ class RouteTicketRouterPolicyTest {
         )) {
             assertTrue(source.contains("clearFailedRoute(ticket, \"" + reason + "\")"), reason);
         }
-        assertTrue(source.contains("routingCommands.clearRoute(ticket, reason"), "failure cleanup must call Core route clear with an explicit reason");
+        assertTrue(source.contains("routingCommands().clearRoute(ticket, reason"), "failure cleanup must call Core route clear with an explicit reason");
     }
 
     @Test
