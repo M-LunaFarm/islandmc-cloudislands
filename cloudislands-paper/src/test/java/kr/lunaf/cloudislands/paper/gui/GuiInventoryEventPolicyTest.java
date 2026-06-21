@@ -15,13 +15,15 @@ class GuiInventoryEventPolicyTest {
 
     @Test
     void menuActionsOnlyExecuteForTopInventorySlots() {
-        assertTrue(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 0, 54));
-        assertTrue(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 53, 54));
+        assertTrue(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 0, 54, GuiClick.LEFT));
+        assertTrue(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 53, 54, GuiClick.RIGHT));
 
-        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(false, 0, 54));
-        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, -1, 54));
-        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 54, 54));
-        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 80, 54));
+        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(false, 0, 54, GuiClick.LEFT));
+        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, -1, 54, GuiClick.LEFT));
+        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 54, 54, GuiClick.LEFT));
+        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 80, 54, GuiClick.LEFT));
+        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 0, 54, GuiClick.UNSUPPORTED));
+        assertFalse(GuiInventoryEventPolicy.acceptsMenuActionSlot(true, 0, 54, null));
     }
 
     @Test

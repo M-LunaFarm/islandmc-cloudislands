@@ -59,7 +59,8 @@ public final class GuiItems {
             && GuiInventoryEventPolicy.acceptsMenuActionSlot(
                 event.getClickedInventory() == event.getView().getTopInventory(),
                 event.getRawSlot(),
-                event.getView().getTopInventory().getSize()
+                event.getView().getTopInventory().getSize(),
+                GuiClick.from(event)
             );
     }
 

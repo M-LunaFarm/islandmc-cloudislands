@@ -14,8 +14,8 @@ final class GuiInventoryEventPolicy {
         return cloudIslandsTopInventory && touchesTopInventory(rawSlots, topSize);
     }
 
-    static boolean acceptsMenuActionSlot(boolean clickedTopInventory, int rawSlot, int topSize) {
-        return clickedTopInventory && rawSlot >= 0 && rawSlot < topSize;
+    static boolean acceptsMenuActionSlot(boolean clickedTopInventory, int rawSlot, int topSize, GuiClick click) {
+        return click != null && click.supported() && clickedTopInventory && rawSlot >= 0 && rawSlot < topSize;
     }
 
     private static boolean touchesTopInventory(Set<Integer> rawSlots, int topSize) {
