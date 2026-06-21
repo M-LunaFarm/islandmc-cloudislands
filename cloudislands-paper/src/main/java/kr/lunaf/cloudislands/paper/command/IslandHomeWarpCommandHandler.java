@@ -182,6 +182,19 @@ final class IslandHomeWarpCommandHandler {
             setWarpPublicAccess(player, warpAccess.warpName(), warpAccess.targetPublicAccess());
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload) {
+            return switch (noPayload.type()) {
+                case HOMES_OPEN -> {
+                    openHomeMenu(player);
+                    yield true;
+                }
+                case WARPS_OPEN -> {
+                    openWarpMenu(player);
+                    yield true;
+                }
+                default -> false;
+            };
+        }
         String actionId = action.actionId();
         return switch (actionId) {
             case "island.homes.open" -> {

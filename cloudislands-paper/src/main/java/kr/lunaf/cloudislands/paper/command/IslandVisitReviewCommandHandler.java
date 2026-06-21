@@ -65,6 +65,23 @@ final class IslandVisitReviewCommandHandler {
             routeVisitTarget(player, visitTarget.target());
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload) {
+            return switch (noPayload.type()) {
+                case VISIT_OPEN -> {
+                    IslandVisitMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
+                    yield true;
+                }
+                case VISIT_RANDOM -> {
+                    routeRandomVisit(player);
+                    yield true;
+                }
+                case VISIT_PUBLIC_OPEN -> {
+                    listPublicIslands(player, 10);
+                    yield true;
+                }
+                default -> false;
+            };
+        }
         String actionId = action.actionId();
         return switch (actionId) {
             case "island.visit.open" -> {

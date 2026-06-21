@@ -77,6 +77,11 @@ public final class GuiActionParser {
                 case "island.worth.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.WORTH_SHOW));
                 case "island.upgrades.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.UPGRADES_OPEN));
                 case "island.upgrades.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.UPGRADES_LIST));
+                case "island.homes.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.HOMES_OPEN));
+                case "island.warps.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.WARPS_OPEN));
+                case "island.visit.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.VISIT_OPEN));
+                case "island.visit.random" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.VISIT_RANDOM));
+                case "island.visit.public.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.VISIT_PUBLIC_OPEN));
                 case "island.main.open" -> Optional.of(new GuiAction.MainOpen());
                 case "island.info.open" -> Optional.of(new GuiAction.InfoOpen());
                 case "island.list.open" -> Optional.of(new GuiAction.IslandListOpen());

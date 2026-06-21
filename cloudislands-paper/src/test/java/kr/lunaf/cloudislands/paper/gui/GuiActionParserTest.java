@@ -93,6 +93,15 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesHomeWarpAndVisitNavigationIntoTypedActions() {
+        assertNoPayloadType("island.homes.open", GuiAction.NoPayloadType.HOMES_OPEN);
+        assertNoPayloadType("island.warps.open", GuiAction.NoPayloadType.WARPS_OPEN);
+        assertNoPayloadType("island.visit.open", GuiAction.NoPayloadType.VISIT_OPEN);
+        assertNoPayloadType("island.visit.random", GuiAction.NoPayloadType.VISIT_RANDOM);
+        assertNoPayloadType("island.visit.public.open", GuiAction.NoPayloadType.VISIT_PUBLIC_OPEN);
+    }
+
+    @Test
     void parsesCreateAndDangerConfirmActionsIntoTypedActions() {
         GuiAction create = GuiActionParser.parse("island.create", Map.of("templateId", " starter ")).orElseThrow();
         GuiAction reset = GuiActionParser.parse(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION, DangerousGuiActionPolicy.resetConfirmationData()).orElseThrow();
