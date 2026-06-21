@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
@@ -674,21 +675,27 @@ class CoreTypedClientsTest {
     @Test
     void communicationQueryClientReturnsTypedLogEntries() {
         UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listIslandLogs" -> CompletableFuture.completedFuture("""
-                    {"logs":[{"actorUuid":"actor","action":"CREATE","createdAt":"now","payload":{"target":"island","activeNode":"node-1"}}]}
-                    """);
+                    {"logs":[{"actorUuid":"%s","action":"CREATE","createdAt":"now","payload":{"target":"island","activeNode":"node-1"}}]}
+                    """.formatted(actorUuid));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
         CommunicationQueryClient client = new CoreCommunicationQueryClient(raw);
 
+        IslandLogRecord record = client.records(islandId, 500).join().get(0);
         CoreGuiViews.LogEntryView log = client.listLogs(islandId, 500).join().get(0);
 
-        assertEquals("actor", log.actorUuid());
+        assertEquals(actorUuid, record.actorUuid());
+        assertEquals("CREATE", record.action());
+        assertEquals("island", record.payload().get("target"));
+        assertFalse(record.payload().containsKey("activeNode"));
+        assertEquals(actorUuid.toString(), log.actorUuid());
         assertEquals("CREATE", log.action());
         assertEquals("island", log.payload().get("target"));
         assertFalse(log.payload().containsKey("activeNode"));

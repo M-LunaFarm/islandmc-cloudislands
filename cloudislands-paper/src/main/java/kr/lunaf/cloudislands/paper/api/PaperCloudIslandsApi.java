@@ -2048,7 +2048,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandLogRecord>> getLogs(UUID islandId, int limit) {
-            return client.communication().listLogs(islandId, limit).thenApply(views -> logs(islandId, views));
+            return client.communication().records(islandId, limit);
         }
         @Override
         public CompletableFuture<IslandBankSnapshot> getBank(UUID islandId) {
@@ -3362,19 +3362,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             view.reward(),
             view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
         ));
-    }
-
-    private static List<IslandLogRecord> logs(UUID islandId, List<CoreGuiViews.LogEntryView> views) {
-        return views.stream()
-            .map(view -> new IslandLogRecord(
-                new UUID(0L, 0L),
-                islandId,
-                uuidValueOrZero(view.actorUuid()),
-                view.action(),
-                view.payload(),
-                view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt())
-            ))
-            .toList();
     }
 
     private static IslandLocation location(double x, double y, double z) {

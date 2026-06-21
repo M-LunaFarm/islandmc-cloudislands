@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
@@ -39,6 +40,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final HttpClient httpClient;
     private final JdkBankClient bankClient;
     private final JdkSnapshotClient snapshotClient;
+    private final JdkCommunicationClient communicationClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -52,6 +54,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
         this.bankClient = new JdkBankClient();
         this.snapshotClient = new JdkSnapshotClient();
+        this.communicationClient = new JdkCommunicationClient();
     }
 
     @Override
@@ -72,6 +75,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public SnapshotCommandClient snapshotCommands() {
         return snapshotClient;
+    }
+
+    @Override
+    public CommunicationQueryClient communication() {
+        return communicationClient;
+    }
+
+    @Override
+    public CommunicationCommandClient communicationCommands() {
+        return communicationClient;
     }
 
     @Override
@@ -761,6 +774,34 @@ public final class JdkCoreApiClient implements CoreApiClient {
             }
             return postWithResultBody("/v1/admin/islands/restore", jsonObject("islandId", islandId, "snapshotNo", snapshotNo))
                 .thenApply(body -> CoreSnapshotJson.action(body, "RESTORE_REQUESTED"));
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkCommunicationClient implements CommunicationQueryClient, CommunicationCommandClient {
+        @Override
+        public CompletableFuture<List<IslandLogRecord>> records(UUID islandId, int limit) {
+            requireId(islandId, "islandId");
+            return post("/v1/islands/logs", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))))
+                .thenApply(CoreCommunicationJson::records);
+        }
+
+        @Override
+        public CompletableFuture<ChatActionView> sendChat(UUID islandId, UUID actorUuid, String channel, String message) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            String normalizedChannel = channel == null || channel.isBlank() ? "ISLAND" : channel.trim().toUpperCase(java.util.Locale.ROOT);
+            String normalizedMessage = message == null ? "" : message.trim();
+            if (normalizedMessage.isBlank()) {
+                throw new IllegalArgumentException("message is required");
+            }
+            return postWithResultBody("/v1/islands/chat", jsonObject("islandId", islandId, "actorUuid", actorUuid, "channel", normalizedChannel, "message", normalizedMessage))
+                .thenApply(body -> CoreCommunicationJson.chatAction(body, "CHAT_SENT"));
         }
 
         private void requireId(UUID id, String name) {

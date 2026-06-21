@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,8 +28,7 @@ public final class CoreCommunicationCommandClient implements CommunicationComman
     }
 
     private static ChatActionView chatAction(String body, String successCode) {
-        Map<?, ?> root = CoreJson.object(body);
-        return new ChatActionView(CoreJson.accepted(root), CoreJson.code(root, successCode), CoreJson.text(root, "channel"), CoreJson.text(root, "message"));
+        return CoreCommunicationJson.chatAction(body, successCode);
     }
 
     private static void requireId(UUID id, String name) {

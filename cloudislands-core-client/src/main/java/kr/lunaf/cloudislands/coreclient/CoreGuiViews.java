@@ -5,30 +5,15 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreGuiViews {
-    private static final Set<String> INTERNAL_LOG_PAYLOAD_KEYS = Set.of(
-        "activenode",
-        "activeworld",
-        "cellx",
-        "cellz",
-        "fromnode",
-        "nodeid",
-        "originx",
-        "originz",
-        "sourcenode",
-        "targetnode",
-        "targetservername",
-        "worldname"
-    );
-
     private CoreGuiViews() {
     }
 
@@ -166,11 +151,13 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<LogEntryView>> islandLogs(CoreApiClient client, UUID islandId, int limit) {
-        return client.listIslandLogs(islandId, limit).thenApply(CoreGuiViews::logs);
+        return client.communication().records(islandId, limit).thenApply(CoreGuiViews::logs);
     }
 
     public static List<LogEntryView> logViews(String body) {
-        return logs(body);
+        return CoreCommunicationJson.records(body).stream()
+            .map(CoreCommunicationJson::view)
+            .toList();
     }
 
     public static NodeSummaryView nodeSummary(String nodeId, String body) {
@@ -440,23 +427,10 @@ public final class CoreGuiViews {
         return limits;
     }
 
-    private static List<LogEntryView> logs(String body) {
-        List<LogEntryView> entries = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String action = text(object, "action");
-            if (!action.isBlank()) {
-                entries.add(new LogEntryView(text(object, "actorUuid"), action, logPayload(object(object, "payload")), text(object, "createdAt")));
-            }
-        }
-        return entries;
-    }
-
-    private static Map<String, String> logPayload(Map<?, ?> payload) {
-        Map<String, String> values = new LinkedHashMap<>();
-        objectFields(payload).entrySet().stream()
-            .filter(entry -> !INTERNAL_LOG_PAYLOAD_KEYS.contains(entry.getKey().toLowerCase(java.util.Locale.ROOT)))
-            .forEach(entry -> values.put(entry.getKey(), entry.getValue()));
-        return Map.copyOf(values);
+    private static List<LogEntryView> logs(List<IslandLogRecord> records) {
+        return records.stream()
+            .map(CoreCommunicationJson::view)
+            .toList();
     }
 
     private static Map<?, ?> root(String body) {

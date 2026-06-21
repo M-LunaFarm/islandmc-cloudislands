@@ -5,12 +5,10 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
+import kr.lunaf.cloudislands.coreclient.CommunicationCommandClient;
 import kr.lunaf.cloudislands.coreclient.CommunicationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreCommunicationCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreCommunicationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LogEntryView;
-import kr.lunaf.cloudislands.coreclient.CommunicationCommandClient;
 
 public final class IslandCommunicationUseCase {
     private final CoreApiClient coreApiClient;
@@ -22,12 +20,12 @@ public final class IslandCommunicationUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.communicationQueries = new CoreCommunicationQueryClient(coreApiClient);
-        this.communicationCommands = new CoreCommunicationCommandClient(coreApiClient);
+        this.communicationQueries = coreApiClient.communication();
+        this.communicationCommands = coreApiClient.communicationCommands();
     }
 
     IslandCommunicationUseCase(CoreApiClient coreApiClient, CommunicationQueryClient communicationQueries) {
-        this(coreApiClient, communicationQueries, new CoreCommunicationCommandClient(coreApiClient));
+        this(coreApiClient, communicationQueries, coreApiClient.communicationCommands());
     }
 
     IslandCommunicationUseCase(CoreApiClient coreApiClient, CommunicationQueryClient communicationQueries, CommunicationCommandClient communicationCommands) {

@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 
 public final class CoreCommunicationQueryClient implements CommunicationQueryClient {
     private final CoreApiClient delegate;
@@ -15,10 +16,11 @@ public final class CoreCommunicationQueryClient implements CommunicationQueryCli
     }
 
     @Override
-    public CompletableFuture<List<CoreGuiViews.LogEntryView>> listLogs(UUID islandId, int limit) {
+    public CompletableFuture<List<IslandLogRecord>> records(UUID islandId, int limit) {
         requireIsland(islandId);
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        return CoreGuiViews.islandLogs(delegate, islandId, safeLimit);
+        return delegate.listIslandLogs(islandId, safeLimit)
+            .thenApply(CoreCommunicationJson::records);
     }
 
     private static void requireIsland(UUID islandId) {

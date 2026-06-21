@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.coreclient.CoreCommunicationCommandClient;
+import kr.lunaf.cloudislands.coreclient.CoreCommunicationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LogEntryView;
 import kr.lunaf.cloudislands.paper.application.IslandCommunicationUseCase.ChatActionResult;
@@ -37,9 +39,11 @@ class IslandCommunicationUseCaseTest {
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class},
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "sendIslandChat" -> {
+	            new Class<?>[] {CoreApiClient.class},
+	            (_proxy, method, args) -> switch (method.getName()) {
+	                case "communication" -> new CoreCommunicationQueryClient((CoreApiClient) _proxy);
+	                case "communicationCommands" -> new CoreCommunicationCommandClient((CoreApiClient) _proxy);
+	                case "sendIslandChat" -> {
                     calls.add("sendIslandChat:" + args[2] + ":" + args[3]);
                     yield CompletableFuture.completedFuture("{\"accepted\":true}");
                 }
