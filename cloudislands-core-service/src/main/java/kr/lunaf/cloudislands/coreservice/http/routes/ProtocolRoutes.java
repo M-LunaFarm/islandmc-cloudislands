@@ -1,7 +1,9 @@
 package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import kr.lunaf.cloudislands.api.model.NodeState;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
@@ -36,34 +38,34 @@ public final class ProtocolRoutes implements RouteGroup {
     }
 
     static String protocolNegotiationJson(ProtocolVersion.NegotiationResult negotiation) {
-        return "{"
-            + "\"success\":false,"
-            + "\"code\":\"PROTOCOL_VERSION_UNSUPPORTED\","
-            + "\"message\":\"Node protocol version is not supported\","
-            + "\"clientVersion\":" + negotiation.clientVersion() + ","
-            + "\"minSupported\":" + negotiation.minSupported() + ","
-            + "\"current\":" + negotiation.current() + ","
-            + "\"accepted\":" + negotiation.accepted() + ","
-            + "\"status\":\"" + escape(negotiation.status()) + "\","
-            + "\"field\":\"" + escape(negotiation.field()) + "\","
-            + "\"policy\":\"" + escape(negotiation.policy()) + "\","
-            + "\"upgradeHint\":\"" + escape(negotiation.upgradeHint()) + "\""
-            + "}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("success", false);
+        values.put("code", "PROTOCOL_VERSION_UNSUPPORTED");
+        values.put("message", "Node protocol version is not supported");
+        values.put("clientVersion", negotiation.clientVersion());
+        values.put("minSupported", negotiation.minSupported());
+        values.put("current", negotiation.current());
+        values.put("accepted", negotiation.accepted());
+        values.put("status", negotiation.status());
+        values.put("field", negotiation.field());
+        values.put("policy", negotiation.policy());
+        values.put("upgradeHint", negotiation.upgradeHint());
+        return SimpleJson.stringify(values);
     }
 
     static String protocolStatusJson() {
         ProtocolVersion.NegotiationResult current = ProtocolVersion.negotiate(NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION);
-        return "{"
-            + "\"success\":true,"
-            + "\"nodeProtocolMinSupported\":" + current.minSupported() + ","
-            + "\"nodeProtocolCurrent\":" + current.current() + ","
-            + "\"nodeProtocolHeartbeatField\":\"" + escape(current.field()) + "\","
-            + "\"nodeProtocolNegotiationPolicy\":\"" + escape(current.policy()) + "\","
-            + "\"nodeProtocolCurrentAccepted\":" + current.accepted() + ","
-            + "\"nodeProtocolCurrentStatus\":\"" + escape(current.status()) + "\","
-            + "\"nodeProtocolUpgradeHint\":\"" + escape(current.upgradeHint()) + "\","
-            + "\"nodeHeartbeatEndpoint\":\"/v1/nodes/heartbeat\""
-            + "}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("success", true);
+        values.put("nodeProtocolMinSupported", current.minSupported());
+        values.put("nodeProtocolCurrent", current.current());
+        values.put("nodeProtocolHeartbeatField", current.field());
+        values.put("nodeProtocolNegotiationPolicy", current.policy());
+        values.put("nodeProtocolCurrentAccepted", current.accepted());
+        values.put("nodeProtocolCurrentStatus", current.status());
+        values.put("nodeProtocolUpgradeHint", current.upgradeHint());
+        values.put("nodeHeartbeatEndpoint", "/v1/nodes/heartbeat");
+        return SimpleJson.stringify(values);
     }
 
     static NodeHeartbeatRequest parseHeartbeat(String body) {
@@ -90,9 +92,5 @@ public final class ProtocolRoutes implements RouteGroup {
             JsonFields.bool(body, "storageAvailable", true),
             JsonFields.text(body, "supportedTemplates", "*")
         );
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

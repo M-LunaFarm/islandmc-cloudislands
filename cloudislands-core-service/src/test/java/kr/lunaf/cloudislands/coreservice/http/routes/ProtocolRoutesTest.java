@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import kr.lunaf.cloudislands.api.model.NodeState;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.protocol.ProtocolVersion;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import org.junit.jupiter.api.Test;
@@ -26,13 +28,15 @@ class ProtocolRoutesTest {
 
     @Test
     void rendersProtocolStatusAndNegotiation() {
-        String status = ProtocolRoutes.protocolStatusJson();
-        String rejected = ProtocolRoutes.protocolNegotiationJson(ProtocolVersion.negotiate(NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION + 1));
+        Map<?, ?> status = SimpleJson.object(SimpleJson.parse(ProtocolRoutes.protocolStatusJson()));
+        Map<?, ?> rejected = SimpleJson.object(SimpleJson.parse(
+            ProtocolRoutes.protocolNegotiationJson(ProtocolVersion.negotiate(NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION + 1))
+        ));
 
-        assertTrue(status.contains("\"success\":true"));
-        assertTrue(status.contains("\"nodeHeartbeatEndpoint\":\"/v1/nodes/heartbeat\""));
-        assertTrue(rejected.contains("\"code\":\"PROTOCOL_VERSION_UNSUPPORTED\""));
-        assertTrue(rejected.contains("\"accepted\":false"));
+        assertEquals(true, status.get("success"));
+        assertEquals("/v1/nodes/heartbeat", SimpleJson.text(status.get("nodeHeartbeatEndpoint")));
+        assertEquals("PROTOCOL_VERSION_UNSUPPORTED", SimpleJson.text(rejected.get("code")));
+        assertEquals(false, rejected.get("accepted"));
     }
 
     @Test
