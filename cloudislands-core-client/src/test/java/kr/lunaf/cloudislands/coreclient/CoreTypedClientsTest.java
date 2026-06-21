@@ -184,6 +184,28 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void warehouseQueryClientReturnsTypedWarehouseItems() {
+        UUID islandId = UUID.randomUUID();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "islandWarehouse" -> CompletableFuture.completedFuture("""
+                    {"items":[{"materialKey":"STONE","amount":12},{"materialKey":"","amount":9},{"materialKey":"DIRT","amount":0}]}
+                    """);
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        WarehouseQueryClient client = new CoreWarehouseQueryClient(raw);
+
+        List<WarehouseItemView> items = client.listItems(islandId, 500).join();
+
+        assertEquals(1, items.size());
+        assertEquals("STONE", items.get(0).materialKey());
+        assertEquals(12L, items.get(0).amount());
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

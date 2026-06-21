@@ -7,24 +7,38 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreWarehouseQueryClient;
+import kr.lunaf.cloudislands.coreclient.WarehouseQueryClient;
 
 public final class IslandWarehouseUseCase {
     private final CoreApiClient coreApiClient;
+    private final WarehouseQueryClient warehouseQueries;
 
     public IslandWarehouseUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.warehouseQueries = new CoreWarehouseQueryClient(coreApiClient);
     }
 
-    private CompletableFuture<String> listBody(UUID islandId, int limit) {
-        requireIsland(islandId);
-        return coreApiClient.islandWarehouse(islandId, Math.max(1, Math.min(limit, 100)));
+    IslandWarehouseUseCase(CoreApiClient coreApiClient, WarehouseQueryClient warehouseQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (warehouseQueries == null) {
+            throw new IllegalArgumentException("warehouseQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.warehouseQueries = warehouseQueries;
     }
 
     public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
-        return listBody(islandId, limit).thenApply(IslandWarehouseUseCase::itemViews);
+        requireIsland(islandId);
+        return warehouseQueries.listItems(islandId, limit)
+            .thenApply(items -> items.stream()
+                .map(item -> new WarehouseItemView(item.materialKey(), item.amount()))
+                .toList());
     }
 
     public CompletableFuture<WarehouseOperationResult> deposit(UUID islandId, UUID actorUuid, String materialKey, long amount, MutationRunner runner) {
@@ -75,33 +89,6 @@ public final class IslandWarehouseUseCase {
         if (runner == null) {
             throw new IllegalArgumentException("runner is required");
         }
-    }
-
-    private static List<WarehouseItemView> itemViews(String body) {
-        return entries(body).stream()
-            .map(object -> new WarehouseItemView(text(object, "materialKey"), SimpleJson.number(object.get("amount"))))
-            .filter(item -> !item.materialKey().isBlank() && item.amount() > 0L)
-            .toList();
-    }
-
-    private static List<Map<?, ?>> entries(String body) {
-        Object parsed = SimpleJson.parse(body);
-        if (parsed instanceof List<?>) {
-            return SimpleJson.list(parsed).stream()
-                .map(SimpleJson::object)
-                .filter(map -> !map.isEmpty())
-                .toList();
-        }
-        Map<?, ?> root = SimpleJson.object(parsed);
-        for (Object value : root.values()) {
-            if (value instanceof List<?>) {
-                return SimpleJson.list(value).stream()
-                    .map(SimpleJson::object)
-                    .filter(map -> !map.isEmpty())
-                    .toList();
-            }
-        }
-        return root.isEmpty() ? List.of() : List.of(root);
     }
 
     private static Map<?, ?> root(String body) {

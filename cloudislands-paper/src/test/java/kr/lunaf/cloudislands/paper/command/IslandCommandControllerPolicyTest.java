@@ -121,7 +121,8 @@ class IslandCommandControllerPolicyTest {
         assertFalse(warehouseHandler.contains("coreApiClient.depositIslandWarehouse"));
         assertFalse(warehouseHandler.contains("coreApiClient.withdrawIslandWarehouse"));
         assertFalse(warehouseUseCase.contains("public CompletableFuture<String> list("), "warehouse list usecase must expose typed item views instead of raw JSON");
-        assertTrue(warehouseUseCase.contains("coreApiClient.islandWarehouse"));
+        assertTrue(warehouseUseCase.contains("warehouseQueries.listItems"));
+        assertFalse(warehouseUseCase.contains("coreApiClient.islandWarehouse"));
         assertTrue(warehouseUseCase.contains("coreApiClient.depositIslandWarehouse"));
         assertTrue(warehouseUseCase.contains("coreApiClient.withdrawIslandWarehouse"));
     }
