@@ -2011,12 +2011,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandSnapshotRecord>> getSnapshots(UUID islandId, int limit) {
-            return client.listIslandSnapshots(islandId, limit).thenApply(PaperCloudIslandsApi::snapshots);
+            return client.snapshots().listSnapshots(islandId, limit).thenApply(views -> snapshots(islandId, views));
         }
 
         @Override
         public CompletableFuture<List<IslandLogRecord>> getLogs(UUID islandId, int limit) {
-            return client.listIslandLogs(islandId, limit).thenApply(PaperCloudIslandsApi::logs);
+            return client.communication().listLogs(islandId, limit).thenApply(views -> logs(islandId, views));
         }
         @Override
         public CompletableFuture<IslandBankSnapshot> getBank(UUID islandId) {
@@ -2343,7 +2343,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> saveIslandResult(UUID islandId) { return mutate("admin.island.save", () -> client.requestIslandSaveResult(islandId, "ADMIN_SAVE")).thenApply(body -> actionCode(body, "SAVE_REQUESTED")); }
         @Override public CompletableFuture<Void> snapshotIsland(UUID islandId, String reason) { return snapshotIslandResult(islandId, reason).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> snapshotIslandResult(UUID islandId, String reason) { return mutate("admin.island.snapshot", () -> client.requestIslandSnapshotResult(islandId, reason)).thenApply(body -> actionCode(body, "SNAPSHOT_REQUESTED")); }
-        @Override public CompletableFuture<List<IslandSnapshotRecord>> listIslandSnapshots(UUID islandId, int limit) { return client.listIslandSnapshots(islandId, limit).thenApply(PaperCloudIslandsApi::snapshots); }
+        @Override public CompletableFuture<List<IslandSnapshotRecord>> listIslandSnapshots(UUID islandId, int limit) { return client.snapshots().listSnapshots(islandId, limit).thenApply(views -> snapshots(islandId, views)); }
         @Override public CompletableFuture<Void> restoreIsland(UUID islandId, long snapshotNo) { return restoreIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> restoreIslandResult(UUID islandId, long snapshotNo) { return mutateIdempotent("admin.island.restore", () -> client.restoreIslandSnapshotResult(islandId, snapshotNo)).thenApply(body -> actionCode(body, "RESTORE_REQUESTED")); }
         @Override public CompletableFuture<Void> rollbackIsland(UUID islandId, long snapshotNo) { return rollbackIslandResult(islandId, snapshotNo).thenApply(_result -> null); }
@@ -3464,6 +3464,22 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return snapshots;
     }
 
+    private static List<IslandSnapshotRecord> snapshots(UUID islandId, List<CoreGuiViews.SnapshotView> views) {
+        return views.stream()
+            .map(view -> new IslandSnapshotRecord(
+                new UUID(0L, 0L),
+                islandId,
+                view.snapshotNo(),
+                view.storagePath(),
+                view.reason(),
+                new UUID(0L, 0L),
+                view.checksum(),
+                view.sizeBytes(),
+                view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt())
+            ))
+            .toList();
+    }
+
     private static List<IslandLogRecord> logs(String json) {
         List<IslandLogRecord> logs = new ArrayList<>();
         for (String object : objects(json, "logs")) {
@@ -3477,6 +3493,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return logs;
+    }
+
+    private static List<IslandLogRecord> logs(UUID islandId, List<CoreGuiViews.LogEntryView> views) {
+        return views.stream()
+            .map(view -> new IslandLogRecord(
+                new UUID(0L, 0L),
+                islandId,
+                uuidValueOrZero(view.actorUuid()),
+                view.action(),
+                view.payload(),
+                view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt())
+            ))
+            .toList();
     }
 
     private static IslandLocation location(String json) {
