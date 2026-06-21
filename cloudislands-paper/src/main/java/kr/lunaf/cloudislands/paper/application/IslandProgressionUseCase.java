@@ -110,11 +110,6 @@ public final class IslandProgressionUseCase {
         return completeMissionBody(islandId, actorUuid, missionKey, kind, runner);
     }
 
-    private static IslandLevelView levelView(String body) {
-        CoreGuiViews.IslandInfoView info = CoreGuiViews.islandInfoView(body);
-        return levelView(info);
-    }
-
     private static IslandLevelView levelView(CoreGuiViews.IslandInfoView info) {
         return new IslandLevelView(info.level(), info.worth().isBlank() ? "0" : info.worth());
     }

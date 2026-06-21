@@ -199,6 +199,8 @@ class IslandCommandControllerPolicyTest {
         assertFalse(progressionUseCase.contains("public CompletableFuture<String> purchaseUpgrade("), "upgrade mutation usecase must expose typed results instead of raw JSON");
         assertFalse(progressionUseCase.contains("public CompletableFuture<String> listMissions("), "mission list usecase must expose typed views instead of raw JSON");
         assertFalse(progressionUseCase.contains("public CompletableFuture<String> completeMission("), "mission mutation usecase must expose typed results instead of raw JSON");
+        assertFalse(progressionUseCase.contains("CoreGuiViews.islandInfoView(body)"), "progression usecase must not parse raw Core JSON bodies");
+        assertFalse(progressionUseCase.contains("levelView(String body)"), "progression usecase must not keep raw JSON overloads");
         assertTrue(progressionUseCase.contains("ProgressionQueryClient progressionQueries"), "progression reads must stay behind a typed core-client query boundary");
         assertTrue(progressionUseCase.contains("progressionQueries.blockDetails"));
         assertTrue(progressionUseCase.contains("progressionQueries.topWorth"));
