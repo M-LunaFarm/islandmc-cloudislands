@@ -47,9 +47,12 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("\"node.id\", \"node.id\""), "Config v2 node id must feed runtime node identity");
         assertTrue(loader.contains("\"node.reject-default-identity\", \"node.reject-default-identity\""), "Config v2 node identity guard must feed runtime startup policy");
         assertTrue(loader.contains("\"capacity.max-active-islands\", \"node.max-active-islands\""), "Config v2 capacity must feed runtime node capacity");
-        assertTrue(loader.contains("\"core-api.base-url\", \"core-api.base-url\""), "Config v2 Core API endpoint must feed runtime Core API config");
+        assertTrue(loader.contains("\"core-api.base-url\", \"setup.core-api.base-url\""), "Config v2 Core API endpoint must feed setup-owned runtime Core API config");
         assertTrue(loader.contains("\"redis.uri\", \"redis.uri\""), "Config v2 Redis URI must feed runtime Redis config");
-        assertTrue(loader.contains("\"storage.bearer-token\", \"storage.auth-token\""), "Config v2 storage bearer token must feed runtime storage auth config");
+        assertTrue(loader.contains("\"storage.type\", \"setup.storage.type\""), "Config v2 storage type must feed setup-owned runtime storage config");
+        assertTrue(loader.contains("\"storage.bearer-token\", \"setup.storage.auth-token\""), "Config v2 storage bearer token must feed setup-owned runtime storage auth config");
+        assertFalse(loader.contains("String legacyPath"), "Config v2 setup values must not fall back to legacy runtime paths");
+        assertFalse(loader.contains("string(config, legacyPath"), "Config v2 setup values must not read legacy runtime paths");
         assertTrue(loader.contains("\"forwarding.secret\", \"security.forwarding-secret\""), "Config v2 forwarding secret must feed runtime security config");
         assertTrue(loader.contains("\"forwarding.required\", \"security.require-velocity-forwarding\""), "Config v2 forwarding requirement must feed runtime security config");
         assertTrue(loader.contains("\"route-session.enforce\", \"security.enforce-route-session\""), "Config v2 route session enforcement must feed runtime security config");

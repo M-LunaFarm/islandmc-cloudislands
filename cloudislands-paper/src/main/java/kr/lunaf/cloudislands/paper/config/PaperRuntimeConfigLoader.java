@@ -330,23 +330,23 @@ public final class PaperRuntimeConfigLoader {
     }
 
     private static void mapIntegrationsV2(FileConfiguration source, FileConfiguration target) {
-        setIfPresent(source, target, "core-api.base-url", "core-api.base-url");
+        setIfPresent(source, target, "core-api.base-url", "setup.core-api.base-url");
         if (source.contains("core-api.timeout.request")) {
             target.set("core-api.timeout-ms", durationMillis(source.getString("core-api.timeout.request", "3s")));
         }
         setIfPresent(source, target, "redis.uri", "redis.uri");
-        setIfPresent(source, target, "storage.type", "storage.type");
-        setIfPresent(source, target, "storage.endpoint", "storage.endpoint");
-        setIfPresent(source, target, "storage.bucket", "storage.bucket");
-        setIfPresent(source, target, "storage.region", "storage.region");
+        setIfPresent(source, target, "storage.type", "setup.storage.type");
+        setIfPresent(source, target, "storage.endpoint", "setup.storage.endpoint");
+        setIfPresent(source, target, "storage.bucket", "setup.storage.bucket");
+        setIfPresent(source, target, "storage.region", "setup.storage.region");
     }
 
     private static void mapSecurityV2(FileConfiguration source, FileConfiguration target) {
-        setIfPresent(source, target, "core-api.auth-token", "core-api.auth-token");
-        setIfPresent(source, target, "core-api.admin-token", "core-api.admin-token");
-        setIfPresent(source, target, "storage.access-key", "storage.access-key");
-        setIfPresent(source, target, "storage.secret-key", "storage.secret-key");
-        setIfPresent(source, target, "storage.bearer-token", "storage.auth-token");
+        setIfPresent(source, target, "core-api.auth-token", "setup.core-api.auth-token");
+        setIfPresent(source, target, "core-api.admin-token", "setup.core-api.admin-token");
+        setIfPresent(source, target, "storage.access-key", "setup.storage.access-key");
+        setIfPresent(source, target, "storage.secret-key", "setup.storage.secret-key");
+        setIfPresent(source, target, "storage.bearer-token", "setup.storage.auth-token");
         setIfPresent(source, target, "forwarding.secret", "security.forwarding-secret");
         setIfPresent(source, target, "forwarding.required", "security.require-velocity-forwarding");
         setIfPresent(source, target, "route-session.enforce", "security.enforce-route-session");
@@ -463,18 +463,17 @@ public final class PaperRuntimeConfigLoader {
     }
 
     private static PaperRuntimeConfig.StorageTarget storageTarget(FileConfiguration config, Function<String, String> resolver, boolean fallback) {
-        String prefix = fallback ? "storage.fallback." : "storage.";
         String setupPrefix = fallback ? "setup.storage.fallback." : "setup.storage.";
         String typePath = fallback ? FALLBACK_STORAGE_TYPE_PATH : PRIMARY_STORAGE_TYPE_PATH;
         return new PaperRuntimeConfig.StorageTarget(
-            normalizeBackend(setupString(config, resolver, typePath, prefix + "type", fallback ? "LOCAL_FILESYSTEM" : "S3")),
-            setupString(config, resolver, setupPrefix + "endpoint", prefix + "endpoint", "http://minio.internal:9000"),
-            setupString(config, resolver, setupPrefix + "bucket", prefix + "bucket", "cloudislands"),
-            setupString(config, resolver, setupPrefix + "region", prefix + "region", "us-east-1"),
-            envOrConfig("S3_ACCESS_KEY", setupString(config, resolver, setupPrefix + "access-key", prefix + "access-key", "")),
-            envOrConfig("S3_SECRET_KEY", setupString(config, resolver, setupPrefix + "secret-key", prefix + "secret-key", "")),
-            envOrConfig("S3_BEARER_TOKEN", setupString(config, resolver, setupPrefix + "auth-token", prefix + "auth-token", "")),
-            setupString(config, resolver, setupPrefix + "local-path", prefix + "local-path", fallback ? "islands-storage-fallback" : "islands-storage")
+            normalizeBackend(setupString(config, resolver, typePath, fallback ? "LOCAL_FILESYSTEM" : "S3")),
+            setupString(config, resolver, setupPrefix + "endpoint", "http://minio.internal:9000"),
+            setupString(config, resolver, setupPrefix + "bucket", "cloudislands"),
+            setupString(config, resolver, setupPrefix + "region", "us-east-1"),
+            envOrConfig("S3_ACCESS_KEY", setupString(config, resolver, setupPrefix + "access-key", "")),
+            envOrConfig("S3_SECRET_KEY", setupString(config, resolver, setupPrefix + "secret-key", "")),
+            envOrConfig("S3_BEARER_TOKEN", setupString(config, resolver, setupPrefix + "auth-token", "")),
+            setupString(config, resolver, setupPrefix + "local-path", fallback ? "islands-storage-fallback" : "islands-storage")
         );
     }
 
@@ -512,16 +511,16 @@ public final class PaperRuntimeConfigLoader {
     private static PaperRuntimeConfig.CoreApi coreApi(FileConfiguration config, Function<String, String> resolver) {
         String token = System.getenv("CI_CORE_TOKEN");
         if (token == null || token.isBlank()) {
-            token = setupString(config, resolver, "setup.core-api.auth-token", "core-api.auth-token", "");
+            token = setupString(config, resolver, "setup.core-api.auth-token", "");
         }
         String adminToken = System.getenv("CI_ADMIN_TOKEN");
         if (adminToken == null || adminToken.isBlank()) {
-            adminToken = setupString(config, resolver, "setup.core-api.admin-token", "core-api.admin-token", "");
+            adminToken = setupString(config, resolver, "setup.core-api.admin-token", "");
         }
         long setupTimeout = config.getLong("setup.core-api.timeout-ms", 0L);
         long timeout = setupTimeout > 0L ? setupTimeout : config.getLong("core-api.timeout-ms", 3000L);
         return new PaperRuntimeConfig.CoreApi(
-            setupString(config, resolver, "setup.core-api.base-url", "core-api.base-url", "https://core-api.internal:8443"),
+            setupString(config, resolver, "setup.core-api.base-url", "https://core-api.internal:8443"),
             token,
             adminToken,
             Duration.ofMillis(Math.max(1L, timeout))
@@ -588,12 +587,8 @@ public final class PaperRuntimeConfigLoader {
         ).normalized();
     }
 
-    private static String setupString(FileConfiguration config, Function<String, String> resolver, String setupPath, String legacyPath, String fallback) {
-        String value = string(config, setupPath, "");
-        if (value.isBlank()) {
-            value = string(config, legacyPath, fallback);
-        }
-        return resolver.apply(value);
+    private static String setupString(FileConfiguration config, Function<String, String> resolver, String setupPath, String fallback) {
+        return resolver.apply(string(config, setupPath, fallback));
     }
 
     private static String templateVersions(FileConfiguration config) {
