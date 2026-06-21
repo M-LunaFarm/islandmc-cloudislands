@@ -5,12 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Proxy;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.RouteAction;
+import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import org.junit.jupiter.api.Test;
 
 class CoreTypedClientsTest {
@@ -575,11 +581,25 @@ class CoreTypedClientsTest {
     void navigationCommandClientReturnsTypedReviewAction() {
         UUID islandId = UUID.randomUUID();
         UUID reviewerUuid = UUID.randomUUID();
+        UUID ownerUuid = UUID.randomUUID();
+        RouteTicket ticket = routeTicket(reviewerUuid, islandId);
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
+                case "createVisitTicket" -> {
+                    calls.add(args[1] instanceof UUID ? "visit-id" : "visit-name:" + args[1]);
+                    yield CompletableFuture.completedFuture(ticket);
+                }
+                case "createVisitTicketForOwner" -> {
+                    calls.add("visit-owner:" + args[1]);
+                    yield CompletableFuture.completedFuture(ticket);
+                }
+                case "createRandomVisitTicket" -> {
+                    calls.add("visit-random");
+                    yield CompletableFuture.completedFuture(ticket);
+                }
                 case "setIslandReview" -> {
                     calls.add("review:" + args[2] + ":" + args[3]);
                     yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"REVIEW_SET\"}");
@@ -589,11 +609,53 @@ class CoreTypedClientsTest {
         );
         NavigationCommandClient client = new CoreNavigationCommandClient(raw);
 
+        assertEquals(ticket, client.createVisitTicket(reviewerUuid, islandId).join());
+        assertEquals(ticket, client.createVisitTicket(reviewerUuid, " spawn ").join());
+        assertEquals(ticket, client.createVisitTicketForOwner(reviewerUuid, ownerUuid).join());
+        assertEquals(ticket, client.createRandomVisitTicket(reviewerUuid).join());
         ReviewActionView result = client.setReview(islandId, reviewerUuid, 5, "nice").join();
 
         assertTrue(result.accepted());
         assertEquals("REVIEW_SET", result.code());
-        assertEquals(List.of("review:5:nice"), calls);
+        assertEquals(List.of("visit-id", "visit-name:spawn", "visit-owner:" + ownerUuid, "visit-random", "review:5:nice"), calls);
+    }
+
+    @Test
+    void routingCommandClientReturnsTypedRouteOperations() {
+        UUID playerUuid = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        RouteTicket ticket = routeTicket(playerUuid, islandId);
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "createWarpTicket" -> {
+                    calls.add("warp:" + args[2]);
+                    yield CompletableFuture.completedFuture(ticket);
+                }
+                case "routeTicketStatus" -> {
+                    calls.add("status:" + args[2]);
+                    yield CompletableFuture.completedFuture(Optional.of(ticket));
+                }
+                case "publishRouteSession" -> {
+                    calls.add("publish:" + ((RouteTicket) args[0]).ticketId());
+                    yield CompletableFuture.completedFuture(null);
+                }
+                case "clearRoute" -> {
+                    calls.add("clear:" + args[2]);
+                    yield CompletableFuture.completedFuture("cleared");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        RoutingCommandClient client = new CoreRoutingCommandClient(raw);
+
+        assertEquals(ticket, client.createWarpTicket(playerUuid, islandId, "spawn").join());
+        assertEquals(Optional.of(ticket), client.routeTicketStatus(ticket).join());
+        assertEquals(null, client.publishRouteSession(ticket).join());
+        assertEquals("cleared", client.clearRoute(ticket, "").join().code());
+        assertEquals(List.of("warp:spawn", "status:nonce", "publish:" + ticket.ticketId(), "clear:PLUGIN_MESSAGE_FAILED"), calls);
     }
 
     @Test
@@ -836,5 +898,20 @@ class CoreTypedClientsTest {
         assertEquals("Builder", upserted.value().displayName());
         assertEquals("BUILDER", reset.value().role());
         assertTrue(reset.changed());
+    }
+
+    private static RouteTicket routeTicket(UUID playerUuid, UUID islandId) {
+        return new RouteTicket(
+            UUID.randomUUID(),
+            playerUuid,
+            RouteAction.VISIT,
+            islandId,
+            "node-1",
+            "world",
+            RouteTicketState.READY,
+            Instant.EPOCH.plusSeconds(60),
+            "nonce",
+            Map.of()
+        );
     }
 }

@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreNavigationCommandClient implements NavigationCommandClient {
@@ -13,6 +14,35 @@ public final class CoreNavigationCommandClient implements NavigationCommandClien
             throw new IllegalArgumentException("delegate is required");
         }
         this.delegate = delegate;
+    }
+
+    @Override
+    public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID islandId) {
+        requireId(visitorUuid, "visitorUuid");
+        requireId(islandId, "islandId");
+        return delegate.createVisitTicket(visitorUuid, islandId);
+    }
+
+    @Override
+    public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) {
+        requireId(visitorUuid, "visitorUuid");
+        if (islandName == null || islandName.isBlank()) {
+            throw new IllegalArgumentException("islandName is required");
+        }
+        return delegate.createVisitTicket(visitorUuid, islandName.trim());
+    }
+
+    @Override
+    public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
+        requireId(visitorUuid, "visitorUuid");
+        requireId(ownerUuid, "ownerUuid");
+        return delegate.createVisitTicketForOwner(visitorUuid, ownerUuid);
+    }
+
+    @Override
+    public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
+        requireId(visitorUuid, "visitorUuid");
+        return delegate.createRandomVisitTicket(visitorUuid);
     }
 
     @Override

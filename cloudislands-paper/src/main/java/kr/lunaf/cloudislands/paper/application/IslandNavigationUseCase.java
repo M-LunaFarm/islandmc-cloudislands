@@ -52,14 +52,14 @@ public final class IslandNavigationUseCase {
             throw new IllegalArgumentException("islandId is required");
         }
         requireRunner(runner);
-        return runner.mutate("route.ticket.visit", () -> coreApiClient.createVisitTicket(visitorUuid, islandId));
+        return runner.mutate("route.ticket.visit", () -> navigationCommands.createVisitTicket(visitorUuid, islandId));
     }
 
     public CompletableFuture<RouteTicket> createVisitTicketByName(UUID visitorUuid, String islandName, MutationRunner runner) {
         requirePlayer(visitorUuid);
         String normalizedIslandName = requireText(islandName, "islandName");
         requireRunner(runner);
-        return runner.mutate("route.ticket.visit.name", () -> coreApiClient.createVisitTicket(visitorUuid, normalizedIslandName));
+        return runner.mutate("route.ticket.visit.name", () -> navigationCommands.createVisitTicket(visitorUuid, normalizedIslandName));
     }
 
     public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid, MutationRunner runner) {
@@ -68,13 +68,13 @@ public final class IslandNavigationUseCase {
             throw new IllegalArgumentException("ownerUuid is required");
         }
         requireRunner(runner);
-        return runner.mutate("route.ticket.visit.owner", () -> coreApiClient.createVisitTicketForOwner(visitorUuid, ownerUuid));
+        return runner.mutate("route.ticket.visit.owner", () -> navigationCommands.createVisitTicketForOwner(visitorUuid, ownerUuid));
     }
 
     public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid, MutationRunner runner) {
         requirePlayer(visitorUuid);
         requireRunner(runner);
-        return runner.mutate("route.ticket.random-visit", () -> coreApiClient.createRandomVisitTicket(visitorUuid));
+        return runner.mutate("route.ticket.random-visit", () -> navigationCommands.createRandomVisitTicket(visitorUuid));
     }
 
     public CompletableFuture<RouteTicket> resolveVisitTarget(UUID visitorUuid, String target, MutationRunner runner) {

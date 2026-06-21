@@ -362,8 +362,10 @@ class IslandCommandControllerPolicyTest {
         assertFalse(visitReviewHandler.contains("coreApiClient.createRandomVisitTicket"));
         assertFalse(visitReviewHandler.contains("coreApiClient.listPublicIslands"));
         assertFalse(visitReviewHandler.contains("coreApiClient.setIslandReview"));
-        assertTrue(navigationUseCase.contains("coreApiClient.createVisitTicket"));
-        assertTrue(navigationUseCase.contains("coreApiClient.createRandomVisitTicket"));
+        assertTrue(navigationUseCase.contains("navigationCommands.createVisitTicket"));
+        assertTrue(navigationUseCase.contains("navigationCommands.createRandomVisitTicket"));
+        assertFalse(navigationUseCase.contains("coreApiClient.createVisitTicket"));
+        assertFalse(navigationUseCase.contains("coreApiClient.createRandomVisitTicket"));
         assertTrue(navigationUseCase.contains("NavigationQueryClient navigationQueries"), "navigation reads must stay behind a typed core-client query boundary");
         assertTrue(navigationUseCase.contains("navigationQueries.publicIslands"), "public island list usecase must read through the typed navigation query client");
         assertTrue(navigationUseCase.contains("NavigationCommandClient navigationCommands"), "navigation mutations must stay behind a typed core-client command boundary");
@@ -544,10 +546,15 @@ class IslandCommandControllerPolicyTest {
         assertFalse(routingHandler.contains("coreApiClient.publishRouteSession"));
         assertFalse(routingHandler.contains("coreApiClient.clearRoute"));
         assertFalse(routingUseCase.contains("public CompletableFuture<String> clearRoute("), "route clear usecase must expose typed actions instead of raw strings");
-        assertTrue(routingUseCase.contains("coreApiClient.createWarpTicket"));
-        assertTrue(routingUseCase.contains("coreApiClient.routeTicketStatus"));
-        assertTrue(routingUseCase.contains("coreApiClient.publishRouteSession"));
-        assertTrue(routingUseCase.contains("coreApiClient.clearRoute"));
+        assertTrue(routingUseCase.contains("RoutingCommandClient routingCommands"));
+        assertTrue(routingUseCase.contains("routingCommands.createWarpTicket"));
+        assertTrue(routingUseCase.contains("routingCommands.routeTicketStatus"));
+        assertTrue(routingUseCase.contains("routingCommands.publishRouteSession"));
+        assertTrue(routingUseCase.contains("routingCommands.clearRoute"));
+        assertFalse(routingUseCase.contains("coreApiClient.createWarpTicket"));
+        assertFalse(routingUseCase.contains("coreApiClient.routeTicketStatus"));
+        assertFalse(routingUseCase.contains("coreApiClient.publishRouteSession"));
+        assertFalse(routingUseCase.contains("coreApiClient.clearRoute"));
     }
 
     private static String routerSource() throws Exception {

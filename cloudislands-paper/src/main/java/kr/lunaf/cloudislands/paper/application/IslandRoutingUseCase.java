@@ -6,49 +6,64 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreRoutingCommandClient;
+import kr.lunaf.cloudislands.coreclient.RouteClearView;
+import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
 
 public final class IslandRoutingUseCase {
     private final CoreApiClient coreApiClient;
+    private final RoutingCommandClient routingCommands;
 
     public IslandRoutingUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.routingCommands = new CoreRoutingCommandClient(coreApiClient);
+    }
+
+    IslandRoutingUseCase(CoreApiClient coreApiClient, RoutingCommandClient routingCommands) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (routingCommands == null) {
+            throw new IllegalArgumentException("routingCommands is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.routingCommands = routingCommands;
     }
 
     public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName, MutationRunner runner) {
         requireUuid(playerUuid, "playerUuid");
         requireUuid(islandId, "islandId");
         requireRunner(runner);
-        return runner.mutate("route.ticket.warp", () -> coreApiClient.createWarpTicket(playerUuid, islandId, warpName == null ? "" : warpName));
+        return runner.mutate("route.ticket.warp", () -> routingCommands.createWarpTicket(playerUuid, islandId, warpName == null ? "" : warpName));
     }
 
     public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(RouteTicket ticket) {
         requireTicket(ticket);
-        return coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce());
+        return routingCommands.routeTicketStatus(ticket);
     }
 
     public CompletableFuture<Void> publishRouteSession(RouteTicket ticket, MutationRunner runner) {
         requireTicket(ticket);
         requireRunner(runner);
-        return runner.mutate("route.session.publish", () -> coreApiClient.publishRouteSession(ticket));
+        return runner.mutate("route.session.publish", () -> routingCommands.publishRouteSession(ticket));
     }
 
-    private CompletableFuture<String> clearRouteBody(RouteTicket ticket, String reason, MutationRunner runner) {
+    private CompletableFuture<RouteClearView> clearRouteBody(RouteTicket ticket, String reason, MutationRunner runner) {
         requireTicket(ticket);
         requireRunner(runner);
         String normalizedReason = reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason;
-        return runner.mutate("route.clear", () -> coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), normalizedReason));
+        return runner.mutate("route.clear", () -> routingCommands.clearRoute(ticket, normalizedReason));
     }
 
     public CompletableFuture<RouteClearResult> clearRouteAction(RouteTicket ticket, String reason, MutationRunner runner) {
         return clearRouteBody(ticket, reason, runner).thenApply(IslandRoutingUseCase::routeClearResult);
     }
 
-    private static RouteClearResult routeClearResult(String body) {
-        String code = body == null || body.isBlank() ? "CLEARED" : body.trim();
-        return new RouteClearResult(true, code);
+    private static RouteClearResult routeClearResult(RouteClearView view) {
+        return new RouteClearResult(view.accepted(), view.code());
     }
 
     private static void requireTicket(RouteTicket ticket) {

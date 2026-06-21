@@ -92,6 +92,10 @@ public interface CoreApiClient {
         return new CoreNavigationCommandClient(this);
     }
 
+    default RoutingCommandClient routingCommands() {
+        return new CoreRoutingCommandClient(this);
+    }
+
     default ProgressionQueryClient progression() {
         return new CoreProgressionQueryClient(this);
     }
