@@ -459,6 +459,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.adminRoutes().ticket(ticketId).thenApply(ticket -> ticket.map(PaperCloudIslandsApi::routeTicket))"), "Public API route ticket lookup must use typed admin route query client");
         assertTrue(source.contains("client.adminRoutes().debug(playerUuid).thenApply(PaperCloudIslandsApi::routeSession)"), "Public API route session lookup must use typed admin route query client");
         assertTrue(source.contains("client.adminRoutes().debug(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug)"), "Public API route debug lookup must use typed admin route query client");
+        assertTrue(source.contains("client.jobs().list().thenApply(PaperCloudIslandsApi::jobs)"), "Public API jobs lookup must use typed job query client");
         assertTrue(!source.contains("return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for island lookup");
         assertTrue(!source.contains("return client.islandInfoByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for owner lookup");
         assertTrue(!source.contains("return client.adminIslandWhere(islandId).thenApply(PaperCloudIslandsApi::runtime);"), "Public API query surface must not use raw runtime JSON for runtime lookup");
@@ -497,6 +498,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("return client.routeTicket(ticketId).thenApply(PaperCloudIslandsApi::routeTicket);"), "Public API route ticket lookup must not use raw route JSON");
         assertTrue(!source.contains("return client.debugRoutes(playerUuid).thenApply(PaperCloudIslandsApi::routeSession);"), "Public API route session lookup must not use raw route JSON");
         assertTrue(!source.contains("return client.debugRoutes(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug);"), "Public API route debug lookup must not use raw route JSON");
+        assertTrue(!source.contains("return client.listJobs().thenApply(PaperCloudIslandsApi::jobs);"), "Public API jobs lookup must not use raw job JSON");
     }
 
     @Test

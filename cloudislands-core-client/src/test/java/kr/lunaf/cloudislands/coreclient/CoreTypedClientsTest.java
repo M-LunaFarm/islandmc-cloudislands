@@ -1314,6 +1314,7 @@ class CoreTypedClientsTest {
     @Test
     void jobClientsReturnTypedJobsAndActions() {
         UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
@@ -1321,10 +1322,10 @@ class CoreTypedClientsTest {
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listJobs" -> CompletableFuture.completedFuture("""
                     {"jobs":[
-                      {"id":"%s","type":"SAVE_ISLAND","state":"PENDING","targetNode":"node-a","attempts":2,"errorMessage":"retry soon"},
+                      {"id":"%s","type":"SAVE_ISLAND","islandId":"%s","state":"PENDING","targetNode":"node-a","priority":7,"attempts":2,"lockedBy":"node-lock","errorMessage":"retry soon","payload":{"reason":"manual"},"createdAt":"2026-06-21T00:00:00Z","updatedAt":"2026-06-21T00:00:05Z"},
                       {"jobId":"fallback-id","type":"RESTORE_ISLAND","state":"DONE","attempts":1}
                     ]}
-                    """.formatted(jobId));
+                    """.formatted(jobId, islandId));
                 case "retryJobResult" -> {
                     calls.add("retry:" + args[0]);
                     yield CompletableFuture.completedFuture("{\"ok\":true}");
@@ -1351,10 +1352,16 @@ class CoreTypedClientsTest {
         assertEquals(2, jobs.size());
         assertEquals(jobId.toString(), jobs.get(0).id());
         assertEquals("SAVE_ISLAND", jobs.get(0).type());
+        assertEquals(islandId.toString(), jobs.get(0).islandId());
         assertEquals("PENDING", jobs.get(0).state());
         assertEquals("node-a", jobs.get(0).targetNode());
+        assertEquals(7, jobs.get(0).priority());
         assertEquals(2L, jobs.get(0).attempts());
+        assertEquals("node-lock", jobs.get(0).lockedBy());
         assertEquals("retry soon", jobs.get(0).error());
+        assertEquals(Map.of("reason", "manual"), jobs.get(0).payload());
+        assertEquals("2026-06-21T00:00:00Z", jobs.get(0).createdAt());
+        assertEquals("2026-06-21T00:00:05Z", jobs.get(0).updatedAt());
         assertEquals("fallback-id", jobs.get(1).id());
         assertTrue(retried.accepted());
         assertEquals("JOB_RETRIED", retried.code());

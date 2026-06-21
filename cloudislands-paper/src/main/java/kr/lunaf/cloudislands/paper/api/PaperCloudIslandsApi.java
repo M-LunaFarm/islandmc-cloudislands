@@ -120,6 +120,7 @@ import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
+import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
@@ -2374,7 +2375,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<RouteDebugSnapshot> getRouteDebug() { return client.adminRoutes().debug(new UUID(0L, 0L)).thenApply(PaperCloudIslandsApi::routeDebug); }
         @Override public CompletableFuture<Void> clearRoute(UUID playerUuid, UUID ticketId) { return clearRouteResult(playerUuid, ticketId).thenApply(_result -> null); }
         @Override public CompletableFuture<RouteClearResult> clearRouteResult(UUID playerUuid, UUID ticketId) { return mutate("admin.route.clear", () -> client.clearRouteResult(playerUuid, ticketId)).thenApply(PaperCloudIslandsApi::routeClear); }
-        @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.listJobs().thenApply(PaperCloudIslandsApi::jobs); }
+        @Override public CompletableFuture<List<IslandJobSnapshot>> listJobs() { return client.jobs().list().thenApply(PaperCloudIslandsApi::jobs); }
         @Override public CompletableFuture<Void> retryJob(UUID jobId) { return retryJobResult(jobId).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> retryJobResult(UUID jobId) { return mutate("admin.job.retry", () -> client.retryJobResult(jobId)).thenApply(body -> action(body, "JOB_RETRIED")); }
         @Override public CompletableFuture<Void> cancelJob(UUID jobId) { return cancelJobResult(jobId).thenApply(_result -> null); }
@@ -4050,6 +4051,25 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return jobs;
+    }
+
+    private static List<IslandJobSnapshot> jobs(List<JobView> views) {
+        return (views == null ? List.<JobView>of() : views).stream()
+            .map(view -> new IslandJobSnapshot(
+                uuidValueOrZero(view.id()),
+                view.type(),
+                uuidValueOrZero(view.islandId()),
+                view.targetNode(),
+                view.state(),
+                view.priority(),
+                intValue(view.attempts()),
+                view.lockedBy(),
+                view.error(),
+                view.payload(),
+                instant(view.createdAt().isBlank() ? Instant.EPOCH.toString() : view.createdAt()),
+                instant(view.updatedAt().isBlank() ? Instant.EPOCH.toString() : view.updatedAt())
+            ))
+            .toList();
     }
 
     private static List<String> objects(String json, String arrayField) {

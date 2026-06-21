@@ -62,11 +62,24 @@ final class CoreJobJson {
         return new JobView(
             id,
             text(object, "type"),
-            text(object, "state"),
+            text(object, "islandId"),
             text(object, "targetNode"),
+            text(object, "state"),
+            (int) SimpleJson.number(object.get("priority")),
             SimpleJson.number(object.get("attempts")),
-            error
+            text(object, "lockedBy"),
+            error,
+            stringMap(SimpleJson.object(object.get("payload"))),
+            text(object, "createdAt"),
+            text(object, "updatedAt")
         );
+    }
+
+    private static Map<String, String> stringMap(Map<?, ?> object) {
+        return object.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
+            entry -> SimpleJson.text(entry.getKey()),
+            entry -> SimpleJson.text(entry.getValue())
+        ));
     }
 
     private static String text(Map<?, ?> object, String key) {
