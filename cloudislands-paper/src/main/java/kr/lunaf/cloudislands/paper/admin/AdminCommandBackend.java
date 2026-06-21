@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
@@ -348,7 +349,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private boolean handleAddons(CommandSender sender, String[] args) {
         if (args.length > 1 && (args[1].equalsIgnoreCase("state") || args[1].equalsIgnoreCase("state-summary"))) {
-            run(sender, "Addon state summary", coreApiClient.addonStateSummary().thenApply(this::addonStateSummaryMessage));
+            run(sender, "Addon state summary", coreApiClient.adminAddonState().summary().thenApply(this::addonStateSummaryMessage));
             return true;
         }
         if (args.length > 1 && args[1].equalsIgnoreCase("endpoints")) {
@@ -2057,41 +2058,27 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + addonFeatureSuffix(addon);
     }
 
-    private String addonStateSummaryMessage(String body) {
-        String addons = arrayValue(body, "addons");
-        if (addons.isBlank()) {
+    private String addonStateSummaryMessage(AdminAddonStateSummaryView summary) {
+        if (summary.addons().isEmpty()) {
             return adminText("admin-command-addons-state-empty", "Addon state: empty");
         }
         List<String> entries = new ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < addons.length()) {
-            int objectStart = addons.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(addons, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            total++;
+        for (AdminAddonStateSummaryView.AddonView addon : summary.addons()) {
             if (entries.size() < 10) {
-                String object = addons.substring(objectStart, objectEnd + 1);
-                entries.add(textValue(object, "addonId")
-                    + adminText("admin-command-addons-state-global-prefix", " global=") + longValue(object, "globalKeys")
-                    + adminText("admin-command-addons-state-island-prefix", " island=") + longValue(object, "islandKeys")
-                    + adminText("admin-command-addons-state-total-keys-prefix", " totalKeys=") + longValue(object, "totalKeys"));
+                entries.add(addon.addonId()
+                    + adminText("admin-command-addons-state-global-prefix", " global=") + addon.globalKeys()
+                    + adminText("admin-command-addons-state-island-prefix", " island=") + addon.islandKeys()
+                    + adminText("admin-command-addons-state-total-keys-prefix", " totalKeys=") + addon.totalKeys());
             }
-            index = objectEnd + 1;
         }
-        return adminText("admin-command-addons-state-total-prefix", "Addon state: total=") + total
-            + " owner=" + textValue(body, "stateOwnership")
-            + " registeredRequired=" + boolValue(body, "registeredAddonRequired")
-            + " orphanPolicy=" + textValue(body, "orphanStatePolicy")
-            + " missingPolicy=" + textValue(body, "missingAddonStatePolicy")
-            + " tableKeyPrefix=" + textValue(body, "tableKeyPrefix")
-            + " maxKeysPerAddon=" + longValue(body, "maxKeysPerAddon")
-            + " maxValueLength=" + longValue(body, "maxValueLength")
+        return adminText("admin-command-addons-state-total-prefix", "Addon state: total=") + summary.addons().size()
+            + " owner=" + summary.stateOwnership()
+            + " registeredRequired=" + summary.registeredAddonRequired()
+            + " orphanPolicy=" + summary.orphanStatePolicy()
+            + " missingPolicy=" + summary.missingAddonStatePolicy()
+            + " tableKeyPrefix=" + summary.tableKeyPrefix()
+            + " maxKeysPerAddon=" + summary.maxKeysPerAddon()
+            + " maxValueLength=" + summary.maxValueLength()
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 

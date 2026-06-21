@@ -464,6 +464,27 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void adminAddonStateClientReturnsTypedSummary() {
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "addonStateSummary" -> CompletableFuture.completedFuture("""
+                    {"stateOwnership":"core-addon-state-store","registeredAddonRequired":false,"orphanStatePolicy":"preserve","missingAddonStatePolicy":"ignored","tableKeyPrefix":"table/<name>/","maxKeysPerAddon":128,"maxValueLength":4096,"addons":[{"addonId":"shop","globalKeys":2,"islandKeys":3,"totalKeys":5}]}
+                    """);
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        AdminAddonStateSummaryView summary = new CoreAdminAddonStateQueryClient(raw).summary().join();
+
+        assertEquals("core-addon-state-store", summary.stateOwnership());
+        assertFalse(summary.registeredAddonRequired());
+        assertEquals(128L, summary.maxKeysPerAddon());
+        assertEquals("shop", summary.addons().get(0).addonId());
+        assertEquals(5L, summary.addons().get(0).totalKeys());
+    }
+
+    @Test
     void snapshotCommandClientReturnsTypedActionViews() {
         UUID islandId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
