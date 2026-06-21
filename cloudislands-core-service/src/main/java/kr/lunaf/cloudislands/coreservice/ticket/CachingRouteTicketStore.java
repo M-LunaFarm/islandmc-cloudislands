@@ -13,7 +13,7 @@ import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
-import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingRouteTicketStore implements RouteTicketStore {
@@ -152,8 +152,9 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
     private RouteTicket cache(RouteTicket ticket) {
         long ttlMillis = Math.max(1_000L, ticket.expiresAt().toEpochMilli() - Instant.now().toEpochMilli());
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.playerRouteTicket(ticket.playerUuid()), ticketJson(ticket), "PX", Long.toString(ttlMillis));
-            redis.command("SET", RedisKeys.routeTicket(ticket.ticketId()), ticketJson(ticket), "PX", Long.toString(ttlMillis));
+            String json = RouteTicketJson.storeTicket(ticket);
+            redis.command("SET", RedisKeys.playerRouteTicket(ticket.playerUuid()), json, "PX", Long.toString(ttlMillis));
+            redis.command("SET", RedisKeys.routeTicket(ticket.ticketId()), json, "PX", Long.toString(ttlMillis));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
@@ -220,26 +221,13 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
 
     private void cacheTicketsJson() {
         String json = delegate.toJson();
-        int index = 0;
-        while (true) {
-            int playerField = json.indexOf("\"playerUuid\":\"", index);
-            if (playerField < 0) {
-                return;
+        try {
+            Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
+            for (Object item : SimpleJson.list(root.get("tickets"))) {
+                cache(ticketFromObject(SimpleJson.object(item)));
             }
-            int playerStart = playerField + "\"playerUuid\":\"".length();
-            int playerEnd = json.indexOf('"', playerStart);
-            int objectStart = json.lastIndexOf('{', playerField);
-            int objectEnd = matchingObjectEnd(json, objectStart);
-            if (playerEnd < 0 || objectStart < 0 || objectEnd < 0) {
-                return;
-            }
-            try {
-                String ticketJson = json.substring(objectStart, objectEnd + 1);
-                cache(ticketFromJson(ticketJson));
-            } catch (RuntimeException ignored) {
-                failures.incrementAndGet();
-            }
-            index = objectEnd + 1;
+        } catch (RuntimeException ignored) {
+            failures.incrementAndGet();
         }
     }
 
@@ -310,17 +298,21 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
     }
 
     private static RouteTicket ticketFromJson(String json) {
+        return ticketFromObject(SimpleJson.object(SimpleJson.parse(json)));
+    }
+
+    private static RouteTicket ticketFromObject(Map<?, ?> root) {
         return new RouteTicket(
-            JsonFields.uuid(json, "ticketId", new UUID(0L, 0L)),
-            JsonFields.uuid(json, "playerUuid", new UUID(0L, 0L)),
-            JsonFields.enumValue(RouteAction.class, json, "action", RouteAction.HOME),
-            JsonFields.uuid(json, "islandId", new UUID(0L, 0L)),
-            JsonFields.text(json, "targetNode", ""),
-            JsonFields.text(json, "targetWorld", ""),
-            JsonFields.enumValue(RouteTicketState.class, json, "state", RouteTicketState.FAILED),
-            parseInstant(JsonFields.text(json, "expiresAt", "")),
-            JsonFields.text(json, "nonce", ""),
-            JsonFields.object(json, "payload")
+            uuid(root, "ticketId"),
+            uuid(root, "playerUuid"),
+            enumValue(RouteAction.class, root, "action", RouteAction.HOME),
+            uuid(root, "islandId"),
+            SimpleJson.text(root.get("targetNode")),
+            SimpleJson.text(root.get("targetWorld")),
+            enumValue(RouteTicketState.class, root, "state", RouteTicketState.FAILED),
+            parseInstant(SimpleJson.text(root.get("expiresAt"))),
+            SimpleJson.text(root.get("nonce")),
+            payloadFromObject(SimpleJson.object(root.get("payload")))
         );
     }
 
@@ -334,39 +326,19 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
 
     private static Map<String, Long> countsFromJson(String json) {
         java.util.LinkedHashMap<String, Long> counts = zeroCounts();
-        String trimmed = json == null ? "" : json.trim();
-        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-            trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
-        }
-        if (trimmed.isBlank()) {
-            return Map.copyOf(counts);
-        }
-        for (String pair : trimmed.split(",")) {
-            int colon = pair.indexOf(':');
-            if (colon <= 0) {
-                continue;
-            }
-            String key = unquote(pair.substring(0, colon));
-            try {
-                counts.put(key, Long.parseLong(pair.substring(colon + 1).trim()));
-            } catch (NumberFormatException ignored) {
-                counts.put(key, 0L);
-            }
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
+        for (RouteTicketState state : RouteTicketState.values()) {
+            counts.put(state.name(), SimpleJson.number(root.get(state.name())));
         }
         return Map.copyOf(counts);
     }
 
     private static String countsJson(Map<String, Long> counts) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
+        java.util.LinkedHashMap<String, Long> values = new java.util.LinkedHashMap<>();
         for (RouteTicketState state : RouteTicketState.values()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('"').append(state.name()).append("\":").append(counts.getOrDefault(state.name(), 0L));
+            values.put(state.name(), counts.getOrDefault(state.name(), 0L));
         }
-        return builder.append('}').toString();
+        return SimpleJson.stringify(values);
     }
 
     private static java.util.LinkedHashMap<String, Long> zeroCounts() {
@@ -377,105 +349,27 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         return counts;
     }
 
-    private static String unquote(String value) {
-        String trimmed = value == null ? "" : value.trim();
-        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
-            trimmed = trimmed.substring(1, trimmed.length() - 1);
-        }
-        return trimmed.replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private static int matchingObjectEnd(String json, int objectStart) {
-        if (objectStart < 0) {
-            return -1;
-        }
-        int depth = 0;
-        boolean inString = false;
-        boolean escaped = false;
-        for (int i = objectStart; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (c == '"') {
-                inString = !inString;
-                continue;
-            }
-            if (inString) {
-                continue;
-            }
-            if (c == '{') {
-                depth++;
-            } else if (c == '}') {
-                depth--;
-                if (depth == 0) {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
-
-    private static String ticketJson(RouteTicket ticket) {
-        return new StringBuilder("{")
-            .append("\"ticketId\":\"").append(ticket.ticketId()).append("\",")
-            .append("\"playerUuid\":\"").append(ticket.playerUuid()).append("\",")
-            .append("\"action\":\"").append(ticket.action().name()).append("\",")
-            .append("\"islandId\":\"").append(ticket.islandId()).append("\",")
-            .append("\"targetNode\":\"").append(escape(ticket.targetNode())).append("\",")
-            .append("\"targetWorld\":\"").append(escape(ticket.targetWorld())).append("\",")
-            .append("\"targetServerName\":\"").append(escape(ticket.payload().getOrDefault("targetServerName", ticket.targetNode()))).append("\",")
-            .append("\"state\":\"").append(ticket.state().name()).append("\",")
-            .append("\"expiresAt\":\"").append(ticket.expiresAt()).append("\",")
-            .append("\"nonce\":\"").append(escape(ticket.nonce())).append("\",")
-            .append("\"targetLocalLocation\":").append(targetLocalLocationJson(ticket.payload())).append(',')
-            .append("\"payload\":").append(payloadJson(ticket.payload()))
-            .append('}')
-            .toString();
-    }
-
-    private static String targetLocalLocationJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{")
-            .append("\"type\":\"").append(escape(payload.getOrDefault("targetType", "ISLAND_HOME"))).append("\"");
-        appendLocationString(builder, payload, "homeName");
-        appendLocationString(builder, payload, "warpName");
-        appendLocationString(builder, payload, "localX");
-        appendLocationString(builder, payload, "localY");
-        appendLocationString(builder, payload, "localZ");
-        appendLocationString(builder, payload, "yaw");
-        appendLocationString(builder, payload, "pitch");
-        return builder.append('}').toString();
-    }
-
-    private static void appendLocationString(StringBuilder builder, Map<String, String> payload, String key) {
-        String value = payload.get(key);
-        if (value != null && !value.isBlank()) {
-            builder.append(",\"").append(key).append("\":\"").append(escape(value)).append("\"");
+    private static UUID uuid(Map<?, ?> root, String key) {
+        try {
+            return UUID.fromString(SimpleJson.text(root.get(key)));
+        } catch (RuntimeException ignored) {
+            return new UUID(0L, 0L);
         }
     }
 
-    private static String payloadJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
+    private static <E extends Enum<E>> E enumValue(Class<E> type, Map<?, ?> root, String key, E fallback) {
+        try {
+            return Enum.valueOf(type, SimpleJson.text(root.get(key)));
+        } catch (RuntimeException ignored) {
+            return fallback;
         }
-        return builder.append('}').toString();
     }
 
-    private static String escape(String value) {
-        if (value == null) {
-            return "";
+    private static Map<String, String> payloadFromObject(Map<?, ?> root) {
+        java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : root.entrySet()) {
+            values.put(SimpleJson.text(entry.getKey()), SimpleJson.text(entry.getValue()));
         }
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return Map.copyOf(values);
     }
 }
