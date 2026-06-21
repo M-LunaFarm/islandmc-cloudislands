@@ -119,6 +119,29 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void snapshotQueryClientReturnsTypedSnapshotsWithChecksums() {
+        UUID islandId = UUID.randomUUID();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "listIslandSnapshots" -> CompletableFuture.completedFuture("""
+                    {"snapshots":[{"snapshotNo":7,"reason":"manual","sizeBytes":4096,"createdAt":"now","checksum":"abcdef1234567890"}]}
+                    """);
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        SnapshotQueryClient client = new CoreSnapshotQueryClient(raw);
+
+        CoreGuiViews.SnapshotView snapshot = client.listSnapshots(islandId, 500).join().get(0);
+
+        assertEquals(7L, snapshot.snapshotNo());
+        assertEquals("manual", snapshot.reason());
+        assertEquals(4096L, snapshot.sizeBytes());
+        assertEquals("abcdef1234567890", snapshot.checksum());
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

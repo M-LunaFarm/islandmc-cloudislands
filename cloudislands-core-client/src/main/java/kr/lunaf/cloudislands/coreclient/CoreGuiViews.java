@@ -424,7 +424,7 @@ public final class CoreGuiViews {
         for (Map<?, ?> object : entries(body)) {
             long snapshotNo = longValue(object, "snapshotNo");
             if (snapshotNo > 0) {
-                snapshots.add(new SnapshotView(snapshotNo, text(object, "reason"), longValue(object, "sizeBytes"), text(object, "createdAt")));
+                snapshots.add(new SnapshotView(snapshotNo, text(object, "reason"), longValue(object, "sizeBytes"), text(object, "createdAt"), text(object, "checksum")));
             }
         }
         return snapshots;
@@ -595,7 +595,16 @@ public final class CoreGuiViews {
     public record LimitView(String key, long value, String updatedAt) {
     }
 
-    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt) {
+    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum) {
+        public SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt) {
+            this(snapshotNo, reason, sizeBytes, createdAt, "");
+        }
+
+        public SnapshotView {
+            reason = reason == null ? "" : reason;
+            createdAt = createdAt == null ? "" : createdAt;
+            checksum = checksum == null ? "" : checksum;
+        }
     }
 
     public record LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt) {

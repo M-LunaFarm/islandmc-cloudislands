@@ -32,6 +32,10 @@ public interface CoreApiClient {
         return new CorePermissionCommandClient(this);
     }
 
+    default SnapshotQueryClient snapshots() {
+        return new CoreSnapshotQueryClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

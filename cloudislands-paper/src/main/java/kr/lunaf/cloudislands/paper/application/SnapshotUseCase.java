@@ -7,24 +7,38 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreSnapshotQueryClient;
+import kr.lunaf.cloudislands.coreclient.SnapshotQueryClient;
 
 public final class SnapshotUseCase {
     private final CoreApiClient coreApiClient;
+    private final SnapshotQueryClient snapshotQueries;
 
     public SnapshotUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.snapshotQueries = new CoreSnapshotQueryClient(coreApiClient);
     }
 
-    private CompletableFuture<String> listSnapshotBodies(UUID islandId, int limit) {
-        requireIsland(islandId);
-        return coreApiClient.listIslandSnapshots(islandId, boundedLimit(limit));
+    SnapshotUseCase(CoreApiClient coreApiClient, SnapshotQueryClient snapshotQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (snapshotQueries == null) {
+            throw new IllegalArgumentException("snapshotQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.snapshotQueries = snapshotQueries;
     }
 
     public CompletableFuture<List<SnapshotView>> snapshotViews(UUID islandId, int limit) {
-        return listSnapshotBodies(islandId, limit).thenApply(SnapshotUseCase::snapshotViews);
+        requireIsland(islandId);
+        return snapshotQueries.listSnapshots(islandId, boundedLimit(limit))
+            .thenApply(snapshots -> snapshots.stream()
+                .map(snapshot -> new SnapshotView(snapshot.snapshotNo(), snapshot.reason(), snapshot.sizeBytes(), snapshot.checksum()))
+                .toList());
     }
 
     private CompletableFuture<String> requestSnapshotBody(UUID islandId, String reason, MutationRunner runner) {
@@ -98,18 +112,6 @@ public final class SnapshotUseCase {
         }
     }
 
-    private static List<SnapshotView> snapshotViews(String body) {
-        return entries(body).stream()
-            .map(object -> new SnapshotView(
-                SimpleJson.number(object.get("snapshotNo")),
-                text(object, "reason"),
-                SimpleJson.number(object.get("sizeBytes")),
-                text(object, "checksum")
-            ))
-            .filter(snapshot -> snapshot.snapshotNo() > 0L)
-            .toList();
-    }
-
     private static SnapshotActionResult snapshotAction(String body, String successCode) {
         Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
         boolean accepted = bool(root, "accepted", true);
@@ -119,26 +121,6 @@ public final class SnapshotUseCase {
             code = accepted ? successCode : "FAILED";
         }
         return new SnapshotActionResult(accepted, code);
-    }
-
-    private static List<Map<?, ?>> entries(String body) {
-        Object parsed = SimpleJson.parse(body);
-        if (parsed instanceof List<?>) {
-            return SimpleJson.list(parsed).stream()
-                .map(SimpleJson::object)
-                .filter(map -> !map.isEmpty())
-                .toList();
-        }
-        Map<?, ?> root = SimpleJson.object(parsed);
-        for (Object value : root.values()) {
-            if (value instanceof List<?>) {
-                return SimpleJson.list(value).stream()
-                    .map(SimpleJson::object)
-                    .filter(map -> !map.isEmpty())
-                    .toList();
-            }
-        }
-        return root.isEmpty() ? List.of() : List.of(root);
     }
 
     private static String text(Map<?, ?> object, String key) {
