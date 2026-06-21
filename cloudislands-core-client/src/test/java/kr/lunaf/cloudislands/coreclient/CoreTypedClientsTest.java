@@ -165,6 +165,25 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void bankQueryClientReturnsTypedBankView() {
+        UUID islandId = UUID.randomUUID();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "islandBank" -> CompletableFuture.completedFuture("{\"balance\":\"55\",\"updatedAt\":\"now\"}");
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        BankQueryClient client = new CoreBankQueryClient(raw);
+
+        CoreGuiViews.BankView bank = client.islandBank(islandId).join();
+
+        assertEquals("55", bank.balance());
+        assertEquals("now", bank.updatedAt());
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

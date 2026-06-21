@@ -7,11 +7,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreclient.BankQueryClient;
+import kr.lunaf.cloudislands.coreclient.CoreBankQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 
 public final class BankUseCase {
     private final CoreApiClient coreApiClient;
+    private final BankQueryClient bankQueries;
     private final EconomyBridge economyBridge;
 
     public BankUseCase(CoreApiClient coreApiClient, EconomyBridge economyBridge) {
@@ -19,12 +21,25 @@ public final class BankUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.bankQueries = new CoreBankQueryClient(coreApiClient);
+        this.economyBridge = economyBridge;
+    }
+
+    BankUseCase(CoreApiClient coreApiClient, BankQueryClient bankQueries, EconomyBridge economyBridge) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (bankQueries == null) {
+            throw new IllegalArgumentException("bankQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.bankQueries = bankQueries;
         this.economyBridge = economyBridge;
     }
 
     public CompletableFuture<BankOperationResult> bank(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandBank(coreApiClient, islandId)
+        return bankQueries.islandBank(islandId)
             .thenApply(view -> BankOperationResult.success("", normalizedBalance(view.balance())));
     }
 

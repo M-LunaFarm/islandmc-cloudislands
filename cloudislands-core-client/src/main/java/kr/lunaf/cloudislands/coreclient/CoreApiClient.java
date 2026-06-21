@@ -40,6 +40,10 @@ public interface CoreApiClient {
         return new CoreCommunicationQueryClient(this);
     }
 
+    default BankQueryClient bank() {
+        return new CoreBankQueryClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);
