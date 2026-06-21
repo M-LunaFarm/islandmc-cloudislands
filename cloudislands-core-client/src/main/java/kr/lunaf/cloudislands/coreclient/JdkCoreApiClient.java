@@ -1692,14 +1692,40 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (body == null || body.isBlank()) {
             throw new CoreApiException("ROUTE_FAILED", "Route ticket could not be created");
         }
-        if (!body.contains("\"ticketId\"")) {
-            throw new CoreApiException(text(body, "code", "ROUTE_FAILED"), text(body, "message", "Route ticket could not be created"));
+        Object parsed = SimpleJson.parse(body);
+        if (!containsField(parsed, "ticketId")) {
+            Map<?, ?> root = SimpleJson.object(parsed);
+            String code = SimpleJson.text(root.get("code"));
+            String message = SimpleJson.text(root.get("message"));
+            throw new CoreApiException(code.isBlank() ? "ROUTE_FAILED" : code, message.isBlank() ? "Route ticket could not be created" : message);
         }
         RouteTicket ticket = RouteTicketJson.parse(body);
         if (ticket == null) {
             throw new CoreApiException("ROUTE_FAILED", "Route ticket could not be parsed");
         }
         return ticket;
+    }
+
+    private static boolean containsField(Object value, String key) {
+        if (value instanceof Map<?, ?> map) {
+            if (map.containsKey(key)) {
+                return true;
+            }
+            for (Object nested : map.values()) {
+                if (containsField(nested, key)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (value instanceof List<?> list) {
+            for (Object nested : list) {
+                if (containsField(nested, key)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static CreateIslandResult parseCreateIslandResult(String body) {
@@ -2001,81 +2027,86 @@ public final class JdkCoreApiClient implements CoreApiClient {
         private RouteTicketJson() {}
 
         static RouteTicket parseNested(String json, String field) {
-            String needle = "\"" + field + "\":";
-            int start = json.indexOf(needle);
-            if (start < 0) {
+            if (json == null || json.isBlank()) {
                 return null;
             }
-            int objectStart = json.indexOf('{', start + needle.length());
-            if (objectStart < 0) {
+            Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
+            Map<?, ?> nested = SimpleJson.object(root.get(field));
+            if (nested.isEmpty()) {
                 return null;
             }
-            int depth = 0;
-            for (int i = objectStart; i < json.length(); i++) {
-                char c = json.charAt(i);
-                if (c == '{') {
-                    depth++;
-                } else if (c == '}') {
-                    depth--;
-                    if (depth == 0) {
-                        return parse(json.substring(objectStart, i + 1));
-                    }
-                }
-            }
-            return null;
+            return parseObject(nested);
         }
 
         static RouteTicket parse(String json) {
             if (json == null || json.isBlank()) {
                 return null;
             }
-            UUID ticketId = uuid(json, "ticketId", UUID.randomUUID());
-            UUID playerUuid = uuid(json, "playerUuid", new UUID(0L, 0L));
-            UUID islandId = uuid(json, "islandId", new UUID(0L, 0L));
-            RouteAction action = enumValue(RouteAction.class, text(json, "action", "HOME"), RouteAction.HOME);
-            RouteTicketState state = enumValue(RouteTicketState.class, text(json, "state", "READY"), RouteTicketState.READY);
-            String targetNode = text(json, "targetNode", "");
-            String targetWorld = text(json, "targetWorld", "ci_shard_001");
-            String nonce = text(json, "nonce", "");
-            String serverName = text(json, "targetServerName", targetNode);
+            Map<?, ?> ticket = ticketObject(SimpleJson.parse(json));
+            return ticket.isEmpty() ? null : parseObject(ticket);
+        }
+
+        private static Map<?, ?> ticketObject(Object value) {
+            if (value instanceof Map<?, ?> map) {
+                if (map.containsKey("ticketId")) {
+                    return map;
+                }
+                Map<?, ?> nestedTicket = SimpleJson.object(map.get("ticket"));
+                if (!nestedTicket.isEmpty()) {
+                    return nestedTicket;
+                }
+                for (Object nested : map.values()) {
+                    Map<?, ?> found = ticketObject(nested);
+                    if (!found.isEmpty()) {
+                        return found;
+                    }
+                }
+            }
+            if (value instanceof List<?> list) {
+                for (Object nested : list) {
+                    Map<?, ?> found = ticketObject(nested);
+                    if (!found.isEmpty()) {
+                        return found;
+                    }
+                }
+            }
+            return Map.of();
+        }
+
+        private static RouteTicket parseObject(Map<?, ?> ticket) {
+            UUID ticketId = uuid(ticket, "ticketId", UUID.randomUUID());
+            UUID playerUuid = uuid(ticket, "playerUuid", new UUID(0L, 0L));
+            UUID islandId = uuid(ticket, "islandId", new UUID(0L, 0L));
+            RouteAction action = enumValue(RouteAction.class, text(ticket, "action", "HOME"), RouteAction.HOME);
+            RouteTicketState state = enumValue(RouteTicketState.class, text(ticket, "state", "READY"), RouteTicketState.READY);
+            String targetNode = text(ticket, "targetNode", "");
+            String targetWorld = text(ticket, "targetWorld", "ci_shard_001");
+            String nonce = text(ticket, "nonce", "");
+            String serverName = text(ticket, "targetServerName", targetNode);
             java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
             payload.put("targetServerName", serverName);
-            putIfPresent(payload, json, "targetType");
-            putIfPresent(payload, json, "homeName");
-            putIfPresent(payload, json, "warpName");
-            putIfPresent(payload, json, "localX");
-            putIfPresent(payload, json, "localY");
-            putIfPresent(payload, json, "localZ");
-            putIfPresent(payload, json, "yaw");
-            putIfPresent(payload, json, "pitch");
-            Instant expiresAt = Instant.parse(text(json, "expiresAt", Instant.now().plusSeconds(30).toString()));
+            putIfPresent(payload, ticket, "targetType");
+            putIfPresent(payload, ticket, "homeName");
+            putIfPresent(payload, ticket, "warpName");
+            putIfPresent(payload, ticket, "localX");
+            putIfPresent(payload, ticket, "localY");
+            putIfPresent(payload, ticket, "localZ");
+            putIfPresent(payload, ticket, "yaw");
+            putIfPresent(payload, ticket, "pitch");
+            Instant expiresAt = Instant.parse(text(ticket, "expiresAt", Instant.now().plusSeconds(30).toString()));
             return new RouteTicket(ticketId, playerUuid, action, islandId, targetNode, targetWorld, state, expiresAt, nonce, Map.copyOf(payload));
         }
 
-        private static void putIfPresent(Map<String, String> payload, String json, String field) {
-            String value = text(json, field, null);
-            if (value != null) {
+        private static void putIfPresent(Map<String, String> payload, Map<?, ?> ticket, String field) {
+            if (ticket.containsKey(field)) {
+                String value = SimpleJson.text(ticket.get(field));
                 payload.put(field, value);
-                return;
-            }
-            String scalar = scalar(json, field);
-            if (scalar != null) {
-                payload.put(field, scalar);
             }
         }
 
-        private static String scalar(String json, String field) {
-            String needle = "\"" + field + "\":";
-            int start = json.indexOf(needle);
-            if (start < 0) {
-                return null;
-            }
-            int valueStart = start + needle.length();
-            int end = valueStart;
-            while (end < json.length() && "0123456789.-".indexOf(json.charAt(end)) >= 0) {
-                end++;
-            }
-            return end == valueStart ? null : json.substring(valueStart, end);
+        private static String text(Map<?, ?> ticket, String field, String fallback) {
+            String value = SimpleJson.text(ticket.get(field));
+            return value.isBlank() ? fallback : value;
         }
 
         private static <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {
