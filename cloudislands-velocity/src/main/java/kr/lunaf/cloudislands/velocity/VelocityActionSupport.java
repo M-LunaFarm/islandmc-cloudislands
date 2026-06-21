@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreConfigMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter;
@@ -101,6 +102,10 @@ abstract class VelocityActionSupport {
 
     String routeClearMessage(String body) {
         return playerMessage(routeMessages.clear(body));
+    }
+
+    String routeClearMessage(AdminRouteClearView view) {
+        return playerMessage(routeMessages.clear(view));
     }
 
     protected String snapshotListMessage(String body) {

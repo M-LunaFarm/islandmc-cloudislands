@@ -12,4 +12,6 @@ public interface AdminRouteClient {
     CompletableFuture<Optional<AdminRouteTicketView>> ticketForPlayer(UUID playerUuid);
 
     CompletableFuture<AdminRouteClearView> clear(UUID playerUuid, UUID ticketId);
+
+    CompletableFuture<AdminRouteClearView> clear(UUID playerUuid, UUID ticketId, String reason);
 }

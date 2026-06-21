@@ -210,7 +210,12 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     }
 
     public void clearRoute(Player player, UUID playerUuid, UUID ticketId) {
-        sendBodyResult(player, coreApiClient.clearRoute(playerUuid, ticketId).thenApply(this::routeClearMessage), "라우트 정리를 요청하지 못했습니다.");
+        coreApiClient.adminRoutes().clear(playerUuid, ticketId)
+            .thenAccept(result -> player.sendMessage(playerComponent(routeClearMessage(result))))
+            .exceptionally(error -> {
+                player.sendMessage(playerComponent("라우트 정리를 요청하지 못했습니다."));
+                return null;
+            });
     }
 
     public void clearRouteTarget(Player player, String target, UUID ticketId) {

@@ -1633,8 +1633,8 @@ class CoreTypedClientsTest {
                         """.formatted(ticketId, args[0], islandId));
                 }
                 case "clearRouteResult" -> {
-                    calls.add("clear:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"clearedSession\":true,\"clearedTicket\":false,\"reason\":\"MANUAL_CLEAR\"}");
+                    calls.add("clear:" + args[0] + ":" + args[1] + ":" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"clearedSession\":true,\"clearedTicket\":false,\"reason\":\"%s\"}".formatted(args[2]));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
@@ -1645,6 +1645,7 @@ class CoreTypedClientsTest {
         AdminRouteTicketView ticket = client.ticket(ticketId).join().orElseThrow();
         AdminRouteTicketView playerTicket = client.ticketForPlayer(playerUuid).join().orElseThrow();
         AdminRouteClearView clear = client.clear(playerUuid, ticketId).join();
+        AdminRouteClearView timeoutClear = client.clear(playerUuid, ticketId, "ROUTE_READY_TIMEOUT").join();
 
         assertEquals(1, debug.sessions().size());
         assertEquals("island-a", debug.sessions().get(0).targetServerName());
@@ -1663,7 +1664,14 @@ class CoreTypedClientsTest {
         assertTrue(clear.clearedSession());
         assertFalse(clear.clearedTicket());
         assertEquals("MANUAL_CLEAR", clear.reason());
-        assertEquals(List.of("debug:" + playerUuid, "ticket:" + ticketId, "player:" + playerUuid, "clear:" + playerUuid + ":" + ticketId), calls);
+        assertEquals("ROUTE_READY_TIMEOUT", timeoutClear.reason());
+        assertEquals(List.of(
+            "debug:" + playerUuid,
+            "ticket:" + ticketId,
+            "player:" + playerUuid,
+            "clear:" + playerUuid + ":" + ticketId + ":MANUAL_CLEAR",
+            "clear:" + playerUuid + ":" + ticketId + ":ROUTE_READY_TIMEOUT"
+        ), calls);
     }
 
     @Test

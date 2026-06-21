@@ -8,6 +8,7 @@ import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.matching
 
 import java.util.ArrayList;
 import java.util.List;
+import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 
 public final class VelocityRouteMessageFormatter {
     private final VelocityRoutePrivacyFormatter routePrivacy;
@@ -48,6 +49,15 @@ public final class VelocityRouteMessageFormatter {
         return "Route clear: session=" + boolValue(body, "clearedSession")
             + " ticket=" + boolValue(body, "clearedTicket")
             + (reason.isBlank() ? "" : " reason=" + reason);
+    }
+
+    public String clear(AdminRouteClearView view) {
+        if (view == null) {
+            return "Route clear: no response";
+        }
+        return "Route clear: session=" + view.clearedSession()
+            + " ticket=" + view.clearedTicket()
+            + (view.reason().isBlank() ? "" : " reason=" + view.reason());
     }
 
     private void collectSessionSummaries(String sessions, List<String> entries, int limit) {

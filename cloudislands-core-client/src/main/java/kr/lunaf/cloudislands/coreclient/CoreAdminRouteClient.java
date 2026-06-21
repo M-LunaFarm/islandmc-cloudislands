@@ -34,9 +34,15 @@ public final class CoreAdminRouteClient implements AdminRouteClient {
 
     @Override
     public CompletableFuture<AdminRouteClearView> clear(UUID playerUuid, UUID ticketId) {
+        return clear(playerUuid, ticketId, "MANUAL_CLEAR");
+    }
+
+    @Override
+    public CompletableFuture<AdminRouteClearView> clear(UUID playerUuid, UUID ticketId, String reason) {
         requireId(playerUuid, "playerUuid");
         requireId(ticketId, "ticketId");
-        return delegate.clearRouteResult(playerUuid, ticketId).thenApply(CoreAdminRouteJson::clear);
+        String normalizedReason = reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason;
+        return delegate.clearRouteResult(playerUuid, ticketId, normalizedReason).thenApply(CoreAdminRouteJson::clear);
     }
 
     private static void requireId(UUID id, String name) {
