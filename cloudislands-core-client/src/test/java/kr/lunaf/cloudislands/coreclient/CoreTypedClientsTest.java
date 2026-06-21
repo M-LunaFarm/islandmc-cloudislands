@@ -194,7 +194,7 @@ class CoreTypedClientsTest {
                 case "listIslandPermissions" -> {
                     calls.add("permissions");
                     yield CompletableFuture.completedFuture("""
-                        {"version":"v1","rules":[{"role":"BUILDER","permission":"BUILD","allowed":true},{"playerUuid":"%s","permission":"BREAK","allowed":false}]}
+                        {"version":"v1","rules":[{"role":"BUILDER","permission":"BUILD","allowed":true}],"overrides":[{"playerUuid":"%s","permission":"BREAK","allowed":false}]}
                         """.formatted(playerUuid));
                 }
                 case "listIslandRoles" -> {

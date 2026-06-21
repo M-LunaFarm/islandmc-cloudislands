@@ -36,6 +36,13 @@ final class CoreJson {
         return root.isEmpty() ? List.of() : List.of(root);
     }
 
+    static List<Map<?, ?>> objects(Map<?, ?> root, String key) {
+        return SimpleJson.list(root == null ? null : root.get(key)).stream()
+            .map(SimpleJson::object)
+            .filter(map -> !map.isEmpty())
+            .toList();
+    }
+
     static boolean accepted(Map<?, ?> root) {
         return root != null
             && !root.containsKey("error")

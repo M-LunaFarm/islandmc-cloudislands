@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +30,8 @@ public final class CorePermissionQueryClient implements PermissionQueryClient {
     }
 
     private static List<PermissionAssignmentView> permissionViews(String body) {
-        String version = text(CoreJson.object(body), "version");
+        Map<?, ?> root = CoreJson.object(body);
+        String version = text(root, "version");
         return entries(body).stream()
             .map(object -> {
                 String permission = text(object, "permission");
@@ -45,7 +47,13 @@ public final class CorePermissionQueryClient implements PermissionQueryClient {
     }
 
     private static List<Map<?, ?>> entries(String body) {
-        return CoreJson.entries(body);
+        Map<?, ?> root = CoreJson.object(body);
+        List<Map<?, ?>> entries = new ArrayList<>(CoreJson.objects(root, "rules"));
+        if (entries.isEmpty()) {
+            entries.addAll(CoreJson.objects(root, "permissions"));
+        }
+        entries.addAll(CoreJson.objects(root, "overrides"));
+        return entries.isEmpty() ? CoreJson.entries(body) : entries;
     }
 
     private static void requireIsland(UUID islandId) {
