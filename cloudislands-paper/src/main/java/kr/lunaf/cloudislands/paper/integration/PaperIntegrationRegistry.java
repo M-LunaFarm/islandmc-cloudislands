@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.spi.PolicyBackedCloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
 import org.bukkit.Server;
+import org.bukkit.plugin.Plugin;
 
 public final class PaperIntegrationRegistry {
     private final Server server;
@@ -59,7 +60,7 @@ public final class PaperIntegrationRegistry {
     }
 
     public IntegrationResult validateVersion(String pluginName, IntegrationContext context) {
-        return execute(pluginName, integration -> integration.validateVersion(context));
+        return execute(pluginName, integration -> integration.validateVersion(withPluginVersionMetadata(integration.pluginName(), context)));
     }
 
     public IntegrationResult onIslandActivate(String pluginName, IntegrationContext context) {
@@ -139,6 +140,28 @@ public final class PaperIntegrationRegistry {
             return IntegrationResult.skipped(integration.pluginName() + " is not enabled");
         }
         return operation.apply(integration);
+    }
+
+    private IntegrationContext withPluginVersionMetadata(String pluginName, IntegrationContext context) {
+        if (context == null || !context.missingMetadata("pluginVersion").contains("pluginVersion")) {
+            return context;
+        }
+        Plugin plugin = server == null ? null : server.getPluginManager().getPlugin(pluginName);
+        if (plugin == null) {
+            return context;
+        }
+        String version = pluginVersion(plugin);
+        if (version.isBlank()) {
+            return context;
+        }
+        return context.withMetadata(Map.of("pluginVersion", version));
+    }
+
+    @SuppressWarnings("deprecation")
+    private static String pluginVersion(Plugin plugin) {
+        return plugin == null || plugin.getDescription() == null || plugin.getDescription().getVersion() == null
+            ? ""
+            : plugin.getDescription().getVersion();
     }
 
     private boolean pluginEnabled(String pluginName) {

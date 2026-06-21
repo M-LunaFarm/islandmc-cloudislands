@@ -154,6 +154,22 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
+    void integrationContextMergesRuntimeMetadataWithoutOverwritingCallerValues() {
+        IntegrationContext context = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:version:4", Map.of(
+            "pluginVersion", "23.1",
+            "minSupportedVersion", "23.0"
+        ));
+
+        IntegrationContext merged = context.withMetadata(Map.of(
+            "pluginVersion", "24.0",
+            "serverPluginVersion", "24.0"
+        ));
+
+        assertEquals("23.1", merged.metadata().get("pluginVersion"));
+        assertEquals("24.0", merged.metadata().get("serverPluginVersion"));
+    }
+
+    @Test
     void worldEditAdapterRequiresRuntimeAuthorityBeforeWorldStateHooks() {
         WorldEditIntegration integration = new WorldEditIntegration("FastAsyncWorldEdit");
         IntegrationContext context = new IntegrationContext(UUID.randomUUID(), "island-node-01", 99L, true, "fawe:restore:1", Map.of(
@@ -288,6 +304,8 @@ class PaperIntegrationRegistryTest {
         assertTrue(registrySource.contains("private IntegrationResult execute"));
         assertTrue(registrySource.contains("pluginEnabled(integration.pluginName())"));
         assertTrue(registrySource.contains("IntegrationResult.skipped(integration.pluginName() + \" is not enabled\")"));
+        assertTrue(registrySource.contains("withPluginVersionMetadata(integration.pluginName(), context)"));
+        assertTrue(registrySource.contains("getPlugin(pluginName)"));
     }
 
     private String readRegistrySource() {
