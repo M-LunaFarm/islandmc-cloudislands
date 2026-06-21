@@ -235,6 +235,93 @@ class CoreMutationContextTest {
     }
 
     @Test
+    void jdkClientBuildsAdminNodeRouteEventAndIslandPayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID lookupUuid = UUID.randomUUID();
+        UUID playerUuid = UUID.randomUUID();
+        UUID ticketId = UUID.randomUUID();
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/admin/nodes/info", exchange -> respond(exchange, requestBodies, "nodeInfo", "{\"nodeId\":\"node-a\"}"));
+        server.createContext("/v1/admin/nodes/islands", exchange -> respond(exchange, requestBodies, "nodeIslands", "{\"islands\":[]}"));
+        server.createContext("/v1/admin/nodes/drain", exchange -> respond(exchange, requestBodies, "nodeDrain", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/nodes/undrain", exchange -> respond(exchange, requestBodies, "nodeUndrain", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/nodes/sweep", exchange -> respond(exchange, requestBodies, "nodeSweep", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/nodes/kickall", exchange -> respond(exchange, requestBodies, "nodeKickAll", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/nodes/shutdown-safe", exchange -> respond(exchange, requestBodies, "nodeShutdown", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/nodes/node-path/shutdown-safe", exchange -> respond(exchange, requestBodies, "nodeShutdownPath", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/activate", exchange -> respond(exchange, requestBodies, "islandActivate", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/deactivate", exchange -> respond(exchange, requestBodies, "islandDeactivate", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/migrate", exchange -> respond(exchange, requestBodies, "islandMigrate", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/" + islandId + "/quarantine", exchange -> respond(exchange, requestBodies, "islandQuarantine", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/info", exchange -> respond(exchange, requestBodies, "islandInfo", "{\"islandId\":\"" + islandId + "\"}"));
+        server.createContext("/v1/admin/islands/where", exchange -> respond(exchange, requestBodies, "islandWhere", "{\"nodeId\":\"node-a\"}"));
+        server.createContext("/v1/admin/islands/tp", exchange -> respond(exchange, requestBodies, "islandTp", "{\"ticketId\":\"" + ticketId + "\",\"playerUuid\":\"" + playerUuid + "\",\"action\":\"VISIT\",\"islandId\":\"" + islandId + "\",\"targetNode\":\"node-a\",\"targetWorld\":\"world\",\"state\":\"READY\",\"expiresAt\":\"2026-06-21T00:00:30Z\",\"nonce\":\"nonce-a\"}"));
+        server.createContext("/v1/admin/islands/" + islandId + "/repair", exchange -> respond(exchange, requestBodies, "islandRepair", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/routes/debug", exchange -> respond(exchange, requestBodies, "routesDebug", "{\"tickets\":[]}"));
+        server.createContext("/v1/admin/routes/ticket", exchange -> respond(exchange, requestBodies, "routeTicket", "{\"ticket\":null}"));
+        server.createContext("/v1/admin/routes/clear", exchange -> respond(exchange, requestBodies, "routeClear", "{\"accepted\":true}"));
+        server.createContext("/v1/events", exchange -> respond(exchange, requestBodies, "events", "{\"events\":[]}"));
+        server.createContext("/v1/admin/audit/list", exchange -> respond(exchange, requestBodies, "audit", "{\"entries\":[]}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.nodeInfo("node\"a").join();
+            client.nodeIslands("node\"a", 500).join();
+            client.drainNodeResult("node\"a").join();
+            client.undrainNodeResult("node\"a").join();
+            client.sweepNodeResult("node\"a").join();
+            client.kickAllNodeResult("node\"a", "kick \"all\"").join();
+            client.shutdownNodeSafelyResult("node\"a", "shutdown \"all\"").join();
+            client.shutdownNodeSafelyPath("node-path", "path \"reason\"").join();
+            client.activateIslandResult(islandId).join();
+            client.deactivateIslandResult(islandId).join();
+            client.migrateIslandResult(islandId, "target\"node").join();
+            client.quarantineIslandResult(islandId, "bad \"state\"").join();
+            client.adminIslandInfo(lookupUuid).join();
+            client.adminIslandWhere(islandId).join();
+            client.adminIslandTeleport(playerUuid, islandId).join();
+            client.repairIslandResult(islandId, "repair \"now\"").join();
+            client.debugRoutes(playerUuid).join();
+            client.routeTicket(ticketId).join();
+            assertEquals("{\"ticketId\":\"" + ticketId + "\"}", requestBodies.get("routeTicket"));
+            client.routeTicketForPlayer(playerUuid).join();
+            client.clearRouteResult(playerUuid, ticketId, "").join();
+            client.listEvents().join();
+            assertEquals("{}", requestBodies.get("events"));
+            client.listEvents(5000).join();
+            assertEquals("{\"limit\":4096}", requestBodies.get("events"));
+            client.listEventsSince(-5L, 0).join();
+            client.listAuditLogs(1000).join();
+
+            assertEquals("{\"nodeId\":\"node\\\"a\"}", requestBodies.get("nodeInfo"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"limit\":200}", requestBodies.get("nodeIslands"));
+            assertEquals("{\"nodeId\":\"node\\\"a\"}", requestBodies.get("nodeDrain"));
+            assertEquals("{\"nodeId\":\"node\\\"a\"}", requestBodies.get("nodeUndrain"));
+            assertEquals("{\"nodeId\":\"node\\\"a\"}", requestBodies.get("nodeSweep"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"reason\":\"kick \\\"all\\\"\"}", requestBodies.get("nodeKickAll"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"reason\":\"shutdown \\\"all\\\"\"}", requestBodies.get("nodeShutdown"));
+            assertEquals("{\"reason\":\"path \\\"reason\\\"\"}", requestBodies.get("nodeShutdownPath"));
+            assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("islandActivate"));
+            assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("islandDeactivate"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"targetNode\":\"target\\\"node\"}", requestBodies.get("islandMigrate"));
+            assertEquals("{\"reason\":\"bad \\\"state\\\"\"}", requestBodies.get("islandQuarantine"));
+            assertEquals("{\"lookupUuid\":\"" + lookupUuid + "\"}", requestBodies.get("islandInfo"));
+            assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("islandWhere"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}", requestBodies.get("islandTp"));
+            assertEquals("{\"reason\":\"repair \\\"now\\\"\"}", requestBodies.get("islandRepair"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("routesDebug"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("routeTicket"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"ticketId\":\"" + ticketId + "\",\"reason\":\"MANUAL_CLEAR\"}", requestBodies.get("routeClear"));
+            assertEquals("{\"sinceSeq\":0,\"limit\":1}", requestBodies.get("events"));
+            assertEquals("{\"limit\":500}", requestBodies.get("audit"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void jdkClientBuildsBankAndWarehousePayloadsWithStructuredHelper() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

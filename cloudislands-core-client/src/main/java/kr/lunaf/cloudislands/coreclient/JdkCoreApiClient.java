@@ -758,12 +758,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> nodeInfo(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/info", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+        return postWithResultBody("/v1/admin/nodes/info", jsonObject("nodeId", nodeId));
     }
 
     @Override
     public CompletableFuture<String> nodeIslands(String nodeId, int limit) {
-        return postWithResultBody("/v1/admin/nodes/islands", "{\"nodeId\":\"" + escape(nodeId) + "\",\"limit\":" + Math.max(1, Math.min(limit, 200)) + "}");
+        return postWithResultBody("/v1/admin/nodes/islands", jsonObject("nodeId", nodeId, "limit", Math.max(1, Math.min(limit, 200))));
     }
 
     @Override
@@ -773,7 +773,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> drainNodeResult(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/drain", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+        return postWithResultBody("/v1/admin/nodes/drain", jsonObject("nodeId", nodeId));
     }
 
     @Override
@@ -788,7 +788,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> undrainNodeResult(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/undrain", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+        return postWithResultBody("/v1/admin/nodes/undrain", jsonObject("nodeId", nodeId));
     }
 
     @Override
@@ -803,7 +803,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> sweepNodeResult(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/sweep", "{\"nodeId\":\"" + escape(nodeId) + "\"}");
+        return postWithResultBody("/v1/admin/nodes/sweep", jsonObject("nodeId", nodeId));
     }
 
     @Override
@@ -818,7 +818,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> kickAllNodeResult(String nodeId, String reason) {
-        return postWithResultBody("/v1/admin/nodes/kickall", "{\"nodeId\":\"" + escape(nodeId) + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/admin/nodes/kickall", jsonObject("nodeId", nodeId, "reason", reason));
     }
 
     @Override
@@ -828,12 +828,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> shutdownNodeSafelyResult(String nodeId, String reason) {
-        return postWithResultBody("/v1/admin/nodes/shutdown-safe", "{\"nodeId\":\"" + escape(nodeId) + "\",\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/admin/nodes/shutdown-safe", jsonObject("nodeId", nodeId, "reason", reason));
     }
 
     @Override
     public CompletableFuture<String> shutdownNodeSafelyPath(String nodeId, String reason) {
-        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/shutdown-safe", "{\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/shutdown-safe", jsonObject("reason", reason));
     }
 
     @Override
@@ -843,7 +843,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> activateIslandResult(UUID islandId) {
-        return postWithResultBody("/v1/admin/islands/activate", "{\"islandId\":\"" + islandId + "\"}");
+        return postWithResultBody("/v1/admin/islands/activate", jsonObject("islandId", islandId));
     }
 
     @Override
@@ -853,7 +853,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> deactivateIslandResult(UUID islandId) {
-        return postWithResultBody("/v1/admin/islands/deactivate", "{\"islandId\":\"" + islandId + "\"}");
+        return postWithResultBody("/v1/admin/islands/deactivate", jsonObject("islandId", islandId));
     }
 
     @Override
@@ -863,7 +863,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> migrateIslandResult(UUID islandId, String targetNode) {
-        return postWithResultBody("/v1/admin/islands/migrate", "{\"islandId\":\"" + islandId + "\",\"targetNode\":\"" + escape(targetNode) + "\"}");
+        return postWithResultBody("/v1/admin/islands/migrate", jsonObject("islandId", islandId, "targetNode", targetNode));
     }
 
     @Override
@@ -873,22 +873,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> quarantineIslandResult(UUID islandId, String reason) {
-        return postWithResultBody("/v1/admin/islands/" + islandId + "/quarantine", "{\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/admin/islands/" + islandId + "/quarantine", jsonObject("reason", reason));
     }
 
     @Override
     public CompletableFuture<String> adminIslandInfo(UUID lookupUuid) {
-        return postWithResultBody("/v1/admin/islands/info", "{\"lookupUuid\":\"" + lookupUuid + "\"}");
+        return postWithResultBody("/v1/admin/islands/info", jsonObject("lookupUuid", lookupUuid));
     }
 
     @Override
     public CompletableFuture<String> adminIslandWhere(UUID islandId) {
-        return postWithResultBody("/v1/admin/islands/where", "{\"islandId\":\"" + islandId + "\"}");
+        return postWithResultBody("/v1/admin/islands/where", jsonObject("islandId", islandId));
     }
 
     @Override
     public CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId) {
-        return postWithResultBody("/v1/admin/islands/tp", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}").thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return postWithResultBody("/v1/admin/islands/tp", jsonObject("playerUuid", playerUuid, "islandId", islandId)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
     }
 
     @Override
@@ -908,22 +908,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> repairIslandResult(UUID islandId, String reason) {
-        return postWithResultBody("/v1/admin/islands/" + islandId + "/repair", "{\"reason\":\"" + escape(reason) + "\"}");
+        return postWithResultBody("/v1/admin/islands/" + islandId + "/repair", jsonObject("reason", reason));
     }
 
     @Override
     public CompletableFuture<String> debugRoutes(UUID playerUuid) {
-        return postWithResultBody("/v1/admin/routes/debug", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/admin/routes/debug", jsonObject("playerUuid", playerUuid));
     }
 
     @Override
     public CompletableFuture<String> routeTicket(UUID ticketId) {
-        return postWithResultBody("/v1/admin/routes/ticket", "{\"ticketId\":\"" + ticketId + "\"}");
+        return postWithResultBody("/v1/admin/routes/ticket", jsonObject("ticketId", ticketId));
     }
 
     @Override
     public CompletableFuture<String> routeTicketForPlayer(UUID playerUuid) {
-        return postWithResultBody("/v1/admin/routes/ticket", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/admin/routes/ticket", jsonObject("playerUuid", playerUuid));
     }
 
     @Override
@@ -943,7 +943,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId, String reason) {
-        return postWithResultBody("/v1/admin/routes/clear", "{\"playerUuid\":\"" + playerUuid + "\",\"ticketId\":\"" + ticketId + "\",\"reason\":\"" + escape(reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason) + "\"}");
+        return postWithResultBody("/v1/admin/routes/clear", jsonObject("playerUuid", playerUuid, "ticketId", ticketId, "reason", reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason));
     }
 
     @Override
@@ -953,12 +953,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listEvents(int limit) {
-        return postWithResultBody("/v1/events", "{\"limit\":" + Math.max(1, Math.min(limit, 4096)) + "}");
+        return postWithResultBody("/v1/events", jsonObject("limit", Math.max(1, Math.min(limit, 4096))));
     }
 
     @Override
     public CompletableFuture<String> listEventsSince(long sinceSeq, int limit) {
-        return postWithResultBody("/v1/events", "{\"sinceSeq\":" + Math.max(0L, sinceSeq) + ",\"limit\":" + Math.max(1, Math.min(limit, 4096)) + "}");
+        return postWithResultBody("/v1/events", jsonObject("sinceSeq", Math.max(0L, sinceSeq), "limit", Math.max(1, Math.min(limit, 4096))));
     }
 
     @Override
@@ -968,7 +968,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listAuditLogs(int limit) {
-        return postWithResultBody("/v1/admin/audit/list", "{\"limit\":" + Math.max(1, Math.min(limit, 500)) + "}");
+        return postWithResultBody("/v1/admin/audit/list", jsonObject("limit", Math.max(1, Math.min(limit, 500))));
     }
 
     @Override
