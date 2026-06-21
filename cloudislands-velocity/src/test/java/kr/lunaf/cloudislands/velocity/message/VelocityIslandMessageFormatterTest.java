@@ -3,14 +3,21 @@ package kr.lunaf.cloudislands.velocity.message;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
+import java.util.Map;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
 import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
+import kr.lunaf.cloudislands.coreclient.MemberActionView;
+import kr.lunaf.cloudislands.coreclient.MutationResult;
+import kr.lunaf.cloudislands.coreclient.PermissionActionView;
+import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
+import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import org.junit.jupiter.api.Test;
 
@@ -177,6 +184,62 @@ class VelocityIslandMessageFormatterTest {
         assertEquals(
             "섬 워프 설정: 접수됨 code=WARP_SET",
             formatter.homeWarpAction("섬 워프 설정", new HomeWarpActionView(true, "WARP_SET"))
+        );
+    }
+
+    @Test
+    void formatsTypedMembershipViewsAndActions() {
+        assertEquals(
+            "섬 초대: aaaaaaaa 섬=bbbbbbbb 초대한사람=cccccccc",
+            formatter.invites(List.of(new CoreGuiViews.InviteView("aaaaaaaa-0000-0000-0000-000000000000", "bbbbbbbb-0000-0000-0000-000000000000", "cccccccc-0000-0000-0000-000000000000", "dddddddd-0000-0000-0000-000000000000", "PENDING", "", "")))
+        );
+        assertEquals(
+            "초대: 생성됨 invite=aaaaaaaa 섬=bbbbbbbb target=dddddddd state=PENDING",
+            formatter.inviteCreate(new CoreGuiViews.InviteView("aaaaaaaa-0000-0000-0000-000000000000", "bbbbbbbb-0000-0000-0000-000000000000", "cccccccc-0000-0000-0000-000000000000", "dddddddd-0000-0000-0000-000000000000", "PENDING", "", ""))
+        );
+        assertEquals(
+            "섬 멤버: 전체 1개 / 11111111 역할=MEMBER",
+            formatter.memberList(List.of(new CoreGuiViews.MemberView("11111111-1111-1111-1111-111111111111", "MEMBER", "", "Player", "", "", "")))
+        );
+        assertEquals(
+            "섬 밴: 전체 1개 / 22222222 사유=spam",
+            formatter.banList(List.of(new CoreGuiViews.BanView("22222222-2222-2222-2222-222222222222", "11111111-1111-1111-1111-111111111111", "spam", "", "")))
+        );
+        assertEquals(
+            "섬 권한: 전체 1개 / MEMBER:BUILD=허용",
+            formatter.permissionList(List.of(new PermissionAssignmentView("MEMBER", "", "BUILD", true, "v1")))
+        );
+        assertEquals(
+            "섬 역할: 전체 1개 / MEMBER weight=10 name=Member",
+            formatter.roleList(List.of(new CoreGuiViews.RoleView("MEMBER", 10, "Member")))
+        );
+        assertEquals(
+            "섬 홈: 전체 1개 / home 위치=0.500,100.000,0.500",
+            formatter.homeList(List.of(new CoreGuiViews.HomeView("home", 0.5D, 100.0D, 0.5D, "")))
+        );
+        assertEquals(
+            "섬 은행: 섬=33333333 balance=500",
+            formatter.bankInfo(java.util.UUID.fromString("33333333-3333-3333-3333-333333333333"), new CoreGuiViews.BankView("500", ""))
+        );
+        assertEquals(
+            "섬 플래그: 전체 1개 / FLY=true",
+            formatter.flagList(Map.of(IslandFlag.FLY, "true"))
+        );
+        assertEquals(
+            "섬 멤버 역할 변경: 접수됨 code=MEMBER_ROLE_SET",
+            formatter.memberAction("섬 멤버 역할 변경", new MemberActionView(true, "MEMBER_ROLE_SET", ""))
+        );
+        assertEquals(
+            "섬 공개 변경: 접수됨 code=PUBLIC_ACCESS_ENABLED",
+            formatter.settingsAction("섬 공개 변경", new SettingsActionView(true, "PUBLIC_ACCESS_ENABLED"))
+        );
+        assertEquals(
+            "섬 권한 변경: 접수됨 code=PERMISSION_SET",
+            formatter.permissionAction("섬 권한 변경", new PermissionActionView(true, "PERMISSION_SET"))
+        );
+        assertEquals(
+            "섬 역할 저장 완료: MEMBER weight=10 name=Member version=v2",
+            formatter.roleMutation("섬 역할 저장 완료", new MutationResult<>(new CoreGuiViews.RoleView("MEMBER", 10, "Member"), "v2", true))
         );
     }
 }

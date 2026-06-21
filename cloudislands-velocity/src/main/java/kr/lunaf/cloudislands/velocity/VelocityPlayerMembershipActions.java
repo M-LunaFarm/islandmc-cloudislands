@@ -1,13 +1,7 @@
 package kr.lunaf.cloudislands.velocity;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.parseLong;
-import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
-
 import com.velocitypowered.api.proxy.Player;
 import java.util.UUID;
-import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
@@ -19,7 +13,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void invite(Player player, UUID islandId, UUID targetUuid) {
-        sendBodyResult(player, coreApiClient.createIslandInvite(islandId, player.getUniqueId(), targetUuid).thenApply(islandMessages::inviteCreate), "초대를 생성하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.memberCommands().createInvite(islandId, player.getUniqueId(), targetUuid).thenApply(islandMessages::inviteCreate), "초대를 생성하지 못했습니다.");
     }
 
     public void inviteTarget(Player player, UUID islandId, String target) {
@@ -36,14 +30,19 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void listInvites(Player player) {
-        coreApiClient.listPendingInvites(player.getUniqueId()).thenAccept(body -> player.sendMessage(Component.text(islandMessages.invites(body)))).exceptionally(error -> {
+        coreApiClient.members().pendingInvites(player.getUniqueId()).thenAccept(invites -> player.sendMessage(Component.text(islandMessages.invites(invites)))).exceptionally(error -> {
             player.sendMessage(Component.text("초대 목록을 불러오지 못했습니다."));
             return null;
         });
     }
 
     public void acceptInvite(Player player, UUID inviteId) {
-        sendInviteActionResult(player, coreApiClient.acceptIslandInviteResult(inviteId, player.getUniqueId()), "섬 초대를 수락했습니다.", "섬 초대를 수락하지 못했습니다.");
+        coreApiClient.memberCommands().acceptInvite(inviteId, player.getUniqueId()).thenAccept(result ->
+            player.sendMessage(Component.text(result.applied() ? "섬 초대를 수락했습니다." : "섬 초대를 수락하지 못했습니다."))
+        ).exceptionally(error -> {
+            player.sendMessage(Component.text("섬 초대를 수락하지 못했습니다."));
+            return null;
+        });
     }
 
     public void acceptInviteTarget(Player player, String target) {
@@ -60,7 +59,12 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void declineInvite(Player player, UUID inviteId) {
-        sendInviteActionResult(player, coreApiClient.declineIslandInviteResult(inviteId, player.getUniqueId()), "섬 초대를 거절했습니다.", "섬 초대를 거절하지 못했습니다.");
+        coreApiClient.memberCommands().declineInvite(inviteId, player.getUniqueId()).thenAccept(result ->
+            player.sendMessage(Component.text(result.applied() ? "섬 초대를 거절했습니다." : "섬 초대를 거절하지 못했습니다."))
+        ).exceptionally(error -> {
+            player.sendMessage(Component.text("섬 초대를 거절하지 못했습니다."));
+            return null;
+        });
     }
 
     public void declineInviteTarget(Player player, String target) {
@@ -77,15 +81,15 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void listMembers(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandMembers(islandId).thenApply(islandMessages::memberList), "멤버 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islands().listMembers(islandId).thenApply(islandMessages::memberList), "멤버 목록을 불러오지 못했습니다.");
     }
 
     public void setRole(Player player, UUID islandId, UUID targetUuid, IslandRole role) {
-        sendActionResult(player, coreApiClient.setIslandMember(islandId, player.getUniqueId(), targetUuid, role), "섬 멤버 역할을 변경했습니다.", "섬 멤버 역할을 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.memberCommands().setRole(islandId, player.getUniqueId(), targetUuid, role.name()).thenApply(result -> islandMessages.memberAction("섬 멤버 역할 변경", result)), "섬 멤버 역할을 변경하지 못했습니다.");
     }
 
     public void setRole(Player player, UUID islandId, UUID targetUuid, String roleKey) {
-        sendBodyResult(player, coreApiClient.setIslandMemberResult(islandId, player.getUniqueId(), targetUuid, roleKey).thenApply(body -> "섬 멤버 역할을 변경했습니다: " + jsonValue(body, "roleKey")), "섬 멤버 역할을 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.memberCommands().setRole(islandId, player.getUniqueId(), targetUuid, roleKey).thenApply(result -> islandMessages.memberAction("섬 멤버 역할 변경", result)), "섬 멤버 역할을 변경하지 못했습니다.");
     }
 
     public void setRoleTarget(Player player, UUID islandId, String target, IslandRole role) {
@@ -115,7 +119,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void transferOwnership(Player player, UUID islandId, UUID targetUuid) {
-        sendActionResult(player, coreApiClient.transferIslandOwnership(islandId, player.getUniqueId(), targetUuid), "섬 소유권을 양도했습니다.", "섬 소유권을 양도하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.memberCommands().transferOwnership(islandId, player.getUniqueId(), targetUuid).thenApply(result -> islandMessages.memberAction("섬 소유권 양도", result)), "섬 소유권을 양도하지 못했습니다.");
     }
 
     public void transferOwnershipTarget(Player player, UUID islandId, String target) {
@@ -132,7 +136,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void kickMember(Player player, UUID islandId, UUID targetUuid) {
-        sendActionResult(player, coreApiClient.removeIslandMember(islandId, player.getUniqueId(), targetUuid), "섬 멤버를 추방했습니다.", "섬 멤버를 추방하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.memberCommands().removeMember(islandId, player.getUniqueId(), targetUuid).thenApply(result -> islandMessages.memberAction("섬 멤버 추방", result)), "섬 멤버를 추방하지 못했습니다.");
     }
 
     public void kickMemberTarget(Player player, UUID islandId, String target) {
@@ -149,7 +153,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void banVisitor(Player player, UUID islandId, UUID targetUuid, String reason) {
-        sendActionResult(player, coreApiClient.banIslandVisitor(islandId, player.getUniqueId(), targetUuid, reason), "방문자를 밴했습니다.", "방문자를 밴하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.memberCommands().banVisitor(islandId, player.getUniqueId(), targetUuid, reason).thenApply(result -> islandMessages.memberAction("방문자 밴", result)), "방문자를 밴하지 못했습니다.");
     }
 
     public void banVisitorTarget(Player player, UUID islandId, String target, String reason) {
@@ -166,11 +170,11 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void listBans(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandBans(islandId).thenApply(islandMessages::banList), "밴 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.members().bans(islandId).thenApply(islandMessages::banList), "밴 목록을 불러오지 못했습니다.");
     }
 
     public void pardonVisitor(Player player, UUID islandId, UUID targetUuid) {
-        sendActionResult(player, coreApiClient.pardonIslandVisitor(islandId, player.getUniqueId(), targetUuid), "방문자 밴을 해제했습니다.", "방문자 밴을 해제하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.memberCommands().pardonVisitor(islandId, player.getUniqueId(), targetUuid).thenApply(result -> islandMessages.memberAction("방문자 밴 해제", result)), "방문자 밴을 해제하지 못했습니다.");
     }
 
     public void pardonVisitorTarget(Player player, UUID islandId, String target) {
@@ -187,12 +191,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void kickVisitor(Player player, UUID islandId, UUID targetUuid) {
-        coreApiClient.kickIslandVisitor(islandId, player.getUniqueId(), targetUuid).thenRun(() ->
-            player.sendMessage(Component.text("방문자 추방을 요청했습니다."))
-        ).exceptionally(error -> {
-            player.sendMessage(Component.text("방문자를 추방할 권한이 없거나 처리하지 못했습니다."));
-            return null;
-        });
+        sendBodyResult(player, coreApiClient.memberCommands().kickVisitor(islandId, player.getUniqueId(), targetUuid).thenApply(result -> islandMessages.memberAction("방문자 추방", result)), "방문자를 추방할 권한이 없거나 처리하지 못했습니다.");
     }
 
     public void kickVisitorTarget(Player player, UUID islandId, String target) {
@@ -209,7 +208,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void setPublicAccess(Player player, UUID islandId, boolean publicAccess) {
-        sendActionResult(player, coreApiClient.setIslandPublicAccess(islandId, player.getUniqueId(), publicAccess), publicAccess ? "섬을 공개로 변경했습니다." : "섬을 비공개로 변경했습니다.", "섬 공개 상태를 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.settingsCommands().setPublicAccess(islandId, player.getUniqueId(), publicAccess).thenApply(result -> islandMessages.settingsAction(publicAccess ? "섬 공개 변경" : "섬 비공개 변경", result)), "섬 공개 상태를 변경하지 못했습니다.");
     }
 
     public void setIslandName(Player player, UUID islandId, String name) {
@@ -218,15 +217,15 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             return;
         }
         withResolvedIsland(player, islandId, "이름을 변경할 섬을 찾지 못했습니다.", "섬 이름을 변경하지 못했습니다.",
-            resolved -> sendActionResult(player, coreApiClient.setIslandName(resolved, player.getUniqueId(), name), "섬 이름을 변경했습니다.", "섬 이름을 변경하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.settingsCommands().setName(resolved, player.getUniqueId(), name).thenApply(result -> islandMessages.settingsAction("섬 이름 변경", result)), "섬 이름을 변경하지 못했습니다."));
     }
 
     public void setFlyFlag(Player player, UUID islandId, boolean enabled) {
-        sendActionResult(player, coreApiClient.setIslandFlag(islandId, player.getUniqueId(), kr.lunaf.cloudislands.api.model.IslandFlag.FLY, Boolean.toString(enabled)), enabled ? "섬 비행을 허용했습니다." : "섬 비행을 비활성화했습니다.", "섬 비행 설정을 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.settingsCommands().setFlag(islandId, player.getUniqueId(), kr.lunaf.cloudislands.api.model.IslandFlag.FLY, Boolean.toString(enabled)).thenApply(result -> islandMessages.settingsAction(enabled ? "섬 비행 허용" : "섬 비행 비활성화", result)), "섬 비행 설정을 변경하지 못했습니다.");
     }
 
     public void setBooleanFlag(Player player, UUID islandId, kr.lunaf.cloudislands.api.model.IslandFlag flag, boolean enabled, String label) {
-        sendActionResult(player, coreApiClient.setIslandFlag(islandId, player.getUniqueId(), flag, Boolean.toString(enabled)), "섬 " + label + " 설정을 " + (enabled ? "켰습니다." : "껐습니다."), "섬 " + label + " 설정을 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.settingsCommands().setFlag(islandId, player.getUniqueId(), flag, Boolean.toString(enabled)).thenApply(result -> islandMessages.settingsAction("섬 " + label + " 설정", result)), "섬 " + label + " 설정을 변경하지 못했습니다.");
     }
 
     public void listFlags(Player player, UUID islandId) {
@@ -234,20 +233,20 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             return;
         }
         withResolvedIsland(player, islandId, "플래그를 확인할 섬을 찾지 못했습니다.", "섬 플래그를 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandFlags(resolved).thenApply(islandMessages::flagList), "섬 플래그를 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.environment().flagValues(resolved).thenApply(islandMessages::flagList), "섬 플래그를 불러오지 못했습니다."));
     }
 
     public void listHomes(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandHomes(islandId).thenApply(islandMessages::homeList), "섬 홈을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.homeWarps().homes(islandId).thenApply(islandMessages::homeList), "섬 홈을 불러오지 못했습니다.");
     }
 
     public void setHome(Player player, UUID islandId, String name) {
         IslandLocation defaultHome = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
-        sendActionResult(player, coreApiClient.setIslandHome(islandId, player.getUniqueId(), name, defaultHome), "섬 홈을 설정했습니다.", "섬 홈을 설정하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.homeWarpCommands().setHome(islandId, player.getUniqueId(), name, defaultHome).thenApply(result -> islandMessages.homeWarpAction("섬 홈 설정", result)), "섬 홈을 설정하지 못했습니다.");
     }
 
     public void setLocked(Player player, UUID islandId, boolean locked) {
-        sendActionResult(player, coreApiClient.setIslandLocked(islandId, player.getUniqueId(), locked), locked ? "섬을 잠금 상태로 변경했습니다." : "섬 잠금을 해제했습니다.", "섬 잠금 상태를 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.settingsCommands().setLocked(islandId, player.getUniqueId(), locked).thenApply(result -> islandMessages.settingsAction(locked ? "섬 잠금" : "섬 잠금 해제", result)), "섬 잠금 상태를 변경하지 못했습니다.");
     }
 
     public void listPermissions(Player player, UUID islandId) {
@@ -255,15 +254,15 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             return;
         }
         withResolvedIsland(player, islandId, "권한을 확인할 섬을 찾지 못했습니다.", "섬 권한을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandPermissions(resolved).thenApply(islandMessages::permissionList), "섬 권한을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.permissionQueries().permissions(resolved).thenApply(islandMessages::permissionList), "섬 권한을 불러오지 못했습니다."));
     }
 
     public void setPermission(Player player, UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
-        sendActionResult(player, coreApiClient.setIslandPermission(islandId, player.getUniqueId(), role, permission, allowed), "섬 권한을 변경했습니다.", "섬 권한을 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.permissions().setPermission(islandId, player.getUniqueId(), role.name(), permission, allowed).thenApply(result -> islandMessages.permissionAction("섬 권한 변경", result)), "섬 권한을 변경하지 못했습니다.");
     }
 
     public void setPermission(Player player, UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
-        sendBodyResult(player, coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), roleKey, permission, allowed).thenApply(body -> "섬 권한을 변경했습니다: " + jsonValue(body, "roleKey")), "섬 권한을 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.permissions().setPermission(islandId, player.getUniqueId(), roleKey, permission, allowed).thenApply(result -> islandMessages.permissionAction("섬 권한 변경", result)), "섬 권한을 변경하지 못했습니다.");
     }
 
     public void listRoles(Player player, UUID islandId) {
@@ -271,23 +270,23 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             return;
         }
         withResolvedIsland(player, islandId, "역할을 확인할 섬을 찾지 못했습니다.", "섬 역할을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandRoles(resolved).thenApply(islandMessages::roleList), "섬 역할을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.permissionQueries().roles(resolved).thenApply(islandMessages::roleList), "섬 역할을 불러오지 못했습니다."));
     }
 
     public void upsertRole(Player player, UUID islandId, IslandRole role, int weight, String displayName) {
-        sendBodyResult(player, coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), role, weight, displayName).thenApply(body -> "섬 역할 저장 완료: " + jsonValue(body, "role") + " weight=" + longValue(body, "weight") + " name=" + jsonValue(body, "displayName")), "섬 역할을 저장하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.permissions().upsertRole(islandId, player.getUniqueId(), role.name(), weight, displayName).thenApply(result -> islandMessages.roleMutation("섬 역할 저장 완료", result)), "섬 역할을 저장하지 못했습니다.");
     }
 
     public void upsertRole(Player player, UUID islandId, String roleKey, int weight, String displayName) {
-        sendBodyResult(player, coreApiClient.upsertIslandRole(islandId, player.getUniqueId(), roleKey, weight, displayName).thenApply(body -> "섬 역할 저장 완료: " + jsonValue(body, "roleKey") + " weight=" + longValue(body, "weight") + " name=" + jsonValue(body, "displayName")), "섬 역할을 저장하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.permissions().upsertRole(islandId, player.getUniqueId(), roleKey, weight, displayName).thenApply(result -> islandMessages.roleMutation("섬 역할 저장 완료", result)), "섬 역할을 저장하지 못했습니다.");
     }
 
     public void resetRole(Player player, UUID islandId, IslandRole role) {
-        sendBodyResult(player, coreApiClient.resetIslandRole(islandId, player.getUniqueId(), role).thenApply(body -> "섬 역할 초기화 완료: " + jsonValue(body, "role")), "섬 역할을 초기화하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.permissions().resetRole(islandId, player.getUniqueId(), role.name()).thenApply(result -> islandMessages.roleMutation("섬 역할 초기화 완료", result)), "섬 역할을 초기화하지 못했습니다.");
     }
 
     public void resetRole(Player player, UUID islandId, String roleKey) {
-        sendBodyResult(player, coreApiClient.resetIslandRole(islandId, player.getUniqueId(), roleKey).thenApply(body -> "섬 역할 초기화 완료: " + jsonValue(body, "roleKey")), "섬 역할을 초기화하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.permissions().resetRole(islandId, player.getUniqueId(), roleKey).thenApply(result -> islandMessages.roleMutation("섬 역할 초기화 완료", result)), "섬 역할을 초기화하지 못했습니다.");
     }
 
     public void listIslandLogs(Player player, UUID islandId) {
@@ -295,7 +294,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             return;
         }
         withResolvedIsland(player, islandId, "로그를 확인할 섬을 찾지 못했습니다.", "섬 로그를 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandLogs(resolved, 30).thenApply(islandMessages::islandLogList), "섬 로그를 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.communication().listLogs(resolved, 30).thenApply(islandMessages::islandLogList), "섬 로그를 불러오지 못했습니다."));
     }
 
     public void showBank(Player player, UUID islandId) {
@@ -303,7 +302,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             return;
         }
         withResolvedIsland(player, islandId, "은행을 확인할 섬을 찾지 못했습니다.", "섬 은행을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.islandBank(resolved).thenApply(islandMessages::bankInfo), "섬 은행을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.bank().islandBank(resolved).thenApply(view -> islandMessages.bankInfo(resolved, view)), "섬 은행을 불러오지 못했습니다."));
     }
 
     public void depositBank(Player player, UUID islandId, String amount) {

@@ -11,15 +11,22 @@ import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectVa
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Function;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
 import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
+import kr.lunaf.cloudislands.coreclient.MemberActionView;
+import kr.lunaf.cloudislands.coreclient.MutationResult;
+import kr.lunaf.cloudislands.coreclient.PermissionActionView;
+import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
+import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 
 public final class VelocityIslandMessageFormatter {
@@ -143,6 +150,21 @@ public final class VelocityIslandMessageFormatter {
         return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
     }
 
+    public String invites(List<CoreGuiViews.InviteView> invites) {
+        if (invites == null || invites.isEmpty()) {
+            return "대기 중인 섬 초대가 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        for (CoreGuiViews.InviteView invite : invites) {
+            if (!invite.inviteId().isBlank()) {
+                entries.add(shortId(invite.inviteId())
+                    + (invite.islandId().isBlank() ? "" : " 섬=" + shortId(invite.islandId()))
+                    + (invite.inviterUuid().isBlank() ? "" : " 초대한사람=" + shortId(invite.inviterUuid())));
+            }
+        }
+        return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
+    }
+
     public String actionResult(String label, String targetId, String body) {
         if (body == null || body.isBlank()) {
             return label + ": accepted target=" + compactTarget(targetId);
@@ -206,6 +228,13 @@ public final class VelocityIslandMessageFormatter {
             + " 섬=" + shortId(jsonValue(body, "islandId"))
             + " target=" + shortId(jsonValue(body, "targetUuid"))
             + " state=" + jsonValue(body, "state");
+    }
+
+    public String inviteCreate(CoreGuiViews.InviteView invite) {
+        return "초대: 생성됨 invite=" + shortId(invite.inviteId())
+            + " 섬=" + shortId(invite.islandId())
+            + " target=" + shortId(invite.targetUuid())
+            + " state=" + invite.state();
     }
 
     public String chatResult(String label, String body) {
@@ -513,14 +542,59 @@ public final class VelocityIslandMessageFormatter {
             + " 위치=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
     }
 
+    public String homeList(List<CoreGuiViews.HomeView> homes) {
+        if (homes == null || homes.isEmpty()) {
+            return "섬 홈: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (CoreGuiViews.HomeView home : homes) {
+            total++;
+            if (entries.size() < 10) {
+                entries.add(home.name() + " 위치=" + seconds(home.x()) + "," + seconds(home.y()) + "," + seconds(home.z()));
+            }
+        }
+        return "섬 홈: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
     public String memberList(String body) {
         return namedObjectList("섬 멤버", body, "members", object -> shortId(jsonValue(object, "playerUuid"))
             + " 역할=" + jsonValue(object, "role"));
     }
 
+    public String memberList(List<CoreGuiViews.MemberView> members) {
+        if (members == null || members.isEmpty()) {
+            return "섬 멤버: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (CoreGuiViews.MemberView member : members) {
+            total++;
+            if (entries.size() < 10) {
+                entries.add(shortId(member.playerUuid()) + " 역할=" + member.role());
+            }
+        }
+        return "섬 멤버: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
     public String banList(String body) {
         return namedObjectList("섬 밴", body, "bans", object -> shortId(jsonValue(object, "bannedUuid"))
             + " 사유=" + fallback(jsonValue(object, "reason"), "-"));
+    }
+
+    public String banList(List<CoreGuiViews.BanView> bans) {
+        if (bans == null || bans.isEmpty()) {
+            return "섬 밴: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (CoreGuiViews.BanView ban : bans) {
+            total++;
+            if (entries.size() < 10) {
+                entries.add(shortId(ban.bannedUuid()) + " 사유=" + fallback(ban.reason(), "-"));
+            }
+        }
+        return "섬 밴: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     public String permissionList(String body) {
@@ -529,16 +603,64 @@ public final class VelocityIslandMessageFormatter {
             + "=" + (boolValue(object, "allowed") ? "허용" : "거부"));
     }
 
+    public String permissionList(List<PermissionAssignmentView> permissions) {
+        if (permissions == null || permissions.isEmpty()) {
+            return "섬 권한: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (PermissionAssignmentView permission : permissions) {
+            total++;
+            if (entries.size() < 10) {
+                String subject = permission.role().isBlank() ? shortId(permission.playerUuid()) : permission.role();
+                entries.add(subject + ":" + permission.permission() + "=" + (permission.allowed() ? "허용" : "거부"));
+            }
+        }
+        return "섬 권한: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
     public String roleList(String body) {
         return namedObjectList("섬 역할", body, "roles", object -> jsonValue(object, "role")
             + " weight=" + longValue(object, "weight")
             + " name=" + fallback(jsonValue(object, "displayName"), "-"));
     }
 
+    public String roleList(List<CoreGuiViews.RoleView> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return "섬 역할: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (CoreGuiViews.RoleView role : roles) {
+            total++;
+            if (entries.size() < 10) {
+                entries.add(role.role() + " weight=" + role.weight() + " name=" + fallback(role.displayName(), "-"));
+            }
+        }
+        return "섬 역할: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
     public String islandLogList(String body) {
         return namedObjectList("섬 로그", body, "logs", object -> fallback(jsonValue(object, "action"), "UNKNOWN")
             + " 처리자=" + shortId(jsonValue(object, "actorUuid"))
             + " 시각=" + jsonValue(object, "createdAt"));
+    }
+
+    public String islandLogList(List<CoreGuiViews.LogEntryView> logs) {
+        if (logs == null || logs.isEmpty()) {
+            return "섬 로그: empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (CoreGuiViews.LogEntryView log : logs) {
+            total++;
+            if (entries.size() < 10) {
+                entries.add(fallback(log.action(), "UNKNOWN")
+                    + " 처리자=" + shortId(log.actorUuid())
+                    + " 시각=" + log.createdAt());
+            }
+        }
+        return "섬 로그: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     public String bankInfo(String body) {
@@ -548,6 +670,11 @@ public final class VelocityIslandMessageFormatter {
         }
         return "섬 은행: 섬=" + shortId(jsonValue(body, "islandId"))
             + " balance=" + jsonValue(body, "balance");
+    }
+
+    public String bankInfo(java.util.UUID islandId, CoreGuiViews.BankView view) {
+        return "섬 은행: 섬=" + shortId(islandId == null ? "" : islandId.toString())
+            + " balance=" + view.balance();
     }
 
     public String levelRecalculation(String body) {
@@ -751,6 +878,47 @@ public final class VelocityIslandMessageFormatter {
             index = valueEnd + 1;
         }
         return "섬 플래그: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    public String flagList(Map<IslandFlag, String> flags) {
+        if (flags == null || flags.isEmpty()) {
+            return "섬 플래그: 없음";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (Map.Entry<IslandFlag, String> entry : flags.entrySet()) {
+            total++;
+            if (entries.size() < 12) {
+                entries.add(entry.getKey().name() + "=" + entry.getValue());
+            }
+        }
+        return "섬 플래그: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    public String memberAction(String label, MemberActionView view) {
+        return label + ": " + (view.accepted() ? "접수됨" : "거부됨")
+            + (view.code().isBlank() ? "" : " code=" + view.code());
+    }
+
+    public String settingsAction(String label, SettingsActionView view) {
+        return label + ": " + (view.accepted() ? "접수됨" : "거부됨")
+            + (view.code().isBlank() ? "" : " code=" + view.code());
+    }
+
+    public String permissionAction(String label, PermissionActionView view) {
+        return label + ": " + (view.accepted() ? "접수됨" : "거부됨")
+            + (view.code().isBlank() ? "" : " code=" + view.code());
+    }
+
+    public String roleMutation(String label, MutationResult<CoreGuiViews.RoleView> result) {
+        CoreGuiViews.RoleView role = result.value();
+        String roleKey = role == null ? "" : role.role();
+        long weight = role == null ? 0L : role.weight();
+        String displayName = role == null ? "" : role.displayName();
+        return label + ": " + fallback(roleKey, "-")
+            + " weight=" + weight
+            + " name=" + fallback(displayName, "-")
+            + (result.version().isBlank() ? "" : " version=" + result.version());
     }
 
     public String upgradeRules(String body) {
