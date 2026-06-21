@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,6 +14,7 @@ import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -227,51 +230,48 @@ public final class IslandVisitorRoutes implements RouteGroup {
     }
 
     static String inviteAcceptedJson(IslandInviteSnapshot invite) {
-        return "{\"accepted\":true,\"inviteId\":\"" + invite.inviteId() + "\",\"islandId\":\"" + invite.islandId() + "\",\"inviterUuid\":\"" + invite.inviterUuid() + "\",\"targetUuid\":\"" + invite.targetUuid() + "\",\"state\":\"" + invite.state() + "\",\"createdAt\":\"" + invite.createdAt() + "\",\"expiresAt\":\"" + invite.expiresAt() + "\"}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.putAll(inviteMap(invite));
+        return SimpleJson.stringify(values);
     }
 
     static String invitesJson(List<IslandInviteSnapshot> invites) {
-        StringBuilder builder = new StringBuilder("{\"invites\":[");
-        boolean first = true;
+        List<Object> renderedInvites = new ArrayList<>();
         for (IslandInviteSnapshot invite : invites) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"inviteId\":\"").append(invite.inviteId()).append("\",")
-                .append("\"islandId\":\"").append(invite.islandId()).append("\",")
-                .append("\"inviterUuid\":\"").append(invite.inviterUuid()).append("\",")
-                .append("\"targetUuid\":\"").append(invite.targetUuid()).append("\",")
-                .append("\"state\":\"").append(invite.state()).append("\",")
-                .append("\"createdAt\":\"").append(invite.createdAt()).append("\",")
-                .append("\"expiresAt\":\"").append(invite.expiresAt()).append("\"")
-                .append('}');
+            renderedInvites.add(inviteMap(invite));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("invites", renderedInvites));
     }
 
     static String bansJson(List<IslandBanSnapshot> bans) {
-        StringBuilder builder = new StringBuilder("{\"bans\":[");
-        boolean first = true;
+        List<Object> renderedBans = new ArrayList<>();
         for (IslandBanSnapshot ban : bans) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"islandId\":\"").append(ban.islandId()).append("\",")
-                .append("\"bannedUuid\":\"").append(ban.bannedUuid()).append("\",")
-                .append("\"actorUuid\":\"").append(ban.actorUuid()).append("\",")
-                .append("\"reason\":\"").append(escape(ban.reason())).append("\",")
-                .append("\"createdAt\":\"").append(ban.createdAt()).append("\",")
-                .append("\"expiresAt\":").append(ban.expiresAt() == null ? "null" : "\"" + ban.expiresAt() + "\"")
-                .append('}');
+            renderedBans.add(banMap(ban));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("bans", renderedBans));
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    private static Map<String, Object> inviteMap(IslandInviteSnapshot invite) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("inviteId", invite.inviteId());
+        values.put("islandId", invite.islandId());
+        values.put("inviterUuid", invite.inviterUuid());
+        values.put("targetUuid", invite.targetUuid());
+        values.put("state", invite.state());
+        values.put("createdAt", invite.createdAt());
+        values.put("expiresAt", invite.expiresAt());
+        return values;
+    }
+
+    private static Map<String, Object> banMap(IslandBanSnapshot ban) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", ban.islandId());
+        values.put("bannedUuid", ban.bannedUuid());
+        values.put("actorUuid", ban.actorUuid());
+        values.put("reason", ban.reason());
+        values.put("createdAt", ban.createdAt());
+        values.put("expiresAt", ban.expiresAt());
+        return values;
     }
 }

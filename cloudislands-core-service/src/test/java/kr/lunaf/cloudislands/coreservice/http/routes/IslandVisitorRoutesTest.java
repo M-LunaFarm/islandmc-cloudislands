@@ -8,11 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import org.junit.jupiter.api.Test;
 
 class IslandVisitorRoutesTest {
@@ -50,14 +52,13 @@ class IslandVisitorRoutesTest {
             Instant.parse("2026-01-09T03:04:05Z")
         );
 
-        assertEquals(
-            "{\"accepted\":true,\"inviteId\":\"00000000-0000-0000-0000-000000000001\",\"islandId\":\"00000000-0000-0000-0000-000000000002\",\"inviterUuid\":\"00000000-0000-0000-0000-000000000003\",\"targetUuid\":\"00000000-0000-0000-0000-000000000004\",\"state\":\"PENDING\",\"createdAt\":\"2026-01-02T03:04:05Z\",\"expiresAt\":\"2026-01-09T03:04:05Z\"}",
-            IslandVisitorRoutes.inviteAcceptedJson(invite)
-        );
-        assertEquals(
-            "{\"invites\":[{\"inviteId\":\"00000000-0000-0000-0000-000000000001\",\"islandId\":\"00000000-0000-0000-0000-000000000002\",\"inviterUuid\":\"00000000-0000-0000-0000-000000000003\",\"targetUuid\":\"00000000-0000-0000-0000-000000000004\",\"state\":\"PENDING\",\"createdAt\":\"2026-01-02T03:04:05Z\",\"expiresAt\":\"2026-01-09T03:04:05Z\"}]}",
-            IslandVisitorRoutes.invitesJson(List.of(invite))
-        );
+        Map<?, ?> accepted = SimpleJson.object(SimpleJson.parse(IslandVisitorRoutes.inviteAcceptedJson(invite)));
+        Map<?, ?> invites = SimpleJson.object(SimpleJson.parse(IslandVisitorRoutes.invitesJson(List.of(invite))));
+        Map<?, ?> listedInvite = SimpleJson.object(SimpleJson.list(invites.get("invites")).get(0));
+
+        assertEquals(true, accepted.get("accepted"));
+        assertInvite(inviteId, islandId, inviterUuid, targetUuid, accepted);
+        assertInvite(inviteId, islandId, inviterUuid, targetUuid, listedInvite);
     }
 
     @Test
@@ -77,9 +78,24 @@ class IslandVisitorRoutesTest {
 
         assertEquals(IslandRole.BANNED, IslandVisitorRoutes.memberRole(List.of(member), bannedUuid));
         assertNull(IslandVisitorRoutes.memberRole(List.of(member), actorUuid));
-        assertEquals(
-            "{\"bans\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"bannedUuid\":\"00000000-0000-0000-0000-000000000002\",\"actorUuid\":\"00000000-0000-0000-0000-000000000003\",\"reason\":\"bad \\\"visit\\\"\",\"createdAt\":\"2026-01-02T03:04:05Z\",\"expiresAt\":null}]}",
-            IslandVisitorRoutes.bansJson(List.of(ban))
-        );
+        Map<?, ?> bans = SimpleJson.object(SimpleJson.parse(IslandVisitorRoutes.bansJson(List.of(ban))));
+        Map<?, ?> listedBan = SimpleJson.object(SimpleJson.list(bans.get("bans")).get(0));
+
+        assertEquals(islandId.toString(), SimpleJson.text(listedBan.get("islandId")));
+        assertEquals(bannedUuid.toString(), SimpleJson.text(listedBan.get("bannedUuid")));
+        assertEquals(actorUuid.toString(), SimpleJson.text(listedBan.get("actorUuid")));
+        assertEquals("bad \"visit\"", SimpleJson.text(listedBan.get("reason")));
+        assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(listedBan.get("createdAt")));
+        assertEquals(null, listedBan.get("expiresAt"));
+    }
+
+    private static void assertInvite(UUID inviteId, UUID islandId, UUID inviterUuid, UUID targetUuid, Map<?, ?> invite) {
+        assertEquals(inviteId.toString(), SimpleJson.text(invite.get("inviteId")));
+        assertEquals(islandId.toString(), SimpleJson.text(invite.get("islandId")));
+        assertEquals(inviterUuid.toString(), SimpleJson.text(invite.get("inviterUuid")));
+        assertEquals(targetUuid.toString(), SimpleJson.text(invite.get("targetUuid")));
+        assertEquals("PENDING", SimpleJson.text(invite.get("state")));
+        assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(invite.get("createdAt")));
+        assertEquals("2026-01-09T03:04:05Z", SimpleJson.text(invite.get("expiresAt")));
     }
 }
