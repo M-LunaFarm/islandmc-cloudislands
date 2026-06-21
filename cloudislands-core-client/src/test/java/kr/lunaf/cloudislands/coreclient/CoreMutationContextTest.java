@@ -132,4 +132,46 @@ class CoreMutationContextTest {
             server.stop(0);
         }
     }
+
+    @Test
+    void jdkClientBuildsBankAndWarehousePayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/bank", exchange -> respond(exchange, requestBodies, "bank", "{\"balance\":\"10\"}"));
+        server.createContext("/v1/islands/bank/deposit", exchange -> respond(exchange, requestBodies, "bankDeposit", "{\"accepted\":true,\"balance\":\"15\"}"));
+        server.createContext("/v1/islands/bank/withdraw", exchange -> respond(exchange, requestBodies, "bankWithdraw", "{\"accepted\":true,\"balance\":\"8\"}"));
+        server.createContext("/v1/islands/warehouse", exchange -> respond(exchange, requestBodies, "warehouse", "{\"items\":[]}"));
+        server.createContext("/v1/islands/warehouse/deposit", exchange -> respond(exchange, requestBodies, "warehouseDeposit", "{\"accepted\":true,\"materialKey\":\"STONE\",\"amount\":12}"));
+        server.createContext("/v1/islands/warehouse/withdraw", exchange -> respond(exchange, requestBodies, "warehouseWithdraw", "{\"accepted\":true,\"materialKey\":\"DIRT\",\"amount\":7}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.islandBank(islandId).join();
+            client.depositIslandBank(islandId, actorUuid, "12.50").join();
+            client.withdrawIslandBank(islandId, actorUuid, "4.25").join();
+            client.islandWarehouse(islandId, 50).join();
+            client.depositIslandWarehouse(islandId, actorUuid, "minecraft:stone", 12L).join();
+            client.withdrawIslandWarehouse(islandId, actorUuid, "minecraft:dirt", 7L).join();
+
+            assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("bank"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"amount\":\"12.50\"}", requestBodies.get("bankDeposit"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"amount\":\"4.25\"}", requestBodies.get("bankWithdraw"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":50}", requestBodies.get("warehouse"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:stone\",\"amount\":12}", requestBodies.get("warehouseDeposit"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:dirt\",\"amount\":7}", requestBodies.get("warehouseWithdraw"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    private static void respond(com.sun.net.httpserver.HttpExchange exchange, ConcurrentMap<String, String> requestBodies, String key, String responseBody) throws java.io.IOException {
+        requestBodies.put(key, new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(200, body.length);
+        exchange.getResponseBody().write(body);
+        exchange.close();
+    }
 }

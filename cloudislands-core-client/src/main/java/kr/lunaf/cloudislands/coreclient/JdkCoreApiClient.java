@@ -398,17 +398,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> islandWarehouse(UUID islandId, int limit) {
-        return post("/v1/islands/warehouse", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
+        return post("/v1/islands/warehouse", jsonObject("islandId", islandId, "limit", limit));
     }
 
     @Override
     public CompletableFuture<String> depositIslandWarehouse(UUID islandId, UUID actorUuid, String materialKey, long amount) {
-        return postWithResultBody("/v1/islands/warehouse/deposit", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"amount\":" + amount + "}");
+        return postWithResultBody("/v1/islands/warehouse/deposit", jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey, "amount", amount));
     }
 
     @Override
     public CompletableFuture<String> withdrawIslandWarehouse(UUID islandId, UUID actorUuid, String materialKey, long amount) {
-        return postWithResultBody("/v1/islands/warehouse/withdraw", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"" + escape(materialKey) + "\",\"amount\":" + amount + "}");
+        return postWithResultBody("/v1/islands/warehouse/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey, "amount", amount));
     }
 
     @Override
@@ -634,17 +634,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> islandBank(UUID islandId) {
-        return post("/v1/islands/bank", "{\"islandId\":\"" + islandId + "\"}");
+        return post("/v1/islands/bank", jsonObject("islandId", islandId));
     }
 
     @Override
     public CompletableFuture<String> depositIslandBank(UUID islandId, UUID actorUuid, String amount) {
-        return postWithResultBody("/v1/islands/bank/deposit", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"amount\":\"" + escape(amount) + "\"}");
+        return postWithResultBody("/v1/islands/bank/deposit", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount));
     }
 
     @Override
     public CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount) {
-        return postWithResultBody("/v1/islands/bank/withdraw", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"amount\":\"" + escape(amount) + "\"}");
+        return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount));
     }
 
     @Override
