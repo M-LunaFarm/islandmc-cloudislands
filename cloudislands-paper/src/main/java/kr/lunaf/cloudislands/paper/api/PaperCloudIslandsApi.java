@@ -1939,7 +1939,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid) {
-            return client.listPendingInvites(playerUuid).thenApply(PaperCloudIslandsApi::invites);
+            return client.members().pendingInvites(playerUuid).thenApply(PaperCloudIslandsApi::invites);
         }
 
         @Override
@@ -2638,7 +2638,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.withdraw", () -> client.withdrawIslandBank(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankChange); }
 
         private CompletableFuture<Optional<IslandInviteSnapshot>> pendingInvite(UUID playerUuid, java.util.function.Predicate<IslandInviteSnapshot> predicate) {
-            return client.listPendingInvites(playerUuid)
+            return client.members().pendingInvites(playerUuid)
                 .thenApply(PaperCloudIslandsApi::invites)
                 .thenApply(invites -> invites.stream().filter(predicate).findFirst());
         }
@@ -2931,6 +2931,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return invites;
     }
 
+    private static List<IslandInviteSnapshot> invites(List<CoreGuiViews.InviteView> views) {
+        return (views == null ? List.<CoreGuiViews.InviteView>of() : views).stream()
+            .map(PaperCloudIslandsApi::invite)
+            .toList();
+    }
+
     private static IslandInviteSnapshot invite(String json) {
         return new IslandInviteSnapshot(
                 uuid(json, "inviteId", new UUID(0L, 0L)),
@@ -2940,6 +2946,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 text(json, "state", "PENDING"),
                 instant(text(json, "createdAt", Instant.EPOCH.toString())),
                 instant(text(json, "expiresAt", Instant.EPOCH.toString()))
+        );
+    }
+
+    private static IslandInviteSnapshot invite(CoreGuiViews.InviteView view) {
+        return new IslandInviteSnapshot(
+            view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.inviteId()),
+            view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.islandId()),
+            view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.inviterUuid()),
+            view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.targetUuid()),
+            view == null ? "PENDING" : view.state(),
+            instant(view == null ? "" : view.createdAt()),
+            instant(view == null ? "" : view.expiresAt())
         );
     }
 

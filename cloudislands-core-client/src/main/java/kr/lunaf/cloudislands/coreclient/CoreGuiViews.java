@@ -258,7 +258,15 @@ public final class CoreGuiViews {
     }
 
     private static InviteView invite(Map<?, ?> object) {
-        return new InviteView(text(object, "inviteId"), text(object, "islandId"), text(object, "inviterUuid"), text(object, "createdAt"), text(object, "expiresAt"));
+        return new InviteView(
+            text(object, "inviteId"),
+            text(object, "islandId"),
+            text(object, "inviterUuid"),
+            text(object, "targetUuid"),
+            text(object, "state"),
+            text(object, "createdAt"),
+            text(object, "expiresAt")
+        );
     }
 
     private static List<PlayerIslandView> playerIslands(String body) {
@@ -551,7 +559,20 @@ public final class CoreGuiViews {
         }
     }
 
-    public record InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {
+    public record InviteView(String inviteId, String islandId, String inviterUuid, String targetUuid, String state, String createdAt, String expiresAt) {
+        public InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {
+            this(inviteId, islandId, inviterUuid, "", "PENDING", createdAt, expiresAt);
+        }
+
+        public InviteView {
+            inviteId = inviteId == null ? "" : inviteId;
+            islandId = islandId == null ? "" : islandId;
+            inviterUuid = inviterUuid == null ? "" : inviterUuid;
+            targetUuid = targetUuid == null ? "" : targetUuid;
+            state = state == null || state.isBlank() ? "PENDING" : state;
+            createdAt = createdAt == null ? "" : createdAt;
+            expiresAt = expiresAt == null ? "" : expiresAt;
+        }
     }
 
     public record PlayerProfileView(String playerUuid, String primaryIslandId) {

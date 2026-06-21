@@ -1063,8 +1063,8 @@ class CoreTypedClientsTest {
                 case "listPendingInvites" -> {
                     calls.add("invites");
                     yield CompletableFuture.completedFuture("""
-                        {"invites":[{"inviteId":"%s","islandId":"%s","inviterUuid":"%s"}]}
-                        """.formatted(inviteId, islandId, playerUuid));
+                        {"invites":[{"inviteId":"%s","islandId":"%s","inviterUuid":"%s","targetUuid":"%s","state":"PENDING"}]}
+                        """.formatted(inviteId, islandId, playerUuid, playerUuid));
                 }
                 case "listIslandBans" -> {
                     calls.add("bans");
@@ -1078,7 +1078,10 @@ class CoreTypedClientsTest {
         MemberQueryClient client = new CoreMemberQueryClient(raw);
 
         assertEquals(playerUuid.toString(), client.playerProfileByName(" Alice ").join().playerUuid());
-        assertEquals(inviteId.toString(), client.pendingInvites(playerUuid).join().get(0).inviteId());
+        CoreGuiViews.InviteView invite = client.pendingInvites(playerUuid).join().get(0);
+        assertEquals(inviteId.toString(), invite.inviteId());
+        assertEquals(playerUuid.toString(), invite.targetUuid());
+        assertEquals("PENDING", invite.state());
         assertEquals("test", client.bans(islandId).join().get(0).reason());
         assertEquals(List.of("profile:Alice", "invites", "bans"), calls);
     }
