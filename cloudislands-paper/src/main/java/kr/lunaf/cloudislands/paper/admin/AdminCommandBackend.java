@@ -24,6 +24,7 @@ import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
 import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
@@ -899,7 +900,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 return;
             }
             if (args[1].equalsIgnoreCase("info")) {
-                run(sender, "Player info", coreApiClient.playerInfo(playerUuid).thenApply(this::playerInfoMessage));
+                run(sender, "Player info", coreApiClient.playerProfiles().profile(playerUuid).thenApply(this::playerInfoMessage));
                 return;
             }
             if (args[1].equalsIgnoreCase("setisland")) {
@@ -1890,14 +1891,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + adminText("admin-command-runtime-fence-prefix", " fence=") + longValue(body, "fencingToken");
     }
 
-    private String playerInfoMessage(String body) {
-        String code = textValue(body, "code");
-        if (!code.isBlank()) {
-            return adminText("admin-command-player-info-failed-prefix", "Player: failed code=") + code;
+    private String playerInfoMessage(PlayerProfileView profile) {
+        if (profile.playerUuid().isBlank()) {
+            return adminText("admin-command-player-info-failed-prefix", "Player: failed code=") + "PLAYER_NOT_FOUND";
         }
-        String playerUuid = textValue(body, "playerUuid");
-        String lastName = textValue(body, "lastName");
-        String islandId = textValue(body, "primaryIslandId");
+        String playerUuid = profile.playerUuid();
+        String lastName = profile.lastName();
+        String islandId = profile.primaryIslandId();
         return adminText("admin-command-player-info-uuid-prefix", "Player: uuid=") + shortId(playerUuid)
             + (lastName.isBlank() ? "" : adminText("admin-command-player-info-name-prefix", " name=") + lastName)
             + (islandId.isBlank() ? adminText("admin-command-player-info-island-none", " island=none") : adminText("admin-command-player-info-island-prefix", " island=") + shortId(islandId));
