@@ -417,6 +417,20 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void publicApiQuerySurfaceUsesTypedIslandAndBankClients() throws Exception {
+        Path root = repositoryRoot();
+        Path api = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java");
+        String source = Files.readString(api);
+
+        assertTrue(source.contains("client.islands().getIsland(islandId).thenApply(PaperCloudIslandsApi::island)"), "Public API island lookup must use typed island query client");
+        assertTrue(source.contains("client.islands().getIslandByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island)"), "Public API owner lookup must use typed island query client");
+        assertTrue(source.contains("client.bank().islandBank(islandId).thenApply(bank -> bank(islandId, bank))"), "Public API bank lookup must use typed bank query client");
+        assertTrue(!source.contains("return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for island lookup");
+        assertTrue(!source.contains("return client.islandInfoByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for owner lookup");
+        assertTrue(!source.contains("return client.islandBank(islandId).thenApply(PaperCloudIslandsApi::bank);"), "Public API query surface must not use raw bank JSON for bank lookup");
+    }
+
+    @Test
     void guiClassesDoNotExposeDestructiveConfirmActionsDirectly() throws Exception {
         Path root = repositoryRoot();
         Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");

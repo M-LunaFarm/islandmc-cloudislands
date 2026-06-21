@@ -187,7 +187,9 @@ public final class CoreGuiViews {
             bool(root, "locked"),
             longValue(root, "size"),
             longValue(root, "border"),
-            text(root, "ownerUuid")
+            text(root, "ownerUuid"),
+            text(root, "createdAt"),
+            text(root, "updatedAt")
         );
     }
 
@@ -519,7 +521,10 @@ public final class CoreGuiViews {
         return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 
-    public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid) {
+    public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String createdAt, String updatedAt) {
+        public IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid) {
+            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, "", "");
+        }
     }
 
     public record BankView(String balance, String updatedAt) {

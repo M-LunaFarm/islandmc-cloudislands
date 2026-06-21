@@ -108,6 +108,7 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
@@ -1848,12 +1849,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Optional<IslandSnapshot>> getIsland(UUID islandId) {
-            return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::island);
+            return client.islands().getIsland(islandId).thenApply(PaperCloudIslandsApi::island);
         }
 
         @Override
         public CompletableFuture<Optional<IslandSnapshot>> getIslandByOwner(UUID ownerUuid) {
-            return client.islandInfoByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);
+            return client.islands().getIslandByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);
         }
 
         @Override
@@ -1905,17 +1906,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandBoundarySnapshot> getBoundary(UUID islandId) {
-            return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::boundary);
+            return client.islands().getIsland(islandId).thenApply(PaperCloudIslandsApi::boundary);
         }
 
         @Override
         public CompletableFuture<IslandSizeSnapshot> getSize(UUID islandId) {
-            return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::size);
+            return client.islands().getIsland(islandId).thenApply(PaperCloudIslandsApi::size);
         }
 
         @Override
         public CompletableFuture<IslandWorthSnapshot> getWorth(UUID islandId) {
-            return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::worth);
+            return client.islands().getIsland(islandId).thenApply(PaperCloudIslandsApi::worth);
         }
 
         @Override
@@ -2013,7 +2014,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
         @Override
         public CompletableFuture<IslandBankSnapshot> getBank(UUID islandId) {
-            return client.islandBank(islandId).thenApply(PaperCloudIslandsApi::bank);
+            return client.bank().islandBank(islandId).thenApply(bank -> bank(islandId, bank));
         }
     }
 
@@ -2647,6 +2648,24 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         ));
     }
 
+    private static Optional<IslandSnapshot> island(CoreGuiViews.IslandInfoView view) {
+        if (view == null || view.islandId() == null || view.islandId().isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(new IslandSnapshot(
+            uuidValueOrZero(view.islandId()),
+            uuidValueOrZero(view.ownerUuid()),
+            view.name() == null ? "" : view.name(),
+            enumValue(IslandState.class, view.state() == null || view.state().isBlank() ? "INACTIVE_READY" : view.state(), IslandState.INACTIVE_READY),
+            intValue(view.size()),
+            view.level(),
+            view.worth() == null || view.worth().isBlank() ? "0" : view.worth(),
+            view.publicAccess(),
+            instant(view.createdAt()),
+            instant(view.updatedAt())
+        ));
+    }
+
     private static List<IslandSnapshot> islands(String json) {
         List<IslandSnapshot> islands = new ArrayList<>();
         for (String object : objects(json, "islands")) {
@@ -2676,14 +2695,28 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new IslandBoundarySnapshot(islandId, size, integer(json, "border", size));
     }
 
+    private static IslandBoundarySnapshot boundary(CoreGuiViews.IslandInfoView view) {
+        int size = intValue(view == null ? 0L : view.size());
+        return new IslandBoundarySnapshot(view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.islandId()), size, intValue(view == null ? size : view.border()));
+    }
+
     private static IslandSizeSnapshot size(String json) {
         UUID islandId = uuid(json, "islandId", new UUID(0L, 0L));
         int size = integer(json, "size", 0);
         return new IslandSizeSnapshot(islandId, size, integer(json, "border", size));
     }
 
+    private static IslandSizeSnapshot size(CoreGuiViews.IslandInfoView view) {
+        int size = intValue(view == null ? 0L : view.size());
+        return new IslandSizeSnapshot(view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.islandId()), size, intValue(view == null ? size : view.border()));
+    }
+
     private static IslandWorthSnapshot worth(String json) {
         return new IslandWorthSnapshot(uuid(json, "islandId", new UUID(0L, 0L)), text(json, "worth", "0"));
+    }
+
+    private static IslandWorthSnapshot worth(CoreGuiViews.IslandInfoView view) {
+        return new IslandWorthSnapshot(view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.islandId()), view == null || view.worth() == null || view.worth().isBlank() ? "0" : view.worth());
     }
 
     private static Optional<PlayerIslandProfile> playerProfile(PlayerProfileView profile) {
@@ -2947,6 +2980,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             uuid(json, "islandId", new UUID(0L, 0L)),
             text(json, "balance", "0"),
             instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        );
+    }
+
+    private static IslandBankSnapshot bank(UUID islandId, CoreGuiViews.BankView view) {
+        return new IslandBankSnapshot(
+            islandId == null ? new UUID(0L, 0L) : islandId,
+            view == null || view.balance() == null || view.balance().isBlank() ? "0" : view.balance(),
+            instant(view == null ? "" : view.updatedAt())
         );
     }
 
@@ -3756,6 +3797,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         } catch (RuntimeException ignored) {
             return null;
         }
+    }
+
+    private static UUID uuidValueOrZero(String value) {
+        UUID uuid = uuidValue(value);
+        return uuid == null ? new UUID(0L, 0L) : uuid;
+    }
+
+    private static int intValue(long value) {
+        if (value > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        if (value < Integer.MIN_VALUE) {
+            return Integer.MIN_VALUE;
+        }
+        return (int) value;
     }
 
     private static int integer(String json, String field, int fallback) {

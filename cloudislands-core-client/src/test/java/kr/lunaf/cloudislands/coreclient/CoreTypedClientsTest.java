@@ -45,7 +45,10 @@ class CoreTypedClientsTest {
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "islandInfo" -> CompletableFuture.completedFuture("""
-                    {"islandId":"%s","name":"Spawn","state":"ACTIVE","level":12,"worth":"34.50","publicAccess":true,"locked":false,"size":300,"border":310,"ownerUuid":"owner"}
+                    {"islandId":"%s","name":"Spawn","state":"ACTIVE","level":12,"worth":"34.50","publicAccess":true,"locked":false,"size":300,"border":310,"ownerUuid":"owner","createdAt":"created","updatedAt":"updated"}
+                    """.formatted(islandId));
+                case "islandInfoByOwner" -> CompletableFuture.completedFuture("""
+                    {"islandId":"%s","name":"Owned","state":"ACTIVE","level":2,"createdAt":"owner-created","updatedAt":"owner-updated"}
                     """.formatted(islandId));
                 case "islandInfoByName" -> CompletableFuture.completedFuture("""
                     {"islandId":"%s","name":"Named","state":"ACTIVE","level":1}
@@ -63,12 +66,18 @@ class CoreTypedClientsTest {
         IslandQueryClient client = new CoreIslandQueryClient(raw);
 
         CoreGuiViews.IslandInfoView island = client.getIsland(islandId).join();
+        CoreGuiViews.IslandInfoView ownedIsland = client.getIslandByOwner(UUID.randomUUID()).join();
         CoreGuiViews.IslandInfoView namedIsland = client.findIslandByName(" Named ").join();
         List<CoreGuiViews.MemberView> members = client.listMembers(islandId).join();
         MemberPage firstPage = client.listMembers(islandId, new MemberCursor(0, 2)).join();
         MemberPage secondPage = client.listMembers(islandId, firstPage.nextCursor()).join();
 
         assertEquals("Spawn", island.name());
+        assertEquals("created", island.createdAt());
+        assertEquals("updated", island.updatedAt());
+        assertEquals("Owned", ownedIsland.name());
+        assertEquals("owner-created", ownedIsland.createdAt());
+        assertEquals("owner-updated", ownedIsland.updatedAt());
         assertEquals("Named", namedIsland.name());
         assertEquals(12L, island.level());
         assertEquals(3, members.size());
