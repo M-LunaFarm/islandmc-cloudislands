@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -179,31 +181,30 @@ public final class IslandSettingsRoutes implements RouteGroup {
     }
 
     static String renameJson(UUID islandId, String name) {
-        return "{\"accepted\":true,\"islandId\":\"" + islandId + "\",\"name\":\"" + escape(name) + "\"}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("islandId", islandId);
+        values.put("name", name);
+        return SimpleJson.stringify(values);
     }
 
     static String flagsJson(IslandFlagsSnapshot flags) {
-        StringBuilder builder = new StringBuilder("{\"islandId\":\"").append(flags.islandId()).append("\",\"flags\":{");
-        boolean first = true;
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        LinkedHashMap<String, Object> flagValues = new LinkedHashMap<>();
         for (Map.Entry<IslandFlag, String> entry : flags.values().entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append("\"").append(entry.getKey().name()).append("\":\"").append(escape(entry.getValue())).append("\"");
+            flagValues.put(entry.getKey().name(), entry.getValue());
         }
-        return builder.append("}}").toString();
+        values.put("islandId", flags.islandId());
+        values.put("flags", flagValues);
+        return SimpleJson.stringify(values);
     }
 
     static String biomeJson(IslandBiomeSnapshot biome) {
-        return "{\"islandId\":\"" + biome.islandId()
-            + "\",\"biomeKey\":\"" + escape(biome.biomeKey())
-            + "\",\"updatedBy\":\"" + biome.updatedBy()
-            + "\",\"updatedAt\":\"" + biome.updatedAt()
-            + "\"}";
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", biome.islandId());
+        values.put("biomeKey", biome.biomeKey());
+        values.put("updatedBy", biome.updatedBy());
+        values.put("updatedAt", biome.updatedAt());
+        return SimpleJson.stringify(values);
     }
 }
