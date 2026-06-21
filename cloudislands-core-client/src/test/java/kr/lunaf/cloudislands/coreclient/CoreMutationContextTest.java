@@ -11,7 +11,9 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -316,6 +318,81 @@ class CoreMutationContextTest {
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"ticketId\":\"" + ticketId + "\",\"reason\":\"MANUAL_CLEAR\"}", requestBodies.get("routeClear"));
             assertEquals("{\"sinceSeq\":0,\"limit\":1}", requestBodies.get("events"));
             assertEquals("{\"limit\":500}", requestBodies.get("audit"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void jdkClientBuildsGlobalAddonStatePayloadsWithStructuredHelper() throws Exception {
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("alpha", "one\"1");
+        values.put("beta", "two");
+        Map<String, String> tableValues = new LinkedHashMap<>();
+        tableValues.put("row", "value\"1");
+        Map<String, Map<String, String>> tables = new LinkedHashMap<>();
+        tables.put("table\"one", tableValues);
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/addons/state", exchange -> respond(exchange, requestBodies, "state", "{\"values\":{}}"));
+        server.createContext("/v1/addons/state/set", exchange -> respond(exchange, requestBodies, "set", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/bulk", exchange -> respond(exchange, requestBodies, "bulk", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/save", exchange -> respond(exchange, requestBodies, "save", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/table-key-value/bulk-save", exchange -> respond(exchange, requestBodies, "legacyBulkSave", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/table/key-value/bulk-save", exchange -> respond(exchange, requestBodies, "bulkSave", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/table/key-value/bulk/save", exchange -> respond(exchange, requestBodies, "bulkSaveAlias", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/table/key-value/bulk", exchange -> respond(exchange, requestBodies, "bulkAlias", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/table/bulk", exchange -> respond(exchange, requestBodies, "tableBulk", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/table/bulk-set", exchange -> respond(exchange, requestBodies, "tableBulkSet", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/table/load", exchange -> respond(exchange, requestBodies, "tableLoadAlias", "{\"values\":{}}"));
+        server.createContext("/v1/addons/state/table/key-value/bulk-load", exchange -> respond(exchange, requestBodies, "tableLoad", "{\"values\":{}}"));
+        server.createContext("/v1/addons/state/table/replace", exchange -> respond(exchange, requestBodies, "tableReplace", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/table/clear", exchange -> respond(exchange, requestBodies, "tableClear", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/remove", exchange -> respond(exchange, requestBodies, "remove", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/state/clear", exchange -> respond(exchange, requestBodies, "clear", "{\"accepted\":true}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.addonState("addon\"one").join();
+            client.putAddonState("addon\"one", "key\"one", "value\"one").join();
+            client.putAddonState("addon\"one", values).join();
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"}}", requestBodies.get("bulk"));
+            client.putAddonState("addon\"one", values, tables).join();
+            client.saveAddonState("addon\"one", values, tables).join();
+            client.bulkSaveAddonState("addon\"one", values, tables).join();
+            client.tableKeyValueBulkSaveAddonState("addon\"one", values, tables).join();
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("bulkSave"));
+            client.tableKeyValueBulkSaveAddonState("addon\"one", "table\"one", values).join();
+            client.tableKeyValueBulkSaveAliasAddonState("addon\"one", values, tables).join();
+            client.tableKeyValueBulkAddonState("addon\"one", values, tables).join();
+            client.tableBulkAddonState("addon\"one", tables).join();
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("tableBulk"));
+            client.tableBulkSetAddonState("addon\"one", tables).join();
+            client.addonTableState("addon\"one", "table\"one").join();
+            client.tableKeyValueBulkLoadAddonState("addon\"one", "table\"one").join();
+            client.putAddonTableState("addon\"one", "table\"one", values).join();
+            client.replaceAddonTableState("addon\"one", "table\"one", values).join();
+            client.clearAddonTableState("addon\"one", "table\"one").join();
+            client.removeAddonState("addon\"one", "key\"one").join();
+            client.clearAddonState("addon\"one").join();
+
+            assertEquals("{\"addonId\":\"addon\\\"one\"}", requestBodies.get("state"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"key\":\"key\\\"one\",\"value\":\"value\\\"one\"}", requestBodies.get("set"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("bulk"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("save"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("legacyBulkSave"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"table\":\"table\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"}}", requestBodies.get("bulkSave"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("bulkSaveAlias"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("bulkAlias"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"table\":\"table\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"}}", requestBodies.get("tableBulk"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("tableBulkSet"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"table\":\"table\\\"one\"}", requestBodies.get("tableLoadAlias"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"table\":\"table\\\"one\"}", requestBodies.get("tableLoad"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"table\":\"table\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"}}", requestBodies.get("tableReplace"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"table\":\"table\\\"one\"}", requestBodies.get("tableClear"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"key\":\"key\\\"one\"}", requestBodies.get("remove"));
+            assertEquals("{\"addonId\":\"addon\\\"one\"}", requestBodies.get("clear"));
         } finally {
             server.stop(0);
         }

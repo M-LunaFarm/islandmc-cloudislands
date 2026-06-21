@@ -1016,7 +1016,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return post("/v1/addons/state", "{\"addonId\":\"" + escape(addonId) + "\"}");
+        return post("/v1/addons/state", jsonObject("addonId", addonId));
     }
 
     @Override
@@ -1024,7 +1024,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(key)) {
             return invalidAddonState("Addon id and key are required");
         }
-        return postWithResultBody("/v1/addons/state/set", "{\"addonId\":\"" + escape(addonId) + "\",\"key\":\"" + escape(key) + "\",\"value\":\"" + escape(value) + "\"}");
+        return postWithResultBody("/v1/addons/state/set", jsonObject("addonId", addonId, "key", key, "value", value));
     }
 
     @Override
@@ -1032,7 +1032,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody("/v1/addons/state/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values) + "}");
+        return postWithResultBody("/v1/addons/state/bulk", jsonObject("addonId", addonId, "values", rawJson(stringMapJson(values))));
     }
 
     @Override
@@ -1040,7 +1040,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody("/v1/addons/state/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/state/bulk", jsonObject("addonId", addonId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1053,7 +1053,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody("/v1/addons/state/save", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/state/save", jsonObject("addonId", addonId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1061,7 +1061,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody(AddonStateBulkSaveRequest.GLOBAL_LEGACY_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody(AddonStateBulkSaveRequest.GLOBAL_LEGACY_ENDPOINT, jsonObject("addonId", addonId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1069,7 +1069,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, jsonObject("addonId", addonId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1093,7 +1093,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
         }
-        return postWithResultBody(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + "}");
+        return postWithResultBody(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, jsonObject("addonId", addonId, "table", table, "values", rawJson(stringMapJson(values == null ? Map.of() : values))));
     }
 
     @Override
@@ -1106,7 +1106,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody("/v1/addons/state/table/key-value/bulk/save", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/state/table/key-value/bulk/save", jsonObject("addonId", addonId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1114,7 +1114,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody("/v1/addons/state/table/key-value/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/state/table/key-value/bulk", jsonObject("addonId", addonId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1127,7 +1127,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody("/v1/addons/state/table/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/state/table/bulk", jsonObject("addonId", addonId, "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1140,7 +1140,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody(AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody(AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT, jsonObject("addonId", addonId, "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1153,7 +1153,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
         }
-        return post(AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS, "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\"}");
+        return post(AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS, jsonObject("addonId", addonId, "table", table));
     }
 
     @Override
@@ -1161,7 +1161,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
         }
-        return post(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\"}");
+        return post(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, jsonObject("addonId", addonId, "table", table));
     }
 
     @Override
@@ -1180,7 +1180,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
         }
-        return postWithResultBody("/v1/addons/state/table/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values) + "}");
+        return postWithResultBody("/v1/addons/state/table/bulk", jsonObject("addonId", addonId, "table", table, "values", rawJson(stringMapJson(values))));
     }
 
     @Override
@@ -1193,7 +1193,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
         }
-        return postWithResultBody("/v1/addons/state/table/replace", "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values) + "}");
+        return postWithResultBody("/v1/addons/state/table/replace", jsonObject("addonId", addonId, "table", table, "values", rawJson(stringMapJson(values))));
     }
 
     @Override
@@ -1201,7 +1201,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(table)) {
             return invalidAddonState("Addon id and table are required");
         }
-        return postWithResultBody("/v1/addons/state/table/clear", "{\"addonId\":\"" + escape(addonId) + "\",\"table\":\"" + escape(table) + "\"}");
+        return postWithResultBody("/v1/addons/state/table/clear", jsonObject("addonId", addonId, "table", table));
     }
 
     @Override
@@ -1209,7 +1209,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || blank(key)) {
             return invalidAddonState("Addon id and key are required");
         }
-        return postWithResultBody("/v1/addons/state/remove", "{\"addonId\":\"" + escape(addonId) + "\",\"key\":\"" + escape(key) + "\"}");
+        return postWithResultBody("/v1/addons/state/remove", jsonObject("addonId", addonId, "key", key));
     }
 
     @Override
@@ -1217,7 +1217,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId)) {
             return invalidAddonState("Addon id is required");
         }
-        return postWithResultBody("/v1/addons/state/clear", "{\"addonId\":\"" + escape(addonId) + "\"}");
+        return postWithResultBody("/v1/addons/state/clear", jsonObject("addonId", addonId));
     }
 
     @Override
