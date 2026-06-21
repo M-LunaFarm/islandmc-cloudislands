@@ -1,39 +1,27 @@
 package kr.lunaf.cloudislands.coreservice.http.routes;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.Map;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreservice.InMemoryNodeRegistry;
+import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
 import org.junit.jupiter.api.Test;
 
 class CoreConfigRoutesProductionReadinessTest {
     @Test
-    void configSurfaceExposesProductionGaDrillMatrix() throws Exception {
-        String source = Files.readString(repositoryRoot().resolve("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/CoreConfigRoutes.java"));
+    void configSurfaceExposesProductionGaDrillMatrix() {
+        CoreConfigRoutes routes = new CoreConfigRoutes(CoreServiceConfig.fromEnvironment(), new InMemoryNodeRegistry(6));
+        Map<?, ?> summary = SimpleJson.object(SimpleJson.parse(routes.configSummaryJson()));
 
-        assertTrue(source.contains("\\\"productionGaDrillContract\\\""));
-        assertTrue(source.contains("\\\"productionGaDrillEvidence\\\""));
-        assertTrue(source.contains("\\\"productionGaFailureInjectionScenarios\\\""));
-        assertTrue(source.contains("\\\"versionCompatibilityMatrix\\\""));
-        assertTrue(source.contains("\\\"versionRollingUpgradeOrder\\\""));
-        assertTrue(source.contains("\\\"versionSupportedPaper\\\""));
-        assertTrue(source.contains("\\\"versionSupportedVelocity\\\""));
-        assertTrue(source.contains("\\\"versionProtocolChangePolicy\\\""));
-        assertTrue(source.contains("ProductionGaDrillMatrix.CONTRACT"));
-        assertTrue(source.contains("ProductionGaDrillMatrix.evidenceSummary()"));
-        assertTrue(source.contains("ProductionGaDrillMatrix.failureInjectionSummary()"));
-        assertTrue(source.contains("VersionCompatibilityPolicy.matrixSummary()"));
-        assertTrue(source.contains("VersionCompatibilityPolicy.rollingUpgradeOrderSummary()"));
-    }
-
-    private static Path repositoryRoot() {
-        Path path = Path.of("").toAbsolutePath();
-        while (path != null && !Files.exists(path.resolve("settings.gradle.kts"))) {
-            path = path.getParent();
-        }
-        if (path == null) {
-            throw new IllegalStateException("Repository root not found");
-        }
-        return path;
+        assertEquals(kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.CONTRACT, SimpleJson.text(summary.get("productionGaDrillContract")));
+        assertEquals(kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.evidenceSummary(), SimpleJson.text(summary.get("productionGaDrillEvidence")));
+        assertEquals(kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.failureInjectionSummary(), SimpleJson.text(summary.get("productionGaFailureInjectionScenarios")));
+        assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.matrixSummary(), SimpleJson.text(summary.get("versionCompatibilityMatrix")));
+        assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.rollingUpgradeOrderSummary(), SimpleJson.text(summary.get("versionRollingUpgradeOrder")));
+        assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_PAPER_VERSION, SimpleJson.text(summary.get("versionSupportedPaper")));
+        assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_VELOCITY_VERSION, SimpleJson.text(summary.get("versionSupportedVelocity")));
+        assertTrue(summary.containsKey("versionProtocolChangePolicy"));
     }
 }

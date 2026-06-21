@@ -5,8 +5,10 @@ import static kr.lunaf.cloudislands.coreservice.config.CoreNetworkExposure.*;
 import static kr.lunaf.cloudislands.coreservice.config.CoreSetupSummary.*;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.IslandPlacement;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
@@ -50,374 +52,374 @@ public final class CoreConfigRoutes implements RouteGroup {
         return "unsupported-storage-backend";
     }
 
-    private String configSummaryJson() {
+    String configSummaryJson() {
         kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotPolicy = config.snapshotRetentionPolicy().normalized();
-        return "{"
-            + "\"repositoryMode\":\"" + escape(config.repositoryMode()) + "\","
-            + "\"jobQueueMode\":\"" + escape(config.jobQueueMode()) + "\","
-            + "\"eventBusMode\":\"" + escape(config.eventBusMode()) + "\","
-            + "\"effectiveRepositoryMode\":\"" + (config.jdbcRepositories() ? "JDBC" : "IN_MEMORY") + "\","
-            + "\"effectiveJobQueueMode\":\"" + (config.jdbcJobs() ? "JDBC" : config.redisJobs() ? "REDIS" : "IN_MEMORY") + "\","
-            + "\"effectiveEventBusMode\":\"" + (config.redisEvents() ? "REDIS" : "IN_MEMORY") + "\","
-            + "\"coreJdbcRepositoriesEnabled\":" + config.jdbcRepositories() + ","
-            + "\"coreJdbcJobsEnabled\":" + config.jdbcJobs() + ","
-            + "\"configuredDatabaseType\":\"" + escape(config.configuredDatabaseType()) + "\","
-            + "\"configuredDatabaseTypeSource\":\"" + escape(CoreServiceConfig.configuredDatabaseTypeSource()) + "\","
-            + "\"runtimeMode\":\"" + escape(config.runtimeMode()) + "\","
-            + "\"databaseBackend\":\"" + escape(jdbcBackend(config.jdbcUrl())) + "\","
-            + "\"jdbcUrlSource\":\"" + escape(CoreServiceConfig.configuredJdbcUrlSource()) + "\","
-            + "\"effectiveJdbcSettingsType\":\"" + escape(CoreServiceConfig.configuredJdbcSettingsType()) + "\","
-            + "\"effectiveJdbcSettingsSource\":\"" + escape(CoreServiceConfig.configuredJdbcSettingsSource()) + "\","
-            + "\"coreJdbcSupported\":" + coreJdbcSupported(config.jdbcUrl()) + ","
-            + "\"coreJdbcSupportedBackends\":\"POSTGRESQL,MYSQL,MARIADB\","
-            + "\"coreSetupFallbackBackends\":\"POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC\","
-            + "\"coreSetupFallbackRequireSharedBeforeLocal\":" + config.setupDatabaseFallbackRequireSharedBeforeLocal() + ","
-            + "\"coreSetupFallbackLocalLast\":" + config.setupDatabaseFallbackLocalLast() + ","
-            + "\"coreSetupFallbackProductionSafeOrder\":\"" + escape(config.setupDatabaseFallbackProductionSafeOrder()) + "\","
-            + "\"coreSetupDatabaseAutoSchema\":" + config.setupDatabaseAutoSchema() + ","
-            + "\"coreSetupDatabaseAutoSchemaPolicy\":\"explicit-opt-in-postgresql-mysql-mariadb-bootstrap\","
-            + "\"coreSetupDatabaseAutoSchemaResource\":\"postgresql=/db/migration/V1..V63,mysql-mariadb=/db/mysql/V1__cloudislands_mysql_schema.sql\","
-            + "\"coreSetupDatabaseAutoSchemaHistoryTable\":\"cloudislands_schema_bootstrap\","
-            + "\"coreSetupDatabaseAutoSchemaRetryPolicy\":\"ignore-existing-schema-objects-and-mark-bootstrap-after-complete-apply\","
-            + "\"coreSetupDatabaseAutoSchemaGuardPolicy\":\"generated-columns-enforce-active-unique-guards-for-mysql-mariadb\","
-            + "\"coreSetupFallbackEnabled\":" + config.setupDatabaseFallbackEnabled() + ","
-            + "\"coreSetupAllowInMemoryFallback\":" + config.setupDatabaseAllowInMemoryFallback() + ","
-            + "\"coreSetupFallbackEffective\":" + coreJdbcFallbackActive(config) + ","
-            + "\"coreSetupFallbackSafetyForced\":" + coreSetupFallbackSafetyForced(config) + ","
-            + "\"coreSetupFallbackPolicy\":\"" + escape(coreSetupFallbackPolicy(config)) + "\","
-            + "\"coreSetupFallbackOrder\":\"" + escape(config.setupDatabaseFallbackOrder()) + "\","
-            + "\"coreSetupFallbackMode\":\"" + escape(coreSetupFallbackMode(config)) + "\","
-            + "\"coreSetupDatabaseRequestedBackend\":\"" + escape(config.setupDatabaseRequestedBackend()) + "\","
-            + "\"coreSetupDatabaseEffectiveAuthority\":\"" + escape(config.setupDatabaseEffectiveAuthority()) + "\","
-            + "\"coreSetupDatabaseEffectiveBackend\":\"" + escape(config.setupDatabaseEffectiveBackend()) + "\","
-            + "\"coreSetupDatabaseFallbackTarget\":\"" + escape(config.setupDatabaseFallbackTarget()) + "\","
-            + "\"coreSetupDatabasePostgresqlFallbackConfigured\":" + config.setupDatabasePostgresqlFallbackConfigured() + ","
-            + "\"coreSetupDatabaseMysqlFallbackConfigured\":" + config.setupDatabaseMysqlFallbackConfigured() + ","
-            + "\"coreSetupDatabaseMariadbFallbackConfigured\":" + config.setupDatabaseMariadbFallbackConfigured() + ","
-            + "\"coreSetupDatabaseCoreApiFallbackConfigured\":" + config.setupDatabaseCoreApiFallbackConfigured() + ","
-            + "\"coreSetupDatabaseFallbackReason\":\"" + escape(config.setupDatabaseFallbackReason()) + "\","
-            + "\"coreSetupDatabaseFallbackSummary\":\"" + escape(config.setupDatabaseFallbackSummary()) + "\","
-            + "\"coreSetupDatabaseFallbackCandidateChain\":\"" + escape(coreSetupFallbackCandidateChain(config)) + "\","
-            + "\"coreSetupDatabaseFallbackReadyBackends\":\"" + escape(coreSetupFallbackReadyBackends(config)) + "\","
-            + "\"coreSetupDatabaseFallbackMissingBackends\":\"" + escape(coreSetupFallbackMissingBackends(config)) + "\","
-            + "\"coreSetupDatabaseFallbackDecision\":\"" + escape(coreSetupFallbackDecision(config)) + "\","
-            + "\"coreSetupDatabaseDurable\":" + config.setupDatabaseDurable() + ","
-            + "\"coreSetupDatabaseProductionDurable\":" + config.setupDatabaseProductionDurable() + ","
-            + "\"coreSetupDatabaseReady\":" + config.setupDatabaseReady() + ","
-            + "\"coreSetupDatabaseFallbackSafetyForced\":" + config.setupDatabaseFallbackSafetyForced() + ","
-            + "\"coreSetupDatabaseFallbackSafetyMode\":\"" + escape(config.setupDatabaseFallbackSafetyMode()) + "\","
-            + "\"coreSetupDatabaseOperationalModes\":\"POSTGRESQL=CORE_JDBC,MYSQL=CORE_JDBC,MARIADB=CORE_JDBC,CORE_API=CLIENT_MODE_NO_CORE_SERVICE_SELF_STORAGE\","
-            + "\"coreSetupDatabasePrimaryAuthority\":\"POSTGRESQL_MYSQL_MARIADB_FOR_CORE_STATE_CORE_API_FOR_CLIENT_ADDON_STATE\","
-            + "\"coreSetupDatabaseMysqlPolicy\":\"native-core-jdbc-through-setup.database.mysql-or-jdbc-url\","
-            + "\"coreSetupDatabaseMariadbPolicy\":\"native-core-jdbc-through-setup.database.mariadb-or-jdbc-url\","
-            + "\"coreSetupDatabaseCoreApiPolicy\":\"client-addon-state-marker-core-self-storage-requires-durable-jdbc-or-explicit-non-production-in-memory-fallback\","
-            + "\"coreSetupDatabaseSafeFallbackWarning\":\"IN_MEMORY_CORE_FALLBACK_IS_NON_DURABLE_AND_NOT_READY_FOR_PRODUCTION\","
-            + "\"coreSetupDatabaseConfigLoader\":\"yaml-nested-dotted-path\","
-            + "\"coreSetupDatabaseResolvedPathExamples\":\"setup.database.type,setup.database.postgresql.jdbc-url,setup.database.postgresql.username,setup.database.mysql.host,setup.database.mysql.password,setup.database.mariadb.pool-size,setup.database.core-api.enabled\","
-            + "\"coreSetupDatabaseConfigShapes\":\"setup.database.*,setup.database-*,setup.database.fallback.order(list-or-comma-string)\","
-            + "\"coreSetupDatabaseTypedShapes\":\"setup.database.postgresql.*,setup.database.mysql.*,setup.database.mariadb.*,setup.database.core-api.*\","
-            + "\"coreSetupDatabaseTypedCredentialKeys\":\"username,password,pool-size\","
-            + "\"coreSetupDatabaseTypedHostMode\":\"requires-type-or-typed-url-inference\","
-            + "\"coreSetupDatabaseTypedProbeOrder\":\"postgresql,mysql,mariadb\","
-            + "\"coreSetupDatabaseCoreApiMode\":\"enabled-marker-no-core-jdbc\","
-            + "\"coreSetupDatabaseCoreApiBaseUrl\":\"" + escape(config.setupDatabaseCoreApiBaseUrl()) + "\","
-            + "\"coreSetupDatabaseCoreApiAuthTokenConfigured\":" + config.setupDatabaseCoreApiAuthTokenConfigured() + ","
-            + "\"coreSetupDatabaseCoreApiAdminTokenConfigured\":" + config.setupDatabaseCoreApiAdminTokenConfigured() + ","
-            + "\"coreSetupDatabaseCoreApiTimeoutMs\":" + config.setupDatabaseCoreApiTimeoutMillis() + ","
-            + "\"coreSetupDatabaseCoreApiClientMode\":" + config.setupDatabaseCoreApiClientMode() + ","
-            + "\"coreSetupDatabaseCoreApiClientReady\":" + config.setupDatabaseCoreApiClientReady() + ","
-            + "\"coreSetupDatabaseFallbackReadiness\":\"" + escape(config.setupDatabaseFallbackReadiness()) + "\","
-            + "\"coreSetupDatabaseCoreApiConfigPaths\":\"setup.database.core-api.base-url,setup.database.core-api.url,setup.database.core-api.auth-token,setup.database.core-api.admin-token,setup.database.core-api.timeout-ms,setup.core-api.*,setup-core-api.*,core-api.*\","
-            + "\"coreSetupDatabaseEnv\":\"CI_DATABASE_TYPE,CI_JDBC_URL,CI_DB_USERNAME,CI_DB_PASSWORD,CI_DB_POOL_SIZE,CI_DB_AUTO_SCHEMA,CI_DB_FALLBACK_ENABLED,CI_DB_FALLBACK_ORDER,CI_SETUP_CORE_API_BASE_URL,CI_SETUP_CORE_API_AUTH_TOKEN,CI_SETUP_CORE_API_ADMIN_TOKEN,CI_SETUP_CORE_API_TIMEOUT_MS\","
-            + "\"coreSetupDatabasePrecedence\":\"env,nested-setup-database,legacy-flat-setup,database-default\","
-            + "\"coreSetupDatabaseNameAliases\":\"setup.database.name,setup.database.database,setup.database-name\","
-            + "\"nodeAllocatorPolicy\":\"pool-filter-unique-velocity-server-fresh-heartbeat-storage-ready-template-version-capacity-then-weighted-score\","
-            + "\"nodeAllocatorScoreWeights\":\"players=0.25,activeIslands=0.15,mspt=0.25,activationQueue=0.15,chunkLoad=0.10,memory=0.05,recentFailure=0.05\","
-            + "\"nodeAllocatorHardRules\":\"READY-or-policy-allowed-SOFT_FULL,heartbeat-fresh,storage-available,hard-player-cap,max-active-islands,max-activation-queue,template-supported,min-node-version,unique-velocity-server-name,non-default-node-identity\","
-            + "\"nodeAllocatorFiveSixNodePolicy\":\"no-fixed-node-count-limit-add-island-nodes-with-unique-node-id-unique-velocity-server-name-shared-storage\","
-            + "\"coreSetupDatabaseJdbcAliases\":\"CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,database.jdbc-url\","
-            + "\"coreSetupDatabaseTypeInference\":\"CI_DATABASE_TYPE,setup.database.type,setup.database-type,setup.database.core-api.enabled,CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,setup.database.postgresql.jdbc-url,setup.database.postgresql.url,setup.database.mysql.jdbc-url,setup.database.mysql.url,setup.database.mariadb.jdbc-url,setup.database.mariadb.url,typed-host-name,database.jdbc-url\","
-            + "\"observabilityMetricsPolicy\":\"prometheus-exporter-covers-node-island-route-permission-job-storage-database-redis-metrics\","
-            + "\"observabilityRequiredMetrics\":\"cloudislands_nodes_online,cloudislands_node_players,cloudislands_node_mspt,cloudislands_node_active_islands,cloudislands_node_activation_queue,cloudislands_island_activation_seconds,cloudislands_island_save_seconds,cloudislands_island_snapshot_seconds,cloudislands_route_ticket_created_total,cloudislands_route_ticket_failed_total,cloudislands_permission_checks_total,cloudislands_permission_cache_hit_ratio,cloudislands_jobs_pending,cloudislands_jobs_failed_total,cloudislands_jobs_retry_total,cloudislands_storage_upload_seconds,cloudislands_storage_download_seconds,cloudislands_database_query_seconds,cloudislands_redis_latency_seconds\","
-            + "\"observabilityRequiredDashboardPanels\":\"nodes-online,node-players,node-mspt,active-islands,activation-seconds,island-save-failures,route-failures,redis-latency,database-pool-usage,object-storage-failure-ratio\","
-            + "\"observabilityDashboardPolicy\":\"grafana-dashboard-must-show-node-load-activation-save-route-redis-db-and-object-storage-health\","
-            + "\"coreJdbcFallbackReason\":\"" + escape(coreJdbcFallbackReason(config)) + "\","
-            + "\"coreJdbcFallbackActive\":" + coreJdbcFallbackActive(config) + ","
-            + "\"coreJdbcFallbackStatus\":\"" + escape(coreJdbcFallbackStatus(config)) + "\","
-            + "\"addonStateBulkSaveApi\":true,"
-            + "\"addonStateBulkSaveGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_LEGACY_ENDPOINT + "\","
-            + "\"addonStateBulkSaveIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_LEGACY_ENDPOINT + "\","
-            + "\"addonStateTableKeyValueBulkSaveGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_ENDPOINT + "\","
-            + "\"addonStateTableKeyValueBulkSaveIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_ENDPOINT + "\","
-            + "\"addonStateTableKeyValueBulkSaveGlobalAlias\":\"" + AddonStateBulkSaveRequest.GLOBAL_BULK_SAVE_ALIAS + "\","
-            + "\"addonStateTableKeyValueBulkSaveIslandAlias\":\"" + AddonStateBulkSaveRequest.ISLAND_BULK_SAVE_ALIAS + "\","
-            + "\"addonStateTableKeyValueBulkGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS + "\","
-            + "\"addonStateTableKeyValueBulkIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_BULK_ALIAS + "\","
-            + "\"addonStateTableKeyValueBulkSaveGlobalAliases\":\"" + String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS) + "\","
-            + "\"addonStateTableKeyValueBulkSaveIslandAliases\":\"" + String.join(",", AddonStateBulkSaveRequest.ISLAND_ENDPOINTS) + "\","
-            + "\"addonStateTableKeyValueBulkLoadGlobalEndpoint\":\"" + AddonStateBulkLoadRequest.GLOBAL_ENDPOINT + "\","
-            + "\"addonStateTableKeyValueBulkLoadIslandEndpoint\":\"" + AddonStateBulkLoadRequest.ISLAND_ENDPOINT + "\","
-            + "\"addonStateTableKeyValueBulkLoadGlobalAliases\":\"" + String.join(",", AddonStateBulkLoadRequest.GLOBAL_ENDPOINTS) + "\","
-            + "\"addonStateTableKeyValueBulkLoadIslandAliases\":\"" + String.join(",", AddonStateBulkLoadRequest.ISLAND_ENDPOINTS) + "\","
-            + "\"addonStateTableLoadGlobalEndpoint\":\"" + AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS + "\","
-            + "\"addonStateTableLoadIslandEndpoint\":\"" + AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS + "\","
-            + "\"addonStateTableBulkGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_ENDPOINT + "\","
-            + "\"addonStateTableBulkIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_ENDPOINT + "\","
-            + "\"addonStateTableBulkSetGlobalEndpoint\":\"" + AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT + "\","
-            + "\"addonStateTableBulkSetIslandEndpoint\":\"" + AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_SET_ENDPOINT + "\","
-            + "\"addonStateTableKeyValueBulkSavePayload\":\"addonId,islandId(optional),values,tables\","
-            + "\"addonStateTableKeyValueBulkLoadPayload\":\"addonId,islandId(optional),table\","
-            + "\"addonStateTableKeyValueBulkSaveStorageMode\":\"table-prefix-flattened-key-value\","
-            + "\"addonStateTableKeyValueBulkSaveRepositoryApi\":\"AddonStateRepository.tableKeyValueBulkSave,AddonStateRepository.tableKeyValueBulkSaveIsland,AddonStateRepository.tableBulk,AddonStateRepository.tableBulkIsland,AddonStateRepository.tableKeyValueBulkLoad,AddonStateRepository.tableKeyValueBulkLoadIsland,AddonStateBulkSaveRequest,AddonStateBulkLoadRequest,IslandAddonService.tableBulkState,IslandAddonService.tableBulkIslandState,IslandAddonService.tableKeyValueBulkSaveState,IslandAddonService.tableKeyValueBulkSaveIslandState,IslandAddonService.tableKeyValueBulkLoadState,IslandAddonService.tableKeyValueBulkLoadIslandState,IslandAddonService.tableLoadState,IslandAddonService.tableLoadIslandState,CoreApiClient.tableKeyValueBulkSaveAddonState,CoreApiClient.tableKeyValueBulkSaveAddonIslandState,CoreApiClient.tableBulkAddonState,CoreApiClient.tableBulkAddonIslandState,CoreApiClient.tableKeyValueBulkLoadAddonState,CoreApiClient.tableKeyValueBulkLoadAddonIslandState,CoreApiClient.tableLoadAddonState,CoreApiClient.tableLoadAddonIslandState\","
-            + "\"addonStateTableKeyPrefix\":\"" + AddonStateRepository.TABLE_STATE_KEY_SHAPE + "\","
-            + "\"addonStateMaxAddonIdLength\":" + AddonStateRepository.MAX_ADDON_ID_LENGTH + ","
-            + "\"addonStateMaxKeyLength\":" + AddonStateRepository.MAX_KEY_LENGTH + ","
-            + "\"addonStateMaxValueLength\":" + AddonStateRepository.MAX_VALUE_LENGTH + ","
-            + "\"addonStateMaxKeysPerAddon\":" + AddonStateRepository.MAX_KEYS_PER_ADDON + ","
-            + "\"addonStateTableKeyValueBulkSaveFallback\":\"local-cache-on-core-api-failure\","
-            + "\"addonStateTableKeyValueBulkLoadFallback\":\"local-cache-or-empty-table-on-core-api-failure\","
-            + "\"databasePoolSize\":" + config.databasePoolSize() + ","
-            + "\"storageType\":\"" + escape(config.storageType()) + "\","
-            + "\"storageSharedBackend\":" + ("S3".equalsIgnoreCase(config.storageType())) + ","
-            + "\"storageMultiNodeSafe\":" + ("S3".equalsIgnoreCase(config.storageType())) + ","
-            + "\"storageBackendSafety\":\"" + escape(storageBackendSafety(config)) + "\","
-            + "\"storageLocalMultiNodePolicy\":\"LOCAL requires the same shared filesystem mount on every Island node; otherwise use S3 or MinIO\","
-            + "\"storageS3MultiNodePolicy\":\"S3 or MinIO is the recommended shared object storage for 5/6 Island node pools\","
-            + "\"storageLayout\":\"islands/{islandUuid}/manifest.json,latest,snapshots/{snapshotNo}/bundle.tar.zst,checksums.sha256,backups,recovery\","
-            + "\"storageLatestPointer\":\"islands/{islandUuid}/latest\","
-            + "\"storageSnapshotManifest\":\"islands/{islandUuid}/snapshots/{snapshotNo}/manifest.json\","
-            + "\"storageBundleObject\":\"islands/{islandUuid}/snapshots/{snapshotNo}/bundle.tar.zst\","
-            + "\"storageChecksumFile\":\"islands/{islandUuid}/snapshots/{snapshotNo}/checksums.sha256\","
-            + "\"storageDeleteBackupPath\":\"islands/{islandUuid}/backups/delete-{snapshotNo}\","
-            + "\"storageRecoveryPath\":\"islands/{islandUuid}/recovery\","
-            + "\"storagePortabilityPolicy\":\"bundle-and-manifest-are-island-uuid-scoped-node-independent\","
-            + "\"storageRestoreManifestRequired\":true,"
-            + "\"storageRestoreChecksumPolicy\":\"verify-manifest-checksum-for-latest-snapshot-and-storage-path\","
-            + "\"storageRestorePortableRequired\":true,"
-            + "\"storageRestoreSupportedFormats\":\"checksum=SHA-256,compression=zstd\","
-            + "\"failureHandlingNodeDownPolicy\":\"heartbeat-timeout>node-down>block-new-routes>mark-active-islands-recovery-required>fallback-players-lobby>snapshot-check>recover-on-other-node-or-quarantine\","
-            + "\"failureHandlingRecoveryRequiredPolicy\":\"" + kr.lunaf.cloudislands.common.runtime.IslandRuntimeStatePolicy.RECOVERY_REQUIRED_POLICY + "\","
-            + "\"failureHandlingCoreApiDownAllowed\":\"active-island-play,local-cache-protection,basic-local-teleport-fallback\","
-            + "\"failureHandlingCoreApiDownLimited\":\"new-island-create,inactive-island-activation,island-route,member-change,flag-change\","
-            + "\"failureHandlingCoreApiDownPlayerMessage\":\"현재 섬 서비스 일부 기능이 점검 중입니다.\","
-            + "\"failureHandlingRedisDownAllowed\":\"database-direct-read-degraded-mode-without-data-loss\","
-            + "\"failureHandlingRedisDownLimited\":\"cache-performance,event-propagation,job-queue-processing,heartbeat-freshness\","
-            + "\"failureHandlingRedisDownRecommendation\":\"run-redis-high-availability-in-production\","
-            + "\"failureHandlingObjectStorageDownAllowed\":\"already-active-island-play-continues-on-node-local-world\","
-            + "\"failureHandlingObjectStorageDownLimited\":\"new-activation,island-save,snapshot,recovery\","
-            + "\"failureHandlingObjectStorageRetryPolicy\":\"queue-failed-save-and-snapshot-operations-for-retry-while-primary-storage-is-unavailable\","
-            + "\"failureHandlingQuarantinePolicy\":\"" + kr.lunaf.cloudislands.common.runtime.IslandRuntimeStatePolicy.QUARANTINE_POLICY + "\","
-            + "\"failureHandlingRecoveryStateSummary\":\"" + kr.lunaf.cloudislands.common.runtime.IslandRuntimeStatePolicy.recoveryStateSummary() + "\","
-            + "\"islandResourceModel\":\"global-resource\","
-            + "\"islandPortableBundle\":true,"
-            + "\"islandServerPinned\":false,"
-            + "\"islandExecutionModel\":\"dynamic-island-node-pool\","
-            + "\"islandNodeRole\":\"runtime-execution-node-only\","
-            + "\"islandRoutingModel\":\"route-ticket-to-active-or-best-node\","
-            + "\"createIslandRequestFlow\":\"velocity-command>core-createIsland>db-transaction-lock>node-allocator>create-island-job>agent-claim>template-restore>cell-allocate>runtime-active>route-ticket-ready>velocity-connect>paper-consume-ticket>spawn-teleport\","
-            + "\"createIslandDuplicateGuard\":\"redis-player-creation-lock-plus-jdbc-player-profile-for-update\","
-            + "\"createIslandJdbcLockPolicy\":\"upsert-player-profile-select-for-update-then-owner-island-select-for-update\","
-            + "\"createIslandTransactionScope\":\"islands-row-owner-member-runtime-primary-island\","
-            + "\"createIslandJobPolicy\":\"commit-before-job-publish-error-state-on-job-queue-failure\","
-            + "\"createIslandInitialTicketState\":\"PREPARING-until-paper-agent-completes-create-job\","
-            + "\"homeRequestFlow\":\"velocity-command>core-createHomeRoute>runtime-check>active-or-activate-best-node>route-ticket-ready>velocity-connect>paper-teleport\","
-            + "\"visitRequestFlow\":\"velocity-command>target-island-lookup>public-ban-permission-check>active-or-activate>visitor-ticket>velocity-connect>visitor-spawn-teleport\","
-            + "\"routePlayerLoadingUi\":\"actionbar-and-bossbar-progress-without-node-name\","
-            + "\"routePlayerFailureCodes\":\"" + escape(kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.PUBLIC_FAILURE_CODES) + "\","
-            + "\"routePlayerFailureMessages\":\"" + escape(kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.publicMessageSummary()) + "\","
-            + "\"routePublicMessagePolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.PUBLIC_MESSAGE_POLICY) + "\","
-            + "\"routeDebugReasonPolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.DEBUG_REASON_POLICY) + "\","
-            + "\"routeVisitRejectionPolicy\":\"" + escape(kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.VISIT_REJECTION_POLICY) + "\","
-            + "\"routeTransferFailurePolicy\":\"clear-ticket-session-and-show-public-message-or-return-lobby\","
-            + "\"softFullRoutingPolicy\":\"new-and-inactive-islands-use-ready-node-active-owner-member-reserve-current-node-visitors-queue-or-limit\","
-            + "\"newActivationSoftFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
-            + "\"newActivationSoftFullAvoided\":" + avoidsSoftFullNewActivations(config.softFullPolicy()) + ","
-            + "\"newActivationHardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
-            + "\"newActivationHardFullAllowed\":" + allowsHardFullNewActivations(config.hardFullPolicy()) + ","
-            + "\"softFullNewActivationBehavior\":\"ready-node-preferred-soft-full-avoided-unless-policy-allows\","
-            + "\"softFullExistingRouteBehavior\":\"active-owner-member-routes-can-use-current-soft-full-node-visitors-queue-or-limit\","
-            + "\"moduleLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.requiredModuleSummary()) + "\","
-            + "\"coreModuleLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.requiredModuleSummary()) + "\","
-            + "\"addonModuleLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.optionalExtensionModuleSummary()) + "\","
-            + "\"moduleResponsibilityLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.moduleResponsibilitySummary()) + "\","
-            + "\"moduleRuntimeSurfaceLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.moduleRuntimeSurfaceSummary()) + "\","
-            + "\"distributionLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.distributionArtifactSummary()) + "\","
-            + "\"distributionTaskLayout\":\"" + escape(kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.distributionTaskSummary()) + "\","
-            + "\"distributionMarkdownPackagingGuard\":\"verifyMarkdownDocsExcludedFromArtifacts-before-build-and-distBundle\","
-            + "\"productionReadinessContract\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.CONTRACT) + "\","
-            + "\"productionReadinessGates\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.requiredGateSummary()) + "\","
-            + "\"productionDeploymentTemplatePolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.DEPLOYMENT_TEMPLATE_POLICY) + "\","
-            + "\"productionRollingUpgradePolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.ROLLING_UPGRADE_POLICY) + "\","
-            + "\"productionE2ePolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.E2E_POLICY) + "\","
-            + "\"productionChaosPolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.CHAOS_POLICY) + "\","
-            + "\"productionBackupRestorePolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.BACKUP_RESTORE_POLICY) + "\","
-            + "\"productionSupportBundlePolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.SUPPORT_BUNDLE_POLICY) + "\","
-            + "\"productionGaDrillContract\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.CONTRACT) + "\","
-            + "\"productionGaDrillEvidence\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.evidenceSummary()) + "\","
-            + "\"productionGaFailureInjectionScenarios\":\"" + escape(kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.failureInjectionSummary()) + "\","
-            + "\"versionCompatibilityMatrix\":\"" + escape(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.matrixSummary()) + "\","
-            + "\"versionRollingUpgradeOrder\":\"" + escape(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.rollingUpgradeOrderSummary()) + "\","
-            + "\"versionSupportedPaper\":\"" + escape(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_PAPER_VERSION) + "\","
-            + "\"versionSupportedVelocity\":\"" + escape(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_VELOCITY_VERSION) + "\","
-            + "\"versionSupportedJava\":\"" + escape(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_JAVA_VERSION) + "\","
-            + "\"versionFoliaSupportPolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.FOLIA_SUPPORT_POLICY) + "\","
-            + "\"versionMinecraftUpdatePolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.MINECRAFT_UPDATE_POLICY) + "\","
-            + "\"versionProtocolChangePolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.PROTOCOL_CHANGE_POLICY) + "\","
-            + "\"versionMinorCompatibilityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.MINOR_COMPATIBILITY_POLICY) + "\","
-            + "\"integrationDistributedHookPolicy\":\"" + escape(kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.DISTRIBUTED_HOOK_POLICY) + "\","
-            + "\"integrationKnownPlugins\":\"" + escape(String.join(",", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.knownPlugins())) + "\","
-            + "\"integrationCoreProtectPolicy\":\"" + escape(kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.COREPROTECT_POLICY) + "\","
-            + "\"integrationWorldEditPolicy\":\"" + escape(kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.WORLDEDIT_POLICY) + "\","
-            + "\"integrationCustomItemPolicy\":\"" + escape(kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.CUSTOM_ITEM_POLICY) + "\","
-            + "\"integrationStackerPolicy\":\"" + escape(kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.STACKER_POLICY) + "\","
-            + "\"integrationPermissionPolicy\":\"" + escape(kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.PERMISSION_POLICY) + "\","
-            + "\"integrationActivityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.ACTIVITY_POLICY) + "\","
-            + "\"integrationEconomyPolicy\":\"" + escape(kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.ECONOMY_POLICY) + "\","
-            + "\"addonRegistryPolicy\":\"paper-addon-registers-core-stores-snapshot-only\","
-            + "\"addonStateOwnershipPolicy\":\"core-persists-addon-key-value-state-without-addon-business-logic\","
-            + "\"addonRemovalSafetyPolicy\":\"missing-addon-metadata-or-state-must-not-block-island-lifecycle\","
-            + "\"addonStateFailureIsolationPolicy\":\"addon-state-storage-outages-return-503-without-affecting-island-lifecycle\","
-            + "\"addonExtensionModel\":\"optional-external-plugin-using-cloudislands-api\","
-            + "\"addonApiLookupPolicy\":\"cloudislands-provider-first-bukkit-servicesmanager-fallback\","
-            + "\"addonApiContractVersion\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONTRACT_VERSION) + "\","
-            + "\"addonApiContractCompatibility\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.metadataCompatibilityStatus(kr.lunaf.cloudislands.api.CloudIslandsApiContract.metadata())) + "\","
-            + "\"addonApiContractCompatible\":" + kr.lunaf.cloudislands.api.CloudIslandsApiContract.compatibleMetadata(kr.lunaf.cloudislands.api.CloudIslandsApiContract.metadata()) + ","
-            + "\"addonApiRequiredMetadataKeys\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.requiredMetadataKeysCsv()) + "\","
-            + "\"addonApiReadPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.READ_POLICY) + "\","
-            + "\"addonApiWriteAuthority\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.WRITE_AUTHORITY) + "\","
-            + "\"addonApiSyncEventPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.SYNC_EVENT_POLICY) + "\","
-            + "\"addonApiStoragePolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_STORAGE_POLICY) + "\","
-            + "\"addonApiRemovalPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_REMOVAL_POLICY) + "\","
-            + "\"addonApiReconnectPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_RECONNECT_POLICY) + "\","
-            + "\"addonJavaPluginApiPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.JAVA_PLUGIN_API_POLICY) + "\","
-            + "\"addonInternalApiPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.INTERNAL_API_POLICY) + "\","
-            + "\"addonEventApiPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.EVENT_API_POLICY) + "\","
-            + "\"addonTimeoutRetryPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.TIMEOUT_RETRY_POLICY) + "\","
-            + "\"addonCompatibilityTestkitPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY) + "\","
-            + "\"addonCoreAuthPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.CORE_AUTH_POLICY) + "\","
-            + "\"addonAdminEndpointPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY) + "\","
-            + "\"addonNetworkExposurePolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY) + "\","
-            + "\"addonSecurityPostureSummary\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.SECURITY_POSTURE_SUMMARY) + "\","
-            + "\"addonTopologyPrivacyPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.TOPOLOGY_PRIVACY_POLICY) + "\","
-            + "\"addonConsistencyAuthorityPolicy\":\"" + escape(kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONSISTENCY_AUTHORITY_POLICY) + "\","
-            + "\"addonEventDeliveryPolicy\":\"core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events\","
-            + "\"addonEventCoverage\":\"pre-create,create,pre-activate,activate,deactivate,migrate,delete,delete-backup-failed,restore,reset,recovery,runtime,pre-visit,visit,invite,member-join,member-left,member-role,member-change,ownership,rename,access,visitor-ban,visitor-kick,flag,permission-check,permission-change,role-catalog,biome,home,warp-create,warp-delete,warp-change,bank,chat,mission,blocks,block-value,level,worth,upgrade,limit,snapshot,template,addon-state,node,core-cache,core-reload,route-ticket\","
-            + "\"addonEventBackfillPolicy\":\"paper-poller-uses-listEventsSince-with-sequence-gap-cache-invalidation\","
-            + "\"satisPackaging\":\"official-external-addon\","
-            + "\"satisCoreCoupling\":\"optional-addon-no-core-runtime-dependency\","
-            + "\"satisAddonRemovalPolicy\":\"core-boots-and-islands-load-without-satis-jar\","
-            + "\"satisDataRetentionPolicy\":\"addon-state-preserved-when-disabled-or-removed\","
-            + "\"satisCoreBootRequiresAddon\":false,"
-            + "\"satisCommandOwner\":\"optional-satis-paper-addon\","
-            + "\"satisCrossNodeStatePolicy\":\"addon-state-must-be-stored-in-core-api-or-shared-database-not-paper-node-memory\","
-            + "\"satisIslandMovePolicy\":\"when-island-moves-between-island-nodes-addon-remaps-state-to-current-active-world-and-cell\","
-            + "\"satisFeatureDisablePolicy\":\"disabled-features-register-no-commands-gui-listeners-tasks-or-data-writes-and-preserve-existing-data\","
-            + "\"satisSuperiorSkyblock2Policy\":\"no-runtime-dependency-use-cloudislands-public-api-and-addon-spi-only\","
-            + "\"satisOperationScenarios\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarioSummary()) + "\","
-            + "\"satisRecommendedModeReasons\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.recommendedModeReasonSummary()) + "\","
-            + "\"satisComponentBoundaries\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.componentBoundarySummary()) + "\","
-            + "\"satisFeatureOffRuntimeBlocks\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.featureOffRuntimeBlockSummary()) + "\","
-            + "\"satisStateStorageConfig\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.stateStorageConfigSummary()) + "\","
-            + "\"satisPlayerExperiencePolicy\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.playerExperienceBoundarySummary()) + "\","
-            + "\"satisOfficialFeaturePackPolicy\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.officialFeaturePackBoundarySummary()) + "\","
-            + "\"satisNodeMoveRemapFlow\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.nodeMoveRemapStepSummary()) + "\","
-            + "\"satisFailureRecoveryFlow\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.failureRecoveryStepSummary()) + "\","
-            + "\"satisAddonReconnectFlow\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.addonReconnectStepSummary()) + "\","
-            + "\"satisCompletionCriteria\":\"" + escape(kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.completionCriteriaSummary()) + "\","
-            + "\"satisRecoveryPolicy\":\"use-last-confirmed-addon-state-after-node-failure-and-avoid-duplicate-ticks-with-core-fencing\","
-            + "\"satisAddonAbsentPolicy\":\"cloudislands-core-and-island-lifecycle-do-not-require-cloudislands-satis-installed\","
-            + "\"satisDisabledRuntimePolicy\":\"disabled-satis-keeps-core-create-route-protect-save-restore-working-without-registering-satis-runtime-components\","
-            + "\"satisReinstallPolicy\":\"preserved-addon-state-can-be-reconnected-when-satis-addon-is-installed-again\","
-            + "\"satisStateAuthorityPolicy\":\"portable-addon-state-is-authoritative-in-core-api-bulk-table-key-value-or-configured-shared-database\","
-            + "\"satisMultiNodeSafe\":true,"
-            + "\"satisNodeCountPolicy\":\"island-node-count-does-not-change-satis-state-identity-or-storage-authority\","
-            + "\"velocitySatisCommandPolicy\":\"no-direct-satis-command-handler-route-only\","
-            + "\"paperSatisCommandPolicy\":\"addon-registers-own-commands-when-enabled\","
-            + "\"finalRequestFlowKeys\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowKeys() + "\","
-            + "\"finalRequestFlowIslandCreate\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("island-create") + "\","
-            + "\"finalRequestFlowIslandHome\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("island-home") + "\","
-            + "\"finalRequestFlowIslandVisit\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("island-visit") + "\","
-            + "\"finalRequestFlowSoftFullRouting\":\"" + kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("soft-full-routing") + "\","
-            + "\"islandPool\":\"" + escape(config.islandPool()) + "\","
-            + "\"islandPoolNodeCount\":" + islandPoolNodeCount(config, nodes) + ","
-            + "\"islandPoolRouteCandidateCount\":" + islandPoolRouteCandidateCount(config, nodes) + ","
-            + "\"islandPoolRouteCandidateRecommendedMinimum\":" + islandPoolRouteCandidateRecommendedMinimum(config, nodes) + ","
-            + "\"islandPoolRouteCandidateMinimumStatus\":\"" + escape(islandPoolRouteCandidateMinimumStatus(config, nodes)) + "\","
-            + "\"islandPoolRouteCandidateNodeIds\":\"" + escape(islandPoolRouteCandidateNodeIds(config, nodes)) + "\","
-            + "\"islandPoolScaleStatus\":\"" + escape(islandPoolScaleStatus(config, nodes)) + "\","
-            + "\"islandPoolScaleModel\":\"dynamic-node-pool-by-node-id\","
-            + "\"islandPoolElasticLimitPolicy\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SCALE_POLICY + "\","
-            + "\"islandPoolScaleGuidance\":\"add-island-nodes-with-unique-node-id-unique-velocity-server-name-shared-storage\","
-            + "\"islandPoolHorizontalScalePolicy\":\"no-hardcoded-island-node-count-unique-node-id-unique-velocity-server-name-shared-storage-required\","
-            + "\"islandPoolFiveSixNodePolicy\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.FIVE_SIX_NODE_POLICY + "\","
-            + "\"islandPoolScaleReadinessPolicy\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SCALE_READINESS_POLICY + "\","
-            + "\"islandPoolScaleReadinessSummary\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.scaleReadinessSummary() + "\","
-            + "\"islandPoolFiveSixNodeHealthy\":" + islandPoolFiveSixNodeHealthy(config, nodes) + ","
-            + "\"islandPoolFiveSixNodeStatus\":\"" + escape(islandPoolFiveSixNodeStatus(config, nodes)) + "\","
-            + "\"islandPlacementPolicy\":\"deterministic-uuid-shard-cell\","
-            + "\"islandPlacementShardCount\":" + IslandPlacement.SHARD_COUNT + ","
-            + "\"islandPlacementCellsPerAxis\":" + IslandPlacement.CELLS_PER_AXIS + ","
-            + "\"islandPlacementCollisionPolicy\":\"uuid-derived-cell-with-runtime-occupied-cell-probing-db-unique-guard-fencing-and-node-lease\","
-            + "\"islandNodeHardRules\":\"pool-match,ready-or-soft-full,fresh-heartbeat,hard-cap-open,activation-queue-open,object-storage-available,template-supported,min-node-version,not-default-identity\","
-            + "\"islandNodeScoreWeights\":\"players=0.25,activeIslands=0.15,mspt=0.25,activationQueue=0.15,chunkLoad=0.10,memory=0.05,recentFailure=0.05\","
-            + "\"islandNodeSchemaColumns\":\"id,pool,velocity_server_name,node_version,state,soft_player_cap,hard_player_cap,reserved_slots,max_active_islands,players,active_islands,mspt,heap_used_mb,heap_max_mb,activation_queue,max_activation_queue,chunk_load_pressure,recent_failure_penalty,object_storage_available,supported_templates,last_heartbeat\","
-            + "\"islandNodeExistingRoutePolicy\":\"active-island-stays-on-current-node-unless-node-missing-stale-down-or-admin-migration\","
-            + "\"islandNodeVisitorSoftFullPolicy\":\"visitors-queue-or-retry-on-soft-full-active-node-members-use-reserved-slots\","
-            + "\"redisRolePolicy\":\"" + escape(kr.lunaf.cloudislands.common.cache.CacheStrategyPolicy.REDIS_ROLE) + "\","
-            + "\"redisKeyScope\":\"" + escape(kr.lunaf.cloudislands.common.cache.CacheStrategyPolicy.REDIS_KEY_SCOPE) + "\","
-            + "\"redisTtlSummary\":\"" + escape(kr.lunaf.cloudislands.common.cache.CacheStrategyPolicy.REDIS_TTL_SUMMARY) + "\","
-            + "\"redisConsistencyGuard\":\"" + escape(kr.lunaf.cloudislands.common.cache.CacheStrategyPolicy.CONSISTENCY_GUARD) + "\","
-            + "\"fencingWritePolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.FencingToken.WRITE_POLICY) + "\","
-            + "\"fencingRedisLockPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.FencingToken.REDIS_LOCK_POLICY) + "\","
-            + "\"nodeProtocolMinSupported\":" + MIN_NODE_PROTOCOL_VERSION + ","
-            + "\"nodeProtocolCurrent\":" + MAX_NODE_PROTOCOL_VERSION + ","
-            + "\"nodeProtocolNegotiationPolicy\":\"" + kr.lunaf.cloudislands.protocol.ProtocolVersion.NEGOTIATION_POLICY + "\","
-            + "\"nodeProtocolHeartbeatField\":\"" + kr.lunaf.cloudislands.protocol.ProtocolVersion.HEARTBEAT_FIELD + "\","
-            + "\"routingFailureDetailKeys\":\"pool,nodeCount,readyOrSoftFullNodeCount,storageReadyNodeCount,primaryStorageHealthyNodeCount,storageSaveRetryBacklogNodeCount,storageSaveRetryBacklogTotal,hardCapOpenNodeCount,activeIslandOpenNodeCount,queueOpenNodeCount,defaultIdentityRiskNodeCount,duplicateVelocityServerNameNodeCount,routeCandidateEstimateNodeCount,routeCandidateRecommendedMinimum,routeCandidateShortfall,routeCandidateEstimatePolicy,elasticLimitPolicy,blockReason,physicalNodeNamesExposed\","
-            + "\"islandPoolMultiNodeReady\":" + islandPoolMultiNodeReady(config, nodes) + ","
-            + "\"islandPoolDegraded\":" + islandPoolDegraded(config, nodes) + ","
-            + "\"islandPoolRouteCandidateShortfall\":" + islandPoolRouteCandidateShortfall(config, nodes) + ","
-            + "\"islandPoolRouteCandidateBlockSummary\":\"" + escape(islandPoolRouteCandidateBlockSummary(config, nodes)) + "\","
-            + "\"islandPoolBlockedNodeIds\":\"" + escape(islandPoolBlockedNodeIds(config, nodes)) + "\","
-            + "\"islandPoolDuplicateVelocityServerNameNodeCount\":" + islandPoolDuplicateVelocityServerNameNodeCount(config, nodes) + ","
-            + "\"islandPoolDefaultNodeIdentityRiskCount\":" + islandPoolDefaultNodeIdentityRiskCount(config, nodes) + ","
-            + "\"softFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
-            + "\"hardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
-            + "\"softFullNewActivationAvoided\":" + avoidsSoftFullNewActivations(config.softFullPolicy()) + ","
-            + "\"hardFullNewActivationAllowed\":" + allowsHardFullNewActivations(config.hardFullPolicy()) + ","
-            + "\"nodeAllocatorNewActivationFallback\":\"READY nodes first, SOFT_FULL skipped by default so Island-2/next ready node receives new work when Island-1 is soft-full\","
-            + "\"migrationPolicy\":\"" + escape(config.migrationPolicy()) + "\","
-            + "\"superiorSkyblock2MigrationEnabled\":" + config.superiorSkyblock2MigrationEnabled() + ","
-            + "\"superiorSkyblock2MigrationInputOnly\":true,"
-            + "\"superiorSkyblock2RuntimeDependency\":false,"
-            + "\"superiorSkyblock2RuntimePolicy\":\"migration-input-only-no-runtime-hooks\","
-            + "\"superiorSkyblock2ReplacementFeatureCount\":" + kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.requiredFeatureCount() + ","
-            + "\"superiorSkyblock2ReplacementFeatures\":\"" + escape(kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.requiredFeatureKeys()) + "\","
-            + "\"superiorSkyblock2MigrationTargets\":\"" + escape(kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.migrationTargetSummary()) + "\","
-            + "\"superiorSkyblock2MigrationFlow\":\"" + escape(kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.migrationStepSummary()) + "\","
-            + "\"superiorSkyblock2MigrationCommands\":\"" + escape(kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.migrationCommandSummary()) + "\","
-            + "\"superiorSkyblock2MigrationEndpoints\":\"scan,status,dryrun,extract,import,verify,rollback\","
-            + "\"superiorSkyblock2MigrationStatusEndpoint\":\"/v1/admin/migrations/superiorskyblock2/status\","
-            + "\"superiorSkyblock2MigrationRollbackPolicy\":\"last-successful-import-only-consume-plan-after-success\","
-            + "\"routeTicketTtlSeconds\":" + config.routeTicketTtl().toSeconds() + ","
-            + "\"routePreparingTicketTtlSeconds\":" + config.routePreparingTicketTtl().toSeconds() + ","
-            + "\"routeTicketOneTimeConsume\":" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ONE_TIME_CONSUME + ","
-            + "\"routeTicketNonceRequired\":" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.NONCE_REQUIRED + ","
-            + "\"routeTicketTargetNodeRequired\":" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.TARGET_NODE_REQUIRED + ","
-            + "\"routeTicketOneTimePolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ONE_TIME_POLICY + "\","
-            + "\"routeTicketNoncePolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.NONCE_POLICY + "\","
-            + "\"routeTicketArrivalConsumePolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ARRIVAL_CONSUME_POLICY + "\","
-            + "\"routeTicketDirectAccessPolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.DIRECT_ACCESS_POLICY + "\","
-            + "\"routeTicketReplayPolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.REPLAY_POLICY + "\","
-            + "\"routeTicketConsumeEndpoint\":\"/v1/routes/consume\","
-            + "\"routeSessionConsumeEndpoint\":\"/v1/routes/session/consume\","
-            + "\"routeSessionPreLoginGuard\":\"paper-async-prelogin-find-session-and-playerjoin-consume-session\","
-            + "\"heartbeatTimeoutSeconds\":" + config.heartbeatTimeout().toSeconds() + ","
-            + "\"leaseDurationSeconds\":" + config.leaseDuration().toSeconds() + ","
-            + "\"cacheTierPolicy\":\"L1=paper-velocity-local-memory,L2=redis,L3=postgresql-mysql-mariadb-core-jdbc\","
-            + "\"cacheAuthoritativeStorePolicy\":\"database-or-core-api-is-authority-redis-and-local-memory-are-discardable\","
-            + "\"redisCacheTtlPolicy\":\"route-ticket=30s,player-island=300s,island-summary=60s,permissions=30s,locks=10-60s\","
-            + "\"redisCacheTtlMillis\":\"serverHeartbeat=" + kr.lunaf.cloudislands.common.cache.RedisTtls.SERVER_HEARTBEAT_MILLIS
+        LinkedHashMap<String, Object> summary = new LinkedHashMap<>();
+        summary.put("repositoryMode", config.repositoryMode());
+        summary.put("jobQueueMode", config.jobQueueMode());
+        summary.put("eventBusMode", config.eventBusMode());
+        summary.put("effectiveRepositoryMode", (config.jdbcRepositories() ? "JDBC" : "IN_MEMORY"));
+        summary.put("effectiveJobQueueMode", (config.jdbcJobs() ? "JDBC" : config.redisJobs() ? "REDIS" : "IN_MEMORY"));
+        summary.put("effectiveEventBusMode", (config.redisEvents() ? "REDIS" : "IN_MEMORY"));
+        summary.put("coreJdbcRepositoriesEnabled", config.jdbcRepositories());
+        summary.put("coreJdbcJobsEnabled", config.jdbcJobs());
+        summary.put("configuredDatabaseType", config.configuredDatabaseType());
+        summary.put("configuredDatabaseTypeSource", CoreServiceConfig.configuredDatabaseTypeSource());
+        summary.put("runtimeMode", config.runtimeMode());
+        summary.put("databaseBackend", jdbcBackend(config.jdbcUrl()));
+        summary.put("jdbcUrlSource", CoreServiceConfig.configuredJdbcUrlSource());
+        summary.put("effectiveJdbcSettingsType", CoreServiceConfig.configuredJdbcSettingsType());
+        summary.put("effectiveJdbcSettingsSource", CoreServiceConfig.configuredJdbcSettingsSource());
+        summary.put("coreJdbcSupported", coreJdbcSupported(config.jdbcUrl()));
+        summary.put("coreJdbcSupportedBackends", "POSTGRESQL,MYSQL,MARIADB");
+        summary.put("coreSetupFallbackBackends", "POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC");
+        summary.put("coreSetupFallbackRequireSharedBeforeLocal", config.setupDatabaseFallbackRequireSharedBeforeLocal());
+        summary.put("coreSetupFallbackLocalLast", config.setupDatabaseFallbackLocalLast());
+        summary.put("coreSetupFallbackProductionSafeOrder", config.setupDatabaseFallbackProductionSafeOrder());
+        summary.put("coreSetupDatabaseAutoSchema", config.setupDatabaseAutoSchema());
+        summary.put("coreSetupDatabaseAutoSchemaPolicy", "explicit-opt-in-postgresql-mysql-mariadb-bootstrap");
+        summary.put("coreSetupDatabaseAutoSchemaResource", "postgresql=/db/migration/V1..V63,mysql-mariadb=/db/mysql/V1__cloudislands_mysql_schema.sql");
+        summary.put("coreSetupDatabaseAutoSchemaHistoryTable", "cloudislands_schema_bootstrap");
+        summary.put("coreSetupDatabaseAutoSchemaRetryPolicy", "ignore-existing-schema-objects-and-mark-bootstrap-after-complete-apply");
+        summary.put("coreSetupDatabaseAutoSchemaGuardPolicy", "generated-columns-enforce-active-unique-guards-for-mysql-mariadb");
+        summary.put("coreSetupFallbackEnabled", config.setupDatabaseFallbackEnabled());
+        summary.put("coreSetupAllowInMemoryFallback", config.setupDatabaseAllowInMemoryFallback());
+        summary.put("coreSetupFallbackEffective", coreJdbcFallbackActive(config));
+        summary.put("coreSetupFallbackSafetyForced", coreSetupFallbackSafetyForced(config));
+        summary.put("coreSetupFallbackPolicy", coreSetupFallbackPolicy(config));
+        summary.put("coreSetupFallbackOrder", config.setupDatabaseFallbackOrder());
+        summary.put("coreSetupFallbackMode", coreSetupFallbackMode(config));
+        summary.put("coreSetupDatabaseRequestedBackend", config.setupDatabaseRequestedBackend());
+        summary.put("coreSetupDatabaseEffectiveAuthority", config.setupDatabaseEffectiveAuthority());
+        summary.put("coreSetupDatabaseEffectiveBackend", config.setupDatabaseEffectiveBackend());
+        summary.put("coreSetupDatabaseFallbackTarget", config.setupDatabaseFallbackTarget());
+        summary.put("coreSetupDatabasePostgresqlFallbackConfigured", config.setupDatabasePostgresqlFallbackConfigured());
+        summary.put("coreSetupDatabaseMysqlFallbackConfigured", config.setupDatabaseMysqlFallbackConfigured());
+        summary.put("coreSetupDatabaseMariadbFallbackConfigured", config.setupDatabaseMariadbFallbackConfigured());
+        summary.put("coreSetupDatabaseCoreApiFallbackConfigured", config.setupDatabaseCoreApiFallbackConfigured());
+        summary.put("coreSetupDatabaseFallbackReason", config.setupDatabaseFallbackReason());
+        summary.put("coreSetupDatabaseFallbackSummary", config.setupDatabaseFallbackSummary());
+        summary.put("coreSetupDatabaseFallbackCandidateChain", coreSetupFallbackCandidateChain(config));
+        summary.put("coreSetupDatabaseFallbackReadyBackends", coreSetupFallbackReadyBackends(config));
+        summary.put("coreSetupDatabaseFallbackMissingBackends", coreSetupFallbackMissingBackends(config));
+        summary.put("coreSetupDatabaseFallbackDecision", coreSetupFallbackDecision(config));
+        summary.put("coreSetupDatabaseDurable", config.setupDatabaseDurable());
+        summary.put("coreSetupDatabaseProductionDurable", config.setupDatabaseProductionDurable());
+        summary.put("coreSetupDatabaseReady", config.setupDatabaseReady());
+        summary.put("coreSetupDatabaseFallbackSafetyForced", config.setupDatabaseFallbackSafetyForced());
+        summary.put("coreSetupDatabaseFallbackSafetyMode", config.setupDatabaseFallbackSafetyMode());
+        summary.put("coreSetupDatabaseOperationalModes", "POSTGRESQL=CORE_JDBC,MYSQL=CORE_JDBC,MARIADB=CORE_JDBC,CORE_API=CLIENT_MODE_NO_CORE_SERVICE_SELF_STORAGE");
+        summary.put("coreSetupDatabasePrimaryAuthority", "POSTGRESQL_MYSQL_MARIADB_FOR_CORE_STATE_CORE_API_FOR_CLIENT_ADDON_STATE");
+        summary.put("coreSetupDatabaseMysqlPolicy", "native-core-jdbc-through-setup.database.mysql-or-jdbc-url");
+        summary.put("coreSetupDatabaseMariadbPolicy", "native-core-jdbc-through-setup.database.mariadb-or-jdbc-url");
+        summary.put("coreSetupDatabaseCoreApiPolicy", "client-addon-state-marker-core-self-storage-requires-durable-jdbc-or-explicit-non-production-in-memory-fallback");
+        summary.put("coreSetupDatabaseSafeFallbackWarning", "IN_MEMORY_CORE_FALLBACK_IS_NON_DURABLE_AND_NOT_READY_FOR_PRODUCTION");
+        summary.put("coreSetupDatabaseConfigLoader", "yaml-nested-dotted-path");
+        summary.put("coreSetupDatabaseResolvedPathExamples", "setup.database.type,setup.database.postgresql.jdbc-url,setup.database.postgresql.username,setup.database.mysql.host,setup.database.mysql.password,setup.database.mariadb.pool-size,setup.database.core-api.enabled");
+        summary.put("coreSetupDatabaseConfigShapes", "setup.database.*,setup.database-*,setup.database.fallback.order(list-or-comma-string)");
+        summary.put("coreSetupDatabaseTypedShapes", "setup.database.postgresql.*,setup.database.mysql.*,setup.database.mariadb.*,setup.database.core-api.*");
+        summary.put("coreSetupDatabaseTypedCredentialKeys", "username,password,pool-size");
+        summary.put("coreSetupDatabaseTypedHostMode", "requires-type-or-typed-url-inference");
+        summary.put("coreSetupDatabaseTypedProbeOrder", "postgresql,mysql,mariadb");
+        summary.put("coreSetupDatabaseCoreApiMode", "enabled-marker-no-core-jdbc");
+        summary.put("coreSetupDatabaseCoreApiBaseUrl", config.setupDatabaseCoreApiBaseUrl());
+        summary.put("coreSetupDatabaseCoreApiAuthTokenConfigured", config.setupDatabaseCoreApiAuthTokenConfigured());
+        summary.put("coreSetupDatabaseCoreApiAdminTokenConfigured", config.setupDatabaseCoreApiAdminTokenConfigured());
+        summary.put("coreSetupDatabaseCoreApiTimeoutMs", config.setupDatabaseCoreApiTimeoutMillis());
+        summary.put("coreSetupDatabaseCoreApiClientMode", config.setupDatabaseCoreApiClientMode());
+        summary.put("coreSetupDatabaseCoreApiClientReady", config.setupDatabaseCoreApiClientReady());
+        summary.put("coreSetupDatabaseFallbackReadiness", config.setupDatabaseFallbackReadiness());
+        summary.put("coreSetupDatabaseCoreApiConfigPaths", "setup.database.core-api.base-url,setup.database.core-api.url,setup.database.core-api.auth-token,setup.database.core-api.admin-token,setup.database.core-api.timeout-ms,setup.core-api.*,setup-core-api.*,core-api.*");
+        summary.put("coreSetupDatabaseEnv", "CI_DATABASE_TYPE,CI_JDBC_URL,CI_DB_USERNAME,CI_DB_PASSWORD,CI_DB_POOL_SIZE,CI_DB_AUTO_SCHEMA,CI_DB_FALLBACK_ENABLED,CI_DB_FALLBACK_ORDER,CI_SETUP_CORE_API_BASE_URL,CI_SETUP_CORE_API_AUTH_TOKEN,CI_SETUP_CORE_API_ADMIN_TOKEN,CI_SETUP_CORE_API_TIMEOUT_MS");
+        summary.put("coreSetupDatabasePrecedence", "env,nested-setup-database,legacy-flat-setup,database-default");
+        summary.put("coreSetupDatabaseNameAliases", "setup.database.name,setup.database.database,setup.database-name");
+        summary.put("nodeAllocatorPolicy", "pool-filter-unique-velocity-server-fresh-heartbeat-storage-ready-template-version-capacity-then-weighted-score");
+        summary.put("nodeAllocatorScoreWeights", "players=0.25,activeIslands=0.15,mspt=0.25,activationQueue=0.15,chunkLoad=0.10,memory=0.05,recentFailure=0.05");
+        summary.put("nodeAllocatorHardRules", "READY-or-policy-allowed-SOFT_FULL,heartbeat-fresh,storage-available,hard-player-cap,max-active-islands,max-activation-queue,template-supported,min-node-version,unique-velocity-server-name,non-default-node-identity");
+        summary.put("nodeAllocatorFiveSixNodePolicy", "no-fixed-node-count-limit-add-island-nodes-with-unique-node-id-unique-velocity-server-name-shared-storage");
+        summary.put("coreSetupDatabaseJdbcAliases", "CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,database.jdbc-url");
+        summary.put("coreSetupDatabaseTypeInference", "CI_DATABASE_TYPE,setup.database.type,setup.database-type,setup.database.core-api.enabled,CI_JDBC_URL,setup.database.jdbc-url,setup.jdbc-url,setup.database.postgresql.jdbc-url,setup.database.postgresql.url,setup.database.mysql.jdbc-url,setup.database.mysql.url,setup.database.mariadb.jdbc-url,setup.database.mariadb.url,typed-host-name,database.jdbc-url");
+        summary.put("observabilityMetricsPolicy", "prometheus-exporter-covers-node-island-route-permission-job-storage-database-redis-metrics");
+        summary.put("observabilityRequiredMetrics", "cloudislands_nodes_online,cloudislands_node_players,cloudislands_node_mspt,cloudislands_node_active_islands,cloudislands_node_activation_queue,cloudislands_island_activation_seconds,cloudislands_island_save_seconds,cloudislands_island_snapshot_seconds,cloudislands_route_ticket_created_total,cloudislands_route_ticket_failed_total,cloudislands_permission_checks_total,cloudislands_permission_cache_hit_ratio,cloudislands_jobs_pending,cloudislands_jobs_failed_total,cloudislands_jobs_retry_total,cloudislands_storage_upload_seconds,cloudislands_storage_download_seconds,cloudislands_database_query_seconds,cloudislands_redis_latency_seconds");
+        summary.put("observabilityRequiredDashboardPanels", "nodes-online,node-players,node-mspt,active-islands,activation-seconds,island-save-failures,route-failures,redis-latency,database-pool-usage,object-storage-failure-ratio");
+        summary.put("observabilityDashboardPolicy", "grafana-dashboard-must-show-node-load-activation-save-route-redis-db-and-object-storage-health");
+        summary.put("coreJdbcFallbackReason", coreJdbcFallbackReason(config));
+        summary.put("coreJdbcFallbackActive", coreJdbcFallbackActive(config));
+        summary.put("coreJdbcFallbackStatus", coreJdbcFallbackStatus(config));
+        summary.put("addonStateBulkSaveApi", true);
+        summary.put("addonStateBulkSaveGlobalEndpoint", AddonStateBulkSaveRequest.GLOBAL_LEGACY_ENDPOINT);
+        summary.put("addonStateBulkSaveIslandEndpoint", AddonStateBulkSaveRequest.ISLAND_LEGACY_ENDPOINT);
+        summary.put("addonStateTableKeyValueBulkSaveGlobalEndpoint", AddonStateBulkSaveRequest.GLOBAL_ENDPOINT);
+        summary.put("addonStateTableKeyValueBulkSaveIslandEndpoint", AddonStateBulkSaveRequest.ISLAND_ENDPOINT);
+        summary.put("addonStateTableKeyValueBulkSaveGlobalAlias", AddonStateBulkSaveRequest.GLOBAL_BULK_SAVE_ALIAS);
+        summary.put("addonStateTableKeyValueBulkSaveIslandAlias", AddonStateBulkSaveRequest.ISLAND_BULK_SAVE_ALIAS);
+        summary.put("addonStateTableKeyValueBulkGlobalEndpoint", AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS);
+        summary.put("addonStateTableKeyValueBulkIslandEndpoint", AddonStateBulkSaveRequest.ISLAND_BULK_ALIAS);
+        summary.put("addonStateTableKeyValueBulkSaveGlobalAliases", String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS));
+        summary.put("addonStateTableKeyValueBulkSaveIslandAliases", String.join(",", AddonStateBulkSaveRequest.ISLAND_ENDPOINTS));
+        summary.put("addonStateTableKeyValueBulkLoadGlobalEndpoint", AddonStateBulkLoadRequest.GLOBAL_ENDPOINT);
+        summary.put("addonStateTableKeyValueBulkLoadIslandEndpoint", AddonStateBulkLoadRequest.ISLAND_ENDPOINT);
+        summary.put("addonStateTableKeyValueBulkLoadGlobalAliases", String.join(",", AddonStateBulkLoadRequest.GLOBAL_ENDPOINTS));
+        summary.put("addonStateTableKeyValueBulkLoadIslandAliases", String.join(",", AddonStateBulkLoadRequest.ISLAND_ENDPOINTS));
+        summary.put("addonStateTableLoadGlobalEndpoint", AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS);
+        summary.put("addonStateTableLoadIslandEndpoint", AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS);
+        summary.put("addonStateTableBulkGlobalEndpoint", AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_ENDPOINT);
+        summary.put("addonStateTableBulkIslandEndpoint", AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_ENDPOINT);
+        summary.put("addonStateTableBulkSetGlobalEndpoint", AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT);
+        summary.put("addonStateTableBulkSetIslandEndpoint", AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_SET_ENDPOINT);
+        summary.put("addonStateTableKeyValueBulkSavePayload", "addonId,islandId(optional),values,tables");
+        summary.put("addonStateTableKeyValueBulkLoadPayload", "addonId,islandId(optional),table");
+        summary.put("addonStateTableKeyValueBulkSaveStorageMode", "table-prefix-flattened-key-value");
+        summary.put("addonStateTableKeyValueBulkSaveRepositoryApi", "AddonStateRepository.tableKeyValueBulkSave,AddonStateRepository.tableKeyValueBulkSaveIsland,AddonStateRepository.tableBulk,AddonStateRepository.tableBulkIsland,AddonStateRepository.tableKeyValueBulkLoad,AddonStateRepository.tableKeyValueBulkLoadIsland,AddonStateBulkSaveRequest,AddonStateBulkLoadRequest,IslandAddonService.tableBulkState,IslandAddonService.tableBulkIslandState,IslandAddonService.tableKeyValueBulkSaveState,IslandAddonService.tableKeyValueBulkSaveIslandState,IslandAddonService.tableKeyValueBulkLoadState,IslandAddonService.tableKeyValueBulkLoadIslandState,IslandAddonService.tableLoadState,IslandAddonService.tableLoadIslandState,CoreApiClient.tableKeyValueBulkSaveAddonState,CoreApiClient.tableKeyValueBulkSaveAddonIslandState,CoreApiClient.tableBulkAddonState,CoreApiClient.tableBulkAddonIslandState,CoreApiClient.tableKeyValueBulkLoadAddonState,CoreApiClient.tableKeyValueBulkLoadAddonIslandState,CoreApiClient.tableLoadAddonState,CoreApiClient.tableLoadAddonIslandState");
+        summary.put("addonStateTableKeyPrefix", AddonStateRepository.TABLE_STATE_KEY_SHAPE);
+        summary.put("addonStateMaxAddonIdLength", AddonStateRepository.MAX_ADDON_ID_LENGTH);
+        summary.put("addonStateMaxKeyLength", AddonStateRepository.MAX_KEY_LENGTH);
+        summary.put("addonStateMaxValueLength", AddonStateRepository.MAX_VALUE_LENGTH);
+        summary.put("addonStateMaxKeysPerAddon", AddonStateRepository.MAX_KEYS_PER_ADDON);
+        summary.put("addonStateTableKeyValueBulkSaveFallback", "local-cache-on-core-api-failure");
+        summary.put("addonStateTableKeyValueBulkLoadFallback", "local-cache-or-empty-table-on-core-api-failure");
+        summary.put("databasePoolSize", config.databasePoolSize());
+        summary.put("storageType", config.storageType());
+        summary.put("storageSharedBackend", ("S3".equalsIgnoreCase(config.storageType())));
+        summary.put("storageMultiNodeSafe", ("S3".equalsIgnoreCase(config.storageType())));
+        summary.put("storageBackendSafety", storageBackendSafety(config));
+        summary.put("storageLocalMultiNodePolicy", "LOCAL requires the same shared filesystem mount on every Island node; otherwise use S3 or MinIO");
+        summary.put("storageS3MultiNodePolicy", "S3 or MinIO is the recommended shared object storage for 5/6 Island node pools");
+        summary.put("storageLayout", "islands/{islandUuid}/manifest.json,latest,snapshots/{snapshotNo}/bundle.tar.zst,checksums.sha256,backups,recovery");
+        summary.put("storageLatestPointer", "islands/{islandUuid}/latest");
+        summary.put("storageSnapshotManifest", "islands/{islandUuid}/snapshots/{snapshotNo}/manifest.json");
+        summary.put("storageBundleObject", "islands/{islandUuid}/snapshots/{snapshotNo}/bundle.tar.zst");
+        summary.put("storageChecksumFile", "islands/{islandUuid}/snapshots/{snapshotNo}/checksums.sha256");
+        summary.put("storageDeleteBackupPath", "islands/{islandUuid}/backups/delete-{snapshotNo}");
+        summary.put("storageRecoveryPath", "islands/{islandUuid}/recovery");
+        summary.put("storagePortabilityPolicy", "bundle-and-manifest-are-island-uuid-scoped-node-independent");
+        summary.put("storageRestoreManifestRequired", true);
+        summary.put("storageRestoreChecksumPolicy", "verify-manifest-checksum-for-latest-snapshot-and-storage-path");
+        summary.put("storageRestorePortableRequired", true);
+        summary.put("storageRestoreSupportedFormats", "checksum=SHA-256,compression=zstd");
+        summary.put("failureHandlingNodeDownPolicy", "heartbeat-timeout>node-down>block-new-routes>mark-active-islands-recovery-required>fallback-players-lobby>snapshot-check>recover-on-other-node-or-quarantine");
+        summary.put("failureHandlingRecoveryRequiredPolicy", kr.lunaf.cloudislands.common.runtime.IslandRuntimeStatePolicy.RECOVERY_REQUIRED_POLICY);
+        summary.put("failureHandlingCoreApiDownAllowed", "active-island-play,local-cache-protection,basic-local-teleport-fallback");
+        summary.put("failureHandlingCoreApiDownLimited", "new-island-create,inactive-island-activation,island-route,member-change,flag-change");
+        summary.put("failureHandlingCoreApiDownPlayerMessage", "현재 섬 서비스 일부 기능이 점검 중입니다.");
+        summary.put("failureHandlingRedisDownAllowed", "database-direct-read-degraded-mode-without-data-loss");
+        summary.put("failureHandlingRedisDownLimited", "cache-performance,event-propagation,job-queue-processing,heartbeat-freshness");
+        summary.put("failureHandlingRedisDownRecommendation", "run-redis-high-availability-in-production");
+        summary.put("failureHandlingObjectStorageDownAllowed", "already-active-island-play-continues-on-node-local-world");
+        summary.put("failureHandlingObjectStorageDownLimited", "new-activation,island-save,snapshot,recovery");
+        summary.put("failureHandlingObjectStorageRetryPolicy", "queue-failed-save-and-snapshot-operations-for-retry-while-primary-storage-is-unavailable");
+        summary.put("failureHandlingQuarantinePolicy", kr.lunaf.cloudislands.common.runtime.IslandRuntimeStatePolicy.QUARANTINE_POLICY);
+        summary.put("failureHandlingRecoveryStateSummary", kr.lunaf.cloudislands.common.runtime.IslandRuntimeStatePolicy.recoveryStateSummary());
+        summary.put("islandResourceModel", "global-resource");
+        summary.put("islandPortableBundle", true);
+        summary.put("islandServerPinned", false);
+        summary.put("islandExecutionModel", "dynamic-island-node-pool");
+        summary.put("islandNodeRole", "runtime-execution-node-only");
+        summary.put("islandRoutingModel", "route-ticket-to-active-or-best-node");
+        summary.put("createIslandRequestFlow", "velocity-command>core-createIsland>db-transaction-lock>node-allocator>create-island-job>agent-claim>template-restore>cell-allocate>runtime-active>route-ticket-ready>velocity-connect>paper-consume-ticket>spawn-teleport");
+        summary.put("createIslandDuplicateGuard", "redis-player-creation-lock-plus-jdbc-player-profile-for-update");
+        summary.put("createIslandJdbcLockPolicy", "upsert-player-profile-select-for-update-then-owner-island-select-for-update");
+        summary.put("createIslandTransactionScope", "islands-row-owner-member-runtime-primary-island");
+        summary.put("createIslandJobPolicy", "commit-before-job-publish-error-state-on-job-queue-failure");
+        summary.put("createIslandInitialTicketState", "PREPARING-until-paper-agent-completes-create-job");
+        summary.put("homeRequestFlow", "velocity-command>core-createHomeRoute>runtime-check>active-or-activate-best-node>route-ticket-ready>velocity-connect>paper-teleport");
+        summary.put("visitRequestFlow", "velocity-command>target-island-lookup>public-ban-permission-check>active-or-activate>visitor-ticket>velocity-connect>visitor-spawn-teleport");
+        summary.put("routePlayerLoadingUi", "actionbar-and-bossbar-progress-without-node-name");
+        summary.put("routePlayerFailureCodes", kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.PUBLIC_FAILURE_CODES);
+        summary.put("routePlayerFailureMessages", kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.publicMessageSummary());
+        summary.put("routePublicMessagePolicy", kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.PUBLIC_MESSAGE_POLICY);
+        summary.put("routeDebugReasonPolicy", kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.DEBUG_REASON_POLICY);
+        summary.put("routeVisitRejectionPolicy", kr.lunaf.cloudislands.common.routing.RouteFailurePolicy.VISIT_REJECTION_POLICY);
+        summary.put("routeTransferFailurePolicy", "clear-ticket-session-and-show-public-message-or-return-lobby");
+        summary.put("softFullRoutingPolicy", "new-and-inactive-islands-use-ready-node-active-owner-member-reserve-current-node-visitors-queue-or-limit");
+        summary.put("newActivationSoftFullPolicy", config.softFullPolicy());
+        summary.put("newActivationSoftFullAvoided", avoidsSoftFullNewActivations(config.softFullPolicy()));
+        summary.put("newActivationHardFullPolicy", config.hardFullPolicy());
+        summary.put("newActivationHardFullAllowed", allowsHardFullNewActivations(config.hardFullPolicy()));
+        summary.put("softFullNewActivationBehavior", "ready-node-preferred-soft-full-avoided-unless-policy-allows");
+        summary.put("softFullExistingRouteBehavior", "active-owner-member-routes-can-use-current-soft-full-node-visitors-queue-or-limit");
+        summary.put("moduleLayout", kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.requiredModuleSummary());
+        summary.put("coreModuleLayout", kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.requiredModuleSummary());
+        summary.put("addonModuleLayout", kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.optionalExtensionModuleSummary());
+        summary.put("moduleResponsibilityLayout", kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.moduleResponsibilitySummary());
+        summary.put("moduleRuntimeSurfaceLayout", kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.moduleRuntimeSurfaceSummary());
+        summary.put("distributionLayout", kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.distributionArtifactSummary());
+        summary.put("distributionTaskLayout", kr.lunaf.cloudislands.common.packaging.CloudIslandsModuleLayoutPolicy.distributionTaskSummary());
+        summary.put("distributionMarkdownPackagingGuard", "verifyMarkdownDocsExcludedFromArtifacts-before-build-and-distBundle");
+        summary.put("productionReadinessContract", kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.CONTRACT);
+        summary.put("productionReadinessGates", kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.requiredGateSummary());
+        summary.put("productionDeploymentTemplatePolicy", kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.DEPLOYMENT_TEMPLATE_POLICY);
+        summary.put("productionRollingUpgradePolicy", kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.ROLLING_UPGRADE_POLICY);
+        summary.put("productionE2ePolicy", kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.E2E_POLICY);
+        summary.put("productionChaosPolicy", kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.CHAOS_POLICY);
+        summary.put("productionBackupRestorePolicy", kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.BACKUP_RESTORE_POLICY);
+        summary.put("productionSupportBundlePolicy", kr.lunaf.cloudislands.common.observability.ProductionReadinessPolicy.SUPPORT_BUNDLE_POLICY);
+        summary.put("productionGaDrillContract", kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.CONTRACT);
+        summary.put("productionGaDrillEvidence", kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.evidenceSummary());
+        summary.put("productionGaFailureInjectionScenarios", kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.failureInjectionSummary());
+        summary.put("versionCompatibilityMatrix", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.matrixSummary());
+        summary.put("versionRollingUpgradeOrder", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.rollingUpgradeOrderSummary());
+        summary.put("versionSupportedPaper", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_PAPER_VERSION);
+        summary.put("versionSupportedVelocity", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_VELOCITY_VERSION);
+        summary.put("versionSupportedJava", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_JAVA_VERSION);
+        summary.put("versionFoliaSupportPolicy", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.FOLIA_SUPPORT_POLICY);
+        summary.put("versionMinecraftUpdatePolicy", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.MINECRAFT_UPDATE_POLICY);
+        summary.put("versionProtocolChangePolicy", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.PROTOCOL_CHANGE_POLICY);
+        summary.put("versionMinorCompatibilityPolicy", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.MINOR_COMPATIBILITY_POLICY);
+        summary.put("integrationDistributedHookPolicy", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.DISTRIBUTED_HOOK_POLICY);
+        summary.put("integrationKnownPlugins", String.join(",", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.knownPlugins()));
+        summary.put("integrationCoreProtectPolicy", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.COREPROTECT_POLICY);
+        summary.put("integrationWorldEditPolicy", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.WORLDEDIT_POLICY);
+        summary.put("integrationCustomItemPolicy", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.CUSTOM_ITEM_POLICY);
+        summary.put("integrationStackerPolicy", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.STACKER_POLICY);
+        summary.put("integrationPermissionPolicy", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.PERMISSION_POLICY);
+        summary.put("integrationActivityPolicy", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.ACTIVITY_POLICY);
+        summary.put("integrationEconomyPolicy", kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy.ECONOMY_POLICY);
+        summary.put("addonRegistryPolicy", "paper-addon-registers-core-stores-snapshot-only");
+        summary.put("addonStateOwnershipPolicy", "core-persists-addon-key-value-state-without-addon-business-logic");
+        summary.put("addonRemovalSafetyPolicy", "missing-addon-metadata-or-state-must-not-block-island-lifecycle");
+        summary.put("addonStateFailureIsolationPolicy", "addon-state-storage-outages-return-503-without-affecting-island-lifecycle");
+        summary.put("addonExtensionModel", "optional-external-plugin-using-cloudislands-api");
+        summary.put("addonApiLookupPolicy", "cloudislands-provider-first-bukkit-servicesmanager-fallback");
+        summary.put("addonApiContractVersion", kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONTRACT_VERSION);
+        summary.put("addonApiContractCompatibility", kr.lunaf.cloudislands.api.CloudIslandsApiContract.metadataCompatibilityStatus(kr.lunaf.cloudislands.api.CloudIslandsApiContract.metadata()));
+        summary.put("addonApiContractCompatible", kr.lunaf.cloudislands.api.CloudIslandsApiContract.compatibleMetadata(kr.lunaf.cloudislands.api.CloudIslandsApiContract.metadata()));
+        summary.put("addonApiRequiredMetadataKeys", kr.lunaf.cloudislands.api.CloudIslandsApiContract.requiredMetadataKeysCsv());
+        summary.put("addonApiReadPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.READ_POLICY);
+        summary.put("addonApiWriteAuthority", kr.lunaf.cloudislands.api.CloudIslandsApiContract.WRITE_AUTHORITY);
+        summary.put("addonApiSyncEventPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.SYNC_EVENT_POLICY);
+        summary.put("addonApiStoragePolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_STORAGE_POLICY);
+        summary.put("addonApiRemovalPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_REMOVAL_POLICY);
+        summary.put("addonApiReconnectPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADDON_RECONNECT_POLICY);
+        summary.put("addonJavaPluginApiPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.JAVA_PLUGIN_API_POLICY);
+        summary.put("addonInternalApiPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.INTERNAL_API_POLICY);
+        summary.put("addonEventApiPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.EVENT_API_POLICY);
+        summary.put("addonTimeoutRetryPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.TIMEOUT_RETRY_POLICY);
+        summary.put("addonCompatibilityTestkitPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY);
+        summary.put("addonCoreAuthPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.CORE_AUTH_POLICY);
+        summary.put("addonAdminEndpointPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.ADMIN_ENDPOINT_POLICY);
+        summary.put("addonNetworkExposurePolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.NETWORK_EXPOSURE_POLICY);
+        summary.put("addonSecurityPostureSummary", kr.lunaf.cloudislands.api.CloudIslandsApiContract.SECURITY_POSTURE_SUMMARY);
+        summary.put("addonTopologyPrivacyPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.TOPOLOGY_PRIVACY_POLICY);
+        summary.put("addonConsistencyAuthorityPolicy", kr.lunaf.cloudislands.api.CloudIslandsApiContract.CONSISTENCY_AUTHORITY_POLICY);
+        summary.put("addonEventDeliveryPolicy", "core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events");
+        summary.put("addonEventCoverage", "pre-create,create,pre-activate,activate,deactivate,migrate,delete,delete-backup-failed,restore,reset,recovery,runtime,pre-visit,visit,invite,member-join,member-left,member-role,member-change,ownership,rename,access,visitor-ban,visitor-kick,flag,permission-check,permission-change,role-catalog,biome,home,warp-create,warp-delete,warp-change,bank,chat,mission,blocks,block-value,level,worth,upgrade,limit,snapshot,template,addon-state,node,core-cache,core-reload,route-ticket");
+        summary.put("addonEventBackfillPolicy", "paper-poller-uses-listEventsSince-with-sequence-gap-cache-invalidation");
+        summary.put("satisPackaging", "official-external-addon");
+        summary.put("satisCoreCoupling", "optional-addon-no-core-runtime-dependency");
+        summary.put("satisAddonRemovalPolicy", "core-boots-and-islands-load-without-satis-jar");
+        summary.put("satisDataRetentionPolicy", "addon-state-preserved-when-disabled-or-removed");
+        summary.put("satisCoreBootRequiresAddon", false);
+        summary.put("satisCommandOwner", "optional-satis-paper-addon");
+        summary.put("satisCrossNodeStatePolicy", "addon-state-must-be-stored-in-core-api-or-shared-database-not-paper-node-memory");
+        summary.put("satisIslandMovePolicy", "when-island-moves-between-island-nodes-addon-remaps-state-to-current-active-world-and-cell");
+        summary.put("satisFeatureDisablePolicy", "disabled-features-register-no-commands-gui-listeners-tasks-or-data-writes-and-preserve-existing-data");
+        summary.put("satisSuperiorSkyblock2Policy", "no-runtime-dependency-use-cloudislands-public-api-and-addon-spi-only");
+        summary.put("satisOperationScenarios", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.operationScenarioSummary());
+        summary.put("satisRecommendedModeReasons", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.recommendedModeReasonSummary());
+        summary.put("satisComponentBoundaries", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.componentBoundarySummary());
+        summary.put("satisFeatureOffRuntimeBlocks", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.featureOffRuntimeBlockSummary());
+        summary.put("satisStateStorageConfig", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.stateStorageConfigSummary());
+        summary.put("satisPlayerExperiencePolicy", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.playerExperienceBoundarySummary());
+        summary.put("satisOfficialFeaturePackPolicy", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.officialFeaturePackBoundarySummary());
+        summary.put("satisNodeMoveRemapFlow", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.nodeMoveRemapStepSummary());
+        summary.put("satisFailureRecoveryFlow", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.failureRecoveryStepSummary());
+        summary.put("satisAddonReconnectFlow", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.addonReconnectStepSummary());
+        summary.put("satisCompletionCriteria", kr.lunaf.cloudislands.common.feature.SatisIntegrationPolicy.completionCriteriaSummary());
+        summary.put("satisRecoveryPolicy", "use-last-confirmed-addon-state-after-node-failure-and-avoid-duplicate-ticks-with-core-fencing");
+        summary.put("satisAddonAbsentPolicy", "cloudislands-core-and-island-lifecycle-do-not-require-cloudislands-satis-installed");
+        summary.put("satisDisabledRuntimePolicy", "disabled-satis-keeps-core-create-route-protect-save-restore-working-without-registering-satis-runtime-components");
+        summary.put("satisReinstallPolicy", "preserved-addon-state-can-be-reconnected-when-satis-addon-is-installed-again");
+        summary.put("satisStateAuthorityPolicy", "portable-addon-state-is-authoritative-in-core-api-bulk-table-key-value-or-configured-shared-database");
+        summary.put("satisMultiNodeSafe", true);
+        summary.put("satisNodeCountPolicy", "island-node-count-does-not-change-satis-state-identity-or-storage-authority");
+        summary.put("velocitySatisCommandPolicy", "no-direct-satis-command-handler-route-only");
+        summary.put("paperSatisCommandPolicy", "addon-registers-own-commands-when-enabled");
+        summary.put("finalRequestFlowKeys", kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowKeys());
+        summary.put("finalRequestFlowIslandCreate", kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("island-create"));
+        summary.put("finalRequestFlowIslandHome", kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("island-home"));
+        summary.put("finalRequestFlowIslandVisit", kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("island-visit"));
+        summary.put("finalRequestFlowSoftFullRouting", kr.lunaf.cloudislands.common.routing.FinalRequestFlowPolicy.flowSummary("soft-full-routing"));
+        summary.put("islandPool", config.islandPool());
+        summary.put("islandPoolNodeCount", islandPoolNodeCount(config, nodes));
+        summary.put("islandPoolRouteCandidateCount", islandPoolRouteCandidateCount(config, nodes));
+        summary.put("islandPoolRouteCandidateRecommendedMinimum", islandPoolRouteCandidateRecommendedMinimum(config, nodes));
+        summary.put("islandPoolRouteCandidateMinimumStatus", islandPoolRouteCandidateMinimumStatus(config, nodes));
+        summary.put("islandPoolRouteCandidateNodeIds", islandPoolRouteCandidateNodeIds(config, nodes));
+        summary.put("islandPoolScaleStatus", islandPoolScaleStatus(config, nodes));
+        summary.put("islandPoolScaleModel", "dynamic-node-pool-by-node-id");
+        summary.put("islandPoolElasticLimitPolicy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SCALE_POLICY);
+        summary.put("islandPoolScaleGuidance", "add-island-nodes-with-unique-node-id-unique-velocity-server-name-shared-storage");
+        summary.put("islandPoolHorizontalScalePolicy", "no-hardcoded-island-node-count-unique-node-id-unique-velocity-server-name-shared-storage-required");
+        summary.put("islandPoolFiveSixNodePolicy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.FIVE_SIX_NODE_POLICY);
+        summary.put("islandPoolScaleReadinessPolicy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SCALE_READINESS_POLICY);
+        summary.put("islandPoolScaleReadinessSummary", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.scaleReadinessSummary());
+        summary.put("islandPoolFiveSixNodeHealthy", islandPoolFiveSixNodeHealthy(config, nodes));
+        summary.put("islandPoolFiveSixNodeStatus", islandPoolFiveSixNodeStatus(config, nodes));
+        summary.put("islandPlacementPolicy", "deterministic-uuid-shard-cell");
+        summary.put("islandPlacementShardCount", IslandPlacement.SHARD_COUNT);
+        summary.put("islandPlacementCellsPerAxis", IslandPlacement.CELLS_PER_AXIS);
+        summary.put("islandPlacementCollisionPolicy", "uuid-derived-cell-with-runtime-occupied-cell-probing-db-unique-guard-fencing-and-node-lease");
+        summary.put("islandNodeHardRules", "pool-match,ready-or-soft-full,fresh-heartbeat,hard-cap-open,activation-queue-open,object-storage-available,template-supported,min-node-version,not-default-identity");
+        summary.put("islandNodeScoreWeights", "players=0.25,activeIslands=0.15,mspt=0.25,activationQueue=0.15,chunkLoad=0.10,memory=0.05,recentFailure=0.05");
+        summary.put("islandNodeSchemaColumns", "id,pool,velocity_server_name,node_version,state,soft_player_cap,hard_player_cap,reserved_slots,max_active_islands,players,active_islands,mspt,heap_used_mb,heap_max_mb,activation_queue,max_activation_queue,chunk_load_pressure,recent_failure_penalty,object_storage_available,supported_templates,last_heartbeat");
+        summary.put("islandNodeExistingRoutePolicy", "active-island-stays-on-current-node-unless-node-missing-stale-down-or-admin-migration");
+        summary.put("islandNodeVisitorSoftFullPolicy", "visitors-queue-or-retry-on-soft-full-active-node-members-use-reserved-slots");
+        summary.put("redisRolePolicy", kr.lunaf.cloudislands.common.cache.CacheStrategyPolicy.REDIS_ROLE);
+        summary.put("redisKeyScope", kr.lunaf.cloudislands.common.cache.CacheStrategyPolicy.REDIS_KEY_SCOPE);
+        summary.put("redisTtlSummary", kr.lunaf.cloudislands.common.cache.CacheStrategyPolicy.REDIS_TTL_SUMMARY);
+        summary.put("redisConsistencyGuard", kr.lunaf.cloudislands.common.cache.CacheStrategyPolicy.CONSISTENCY_GUARD);
+        summary.put("fencingWritePolicy", kr.lunaf.cloudislands.common.security.FencingToken.WRITE_POLICY);
+        summary.put("fencingRedisLockPolicy", kr.lunaf.cloudislands.common.security.FencingToken.REDIS_LOCK_POLICY);
+        summary.put("nodeProtocolMinSupported", MIN_NODE_PROTOCOL_VERSION);
+        summary.put("nodeProtocolCurrent", MAX_NODE_PROTOCOL_VERSION);
+        summary.put("nodeProtocolNegotiationPolicy", kr.lunaf.cloudislands.protocol.ProtocolVersion.NEGOTIATION_POLICY);
+        summary.put("nodeProtocolHeartbeatField", kr.lunaf.cloudislands.protocol.ProtocolVersion.HEARTBEAT_FIELD);
+        summary.put("routingFailureDetailKeys", "pool,nodeCount,readyOrSoftFullNodeCount,storageReadyNodeCount,primaryStorageHealthyNodeCount,storageSaveRetryBacklogNodeCount,storageSaveRetryBacklogTotal,hardCapOpenNodeCount,activeIslandOpenNodeCount,queueOpenNodeCount,defaultIdentityRiskNodeCount,duplicateVelocityServerNameNodeCount,routeCandidateEstimateNodeCount,routeCandidateRecommendedMinimum,routeCandidateShortfall,routeCandidateEstimatePolicy,elasticLimitPolicy,blockReason,physicalNodeNamesExposed");
+        summary.put("islandPoolMultiNodeReady", islandPoolMultiNodeReady(config, nodes));
+        summary.put("islandPoolDegraded", islandPoolDegraded(config, nodes));
+        summary.put("islandPoolRouteCandidateShortfall", islandPoolRouteCandidateShortfall(config, nodes));
+        summary.put("islandPoolRouteCandidateBlockSummary", islandPoolRouteCandidateBlockSummary(config, nodes));
+        summary.put("islandPoolBlockedNodeIds", islandPoolBlockedNodeIds(config, nodes));
+        summary.put("islandPoolDuplicateVelocityServerNameNodeCount", islandPoolDuplicateVelocityServerNameNodeCount(config, nodes));
+        summary.put("islandPoolDefaultNodeIdentityRiskCount", islandPoolDefaultNodeIdentityRiskCount(config, nodes));
+        summary.put("softFullPolicy", config.softFullPolicy());
+        summary.put("hardFullPolicy", config.hardFullPolicy());
+        summary.put("softFullNewActivationAvoided", avoidsSoftFullNewActivations(config.softFullPolicy()));
+        summary.put("hardFullNewActivationAllowed", allowsHardFullNewActivations(config.hardFullPolicy()));
+        summary.put("nodeAllocatorNewActivationFallback", "READY nodes first, SOFT_FULL skipped by default so Island-2/next ready node receives new work when Island-1 is soft-full");
+        summary.put("migrationPolicy", config.migrationPolicy());
+        summary.put("superiorSkyblock2MigrationEnabled", config.superiorSkyblock2MigrationEnabled());
+        summary.put("superiorSkyblock2MigrationInputOnly", true);
+        summary.put("superiorSkyblock2RuntimeDependency", false);
+        summary.put("superiorSkyblock2RuntimePolicy", "migration-input-only-no-runtime-hooks");
+        summary.put("superiorSkyblock2ReplacementFeatureCount", kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.requiredFeatureCount());
+        summary.put("superiorSkyblock2ReplacementFeatures", kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.requiredFeatureKeys());
+        summary.put("superiorSkyblock2MigrationTargets", kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.migrationTargetSummary());
+        summary.put("superiorSkyblock2MigrationFlow", kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.migrationStepSummary());
+        summary.put("superiorSkyblock2MigrationCommands", kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.migrationCommandSummary());
+        summary.put("superiorSkyblock2MigrationEndpoints", "scan,status,dryrun,extract,import,verify,rollback");
+        summary.put("superiorSkyblock2MigrationStatusEndpoint", "/v1/admin/migrations/superiorskyblock2/status");
+        summary.put("superiorSkyblock2MigrationRollbackPolicy", "last-successful-import-only-consume-plan-after-success");
+        summary.put("routeTicketTtlSeconds", config.routeTicketTtl().toSeconds());
+        summary.put("routePreparingTicketTtlSeconds", config.routePreparingTicketTtl().toSeconds());
+        summary.put("routeTicketOneTimeConsume", kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ONE_TIME_CONSUME);
+        summary.put("routeTicketNonceRequired", kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.NONCE_REQUIRED);
+        summary.put("routeTicketTargetNodeRequired", kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.TARGET_NODE_REQUIRED);
+        summary.put("routeTicketOneTimePolicy", kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ONE_TIME_POLICY);
+        summary.put("routeTicketNoncePolicy", kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.NONCE_POLICY);
+        summary.put("routeTicketArrivalConsumePolicy", kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ARRIVAL_CONSUME_POLICY);
+        summary.put("routeTicketDirectAccessPolicy", kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.DIRECT_ACCESS_POLICY);
+        summary.put("routeTicketReplayPolicy", kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.REPLAY_POLICY);
+        summary.put("routeTicketConsumeEndpoint", "/v1/routes/consume");
+        summary.put("routeSessionConsumeEndpoint", "/v1/routes/session/consume");
+        summary.put("routeSessionPreLoginGuard", "paper-async-prelogin-find-session-and-playerjoin-consume-session");
+        summary.put("heartbeatTimeoutSeconds", config.heartbeatTimeout().toSeconds());
+        summary.put("leaseDurationSeconds", config.leaseDuration().toSeconds());
+        summary.put("cacheTierPolicy", "L1=paper-velocity-local-memory,L2=redis,L3=postgresql-mysql-mariadb-core-jdbc");
+        summary.put("cacheAuthoritativeStorePolicy", "database-or-core-api-is-authority-redis-and-local-memory-are-discardable");
+        summary.put("redisCacheTtlPolicy", "route-ticket=30s,player-island=300s,island-summary=60s,permissions=30s,locks=10-60s");
+        summary.put("redisCacheTtlMillis", "serverHeartbeat=" + kr.lunaf.cloudislands.common.cache.RedisTtls.SERVER_HEARTBEAT_MILLIS
                 + ",routeTicket=" + kr.lunaf.cloudislands.common.cache.RedisTtls.ROUTE_TICKET_MILLIS
                 + ",playerIsland=" + kr.lunaf.cloudislands.common.cache.RedisTtls.PLAYER_ISLAND_MILLIS
                 + ",playerProfile=" + kr.lunaf.cloudislands.common.cache.RedisTtls.PLAYER_PROFILE_MILLIS
@@ -426,123 +428,119 @@ public final class CoreConfigRoutes implements RouteGroup {
                 + ",islandRuntime=" + kr.lunaf.cloudislands.common.cache.RedisTtls.ISLAND_RUNTIME_MILLIS
                 + ",islandPermissions=" + kr.lunaf.cloudislands.common.cache.RedisTtls.ISLAND_PERMISSIONS_MILLIS
                 + ",lockMin=" + kr.lunaf.cloudislands.common.cache.RedisTtls.LOCK_MIN_MILLIS
-                + ",lockMax=" + kr.lunaf.cloudislands.common.cache.RedisTtls.LOCK_MAX_MILLIS + "\","
-            + "\"redisKeyPolicy\":\"ci:server:{nodeId}:*,ci:player:{uuid}:*,ci:island:{islandId}:*,ci:lock:*,ci:stream:*\","
-            + "\"cacheInvalidationSource\":\"core-write-transaction-then-global-event\","
-            + "\"cacheInvalidationEvents\":\"IslandMemberChanged,IslandFlagChanged,IslandPermissionChanged,IslandWarpChanged,IslandRuntimeChanged,IslandDeleted\","
-            + "\"cacheInvalidationEventFields\":\"cacheTargets,cacheKeys,cachePolicy\","
-            + "\"cacheInvalidationFanout\":\"core-event-stream>paper-event-poller>velocity-route-cache-if-affected>local-cache-delete\","
-            + "\"cacheInvalidationTargets\":\"player_uuid->island_id,island_id->summary,island_id->runtime,island_id->members,island_id->permissions,island_id->flags,island_id->warps,node_id->heartbeat\","
-            + "\"cacheInvalidationRedisPatterns\":\"ci:player:*:island,ci:player:*:profile,ci:player-name:*:profile,ci:addon:*:state,ci:island:*:summary,ci:island:*:runtime,ci:island:*:members,ci:island:*:permissions,ci:island:*:flags,ci:island:*:warps,ci:island:*:addon-state,ci:island:*:route-tickets,ci:rankings:*\","
-            + "\"addonStateGlobalCacheKey\":\"ci:addon:{addonId}:state\","
-            + "\"addonStateIslandCacheKey\":\"ci:island:{islandId}:addon-state\","
-            + "\"addonStateCacheInvalidationApi\":\"CacheInvalidationPlan.redisKeysFor(eventType,islandId,addonId)\","
-            + "\"cacheRedisDownPolicy\":\"degraded-db-direct-read-no-data-loss-event-propagation-delayed-jobs-and-heartbeats-limited\","
-            + "\"cacheCoreApiDownPolicy\":\"active-island-local-protection-continues-new-route-and-writes-limited\","
-            + "\"redisStreamPolicy\":\"jobs,events,audit-append-only-observability\","
-            + "\"globalEventTypes\":\"IslandCreated,IslandDeleted,IslandActivated,IslandDeactivated,IslandMigrated,IslandMemberChanged,IslandFlagChanged,IslandLevelUpdated,IslandSnapshotCreated,NodeStateChanged,RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed,RouteTicketCleared\","
-            + "\"globalEventTypeKeys\":\"" + escape(globalEventTypeKeys()) + "\","
-            + "\"globalEventRecoveryKeys\":\"ISLAND_RUNTIME_CHANGED,ISLAND_RECOVERY_REQUIRED,ISLAND_REPAIRED,NODE_STATE_CHANGED\","
-            + "\"globalEventAddonKeys\":\"ADDON_STATE_CHANGED\","
-            + "\"routeMetricsTargetServerName\":true,"
-            + "\"routeMetricsTargetServerNameEvents\":\"RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed\","
-            + "\"routeMetricsRequestedNode\":true,"
-            + "\"routeMetricsRequestedNodeEvents\":\"RouteTicketFailed\","
-            + "\"distributedLockPolicy\":\"redis-fast-lock-plus-postgresql-row-lock\","
-            + "\"fencingTokenPolicy\":\"island_runtime.fencing_token-rejects-stale-node-writes\","
-            + "\"jobCompletionContract\":\"" + kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.CONTRACT + "\","
-            + "\"jobCompletionFencingTokenKey\":\"" + kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.FENCING_TOKEN_KEY + "\","
-            + "\"jobCompletionStaleReasons\":\"" + kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.STALE_FENCING_TOKEN + "," + kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.STALE_NODE_COMPLETION + "," + kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.RUNTIME_NOT_ACCEPTING_COMPLETION + "\","
-            + "\"staleWritePolicy\":\"current-fencing-token-required-before-snapshot-or-runtime-write\","
-            + "\"snapshotKeepLatest\":" + config.snapshotKeepLatest() + ","
-            + "\"snapshotKeepHourly\":" + snapshotPolicy.keepHourly() + ","
-            + "\"snapshotKeepDaily\":" + snapshotPolicy.keepDaily() + ","
-            + "\"snapshotKeepWeekly\":" + snapshotPolicy.keepWeekly() + ","
-            + "\"snapshotKeepManual\":" + snapshotPolicy.keepManual() + ","
-            + "\"snapshotCompress\":" + snapshotPolicy.compress() + ","
-            + "\"snapshotChecksumAlgorithm\":\"" + escape(snapshotPolicy.checksumAlgorithm()) + "\","
-            + "\"snapshotRetentionMode\":\"hourly-daily-weekly-manual\","
-            + "\"snapshotAutomaticTriggerPolicy\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.AUTOMATIC_TRIGGER_POLICY) + "\","
-            + "\"snapshotRequiredTriggerReasons\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.automaticTriggerReasonSummary()) + "\","
-            + "\"snapshotManualTriggerReason\":\"MANUAL\","
-            + "\"snapshotPreRestoreReason\":\"BEFORE_RESTORE\","
-            + "\"snapshotRestorePipeline\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORE_PIPELINE_POLICY) + "\","
-            + "\"snapshotRestoringLockState\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORING_LOCK_STATE) + "\","
-            + "\"snapshotRuntimeResetPolicy\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RUNTIME_RESET_POLICY) + "\","
-            + "\"snapshotRollbackSteps\":\"" + escape(kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.rollbackStepSummary()) + "\","
-            + "\"coreApiAuthPolicy\":\"token-or-mtls-required\","
-            + "\"coreApiTokenConfigured\":" + (config.coreToken() != null && !config.coreToken().isBlank()) + ","
-            + "\"coreApiMtlsRequired\":" + config.requireMtls() + ","
-            + "\"coreApiAuthConfigured\":" + coreApiAuthConfigured(config) + ","
-            + "\"coreApiAuthLockoutRisk\":" + !coreApiAuthConfigured(config) + ","
-            + "\"adminPermissionPolicy\":\"separate-admin-permission-per-endpoint\","
-            + "\"auditLogPolicy\":\"record-admin-player-and-system-actions\","
-            + "\"controlChannelPolicy\":\"http-or-grpc-plus-redis-streams\","
-            + "\"pluginMessagingPolicy\":\"not-used-for-critical-island-control\","
-            + "\"requiredSecurityControls\":\"" + escape(String.join(",", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.requiredSecurityControls())) + "\","
-            + "\"velocityForwardingSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.MODERN_FORWARDING_POLICY) + "\","
-            + "\"paperDirectAccessSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY) + "\","
-            + "\"coreApiSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CORE_API_AUTH_POLICY) + "\","
-            + "\"infrastructureExposureSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.INFRASTRUCTURE_EXPOSURE_POLICY) + "\","
-            + "\"pluginMessagingSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PLUGIN_MESSAGING_POLICY) + "\","
-            + "\"pluginMessagingAllowedUse\":\"emergency-proxy-assist-only\","
-            + "\"pluginMessagingForbiddenUse\":\"island-create-delete-save-migrate-routing-authority\","
-            + "\"paperAgentRolePolicy\":\"LOBBY handles menus-and-query-flow,ISLAND_NODE handles-world-runtime-protection-save-teleport\","
-            + "\"paperLobbyRolePolicy\":\"no-island-world-execution-no-runtime-lease-no-shard-cell-ownership\","
-            + "\"paperIslandNodeRolePolicy\":\"activate-save-snapshot-shard-cell-preload-protection-route-ticket-consume\","
-            + "\"velocityCommandOwnershipPolicy\":\"/is-and-/섬-route-entry-owned-by-velocity-before-paper-fallback\","
-            + "\"paperCommandFallbackPolicy\":\"paper-agent-keeps-local-gui-protection-and-bungee-connect-fallback-only\","
-            + "\"createIslandFlowPolicy\":\"velocity-command-core-transaction-player-lock-node-allocator-create-job-agent-claim-template-restore-cell-runtime-active-route-ticket-ready-connect-teleport\","
-            + "\"homeRouteFlowPolicy\":\"velocity-command-core-runtime-check-active-node-or-best-node-activation-route-ticket-ready-connect-paper-teleport\","
-            + "\"visitRouteFlowPolicy\":\"target-island-lookup-public-ban-permission-check-active-or-activate-visitor-ticket-connect-visitor-spawn\","
-            + "\"softFullRoutingPolicy\":\"new-and-inactive-islands-avoid-soft-full-nodes-active-members-may-use-reserved-slots-visitors-queue-or-deny\","
-            + "\"newActivationSoftFullPolicy\":\"" + escape(config.softFullPolicy()) + "\","
-            + "\"newActivationSoftFullAvoided\":" + avoidsSoftFullNewActivations(config.softFullPolicy()) + ","
-            + "\"newActivationHardFullPolicy\":\"" + escape(config.hardFullPolicy()) + "\","
-            + "\"newActivationHardFullAllowed\":" + allowsHardFullNewActivations(config.hardFullPolicy()) + ","
-            + "\"portableIslandPolicy\":\"islands-are-global-portable-bundles-not-fixed-to-a-server-node\","
-            + "\"portableIslandResourceModel\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.RESOURCE_MODEL + "\","
-            + "\"portableIslandBundleModel\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.BUNDLE_MODEL + "\","
-            + "\"portableIslandNodeModel\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.NODE_MODEL + "\","
-            + "\"portableIslandPlayerVisibilityPolicy\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.PLAYER_VISIBILITY_POLICY + "\","
-            + "\"portableIslandScalePolicy\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SCALE_POLICY + "\","
-            + "\"portableIslandFiveSixNodePolicy\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.FIVE_SIX_NODE_POLICY + "\","
-            + "\"portableIslandScaleReadinessPolicy\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SCALE_READINESS_POLICY + "\","
-            + "\"portableIslandSoftFullPolicy\":\"" + kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SOFT_FULL_POLICY + "\","
-            + "\"portableIslandDesignEffects\":\"" + escape(kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.designEffectSummary()) + "\","
-            + "\"portableIslandDefinition\":\"" + escape(kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.ONE_LINE_DEFINITION) + "\","
-            + "\"nodeScaleOutPolicy\":\"add-island-nodes-with-unique-node-id-and-velocity-server-name-then-allocator-can-route-new-or-inactive-islands-there\","
-            + "\"rankingUpdatePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.UPDATE_POLICY) + "\","
-            + "\"blockValuePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.BLOCK_VALUE_POLICY) + "\","
-            + "\"rankingFullScanPolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.FULL_SCAN_POLICY) + "\","
-            + "\"rankingCachePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.CACHE_POLICY) + "\","
-            + "\"rankingDirtyBatchLimit\":" + kr.lunaf.cloudislands.coreservice.ranking.DirtyRankingRecalculationTask.BATCH_LIMIT + ","
-            + "\"upgradePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy.CONFIG_DRIVEN_POLICY) + "\","
-            + "\"upgradeTypePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy.SUPPORTED_TYPE_POLICY) + "\","
-            + "\"upgradeEffectPolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy.EFFECT_APPLICATION_POLICY) + "\","
-            + "\"upgradePurchasePolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService.PURCHASE_POLICY) + "\","
-            + "\"upgradeEconomyPolicy\":\"" + escape(kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService.ECONOMY_ABSTRACTION_POLICY) + "\","
-            + "\"paperUpgradeEconomyPolicy\":\"paper-agent-uses-economy-bridge-for-player-facing-upgrade-purchase\","
-            + "\"generatorPolicy\":\"paper-agent-local-generator-rules-by-island-upgrade-level\","
-            + "\"superiorSkyblock2ReplacementPolicy\":\"built-in-cloudislands-modules-replace-superiorskyblock2-runtime-dependency\","
-            + "\"superiorSkyblock2ReplacementFeatures\":\"create,template-select,delete,reset,home,multiple-homes,visit,random-visit,public-private,visitor-ban,visitor-kick,member-invite,member-kick,roles-permissions,custom-roles,flags,warps,ranking,level,worth,block-values,upgrades,size-expansion,border,biome,bank,island-chat,team-chat,missions,challenges,generator-upgrades,spawner-limits,hopper-limits,entity-limits,redstone-limits,island-logs,admin-recovery,snapshots-rollback,migration,server-drain,distributed-api,web-api,external-java-api\","
-            + "\"superiorSkyblock2ReplacementFeatureGate\":\"core-config-and-addon-feature-flags-can-disable-optional-satis-compatible-features\","
-            + "\"infrastructureExposurePolicy\":\"redis-postgresql-object-storage-private-only\","
-            + "\"publicBindRiskPolicy\":\"require-ip-allowlist-or-private-bind\","
-            + "\"adminApiEnabled\":" + config.adminApiEnabled() + ","
-            + "\"requireMtls\":" + config.requireMtls() + ","
-            + "\"ipAllowlistEnabled\":" + (config.ipAllowlist() != null && !config.ipAllowlist().isBlank()) + ","
-            + "\"requiredSecurityControls\":\"" + escape(String.join(",", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.requiredSecurityControls())) + "\","
-            + "\"pluginMessagingSecurityPolicy\":\"" + escape(kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PLUGIN_MESSAGING_POLICY) + "\","
-            + "\"rateLimitRequests\":" + config.rateLimitRequests() + ","
-            + "\"rateLimitWindowSeconds\":" + config.rateLimitWindow().toSeconds()
-            + "}";
+                + ",lockMax=" + kr.lunaf.cloudislands.common.cache.RedisTtls.LOCK_MAX_MILLIS);
+        summary.put("redisKeyPolicy", "ci:server:{nodeId}:*,ci:player:{uuid}:*,ci:island:{islandId}:*,ci:lock:*,ci:stream:*");
+        summary.put("cacheInvalidationSource", "core-write-transaction-then-global-event");
+        summary.put("cacheInvalidationEvents", "IslandMemberChanged,IslandFlagChanged,IslandPermissionChanged,IslandWarpChanged,IslandRuntimeChanged,IslandDeleted");
+        summary.put("cacheInvalidationEventFields", "cacheTargets,cacheKeys,cachePolicy");
+        summary.put("cacheInvalidationFanout", "core-event-stream>paper-event-poller>velocity-route-cache-if-affected>local-cache-delete");
+        summary.put("cacheInvalidationTargets", "player_uuid->island_id,island_id->summary,island_id->runtime,island_id->members,island_id->permissions,island_id->flags,island_id->warps,node_id->heartbeat");
+        summary.put("cacheInvalidationRedisPatterns", "ci:player:*:island,ci:player:*:profile,ci:player-name:*:profile,ci:addon:*:state,ci:island:*:summary,ci:island:*:runtime,ci:island:*:members,ci:island:*:permissions,ci:island:*:flags,ci:island:*:warps,ci:island:*:addon-state,ci:island:*:route-tickets,ci:rankings:*");
+        summary.put("addonStateGlobalCacheKey", "ci:addon:{addonId}:state");
+        summary.put("addonStateIslandCacheKey", "ci:island:{islandId}:addon-state");
+        summary.put("addonStateCacheInvalidationApi", "CacheInvalidationPlan.redisKeysFor(eventType,islandId,addonId)");
+        summary.put("cacheRedisDownPolicy", "degraded-db-direct-read-no-data-loss-event-propagation-delayed-jobs-and-heartbeats-limited");
+        summary.put("cacheCoreApiDownPolicy", "active-island-local-protection-continues-new-route-and-writes-limited");
+        summary.put("redisStreamPolicy", "jobs,events,audit-append-only-observability");
+        summary.put("globalEventTypes", "IslandCreated,IslandDeleted,IslandActivated,IslandDeactivated,IslandMigrated,IslandMemberChanged,IslandFlagChanged,IslandLevelUpdated,IslandSnapshotCreated,NodeStateChanged,RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed,RouteTicketCleared");
+        summary.put("globalEventTypeKeys", globalEventTypeKeys());
+        summary.put("globalEventRecoveryKeys", "ISLAND_RUNTIME_CHANGED,ISLAND_RECOVERY_REQUIRED,ISLAND_REPAIRED,NODE_STATE_CHANGED");
+        summary.put("globalEventAddonKeys", "ADDON_STATE_CHANGED");
+        summary.put("routeMetricsTargetServerName", true);
+        summary.put("routeMetricsTargetServerNameEvents", "RouteTicketCreated,RouteSessionPublished,RouteTicketConsumed,RouteTicketFailed");
+        summary.put("routeMetricsRequestedNode", true);
+        summary.put("routeMetricsRequestedNodeEvents", "RouteTicketFailed");
+        summary.put("distributedLockPolicy", "redis-fast-lock-plus-postgresql-row-lock");
+        summary.put("fencingTokenPolicy", "island_runtime.fencing_token-rejects-stale-node-writes");
+        summary.put("jobCompletionContract", kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.CONTRACT);
+        summary.put("jobCompletionFencingTokenKey", kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.FENCING_TOKEN_KEY);
+        summary.put("jobCompletionStaleReasons", kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.STALE_FENCING_TOKEN + "," + kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.STALE_NODE_COMPLETION + "," + kr.lunaf.cloudislands.protocol.job.IslandJobCompletionPolicy.RUNTIME_NOT_ACCEPTING_COMPLETION);
+        summary.put("staleWritePolicy", "current-fencing-token-required-before-snapshot-or-runtime-write");
+        summary.put("snapshotKeepLatest", config.snapshotKeepLatest());
+        summary.put("snapshotKeepHourly", snapshotPolicy.keepHourly());
+        summary.put("snapshotKeepDaily", snapshotPolicy.keepDaily());
+        summary.put("snapshotKeepWeekly", snapshotPolicy.keepWeekly());
+        summary.put("snapshotKeepManual", snapshotPolicy.keepManual());
+        summary.put("snapshotCompress", snapshotPolicy.compress());
+        summary.put("snapshotChecksumAlgorithm", snapshotPolicy.checksumAlgorithm());
+        summary.put("snapshotRetentionMode", "hourly-daily-weekly-manual");
+        summary.put("snapshotAutomaticTriggerPolicy", kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.AUTOMATIC_TRIGGER_POLICY);
+        summary.put("snapshotRequiredTriggerReasons", kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.automaticTriggerReasonSummary());
+        summary.put("snapshotManualTriggerReason", "MANUAL");
+        summary.put("snapshotPreRestoreReason", "BEFORE_RESTORE");
+        summary.put("snapshotRestorePipeline", kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORE_PIPELINE_POLICY);
+        summary.put("snapshotRestoringLockState", kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORING_LOCK_STATE);
+        summary.put("snapshotRuntimeResetPolicy", kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RUNTIME_RESET_POLICY);
+        summary.put("snapshotRollbackSteps", kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.rollbackStepSummary());
+        summary.put("coreApiAuthPolicy", "token-or-mtls-required");
+        summary.put("coreApiTokenConfigured", (config.coreToken() != null && !config.coreToken().isBlank()));
+        summary.put("coreApiMtlsRequired", config.requireMtls());
+        summary.put("coreApiAuthConfigured", coreApiAuthConfigured(config));
+        summary.put("coreApiAuthLockoutRisk", !coreApiAuthConfigured(config));
+        summary.put("adminPermissionPolicy", "separate-admin-permission-per-endpoint");
+        summary.put("auditLogPolicy", "record-admin-player-and-system-actions");
+        summary.put("controlChannelPolicy", "http-or-grpc-plus-redis-streams");
+        summary.put("pluginMessagingPolicy", "not-used-for-critical-island-control");
+        summary.put("requiredSecurityControls", String.join(",", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.requiredSecurityControls()));
+        summary.put("velocityForwardingSecurityPolicy", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.MODERN_FORWARDING_POLICY);
+        summary.put("paperDirectAccessSecurityPolicy", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY);
+        summary.put("coreApiSecurityPolicy", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CORE_API_AUTH_POLICY);
+        summary.put("infrastructureExposureSecurityPolicy", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.INFRASTRUCTURE_EXPOSURE_POLICY);
+        summary.put("pluginMessagingSecurityPolicy", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PLUGIN_MESSAGING_POLICY);
+        summary.put("pluginMessagingAllowedUse", "emergency-proxy-assist-only");
+        summary.put("pluginMessagingForbiddenUse", "island-create-delete-save-migrate-routing-authority");
+        summary.put("paperAgentRolePolicy", "LOBBY handles menus-and-query-flow,ISLAND_NODE handles-world-runtime-protection-save-teleport");
+        summary.put("paperLobbyRolePolicy", "no-island-world-execution-no-runtime-lease-no-shard-cell-ownership");
+        summary.put("paperIslandNodeRolePolicy", "activate-save-snapshot-shard-cell-preload-protection-route-ticket-consume");
+        summary.put("velocityCommandOwnershipPolicy", "/is-and-/섬-route-entry-owned-by-velocity-before-paper-fallback");
+        summary.put("paperCommandFallbackPolicy", "paper-agent-keeps-local-gui-protection-and-bungee-connect-fallback-only");
+        summary.put("createIslandFlowPolicy", "velocity-command-core-transaction-player-lock-node-allocator-create-job-agent-claim-template-restore-cell-runtime-active-route-ticket-ready-connect-teleport");
+        summary.put("homeRouteFlowPolicy", "velocity-command-core-runtime-check-active-node-or-best-node-activation-route-ticket-ready-connect-paper-teleport");
+        summary.put("visitRouteFlowPolicy", "target-island-lookup-public-ban-permission-check-active-or-activate-visitor-ticket-connect-visitor-spawn");
+        summary.put("softFullRoutingPolicy", "new-and-inactive-islands-avoid-soft-full-nodes-active-members-may-use-reserved-slots-visitors-queue-or-deny");
+        summary.put("newActivationSoftFullPolicy", config.softFullPolicy());
+        summary.put("newActivationSoftFullAvoided", avoidsSoftFullNewActivations(config.softFullPolicy()));
+        summary.put("newActivationHardFullPolicy", config.hardFullPolicy());
+        summary.put("newActivationHardFullAllowed", allowsHardFullNewActivations(config.hardFullPolicy()));
+        summary.put("portableIslandPolicy", "islands-are-global-portable-bundles-not-fixed-to-a-server-node");
+        summary.put("portableIslandResourceModel", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.RESOURCE_MODEL);
+        summary.put("portableIslandBundleModel", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.BUNDLE_MODEL);
+        summary.put("portableIslandNodeModel", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.NODE_MODEL);
+        summary.put("portableIslandPlayerVisibilityPolicy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.PLAYER_VISIBILITY_POLICY);
+        summary.put("portableIslandScalePolicy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SCALE_POLICY);
+        summary.put("portableIslandFiveSixNodePolicy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.FIVE_SIX_NODE_POLICY);
+        summary.put("portableIslandScaleReadinessPolicy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SCALE_READINESS_POLICY);
+        summary.put("portableIslandSoftFullPolicy", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.SOFT_FULL_POLICY);
+        summary.put("portableIslandDesignEffects", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.designEffectSummary());
+        summary.put("portableIslandDefinition", kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy.ONE_LINE_DEFINITION);
+        summary.put("nodeScaleOutPolicy", "add-island-nodes-with-unique-node-id-and-velocity-server-name-then-allocator-can-route-new-or-inactive-islands-there");
+        summary.put("rankingUpdatePolicy", kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.UPDATE_POLICY);
+        summary.put("blockValuePolicy", kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.BLOCK_VALUE_POLICY);
+        summary.put("rankingFullScanPolicy", kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.FULL_SCAN_POLICY);
+        summary.put("rankingCachePolicy", kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService.CACHE_POLICY);
+        summary.put("rankingDirtyBatchLimit", kr.lunaf.cloudislands.coreservice.ranking.DirtyRankingRecalculationTask.BATCH_LIMIT);
+        summary.put("upgradePolicy", kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy.CONFIG_DRIVEN_POLICY);
+        summary.put("upgradeTypePolicy", kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy.SUPPORTED_TYPE_POLICY);
+        summary.put("upgradeEffectPolicy", kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy.EFFECT_APPLICATION_POLICY);
+        summary.put("upgradePurchasePolicy", kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService.PURCHASE_POLICY);
+        summary.put("upgradeEconomyPolicy", kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService.ECONOMY_ABSTRACTION_POLICY);
+        summary.put("paperUpgradeEconomyPolicy", "paper-agent-uses-economy-bridge-for-player-facing-upgrade-purchase");
+        summary.put("generatorPolicy", "paper-agent-local-generator-rules-by-island-upgrade-level");
+        summary.put("superiorSkyblock2ReplacementPolicy", "built-in-cloudislands-modules-replace-superiorskyblock2-runtime-dependency");
+        summary.put("superiorSkyblock2ReplacementFeatures", "create,template-select,delete,reset,home,multiple-homes,visit,random-visit,public-private,visitor-ban,visitor-kick,member-invite,member-kick,roles-permissions,custom-roles,flags,warps,ranking,level,worth,block-values,upgrades,size-expansion,border,biome,bank,island-chat,team-chat,missions,challenges,generator-upgrades,spawner-limits,hopper-limits,entity-limits,redstone-limits,island-logs,admin-recovery,snapshots-rollback,migration,server-drain,distributed-api,web-api,external-java-api");
+        summary.put("superiorSkyblock2ReplacementFeatureGate", "core-config-and-addon-feature-flags-can-disable-optional-satis-compatible-features");
+        summary.put("infrastructureExposurePolicy", "redis-postgresql-object-storage-private-only");
+        summary.put("publicBindRiskPolicy", "require-ip-allowlist-or-private-bind");
+        summary.put("adminApiEnabled", config.adminApiEnabled());
+        summary.put("requireMtls", config.requireMtls());
+        summary.put("ipAllowlistEnabled", (config.ipAllowlist() != null && !config.ipAllowlist().isBlank()));
+        summary.put("requiredSecurityControls", String.join(",", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.requiredSecurityControls()));
+        summary.put("pluginMessagingSecurityPolicy", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PLUGIN_MESSAGING_POLICY);
+        summary.put("rateLimitRequests", config.rateLimitRequests());
+        summary.put("rateLimitWindowSeconds", config.rateLimitWindow().toSeconds());
+        return SimpleJson.stringify(summary);
     }
 
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
 
     private static boolean avoidsSoftFullNewActivations(String policy) {
         return policy == null
