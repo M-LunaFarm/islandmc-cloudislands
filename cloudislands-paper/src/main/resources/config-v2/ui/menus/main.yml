@@ -3,65 +3,184 @@ rows: 6
 title-key: menu.main.title
 layout:
   - "........."
-  - ".H.W.V..."
-  - ".M.P.S..."
+  - ".H.C.W.V."
+  - ".Y.M.P.S."
   - ".Q.U.B.R."
-  - ".I.L.T..."
-  - "B.......D"
+  - ".I.L.T.N."
+  - ".E.....AD"
 items:
   H:
     material: GRASS_BLOCK
     name-key: menu.main.home.name
+    fallback-name: 내 섬으로 이동
+    lore-keys:
+      - main-menu-home-left
+      - main-menu-home-right
+    fallback-lore:
+      - "좌클릭: /섬 홈"
+      - "우클릭: /섬 홈관리"
     action: island.home
+  C:
+    material: OAK_SAPLING
+    name-key: main-menu-create-name
+    fallback-name: 섬 생성
+    lore-keys:
+      - main-menu-create-command
+    fallback-lore:
+      - "/섬 생성"
+    action: island.create.open
   W:
     material: ENDER_PEARL
     name-key: menu.main.warps.name
+    fallback-name: 섬 워프
+    lore-keys:
+      - main-menu-warp-command
+    fallback-lore:
+      - "/섬 워프"
     action: island.warps.open
   V:
     material: COMPASS
     name-key: menu.main.visit.name
+    fallback-name: 섬 방문
+    lore-keys:
+      - main-menu-visit-left
+      - main-menu-visit-right
+    fallback-lore:
+      - "좌클릭: 공개 섬 목록"
+      - "우클릭: /섬 랜덤방문"
     action: island.visit.open
+  Y:
+    material: FILLED_MAP
+    name-key: main-menu-my-islands-name
+    fallback-name: 내 섬 목록
+    lore-keys:
+      - main-menu-my-islands-command
+    fallback-lore:
+      - "/섬 목록"
+    action: island.list.open
   M:
     material: PLAYER_HEAD
     name-key: menu.main.members.name
+    fallback-name: 멤버 관리
+    lore-keys:
+      - main-menu-member-command
+    fallback-lore:
+      - "/섬 멤버"
     action: island.members.open
   P:
     material: NAME_TAG
     name-key: menu.main.permissions.name
+    fallback-name: 권한 관리
+    lore-keys:
+      - permission-menu-main-menu-command
+    fallback-lore:
+      - "/섬 권한"
     action: island.permissions.open
   S:
     material: COMPARATOR
     name-key: menu.main.settings.name
+    fallback-name: 섬 설정
+    lore-keys:
+      - main-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
     action: island.settings.open
   Q:
     material: GOLD_BLOCK
     name-key: menu.main.ranking.name
+    fallback-name: 섬 랭킹
+    lore-keys:
+      - main-menu-ranking-command
+    fallback-lore:
+      - "/섬 랭킹"
     action: island.ranking.open
   U:
     material: BEACON
     name-key: menu.main.upgrades.name
+    fallback-name: 업그레이드
+    lore-keys:
+      - main-menu-upgrade-command
+    fallback-lore:
+      - "/섬 업그레이드"
     action: island.upgrades.open
   B:
     material: EMERALD
     name-key: menu.main.bank.name
+    fallback-name: 섬 은행
+    lore-keys:
+      - main-menu-bank-command
+    fallback-lore:
+      - "/섬 은행"
     action: island.bank.open
   R:
     material: CHEST
     name-key: menu.main.snapshots.name
+    fallback-name: 스냅샷
+    lore-keys:
+      - main-menu-snapshot-command
+    fallback-lore:
+      - "/섬 스냅샷"
     action: island.snapshots.open
   I:
     material: MAP
     name-key: menu.main.info.name
+    fallback-name: 섬 정보
+    lore-keys:
+      - main-menu-info-command
+    fallback-lore:
+      - "/섬 정보"
     action: island.info.open
   L:
     material: HOPPER
     name-key: menu.main.limits.name
+    fallback-name: 제한
+    lore-keys:
+      - main-menu-limit-command
+    fallback-lore:
+      - "/섬 제한"
     action: island.limits.open
   T:
     material: WRITABLE_BOOK
     name-key: menu.main.chat.name
+    fallback-name: 섬 채팅
+    lore-keys:
+      - main-menu-chat-command
+    fallback-lore:
+      - "/섬 채팅"
     action: island.chat.open
+  N:
+    material: BOOK
+    name-key: main-menu-mission-name
+    fallback-name: 미션
+    lore-keys:
+      - main-menu-mission-command
+    fallback-lore:
+      - "/섬 미션"
+    action: island.missions.open
+  E:
+    material: GRASS_BLOCK
+    name-key: main-menu-biome-name
+    fallback-name: 바이옴
+    lore-keys:
+      - main-menu-biome-command
+    fallback-lore:
+      - "/섬 바이옴"
+    action: island.biome.open
+  A:
+    material: COMMAND_BLOCK
+    name-key: main-menu-admin-name
+    fallback-name: 관리자 메뉴
+    lore-keys:
+      - main-menu-admin-command
+    fallback-lore:
+      - "/ciadmin node menu"
+    action: admin.node.open
   D:
     material: LAVA_BUCKET
     name-key: menu.main.danger.name
+    fallback-name: 위험 구역
+    lore-keys:
+      - danger-menu-title
+    fallback-lore:
+      - "삭제와 위험 작업"
     action: island.danger.open

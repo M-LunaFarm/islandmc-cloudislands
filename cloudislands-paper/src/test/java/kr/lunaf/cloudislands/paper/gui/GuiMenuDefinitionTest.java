@@ -68,4 +68,31 @@ class GuiMenuDefinitionTest {
         assertEquals("T", definition.itemAt(12).orElseThrow().symbol());
         assertEquals("logs", definition.itemAt(14).orElseThrow().actionKey());
     }
+
+    @Test
+    void bundledMainMenuDefinitionCoversLegacyMainMenuActionsDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/main.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.main", definition.id());
+        assertEquals(54, definition.size());
+        assertEquals("menu.main.title", definition.titleKey());
+        assertEquals("H", definition.itemAt(10).orElseThrow().symbol());
+        assertEquals("island.home", definition.itemAt(10).orElseThrow().actionKey());
+        assertEquals("C", definition.itemAt(12).orElseThrow().symbol());
+        assertEquals("island.create.open", definition.itemAt(12).orElseThrow().actionKey());
+        assertEquals("Y", definition.itemAt(19).orElseThrow().symbol());
+        assertEquals("island.list.open", definition.itemAt(19).orElseThrow().actionKey());
+        assertEquals("B", definition.itemAt(32).orElseThrow().symbol());
+        assertEquals("island.bank.open", definition.itemAt(32).orElseThrow().actionKey());
+        assertEquals("N", definition.itemAt(43).orElseThrow().symbol());
+        assertEquals("island.missions.open", definition.itemAt(43).orElseThrow().actionKey());
+        assertEquals("E", definition.itemAt(46).orElseThrow().symbol());
+        assertEquals("island.biome.open", definition.itemAt(46).orElseThrow().actionKey());
+        assertEquals("A", definition.itemAt(52).orElseThrow().symbol());
+        assertEquals("admin.node.open", definition.itemAt(52).orElseThrow().actionKey());
+        assertEquals("D", definition.itemAt(53).orElseThrow().symbol());
+    }
 }
