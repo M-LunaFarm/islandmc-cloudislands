@@ -1949,7 +1949,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandBiomeSnapshot> getBiome(UUID islandId) {
-            return client.islandBiome(islandId).thenApply(PaperCloudIslandsApi::biome);
+            return client.environment().islandBiome(islandId).thenApply(view -> biome(islandId, view));
         }
 
         @Override
@@ -3114,6 +3114,15 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             text(json, "biomeKey", "minecraft:plains"),
             uuid(json, "updatedBy", new UUID(0L, 0L)),
             instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        );
+    }
+
+    private static IslandBiomeSnapshot biome(UUID islandId, CoreGuiViews.BiomeView view) {
+        return new IslandBiomeSnapshot(
+            islandId == null ? new UUID(0L, 0L) : islandId,
+            view == null || view.key().isBlank() ? "minecraft:plains" : view.key(),
+            view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.updatedBy()),
+            instant(view == null ? "" : view.updatedAt())
         );
     }
 

@@ -46,7 +46,10 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<BiomeView> islandBiome(CoreApiClient client, UUID islandId) {
-        return client.islandBiome(islandId).thenApply(body -> new BiomeView(text(root(body), "biomeKey")));
+        return client.islandBiome(islandId).thenApply(body -> {
+            Map<?, ?> root = root(body);
+            return new BiomeView(text(root, "biomeKey"), text(root, "updatedBy"), text(root, "updatedAt"));
+        });
     }
 
     public static CompletableFuture<Map<IslandFlag, String>> islandFlags(CoreApiClient client, UUID islandId) {
@@ -538,9 +541,15 @@ public final class CoreGuiViews {
     public record BankView(String balance, String updatedAt) {
     }
 
-    public record BiomeView(String key) {
+    public record BiomeView(String key, String updatedBy, String updatedAt) {
+        public BiomeView(String key) {
+            this(key, "", "");
+        }
+
         public BiomeView {
             key = key == null ? "" : key;
+            updatedBy = updatedBy == null ? "" : updatedBy;
+            updatedAt = updatedAt == null ? "" : updatedAt;
         }
     }
 

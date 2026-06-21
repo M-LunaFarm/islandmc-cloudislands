@@ -194,11 +194,14 @@ class CoreTypedClientsTest {
     @Test
     void environmentQueryClientReturnsTypedEnvironmentViews() {
         UUID islandId = UUID.randomUUID();
+        UUID playerUuid = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "islandBiome" -> CompletableFuture.completedFuture("{\"biomeKey\":\"minecraft:plains\"}");
+                case "islandBiome" -> CompletableFuture.completedFuture("""
+                    {"biomeKey":"minecraft:plains","updatedBy":"%s","updatedAt":"2026-06-21T00:00:00Z"}
+                    """.formatted(playerUuid));
                 case "islandInfo" -> CompletableFuture.completedFuture("""
                     {"islandId":"%s","name":"Spawn","state":"ACTIVE","size":300,"border":310}
                     """.formatted(islandId));
@@ -209,7 +212,10 @@ class CoreTypedClientsTest {
         );
         IslandEnvironmentQueryClient client = new CoreIslandEnvironmentQueryClient(raw);
 
-        assertEquals("minecraft:plains", client.islandBiome(islandId).join().key());
+        CoreGuiViews.BiomeView biome = client.islandBiome(islandId).join();
+        assertEquals("minecraft:plains", biome.key());
+        assertEquals(playerUuid.toString(), biome.updatedBy());
+        assertEquals("2026-06-21T00:00:00Z", biome.updatedAt());
         assertEquals(300L, client.getIsland(islandId).join().size());
         assertEquals("blue", client.flagValues(islandId).join().get(IslandFlag.BORDER_COLOR));
         assertEquals("HOPPER", client.limitViews(islandId).join().get(0).key());

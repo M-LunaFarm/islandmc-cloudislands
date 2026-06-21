@@ -440,6 +440,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.progression().upgrades(islandId).thenApply(views -> upgrades(islandId, views))"), "Public API upgrades must use typed progression query client");
         assertTrue(source.contains("client.progression().upgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules)"), "Public API upgrade rules must use typed progression query client");
         assertTrue(source.contains("client.progression().missions(islandId, kind).thenApply(views -> missions(islandId, kind, views))"), "Public API missions must use typed progression query client");
+        assertTrue(source.contains("client.environment().islandBiome(islandId).thenApply(view -> biome(islandId, view))"), "Public API biome must use typed environment query client");
         assertTrue(source.contains("client.environment().flagValues(islandId).thenApply(values -> flags(islandId, values))"), "Public API flags must use typed environment query client");
         assertTrue(source.contains("client.environment().limitViews(islandId).thenApply(views -> limits(islandId, views))"), "Public API limits must use typed environment query client");
         assertTrue(source.contains("client.blockValues().list().thenApply(PaperCloudIslandsApi::blockValues)"), "Public API block values must use typed block value query client");
@@ -469,6 +470,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("return client.listIslandUpgrades(islandId).thenApply(PaperCloudIslandsApi::upgrades);"), "Public API query surface must not use raw upgrade JSON for upgrades");
         assertTrue(!source.contains("return client.listUpgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules);"), "Public API query surface must not use raw upgrade rule JSON for upgrade rules");
         assertTrue(!source.contains("return client.listIslandMissions(islandId, kind).thenApply(PaperCloudIslandsApi::missions);"), "Public API query surface must not use raw mission JSON for missions");
+        assertTrue(!source.contains("return client.islandBiome(islandId).thenApply(PaperCloudIslandsApi::biome);"), "Public API query surface must not use raw biome JSON for biome");
         assertTrue(!source.contains("return client.listIslandFlags(islandId).thenApply(PaperCloudIslandsApi::flags);"), "Public API query surface must not use raw flag JSON for flags");
         assertTrue(!source.contains("return client.listIslandLimits(islandId).thenApply(PaperCloudIslandsApi::limits);"), "Public API query surface must not use raw limit JSON for limits");
         assertTrue(!source.contains("return client.listBlockValues().thenApply(PaperCloudIslandsApi::blockValues);"), "Public API query surface must not use raw block value JSON for block values");
