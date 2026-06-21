@@ -236,6 +236,49 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void navigationQueryClientReturnsTypedProfilesPublicIslandsAndReviews() {
+        UUID islandId = UUID.randomUUID();
+        UUID reviewerUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "playerInfoByName" -> {
+                    calls.add("profile:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"playerUuid":"%s","primaryIslandId":"%s"}
+                        """.formatted(reviewerUuid, islandId));
+                }
+                case "listPublicIslands" -> {
+                    calls.add("public:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"islands":[{"islandId":"%s","ownerUuid":"%s","name":"Spawn","level":7,"worth":"1200"}]}
+                        """.formatted(islandId, reviewerUuid));
+                }
+                case "listIslandReviews" -> {
+                    calls.add("reviews:" + args[1]);
+                    yield CompletableFuture.completedFuture("""
+                        {"reviews":[{"reviewerUuid":"%s","rating":5,"comment":"nice"}],"summary":{"count":1,"average":5.0}}
+                        """.formatted(reviewerUuid));
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        NavigationQueryClient client = new CoreNavigationQueryClient(raw);
+
+        CoreGuiViews.PlayerProfileView profile = client.playerProfileByName(" Alice ").join();
+        CoreGuiViews.PublicIslandView island = client.publicIslands(500).join().get(0);
+        ReviewListView reviews = client.listReviews(islandId, 0).join();
+
+        assertEquals(List.of("profile:Alice", "public:100", "reviews:1"), calls);
+        assertEquals(islandId.toString(), profile.primaryIslandId());
+        assertEquals("Spawn", island.name());
+        assertEquals(1L, reviews.count());
+        assertEquals("nice", reviews.reviews().get(0).comment());
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

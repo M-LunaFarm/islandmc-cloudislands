@@ -8,18 +8,32 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreNavigationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
-import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.coreclient.NavigationQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PublicIslandView;
 
 public final class IslandNavigationUseCase {
     private final CoreApiClient coreApiClient;
+    private final NavigationQueryClient navigationQueries;
 
     public IslandNavigationUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.navigationQueries = new CoreNavigationQueryClient(coreApiClient);
+    }
+
+    IslandNavigationUseCase(CoreApiClient coreApiClient, NavigationQueryClient navigationQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (navigationQueries == null) {
+            throw new IllegalArgumentException("navigationQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.navigationQueries = navigationQueries;
     }
 
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID islandId, MutationRunner runner) {
@@ -61,9 +75,8 @@ public final class IslandNavigationUseCase {
         if (islandId != null) {
             return createVisitTicket(visitorUuid, islandId, runner);
         }
-        return coreApiClient.playerInfoByName(normalizedTarget)
-            .thenCompose(body -> {
-                CoreGuiViews.PlayerProfileView profile = CoreGuiViews.playerProfile(body);
+        return navigationQueries.playerProfileByName(normalizedTarget)
+            .thenCompose(profile -> {
                 UUID primaryIslandId = uuid(profile.primaryIslandId());
                 if (primaryIslandId == null) {
                     return createVisitTicketByName(visitorUuid, normalizedTarget, runner);
@@ -77,18 +90,14 @@ public final class IslandNavigationUseCase {
     }
 
     public CompletableFuture<List<PublicIslandView>> publicIslandViews(int limit) {
-        return PaperGuiViews.publicIslands(coreApiClient, boundedLimit(limit));
-    }
-
-    private CompletableFuture<String> listReviewBodies(UUID islandId, int limit) {
-        if (islandId == null) {
-            throw new IllegalArgumentException("islandId is required");
-        }
-        return coreApiClient.listIslandReviews(islandId, boundedLimit(limit));
+        return navigationQueries.publicIslands(limit).thenApply(views -> views.stream().map(IslandNavigationUseCase::publicIslandView).toList());
     }
 
     public CompletableFuture<ReviewListView> reviewViews(UUID islandId, int limit) {
-        return listReviewBodies(islandId, limit).thenApply(IslandNavigationUseCase::reviewViews);
+        if (islandId == null) {
+            throw new IllegalArgumentException("islandId is required");
+        }
+        return navigationQueries.listReviews(islandId, limit).thenApply(IslandNavigationUseCase::reviewViews);
     }
 
     private CompletableFuture<String> setReviewBody(UUID islandId, UUID reviewerUuid, int rating, String comment, IdempotentMutationRunner runner) {
@@ -108,19 +117,18 @@ public final class IslandNavigationUseCase {
             .thenApply(IslandNavigationUseCase::reviewActionResult);
     }
 
-    private static ReviewListView reviewViews(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        Map<?, ?> summary = SimpleJson.object(root.get("summary"));
-        List<ReviewView> reviews = SimpleJson.list(root.get("reviews")).stream()
-            .map(SimpleJson::object)
-            .map(review -> new ReviewView(
-                text(review, "reviewerUuid"),
-                SimpleJson.number(review.get("rating")),
-                text(review, "comment")
-            ))
-            .filter(review -> !review.reviewerUuid().isBlank())
-            .toList();
-        return new ReviewListView(SimpleJson.number(summary.get("count")), doubleValue(summary.get("average")), reviews);
+    private static PublicIslandView publicIslandView(CoreGuiViews.PublicIslandView view) {
+        return new PublicIslandView(view.islandId(), view.ownerUuid(), view.name(), view.level(), view.worth());
+    }
+
+    private static ReviewListView reviewViews(kr.lunaf.cloudislands.coreclient.ReviewListView view) {
+        return new ReviewListView(
+            view.count(),
+            view.average(),
+            view.reviews().stream()
+                .map(review -> new ReviewView(review.reviewerUuid(), review.rating(), review.comment()))
+                .toList()
+        );
     }
 
     private static ReviewActionResult reviewActionResult(String body) {
@@ -163,20 +171,6 @@ public final class IslandNavigationUseCase {
 
     private static String text(Map<?, ?> object, String key) {
         return SimpleJson.text(object.get(key));
-    }
-
-    private static double doubleValue(Object value) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        if (value instanceof String text) {
-            try {
-                return Double.parseDouble(text);
-            } catch (NumberFormatException ignored) {
-                return 0D;
-            }
-        }
-        return 0D;
     }
 
     private static UUID uuid(String value) {

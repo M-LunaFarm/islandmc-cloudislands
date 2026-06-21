@@ -52,6 +52,10 @@ public interface CoreApiClient {
         return new CoreHomeWarpQueryClient(this);
     }
 
+    default NavigationQueryClient navigation() {
+        return new CoreNavigationQueryClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

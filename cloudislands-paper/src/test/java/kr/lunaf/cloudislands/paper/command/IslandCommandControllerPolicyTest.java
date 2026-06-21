@@ -328,7 +328,9 @@ class IslandCommandControllerPolicyTest {
         assertFalse(visitReviewHandler.contains("coreApiClient.setIslandReview"));
         assertTrue(navigationUseCase.contains("coreApiClient.createVisitTicket"));
         assertTrue(navigationUseCase.contains("coreApiClient.createRandomVisitTicket"));
-        assertTrue(navigationUseCase.contains("PaperGuiViews.publicIslands(coreApiClient"), "public island list usecase must read through the typed view mapper");
+        assertTrue(navigationUseCase.contains("NavigationQueryClient navigationQueries"), "navigation reads must stay behind a typed core-client query boundary");
+        assertTrue(navigationUseCase.contains("navigationQueries.publicIslands"), "public island list usecase must read through the typed navigation query client");
+        assertFalse(navigationUseCase.contains("PaperGuiViews.publicIslands(coreApiClient"), "public island list usecase must not parse raw Core bodies in Paper");
         assertFalse(navigationUseCase.contains("public CompletableFuture<String> listPublicIslands("), "public island list usecase must expose typed views instead of raw JSON");
         assertFalse(navigationUseCase.contains("public CompletableFuture<String> listReviews("), "review list usecase must expose typed views instead of raw JSON");
         assertFalse(navigationUseCase.contains("public CompletableFuture<String> setReview("), "review mutation usecase must expose typed actions instead of raw JSON");
