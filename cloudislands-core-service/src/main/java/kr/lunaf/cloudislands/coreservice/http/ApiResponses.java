@@ -5,8 +5,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class ApiResponses {
     private ApiResponses() {}
@@ -21,41 +23,29 @@ public final class ApiResponses {
     }
 
     public static String ok(boolean accepted) {
-        return "{\"accepted\":" + accepted + "}";
+        return SimpleJson.stringify(Map.of("accepted", accepted));
     }
 
     public static String error(String code, String message) {
-        return "{\"error\":{\"code\":\"" + escape(code) + "\",\"message\":\"" + escape(message) + "\",\"timestamp\":\"" + Instant.now() + "\"}}";
+        return error(code, message, Map.of());
     }
 
     public static String error(String code, String message, Map<String, String> details) {
-        StringBuilder builder = new StringBuilder("{\"error\":{\"code\":\"")
-            .append(escape(code))
-            .append("\",\"message\":\"")
-            .append(escape(message))
-            .append("\",\"timestamp\":\"")
-            .append(Instant.now())
-            .append("\"");
+        LinkedHashMap<String, Object> error = new LinkedHashMap<>();
+        error.put("code", safe(code));
+        error.put("message", safe(message));
+        error.put("timestamp", Instant.now());
         if (details != null && !details.isEmpty()) {
-            builder.append(",\"details\":{");
-            boolean first = true;
+            LinkedHashMap<String, String> safeDetails = new LinkedHashMap<>();
             for (Map.Entry<String, String> entry : details.entrySet()) {
-                if (!first) {
-                    builder.append(',');
-                }
-                first = false;
-                builder.append('"')
-                    .append(escape(entry.getKey()))
-                    .append("\":\"")
-                    .append(escape(entry.getValue()))
-                    .append('"');
+                safeDetails.put(safe(entry.getKey()), safe(entry.getValue()));
             }
-            builder.append('}');
+            error.put("details", safeDetails);
         }
-        return builder.append("}}").toString();
+        return SimpleJson.stringify(Map.of("error", error));
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    private static String safe(String value) {
+        return value == null ? "" : value;
     }
 }
