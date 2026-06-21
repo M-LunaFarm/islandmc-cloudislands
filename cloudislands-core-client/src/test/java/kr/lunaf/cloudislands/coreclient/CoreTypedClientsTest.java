@@ -485,6 +485,28 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void adminCoreConfigClientReturnsTypedConfigView() {
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "coreConfig" -> CompletableFuture.completedFuture("""
+                    {"repositoryMode":"JDBC","jobQueueMode":"REDIS","eventBusMode":"REDIS","islandPortableBundle":true,"databasePoolSize":16,"addonStateBulkSaveGlobalEndpoint":"/v1/addons/state/bulk-save"}
+                    """);
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        AdminCoreConfigView config = new CoreAdminCoreConfigQueryClient(raw).config().join();
+
+        assertEquals("JDBC", config.text("repositoryMode"));
+        assertEquals("REDIS", config.text("jobQueueMode"));
+        assertTrue(config.bool("islandPortableBundle"));
+        assertEquals(16L, config.number("databasePoolSize"));
+        assertEquals("/v1/addons/state/bulk-save", config.text("addonStateBulkSaveGlobalEndpoint"));
+        assertTrue(config.code().isBlank());
+    }
+
+    @Test
     void snapshotCommandClientReturnsTypedActionViews() {
         UUID islandId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();

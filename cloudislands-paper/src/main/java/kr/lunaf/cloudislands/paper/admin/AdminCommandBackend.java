@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
+import kr.lunaf.cloudislands.coreclient.AdminCoreConfigView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
 import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
@@ -353,7 +354,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length > 1 && args[1].equalsIgnoreCase("endpoints")) {
-            run(sender, "Addon endpoints", coreApiClient.coreConfig().thenApply(this::addonEndpointMessage));
+            run(sender, "Addon endpoints", coreApiClient.adminCoreConfig().config().thenApply(this::addonEndpointMessage));
             return true;
         }
         CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
@@ -439,7 +440,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private boolean handleConfig(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("show")) {
-            run(sender, "Core config", coreApiClient.coreConfig().thenApply(this::coreConfigMessage));
+            run(sender, "Core config", coreApiClient.adminCoreConfig().config().thenApply(this::coreConfigMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("validate")) {
@@ -2176,8 +2177,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return adminText("admin-command-metrics-samples-prefix", "Core metrics: samples=") + samples + (names.isEmpty() ? "" : " / " + String.join(", ", names));
     }
 
-    private String coreConfigMessage(String body) {
-        String code = textValue(body, "code");
+    private String coreConfigMessage(AdminCoreConfigView body) {
+        String code = body.code();
         if (!code.isBlank()) {
             return adminText("admin-command-core-config-failed-prefix", "Core config: failed code=") + code;
         }
@@ -2440,7 +2441,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + " pluginMessagingSecurity=" + textValue(body, "pluginMessagingSecurityPolicy");
     }
 
-    private String addonEndpointMessage(String body) {
+    private String addonEndpointMessage(AdminCoreConfigView body) {
         return "Addon endpoints: "
             + "bulkSave=" + boolValue(body, "addonStateBulkSaveApi")
             + " global=" + textValue(body, "addonStateBulkSaveGlobalEndpoint")
@@ -2885,6 +2886,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return body.startsWith("true", start);
     }
 
+    private boolean boolValue(AdminCoreConfigView config, String field) {
+        return config != null && config.bool(field);
+    }
+
     private long longValue(String body, String field) {
         String needle = "\"" + field + "\":";
         int start = body == null ? -1 : body.indexOf(needle);
@@ -2904,6 +2909,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         } catch (NumberFormatException exception) {
             return 0L;
         }
+    }
+
+    private long longValue(AdminCoreConfigView config, String field) {
+        return config == null ? 0L : config.number(field);
     }
 
     private double doubleValue(String body, String field) {
@@ -3078,6 +3087,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         start += needle.length();
         int end = body.indexOf('"', start);
         return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    private String textValue(AdminCoreConfigView config, String field) {
+        return config == null ? "" : config.text(field);
     }
 
     private long number(String value, long fallback) {

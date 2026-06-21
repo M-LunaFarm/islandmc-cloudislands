@@ -188,6 +188,10 @@ public interface CoreApiClient {
         return new CoreAdminAddonStateQueryClient(this);
     }
 
+    default AdminCoreConfigQueryClient adminCoreConfig() {
+        return new CoreAdminCoreConfigQueryClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);
