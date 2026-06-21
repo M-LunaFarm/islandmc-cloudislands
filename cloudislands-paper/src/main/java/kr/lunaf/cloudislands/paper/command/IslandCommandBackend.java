@@ -1509,50 +1509,6 @@ final class IslandCommandBackend {
         return true;
     }
 
-    private String text(String json, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        int valueStart = start + needle.length();
-        int end = jsonStringEnd(json, valueStart);
-        return end < 0 ? "" : unescape(json.substring(valueStart, end));
-    }
-
-    private double decimal(String json, String key) {
-        String needle = "\"" + key + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return 0.0D;
-        }
-        int valueStart = start + needle.length();
-        int end = valueStart;
-        while (end < json.length()) {
-            char current = json.charAt(end);
-            if ((current >= '0' && current <= '9') || current == '-' || current == '+' || current == '.') {
-                end++;
-                continue;
-            }
-            break;
-        }
-        try {
-            return Double.parseDouble(json.substring(valueStart, end));
-        } catch (RuntimeException ignored) {
-            return 0.0D;
-        }
-    }
-
-    private boolean bool(String json, String key) {
-        String needle = "\"" + key + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return false;
-        }
-        int valueStart = start + needle.length();
-        return json.startsWith("true", valueStart);
-    }
-
     private String inviteCreatedMessage(InviteView invite) {
         String inviteId = invite == null ? "" : invite.inviteId();
         return actionStatusMessage("섬 초대", inviteId, true, "");
@@ -1580,51 +1536,6 @@ final class IslandCommandBackend {
 
     private String compactId(String value) {
         return value != null && value.length() == 36 && value.indexOf('-') > 0 ? value.substring(0, 8) : value;
-    }
-
-    private int jsonStringEnd(String value, int start) {
-        boolean escaped = false;
-        for (int i = start; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (current == '"') {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private String unescape(String value) {
-        StringBuilder builder = new StringBuilder();
-        boolean escaped = false;
-        for (int i = 0; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (!escaped) {
-                if (current == '\\') {
-                    escaped = true;
-                } else {
-                    builder.append(current);
-                }
-                continue;
-            }
-            switch (current) {
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                default -> builder.append(current);
-            }
-            escaped = false;
-        }
-        return builder.toString();
     }
 
     private void message(Player player, String message) {
