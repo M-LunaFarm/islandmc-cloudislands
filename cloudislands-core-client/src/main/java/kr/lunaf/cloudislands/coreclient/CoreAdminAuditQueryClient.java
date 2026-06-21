@@ -20,7 +20,7 @@ public final class CoreAdminAuditQueryClient implements AdminAuditQueryClient {
         return delegate.listAuditLogs(Math.max(1, Math.min(limit, 500))).thenApply(CoreAdminAuditQueryClient::entries);
     }
 
-    private static List<AdminAuditEntryView> entries(String body) {
+    static List<AdminAuditEntryView> entries(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return SimpleJson.list(root.get("audit")).stream()
             .map(SimpleJson::object)

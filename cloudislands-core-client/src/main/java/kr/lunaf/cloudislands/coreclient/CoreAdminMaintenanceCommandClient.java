@@ -24,7 +24,7 @@ public final class CoreAdminMaintenanceCommandClient implements AdminMaintenance
         return delegate.reload().thenApply(CoreAdminMaintenanceCommandClient::result);
     }
 
-    private static AdminMaintenanceResultView result(String body) {
+    static AdminMaintenanceResultView result(String body) {
         Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> error = SimpleJson.object(root.get("error"));
         String code = text(root, "code");

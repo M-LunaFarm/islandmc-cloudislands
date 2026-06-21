@@ -25,7 +25,7 @@ public final class CoreAdminEventQueryClient implements AdminEventQueryClient {
         return delegate.listEventsSince(Math.max(0L, sinceSeq), Math.max(1, Math.min(limit, 4096))).thenApply(CoreAdminEventQueryClient::stream);
     }
 
-    private static AdminEventStreamView stream(String body) {
+    static AdminEventStreamView stream(String body) {
         Map<?, ?> root = CoreJson.object(body);
         List<AdminEventView> events = SimpleJson.list(root.get("events")).stream()
             .map(SimpleJson::object)

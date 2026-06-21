@@ -20,7 +20,7 @@ public final class CoreAdminStorageQueryClient implements AdminStorageQueryClien
         return delegate.storageStatus().thenApply(CoreAdminStorageQueryClient::status);
     }
 
-    private static AdminStorageStatusView status(String body) {
+    static AdminStorageStatusView status(String body) {
         Map<?, ?> root = CoreJson.object(body);
         List<AdminStorageStatusView.NodeView> nodes = SimpleJson.list(root.get("nodes")).stream()
             .map(SimpleJson::object)

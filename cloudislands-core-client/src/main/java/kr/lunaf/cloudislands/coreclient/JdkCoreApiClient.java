@@ -60,6 +60,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkBlockValueClient blockValueClient;
     private final JdkAdminMetricsClient adminMetricsClient;
     private final JdkAdminCoreConfigClient adminCoreConfigClient;
+    private final JdkAdminStorageClient adminStorageClient;
+    private final JdkAdminEventClient adminEventClient;
+    private final JdkAdminAuditClient adminAuditClient;
+    private final JdkAdminRouteClient adminRouteClient;
+    private final JdkAdminAddonStateClient adminAddonStateClient;
+    private final JdkAdminMaintenanceClient adminMaintenanceClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -85,6 +91,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.blockValueClient = new JdkBlockValueClient();
         this.adminMetricsClient = new JdkAdminMetricsClient();
         this.adminCoreConfigClient = new JdkAdminCoreConfigClient();
+        this.adminStorageClient = new JdkAdminStorageClient();
+        this.adminEventClient = new JdkAdminEventClient();
+        this.adminAuditClient = new JdkAdminAuditClient();
+        this.adminRouteClient = new JdkAdminRouteClient();
+        this.adminAddonStateClient = new JdkAdminAddonStateClient();
+        this.adminMaintenanceClient = new JdkAdminMaintenanceClient();
     }
 
     @Override
@@ -200,6 +212,36 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public AdminCoreConfigQueryClient adminCoreConfig() {
         return adminCoreConfigClient;
+    }
+
+    @Override
+    public AdminStorageQueryClient adminStorage() {
+        return adminStorageClient;
+    }
+
+    @Override
+    public AdminEventQueryClient adminEvents() {
+        return adminEventClient;
+    }
+
+    @Override
+    public AdminAuditQueryClient adminAudit() {
+        return adminAuditClient;
+    }
+
+    @Override
+    public AdminRouteClient adminRoutes() {
+        return adminRouteClient;
+    }
+
+    @Override
+    public AdminAddonStateQueryClient adminAddonState() {
+        return adminAddonStateClient;
+    }
+
+    @Override
+    public AdminMaintenanceCommandClient adminMaintenance() {
+        return adminMaintenanceClient;
     }
 
     @Override
@@ -1402,6 +1444,103 @@ public final class JdkCoreApiClient implements CoreApiClient {
         public CompletableFuture<AdminCoreConfigView> config() {
             return postWithResultBody("/v1/admin/config", "{}")
                 .thenApply(AdminCoreConfigView::parse);
+        }
+    }
+
+    private final class JdkAdminStorageClient implements AdminStorageQueryClient {
+        @Override
+        public CompletableFuture<AdminStorageStatusView> status() {
+            return postWithResultBody("/v1/admin/storage", "{}")
+                .thenApply(CoreAdminStorageQueryClient::status);
+        }
+    }
+
+    private final class JdkAdminEventClient implements AdminEventQueryClient {
+        @Override
+        public CompletableFuture<AdminEventStreamView> list(int limit) {
+            return postWithResultBody("/v1/events", jsonObject("limit", Math.max(1, Math.min(limit, 4096))))
+                .thenApply(CoreAdminEventQueryClient::stream);
+        }
+
+        @Override
+        public CompletableFuture<AdminEventStreamView> listSince(long sinceSeq, int limit) {
+            return postWithResultBody("/v1/events", jsonObject("sinceSeq", Math.max(0L, sinceSeq), "limit", Math.max(1, Math.min(limit, 4096))))
+                .thenApply(CoreAdminEventQueryClient::stream);
+        }
+    }
+
+    private final class JdkAdminAuditClient implements AdminAuditQueryClient {
+        @Override
+        public CompletableFuture<List<AdminAuditEntryView>> list(int limit) {
+            return postWithResultBody("/v1/admin/audit/list", jsonObject("limit", Math.max(1, Math.min(limit, 500))))
+                .thenApply(CoreAdminAuditQueryClient::entries);
+        }
+    }
+
+    private final class JdkAdminRouteClient implements AdminRouteClient {
+        @Override
+        public CompletableFuture<AdminRouteDebugView> debug(UUID playerUuid) {
+            requireId(playerUuid, "playerUuid");
+            return postWithResultBody("/v1/admin/routes/debug", jsonObject("playerUuid", playerUuid))
+                .thenApply(CoreAdminRouteJson::debug);
+        }
+
+        @Override
+        public CompletableFuture<Optional<AdminRouteTicketView>> ticket(UUID ticketId) {
+            requireId(ticketId, "ticketId");
+            return postWithResultBody("/v1/admin/routes/ticket", jsonObject("ticketId", ticketId))
+                .thenApply(CoreAdminRouteJson::ticket);
+        }
+
+        @Override
+        public CompletableFuture<Optional<AdminRouteTicketView>> ticketForPlayer(UUID playerUuid) {
+            requireId(playerUuid, "playerUuid");
+            return postWithResultBody("/v1/admin/routes/ticket", jsonObject("playerUuid", playerUuid))
+                .thenApply(CoreAdminRouteJson::ticket);
+        }
+
+        @Override
+        public CompletableFuture<AdminRouteClearView> clear(UUID playerUuid, UUID ticketId) {
+            return clear(playerUuid, ticketId, "MANUAL_CLEAR");
+        }
+
+        @Override
+        public CompletableFuture<AdminRouteClearView> clear(UUID playerUuid, UUID ticketId, String reason) {
+            requireId(playerUuid, "playerUuid");
+            requireId(ticketId, "ticketId");
+            return postWithResultBody("/v1/admin/routes/clear", jsonObject(
+                "playerUuid", playerUuid,
+                "ticketId", ticketId,
+                "reason", reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason
+            )).thenApply(CoreAdminRouteJson::clear);
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkAdminAddonStateClient implements AdminAddonStateQueryClient {
+        @Override
+        public CompletableFuture<AdminAddonStateSummaryView> summary() {
+            return post("/v1/admin/addons/state/summary", "{}")
+                .thenApply(CoreAdminAddonStateQueryClient::summary);
+        }
+    }
+
+    private final class JdkAdminMaintenanceClient implements AdminMaintenanceCommandClient {
+        @Override
+        public CompletableFuture<AdminMaintenanceResultView> clearCache() {
+            return postWithResultBody("/v1/admin/cache/clear", "{}")
+                .thenApply(CoreAdminMaintenanceCommandClient::result);
+        }
+
+        @Override
+        public CompletableFuture<AdminMaintenanceResultView> reload() {
+            return postWithResultBody("/v1/admin/reload", "{}")
+                .thenApply(CoreAdminMaintenanceCommandClient::result);
         }
     }
 

@@ -20,7 +20,7 @@ public final class CoreAdminAddonStateQueryClient implements AdminAddonStateQuer
         return delegate.addonStateSummary().thenApply(CoreAdminAddonStateQueryClient::summary);
     }
 
-    private static AdminAddonStateSummaryView summary(String body) {
+    static AdminAddonStateSummaryView summary(String body) {
         Map<?, ?> root = CoreJson.object(body);
         List<AdminAddonStateSummaryView.AddonView> addons = SimpleJson.list(root.get("addons")).stream()
             .map(SimpleJson::object)
