@@ -19,6 +19,8 @@ import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
+import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
+import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
 import kr.lunaf.cloudislands.common.config.ConfigDiff;
 import kr.lunaf.cloudislands.common.config.ConfigIssue;
@@ -1001,14 +1003,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args[1].equalsIgnoreCase("debug")) {
             if (args.length < 3 || args[2].equalsIgnoreCase("all")) {
-                run(sender, "Route debug", coreApiClient.debugRoutes(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
+                run(sender, "Route debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
                 return true;
             }
             resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
                 if (playerUuid == null) {
                     return;
                 }
-                run(sender, "Route debug", coreApiClient.debugRoutes(playerUuid).thenApply(this::routeDebugMessage));
+                run(sender, "Route debug", coreApiClient.adminRoutes().debug(playerUuid).thenApply(this::routeDebugMessage));
             }).exceptionally(error -> {
                 sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
                 return null;
@@ -2562,16 +2564,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return entries.isEmpty() ? adminText("admin-command-audit-empty", "Audit: empty") : adminText("admin-command-audit-prefix", "Audit: ") + String.join(" | ", entries);
     }
 
-    private String routeDebugMessage(String body) {
-        String sessions = arrayValue(body, "sessions");
-        String tickets = arrayValue(body, "tickets");
-        List<String> sessionEntries = new ArrayList<>();
-        List<String> ticketEntries = new ArrayList<>();
-        collectSessionSummaries(sessions, sessionEntries, 5);
-        collectTicketSummaries(tickets, ticketEntries, 5);
-        return adminText("admin-command-routes-sessions-prefix", "Routes: sessions=") + countObjects(sessions)
+    private String routeDebugMessage(AdminRouteDebugView debug) {
+        List<String> sessionEntries = debug.sessions().stream().limit(5).map(this::routeSessionSummary).toList();
+        List<String> ticketEntries = debug.tickets().stream().limit(5).map(this::ticketSummary).toList();
+        return adminText("admin-command-routes-sessions-prefix", "Routes: sessions=") + debug.sessions().size()
             + (sessionEntries.isEmpty() ? "" : " [" + String.join(" | ", sessionEntries) + "]")
-            + adminText("admin-command-routes-tickets-prefix", " tickets=") + countObjects(tickets)
+            + adminText("admin-command-routes-tickets-prefix", " tickets=") + debug.tickets().size()
             + (ticketEntries.isEmpty() ? "" : " [" + String.join(" | ", ticketEntries) + "]");
     }
 
@@ -2622,64 +2620,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return entries.isEmpty() ? adminText("admin-command-snapshots-empty", "Snapshots: empty") : adminText("admin-command-snapshots-prefix", "Snapshots: ") + String.join(" | ", entries);
     }
 
-    private void collectSessionSummaries(String sessions, List<String> entries, int limit) {
-        int index = 0;
-        while (index < sessions.length() && entries.size() < limit) {
-            int objectStart = sessions.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(sessions, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = sessions.substring(objectStart, objectEnd + 1);
-            String playerUuid = textValue(object, "playerUuid");
-            String ticketId = textValue(object, "ticketId");
-            String nodeId = textValue(object, "targetNode");
-            String serverName = textValue(object, "targetServerName");
-            String expiresAt = textValue(object, "expiresAt");
-            entries.add(shortId(playerUuid)
-                + adminText("admin-command-route-session-ticket-prefix", " ticket=") + shortId(ticketId)
-                + (nodeId.isBlank() ? "" : adminText("admin-command-route-session-node-prefix", " node=") + nodeId)
-                + (serverName.isBlank() ? "" : adminText("admin-command-route-session-server-prefix", " server=") + serverName)
-                + (expiresAt.isBlank() ? "" : adminText("admin-command-route-session-expires-prefix", " expires=") + expiresAt));
-            index = objectEnd + 1;
-        }
-    }
-
-    private void collectTicketSummaries(String tickets, List<String> entries, int limit) {
-        int index = 0;
-        while (index < tickets.length() && entries.size() < limit) {
-            int objectStart = tickets.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(tickets, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            entries.add(ticketSummary(tickets.substring(objectStart, objectEnd + 1)));
-            index = objectEnd + 1;
-        }
-    }
-
-    private String ticketSummary(String object) {
-        String ticketId = textValue(object, "ticketId");
-        String action = textValue(object, "action");
-        String state = textValue(object, "state");
-        String islandId = textValue(object, "islandId");
-        String nodeId = textValue(object, "targetNode");
-        String targetType = textValue(object, "targetType");
-        String homeName = textValue(object, "homeName");
-        String warpName = textValue(object, "warpName");
-        String targetName = !homeName.isBlank() ? homeName : warpName;
-        return shortId(ticketId)
-            + " " + (action.isBlank() ? "UNKNOWN" : action)
-            + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + (targetType.isBlank() && targetName.isBlank() ? "" : " target=" + (targetType.isBlank() ? "-" : targetType) + (targetName.isBlank() ? "" : ":" + targetName))
-            + (islandId.isBlank() ? "" : adminText("admin-command-route-ticket-island-prefix", " island=") + shortId(islandId))
-            + (nodeId.isBlank() ? "" : adminText("admin-command-route-ticket-node-prefix", " node=") + nodeId);
+    private String routeSessionSummary(AdminRouteSessionView session) {
+        return shortId(session.playerUuid())
+            + adminText("admin-command-route-session-ticket-prefix", " ticket=") + shortId(session.ticketId())
+            + (session.targetNode().isBlank() ? "" : adminText("admin-command-route-session-node-prefix", " node=") + session.targetNode())
+            + (session.targetServerName().isBlank() ? "" : adminText("admin-command-route-session-server-prefix", " server=") + session.targetServerName())
+            + (session.expiresAt().isBlank() ? "" : adminText("admin-command-route-session-expires-prefix", " expires=") + session.expiresAt());
     }
 
     private String ticketSummary(AdminRouteTicketView ticket) {

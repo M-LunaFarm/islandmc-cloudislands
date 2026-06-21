@@ -15,6 +15,12 @@ public final class CoreAdminRouteClient implements AdminRouteClient {
     }
 
     @Override
+    public CompletableFuture<AdminRouteDebugView> debug(UUID playerUuid) {
+        requireId(playerUuid, "playerUuid");
+        return delegate.debugRoutes(playerUuid).thenApply(CoreAdminRouteJson::debug);
+    }
+
+    @Override
     public CompletableFuture<Optional<AdminRouteTicketView>> ticket(UUID ticketId) {
         requireId(ticketId, "ticketId");
         return delegate.routeTicket(ticketId).thenApply(CoreAdminRouteJson::ticket);

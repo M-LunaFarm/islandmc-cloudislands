@@ -1,11 +1,33 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreAdminRouteJson {
     private CoreAdminRouteJson() {
+    }
+
+    static AdminRouteDebugView debug(String body) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        List<AdminRouteSessionView> sessions = SimpleJson.list(root.get("sessions")).stream()
+            .map(SimpleJson::object)
+            .map(session -> new AdminRouteSessionView(
+                text(session, "playerUuid"),
+                text(session, "ticketId"),
+                text(session, "targetNode"),
+                text(session, "targetServerName"),
+                text(session, "expiresAt")
+            ))
+            .toList();
+        List<AdminRouteTicketView> tickets = SimpleJson.list(root.get("tickets")).stream()
+            .map(SimpleJson::object)
+            .map(CoreAdminRouteJson::ticket)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .toList();
+        return new AdminRouteDebugView(sessions, tickets);
     }
 
     static Optional<AdminRouteTicketView> ticket(String body) {
@@ -17,6 +39,13 @@ final class CoreAdminRouteJson {
             return Optional.empty();
         }
         Map<?, ?> ticket = ticketObject(root);
+        if (ticket.isEmpty()) {
+            return Optional.empty();
+        }
+        return ticket(ticket);
+    }
+
+    private static Optional<AdminRouteTicketView> ticket(Map<?, ?> ticket) {
         if (ticket.isEmpty()) {
             return Optional.empty();
         }

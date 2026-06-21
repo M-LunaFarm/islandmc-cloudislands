@@ -5,6 +5,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public interface AdminRouteClient {
+    CompletableFuture<AdminRouteDebugView> debug(UUID playerUuid);
+
     CompletableFuture<Optional<AdminRouteTicketView>> ticket(UUID ticketId);
 
     CompletableFuture<Optional<AdminRouteTicketView>> ticketForPlayer(UUID playerUuid);

@@ -1195,6 +1195,13 @@ class CoreTypedClientsTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
+                case "debugRoutes" -> {
+                    calls.add("debug:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"sessions":[{"playerUuid":"%s","ticketId":"%s","targetNode":"node-a","targetServerName":"island-a","expiresAt":"soon"}],
+                         "tickets":[{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetType":"home","homeName":"base","expiresAt":"soon"}]}
+                        """.formatted(playerUuid, ticketId, ticketId, playerUuid, islandId));
+                }
                 case "routeTicket" -> {
                     calls.add("ticket:" + args[0]);
                     yield CompletableFuture.completedFuture("""
@@ -1216,10 +1223,15 @@ class CoreTypedClientsTest {
         );
         AdminRouteClient client = new CoreAdminRouteClient(raw);
 
+        AdminRouteDebugView debug = client.debug(playerUuid).join();
         AdminRouteTicketView ticket = client.ticket(ticketId).join().orElseThrow();
         AdminRouteTicketView playerTicket = client.ticketForPlayer(playerUuid).join().orElseThrow();
         AdminRouteClearView clear = client.clear(playerUuid, ticketId).join();
 
+        assertEquals(1, debug.sessions().size());
+        assertEquals("island-a", debug.sessions().get(0).targetServerName());
+        assertEquals(1, debug.tickets().size());
+        assertEquals("READY", debug.tickets().get(0).state());
         assertEquals(ticketId.toString(), ticket.ticketId());
         assertEquals("HOME", ticket.action());
         assertEquals("home", ticket.targetType());
@@ -1228,7 +1240,7 @@ class CoreTypedClientsTest {
         assertTrue(clear.clearedSession());
         assertFalse(clear.clearedTicket());
         assertEquals("MANUAL_CLEAR", clear.reason());
-        assertEquals(List.of("ticket:" + ticketId, "player:" + playerUuid, "clear:" + playerUuid + ":" + ticketId), calls);
+        assertEquals(List.of("debug:" + playerUuid, "ticket:" + ticketId, "player:" + playerUuid, "clear:" + playerUuid + ":" + ticketId), calls);
     }
 
     @Test
