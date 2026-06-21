@@ -24,6 +24,10 @@ public interface CoreApiClient {
         return new CoreIslandQueryClient(this);
     }
 
+    default IslandEnvironmentQueryClient environment() {
+        return new CoreIslandEnvironmentQueryClient(this);
+    }
+
     default PermissionCommandClient permissions() {
         return new CorePermissionCommandClient(this);
     }

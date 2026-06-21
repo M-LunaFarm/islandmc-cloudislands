@@ -7,16 +7,30 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
+import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
 
 public final class IslandSettingsUseCase {
     private final CoreApiClient coreApiClient;
+    private final IslandEnvironmentQueryClient environmentQueries;
 
     public IslandSettingsUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.environmentQueries = new CoreIslandEnvironmentQueryClient(coreApiClient);
+    }
+
+    IslandSettingsUseCase(CoreApiClient coreApiClient, IslandEnvironmentQueryClient environmentQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (environmentQueries == null) {
+            throw new IllegalArgumentException("environmentQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.environmentQueries = environmentQueries;
     }
 
     private CompletableFuture<String> setPublicAccessBody(UUID islandId, UUID actorUuid, boolean publicAccess, MutationRunner runner) {
@@ -57,7 +71,7 @@ public final class IslandSettingsUseCase {
 
     public CompletableFuture<Map<IslandFlag, String>> flagValues(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandFlags(coreApiClient, islandId);
+        return environmentQueries.flagValues(islandId);
     }
 
     private CompletableFuture<String> setFlagBody(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
