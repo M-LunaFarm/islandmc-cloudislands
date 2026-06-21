@@ -25,6 +25,7 @@ import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
 import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
 import kr.lunaf.cloudislands.coreclient.AdminMaintenanceResultView;
+import kr.lunaf.cloudislands.coreclient.AdminMetricsSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
@@ -181,7 +182,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[0].equalsIgnoreCase("metrics")) {
-            run(sender, "Core metrics", coreApiClient.metrics().thenApply(this::metricsMessage));
+            run(sender, "Core metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("config")) {
@@ -740,8 +741,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private boolean handleNode(CommandSender sender, String[] args) {
         if (args.length > 1 && args[1].equalsIgnoreCase("menu")) {
             if (sender instanceof Player player) {
-                coreApiClient.nodeInfo(nodeId)
-                    .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, body, messagesFor(player))))
+                coreApiClient.adminNodes().nodeInfo(nodeId)
+                    .thenAccept(summary -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, summary, messagesFor(player))))
                     .exceptionally(error -> {
                         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, messagesFor(player)));
                         return null;
@@ -2152,29 +2153,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return adminText("admin-command-addons-configured-features-prefix", " configuredFeatures=") + String.join(",", features);
     }
 
-    private String metricsMessage(String body) {
-        if (body == null || body.isBlank()) {
+    private String metricsMessage(AdminMetricsSummaryView summary) {
+        if (summary == null || summary.samples() <= 0L) {
             return adminText("admin-command-metrics-empty", "Core metrics: empty");
         }
-        int samples = 0;
-        List<String> names = new ArrayList<>();
-        for (String line : body.split("\\R")) {
-            String trimmed = line.trim();
-            if (trimmed.isBlank() || trimmed.startsWith("#")) {
-                continue;
-            }
-            samples++;
-            if (names.size() < 6) {
-                int brace = trimmed.indexOf('{');
-                int space = trimmed.indexOf(' ');
-                int end = brace > 0 ? brace : space > 0 ? space : trimmed.length();
-                String name = trimmed.substring(0, end);
-                if (!names.contains(name)) {
-                    names.add(name);
-                }
-            }
-        }
-        return adminText("admin-command-metrics-samples-prefix", "Core metrics: samples=") + samples + (names.isEmpty() ? "" : " / " + String.join(", ", names));
+        return adminText("admin-command-metrics-samples-prefix", "Core metrics: samples=") + summary.samples()
+            + (summary.names().isEmpty() ? "" : " / " + String.join(", ", summary.names()));
     }
 
     private String coreConfigMessage(AdminCoreConfigView body) {

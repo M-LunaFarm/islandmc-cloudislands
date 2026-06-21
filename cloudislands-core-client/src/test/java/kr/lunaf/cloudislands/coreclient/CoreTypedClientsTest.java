@@ -507,6 +507,28 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void adminMetricsClientReturnsTypedSummary() {
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "metrics" -> CompletableFuture.completedFuture("""
+                    # HELP cloudislands_jobs_total Jobs
+                    # TYPE cloudislands_jobs_total counter
+                    cloudislands_jobs_total{state="done"} 3
+                    cloudislands_jobs_total{state="failed"} 1
+                    cloudislands_nodes 2
+                    """);
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        AdminMetricsSummaryView summary = new CoreAdminMetricsQueryClient(raw).summary().join();
+
+        assertEquals(3L, summary.samples());
+        assertEquals(List.of("cloudislands_jobs_total", "cloudislands_nodes"), summary.names());
+    }
+
+    @Test
     void snapshotCommandClientReturnsTypedActionViews() {
         UUID islandId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();

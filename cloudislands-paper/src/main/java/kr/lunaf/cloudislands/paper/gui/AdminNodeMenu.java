@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.List;
 import java.util.Map;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.NodeSummaryView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -62,6 +63,10 @@ public final class AdminNodeMenu implements Listener {
 
     public static void open(Player player, String nodeId, String nodeInfoBody, MessageRenderer messages) {
         open(player, nodeId, PaperGuiViews.nodeSummary(nodeId, nodeInfoBody), messages);
+    }
+
+    public static void open(Player player, String nodeId, CoreGuiViews.NodeSummaryView summary, MessageRenderer messages) {
+        open(player, nodeId, PaperGuiViews.nodeSummary(summary), messages);
     }
 
     public static void open(Player player, String nodeId, NodeSummaryView summary, MessageRenderer messages) {

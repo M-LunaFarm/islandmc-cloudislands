@@ -186,7 +186,7 @@ public final class PaperGuiViews {
         return new LogEntryView(view.actorUuid(), view.action(), view.payload(), view.createdAt());
     }
 
-    private static NodeSummaryView nodeSummary(CoreGuiViews.NodeSummaryView view) {
+    public static NodeSummaryView nodeSummary(CoreGuiViews.NodeSummaryView view) {
         return new NodeSummaryView(view.nodeId(), view.state(), view.pool(), view.players(), view.softPlayerCap(), view.hardPlayerCap(), view.activeIslands(), view.maxActiveIslands(), view.activationQueue(), view.maxActivationQueue(), view.mspt());
     }
 
