@@ -1475,6 +1475,7 @@ class PaperPlatformBoundaryTest {
             "EXPERIENCE_BOTTLE",
             "FILLED_MAP",
             "GOLD_BLOCK",
+            "GRAY_DYE",
             "GRASS_BLOCK",
             "HOPPER",
             "IRON_DOOR",

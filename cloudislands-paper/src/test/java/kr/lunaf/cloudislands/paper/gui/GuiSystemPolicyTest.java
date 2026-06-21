@@ -199,6 +199,24 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void stateMenuPanelsRenderFromMenuDefinition() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiStateMenus.java"));
+        String renderer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiMenuRenderer.java"));
+        String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/state.yml"));
+
+        for (String material : List.of("CLOCK", "HOPPER", "EMERALD_BLOCK", "ANVIL", "BARRIER")) {
+            assertTrue(config.contains("material: " + material), "state menu material " + material + " must live in config-v2");
+            assertFalse(menu.contains("Material." + material), "state menu must not hard-code " + material);
+        }
+        for (String stateSymbol : List.of("\"L\"", "\"S\"", "\"U\"", "\"C\"", "\"F\"", "\"N\"")) {
+            assertTrue(menu.contains("stateItem(" + stateSymbol) || menu.contains("setStateItem(inventory, " + stateSymbol), "state menu must render configured state symbol " + stateSymbol);
+        }
+        assertTrue(renderer.contains("public static List<String> lore"), "state menu must be able to reuse configured fallback lore");
+        assertTrue(menu.contains("GuiMenuRenderer.material(item.materialKey())"), "state item material must come from the menu definition");
+        assertTrue(menu.contains("GuiMenuRenderer.lore(item, messages)"), "state item fallback lore must come from the menu definition");
+    }
+
+    @Test
     void emptyListPlaceholdersRenderFromMenuDefinitions() throws Exception {
         for (String menuName : List.of(
                 "IslandHomeMenu",

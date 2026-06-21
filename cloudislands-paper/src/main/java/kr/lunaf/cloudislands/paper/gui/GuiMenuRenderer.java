@@ -95,7 +95,7 @@ public final class GuiMenuRenderer {
         );
     }
 
-    private static List<String> lore(GuiMenuDefinition.MenuItem item, MessageRenderer messages) {
+    public static List<String> lore(GuiMenuDefinition.MenuItem item, MessageRenderer messages) {
         java.util.ArrayList<String> lore = new java.util.ArrayList<>();
         int count = Math.max(item.loreKeys().size(), item.fallbackLore().size());
         for (int index = 0; index < count; index++) {

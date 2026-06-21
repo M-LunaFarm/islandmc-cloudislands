@@ -15,6 +15,54 @@ items:
     material: BARRIER
     name-key: gui-state-info-name
     fallback-name: State
+  L:
+    material: CLOCK
+    name-key: gui-state-loading-name
+    fallback-name: Loading
+    lore-keys:
+      - gui-state-loading-lore
+    fallback-lore:
+      - Core 응답을 기다리는 중입니다.
+  S:
+    material: HOPPER
+    name-key: gui-state-saving-name
+    fallback-name: Saving
+    lore-keys:
+      - gui-state-saving-lore
+    fallback-lore:
+      - 변경 사항을 Core에 저장하는 중입니다.
+  U:
+    material: EMERALD_BLOCK
+    name-key: gui-state-success-name
+    fallback-name: Success
+    lore-keys:
+      - gui-state-success-lore
+    fallback-lore:
+      - 요청이 완료되었습니다.
+  C:
+    material: ANVIL
+    name-key: gui-state-conflict-name
+    fallback-name: Conflict
+    lore-keys:
+      - gui-state-conflict-lore
+    fallback-lore:
+      - 다른 관리자가 먼저 변경했습니다.
+  F:
+    material: BARRIER
+    name-key: gui-state-error-name
+    fallback-name: Error
+    lore-keys:
+      - gui-state-error-lore
+    fallback-lore:
+      - 요청을 처리하지 못했습니다.
+  N:
+    material: BARRIER
+    name-key: gui-state-empty-name
+    fallback-name: Empty
+    lore-keys:
+      - gui-state-empty-lore
+    fallback-lore:
+      - 표시할 항목이 없습니다.
   B:
     material: OAK_DOOR
     name-key: gui-state-back-name
