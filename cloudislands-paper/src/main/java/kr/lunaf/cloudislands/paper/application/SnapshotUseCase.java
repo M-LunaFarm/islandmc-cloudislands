@@ -18,13 +18,13 @@ public final class SnapshotUseCase {
         this.coreApiClient = coreApiClient;
     }
 
-    public CompletableFuture<String> listSnapshots(UUID islandId, int limit) {
+    private CompletableFuture<String> listSnapshotBodies(UUID islandId, int limit) {
         requireIsland(islandId);
         return coreApiClient.listIslandSnapshots(islandId, boundedLimit(limit));
     }
 
     public CompletableFuture<List<SnapshotView>> snapshotViews(UUID islandId, int limit) {
-        return listSnapshots(islandId, limit).thenApply(SnapshotUseCase::snapshotViews);
+        return listSnapshotBodies(islandId, limit).thenApply(SnapshotUseCase::snapshotViews);
     }
 
     public CompletableFuture<String> requestSnapshot(UUID islandId, String reason, MutationRunner runner) {

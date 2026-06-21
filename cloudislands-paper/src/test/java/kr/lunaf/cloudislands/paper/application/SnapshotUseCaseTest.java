@@ -19,10 +19,9 @@ class SnapshotUseCaseTest {
         SnapshotUseCase useCase = new SnapshotUseCase(coreApiClient(core));
         UUID islandId = UUID.randomUUID();
 
-        assertEquals("{\"snapshots\":[{\"snapshotNo\":7,\"reason\":\"manual\",\"sizeBytes\":4096,\"checksum\":\"abcdef1234567890\"}]}", useCase.listSnapshots(islandId, 999).join());
         assertEquals(7L, useCase.snapshotViews(islandId, 999).join().get(0).snapshotNo());
         assertEquals("abcdef1234567890", useCase.snapshotViews(islandId, 999).join().get(0).checksum());
-        assertEquals(List.of("list:20", "list:20", "list:20"), core.calls);
+        assertEquals(List.of("list:20", "list:20"), core.calls);
         assertEquals(1, SnapshotUseCase.boundedLimit(-5));
         assertEquals(12, SnapshotUseCase.boundedLimit(12));
     }
