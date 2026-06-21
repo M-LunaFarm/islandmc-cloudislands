@@ -7,6 +7,8 @@ import java.util.concurrent.CompletableFuture;
 public interface IslandQueryClient {
     CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId);
 
+    CompletableFuture<CoreGuiViews.IslandInfoView> getIslandByOwner(UUID ownerUuid);
+
     CompletableFuture<CoreGuiViews.IslandInfoView> findIslandByName(String islandName);
 
     CompletableFuture<List<CoreGuiViews.MemberView>> listMembers(UUID islandId);

@@ -401,6 +401,22 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void placeholderExpansionUsesTypedCoreViews() throws Exception {
+        Path root = repositoryRoot();
+        Path placeholder = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/placeholder/CloudIslandsPlaceholderExpansion.java");
+        String source = Files.readString(placeholder);
+
+        assertTrue(source.contains("client.islands().getIslandByOwner(playerUuid)"), "Placeholder island lookup must use the typed island query client");
+        assertTrue(source.contains("client.bank().islandBank(parsedIslandId)"), "Placeholder bank lookup must use the typed bank query client");
+        assertTrue(!source.contains("client.islandInfoByOwner("), "Placeholder presentation must not call raw island JSON endpoints directly");
+        assertTrue(!source.contains("client.islandBank("), "Placeholder presentation must not call raw bank JSON endpoints directly");
+        assertTrue(!source.contains("String islandJson"), "Placeholder presentation must not cache raw island JSON");
+        assertTrue(!source.contains("String bankJson"), "Placeholder presentation must not cache raw bank JSON");
+        assertTrue(!source.contains("json.indexOf("), "Placeholder presentation must not parse Core JSON by string search");
+        assertTrue(!source.contains("json.substring("), "Placeholder presentation must not parse Core JSON by substring");
+    }
+
+    @Test
     void guiClassesDoNotExposeDestructiveConfirmActionsDirectly() throws Exception {
         Path root = repositoryRoot();
         Path guiSource = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui");
