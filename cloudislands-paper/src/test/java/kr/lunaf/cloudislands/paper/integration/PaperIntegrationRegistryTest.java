@@ -88,6 +88,13 @@ class PaperIntegrationRegistryTest {
         assertEquals("77", exportResult.details().get("fencingToken"));
         assertEquals("coreprotect:export:2", exportResult.details().get("idempotencyKey"));
         assertEquals("bundles/island.tar.zst", exportResult.details().get("metadata.bundleKey"));
+        assertEquals("CoreProtect", exportResult.details().get("manifest.plugin"));
+        assertEquals("audit-rollback", exportResult.details().get("manifest.category"));
+        assertEquals("audit-export", exportResult.details().get("manifest.operation"));
+        assertEquals("islands", exportResult.details().get("manifest.world"));
+        assertEquals("12,-4", exportResult.details().get("manifest.cell"));
+        assertEquals("bundles/island.tar.zst", exportResult.details().get("manifest.bundleKey"));
+        assertEquals("coreprotect:export:2", exportResult.details().get("manifest.idempotencyKey"));
 
         IntegrationContext restoreContext = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:restore:1", Map.of(
             "world", "islands",
@@ -99,6 +106,7 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.SUCCESS, restoreResult.status());
         assertEquals("rollback-restore", restoreResult.details().get("operation"));
         assertEquals("3600", restoreResult.details().get("metadata.rollbackSeconds"));
+        assertEquals("3600", restoreResult.details().get("manifest.metadata.rollbackSeconds"));
         assertEquals("true", restoreResult.details().get("nodeOwnsIsland"));
     }
 
@@ -182,6 +190,8 @@ class PaperIntegrationRegistryTest {
         assertTrue(integration.validateRuntimeAuthority(context, true).allowed());
         IntegrationResult result = integration.restoreState(context);
         assertEquals(IntegrationResult.Status.SUCCESS, result.status());
+        assertEquals("world-edit", result.details().get("manifest.category"));
+        assertEquals("schematic-restore", result.details().get("manifest.operation"));
     }
 
     @Test
@@ -220,6 +230,8 @@ class PaperIntegrationRegistryTest {
             "bundleKey", "bundles/island.tar.zst"
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, allowed.status());
+        assertEquals("custom-items", allowed.details().get("manifest.category"));
+        assertEquals("itemsadder:ruby_ore,itemsadder:ruby_block", allowed.details().get("manifest.metadata.externalBlockIds"));
     }
 
     @Test
@@ -256,6 +268,8 @@ class PaperIntegrationRegistryTest {
             "bundleKey", "bundles/island.tar.zst"
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, restored.status());
+        assertEquals("stacker", restored.details().get("manifest.category"));
+        assertEquals("limits.spawners.effective", restored.details().get("manifest.metadata.spawnerCountKey"));
     }
 
     @Test

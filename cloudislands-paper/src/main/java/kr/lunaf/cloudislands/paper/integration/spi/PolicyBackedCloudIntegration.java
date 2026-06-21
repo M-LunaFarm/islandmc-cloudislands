@@ -55,7 +55,7 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
                 pluginName + " " + operation + " denied: " + String.join(",", decision.violations()),
                 failureDetails(operation, context, "violations", String.join(",", decision.violations())));
         }
-        return guardedMetadataHook(operation, context, requiredMetadata);
+        return guardedMetadataHook(operation, context, true, requiredMetadata);
     }
 
     protected IntegrationResult guardedObservationHook(String operation, IntegrationContext context, String... requiredMetadata) {
@@ -65,17 +65,17 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
                 pluginName + " " + operation + " denied: " + String.join(",", decision.violations()),
                 failureDetails(operation, context, "violations", String.join(",", decision.violations())));
         }
-        return guardedMetadataHook(operation, context, requiredMetadata);
+        return guardedMetadataHook(operation, context, false, requiredMetadata);
     }
 
-    protected IntegrationResult guardedMetadataHook(String operation, IntegrationContext context, String... requiredMetadata) {
+    protected IntegrationResult guardedMetadataHook(String operation, IntegrationContext context, boolean stateChanging, String... requiredMetadata) {
         Set<String> missingMetadata = context == null ? Set.of("context") : context.missingMetadata(requiredMetadata);
         if (!missingMetadata.isEmpty()) {
             return IntegrationResult.failed(
                 pluginName + " " + operation + " missing metadata: " + String.join(",", missingMetadata),
                 failureDetails(operation, context, "missingMetadata", String.join(",", missingMetadata)));
         }
-        return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId(), successDetails(operation, context));
+        return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId(), successDetails(operation, context, stateChanging));
     }
 
     private Map<String, String> failureDetails(String operation, IntegrationContext context, String key, String value) {
@@ -84,11 +84,15 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
         return details;
     }
 
-    private Map<String, String> successDetails(String operation, IntegrationContext context) {
-        return Map.copyOf(contextDetails(operation, context));
+    private Map<String, String> successDetails(String operation, IntegrationContext context, boolean stateChanging) {
+        LinkedHashMap<String, String> details = contextDetails(operation, context);
+        if (stateChanging) {
+            details.putAll(IntegrationStateManifest.from(pluginName, category(), operation, context).details());
+        }
+        return Map.copyOf(details);
     }
 
-    private Map<String, String> contextDetails(String operation, IntegrationContext context) {
+    private LinkedHashMap<String, String> contextDetails(String operation, IntegrationContext context) {
         LinkedHashMap<String, String> details = new LinkedHashMap<>();
         details.put("plugin", pluginName);
         details.put("operation", operation == null ? "" : operation);
