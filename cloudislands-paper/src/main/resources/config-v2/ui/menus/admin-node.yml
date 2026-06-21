@@ -1,6 +1,134 @@
 id: admin.node
-rows: 6
+rows: 3
 title-key: menu.admin-node.title
+layout:
+  - "....N...."
+  - ".LIADUSWM"
+  - "KQ..H.T.C"
+items:
+  N:
+    material: NETHER_STAR
+    name-key: admin-node-menu-summary-name
+    fallback-name: 노드 요약
+  L:
+    material: COMPASS
+    name-key: admin-node-menu-list-name
+    fallback-name: 노드 목록
+    lore-keys:
+      - admin-node-menu-list-description
+    fallback-lore:
+      - 신규 활성화 배정 가능 여부와 차단 사유를 함께 확인합니다.
+    action: list
+  I:
+    material: ENDER_EYE
+    name-key: admin-node-menu-info-name
+    fallback-name: 현재 노드 정보
+    lore-keys:
+      - admin-node-menu-info-description
+    fallback-lore:
+      - 선택한 노드의 활성화 배정 상태를 확인합니다.
+    action: info
+  A:
+    material: GRASS_BLOCK
+    name-key: admin-node-menu-islands-name
+    fallback-name: 현재 노드 섬 현황
+    lore-keys:
+      - admin-node-menu-islands-description
+      - admin-node-menu-islands-block-reason
+    fallback-lore:
+      - 활성 섬 UUID와 상태를 확인합니다.
+      - 배정 차단 사유는 노드 정보에서 확인합니다.
+    action: islands
+  D:
+    material: REDSTONE_TORCH
+    name-key: admin-node-menu-drain-name
+    fallback-name: 현재 노드 Drain
+    action: drain
+  U:
+    material: LEVER
+    name-key: admin-node-menu-undrain-name
+    fallback-name: 현재 노드 Undrain
+    action: undrain
+  S:
+    material: HOPPER
+    name-key: admin-node-menu-sweep-name
+    fallback-name: 장애 스윕
+    action: sweep
+  W:
+    material: MAP
+    name-key: admin-node-menu-where-name
+    fallback-name: 활성 섬 조회
+    lore-keys:
+      - admin-node-menu-where-description
+    fallback-lore:
+      - 섬 UUID로 현재 위치 노드를 확인합니다.
+    action: where
+  M:
+    material: MINECART
+    name-key: admin-node-menu-migrate-name
+    fallback-name: 부하 이동
+    lore-keys:
+      - admin-node-menu-migrate-description
+    fallback-lore:
+      - 섬 UUID와 대상 노드를 입력해 이동합니다.
+    action: migrate
+  K:
+    material: IRON_DOOR
+    name-key: admin-node-menu-kickall-name
+    fallback-name: 현재 노드 플레이어 로비 이동
+    lore-keys:
+      - admin-node-menu-kickall-description
+      - admin-node-menu-danger-click
+    fallback-lore:
+      - 이 노드의 접속자를 로비로 이동합니다.
+      - Shift+우클릭해야 실행됩니다.
+    data:
+      requireShiftRight: "true"
+    action: kickall
+  Q:
+    material: BELL
+    name-key: admin-node-menu-shutdown-name
+    fallback-name: 현재 노드 안전 종료
+    lore-keys:
+      - admin-node-menu-shutdown-description
+      - admin-node-menu-danger-click
+    fallback-lore:
+      - Drain 후 접속자를 로비로 이동합니다.
+      - Shift+우클릭해야 실행됩니다.
+    data:
+      requireShiftRight: "true"
+    action: shutdown-safe
+  H:
+    material: BOOK
+    name-key: admin-node-menu-help-name
+    fallback-name: 관리 명령 도움말
+    lore-keys:
+      - admin-node-menu-help-status-command
+      - admin-node-menu-help-node-list-command
+      - admin-node-menu-help-island-where-command
+    fallback-lore:
+      - "/ciadmin status"
+      - "/ciadmin node list"
+      - "/ciadmin island where <uuid>"
+    data:
+      mode: help
+  T:
+    material: CLOCK
+    name-key: admin-node-menu-status-name
+    fallback-name: 관리 상태
+    lore-keys:
+      - admin-node-menu-status-command
+    fallback-lore:
+      - "/ciadmin status"
+  C:
+    material: OAK_DOOR
+    name-key: admin-node-menu-close-name
+    fallback-name: 닫기
+    lore-keys:
+      - admin-node-menu-close
+    fallback-lore:
+      - 메뉴를 닫습니다.
+    action: close
 actions:
   open: admin.node.open
   list: admin.node.list
@@ -9,6 +137,8 @@ actions:
   drain: admin.node.drain
   undrain: admin.node.undrain
   sweep: admin.node.sweep
+  where: admin.island.where.prompt
+  migrate: admin.island.migrate.prompt
   kickall: admin.node.kickall.prepare
   shutdown-safe: admin.node.shutdown-safe.prepare
   close: gui.close
