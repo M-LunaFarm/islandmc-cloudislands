@@ -31,6 +31,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
+import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketJson;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -750,47 +751,6 @@ public final class RoutingOrchestrator {
     private record RouteTarget(NodeLoad node, String worldName, RouteTicketState state) {}
 
     public static String toJson(RouteTicket ticket) {
-        StringBuilder builder = new StringBuilder("{")
-            .append("\"ticketId\":\"").append(ticket.ticketId()).append("\",")
-            .append("\"playerUuid\":\"").append(ticket.playerUuid()).append("\",")
-            .append("\"action\":\"").append(ticket.action()).append("\",")
-            .append("\"islandId\":\"").append(ticket.islandId()).append("\",")
-            .append("\"targetNode\":\"").append(ticket.targetNode()).append("\",")
-            .append("\"targetServerName\":\"").append(ticket.payload().getOrDefault("targetServerName", ticket.targetNode())).append("\",")
-            .append("\"targetWorld\":\"").append(ticket.targetWorld()).append("\",")
-            .append("\"state\":\"").append(ticket.state()).append("\",")
-            .append("\"expiresAt\":\"").append(ticket.expiresAt()).append("\",")
-            .append("\"nonce\":\"").append(ticket.nonce()).append("\"");
-        builder.append(",\"targetLocalLocation\":").append(targetLocalLocationJson(ticket.payload()));
-        for (Map.Entry<String, String> entry : ticket.payload().entrySet()) {
-            if (!entry.getKey().equals("targetServerName")) {
-                builder.append(',').append("\"").append(entry.getKey()).append("\":\"").append(entry.getValue().replace("\"", "'")).append("\"");
-            }
-        }
-        return builder.append("}").toString();
-    }
-
-    private static String targetLocalLocationJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{")
-            .append("\"type\":\"").append(jsonEscape(payload.getOrDefault("targetType", "ISLAND_HOME"))).append("\"");
-        appendLocationString(builder, payload, "homeName");
-        appendLocationString(builder, payload, "warpName");
-        appendLocationString(builder, payload, "localX");
-        appendLocationString(builder, payload, "localY");
-        appendLocationString(builder, payload, "localZ");
-        appendLocationString(builder, payload, "yaw");
-        appendLocationString(builder, payload, "pitch");
-        return builder.append('}').toString();
-    }
-
-    private static void appendLocationString(StringBuilder builder, Map<String, String> payload, String key) {
-        String value = payload.get(key);
-        if (value != null && !value.isBlank()) {
-            builder.append(",\"").append(key).append("\":\"").append(jsonEscape(value)).append("\"");
-        }
-    }
-
-    private static String jsonEscape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "'");
+        return RouteTicketJson.routeResponse(ticket);
     }
 }

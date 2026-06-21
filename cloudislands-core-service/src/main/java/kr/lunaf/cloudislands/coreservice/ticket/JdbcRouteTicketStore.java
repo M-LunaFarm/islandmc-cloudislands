@@ -307,20 +307,14 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
 
     @Override
     public String toJson() {
-        StringBuilder builder = new StringBuilder("{\"tickets\":[");
+        List<RouteTicket> tickets = new ArrayList<>();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM route_tickets ORDER BY created_at DESC LIMIT 100");
              ResultSet rs = statement.executeQuery()) {
-            boolean first = true;
             while (rs.next()) {
-                RouteTicket ticket = map(rs);
-                if (!first) {
-                    builder.append(',');
-                }
-                first = false;
-                builder.append(json(ticket));
+                tickets.add(map(rs));
             }
-            return builder.append("]}").toString();
+            return RouteTicketJson.storeSnapshot(tickets);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to render route tickets", exception);
         }
@@ -335,7 +329,7 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
         statement.setString(6, ticket.targetWorld());
         statement.setString(7, ticket.state().name());
         statement.setString(8, ticket.nonce());
-        statement.setString(9, toJson(ticket.payload()));
+        statement.setString(9, RouteTicketJson.payload(ticket.payload()));
         statement.setObject(10, java.sql.Timestamp.from(ticket.expiresAt()));
         statement.setObject(11, consumedAt == null ? null : java.sql.Timestamp.from(consumedAt));
     }
@@ -356,63 +350,6 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     }
 
     private Map<String, String> payload(String json) {
-        if (json == null || json.isBlank()) {
-            return Map.of();
-        }
-        String trimmed = json.trim();
-        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-            trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
-        }
-        if (trimmed.isBlank()) {
-            return Map.of();
-        }
-        LinkedHashMap<String, String> values = new LinkedHashMap<>();
-        for (String pair : trimmed.split(",")) {
-            int colon = pair.indexOf(':');
-            if (colon > 0) {
-                values.put(unquote(pair.substring(0, colon)), unquote(pair.substring(colon + 1)));
-            }
-        }
-        return Map.copyOf(values);
-    }
-
-    private String unquote(String value) {
-        String trimmed = value.trim();
-        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
-            trimmed = trimmed.substring(1, trimmed.length() - 1);
-        }
-        return trimmed.replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private String toJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
-        }
-        return builder.append('}').toString();
-    }
-
-    private String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
-    private String json(RouteTicket ticket) {
-        return "{\"ticketId\":\"" + ticket.ticketId()
-            + "\",\"playerUuid\":\"" + ticket.playerUuid()
-            + "\",\"action\":\"" + ticket.action()
-            + "\",\"islandId\":\"" + ticket.islandId()
-            + "\",\"targetNode\":\"" + ticket.targetNode()
-            + "\",\"targetWorld\":\"" + ticket.targetWorld()
-            + "\",\"targetServerName\":\"" + ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
-            + "\",\"state\":\"" + ticket.state()
-            + "\",\"expiresAt\":\"" + ticket.expiresAt()
-            + "\",\"nonce\":\"" + escape(ticket.nonce())
-            + "\",\"payload\":" + toJson(ticket.payload())
-            + "}";
+        return RouteTicketJson.parsePayload(json);
     }
 }

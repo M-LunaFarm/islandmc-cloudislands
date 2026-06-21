@@ -220,46 +220,6 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
     }
 
     public String toJson() {
-        StringBuilder builder = new StringBuilder("{\"tickets\":[");
-        boolean first = true;
-        for (RouteTicket ticket : tickets.values()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(json(ticket));
-        }
-        return builder.append("]}").toString();
-    }
-
-    private String json(RouteTicket ticket) {
-        return "{\"ticketId\":\"" + ticket.ticketId()
-            + "\",\"playerUuid\":\"" + ticket.playerUuid()
-            + "\",\"action\":\"" + ticket.action()
-            + "\",\"islandId\":\"" + ticket.islandId()
-            + "\",\"targetNode\":\"" + ticket.targetNode()
-            + "\",\"targetWorld\":\"" + ticket.targetWorld()
-            + "\",\"targetServerName\":\"" + ticket.payload().getOrDefault("targetServerName", ticket.targetNode())
-            + "\",\"state\":\"" + ticket.state()
-            + "\",\"expiresAt\":\"" + ticket.expiresAt()
-            + "\",\"payload\":" + payloadJson(ticket.payload())
-            + "}";
-    }
-
-    private String payloadJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append("\"").append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append("\"");
-        }
-        return builder.append("}").toString();
-    }
-
-    private String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return RouteTicketJson.storeSnapshot(tickets.values());
     }
 }
