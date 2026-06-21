@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.util.List;
+import java.util.UUID;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -15,6 +17,13 @@ import org.bukkit.plugin.Plugin;
 
 public final class GuiStateMenus implements Listener {
     public static final String MENU_ID = "gui.state";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/state.yml",
+        new GuiMenuDefinition(MENU_ID, 3, "gui-state-title", java.util.Map.of(
+            "retry", "gui.close",
+            "back", "gui.close"
+        ))
+    );
     private final GuiActionRegistry actions;
 
     private GuiStateMenus(GuiActionRegistry actions) {
@@ -40,7 +49,7 @@ public final class GuiStateMenus implements Listener {
             if (!GuiSessions.isCurrent(player, session)) {
                 return;
             }
-            Inventory inventory = GuiInventories.create(MENU_ID, session.sessionId(), 27, title(messages, title, "Loading"));
+            Inventory inventory = stateInventory(session.sessionId(), messages, title, "Loading", false, false);
             inventory.setItem(13, stateItem(Material.CLOCK, message(messages, "gui-state-loading-name", "Loading"), message(messages, "gui-state-loading-lore", "Core 응답을 기다리는 중입니다.")));
             player.openInventory(inventory);
         });
@@ -58,7 +67,7 @@ public final class GuiStateMenus implements Listener {
 
     public static void openSaving(Plugin plugin, Player player, MessageRenderer messages, String title) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 27, title(messages, title, "Saving"));
+            Inventory inventory = stateInventory(null, messages, title, "Saving", false, false);
             inventory.setItem(13, stateItem(Material.HOPPER, message(messages, "gui-state-saving-name", "Saving"), message(messages, "gui-state-saving-lore", "변경 사항을 Core에 저장하는 중입니다.")));
             player.openInventory(inventory);
         });
@@ -66,10 +75,10 @@ public final class GuiStateMenus implements Listener {
 
     public static void openSuccess(Plugin plugin, Player player, MessageRenderer messages, String title, String detail, String backAction) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 27, title(messages, title, "Success"));
+            Inventory inventory = stateInventory(null, messages, title, "Success", false, backAction != null && !backAction.isBlank());
             inventory.setItem(13, stateItem(Material.EMERALD_BLOCK, message(messages, "gui-state-success-name", "Success"), detail == null || detail.isBlank() ? message(messages, "gui-state-success-lore", "요청이 완료되었습니다.") : detail));
             if (backAction != null && !backAction.isBlank()) {
-                inventory.setItem(15, GuiItems.action(Material.OAK_DOOR, message(messages, "gui-state-back-name", "Back"), backAction));
+                setStateAction(inventory, 15, messages, backAction);
             }
             player.openInventory(inventory);
         });
@@ -77,13 +86,13 @@ public final class GuiStateMenus implements Listener {
 
     public static void openConflict(Plugin plugin, Player player, MessageRenderer messages, String title, String detail, String retryAction, String backAction) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, 27, title(messages, title, "Conflict"));
+            Inventory inventory = stateInventory(null, messages, title, "Conflict", retryAction != null && !retryAction.isBlank(), backAction != null && !backAction.isBlank());
             inventory.setItem(13, stateItem(Material.ANVIL, message(messages, "gui-state-conflict-name", "Conflict"), detail == null || detail.isBlank() ? message(messages, "gui-state-conflict-lore", "다른 관리자가 먼저 변경했습니다.") : detail));
             if (retryAction != null && !retryAction.isBlank()) {
-                inventory.setItem(11, GuiItems.action(Material.CLOCK, message(messages, "gui-state-retry-name", "Retry"), retryAction));
+                setStateAction(inventory, 11, messages, retryAction);
             }
             if (backAction != null && !backAction.isBlank()) {
-                inventory.setItem(15, GuiItems.action(Material.OAK_DOOR, message(messages, "gui-state-back-name", "Back"), backAction));
+                setStateAction(inventory, 15, messages, backAction);
             }
             player.openInventory(inventory);
         });
@@ -122,17 +131,27 @@ public final class GuiStateMenus implements Listener {
     }
 
     private static void openErrorSync(Player player, java.util.UUID sessionId, MessageRenderer messages, String title, String detail, String retryAction, String backAction) {
-        Inventory inventory = sessionId == null
-            ? GuiInventories.create(MENU_ID, 27, title(messages, title, "Error"))
-            : GuiInventories.create(MENU_ID, sessionId, 27, title(messages, title, "Error"));
+        Inventory inventory = stateInventory(sessionId, messages, title, "Error", retryAction != null && !retryAction.isBlank(), backAction != null && !backAction.isBlank());
         inventory.setItem(13, stateItem(Material.BARRIER, message(messages, "gui-state-error-name", "Error"), detail == null || detail.isBlank() ? message(messages, "gui-state-error-lore", "요청을 처리하지 못했습니다.") : detail));
         if (retryAction != null && !retryAction.isBlank()) {
-            inventory.setItem(11, GuiItems.action(Material.CLOCK, message(messages, "gui-state-retry-name", "Retry"), retryAction));
+            setStateAction(inventory, 11, messages, retryAction);
         }
         if (backAction != null && !backAction.isBlank()) {
-            inventory.setItem(15, GuiItems.action(Material.OAK_DOOR, message(messages, "gui-state-back-name", "Back"), backAction));
+            setStateAction(inventory, 15, messages, backAction);
         }
         player.openInventory(inventory);
+    }
+
+    private static Inventory stateInventory(UUID sessionId, MessageRenderer messages, String title, String fallback, boolean retry, boolean back) {
+        Inventory inventory = sessionId == null
+            ? GuiInventories.create(MENU.id(), MENU.size(), title(messages, title, fallback))
+            : GuiInventories.create(MENU.id(), sessionId, MENU.size(), title(messages, title, fallback));
+        GuiMenuRenderer.populate(inventory, MENU, messages, item -> item.symbol().equals("I") || (retry && item.symbol().equals("R")) || (back && item.symbol().equals("B")));
+        return inventory;
+    }
+
+    private static void setStateAction(Inventory inventory, int slot, MessageRenderer messages, String actionId) {
+        MENU.itemAt(slot).ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(), actionId)));
     }
 
     private static ItemStack stateItem(Material material, String name, String lore) {
@@ -151,10 +170,6 @@ public final class GuiStateMenus implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 }

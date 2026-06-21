@@ -69,6 +69,7 @@ public final class PaperRuntimeConfigLoader {
         "ui/menus/public-warps.yml",
         "ui/menus/settings.yml",
         "ui/menus/snapshots.yml",
+        "ui/menus/state.yml",
         "ui/menus/upgrades.yml",
         "ui/menus/visit.yml",
         "ui/menus/warps.yml",

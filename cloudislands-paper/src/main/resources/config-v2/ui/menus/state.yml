@@ -1,0 +1,25 @@
+id: gui.state
+rows: 3
+title-key: gui-state-title
+layout:
+  - "........."
+  - "..R.I.B.."
+  - "........."
+items:
+  R:
+    material: CLOCK
+    name-key: gui-state-retry-name
+    fallback-name: Retry
+    action: retry
+  I:
+    material: BARRIER
+    name-key: gui-state-info-name
+    fallback-name: State
+  B:
+    material: OAK_DOOR
+    name-key: gui-state-back-name
+    fallback-name: Back
+    action: back
+actions:
+  retry: gui.close
+  back: gui.close

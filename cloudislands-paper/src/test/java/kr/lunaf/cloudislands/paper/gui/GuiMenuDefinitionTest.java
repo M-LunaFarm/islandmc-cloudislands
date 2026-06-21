@@ -513,6 +513,22 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledStateMenuDefinitionCoversStateSlotsDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/state.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("gui.state", definition.id());
+        assertEquals(27, definition.size());
+        assertEquals("R", definition.itemAt(11).orElseThrow().symbol());
+        assertEquals("gui.close", definition.action(definition.itemAt(11).orElseThrow().actionKey(), ""));
+        assertEquals("I", definition.itemAt(13).orElseThrow().symbol());
+        assertEquals("B", definition.itemAt(15).orElseThrow().symbol());
+        assertEquals("gui.close", definition.action(definition.itemAt(15).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",
