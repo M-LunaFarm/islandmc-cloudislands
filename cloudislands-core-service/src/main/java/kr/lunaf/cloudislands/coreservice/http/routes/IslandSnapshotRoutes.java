@@ -2,10 +2,14 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
@@ -66,7 +70,7 @@ public final class IslandSnapshotRoutes implements RouteGroup {
             return;
         }
         int pruned = recordSnapshotAndPublish(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId, fencingToken);
-        CoreHttpResponses.write(exchange, 202, "{\"accepted\":true,\"snapshotNo\":" + snapshotNo + ",\"storagePath\":\"" + escape(storagePath) + "\",\"checksum\":\"" + escape(checksum) + "\",\"sizeBytes\":" + sizeBytes + ",\"fencingToken\":" + fencingToken + ",\"pruned\":" + pruned + "}");
+        CoreHttpResponses.write(exchange, 202, recordAcceptedJson(snapshotNo, storagePath, checksum, sizeBytes, fencingToken, pruned));
     }
 
     private int recordSnapshotAndPublish(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
@@ -90,34 +94,41 @@ public final class IslandSnapshotRoutes implements RouteGroup {
         );
     }
 
-    static String snapshotsJson(java.util.List<IslandSnapshotRecord> snapshots) {
-        StringBuilder builder = new StringBuilder("{\"snapshots\":[");
-        boolean first = true;
+    static String snapshotsJson(List<IslandSnapshotRecord> snapshots) {
+        List<Object> renderedSnapshots = new ArrayList<>();
         for (IslandSnapshotRecord snapshot : snapshots) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"snapshotId\":\"").append(snapshot.snapshotId()).append("\",")
-                .append("\"islandId\":\"").append(snapshot.islandId()).append("\",")
-                .append("\"snapshotNo\":").append(snapshot.snapshotNo()).append(',')
-                .append("\"storagePath\":\"").append(escape(snapshot.storagePath())).append("\",")
-                .append("\"reason\":\"").append(escape(snapshot.reason())).append("\",")
-                .append("\"createdBy\":\"").append(snapshot.createdBy()).append("\",")
-                .append("\"checksum\":\"").append(escape(snapshot.checksum())).append("\",")
-                .append("\"sizeBytes\":").append(snapshot.sizeBytes()).append(',')
-                .append("\"createdAt\":\"").append(snapshot.createdAt()).append("\"")
-                .append('}');
+            renderedSnapshots.add(snapshotMap(snapshot));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("snapshots", renderedSnapshots));
+    }
+
+    static String recordAcceptedJson(long snapshotNo, String storagePath, String checksum, long sizeBytes, long fencingToken, int pruned) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("snapshotNo", snapshotNo);
+        values.put("storagePath", storagePath);
+        values.put("checksum", checksum);
+        values.put("sizeBytes", sizeBytes);
+        values.put("fencingToken", fencingToken);
+        values.put("pruned", pruned);
+        return SimpleJson.stringify(values);
+    }
+
+    private static Map<String, Object> snapshotMap(IslandSnapshotRecord snapshot) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("snapshotId", snapshot.snapshotId());
+        values.put("islandId", snapshot.islandId());
+        values.put("snapshotNo", snapshot.snapshotNo());
+        values.put("storagePath", snapshot.storagePath());
+        values.put("reason", snapshot.reason());
+        values.put("createdBy", snapshot.createdBy() == null ? "null" : snapshot.createdBy());
+        values.put("checksum", snapshot.checksum());
+        values.put("sizeBytes", snapshot.sizeBytes());
+        values.put("createdAt", snapshot.createdAt());
+        return values;
     }
 
     static String defaultStoragePath(UUID islandId, long snapshotNo) {
         return "islands/" + islandId + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst";
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
