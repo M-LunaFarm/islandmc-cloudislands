@@ -230,6 +230,14 @@ final class IslandMembershipCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.InviteAction inviteAction) {
+            if (inviteAction.accept()) {
+                runtime.acceptIslandInviteTarget(player, inviteAction.inviteId().toString());
+            } else {
+                runtime.declineIslandInviteTarget(player, inviteAction.inviteId().toString());
+            }
+            return true;
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {
@@ -317,14 +325,6 @@ final class IslandMembershipCommandHandler {
             }
             case "island.invites.open" -> {
                 IslandInviteMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
-                yield true;
-            }
-            case "island.invite.accept" -> {
-                runtime.acceptIslandInviteTarget(player, data.getOrDefault("inviteId", ""));
-                yield true;
-            }
-            case "island.invite.decline" -> {
-                runtime.declineIslandInviteTarget(player, data.getOrDefault("inviteId", ""));
                 yield true;
             }
             case "island.bans.open" -> {

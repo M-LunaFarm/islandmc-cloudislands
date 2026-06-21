@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -273,6 +273,27 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
                 return false;
             }
             return !publicAccess;
+        }
+    }
+
+    record InviteAction(String actionId, UUID inviteId) implements GuiAction {
+        public InviteAction {
+            actionId = actionId == null ? "" : actionId.trim();
+            if (!actionId.equals("island.invite.accept") && !actionId.equals("island.invite.decline")) {
+                throw new IllegalArgumentException("unsupported invite action");
+            }
+            if (inviteId == null) {
+                throw new IllegalArgumentException("inviteId is required");
+            }
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("inviteId", inviteId.toString());
+        }
+
+        public boolean accept() {
+            return actionId.equals("island.invite.accept");
         }
     }
 

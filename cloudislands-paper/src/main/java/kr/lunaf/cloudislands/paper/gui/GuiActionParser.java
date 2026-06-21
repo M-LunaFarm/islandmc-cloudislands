@@ -81,6 +81,10 @@ public final class GuiActionParser {
                     required(safeData, "warpName"),
                     bool(required(safeData, "publicAccess"))
                 ));
+                case "island.invite.accept", "island.invite.decline" -> Optional.of(new GuiAction.InviteAction(
+                    safeAction,
+                    UUID.fromString(required(safeData, "inviteId"))
+                ));
                 case "island.permissions.page" -> Optional.of(new GuiAction.PermissionPage(
                     integer(safeData.get("page")),
                     integer(safeData.get("rolePage"))
