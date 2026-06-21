@@ -1,8 +1,97 @@
 id: island.bank
 rows: 3
 title-key: menu.bank.title
+layout:
+  - "....B...."
+  - ".ab.d.wx."
+  - "M...R...S"
+items:
+  B:
+    material: GOLD_BLOCK
+    name-key: bank-menu-balance-name
+    fallback-name: 잔액
+  a:
+    material: EMERALD
+    name-key: bank-menu-deposit-1000-name
+    fallback-name: 1,000 입금
+    lore-keys:
+      - bank-menu-deposit-1000-command
+    fallback-lore:
+      - "/섬 입금 1000"
+    action: deposit
+    data:
+      amount: "1000"
+  b:
+    material: EMERALD_BLOCK
+    name-key: bank-menu-deposit-10000-name
+    fallback-name: 10,000 입금
+    lore-keys:
+      - bank-menu-deposit-10000-command
+    fallback-lore:
+      - "/섬 입금 10000"
+    action: deposit
+    data:
+      amount: "10000"
+  d:
+    material: PAPER
+    name-key: bank-menu-deposit-name
+    fallback-name: 입금
+    lore-keys:
+      - bank-menu-deposit-usage
+    fallback-lore:
+      - "사용법: /섬 입금 <금액>"
+  w:
+    material: REDSTONE
+    name-key: bank-menu-withdraw-1000-name
+    fallback-name: 1,000 출금
+    lore-keys:
+      - bank-menu-withdraw-1000-command
+    fallback-lore:
+      - "/섬 출금 1000"
+    action: withdraw
+    data:
+      amount: "1000"
+  x:
+    material: REDSTONE_BLOCK
+    name-key: bank-menu-withdraw-10000-name
+    fallback-name: 10,000 출금
+    lore-keys:
+      - bank-menu-withdraw-10000-command
+    fallback-lore:
+      - "/섬 출금 10000"
+    action: withdraw
+    data:
+      amount: "10000"
+  M:
+    material: COMPASS
+    name-key: bank-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - bank-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: back
+  R:
+    material: CLOCK
+    name-key: bank-menu-refresh-name
+    fallback-name: 잔액 새로고침
+    lore-keys:
+      - bank-menu-refresh-command
+    fallback-lore:
+      - "/섬 은행"
+    action: open
+  S:
+    material: COMPARATOR
+    name-key: bank-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - bank-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: settings
 actions:
   open: island.bank.open
   deposit: island.bank.deposit
   withdraw: island.bank.withdraw
   back: island.main.open
+  settings: island.settings.open

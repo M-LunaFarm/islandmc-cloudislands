@@ -32,6 +32,8 @@ class GuiMenuDefinitionTest {
                 name-key: chat-menu-log-name
                 fallback-name: 최근 섬 로그
                 action: logs
+                data:
+                  amount: "1000"
             actions:
               logs: island.logs.open
               settings: island.settings.open
@@ -50,6 +52,7 @@ class GuiMenuDefinitionTest {
         assertEquals("I", definition.itemAt(10).orElseThrow().symbol());
         assertEquals("WRITABLE_BOOK", definition.itemAt(10).orElseThrow().materialKey());
         assertEquals("logs", definition.itemAt(14).orElseThrow().actionKey());
+        assertEquals("1000", definition.itemAt(14).orElseThrow().data().get("amount"));
     }
 
     @Test
@@ -94,6 +97,35 @@ class GuiMenuDefinitionTest {
         assertEquals("A", definition.itemAt(52).orElseThrow().symbol());
         assertEquals("admin.node.open", definition.itemAt(52).orElseThrow().actionKey());
         assertEquals("D", definition.itemAt(53).orElseThrow().symbol());
+    }
+
+    @Test
+    void bundledBankMenuDefinitionCoversBankActionsAndPayloadsDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/bank.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.bank", definition.id());
+        assertEquals(27, definition.size());
+        assertEquals("menu.bank.title", definition.titleKey());
+        assertEquals("B", definition.itemAt(4).orElseThrow().symbol());
+        assertEquals("a", definition.itemAt(10).orElseThrow().symbol());
+        assertEquals("island.bank.deposit", definition.action(definition.itemAt(10).orElseThrow().actionKey(), ""));
+        assertEquals("1000", definition.itemAt(10).orElseThrow().data().get("amount"));
+        assertEquals("b", definition.itemAt(11).orElseThrow().symbol());
+        assertEquals("10000", definition.itemAt(11).orElseThrow().data().get("amount"));
+        assertEquals("w", definition.itemAt(15).orElseThrow().symbol());
+        assertEquals("island.bank.withdraw", definition.action(definition.itemAt(15).orElseThrow().actionKey(), ""));
+        assertEquals("1000", definition.itemAt(15).orElseThrow().data().get("amount"));
+        assertEquals("x", definition.itemAt(16).orElseThrow().symbol());
+        assertEquals("10000", definition.itemAt(16).orElseThrow().data().get("amount"));
+        assertEquals("M", definition.itemAt(18).orElseThrow().symbol());
+        assertEquals("island.main.open", definition.action(definition.itemAt(18).orElseThrow().actionKey(), ""));
+        assertEquals("R", definition.itemAt(22).orElseThrow().symbol());
+        assertEquals("island.bank.open", definition.action(definition.itemAt(22).orElseThrow().actionKey(), ""));
+        assertEquals("S", definition.itemAt(26).orElseThrow().symbol());
+        assertEquals("island.settings.open", definition.action(definition.itemAt(26).orElseThrow().actionKey(), ""));
     }
 
     @Test

@@ -54,15 +54,19 @@ public final class GuiMenuRenderer {
     }
 
     public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages) {
-        return item(definition, item, messages, Map.of());
+        return item(definition, item, messages, item.data());
     }
 
     public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, Map<String, String> data) {
+        java.util.LinkedHashMap<String, String> mergedData = new java.util.LinkedHashMap<>(item.data());
+        if (data != null) {
+            mergedData.putAll(data);
+        }
         return GuiItems.action(
             material(item.materialKey()),
             message(messages, item.nameKey(), item.fallbackName()),
             definition.action(item.actionKey(), item.actionKey()),
-            data == null ? Map.of() : data,
+            mergedData,
             lore(item, messages).toArray(String[]::new)
         );
     }

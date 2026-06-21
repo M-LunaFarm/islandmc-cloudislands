@@ -134,7 +134,11 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
                     continue;
                 }
                 MenuItem.Builder builder = itemBuilders.computeIfAbsent(currentItem, MenuItem.Builder::new);
-                if (value.isBlank() && (key.equals("lore-keys") || key.equals("fallback-lore"))) {
+                if (currentList.equals("data") && indent > 4 && !value.isBlank()) {
+                    builder.data(key, value);
+                    continue;
+                }
+                if (value.isBlank() && (key.equals("lore-keys") || key.equals("fallback-lore") || key.equals("data"))) {
                     currentList = key;
                     continue;
                 }
@@ -188,6 +192,7 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
         String fallbackName,
         List<String> loreKeys,
         List<String> fallbackLore,
+        Map<String, String> data,
         String actionKey
     ) {
         public MenuItem {
@@ -197,6 +202,7 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
             fallbackName = fallbackName == null ? "" : fallbackName;
             loreKeys = loreKeys == null ? List.of() : List.copyOf(loreKeys);
             fallbackLore = fallbackLore == null ? List.of() : List.copyOf(fallbackLore);
+            data = data == null ? Map.of() : Map.copyOf(data);
             actionKey = actionKey == null ? "" : actionKey;
         }
 
@@ -207,6 +213,7 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
             builder.fallbackName = fallbackName;
             builder.loreKeys.addAll(loreKeys);
             builder.fallbackLore.addAll(fallbackLore);
+            builder.data.putAll(data);
             builder.actionKey = actionKey;
             return builder;
         }
@@ -218,6 +225,7 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
             private String fallbackName = "";
             private final ArrayList<String> loreKeys = new ArrayList<>();
             private final ArrayList<String> fallbackLore = new ArrayList<>();
+            private final LinkedHashMap<String, String> data = new LinkedHashMap<>();
             private String actionKey = "";
 
             private Builder(String symbol) {
@@ -244,12 +252,18 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
                 fallbackLore.add(value == null ? "" : value);
             }
 
+            private void data(String key, String value) {
+                if (key != null && !key.isBlank()) {
+                    data.put(key, value == null ? "" : value);
+                }
+            }
+
             private void actionKey(String value) {
                 actionKey = value == null ? "" : value;
             }
 
             private MenuItem build() {
-                return new MenuItem(symbol, materialKey, nameKey, fallbackName, loreKeys, fallbackLore, actionKey);
+                return new MenuItem(symbol, materialKey, nameKey, fallbackName, loreKeys, fallbackLore, data, actionKey);
             }
         }
     }
