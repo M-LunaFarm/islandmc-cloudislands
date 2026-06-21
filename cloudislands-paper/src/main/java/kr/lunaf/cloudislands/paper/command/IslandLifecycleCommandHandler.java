@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandCreationUseCase;
+import kr.lunaf.cloudislands.paper.application.IslandCreationUseCase.IslandActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.DangerousGuiActionPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -144,13 +145,25 @@ final class IslandLifecycleCommandHandler {
 
     private void resetIsland(Player player, String reason) {
         runtime.currentIsland(player, "섬 안에서만 섬을 리셋할 수 있습니다.").ifPresent(islandId -> {
-            creationUseCase.reset(islandId, player.getUniqueId(), reason, runtime::mutateIdempotent)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 리셋 요청", islandId, body)))
+            creationUseCase.resetAction(islandId, player.getUniqueId(), reason, runtime::mutateIdempotent)
+                .thenAccept(result -> runtime.message(player, lifecycleActionMessage("섬 리셋 요청", islandId, result)))
                 .exceptionally(error -> {
                     runtime.message(player, runtime.coreWriteFailureMessage(error, "섬을 리셋하지 못했습니다."));
                     return null;
                 });
         });
+    }
+
+    private static String lifecycleActionMessage(String label, UUID islandId, IslandActionResult result) {
+        StringBuilder builder = new StringBuilder(label)
+            .append(result.accepted() ? " 완료" : " 실패");
+        if (islandId != null) {
+            builder.append(": 대상=").append(islandId.toString(), 0, 8);
+        }
+        if (!result.accepted() && !result.code().isBlank()) {
+            builder.append(" 사유=").append(result.code());
+        }
+        return builder.toString();
     }
 
     private static String joined(String[] args, int start) {
@@ -174,8 +187,6 @@ final class IslandLifecycleCommandHandler {
         String playerCodeMessage(String code, String fallback);
 
         String coreWriteFailureMessage(Throwable error, String fallback);
-
-        String actionResultMessage(String label, UUID targetId, String body);
 
         <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
 

@@ -599,11 +599,6 @@ final class IslandCommandBackend {
             }
 
             @Override
-            public String actionResultMessage(String label, UUID targetId, String body) {
-                return IslandCommandBackend.this.actionResultMessage(label, targetId, body);
-            }
-
-            @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
                 return IslandCommandBackend.this.mutate(auditAction, operation);
             }

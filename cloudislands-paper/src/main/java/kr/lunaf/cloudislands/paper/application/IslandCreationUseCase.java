@@ -1,10 +1,12 @@
 package kr.lunaf.cloudislands.paper.application;
 
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class IslandCreationUseCase {
@@ -39,6 +41,23 @@ public final class IslandCreationUseCase {
         return runner.mutateIdempotent("island.reset", () -> coreApiClient.resetIslandResult(islandId, actorUuid, normalizedReason));
     }
 
+    public CompletableFuture<IslandActionResult> resetAction(UUID islandId, UUID actorUuid, String reason, IdempotentMutationRunner runner) {
+        return reset(islandId, actorUuid, reason, runner)
+            .thenApply(body -> actionResult(body, "RESET_QUEUED"));
+    }
+
+    private static IslandActionResult actionResult(String body, String successCode) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        boolean accepted = !root.containsKey("error")
+            && !Boolean.FALSE.equals(root.get("accepted"))
+            && !Boolean.FALSE.equals(root.get("applied"));
+        String code = SimpleJson.text(root.get("code"));
+        if (code.isBlank()) {
+            code = accepted ? successCode : "FAILED";
+        }
+        return new IslandActionResult(accepted, code);
+    }
+
     private static void requirePlayer(UUID playerUuid) {
         if (playerUuid == null) {
             throw new IllegalArgumentException("playerUuid is required");
@@ -71,5 +90,11 @@ public final class IslandCreationUseCase {
     @FunctionalInterface
     public interface IdempotentMutationRunner {
         <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
+    }
+
+    public record IslandActionResult(boolean accepted, String code) {
+        public IslandActionResult {
+            code = code == null ? "" : code;
+        }
     }
 }

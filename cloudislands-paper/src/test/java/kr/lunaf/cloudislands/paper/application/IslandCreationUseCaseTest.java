@@ -22,13 +22,16 @@ class IslandCreationUseCaseTest {
 
         assertEquals("CREATED", useCase.create(playerUuid, "", mutationRunner(calls)).join().code());
         assertEquals(islandId, useCase.delete(playerUuid, islandId, idempotentRunner(calls)).join().islandId());
-        assertEquals("{\"accepted\":true}", useCase.reset(islandId, playerUuid, "", idempotentRunner(calls)).join());
+        assertEquals("{\"accepted\":true,\"code\":\"RESET_QUEUED\"}", useCase.reset(islandId, playerUuid, "", idempotentRunner(calls)).join());
+        assertEquals("RESET_QUEUED", useCase.resetAction(islandId, playerUuid, "", idempotentRunner(calls)).join().code());
 
         assertEquals(List.of(
             "audit:island.create",
             "createIsland:default",
             "audit-idempotent:island.delete",
             "deleteIsland:" + islandId,
+            "audit-idempotent:island.reset",
+            "resetIslandResult:player-reset",
             "audit-idempotent:island.reset",
             "resetIslandResult:player-reset"
         ), calls);
@@ -49,7 +52,7 @@ class IslandCreationUseCaseTest {
                 }
                 case "resetIslandResult" -> {
                     calls.add("resetIslandResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"RESET_QUEUED\"}");
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });
