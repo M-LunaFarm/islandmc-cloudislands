@@ -7,8 +7,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
-import kr.lunaf.cloudislands.coreclient.CoreProgressionCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreProgressionQueryClient;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.ProgressionQueryClient;
@@ -23,12 +21,12 @@ public final class IslandProgressionUseCase {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
-        this.progressionQueries = new CoreProgressionQueryClient(coreApiClient);
-        this.progressionCommands = new CoreProgressionCommandClient(coreApiClient);
+        this.progressionQueries = coreApiClient.progression();
+        this.progressionCommands = coreApiClient.progressionCommands();
     }
 
     IslandProgressionUseCase(CoreApiClient coreApiClient, ProgressionQueryClient progressionQueries) {
-        this(coreApiClient, progressionQueries, new CoreProgressionCommandClient(coreApiClient));
+        this(coreApiClient, progressionQueries, coreApiClient.progressionCommands());
     }
 
     IslandProgressionUseCase(CoreApiClient coreApiClient, ProgressionQueryClient progressionQueries, ProgressionCommandClient progressionCommands) {

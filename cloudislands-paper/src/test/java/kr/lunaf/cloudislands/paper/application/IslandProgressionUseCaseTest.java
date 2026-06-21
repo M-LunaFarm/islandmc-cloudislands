@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreProgressionCommandClient;
+import kr.lunaf.cloudislands.coreclient.CoreProgressionQueryClient;
 import org.junit.jupiter.api.Test;
 
 class IslandProgressionUseCaseTest {
@@ -50,6 +52,8 @@ class IslandProgressionUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
+                case "progression" -> new CoreProgressionQueryClient((CoreApiClient) _proxy);
+                case "progressionCommands" -> new CoreProgressionCommandClient((CoreApiClient) _proxy);
                 case "islandInfo" -> {
                     calls.add("islandInfo");
                     yield CompletableFuture.completedFuture(islandInfoJson());
