@@ -36,6 +36,10 @@ public interface CoreApiClient {
         return new CoreSnapshotQueryClient(this);
     }
 
+    default CommunicationQueryClient communication() {
+        return new CoreCommunicationQueryClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

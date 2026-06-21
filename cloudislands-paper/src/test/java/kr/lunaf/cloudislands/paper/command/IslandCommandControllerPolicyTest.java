@@ -147,7 +147,8 @@ class IslandCommandControllerPolicyTest {
         assertFalse(communicationUseCase.contains("public CompletableFuture<String> sendChat("), "chat send usecase must expose typed actions instead of raw JSON");
         assertFalse(communicationUseCase.contains("public CompletableFuture<String> listLogs("), "log list usecase must expose typed log views instead of raw JSON");
         assertTrue(communicationUseCase.contains("coreApiClient.sendIslandChat"));
-        assertTrue(communicationUseCase.contains("coreApiClient.listIslandLogs"));
+        assertTrue(communicationUseCase.contains("communicationQueries.listLogs"));
+        assertFalse(communicationUseCase.contains("coreApiClient.listIslandLogs"));
     }
 
     @Test

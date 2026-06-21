@@ -142,6 +142,29 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void communicationQueryClientReturnsTypedLogEntries() {
+        UUID islandId = UUID.randomUUID();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "listIslandLogs" -> CompletableFuture.completedFuture("""
+                    {"logs":[{"actorUuid":"actor","action":"CREATE","createdAt":"now","payload":{"target":"island","activeNode":"node-1"}}]}
+                    """);
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        CommunicationQueryClient client = new CoreCommunicationQueryClient(raw);
+
+        CoreGuiViews.LogEntryView log = client.listLogs(islandId, 500).join().get(0);
+
+        assertEquals("actor", log.actorUuid());
+        assertEquals("CREATE", log.action());
+        assertEquals("island", log.payload().get("target"));
+        assertFalse(log.payload().containsKey("activeNode"));
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

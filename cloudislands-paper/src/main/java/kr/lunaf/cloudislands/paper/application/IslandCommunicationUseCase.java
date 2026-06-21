@@ -6,18 +6,32 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreclient.CommunicationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreCommunicationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LogEntryView;
 
 public final class IslandCommunicationUseCase {
     private final CoreApiClient coreApiClient;
+    private final CommunicationQueryClient communicationQueries;
 
     public IslandCommunicationUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.communicationQueries = new CoreCommunicationQueryClient(coreApiClient);
+    }
+
+    IslandCommunicationUseCase(CoreApiClient coreApiClient, CommunicationQueryClient communicationQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (communicationQueries == null) {
+            throw new IllegalArgumentException("communicationQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.communicationQueries = communicationQueries;
     }
 
     private CompletableFuture<String> sendChatBody(UUID islandId, UUID actorUuid, String channel, String message, MutationRunner runner) {
@@ -37,14 +51,9 @@ public final class IslandCommunicationUseCase {
             .thenApply(body -> chatAction(body, "CHAT_SENT"));
     }
 
-    private CompletableFuture<String> listLogBodies(UUID islandId, int limit) {
-        requireIsland(islandId);
-        return coreApiClient.listIslandLogs(islandId, Math.max(1, Math.min(limit, 30)));
-    }
-
     public CompletableFuture<List<LogEntryView>> logViews(UUID islandId, int limit) {
         requireIsland(islandId);
-        return listLogBodies(islandId, limit).thenApply(CoreGuiViews::logViews);
+        return communicationQueries.listLogs(islandId, Math.max(1, Math.min(limit, 30)));
     }
 
     private static void requireIsland(UUID islandId) {
