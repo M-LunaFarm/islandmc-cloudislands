@@ -373,27 +373,27 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> listPublicWarps(int limit) {
-        return post("/v1/islands/public-warps", "{\"limit\":" + limit + "}");
+        return post("/v1/islands/public-warps", jsonObject("limit", limit));
     }
 
     @Override
     public CompletableFuture<String> listPublicWarps(int limit, String category, String query) {
-        return post("/v1/islands/public-warps", "{\"limit\":" + limit + ",\"category\":\"" + escape(category) + "\",\"query\":\"" + escape(query) + "\"}");
+        return post("/v1/islands/public-warps", jsonObject("limit", limit, "category", category, "query", query));
     }
 
     @Override
     public CompletableFuture<String> listIslandReviews(UUID islandId, int limit) {
-        return post("/v1/islands/reviews", "{\"islandId\":\"" + islandId + "\",\"limit\":" + limit + "}");
+        return post("/v1/islands/reviews", jsonObject("islandId", islandId, "limit", limit));
     }
 
     @Override
     public CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment) {
-        return postWithResultBody("/v1/islands/reviews/set", "{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"rating\":" + rating + ",\"comment\":\"" + escape(comment) + "\"}");
+        return postWithResultBody("/v1/islands/reviews/set", jsonObject("islandId", islandId, "reviewerUuid", reviewerUuid, "rating", rating, "comment", comment));
     }
 
     @Override
     public CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid) {
-        return postWithResultBody("/v1/islands/reviews/delete", "{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\"}");
+        return postWithResultBody("/v1/islands/reviews/delete", jsonObject("islandId", islandId, "reviewerUuid", reviewerUuid));
     }
 
     @Override

@@ -240,6 +240,36 @@ class CoreMutationContextTest {
         }
     }
 
+    @Test
+    void jdkClientBuildsPublicWarpAndReviewPayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID reviewerUuid = UUID.randomUUID();
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/public-warps", exchange -> respond(exchange, requestBodies, "publicWarps", "{\"warps\":[]}"));
+        server.createContext("/v1/islands/reviews", exchange -> respond(exchange, requestBodies, "reviews", "{\"reviews\":[]}"));
+        server.createContext("/v1/islands/reviews/set", exchange -> respond(exchange, requestBodies, "reviewSet", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/reviews/delete", exchange -> respond(exchange, requestBodies, "reviewDelete", "{\"accepted\":true}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.listPublicWarps(10).join();
+            assertEquals("{\"limit\":10}", requestBodies.get("publicWarps"));
+            client.listPublicWarps(11, "market\"zone", "spawn\"main").join();
+            client.listIslandReviews(islandId, 12).join();
+            client.setIslandReview(islandId, reviewerUuid, 5, "nice \"base\"").join();
+            client.deleteIslandReview(islandId, reviewerUuid).join();
+
+            assertEquals("{\"limit\":11,\"category\":\"market\\\"zone\",\"query\":\"spawn\\\"main\"}", requestBodies.get("publicWarps"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":12}", requestBodies.get("reviews"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"rating\":5,\"comment\":\"nice \\\"base\\\"\"}", requestBodies.get("reviewSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\"}", requestBodies.get("reviewDelete"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
     private static void respond(com.sun.net.httpserver.HttpExchange exchange, ConcurrentMap<String, String> requestBodies, String key, String responseBody) throws java.io.IOException {
         requestBodies.put(key, new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
         byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
