@@ -1,13 +1,11 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
 import kr.lunaf.cloudislands.coreclient.CorePermissionCommandClient;
@@ -15,6 +13,7 @@ import kr.lunaf.cloudislands.coreclient.CorePermissionQueryClient;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
 import kr.lunaf.cloudislands.coreclient.PermissionCommandClient;
 import kr.lunaf.cloudislands.coreclient.PermissionQueryClient;
+import kr.lunaf.cloudislands.coreclient.PermissionActionView;
 import kr.lunaf.cloudislands.coreclient.PermissionMatrixView;
 import kr.lunaf.cloudislands.coreclient.UpdatePermissionsRequest;
 
@@ -70,22 +69,22 @@ public final class PermissionManagementUseCase {
         return runner.mutateIdempotent("island.role.reset", () -> permissionCommands.resetRole(islandId, actorUuid, roleKey));
     }
 
-    private CompletableFuture<String> setPermissionBody(UUID islandId, UUID actorUuid, PermissionChange change, MutationRunner runner) {
+    private CompletableFuture<PermissionActionView> setPermissionBody(UUID islandId, UUID actorUuid, PermissionChange change, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
         if (change == null) {
             throw new IllegalArgumentException("change is required");
         }
-        return runner.mutate("island.permission.set", () -> coreApiClient.setIslandPermissionResult(islandId, actorUuid, change.roleKey(), change.permission(), change.allowed()));
+        return runner.mutate("island.permission.set", () -> permissionCommands.setPermission(islandId, actorUuid, change.roleKey(), change.permission(), change.allowed()));
     }
 
     public CompletableFuture<PermissionActionResult> setPermissionAction(UUID islandId, UUID actorUuid, PermissionChange change, MutationRunner runner) {
         return setPermissionBody(islandId, actorUuid, change, runner)
-            .thenApply(body -> permissionAction(body, "PERMISSION_SET"));
+            .thenApply(PermissionManagementUseCase::permissionAction);
     }
 
-    private CompletableFuture<String> setPermissionOverrideBody(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed, MutationRunner runner) {
+    private CompletableFuture<PermissionActionView> setPermissionOverrideBody(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         if (targetUuid == null) {
@@ -95,12 +94,12 @@ public final class PermissionManagementUseCase {
             throw new IllegalArgumentException("permission is required");
         }
         requireRunner(runner);
-        return runner.mutate("island.permission.override.set", () -> coreApiClient.setIslandPermissionOverride(islandId, actorUuid, targetUuid, permission, allowed));
+        return runner.mutate("island.permission.override.set", () -> permissionCommands.setPermissionOverride(islandId, actorUuid, targetUuid, permission, allowed));
     }
 
     public CompletableFuture<PermissionActionResult> setPermissionOverrideAction(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed, MutationRunner runner) {
         return setPermissionOverrideBody(islandId, actorUuid, targetUuid, permission, allowed, runner)
-            .thenApply(body -> permissionAction(body, "PERMISSION_OVERRIDE_SET"));
+            .thenApply(PermissionManagementUseCase::permissionAction);
     }
 
     public CompletableFuture<MutationResult<PermissionMatrixView>> saveSequentiallyTyped(UUID islandId, UUID actorUuid, List<PermissionChange> changes, MutationRunner runner) {
@@ -145,24 +144,8 @@ public final class PermissionManagementUseCase {
         return new PermissionView(view.role(), view.playerUuid(), view.permission(), view.allowed());
     }
 
-    private static PermissionActionResult permissionAction(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = bool(root, "accepted", true);
-        accepted = accepted && !root.containsKey("error") && !Boolean.FALSE.equals(root.get("applied"));
-        String code = text(root, "code");
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new PermissionActionResult(accepted, code);
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key, boolean fallback) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
+    private static PermissionActionResult permissionAction(PermissionActionView view) {
+        return new PermissionActionResult(view.accepted(), view.code());
     }
 
     @FunctionalInterface

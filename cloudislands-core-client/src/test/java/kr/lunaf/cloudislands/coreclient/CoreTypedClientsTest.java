@@ -95,6 +95,34 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void permissionCommandClientReturnsTypedActionViews() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "setIslandPermissionResult" -> {
+                    calls.add("set:" + args[2] + ":" + args[3] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PERMISSION_SET\"}");
+                }
+                case "setIslandPermissionOverride" -> {
+                    calls.add("override:" + args[3] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture("plain-success");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        PermissionCommandClient client = new CorePermissionCommandClient(raw);
+
+        assertEquals("PERMISSION_SET", client.setPermission(islandId, actorUuid, "builder", IslandPermission.BUILD, true).join().code());
+        assertEquals("PERMISSION_OVERRIDE_SET", client.setPermissionOverride(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false).join().code());
+        assertEquals(List.of("set:BUILDER:BUILD:true", "override:BREAK:false"), calls);
+    }
+
+    @Test
     void permissionQueryClientReturnsTypedAssignmentsAndRoles() {
         UUID islandId = UUID.randomUUID();
         UUID playerUuid = UUID.randomUUID();

@@ -1,9 +1,12 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CorePermissionCommandClient implements PermissionCommandClient {
     private final CoreApiClient delegate;
@@ -59,6 +62,24 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
             .thenApply(CorePermissionCommandClient::roleMutationResult);
     }
 
+    @Override
+    public CompletableFuture<PermissionActionView> setPermission(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed) {
+        requirePermission(permission);
+        String normalizedRoleKey = RoleId.of(roleKey).value();
+        return delegate.setIslandPermissionResult(islandId, actorUuid, normalizedRoleKey, permission, allowed)
+            .thenApply(body -> permissionAction(body, "PERMISSION_SET"));
+    }
+
+    @Override
+    public CompletableFuture<PermissionActionView> setPermissionOverride(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed) {
+        if (targetUuid == null) {
+            throw new IllegalArgumentException("targetUuid is required");
+        }
+        requirePermission(permission);
+        return delegate.setIslandPermissionOverride(islandId, actorUuid, targetUuid, permission, allowed)
+            .thenApply(body -> permissionAction(body, "PERMISSION_OVERRIDE_SET"));
+    }
+
     private static MutationResult<PermissionMatrixView> mutationResult(String body) {
         CoreGuiViews.PermissionRulesView rules = CoreGuiViews.permissionRulesView(body);
         PermissionMatrixView view = new PermissionMatrixView(rules.version(), rules.rules());
@@ -68,5 +89,27 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
     private static MutationResult<CoreGuiViews.RoleView> roleMutationResult(String body) {
         CoreGuiViews.RoleView role = CoreGuiViews.roleView(body);
         return new MutationResult<>(role, "", true);
+    }
+
+    private static PermissionActionView permissionAction(String body, String successCode) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        boolean accepted = bool(root, "accepted", true);
+        accepted = accepted && !root.containsKey("error") && !Boolean.FALSE.equals(root.get("applied"));
+        String code = SimpleJson.text(root.get("code"));
+        if (code.isBlank()) {
+            code = accepted ? successCode : "FAILED";
+        }
+        return new PermissionActionView(accepted, code);
+    }
+
+    private static boolean bool(Map<?, ?> object, String key, boolean fallback) {
+        Object value = object.get(key);
+        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
+    }
+
+    private static void requirePermission(IslandPermission permission) {
+        if (permission == null) {
+            throw new IllegalArgumentException("permission is required");
+        }
     }
 }
