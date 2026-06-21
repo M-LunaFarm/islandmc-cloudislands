@@ -22,7 +22,7 @@ class IslandEnvironmentUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000070");
         UUID actorUuid = uuid("00000000-0000-0000-0000-000000000001");
 
-        assertEquals("PLAINS", useCase.islandBiomeValue(islandId).join());
+        assertEquals("PLAINS", useCase.islandBiomeValue(islandId).join().key());
         assertEquals(300L, useCase.islandInfoView(islandId).join().size());
         assertEquals("blue", useCase.flagValues(islandId).join().get(IslandFlag.BORDER_COLOR));
         List<LimitView> limits = useCase.limitViews(islandId).join();

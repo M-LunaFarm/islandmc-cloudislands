@@ -22,9 +22,9 @@ public final class IslandEnvironmentUseCase {
         this.coreApiClient = coreApiClient;
     }
 
-    public CompletableFuture<String> islandBiomeValue(UUID islandId) {
+    public CompletableFuture<BiomeValue> islandBiomeValue(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandBiome(coreApiClient, islandId);
+        return CoreGuiViews.islandBiome(coreApiClient, islandId).thenApply(BiomeValue::new);
     }
 
     private CompletableFuture<String> setBiomeBody(UUID islandId, UUID actorUuid, String biomeKey, MutationRunner runner) {
@@ -146,6 +146,12 @@ public final class IslandEnvironmentUseCase {
     public record EnvironmentActionResult(boolean accepted, String code, String key, long value) {
         public EnvironmentActionResult {
             code = code == null ? "" : code;
+            key = key == null ? "" : key;
+        }
+    }
+
+    public record BiomeValue(String key) {
+        public BiomeValue {
             key = key == null ? "" : key;
         }
     }

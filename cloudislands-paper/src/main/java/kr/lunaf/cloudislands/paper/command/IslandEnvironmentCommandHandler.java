@@ -159,7 +159,7 @@ final class IslandEnvironmentCommandHandler {
     private void showBiome(Player player) {
         runtime.currentIsland(player, "섬 안에서만 바이옴을 확인할 수 있습니다.").ifPresent(islandId -> {
             environmentUseCase.islandBiomeValue(islandId)
-                .thenAccept(biomeKey -> runtime.message(player, "섬 바이옴: " + biomeKey))
+                .thenAccept(biome -> runtime.message(player, "섬 바이옴: " + biome.key()))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 바이옴을 불러오지 못했습니다.");
                     return null;
