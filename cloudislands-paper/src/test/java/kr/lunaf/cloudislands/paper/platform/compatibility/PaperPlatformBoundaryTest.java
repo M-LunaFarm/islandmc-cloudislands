@@ -749,7 +749,8 @@ class PaperPlatformBoundaryTest {
 
         assertTrue(bootstrap.contains("plugin.playerLocales = new PlayerLocaleCache()"), "Paper runtime must create a player locale cache");
         assertTrue(bootstrap.contains("new PaperPlayerProfileListener(client, plugin.playerLocales)"), "Core profile touch must feed the locale cache");
-        assertTrue(profileListener.contains("PlayerLocaleCache.profileLocale(body, playerLocale)"), "Paper profile listener must use the Core profile locale returned by touch");
+        assertTrue(profileListener.contains("coreApiClient.playerProfileCommands()"), "Paper profile listener must use typed Core player profile commands");
+        assertTrue(profileListener.contains("profile.locale()"), "Paper profile listener must use the typed Core profile locale returned by touch");
         assertTrue(commandBackend.contains("messages.forLocale(locales == null ? player.getLocale() : locales.locale(player))"), "Command and GUI messages must prefer the Core profile locale cache");
         assertTrue(branding.contains("locales == null ? player.getLocale() : locales.locale(player)"), "Tab and join messages must prefer the Core profile locale cache");
         assertTrue(scoreboard.contains("locales == null ? player.getLocale() : locales.locale(player)"), "Scoreboard messages must prefer the Core profile locale cache");

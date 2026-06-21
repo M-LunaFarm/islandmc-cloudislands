@@ -46,39 +46,4 @@ public final class PlayerLocaleCache {
         locales.clear();
     }
 
-    public static String profileLocale(String json, String fallback) {
-        String value = jsonText(json, "locale");
-        return PlayerIslandProfile.normalizeLocale(value == null || value.isBlank() ? fallback : value);
-    }
-
-    private static String jsonText(String json, String field) {
-        if (json == null || json.isBlank() || field == null || field.isBlank()) {
-            return null;
-        }
-        String needle = "\"" + field + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return null;
-        }
-        StringBuilder value = new StringBuilder();
-        int index = start + needle.length();
-        boolean escaped = false;
-        while (index < json.length()) {
-            char current = json.charAt(index++);
-            if (escaped) {
-                value.append(current);
-                escaped = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (current == '"') {
-                return value.toString();
-            }
-            value.append(current);
-        }
-        return null;
-    }
 }

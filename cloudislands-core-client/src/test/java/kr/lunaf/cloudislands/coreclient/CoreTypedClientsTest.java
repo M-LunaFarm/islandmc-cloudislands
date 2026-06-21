@@ -967,6 +967,73 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void playerProfileClientsReturnTypedProfiles() {
+        UUID playerUuid = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "playerInfo" -> {
+                    calls.add("info:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"playerUuid":"%s","lastName":"Alice","primaryIslandId":"%s","lastSeenAt":"now","locale":"ko_kr"}
+                        """.formatted(args[0], islandId));
+                }
+                case "playerInfoByName" -> {
+                    calls.add("name:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"playerUuid":"%s","lastName":"%s","primaryIslandId":null,"lastSeenAt":"later","locale":"en_us"}
+                        """.formatted(playerUuid, args[0]));
+                }
+                case "touchPlayerProfile" -> {
+                    calls.add("touch:" + args[1] + ":" + (args.length > 2 ? args[2] : ""));
+                    yield CompletableFuture.completedFuture("""
+                        {"playerUuid":"%s","lastName":"%s","primaryIslandId":"%s","lastSeenAt":"now","locale":"%s"}
+                        """.formatted(args[0], args[1], islandId, args.length > 2 ? args[2] : ""));
+                }
+                case "setPlayerLocale" -> {
+                    calls.add("locale:" + args[1]);
+                    yield CompletableFuture.completedFuture("""
+                        {"playerUuid":"%s","lastName":"Alice","primaryIslandId":"%s","lastSeenAt":"now","locale":"%s"}
+                        """.formatted(args[0], islandId, args[1]));
+                }
+                case "setPlayerIsland" -> {
+                    calls.add("setIsland:" + args[1]);
+                    yield CompletableFuture.completedFuture("""
+                        {"playerUuid":"%s","lastName":"Alice","primaryIslandId":"%s","lastSeenAt":"now","locale":"ko_kr"}
+                        """.formatted(args[0], args[1]));
+                }
+                case "clearPlayerIsland" -> {
+                    calls.add("clearIsland:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"playerUuid":"%s","lastName":"Alice","primaryIslandId":null,"lastSeenAt":"now","locale":"ko_kr"}
+                        """.formatted(args[0]));
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        PlayerProfileQueryClient queries = new CorePlayerProfileQueryClient(raw);
+        PlayerProfileCommandClient commands = new CorePlayerProfileCommandClient(raw);
+
+        assertEquals("Alice", queries.profile(playerUuid).join().lastName());
+        assertEquals("en_us", queries.findByName(" Alice ").join().locale());
+        assertEquals(islandId.toString(), commands.touch(playerUuid, "Alice", "fr_fr").join().primaryIslandId());
+        assertEquals("de_de", commands.setLocale(playerUuid, "de_de").join().locale());
+        assertEquals(islandId.toString(), commands.setPrimaryIsland(playerUuid, islandId).join().primaryIslandId());
+        assertEquals("", commands.clearPrimaryIsland(playerUuid).join().primaryIslandId());
+        assertEquals(List.of(
+            "info:" + playerUuid,
+            "name:Alice",
+            "touch:Alice:fr_fr",
+            "locale:de_de",
+            "setIsland:" + islandId,
+            "clearIsland:" + playerUuid
+        ), calls);
+    }
+
+    @Test
     void lifecycleCommandClientReturnsTypedResetResult() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

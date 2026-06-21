@@ -1,13 +1,14 @@
 package kr.lunaf.cloudislands.paper.session;
 
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.PlayerProfileCommandClient;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 public final class PaperPlayerProfileListener implements Listener {
-    private final CoreApiClient coreApiClient;
+    private final PlayerProfileCommandClient playerProfiles;
     private final PlayerLocaleCache locales;
 
     public PaperPlayerProfileListener(CoreApiClient coreApiClient) {
@@ -15,7 +16,7 @@ public final class PaperPlayerProfileListener implements Listener {
     }
 
     public PaperPlayerProfileListener(CoreApiClient coreApiClient, PlayerLocaleCache locales) {
-        this.coreApiClient = coreApiClient;
+        this.playerProfiles = coreApiClient.playerProfileCommands();
         this.locales = locales;
     }
 
@@ -26,10 +27,11 @@ public final class PaperPlayerProfileListener implements Listener {
         if (locales != null) {
             locales.remember(playerUuid, playerLocale);
         }
-        coreApiClient.touchPlayerProfile(playerUuid, event.getPlayer().getName(), playerLocale)
-            .thenAccept(body -> {
+        playerProfiles.touch(playerUuid, event.getPlayer().getName(), playerLocale)
+            .thenAccept(profile -> {
                 if (locales != null) {
-                    locales.remember(playerUuid, PlayerLocaleCache.profileLocale(body, playerLocale));
+                    String locale = profile.locale().isBlank() ? playerLocale : profile.locale();
+                    locales.remember(playerUuid, locale);
                 }
             })
             .exceptionally(error -> null);
