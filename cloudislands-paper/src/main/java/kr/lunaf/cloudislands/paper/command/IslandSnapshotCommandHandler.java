@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -9,6 +8,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.SnapshotUseCase;
+import kr.lunaf.cloudislands.paper.application.SnapshotUseCase.SnapshotActionResult;
+import kr.lunaf.cloudislands.paper.application.SnapshotUseCase.SnapshotView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
@@ -105,8 +106,8 @@ final class IslandSnapshotCommandHandler {
 
     private void listSnapshots(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 스냅샷을 확인할 수 있습니다.").ifPresent(islandId -> {
-            snapshotUseCase.listSnapshots(islandId, limit)
-                .thenAccept(body -> runtime.message(player, snapshotListMessage(body)))
+            snapshotUseCase.snapshotViews(islandId, limit)
+                .thenAccept(snapshots -> runtime.message(player, snapshotListMessage(snapshots)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 스냅샷을 불러오지 못했습니다.");
                     return null;
@@ -124,8 +125,8 @@ final class IslandSnapshotCommandHandler {
                 runtime.message(player, runtime.routeMessage("snapshot-create-denied", "섬 스냅샷을 생성할 관리자 권한이 없습니다."));
                 return;
             }
-            snapshotUseCase.requestSnapshot(islandId, reason, runtime::mutate)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 스냅샷 생성 요청", islandId, body)))
+            snapshotUseCase.requestSnapshotAction(islandId, reason, runtime::mutate)
+                .thenAccept(result -> runtime.message(player, snapshotActionMessage("섬 스냅샷 생성 요청", islandId, result)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 스냅샷 생성을 요청하지 못했습니다.");
                     return null;
@@ -143,8 +144,8 @@ final class IslandSnapshotCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요."));
                 return;
             }
-            snapshotUseCase.restoreSnapshot(islandId, snapshotNo, runtime::mutateIdempotent)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 스냅샷 복원 요청 #" + snapshotNo, islandId, body)))
+            snapshotUseCase.restoreSnapshotAction(islandId, snapshotNo, runtime::mutateIdempotent)
+                .thenAccept(result -> runtime.message(player, snapshotActionMessage("섬 스냅샷 복원 요청 #" + snapshotNo, islandId, result)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 스냅샷 복원을 요청하지 못했습니다.");
                     return null;
@@ -152,31 +153,25 @@ final class IslandSnapshotCommandHandler {
         });
     }
 
-    private static String snapshotListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            long snapshotNo = (long) decimal(object, "snapshotNo");
-            if (snapshotNo > 0L) {
-                String reason = text(object, "reason");
-                String checksum = text(object, "checksum");
-                long sizeBytes = (long) decimal(object, "sizeBytes");
-                entries.add("#" + snapshotNo
-                    + (reason.isBlank() ? "" : " 사유=" + reason)
-                    + (sizeBytes <= 0L ? "" : " 크기=" + sizeBytes)
-                    + (checksum.isBlank() ? "" : " checksum=" + shortChecksum(checksum)));
-            }
-            index = objectEnd + 1;
+    private String snapshotActionMessage(String label, UUID islandId, SnapshotActionResult result) {
+        StringBuilder builder = new StringBuilder(label)
+            .append(result.accepted() ? " 완료" : " 실패");
+        if (islandId != null) {
+            builder.append(": 대상=").append(islandId.toString(), 0, 8);
         }
+        if (!result.accepted() && !result.code().isBlank()) {
+            builder.append(" 사유=").append(result.code());
+        }
+        return builder.toString();
+    }
+
+    private static String snapshotListMessage(List<SnapshotView> snapshots) {
+        List<String> entries = snapshots.stream()
+            .map(snapshot -> "#" + snapshot.snapshotNo()
+                + (snapshot.reason().isBlank() ? "" : " 사유=" + snapshot.reason())
+                + (snapshot.sizeBytes() <= 0L ? "" : " 크기=" + snapshot.sizeBytes())
+                + (snapshot.checksum().isBlank() ? "" : " checksum=" + shortChecksum(snapshot.checksum())))
+            .toList();
         return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(", ", entries);
     }
 
@@ -204,59 +199,6 @@ final class IslandSnapshotCommandHandler {
             return "";
         }
         return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
-    }
-
-    private static String text(String json, String key) {
-        String marker = "\"" + key + "\"";
-        int keyIndex = json.indexOf(marker);
-        if (keyIndex < 0) {
-            return "";
-        }
-        int colon = json.indexOf(':', keyIndex + marker.length());
-        if (colon < 0) {
-            return "";
-        }
-        int start = json.indexOf('"', colon + 1);
-        if (start < 0) {
-            return "";
-        }
-        int end = json.indexOf('"', start + 1);
-        if (end < 0) {
-            return "";
-        }
-        return json.substring(start + 1, end);
-    }
-
-    private static double decimal(String json, String key) {
-        String marker = "\"" + key + "\"";
-        int keyIndex = json.indexOf(marker);
-        if (keyIndex < 0) {
-            return 0.0d;
-        }
-        int colon = json.indexOf(':', keyIndex + marker.length());
-        if (colon < 0) {
-            return 0.0d;
-        }
-        int end = colon + 1;
-        while (end < json.length() && " \t\r\n".indexOf(json.charAt(end)) >= 0) {
-            end++;
-        }
-        int start = end;
-        while (end < json.length()) {
-            char current = json.charAt(end);
-            if (!(Character.isDigit(current) || current == '-' || current == '.')) {
-                break;
-            }
-            end++;
-        }
-        if (start == end) {
-            return 0.0d;
-        }
-        try {
-            return Double.parseDouble(json.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0.0d;
-        }
     }
 
     interface Runtime {

@@ -101,7 +101,7 @@ public final class IslandEnvironmentUseCase {
 
     private static EnvironmentActionResult actionResult(String body, String successCode) {
         Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = bool(root, "accepted", !root.containsKey("error") && !root.containsKey("code"));
+        boolean accepted = bool(root, "accepted", true);
         accepted = accepted && !root.containsKey("error") && !Boolean.FALSE.equals(root.get("applied"));
         String code = text(root, "code");
         if (code.isBlank()) {

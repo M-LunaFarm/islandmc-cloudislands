@@ -1,8 +1,11 @@
 package kr.lunaf.cloudislands.paper.application;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class SnapshotUseCase {
@@ -20,6 +23,10 @@ public final class SnapshotUseCase {
         return coreApiClient.listIslandSnapshots(islandId, boundedLimit(limit));
     }
 
+    public CompletableFuture<List<SnapshotView>> snapshotViews(UUID islandId, int limit) {
+        return listSnapshots(islandId, limit).thenApply(SnapshotUseCase::snapshotViews);
+    }
+
     public CompletableFuture<String> requestSnapshot(UUID islandId, String reason, MutationRunner runner) {
         requireIsland(islandId);
         requireRunner(runner);
@@ -27,11 +34,21 @@ public final class SnapshotUseCase {
         return runner.mutate("island.snapshot.create", () -> coreApiClient.requestIslandSnapshotResult(islandId, normalizedReason));
     }
 
+    public CompletableFuture<SnapshotActionResult> requestSnapshotAction(UUID islandId, String reason, MutationRunner runner) {
+        return requestSnapshot(islandId, reason, runner)
+            .thenApply(body -> snapshotAction(body, "SNAPSHOT_REQUESTED"));
+    }
+
     public CompletableFuture<String> restoreSnapshot(UUID islandId, long snapshotNo, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireSnapshotNo(snapshotNo);
         requireIdempotentRunner(runner);
         return runner.mutateIdempotent("island.snapshot.restore", () -> coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo));
+    }
+
+    public CompletableFuture<SnapshotActionResult> restoreSnapshotAction(UUID islandId, long snapshotNo, IdempotentMutationRunner runner) {
+        return restoreSnapshot(islandId, snapshotNo, runner)
+            .thenApply(body -> snapshotAction(body, "RESTORE_REQUESTED"));
     }
 
     public static long positiveSnapshotNo(String value) {
@@ -81,6 +98,58 @@ public final class SnapshotUseCase {
         }
     }
 
+    private static List<SnapshotView> snapshotViews(String body) {
+        return entries(body).stream()
+            .map(object -> new SnapshotView(
+                SimpleJson.number(object.get("snapshotNo")),
+                text(object, "reason"),
+                SimpleJson.number(object.get("sizeBytes")),
+                text(object, "checksum")
+            ))
+            .filter(snapshot -> snapshot.snapshotNo() > 0L)
+            .toList();
+    }
+
+    private static SnapshotActionResult snapshotAction(String body, String successCode) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        boolean accepted = bool(root, "accepted", true);
+        accepted = accepted && !root.containsKey("error") && !Boolean.FALSE.equals(root.get("applied"));
+        String code = text(root, "code");
+        if (code.isBlank()) {
+            code = accepted ? successCode : "FAILED";
+        }
+        return new SnapshotActionResult(accepted, code);
+    }
+
+    private static List<Map<?, ?>> entries(String body) {
+        Object parsed = SimpleJson.parse(body);
+        if (parsed instanceof List<?>) {
+            return SimpleJson.list(parsed).stream()
+                .map(SimpleJson::object)
+                .filter(map -> !map.isEmpty())
+                .toList();
+        }
+        Map<?, ?> root = SimpleJson.object(parsed);
+        for (Object value : root.values()) {
+            if (value instanceof List<?>) {
+                return SimpleJson.list(value).stream()
+                    .map(SimpleJson::object)
+                    .filter(map -> !map.isEmpty())
+                    .toList();
+            }
+        }
+        return root.isEmpty() ? List.of() : List.of(root);
+    }
+
+    private static String text(Map<?, ?> object, String key) {
+        return SimpleJson.text(object.get(key));
+    }
+
+    private static boolean bool(Map<?, ?> object, String key, boolean fallback) {
+        Object value = object.get(key);
+        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
+    }
+
     @FunctionalInterface
     public interface MutationRunner {
         CompletableFuture<String> mutate(String auditAction, Supplier<CompletableFuture<String>> operation);
@@ -89,5 +158,18 @@ public final class SnapshotUseCase {
     @FunctionalInterface
     public interface IdempotentMutationRunner {
         CompletableFuture<String> mutateIdempotent(String auditAction, Supplier<CompletableFuture<String>> operation);
+    }
+
+    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String checksum) {
+        public SnapshotView {
+            reason = reason == null ? "" : reason;
+            checksum = checksum == null ? "" : checksum;
+        }
+    }
+
+    public record SnapshotActionResult(boolean accepted, String code) {
+        public SnapshotActionResult {
+            code = code == null ? "" : code;
+        }
     }
 }

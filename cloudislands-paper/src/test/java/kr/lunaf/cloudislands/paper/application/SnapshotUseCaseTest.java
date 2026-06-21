@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -18,8 +19,10 @@ class SnapshotUseCaseTest {
         SnapshotUseCase useCase = new SnapshotUseCase(coreApiClient(core));
         UUID islandId = UUID.randomUUID();
 
-        assertEquals("{\"snapshots\":[]}", useCase.listSnapshots(islandId, 999).join());
-        assertEquals(List.of("list:20"), core.calls);
+        assertEquals("{\"snapshots\":[{\"snapshotNo\":7,\"reason\":\"manual\",\"sizeBytes\":4096,\"checksum\":\"abcdef1234567890\"}]}", useCase.listSnapshots(islandId, 999).join());
+        assertEquals(7L, useCase.snapshotViews(islandId, 999).join().get(0).snapshotNo());
+        assertEquals("abcdef1234567890", useCase.snapshotViews(islandId, 999).join().get(0).checksum());
+        assertEquals(List.of("list:20", "list:20", "list:20"), core.calls);
         assertEquals(1, SnapshotUseCase.boundedLimit(-5));
         assertEquals(12, SnapshotUseCase.boundedLimit(12));
     }
@@ -36,8 +39,9 @@ class SnapshotUseCaseTest {
         }).join();
 
         assertEquals("{\"code\":\"SNAPSHOT_REQUESTED\"}", body);
+        assertTrue(useCase.requestSnapshotAction(UUID.randomUUID(), "manual", (_auditAction, operation) -> operation.get()).join().accepted());
         assertEquals(List.of("island.snapshot.create"), auditActions);
-        assertEquals(List.of("request:manual"), core.calls);
+        assertEquals(List.of("request:manual", "request:manual"), core.calls);
     }
 
     @Test
@@ -52,8 +56,9 @@ class SnapshotUseCaseTest {
         }).join();
 
         assertEquals("{\"code\":\"RESTORE_REQUESTED\"}", body);
+        assertTrue(useCase.restoreSnapshotAction(UUID.randomUUID(), 7L, (_auditAction, operation) -> operation.get()).join().accepted());
         assertEquals(List.of("island.snapshot.restore"), auditActions);
-        assertEquals(List.of("restore:7"), core.calls);
+        assertEquals(List.of("restore:7", "restore:7"), core.calls);
     }
 
     @Test
@@ -88,7 +93,7 @@ class SnapshotUseCaseTest {
 
         CompletableFuture<String> list(int limit) {
             calls.add("list:" + limit);
-            return CompletableFuture.completedFuture("{\"snapshots\":[]}");
+            return CompletableFuture.completedFuture("{\"snapshots\":[{\"snapshotNo\":7,\"reason\":\"manual\",\"sizeBytes\":4096,\"checksum\":\"abcdef1234567890\"}]}");
         }
 
         CompletableFuture<String> request(String reason) {

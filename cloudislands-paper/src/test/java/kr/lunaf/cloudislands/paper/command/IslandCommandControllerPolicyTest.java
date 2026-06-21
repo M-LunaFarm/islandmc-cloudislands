@@ -91,8 +91,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(snapshotHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(snapshotHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(snapshotHandler.contains("private final SnapshotUseCase snapshotUseCase;"));
-        assertTrue(snapshotHandler.contains("snapshotUseCase.requestSnapshot("));
-        assertTrue(snapshotHandler.contains("snapshotUseCase.restoreSnapshot("));
+        assertTrue(snapshotHandler.contains("snapshotUseCase.requestSnapshotAction("));
+        assertTrue(snapshotHandler.contains("snapshotUseCase.restoreSnapshotAction("));
         assertFalse(snapshotHandler.contains("coreApiClient.requestIslandSnapshotResult"), "snapshot mutation logic belongs in SnapshotUseCase");
         assertFalse(snapshotHandler.contains("coreApiClient.restoreIslandSnapshotResult"), "snapshot mutation logic belongs in SnapshotUseCase");
         assertTrue(snapshotUseCase.contains("coreApiClient.requestIslandSnapshotResult"));
