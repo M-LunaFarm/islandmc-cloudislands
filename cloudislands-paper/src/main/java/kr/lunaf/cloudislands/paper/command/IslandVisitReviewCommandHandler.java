@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -62,8 +61,11 @@ final class IslandVisitReviewCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.VisitTarget visitTarget) {
+            routeVisitTarget(player, visitTarget.target());
+            return true;
+        }
         String actionId = action.actionId();
-        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.visit.open" -> {
                 IslandVisitMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
@@ -75,10 +77,6 @@ final class IslandVisitReviewCommandHandler {
             }
             case "island.visit.public.open" -> {
                 listPublicIslands(player, 10);
-                yield true;
-            }
-            case "island.visit.target" -> {
-                routeVisitTarget(player, data.getOrDefault("target", ""));
                 yield true;
             }
             default -> false;

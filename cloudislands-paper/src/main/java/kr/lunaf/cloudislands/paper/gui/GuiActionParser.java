@@ -51,6 +51,9 @@ public final class GuiActionParser {
                     required(safeData, "limitKey"),
                     nonNegativeLong(required(safeData, "value"))
                 ));
+                case "island.visit.target" -> Optional.of(new GuiAction.VisitTarget(
+                    required(safeData, "target")
+                ));
                 case "island.permissions.page" -> Optional.of(new GuiAction.PermissionPage(
                     integer(safeData.get("page")),
                     integer(safeData.get("rolePage"))

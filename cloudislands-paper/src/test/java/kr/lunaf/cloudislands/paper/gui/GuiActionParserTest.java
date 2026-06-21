@@ -92,6 +92,15 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesVisitTargetIntoTypedAction() {
+        GuiAction action = GuiActionParser.parse("island.visit.target", Map.of("target", " 00000000-0000-0000-0000-000000000000 ")).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.VisitTarget);
+        assertEquals("island.visit.target", action.actionId());
+        assertEquals(Map.of("target", "00000000-0000-0000-0000-000000000000"), action.data());
+    }
+
+    @Test
     void rejectsUnregisteredActionIdsInsteadOfExecutingRawMaps() {
         assertTrue(GuiActionParser.parse("island.member.remvoe", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
         assertTrue(GuiActionParser.parse("island.unknown.open", Map.of()).isEmpty());
@@ -105,5 +114,6 @@ class GuiActionParserTest {
         assertTrue(GuiActionParser.parse("island.biome.set", Map.of("biomeKey", "")).isEmpty());
         assertTrue(GuiActionParser.parse("island.flag.set", Map.of("flag", "")).isEmpty());
         assertTrue(GuiActionParser.parse("island.flag.set", Map.of("flag", "NOPE")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.visit.target", Map.of("target", "")).isEmpty());
     }
 }

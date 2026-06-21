@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -149,6 +149,25 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
 
         private static String normalizeKey(String value) {
             return value == null ? "" : value.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        }
+    }
+
+    record VisitTarget(String target) implements GuiAction {
+        public VisitTarget {
+            target = target == null ? "" : target.trim();
+            if (target.isBlank()) {
+                throw new IllegalArgumentException("target is required");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return "island.visit.target";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("target", target);
         }
     }
 
