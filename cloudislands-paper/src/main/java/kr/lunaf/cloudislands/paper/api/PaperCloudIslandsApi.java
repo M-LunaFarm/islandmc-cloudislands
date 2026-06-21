@@ -1883,17 +1883,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandHomeSnapshot>> getHomes(UUID islandId) {
-            return client.listIslandHomes(islandId).thenApply(PaperCloudIslandsApi::homes);
+            return client.homeWarps().homes(islandId).thenApply(views -> homes(islandId, views));
         }
 
         @Override
         public CompletableFuture<List<IslandWarpSnapshot>> getWarps(UUID islandId) {
-            return client.listIslandWarps(islandId).thenApply(PaperCloudIslandsApi::warps);
+            return client.homeWarps().warps(islandId).thenApply(views -> warps(islandId, views));
         }
 
         @Override
         public CompletableFuture<List<IslandWarpSnapshot>> getPublicWarps(int limit) {
-            return client.listPublicWarps(limit).thenApply(PaperCloudIslandsApi::warps);
+            return client.homeWarps().publicWarps(limit, "", "").thenApply(PaperCloudIslandsApi::warps);
         }
 
         @Override
@@ -2935,6 +2935,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return homes;
     }
 
+    private static List<IslandHomeSnapshot> homes(UUID fallbackIslandId, List<CoreGuiViews.HomeView> views) {
+        return views.stream()
+            .map(view -> new IslandHomeSnapshot(
+                view.islandId().isBlank() ? fallbackIslandId : uuidValueOrZero(view.islandId()),
+                view.name().isBlank() ? "default" : view.name(),
+                location(view.x(), view.y(), view.z()),
+                uuidValueOrZero(view.createdBy()),
+                view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt())
+            ))
+            .toList();
+    }
+
     private static List<IslandWarpSnapshot> warps(String json) {
         List<IslandWarpSnapshot> warps = new ArrayList<>();
         for (String object : objects(json, "warps")) {
@@ -2949,6 +2961,30 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return warps;
+    }
+
+    private static List<IslandWarpSnapshot> warps(UUID fallbackIslandId, List<CoreGuiViews.WarpView> views) {
+        return views.stream()
+            .map(view -> warp(fallbackIslandId, view))
+            .toList();
+    }
+
+    private static List<IslandWarpSnapshot> warps(List<CoreGuiViews.WarpView> views) {
+        return views.stream()
+            .map(view -> warp(new UUID(0L, 0L), view))
+            .toList();
+    }
+
+    private static IslandWarpSnapshot warp(UUID fallbackIslandId, CoreGuiViews.WarpView view) {
+        return new IslandWarpSnapshot(
+            view.islandId().isBlank() ? fallbackIslandId : uuidValueOrZero(view.islandId()),
+            view.name().isBlank() ? "default" : view.name(),
+            location(view.x(), view.y(), view.z()),
+            view.publicAccess(),
+            uuidValueOrZero(view.createdBy()),
+            view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt()),
+            view.category().isBlank() ? "default" : view.category()
+        );
     }
 
     private static List<IslandPermissionRuleSnapshot> permissionRules(String json) {
@@ -3332,6 +3368,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             (float) decimal(json, "yaw", 0.0D),
             (float) decimal(json, "pitch", 0.0D)
         );
+    }
+
+    private static IslandLocation location(double x, double y, double z) {
+        return new IslandLocation("", x, y, z, 0.0f, 0.0f);
     }
 
     private static List<String> nodeIds(String json) {

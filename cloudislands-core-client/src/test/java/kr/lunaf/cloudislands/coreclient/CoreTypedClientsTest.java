@@ -727,10 +727,10 @@ class CoreTypedClientsTest {
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listIslandHomes" -> CompletableFuture.completedFuture("""
-                    {"homes":[{"name":"home","location":{"x":1.0,"y":2.0,"z":3.0},"createdAt":"now"}]}
-                    """);
+                    {"homes":[{"islandId":"%s","name":"home","location":{"x":1.0,"y":2.0,"z":3.0},"createdBy":"00000000-0000-0000-0000-000000000001","createdAt":"now"}]}
+                    """.formatted(islandId));
                 case "listIslandWarps" -> CompletableFuture.completedFuture("""
-                    {"warps":[{"islandId":"%s","name":"spawn","location":{"x":1.0,"y":2.0,"z":3.0},"publicAccess":true,"category":"default"}]}
+                    {"warps":[{"islandId":"%s","name":"spawn","location":{"x":1.0,"y":2.0,"z":3.0},"publicAccess":true,"createdBy":"00000000-0000-0000-0000-000000000002","createdAt":"later","category":"default"}]}
                     """.formatted(islandId));
                 case "islandInfo" -> CompletableFuture.completedFuture("""
                     {"islandId":"%s","name":"Island","state":"ACTIVE"}
@@ -743,8 +743,14 @@ class CoreTypedClientsTest {
         );
         HomeWarpQueryClient client = new CoreHomeWarpQueryClient(raw);
 
-        assertEquals("home", client.homes(islandId).join().get(0).name());
-        assertEquals("spawn", client.warps(islandId).join().get(0).name());
+        CoreGuiViews.HomeView home = client.homes(islandId).join().get(0);
+        CoreGuiViews.WarpView warp = client.warps(islandId).join().get(0);
+        assertEquals(islandId.toString(), home.islandId());
+        assertEquals("home", home.name());
+        assertEquals("00000000-0000-0000-0000-000000000001", home.createdBy());
+        assertEquals("spawn", warp.name());
+        assertEquals("00000000-0000-0000-0000-000000000002", warp.createdBy());
+        assertEquals("later", warp.createdAt());
         assertEquals("Island", client.islandInfo(islandId).join().name());
         assertEquals("market", client.publicWarps(200, null, null).join().get(0).name());
     }
