@@ -30,6 +30,7 @@ import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
 import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
+import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
@@ -976,12 +977,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private boolean handleRankings(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("level")) {
             int limit = args.length > 2 ? (int) number(args[2], 10L) : 10;
-            run(sender, "Level rankings", coreApiClient.topIslandsByLevel(limit).thenApply(body -> rankingListMessage("Level rankings", body)));
+            run(sender, "Level rankings", coreApiClient.progression().topLevel(limit).thenApply(rankings -> rankingListMessage("Level rankings", rankings)));
             return true;
         }
         if (args[1].equalsIgnoreCase("worth") || args[1].equalsIgnoreCase("value")) {
             int limit = args.length > 2 ? (int) number(args[2], 10L) : 10;
-            run(sender, "Worth rankings", coreApiClient.topIslandsByWorth(limit).thenApply(body -> rankingListMessage("Worth rankings", body)));
+            run(sender, "Worth rankings", coreApiClient.progression().topWorth(limit).thenApply(rankings -> rankingListMessage("Worth rankings", rankings)));
             return true;
         }
         sendCommandUsage(sender, List.of(
@@ -1893,32 +1894,21 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + (islandId.isBlank() ? adminText("admin-command-player-info-island-none", " island=none") : adminText("admin-command-player-info-island-prefix", " island=") + shortId(islandId));
     }
 
-    private String rankingListMessage(String label, String body) {
-        String rankings = arrayValue(body, "rankings");
-        if (rankings.isBlank()) {
+    private String rankingListMessage(String label, List<ProgressionRankingEntryView> rankings) {
+        if (rankings.isEmpty()) {
             return label + adminText("admin-command-ranking-empty-suffix", ": empty");
         }
         List<String> entries = new ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < rankings.length()) {
-            int objectStart = rankings.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(rankings, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            total++;
+        int total = rankings.size();
+        int rank = 0;
+        for (ProgressionRankingEntryView ranking : rankings) {
+            rank++;
             if (entries.size() < 10) {
-                String object = rankings.substring(objectStart, objectEnd + 1);
-                entries.add("#" + total
-                    + " " + shortId(textValue(object, "islandId"))
-                    + adminText("admin-command-ranking-level-prefix", " level=") + longValue(object, "level")
-                    + adminText("admin-command-ranking-worth-prefix", " worth=") + textValue(object, "worth"));
+                entries.add("#" + rank
+                    + " " + shortId(ranking.islandId())
+                    + adminText("admin-command-ranking-level-prefix", " level=") + ranking.level()
+                    + adminText("admin-command-ranking-worth-prefix", " worth=") + ranking.worth());
             }
-            index = objectEnd + 1;
         }
         return label + adminText("admin-command-ranking-total-prefix", ": total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
