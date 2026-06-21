@@ -1,21 +1,22 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreNavigationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreNavigationCommandClient;
+import kr.lunaf.cloudislands.coreclient.CoreNavigationQueryClient;
+import kr.lunaf.cloudislands.coreclient.NavigationCommandClient;
 import kr.lunaf.cloudislands.coreclient.NavigationQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PublicIslandView;
 
 public final class IslandNavigationUseCase {
     private final CoreApiClient coreApiClient;
     private final NavigationQueryClient navigationQueries;
+    private final NavigationCommandClient navigationCommands;
 
     public IslandNavigationUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
@@ -23,17 +24,26 @@ public final class IslandNavigationUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.navigationQueries = new CoreNavigationQueryClient(coreApiClient);
+        this.navigationCommands = new CoreNavigationCommandClient(coreApiClient);
     }
 
     IslandNavigationUseCase(CoreApiClient coreApiClient, NavigationQueryClient navigationQueries) {
+        this(coreApiClient, navigationQueries, new CoreNavigationCommandClient(coreApiClient));
+    }
+
+    IslandNavigationUseCase(CoreApiClient coreApiClient, NavigationQueryClient navigationQueries, NavigationCommandClient navigationCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (navigationQueries == null) {
             throw new IllegalArgumentException("navigationQueries is required");
         }
+        if (navigationCommands == null) {
+            throw new IllegalArgumentException("navigationCommands is required");
+        }
         this.coreApiClient = coreApiClient;
         this.navigationQueries = navigationQueries;
+        this.navigationCommands = navigationCommands;
     }
 
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID islandId, MutationRunner runner) {
@@ -100,7 +110,7 @@ public final class IslandNavigationUseCase {
         return navigationQueries.listReviews(islandId, limit).thenApply(IslandNavigationUseCase::reviewViews);
     }
 
-    private CompletableFuture<String> setReviewBody(UUID islandId, UUID reviewerUuid, int rating, String comment, IdempotentMutationRunner runner) {
+    private CompletableFuture<ReviewActionResult> setReviewResult(UUID islandId, UUID reviewerUuid, int rating, String comment, IdempotentMutationRunner runner) {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
@@ -109,12 +119,12 @@ public final class IslandNavigationUseCase {
             throw new IllegalArgumentException("rating must be between 1 and 5");
         }
         requireIdempotentRunner(runner);
-        return runner.mutateIdempotent("island.review.set", () -> coreApiClient.setIslandReview(islandId, reviewerUuid, rating, comment == null ? "" : comment));
+        return runner.mutateIdempotent("island.review.set", () -> navigationCommands.setReview(islandId, reviewerUuid, rating, comment))
+            .thenApply(result -> new ReviewActionResult(result.accepted(), result.code()));
     }
 
     public CompletableFuture<ReviewActionResult> setReviewAction(UUID islandId, UUID reviewerUuid, int rating, String comment, IdempotentMutationRunner runner) {
-        return setReviewBody(islandId, reviewerUuid, rating, comment, runner)
-            .thenApply(IslandNavigationUseCase::reviewActionResult);
+        return setReviewResult(islandId, reviewerUuid, rating, comment, runner);
     }
 
     private static PublicIslandView publicIslandView(CoreGuiViews.PublicIslandView view) {
@@ -129,15 +139,6 @@ public final class IslandNavigationUseCase {
                 .map(review -> new ReviewView(review.reviewerUuid(), review.rating(), review.comment()))
                 .toList()
         );
-    }
-
-    private static ReviewActionResult reviewActionResult(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = text(root, "code");
-        return new ReviewActionResult(accepted, code);
     }
 
     private static int boundedLimit(int limit) {
@@ -169,10 +170,6 @@ public final class IslandNavigationUseCase {
         return value.trim();
     }
 
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
     private static UUID uuid(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -191,7 +188,7 @@ public final class IslandNavigationUseCase {
 
     @FunctionalInterface
     public interface IdempotentMutationRunner {
-        CompletableFuture<String> mutateIdempotent(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     public record ReviewListView(long count, double average, List<ReviewView> reviews) {

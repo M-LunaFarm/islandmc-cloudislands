@@ -316,6 +316,31 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void navigationCommandClientReturnsTypedReviewAction() {
+        UUID islandId = UUID.randomUUID();
+        UUID reviewerUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "setIslandReview" -> {
+                    calls.add("review:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"REVIEW_SET\"}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        NavigationCommandClient client = new CoreNavigationCommandClient(raw);
+
+        ReviewActionView result = client.setReview(islandId, reviewerUuid, 5, "nice").join();
+
+        assertTrue(result.accepted());
+        assertEquals("REVIEW_SET", result.code());
+        assertEquals(List.of("review:5:nice"), calls);
+    }
+
+    @Test
     void progressionQueryClientReturnsTypedReadViews() {
         UUID islandId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();

@@ -60,6 +60,10 @@ public interface CoreApiClient {
         return new CoreNavigationQueryClient(this);
     }
 
+    default NavigationCommandClient navigationCommands() {
+        return new CoreNavigationCommandClient(this);
+    }
+
     default ProgressionQueryClient progression() {
         return new CoreProgressionQueryClient(this);
     }

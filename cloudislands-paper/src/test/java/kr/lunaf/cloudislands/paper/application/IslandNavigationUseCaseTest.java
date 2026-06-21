@@ -120,9 +120,12 @@ class IslandNavigationUseCaseTest {
     }
 
     private static IslandNavigationUseCase.IdempotentMutationRunner idempotentRunner(List<String> calls) {
-        return (auditAction, operation) -> {
-            calls.add("audit-idempotent:" + auditAction);
-            return operation.get();
+        return new IslandNavigationUseCase.IdempotentMutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, java.util.function.Supplier<CompletableFuture<T>> operation) {
+                calls.add("audit-idempotent:" + auditAction);
+                return operation.get();
+            }
         };
     }
 
