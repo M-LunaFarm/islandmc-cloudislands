@@ -16,11 +16,6 @@ public record AdminIslandRuntimeView(
     public AdminIslandRuntimeView {
         islandId = islandId == null ? "" : islandId;
         state = state == null ? "" : state;
-        activeNode = activeNode == null ? "" : activeNode;
-        activeWorld = activeWorld == null ? "" : activeWorld;
-        leaseOwner = leaseOwner == null ? "" : leaseOwner;
-        activatedAt = activatedAt == null ? "" : activatedAt;
-        lastHeartbeat = lastHeartbeat == null ? "" : lastHeartbeat;
         code = code == null ? "" : code;
     }
 

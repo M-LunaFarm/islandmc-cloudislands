@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreclient;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
@@ -414,6 +415,11 @@ class CoreTypedClientsTest {
         AdminIslandRuntimeView runtime = new CoreAdminIslandQueryClient(raw).runtime(islandId).join();
 
         assertFalse(runtime.hasCell());
+        assertNull(runtime.activeNode());
+        assertNull(runtime.activeWorld());
+        assertNull(runtime.leaseOwner());
+        assertNull(runtime.activatedAt());
+        assertNull(runtime.lastHeartbeat());
         assertEquals(3L, runtime.fencingToken());
     }
 

@@ -45,19 +45,26 @@ public final class CoreAdminIslandQueryClient implements AdminIslandQueryClient 
         return new AdminIslandRuntimeView(
             text(root, "islandId"),
             text(root, "state"),
-            text(root, "activeNode"),
-            text(root, "activeWorld"),
+            nullableText(root, "activeNode"),
+            nullableText(root, "activeWorld"),
             nullableNumber(root.get("cellX")),
             nullableNumber(root.get("cellZ")),
-            text(root, "leaseOwner"),
+            nullableText(root, "leaseOwner"),
             number(root, "fencingToken"),
-            text(root, "activatedAt"),
-            text(root, "lastHeartbeat"),
+            nullableText(root, "activatedAt"),
+            nullableText(root, "lastHeartbeat"),
             text(root, "code")
         );
     }
 
     private static String text(Map<?, ?> object, String key) {
+        return SimpleJson.text(object.get(key));
+    }
+
+    private static String nullableText(Map<?, ?> object, String key) {
+        if (!object.containsKey(key) || object.get(key) == null) {
+            return null;
+        }
         return SimpleJson.text(object.get(key));
     }
 

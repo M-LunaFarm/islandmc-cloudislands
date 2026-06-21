@@ -110,6 +110,7 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
+import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
@@ -1885,7 +1886,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandRuntimeSnapshot> getRuntime(UUID islandId) {
-            return client.adminIslandWhere(islandId).thenApply(PaperCloudIslandsApi::runtime);
+            return client.adminIslands().runtime(islandId).thenApply(PaperCloudIslandsApi::runtime);
         }
 
         @Override
@@ -2193,7 +2194,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandRuntimeSnapshot> activate(UUID islandId, String preferredPool) {
-            return mutate("runtime.island.activate", () -> client.activateIsland(islandId)).thenCompose(_body -> client.adminIslandWhere(islandId)).thenApply(PaperCloudIslandsApi::runtime);
+            return mutate("runtime.island.activate", () -> client.activateIsland(islandId)).thenCompose(_body -> client.adminIslands().runtime(islandId)).thenApply(PaperCloudIslandsApi::runtime);
         }
 
         @Override
@@ -2848,6 +2849,24 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             longValue(json, "fencingToken", 0L),
             nullableInstant(json, "activatedAt"),
             nullableInstant(json, "lastHeartbeat")
+        );
+    }
+
+    private static IslandRuntimeSnapshot runtime(AdminIslandRuntimeView view) {
+        if (view == null) {
+            return new IslandRuntimeSnapshot(new UUID(0L, 0L), IslandState.RECOVERY_REQUIRED, null, null, null, null, null, 0L, null, null);
+        }
+        return new IslandRuntimeSnapshot(
+            uuidValueOrZero(view.islandId()),
+            enumValue(IslandState.class, view.state() == null || view.state().isBlank() ? "RECOVERY_REQUIRED" : view.state(), IslandState.RECOVERY_REQUIRED),
+            nullableBlank(view.activeNode()),
+            nullableBlank(view.activeWorld()),
+            nullableInt(view.cellX()),
+            nullableInt(view.cellZ()),
+            nullableBlank(view.leaseOwner()),
+            view.fencingToken(),
+            nullableInstantValue(view.activatedAt()),
+            nullableInstantValue(view.lastHeartbeat())
         );
     }
 
@@ -4218,6 +4237,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return uuid == null ? new UUID(0L, 0L) : uuid;
     }
 
+    private static String nullableBlank(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    private static Integer nullableInt(Long value) {
+        return value == null ? null : intValue(value);
+    }
+
     private static int intValue(long value) {
         if (value > Integer.MAX_VALUE) {
             return Integer.MAX_VALUE;
@@ -4295,6 +4322,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         } catch (RuntimeException ignored) {
             return Instant.EPOCH;
         }
+    }
+
+    private static Instant nullableInstantValue(String value) {
+        return value == null || value.isBlank() ? null : instant(value);
     }
 
     private static Instant nullableInstant(String json, String field) {
