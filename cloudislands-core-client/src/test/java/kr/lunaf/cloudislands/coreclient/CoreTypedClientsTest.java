@@ -337,6 +337,36 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void adminStorageClientReturnsTypedNodeStorageStatus() {
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "storageStatus" -> CompletableFuture.completedFuture("""
+                    {"nodes":[
+                      {"id":"paper-east","storageAvailable":true,"storage":{"backend":"minio","primaryDegraded":false,"uploadSeconds":1.25,"downloadSeconds":0.75,"healthCheckFailures":1,"uploadFailures":2,"downloadFailures":3,"operationFailures":4}},
+                      {"nodeId":"paper-west","storageAvailable":false,"storage":{"primaryDegraded":true}}
+                    ]}
+                    """);
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        AdminStorageQueryClient client = new CoreAdminStorageQueryClient(raw);
+
+        AdminStorageStatusView status = client.status().join();
+
+        assertEquals(2, status.nodes().size());
+        assertEquals(1L, status.unavailableCount());
+        assertEquals("paper-east", status.nodes().get(0).nodeId());
+        assertEquals("minio", status.nodes().get(0).backend());
+        assertEquals(1.25D, status.nodes().get(0).uploadSeconds());
+        assertEquals(10L, status.nodes().get(0).totalFailures());
+        assertEquals("paper-west", status.nodes().get(1).nodeId());
+        assertFalse(status.nodes().get(1).storageAvailable());
+        assertTrue(status.nodes().get(1).primaryDegraded());
+    }
+
+    @Test
     void snapshotCommandClientReturnsTypedActionViews() {
         UUID islandId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();

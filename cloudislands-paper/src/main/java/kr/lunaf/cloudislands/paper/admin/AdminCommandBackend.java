@@ -27,6 +27,7 @@ import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
+import kr.lunaf.cloudislands.coreclient.AdminStorageStatusView;
 import kr.lunaf.cloudislands.common.config.ConfigDiff;
 import kr.lunaf.cloudislands.common.config.ConfigIssue;
 import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
@@ -182,7 +183,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return handleConfig(sender, args);
         }
         if (args[0].equalsIgnoreCase("storage")) {
-            run(sender, "Storage status", coreApiClient.storageStatus().thenApply(this::storageStatusMessage));
+            run(sender, "Storage status", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("diagnostics")) {
@@ -1632,53 +1633,33 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return adminText("admin-command-node-island-status-title", "노드 섬 현황") + (nodeId.isBlank() ? "" : " " + nodeId) + ": " + (entries.isEmpty() ? adminText("admin-command-node-island-none", "활성 섬 없음") : String.join(", ", entries));
     }
 
-    private String storageStatusMessage(String body) {
-        String nodes = arrayValue(body, "nodes");
-        if (nodes.isBlank()) {
+    private String storageStatusMessage(AdminStorageStatusView status) {
+        if (status.nodes().isEmpty()) {
             return adminText("admin-command-storage-no-node", "Storage status: registered node 없음");
         }
         List<String> entries = new ArrayList<>();
-        int unavailable = 0;
-        int index = 0;
-        while (index < nodes.length()) {
-            int objectStart = nodes.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
+        for (AdminStorageStatusView.NodeView node : status.nodes()) {
+            if (!node.nodeId().isBlank()) {
+                entries.add(node.nodeId() + "=" + (node.storageAvailable() ? "OK" : "DOWN") + storageMetricSuffix(node));
             }
-            int objectEnd = matchingObjectEnd(nodes, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = nodes.substring(objectStart, objectEnd + 1);
-            String nodeId = textValue(object, "nodeId");
-            boolean available = boolValue(object, "storageAvailable");
-            if (!nodeId.isBlank()) {
-                entries.add(nodeId + "=" + (available ? "OK" : "DOWN") + storageMetricSuffix(object));
-                if (!available) {
-                    unavailable++;
-                }
-            }
-            index = objectEnd + 1;
         }
         return entries.isEmpty()
             ? adminText("admin-command-storage-no-node", "Storage status: registered node 없음")
-            : adminText("admin-command-storage-status-prefix", "Storage status: ") + String.join(", ", entries) + adminText("admin-command-storage-unavailable-prefix", " / unavailable=") + unavailable;
+            : adminText("admin-command-storage-status-prefix", "Storage status: ") + String.join(", ", entries) + adminText("admin-command-storage-unavailable-prefix", " / unavailable=") + status.unavailableCount();
     }
 
-    private String storageMetricSuffix(String nodeObject) {
-        String storage = objectValue(nodeObject, "storage");
-        if (storage.isBlank()) {
+    private String storageMetricSuffix(AdminStorageStatusView.NodeView node) {
+        if (node.backend().isBlank()
+            && node.totalFailures() == 0L
+            && !node.primaryDegraded()
+            && node.uploadSeconds() == 0.0D
+            && node.downloadSeconds() == 0.0D) {
             return "";
         }
-        long failures = longValue(storage, "healthCheckFailures")
-            + longValue(storage, "uploadFailures")
-            + longValue(storage, "downloadFailures")
-            + longValue(storage, "operationFailures");
-        boolean primaryDegraded = boolValue(storage, "primaryDegraded");
-        return adminText("admin-command-storage-metric-failures-prefix", "(failures=") + failures
-            + ", primaryDegraded=" + primaryDegraded
-            + adminText("admin-command-storage-metric-up-prefix", ", up=") + seconds(doubleValue(storage, "uploadSeconds")) + "s"
-            + adminText("admin-command-storage-metric-down-prefix", ", down=") + seconds(doubleValue(storage, "downloadSeconds")) + "s"
+        return adminText("admin-command-storage-metric-failures-prefix", "(failures=") + node.totalFailures()
+            + ", primaryDegraded=" + node.primaryDegraded()
+            + adminText("admin-command-storage-metric-up-prefix", ", up=") + seconds(node.uploadSeconds()) + "s"
+            + adminText("admin-command-storage-metric-down-prefix", ", down=") + seconds(node.downloadSeconds()) + "s"
             + adminText("admin-command-storage-bundle-policy-prefix", ", bundle=") + "portable"
             + adminText("admin-command-storage-manifest-policy-prefix", ", manifest=") + "manifest.json+checksums.sha256"
             + adminText("admin-command-storage-restore-policy-prefix", ", restore=") + "verify-manifest-checksum)";
