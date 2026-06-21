@@ -50,6 +50,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkSnapshotClient snapshotClient;
     private final JdkCommunicationClient communicationClient;
     private final JdkEnvironmentClient environmentClient;
+    private final JdkSettingsClient settingsClient;
     private final JdkHomeWarpClient homeWarpClient;
     private final JdkIslandClient islandClient;
     private final JdkMemberQueryClient memberQueryClient;
@@ -68,6 +69,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.snapshotClient = new JdkSnapshotClient();
         this.communicationClient = new JdkCommunicationClient();
         this.environmentClient = new JdkEnvironmentClient();
+        this.settingsClient = new JdkSettingsClient();
         this.homeWarpClient = new JdkHomeWarpClient();
         this.islandClient = new JdkIslandClient();
         this.memberQueryClient = new JdkMemberQueryClient();
@@ -111,6 +113,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public IslandEnvironmentCommandClient environmentCommands() {
         return environmentClient;
+    }
+
+    @Override
+    public IslandSettingsCommandClient settingsCommands() {
+        return settingsClient;
     }
 
     @Override
@@ -929,6 +936,54 @@ public final class JdkCoreApiClient implements CoreApiClient {
                 CoreJson.text(root, "updatedBy"),
                 CoreJson.text(root, "updatedAt")
             );
+        }
+    }
+
+    private final class JdkSettingsClient implements IslandSettingsCommandClient {
+        @Override
+        public CompletableFuture<SettingsActionView> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return JdkCoreApiClient.this.setIslandPublicAccessResult(islandId, actorUuid, publicAccess)
+                .thenApply(body -> actionResult(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED"));
+        }
+
+        @Override
+        public CompletableFuture<SettingsActionView> setLocked(UUID islandId, UUID actorUuid, boolean locked) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return JdkCoreApiClient.this.setIslandLockedResult(islandId, actorUuid, locked)
+                .thenApply(body -> actionResult(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED"));
+        }
+
+        @Override
+        public CompletableFuture<SettingsActionView> setName(UUID islandId, UUID actorUuid, String name) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return JdkCoreApiClient.this.setIslandNameResult(islandId, actorUuid, name == null ? "" : name)
+                .thenApply(body -> actionResult(body, "ISLAND_RENAMED"));
+        }
+
+        @Override
+        public CompletableFuture<SettingsActionView> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            if (flag == null) {
+                throw new IllegalArgumentException("flag is required");
+            }
+            return JdkCoreApiClient.this.setIslandFlagResult(islandId, actorUuid, flag, value == null ? "" : value)
+                .thenApply(body -> actionResult(body, "FLAG_SET"));
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+
+        private SettingsActionView actionResult(String body, String successCode) {
+            Map<?, ?> root = CoreJson.object(body);
+            return new SettingsActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
         }
     }
 
