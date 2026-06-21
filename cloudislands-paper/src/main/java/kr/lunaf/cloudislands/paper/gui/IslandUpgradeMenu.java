@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.UpgradeView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,7 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandUpgradeMenu implements Listener {
@@ -93,13 +91,13 @@ public final class IslandUpgradeMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<UpgradeView> upgrades, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
             int slot = 0;
             for (UpgradeView upgrade : upgrades.stream().limit(45).toList()) {
                 inventory.setItem(slot++, upgradeItem(upgrade, messages));
             }
             if (upgrades.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, message(messages, "upgrade-menu-empty-title", "업그레이드 없음"), message(messages, "upgrade-menu-empty", "Core API에 등록된 섬 업그레이드가 없습니다.")));
+                setEmptyItem(inventory, messages);
             }
             player.openInventory(inventory);
         });
@@ -131,15 +129,9 @@ public final class IslandUpgradeMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
+    private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
+        MENU.itemAt(22)
+            .ifPresent(item -> inventory.setItem(22, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of())));
     }
 
 }

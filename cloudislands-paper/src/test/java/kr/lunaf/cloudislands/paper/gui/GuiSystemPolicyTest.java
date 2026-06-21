@@ -200,20 +200,51 @@ class GuiSystemPolicyTest {
 
     @Test
     void emptyListPlaceholdersRenderFromMenuDefinitions() throws Exception {
-        for (String menuName : List.of("IslandHomeMenu", "IslandBanMenu", "IslandVisitMenu")) {
+        for (String menuName : List.of(
+                "IslandHomeMenu",
+                "IslandBanMenu",
+                "IslandVisitMenu",
+                "IslandUpgradeMenu",
+                "IslandMyIslandsMenu",
+                "IslandInviteMenu",
+                "IslandSnapshotMenu",
+                "IslandLimitMenu",
+                "IslandMissionMenu",
+                "IslandLogMenu",
+                "IslandRoleMenu"
+        )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())"), menuName + " must hide the configured empty placeholder during normal render");
-            assertTrue(menu.contains("MENU.itemAt(22)"), menuName + " must render the configured empty placeholder when the list is empty");
+            assertTrue(menu.contains("MENU.itemAt(22)") || menu.contains("MENU.itemAt(13)"), menuName + " must render the configured empty placeholder when the list is empty");
             assertTrue(menu.contains("GuiMenuRenderer.item(MENU, item, messages"), menuName + " empty placeholder must use the shared config-backed renderer");
         }
         assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandHomeMenu.java")).contains("home-menu-empty-title"), "home empty placeholder copy must live in config-v2");
         assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBanMenu.java")).contains("ban-menu-empty-title"), "ban empty placeholder copy must live in config-v2");
         assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandVisitMenu.java")).contains("visit-menu-empty-title"), "visit empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandUpgradeMenu.java")).contains("upgrade-menu-empty-title"), "upgrade empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMyIslandsMenu.java")).contains("my-islands-menu-empty-title"), "my-islands empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandInviteMenu.java")).contains("invite-menu-empty-title"), "invite empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandSnapshotMenu.java")).contains("snapshot-menu-empty-title"), "snapshot empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandLimitMenu.java")).contains("limit-menu-empty-title"), "limit empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMissionMenu.java")).contains("mission-menu-empty-title"), "mission empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandLogMenu.java")).contains("log-menu-empty-title"), "log empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandRoleMenu.java")).contains("role-menu-empty-title"), "role empty placeholder copy must live in config-v2");
 
-        for (String configPath : List.of("homes.yml", "bans.yml", "visit.yml")) {
+        for (String configPath : List.of(
+                "homes.yml",
+                "bans.yml",
+                "visit.yml",
+                "upgrades.yml",
+                "my-islands.yml",
+                "invites.yml",
+                "snapshots.yml",
+                "limits.yml",
+                "missions.yml",
+                "logs.yml",
+                "roles.yml"
+        )) {
             String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + configPath));
             assertTrue(config.contains("  E:"), configPath + " must define the empty placeholder item");
-            assertTrue(config.contains("material: BARRIER"), configPath + " empty placeholder material must live in config-v2");
         }
     }
 

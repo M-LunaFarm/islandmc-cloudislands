@@ -4,11 +4,19 @@ title-key: menu.invites.title
 layout:
   - "........."
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "........."
   - "M...R...B"
 items:
+  E:
+    material: BARRIER
+    name-key: invite-menu-empty-title
+    fallback-name: 대기 중인 초대 없음
+    lore-keys:
+      - invite-menu-empty
+    fallback-lore:
+      - 받은 섬 초대가 없습니다.
   M:
     material: NAME_TAG
     name-key: invite-menu-member-name

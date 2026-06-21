@@ -15,7 +15,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandLogMenu implements Listener {
@@ -91,9 +90,9 @@ public final class IslandLogMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<LogEntryView> entries, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
             if (entries.isEmpty()) {
-                inventory.setItem(13, item(Material.BARRIER, message(messages, "log-menu-empty-title", "로그 없음"), message(messages, "log-menu-empty", "아직 기록된 섬 로그가 없습니다.")));
+                setEmptyItem(inventory, messages);
             } else {
                 for (int index = 0; index < entries.size() && index < 27; index++) {
                     LogEntryView entry = entries.get(index);
@@ -174,19 +173,9 @@ public final class IslandLogMenu implements Listener {
         return Material.BOOK;
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        return item(material, name, List.of(lore));
-    }
-
-    private static ItemStack item(Material material, String name, List<String> lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+    private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
+        MENU.itemAt(13)
+            .ifPresent(item -> inventory.setItem(13, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of())));
     }
 
     private static String shorten(String value) {

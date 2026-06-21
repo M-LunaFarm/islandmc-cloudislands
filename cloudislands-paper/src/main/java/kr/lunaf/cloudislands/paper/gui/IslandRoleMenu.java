@@ -14,7 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandRoleMenu implements Listener {
@@ -85,13 +84,13 @@ public final class IslandRoleMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<RoleView> roles, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
             int slot = 0;
             for (RoleView role : roles.stream().limit(18).toList()) {
                 inventory.setItem(slot++, roleItem(role, messages));
             }
             if (roles.isEmpty()) {
-                inventory.setItem(13, item(Material.GRAY_DYE, message(messages, "role-menu-empty-title", "커스텀 역할 없음"), message(messages, "role-menu-empty-example", "Core 역할 카탈로그가 비어 있습니다.")));
+                setEmptyItem(inventory, messages);
             }
             player.openInventory(inventory);
         });
@@ -126,15 +125,9 @@ public final class IslandRoleMenu implements Listener {
         };
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
+    private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
+        MENU.itemAt(13)
+            .ifPresent(item -> inventory.setItem(13, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of())));
     }
 
 }

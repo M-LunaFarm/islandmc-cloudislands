@@ -4,11 +4,19 @@ title-key: menu.snapshots.title
 layout:
   - "........."
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "........."
   - "C...R...S"
 items:
+  E:
+    material: BARRIER
+    name-key: snapshot-menu-empty-title
+    fallback-name: 스냅샷 없음
+    lore-keys:
+      - snapshot-menu-empty
+    fallback-lore:
+      - 아직 생성된 섬 스냅샷이 없습니다.
   C:
     material: CHEST
     name-key: snapshot-menu-create-name

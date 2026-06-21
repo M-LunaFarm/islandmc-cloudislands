@@ -3,9 +3,17 @@ rows: 3
 title-key: menu.roles.title
 layout:
   - "........."
-  - "........."
+  - "....E...."
   - "LPR.....S"
 items:
+  E:
+    material: GRAY_DYE
+    name-key: role-menu-empty-title
+    fallback-name: 커스텀 역할 없음
+    lore-keys:
+      - role-menu-empty-example
+    fallback-lore:
+      - Core 역할 카탈로그가 비어 있습니다.
   L:
     material: PAPER
     name-key: role-menu-list-name

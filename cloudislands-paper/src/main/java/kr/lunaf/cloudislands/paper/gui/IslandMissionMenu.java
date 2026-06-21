@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MissionView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,7 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandMissionMenu implements Listener {
@@ -95,14 +93,14 @@ public final class IslandMissionMenu implements Listener {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
             Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, session, MENU.size(), message(messages, MENU.titleKey(), challenge ? CHALLENGE_TITLE : MISSION_TITLE));
-            GuiMenuRenderer.populate(inventory, MENU, messages, item -> true);
+            GuiMenuRenderer.populate(inventory, MENU, messages, item -> !"E".equals(item.symbol()));
             MENU.itemAt(49).ifPresent(item -> inventory.setItem(49, GuiMenuRenderer.item(MENU, item, messages, Map.of("kind", challenge ? "CHALLENGE" : "MISSION"), List.of(challenge ? message(messages, "mission-menu-challenge-command", "/섬 챌린지") : message(messages, "mission-menu-mission-command", "/섬 미션")))));
             int slot = 0;
             for (MissionView mission : missions.stream().limit(45).toList()) {
                 inventory.setItem(slot++, missionItem(mission, messages));
             }
             if (missions.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, message(messages, "mission-menu-empty-title", "과제 없음"), message(messages, "mission-menu-empty", "현재 표시할 섬 과제가 없습니다.")));
+                setEmptyItem(inventory, messages);
             }
             player.openInventory(inventory);
         });
@@ -122,15 +120,9 @@ public final class IslandMissionMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
+    private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
+        MENU.itemAt(22)
+            .ifPresent(item -> inventory.setItem(22, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of())));
     }
 
 }

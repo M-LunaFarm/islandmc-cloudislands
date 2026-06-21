@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.LimitView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,7 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandLimitMenu implements Listener {
@@ -96,13 +94,13 @@ public final class IslandLimitMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<LimitView> limits, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
             int slot = 0;
             for (LimitView limit : limits.stream().limit(45).toList()) {
                 inventory.setItem(slot++, limitItem(limit, messages));
             }
             if (limits.isEmpty()) {
-                inventory.setItem(22, item(Material.BARRIER, message(messages, "limit-menu-empty-title", "제한 없음"), message(messages, "limit-menu-empty", "현재 설정된 섬 제한이 없습니다.")));
+                setEmptyItem(inventory, messages);
             }
             player.openInventory(inventory);
         });
@@ -122,15 +120,9 @@ public final class IslandLimitMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
+    private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
+        MENU.itemAt(22)
+            .ifPresent(item -> inventory.setItem(22, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of())));
     }
 
     private static long number(String value) {

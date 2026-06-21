@@ -4,11 +4,19 @@ title-key: menu.missions.title
 layout:
   - "........."
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "........."
   - "M...R...C"
 items:
+  E:
+    material: BARRIER
+    name-key: mission-menu-empty-title
+    fallback-name: 과제 없음
+    lore-keys:
+      - mission-menu-empty
+    fallback-lore:
+      - 현재 표시할 섬 과제가 없습니다.
   M:
     material: BOOK
     name-key: mission-menu-mission-name

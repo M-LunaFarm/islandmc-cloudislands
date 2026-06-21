@@ -4,11 +4,19 @@ title-key: menu.my-islands.title
 layout:
   - "........."
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "........."
   - "M..CR...V"
 items:
+  E:
+    material: BARRIER
+    name-key: my-islands-menu-empty-title
+    fallback-name: 섬 없음
+    lore-keys:
+      - my-islands-menu-empty
+    fallback-lore:
+      - 속한 섬이 없습니다.
   M:
     material: COMPASS
     name-key: my-islands-menu-main-menu-name

@@ -4,11 +4,19 @@ title-key: menu.upgrades.title
 layout:
   - "........."
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "........."
   - "B...R...S"
 items:
+  E:
+    material: BARRIER
+    name-key: upgrade-menu-empty-title
+    fallback-name: 업그레이드 없음
+    lore-keys:
+      - upgrade-menu-empty
+    fallback-lore:
+      - Core API에 등록된 섬 업그레이드가 없습니다.
   B:
     material: GOLD_BLOCK
     name-key: upgrade-menu-bank-name

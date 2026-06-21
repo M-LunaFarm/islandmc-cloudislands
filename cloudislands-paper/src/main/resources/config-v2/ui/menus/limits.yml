@@ -4,11 +4,19 @@ title-key: menu.limits.title
 layout:
   - "........."
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "........."
   - "M...R...S"
 items:
+  E:
+    material: BARRIER
+    name-key: limit-menu-empty-title
+    fallback-name: 제한 없음
+    lore-keys:
+      - limit-menu-empty
+    fallback-lore:
+      - 현재 설정된 섬 제한이 없습니다.
   M:
     material: COMPASS
     name-key: limit-menu-main-menu-name

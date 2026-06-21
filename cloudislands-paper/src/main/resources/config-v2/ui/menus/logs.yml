@@ -3,10 +3,18 @@ rows: 4
 title-key: menu.logs.title
 layout:
   - "........."
-  - "........."
+  - "....E...."
   - "........."
   - "...MRS..X"
 items:
+  E:
+    material: BARRIER
+    name-key: log-menu-empty-title
+    fallback-name: 로그 없음
+    lore-keys:
+      - log-menu-empty
+    fallback-lore:
+      - 아직 기록된 섬 로그가 없습니다.
   M:
     material: COMPASS
     name-key: log-menu-main-menu-name
