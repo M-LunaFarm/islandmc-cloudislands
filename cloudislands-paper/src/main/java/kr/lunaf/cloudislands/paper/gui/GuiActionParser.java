@@ -19,8 +19,22 @@ public final class GuiActionParser {
             return Optional.empty();
         }
         try {
+            if (safeAction.equals("island.member.promote.prepare") || safeAction.equals("island.member.demote.prepare") || memberRoleConfirmation(safeAction)) {
+                return Optional.of(new GuiAction.MemberRoleChange(
+                    safeAction,
+                    UUID.fromString(required(safeData, "playerUuid")),
+                    safeData
+                ));
+            }
             if (safeAction.equals("island.member.remove.prepare") || memberRemovalConfirmation(safeAction)) {
                 return Optional.of(new GuiAction.MemberRemoval(
+                    safeAction,
+                    UUID.fromString(required(safeData, "playerUuid")),
+                    safeData
+                ));
+            }
+            if (safeAction.equals("island.ban.pardon.prepare") || banPardonConfirmation(safeAction)) {
+                return Optional.of(new GuiAction.BanPardon(
                     safeAction,
                     UUID.fromString(required(safeData, "playerUuid")),
                     safeData
@@ -105,6 +119,15 @@ public final class GuiActionParser {
 
     private static boolean memberRemovalConfirmation(String actionId) {
         return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".member.remove.confirm");
+    }
+
+    private static boolean memberRoleConfirmation(String actionId) {
+        return ConfirmationTokenPolicy.requiresToken(actionId)
+            && (actionId.equals("island.member.promote") || actionId.equals("island.member.demote"));
+    }
+
+    private static boolean banPardonConfirmation(String actionId) {
+        return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".ban.pardon.confirm");
     }
 
     private static boolean snapshotRestoreConfirmation(String actionId) {

@@ -139,6 +139,22 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesMemberRoleAndBanPardonConfirmationsIntoTypedActions() {
+        GuiAction promote = GuiActionParser.parse("island.member.promote.prepare", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).orElseThrow();
+        GuiAction demote = GuiActionParser.parse("island.member.demote", Map.of("playerUuid", "00000000-0000-0000-0000-000000000001", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.member.demote"))).orElseThrow();
+        GuiAction pardon = GuiActionParser.parse("island.ban.pardon.confirm", Map.of("playerUuid", "00000000-0000-0000-0000-000000000002", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.ban.pardon.confirm"))).orElseThrow();
+
+        assertTrue(promote instanceof GuiAction.MemberRoleChange);
+        assertEquals(Map.of("playerUuid", "00000000-0000-0000-0000-000000000000"), promote.data());
+        assertTrue(((GuiAction.MemberRoleChange) promote).promote());
+        assertTrue(demote instanceof GuiAction.MemberRoleChange);
+        assertEquals(Map.of("playerUuid", "00000000-0000-0000-0000-000000000001", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.member.demote")), demote.data());
+        assertTrue(((GuiAction.MemberRoleChange) demote).confirmation());
+        assertTrue(pardon instanceof GuiAction.BanPardon);
+        assertEquals(Map.of("playerUuid", "00000000-0000-0000-0000-000000000002", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.ban.pardon.confirm")), pardon.data());
+    }
+
+    @Test
     void rejectsUnregisteredActionIdsInsteadOfExecutingRawMaps() {
         assertTrue(GuiActionParser.parse("island.member.remvoe", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
         assertTrue(GuiActionParser.parse("island.unknown.open", Map.of()).isEmpty());
@@ -161,5 +177,9 @@ class GuiActionParserTest {
         assertTrue(GuiActionParser.parse("island.warp.delete.prepare", Map.of("warpName", "")).isEmpty());
         assertTrue(GuiActionParser.parse("island.invite.accept", Map.of("inviteId", "")).isEmpty());
         assertTrue(GuiActionParser.parse("island.invite.decline", Map.of("inviteId", "nope")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.member.promote.prepare", Map.of("playerUuid", "")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.member.demote", Map.of("playerUuid", "nope")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.ban.pardon.prepare", Map.of("playerUuid", "")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.ban.pardon.confirm", Map.of("playerUuid", "nope")).isEmpty());
     }
 }

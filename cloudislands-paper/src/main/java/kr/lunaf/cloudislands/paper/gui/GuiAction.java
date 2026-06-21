@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -294,6 +294,71 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
 
         public boolean accept() {
             return actionId.equals("island.invite.accept");
+        }
+    }
+
+    record MemberRoleChange(String actionId, UUID playerUuid, Map<String, String> data) implements GuiAction {
+        public MemberRoleChange {
+            actionId = actionId == null ? "" : actionId.trim();
+            data = data == null ? Map.of() : Map.copyOf(data);
+            if (!memberRolePrepare(actionId) && !memberRoleConfirmation(actionId)) {
+                throw new IllegalArgumentException("unsupported member role action");
+            }
+            if (playerUuid == null) {
+                throw new IllegalArgumentException("playerUuid is required");
+            }
+        }
+
+        @Override
+        public Map<String, String> data() {
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>(data);
+            values.put("playerUuid", playerUuid.toString());
+            return Map.copyOf(values);
+        }
+
+        public boolean promote() {
+            return actionId.equals("island.member.promote.prepare") || actionId.equals("island.member.promote");
+        }
+
+        public boolean confirmation() {
+            return memberRoleConfirmation(actionId);
+        }
+
+        private static boolean memberRolePrepare(String actionId) {
+            return actionId.equals("island.member.promote.prepare") || actionId.equals("island.member.demote.prepare");
+        }
+
+        private static boolean memberRoleConfirmation(String actionId) {
+            return ConfirmationTokenPolicy.requiresToken(actionId)
+                && (actionId.equals("island.member.promote") || actionId.equals("island.member.demote"));
+        }
+    }
+
+    record BanPardon(String actionId, UUID playerUuid, Map<String, String> data) implements GuiAction {
+        public BanPardon {
+            actionId = actionId == null ? "" : actionId.trim();
+            data = data == null ? Map.of() : Map.copyOf(data);
+            if (!actionId.equals("island.ban.pardon.prepare") && !banPardonConfirmation(actionId)) {
+                throw new IllegalArgumentException("unsupported ban pardon action");
+            }
+            if (playerUuid == null) {
+                throw new IllegalArgumentException("playerUuid is required");
+            }
+        }
+
+        @Override
+        public Map<String, String> data() {
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>(data);
+            values.put("playerUuid", playerUuid.toString());
+            return Map.copyOf(values);
+        }
+
+        public boolean confirmation() {
+            return banPardonConfirmation(actionId);
+        }
+
+        private static boolean banPardonConfirmation(String actionId) {
+            return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".ban.pardon.confirm");
         }
     }
 

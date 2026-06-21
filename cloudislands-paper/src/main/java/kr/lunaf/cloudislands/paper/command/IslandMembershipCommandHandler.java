@@ -238,6 +238,47 @@ final class IslandMembershipCommandHandler {
             }
             return true;
         }
+        if (action instanceof GuiAction.MemberRoleChange roleChange) {
+            if (!roleChange.confirmation()) {
+                boolean promote = roleChange.promote();
+                runtime.openConfirmation(player,
+                    runtime.routeMessage(promote ? "member-promote-confirm-title" : "member-demote-confirm-title", promote ? "멤버 승급 확인" : "멤버 강등 확인"),
+                    runtime.routeMessage(promote ? "member-promote-confirm-description" : "member-demote-confirm-description", promote ? "선택한 플레이어를 MODERATOR 역할로 변경합니다." : "선택한 플레이어를 MEMBER 역할로 변경합니다."),
+                    promote ? Material.EMERALD : Material.IRON_INGOT,
+                    runtime.routeMessage(promote ? "member-promote-confirm-name" : "member-demote-confirm-name", promote ? "승급 확인" : "강등 확인"),
+                    promote ? "island.member.promote" : "island.member.demote",
+                    Map.of("playerUuid", roleChange.playerUuid().toString()),
+                    runtime.routeMessage(promote ? "member-promote-confirm-lore" : "member-demote-confirm-lore", "클릭하면 Core에 역할 변경을 요청합니다."),
+                    "island.members.open");
+                return true;
+            }
+            if (runtime.confirmationAccepted(player, action, click)) {
+                runtime.setIslandMemberRole(
+                    player,
+                    roleChange.playerUuid().toString(),
+                    roleChange.promote() ? IslandRole.MODERATOR : IslandRole.MEMBER,
+                    roleChange.promote() ? "섬 멤버를 승급했습니다." : "섬 멤버를 강등했습니다.");
+            }
+            return true;
+        }
+        if (action instanceof GuiAction.BanPardon banPardon) {
+            if (!banPardon.confirmation()) {
+                runtime.openConfirmation(player,
+                    runtime.routeMessage("ban-pardon-confirm-title", "밴 해제 확인"),
+                    runtime.routeMessage("ban-pardon-confirm-description", "선택한 방문자의 밴을 해제합니다."),
+                    Material.MILK_BUCKET,
+                    runtime.routeMessage("ban-pardon-confirm-name", "밴 해제"),
+                    "island.ban.pardon.confirm",
+                    Map.of("playerUuid", banPardon.playerUuid().toString()),
+                    runtime.routeMessage("ban-pardon-confirm-lore", "클릭하면 Core에 밴 해제를 요청합니다."),
+                    "island.bans.open");
+                return true;
+            }
+            if (runtime.confirmationAccepted(player, action, click)) {
+                runtime.pardonIslandVisitor(player, banPardon.playerUuid().toString());
+            }
+            return true;
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {
@@ -269,42 +310,6 @@ final class IslandMembershipCommandHandler {
                 runtime.listIslandMembers(player);
                 yield true;
             }
-            case "island.member.promote.prepare" -> {
-                runtime.openConfirmation(player,
-                    runtime.routeMessage("member-promote-confirm-title", "멤버 승급 확인"),
-                    runtime.routeMessage("member-promote-confirm-description", "선택한 플레이어를 MODERATOR 역할로 변경합니다."),
-                    Material.EMERALD,
-                    runtime.routeMessage("member-promote-confirm-name", "승급 확인"),
-                    "island.member.promote",
-                    Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
-                    runtime.routeMessage("member-promote-confirm-lore", "클릭하면 Core에 역할 변경을 요청합니다."),
-                    "island.members.open");
-                yield true;
-            }
-            case "island.member.promote" -> {
-                if (runtime.confirmationAccepted(player, action, click)) {
-                    runtime.setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MODERATOR, "섬 멤버를 승급했습니다.");
-                }
-                yield true;
-            }
-            case "island.member.demote.prepare" -> {
-                runtime.openConfirmation(player,
-                    runtime.routeMessage("member-demote-confirm-title", "멤버 강등 확인"),
-                    runtime.routeMessage("member-demote-confirm-description", "선택한 플레이어를 MEMBER 역할로 변경합니다."),
-                    Material.IRON_INGOT,
-                    runtime.routeMessage("member-demote-confirm-name", "강등 확인"),
-                    "island.member.demote",
-                    Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
-                    runtime.routeMessage("member-demote-confirm-lore", "클릭하면 Core에 역할 변경을 요청합니다."),
-                    "island.members.open");
-                yield true;
-            }
-            case "island.member.demote" -> {
-                if (runtime.confirmationAccepted(player, action, click)) {
-                    runtime.setIslandMemberRole(player, data.getOrDefault("playerUuid", ""), IslandRole.MEMBER, "섬 멤버를 강등했습니다.");
-                }
-                yield true;
-            }
             case "island.member.remove.prepare" -> {
                 runtime.openConfirmation(player,
                     runtime.routeMessage("member-remove-confirm-title", "멤버 추방 확인"),
@@ -333,24 +338,6 @@ final class IslandMembershipCommandHandler {
             }
             case "island.bans.list" -> {
                 runtime.listIslandBans(player);
-                yield true;
-            }
-            case "island.ban.pardon.prepare" -> {
-                runtime.openConfirmation(player,
-                    runtime.routeMessage("ban-pardon-confirm-title", "밴 해제 확인"),
-                    runtime.routeMessage("ban-pardon-confirm-description", "선택한 방문자의 밴을 해제합니다."),
-                    Material.MILK_BUCKET,
-                    runtime.routeMessage("ban-pardon-confirm-name", "밴 해제"),
-                    "island.ban.pardon.confirm",
-                    Map.of("playerUuid", data.getOrDefault("playerUuid", "")),
-                    runtime.routeMessage("ban-pardon-confirm-lore", "클릭하면 Core에 밴 해제를 요청합니다."),
-                    "island.bans.open");
-                yield true;
-            }
-            case "island.ban.pardon.confirm" -> {
-                if (runtime.confirmationAccepted(player, action, click)) {
-                    runtime.pardonIslandVisitor(player, data.getOrDefault("playerUuid", ""));
-                }
                 yield true;
             }
             case "island.permissions.open" -> {
