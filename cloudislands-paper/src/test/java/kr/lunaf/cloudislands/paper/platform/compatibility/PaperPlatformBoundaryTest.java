@@ -672,7 +672,9 @@ class PaperPlatformBoundaryTest {
     void paperCoreMutationCallsCarryRequestMetadata() throws Exception {
         Path root = repositoryRoot();
         List<Path> commandSources = commandActionSources(root);
-        List<Path> files = new ArrayList<>(commandSources);
+        List<Path> actionSources = new ArrayList<>(commandSources);
+        actionSources.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/BankUseCase.java"));
+        List<Path> files = new ArrayList<>(actionSources);
         files.add(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"));
         String violations = files.stream()
             .flatMap(path -> mutationMetadataViolations(root, path).stream())
@@ -683,7 +685,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(violations.isBlank(), violations);
 
         String commandBackend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
-        String commandActions = commandSources.stream()
+        String commandActions = actionSources.stream()
             .map(path -> {
                 try {
                     return Files.readString(path);

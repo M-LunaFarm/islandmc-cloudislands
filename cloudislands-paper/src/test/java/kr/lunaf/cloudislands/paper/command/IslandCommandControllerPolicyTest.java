@@ -59,6 +59,7 @@ class IslandCommandControllerPolicyTest {
     void bankCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String bankHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"));
+        String bankUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/BankUseCase.java"));
 
         assertTrue(backend.contains("private final IslandBankCommandHandler bankCommands;"));
         assertTrue(routerSource().contains("bankCommands.handleCommand(player, subcommand, args)"));
@@ -67,8 +68,13 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("withdrawIslandBank("), "bank withdraw logic belongs in IslandBankCommandHandler");
         assertTrue(bankHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(bankHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
-        assertTrue(bankHandler.contains("coreApiClient.depositIslandBank"));
-        assertTrue(bankHandler.contains("coreApiClient.withdrawIslandBank"));
+        assertTrue(bankHandler.contains("private final BankUseCase bankUseCase;"));
+        assertTrue(bankHandler.contains("bankUseCase.deposit("));
+        assertTrue(bankHandler.contains("bankUseCase.withdraw("));
+        assertFalse(bankHandler.contains("coreApiClient.depositIslandBank"), "bank mutation logic belongs in BankUseCase");
+        assertFalse(bankHandler.contains("coreApiClient.withdrawIslandBank"), "bank mutation logic belongs in BankUseCase");
+        assertTrue(bankUseCase.contains("coreApiClient.depositIslandBank"));
+        assertTrue(bankUseCase.contains("coreApiClient.withdrawIslandBank"));
     }
 
     @Test

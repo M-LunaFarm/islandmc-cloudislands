@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.BankUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -18,13 +19,13 @@ import org.bukkit.plugin.Plugin;
 final class IslandBankCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
-    private final EconomyBridge economyBridge;
+    private final BankUseCase bankUseCase;
     private final Runtime runtime;
 
     IslandBankCommandHandler(Plugin plugin, CoreApiClient coreApiClient, EconomyBridge economyBridge, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
-        this.economyBridge = economyBridge;
+        this.bankUseCase = new BankUseCase(coreApiClient, economyBridge);
         this.runtime = runtime;
     }
 
@@ -78,8 +79,8 @@ final class IslandBankCommandHandler {
 
     private void showBank(Player player) {
         runtime.currentIsland(player, "섬 안에서만 은행을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandBank(islandId)
-                .thenAccept(body -> runtime.message(player, "섬 은행 잔액: " + bankBalance(body)))
+            bankUseCase.bank(islandId)
+                .thenAccept(result -> runtime.message(player, "섬 은행 잔액: " + result.balance()))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 은행을 불러오지 못했습니다.");
                     return null;
@@ -97,32 +98,14 @@ final class IslandBankCommandHandler {
                 runtime.message(player, runtime.routeMessage("bank-deposit-denied", "섬 은행에 입금할 권한이 없습니다."));
                 return;
             }
-            BigDecimal parsedAmount = positiveAmount(amount);
+            BigDecimal parsedAmount = BankUseCase.positiveAmount(amount);
             if (parsedAmount == null) {
                 player.sendMessage(runtime.playerCodeMessage("INVALID_AMOUNT", runtime.routeMessage("input-amount-invalid", "올바른 금액을 입력해주세요.")));
                 return;
             }
-            if (economyBridge == null) {
-                runtime.message(player, runtime.routeMessage("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
-                return;
-            }
-            String normalizedAmount = parsedAmount.toPlainString();
             UUID playerUuid = player.getUniqueId();
-            economyBridge.withdraw(playerUuid, parsedAmount, "CloudIslands island bank deposit")
-                .thenCompose(withdrawn -> {
-                    if (!withdrawn) {
-                        runtime.message(player, runtime.playerCodeMessage("INSUFFICIENT_FUNDS", "잔액이 부족합니다."));
-                        return CompletableFuture.completedFuture(null);
-                    }
-                    return runtime.mutateIdempotent("island.bank.deposit", () -> coreApiClient.depositIslandBank(islandId, playerUuid, normalizedAmount)).thenCompose(body -> {
-                        if (body.contains("\"accepted\":false")) {
-                            return refundPlayer(playerUuid, parsedAmount)
-                                .thenRun(() -> runtime.message(player, runtime.playerCodeMessage(text(body, "code"), "섬 은행에 입금하지 못했습니다.")));
-                        }
-                        runtime.message(player, "섬 은행에 입금했습니다. 잔액: " + bankBalance(body));
-                        return CompletableFuture.completedFuture(null);
-                    }).exceptionallyCompose(error -> refundPlayer(playerUuid, parsedAmount).thenRun(() -> runtime.message(player, "섬 은행에 입금하지 못했습니다.")));
-                })
+            bankUseCase.deposit(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent)
+                .thenAccept(result -> handleDepositResult(player, result))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 은행에 입금하지 못했습니다.");
                     return null;
@@ -136,33 +119,14 @@ final class IslandBankCommandHandler {
                 runtime.message(player, runtime.routeMessage("bank-withdraw-denied", "섬 은행에서 출금할 권한이 없습니다."));
                 return;
             }
-            BigDecimal parsedAmount = positiveAmount(amount);
+            BigDecimal parsedAmount = BankUseCase.positiveAmount(amount);
             if (parsedAmount == null) {
                 player.sendMessage(runtime.playerCodeMessage("INVALID_AMOUNT", runtime.routeMessage("input-amount-invalid", "올바른 금액을 입력해주세요.")));
                 return;
             }
-            if (economyBridge == null) {
-                runtime.message(player, runtime.routeMessage("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
-                return;
-            }
-            String normalizedAmount = parsedAmount.toPlainString();
             UUID playerUuid = player.getUniqueId();
-            runtime.mutateIdempotent("island.bank.withdraw", () -> coreApiClient.withdrawIslandBank(islandId, playerUuid, normalizedAmount))
-                .thenCompose(body -> {
-                    if (body.contains("\"accepted\":false")) {
-                        runtime.message(player, runtime.playerCodeMessage(text(body, "code"), "섬 은행에서 출금하지 못했습니다."));
-                        return CompletableFuture.completedFuture(null);
-                    }
-                    String balance = bankBalance(body);
-                    return economyBridge.deposit(playerUuid, parsedAmount, "CloudIslands island bank withdraw")
-                        .thenRun(() -> runtime.message(player, "섬 은행에서 출금했습니다. 잔액: " + balance))
-                        .exceptionallyCompose(error -> runtime.mutateIdempotent("island.bank.withdraw.rollback", () -> coreApiClient.depositIslandBank(islandId, playerUuid, normalizedAmount))
-                            .thenRun(() -> runtime.message(player, "경제 지급에 실패해 출금을 되돌렸습니다."))
-                            .exceptionally(rollbackError -> {
-                                runtime.message(player, "경제 지급에 실패했고 은행 되돌림도 실패했습니다. 관리자에게 문의해주세요.");
-                                return null;
-                            }));
-                })
+            bankUseCase.withdraw(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent)
+                .thenAccept(result -> handleWithdrawResult(player, result))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 은행에서 출금하지 못했습니다.");
                     return null;
@@ -170,50 +134,26 @@ final class IslandBankCommandHandler {
         });
     }
 
-    private CompletableFuture<Void> refundPlayer(UUID playerUuid, BigDecimal amount) {
-        if (economyBridge == null) {
-            return CompletableFuture.completedFuture(null);
-        }
-        return economyBridge.deposit(playerUuid, amount, "CloudIslands island bank deposit rollback")
-            .exceptionally(error -> null);
-    }
-
-    private static BigDecimal positiveAmount(String amount) {
-        if (amount == null || amount.isBlank()) {
-            return null;
-        }
-        try {
-            BigDecimal value = new BigDecimal(amount.trim());
-            return value.signum() > 0 ? value : null;
-        } catch (NumberFormatException exception) {
-            return null;
+    private void handleDepositResult(Player player, BankUseCase.BankOperationResult result) {
+        switch (result.status()) {
+            case SUCCESS -> runtime.message(player, "섬 은행에 입금했습니다. 잔액: " + result.balance());
+            case ECONOMY_UNAVAILABLE -> runtime.message(player, runtime.routeMessage("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
+            case ECONOMY_WITHDRAW_DENIED -> runtime.message(player, runtime.playerCodeMessage(result.code(), "잔액이 부족합니다."));
+            case CORE_REJECTED -> runtime.message(player, runtime.playerCodeMessage(result.code(), "섬 은행에 입금하지 못했습니다."));
+            case ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE, ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE ->
+                runtime.message(player, "섬 은행에 입금하지 못했습니다.");
         }
     }
 
-    private static String bankBalance(String body) {
-        String balance = text(body, "balance");
-        return balance.isBlank() ? "0" : balance;
-    }
-
-    private static String text(String json, String key) {
-        String marker = "\"" + key + "\"";
-        int keyIndex = json.indexOf(marker);
-        if (keyIndex < 0) {
-            return "";
+    private void handleWithdrawResult(Player player, BankUseCase.BankOperationResult result) {
+        switch (result.status()) {
+            case SUCCESS -> runtime.message(player, "섬 은행에서 출금했습니다. 잔액: " + result.balance());
+            case ECONOMY_UNAVAILABLE -> runtime.message(player, runtime.routeMessage("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
+            case CORE_REJECTED -> runtime.message(player, runtime.playerCodeMessage(result.code(), "섬 은행에서 출금하지 못했습니다."));
+            case ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE -> runtime.message(player, "경제 지급에 실패해 출금을 되돌렸습니다.");
+            case ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE -> runtime.message(player, "경제 지급에 실패했고 은행 되돌림도 실패했습니다. 관리자에게 문의해주세요.");
+            case ECONOMY_WITHDRAW_DENIED -> runtime.message(player, runtime.playerCodeMessage(result.code(), "잔액이 부족합니다."));
         }
-        int colon = json.indexOf(':', keyIndex + marker.length());
-        if (colon < 0) {
-            return "";
-        }
-        int start = json.indexOf('"', colon + 1);
-        if (start < 0) {
-            return "";
-        }
-        int end = json.indexOf('"', start + 1);
-        if (end < 0) {
-            return "";
-        }
-        return json.substring(start + 1, end);
     }
 
     interface Runtime {
