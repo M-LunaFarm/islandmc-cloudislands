@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
 import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.paper.application.IslandRoutingUseCase;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import net.kyori.adventure.bossbar.BossBar;
@@ -23,7 +24,7 @@ import org.bukkit.plugin.Plugin;
 
 final class IslandRoutingCommandHandler {
     private final Plugin plugin;
-    private final CoreApiClient coreApiClient;
+    private final IslandRoutingUseCase routingUseCase;
     private final int routeWaitSeconds;
     private final String fallbackServerName;
     private final Runtime runtime;
@@ -31,14 +32,14 @@ final class IslandRoutingCommandHandler {
 
     IslandRoutingCommandHandler(Plugin plugin, CoreApiClient coreApiClient, int routeWaitSeconds, String fallbackServerName, Runtime runtime) {
         this.plugin = plugin;
-        this.coreApiClient = coreApiClient;
+        this.routingUseCase = new IslandRoutingUseCase(coreApiClient);
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
         this.runtime = runtime;
     }
 
     void routeWarp(Player player, UUID islandId, String warpName) {
-        routeTicket(player, runtime.mutate("route.ticket.warp", () -> coreApiClient.createWarpTicket(player.getUniqueId(), islandId, warpName)), "해당 워프로 이동할 수 없습니다.");
+        routeTicket(player, routingUseCase.createWarpTicket(player.getUniqueId(), islandId, warpName, runtime::mutate), "해당 워프로 이동할 수 없습니다.");
     }
 
     void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
@@ -79,7 +80,7 @@ final class IslandRoutingCommandHandler {
         String progressValue = Integer.toString(progress);
         showRouteLoading(player, RoutePreparationProgressPolicy.preparingProgress(attempt), runtime.routeMessage(player, "route-loading-progress", RoutePreparationProgressPolicy.loadingTitle(target, attempt), "target", target, "progress", progressValue));
         player.sendActionBar(routeComponent(player, "route-preparing-progress", RoutePreparationProgressPolicy.preparingActionBar(target, attempt), "target", target, "progress", progressValue));
-        CompletableFuture.runAsync(() -> coreApiClient.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
+        CompletableFuture.runAsync(() -> routingUseCase.routeTicketStatus(ticket).thenAccept(status -> {
             if (status.isPresent()) {
                 routeTicket(player, status.get(), failureMessage, attempt + 1);
             } else {
@@ -115,7 +116,7 @@ final class IslandRoutingCommandHandler {
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
-        runtime.mutate("route.session.publish", () -> coreApiClient.publishRouteSession(ticket)).thenRun(() -> {
+        routingUseCase.publishRouteSession(ticket, runtime::mutate).thenRun(() -> {
             clearRouteLoading(player);
             connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
         }).exceptionally(error -> {
@@ -159,7 +160,7 @@ final class IslandRoutingCommandHandler {
     }
 
     private void clearFailedRoute(RouteTicket ticket, String reason) {
-        runtime.mutate("route.clear", () -> coreApiClient.clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason)).exceptionally(error -> null);
+        routingUseCase.clearRoute(ticket, reason, runtime::mutate).exceptionally(error -> null);
     }
 
     private String routeTargetName(RouteTicket ticket) {

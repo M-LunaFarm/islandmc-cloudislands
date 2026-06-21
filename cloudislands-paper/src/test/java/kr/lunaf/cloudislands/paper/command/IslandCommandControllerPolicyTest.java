@@ -340,6 +340,7 @@ class IslandCommandControllerPolicyTest {
     void routingCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String routingHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandRoutingCommandHandler.java"));
+        String routingUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandRoutingUseCase.java"));
 
         assertTrue(backend.contains("private final IslandRoutingCommandHandler routingCommands;"));
         assertTrue(backend.contains("routingCommands.routeWarp(player, islandId, warpName)"));
@@ -353,6 +354,16 @@ class IslandCommandControllerPolicyTest {
         assertTrue(routingHandler.contains("routeBossBars"));
         assertTrue(routingHandler.contains("sendPluginMessage(plugin, \"BungeeCord\""));
         assertTrue(routingHandler.contains("RoutePreparationProgressPolicy"));
+        assertTrue(routingHandler.contains("IslandRoutingUseCase"));
+        assertTrue(routingHandler.contains("routingUseCase.createWarpTicket"));
+        assertFalse(routingHandler.contains("coreApiClient.createWarpTicket"));
+        assertFalse(routingHandler.contains("coreApiClient.routeTicketStatus"));
+        assertFalse(routingHandler.contains("coreApiClient.publishRouteSession"));
+        assertFalse(routingHandler.contains("coreApiClient.clearRoute"));
+        assertTrue(routingUseCase.contains("coreApiClient.createWarpTicket"));
+        assertTrue(routingUseCase.contains("coreApiClient.routeTicketStatus"));
+        assertTrue(routingUseCase.contains("coreApiClient.publishRouteSession"));
+        assertTrue(routingUseCase.contains("coreApiClient.clearRoute"));
     }
 
     private static String routerSource() throws Exception {
