@@ -1,8 +1,8 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -11,8 +11,11 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LimitView;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase;
+import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase.EnvironmentActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
@@ -155,8 +158,8 @@ final class IslandEnvironmentCommandHandler {
 
     private void showBiome(Player player) {
         runtime.currentIsland(player, "섬 안에서만 바이옴을 확인할 수 있습니다.").ifPresent(islandId -> {
-            environmentUseCase.islandBiome(islandId)
-                .thenAccept(body -> runtime.message(player, "섬 바이옴: " + text(body, "biomeKey")))
+            environmentUseCase.islandBiomeValue(islandId)
+                .thenAccept(biomeKey -> runtime.message(player, "섬 바이옴: " + biomeKey))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 바이옴을 불러오지 못했습니다.");
                     return null;
@@ -174,8 +177,8 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, runtime.routeMessage("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다."));
                 return;
             }
-            environmentUseCase.setBiome(islandId, player.getUniqueId(), biomeKey, runtime::mutate)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 바이옴 변경 " + biomeKey, biomeKey, body)))
+            environmentUseCase.setBiomeAction(islandId, player.getUniqueId(), biomeKey, runtime::mutate)
+                .thenAccept(result -> runtime.message(player, environmentActionMessage(result, "섬 바이옴 변경 완료: " + biomeKey, "섬 바이옴을 변경하지 못했습니다.")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 바이옴을 변경하지 못했습니다.");
                     return null;
@@ -185,8 +188,8 @@ final class IslandEnvironmentCommandHandler {
 
     private void showSize(Player player) {
         runtime.currentIsland(player, "섬 안에서만 크기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            environmentUseCase.islandInfo(islandId)
-                .thenAccept(body -> runtime.message(player, "섬 크기: " + (long) decimal(body, "size")))
+            environmentUseCase.islandInfoView(islandId)
+                .thenAccept(info -> runtime.message(player, "섬 크기: " + info.size()))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 크기를 불러오지 못했습니다.");
                     return null;
@@ -196,8 +199,8 @@ final class IslandEnvironmentCommandHandler {
 
     private void showBorder(Player player) {
         runtime.currentIsland(player, "섬 안에서만 경계를 확인할 수 있습니다.").ifPresent(islandId -> {
-            CompletableFuture<String> info = environmentUseCase.islandInfo(islandId);
-            CompletableFuture<String> flags = environmentUseCase.listFlags(islandId);
+            CompletableFuture<IslandInfoView> info = environmentUseCase.islandInfoView(islandId);
+            CompletableFuture<Map<IslandFlag, String>> flags = environmentUseCase.flagValues(islandId);
             info.thenCombine(flags, IslandEnvironmentCommandHandler::borderSummary)
                 .thenAccept(summary -> runtime.message(player, summary))
                 .exceptionally(error -> {
@@ -260,10 +263,10 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, runtime.routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
                 return;
             }
-            environmentUseCase.setFlag(islandId, player.getUniqueId(), flag, value, runtime::mutate)
-                .thenAccept(body -> {
-                    runtime.message(player, runtime.actionResultMessage("섬 경계 정책 변경 " + flag.name() + "=" + value, flag.name(), body));
-                    if (applyAfterSave && !resultRejected(body)) {
+            environmentUseCase.setFlagAction(islandId, player.getUniqueId(), flag, value, runtime::mutate)
+                .thenAccept(result -> {
+                    runtime.message(player, environmentActionMessage(result, "섬 경계 정책 변경 완료: " + flag.name() + "=" + value, "섬 경계 정책을 변경하지 못했습니다."));
+                    if (applyAfterSave && result.accepted()) {
                         applyBorder(player, true);
                     }
                 })
@@ -281,9 +284,9 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, "섬 경계 위치를 확인하지 못했습니다.");
                 return;
             }
-            CompletableFuture<String> info = environmentUseCase.islandInfo(islandId);
-            CompletableFuture<String> flags = environmentUseCase.listFlags(islandId);
-            info.thenCombine(flags, (infoBody, flagBody) -> new BorderView(infoBody, flagBody, region.get()))
+            CompletableFuture<IslandInfoView> info = environmentUseCase.islandInfoView(islandId);
+            CompletableFuture<Map<IslandFlag, String>> flags = environmentUseCase.flagValues(islandId);
+            info.thenCombine(flags, (infoView, flagValues) -> new BorderView(infoView, flagValues, region.get()))
                 .thenAccept(view -> PaperSchedulers.run(plugin, () -> applyBorderSync(player, view, announce)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 경계 UI를 적용하지 못했습니다.");
@@ -304,19 +307,19 @@ final class IslandEnvironmentCommandHandler {
         }
         WorldBorder border = Bukkit.createWorldBorder();
         border.setCenter(view.region().originX(), view.region().originZ());
-        border.setSize(Math.max(1.0D, decimal(view.info(), "border")));
+        border.setSize(Math.max(1.0D, view.info().border()));
         border.setWarningDistance(Math.max(0, (int) longValue(flagValue(view.flags(), IslandFlag.BORDER_WARNING_BLOCKS, "8"), 8L)));
         border.setWarningTime(5);
         player.setWorldBorder(border);
         if (announce) {
-            runtime.message(player, "섬 경계 UI 적용: 색상=" + flagValue(view.flags(), IslandFlag.BORDER_COLOR, "blue") + ", 정책=" + policy + ", 크기=" + (long) decimal(view.info(), "border"));
+            runtime.message(player, "섬 경계 UI 적용: 색상=" + flagValue(view.flags(), IslandFlag.BORDER_COLOR, "blue") + ", 정책=" + policy + ", 크기=" + view.info().border());
         }
     }
 
     private void listLimits(Player player) {
         runtime.currentIsland(player, "섬 안에서만 제한을 확인할 수 있습니다.").ifPresent(islandId -> {
-            environmentUseCase.listLimits(islandId)
-                .thenAccept(body -> runtime.message(player, limitListMessage(body)))
+            environmentUseCase.limitViews(islandId)
+                .thenAccept(limits -> runtime.message(player, limitListMessage(limits)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 제한을 불러오지 못했습니다.");
                     return null;
@@ -342,13 +345,14 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, runtime.routeMessage("limit-set-denied", "섬 제한을 변경할 권한이 없습니다."));
                 return;
             }
-            environmentUseCase.setLimit(islandId, player.getUniqueId(), limitKey, value, runtime::mutate)
-                .thenAccept(body -> {
-                    if (resultRejected(body)) {
-                        runtime.message(player, runtime.playerCodeMessage(text(body, "code"), "섬 제한을 변경하지 못했습니다."));
+            environmentUseCase.setLimitAction(islandId, player.getUniqueId(), limitKey, value, runtime::mutate)
+                .thenAccept(result -> {
+                    if (!result.accepted()) {
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), "섬 제한을 변경하지 못했습니다."));
                         return;
                     }
-                    runtime.message(player, "섬 제한 변경 완료: " + text(body, "limitKey") + " = " + (long) decimal(body, "value"));
+                    String key = result.key().isBlank() ? limitKey : result.key();
+                    runtime.message(player, "섬 제한 변경 완료: " + key + " = " + result.value());
                 })
                 .exceptionally(error -> {
                     runtime.message(player, "섬 제한을 변경하지 못했습니다.");
@@ -357,16 +361,20 @@ final class IslandEnvironmentCommandHandler {
         });
     }
 
-    private static String borderSummary(String infoBody, String flagBody) {
-        return "섬 경계: 크기=" + (long) decimal(infoBody, "border")
-            + ", 표시=" + (borderVisible(flagBody) ? "켜짐" : "꺼짐")
-            + ", 색상=" + flagValue(flagBody, IslandFlag.BORDER_COLOR, "blue")
-            + ", 정책=" + flagValue(flagBody, IslandFlag.BORDER_POLICY, "visible")
-            + ", 경고거리=" + flagValue(flagBody, IslandFlag.BORDER_WARNING_BLOCKS, "8");
+    private String environmentActionMessage(EnvironmentActionResult result, String successMessage, String failureMessage) {
+        return result.accepted() ? successMessage : runtime.playerCodeMessage(result.code(), failureMessage);
     }
 
-    private static boolean borderVisible(String flagBody) {
-        String value = flagValue(flagBody, IslandFlag.BORDER_VISIBLE, "true");
+    private static String borderSummary(IslandInfoView info, Map<IslandFlag, String> flags) {
+        return "섬 경계: 크기=" + info.border()
+            + ", 표시=" + (borderVisible(flags) ? "켜짐" : "꺼짐")
+            + ", 색상=" + flagValue(flags, IslandFlag.BORDER_COLOR, "blue")
+            + ", 정책=" + flagValue(flags, IslandFlag.BORDER_POLICY, "visible")
+            + ", 경고거리=" + flagValue(flags, IslandFlag.BORDER_WARNING_BLOCKS, "8");
+    }
+
+    private static boolean borderVisible(Map<IslandFlag, String> flags) {
+        String value = flagValue(flags, IslandFlag.BORDER_VISIBLE, "true");
         return !value.equalsIgnoreCase("false")
             && !value.equalsIgnoreCase("off")
             && !value.equals("0")
@@ -375,8 +383,8 @@ final class IslandEnvironmentCommandHandler {
             && !value.equals("숨김");
     }
 
-    private static String flagValue(String body, IslandFlag flag, String fallback) {
-        String value = text(body, flag.name());
+    private static String flagValue(Map<IslandFlag, String> flags, IslandFlag flag, String fallback) {
+        String value = flags.getOrDefault(flag, "");
         return value.isBlank() ? fallback : value;
     }
 
@@ -402,25 +410,10 @@ final class IslandEnvironmentCommandHandler {
         return "visible";
     }
 
-    private static String limitListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String key = text(object, "limitKey");
-            if (!key.isBlank()) {
-                entries.add(key + " 값=" + (long) decimal(object, "value"));
-            }
-            index = objectEnd + 1;
-        }
+    private static String limitListMessage(List<LimitView> limits) {
+        List<String> entries = limits.stream()
+            .map(limit -> limit.key() + " 값=" + limit.value())
+            .toList();
         return entries.isEmpty() ? "섬 제한이 없습니다." : "섬 제한: " + String.join(", ", entries);
     }
 
@@ -435,101 +428,12 @@ final class IslandEnvironmentCommandHandler {
         return "true";
     }
 
-    private static boolean resultRejected(String body) {
-        return body == null || body.contains("\"error\"") || body.contains("\"accepted\":false") || body.contains("\"applied\":false");
-    }
-
     private static long longValue(String value, long fallback) {
         try {
             return Long.parseLong(value);
         } catch (RuntimeException ignored) {
             return fallback;
         }
-    }
-
-    private static String text(String json, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        int valueStart = start + needle.length();
-        int end = jsonStringEnd(json, valueStart);
-        return end < 0 ? "" : unescape(json.substring(valueStart, end));
-    }
-
-    private static double decimal(String json, String key) {
-        String needle = "\"" + key + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return 0.0D;
-        }
-        int valueStart = start + needle.length();
-        int end = valueStart;
-        while (end < json.length()) {
-            char current = json.charAt(end);
-            if ((current >= '0' && current <= '9') || current == '-' || current == '+' || current == '.') {
-                end++;
-                continue;
-            }
-            break;
-        }
-        try {
-            return Double.parseDouble(json.substring(valueStart, end));
-        } catch (RuntimeException ignored) {
-            return 0.0D;
-        }
-    }
-
-    private static int jsonStringEnd(String value, int start) {
-        boolean escaping = false;
-        for (int index = start; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (escaping) {
-                escaping = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaping = true;
-                continue;
-            }
-            if (current == '"') {
-                return index;
-            }
-        }
-        return -1;
-    }
-
-    private static String unescape(String value) {
-        StringBuilder builder = new StringBuilder(value.length());
-        boolean escaping = false;
-        for (int index = 0; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (!escaping) {
-                if (current == '\\') {
-                    escaping = true;
-                } else {
-                    builder.append(current);
-                }
-                continue;
-            }
-            switch (current) {
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                case '/' -> builder.append('/');
-                case 'b' -> builder.append('\b');
-                case 'f' -> builder.append('\f');
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                default -> builder.append(current);
-            }
-            escaping = false;
-        }
-        if (escaping) {
-            builder.append('\\');
-        }
-        return builder.toString();
     }
 
     interface Runtime {
@@ -554,5 +458,5 @@ final class IslandEnvironmentCommandHandler {
         MessageRenderer messagesFor(Player player);
     }
 
-    private record BorderView(String info, String flags, IslandRegion region) {}
+    private record BorderView(IslandInfoView info, Map<IslandFlag, String> flags, IslandRegion region) {}
 }
