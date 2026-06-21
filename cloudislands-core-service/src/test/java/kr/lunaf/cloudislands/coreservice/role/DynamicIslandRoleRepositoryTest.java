@@ -1,9 +1,12 @@
 package kr.lunaf.cloudislands.coreservice.role;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
@@ -26,6 +29,24 @@ class DynamicIslandRoleRepositoryTest {
         assertNull(dynamic.role());
         assertEquals("BUILDER", dynamic.roleKey());
         assertEquals("Builder", dynamic.displayName());
+    }
+
+    @Test
+    void roleCatalogDefaultsComeFromRoleDefinitionsInsteadOfEnumIteration() throws Exception {
+        InMemoryIslandRoleRepository roles = new InMemoryIslandRoleRepository();
+
+        assertEquals(
+            java.util.List.of("CO_OWNER", "MODERATOR", "MEMBER", "TRUSTED"),
+            roles.list(ISLAND).stream().map(role -> role.roleId().value()).toList()
+        );
+        assertFalse(IslandRoleRepository.editableRoleKey("owner"));
+        assertFalse(IslandRoleRepository.editableRoleKey("visitor"));
+        assertFalse(IslandRoleRepository.editableRoleKey("banned"));
+        assertTrue(IslandRoleRepository.editableRoleKey("builder"));
+
+        String repository = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/role/IslandRoleRepository.java"));
+        assertFalse(repository.contains("IslandRole.values()"), "Core role catalog must not iterate enum identities");
+        assertTrue(repository.contains("RoleDefinition.defaultMemberRoles()"), "Core role catalog must use RoleId-backed role definitions");
     }
 
     @Test

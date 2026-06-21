@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -64,5 +65,21 @@ class RoleIdSnapshotTest {
         assertThrows(IllegalArgumentException.class, () -> IslandRole.valueOf("CUSTOM_1"));
         assertThrows(IllegalArgumentException.class, () -> IslandRole.valueOf("CUSTOM_5"));
         assertEquals("CUSTOM_1", RoleId.of("custom-1").value());
+    }
+
+    @Test
+    void roleDefinitionsExposeCanonicalDefaultMemberCatalogWithoutEnumIdentity() {
+        List<RoleDefinition> defaults = RoleDefinition.defaultMemberRoles();
+
+        assertEquals(List.of(
+            RoleId.of("CO_OWNER"),
+            RoleId.of("MODERATOR"),
+            RoleId.of("MEMBER"),
+            RoleId.of("TRUSTED")
+        ), defaults.stream().map(RoleDefinition::roleId).toList());
+        assertEquals(List.of(1, 2, 3, 4), defaults.stream().map(RoleDefinition::weight).toList());
+        assertEquals(List.of(true, true, true, true), defaults.stream().map(RoleDefinition::editable).toList());
+        assertEquals(List.of(true, true, true, true), defaults.stream().map(RoleDefinition::memberRole).toList());
+        assertEquals(4, defaults.stream().filter(definition -> definition.systemRole() == null).count());
     }
 }

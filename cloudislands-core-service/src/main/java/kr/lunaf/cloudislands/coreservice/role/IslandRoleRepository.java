@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
+import kr.lunaf.cloudislands.api.model.RoleDefinition;
+import kr.lunaf.cloudislands.api.model.RoleId;
 
 public interface IslandRoleRepository {
     IslandRoleSnapshot upsert(UUID islandId, IslandRole role, int weight, String displayName);
@@ -14,10 +16,9 @@ public interface IslandRoleRepository {
 
     static List<IslandRoleSnapshot> mergeDefaults(UUID islandId, List<IslandRoleSnapshot> overrides) {
         java.util.Map<String, IslandRoleSnapshot> merged = new java.util.LinkedHashMap<>();
-        for (IslandRole role : IslandRole.values()) {
-            if (role != IslandRole.OWNER && role.islandMemberRole()) {
-                merged.put(role.name(), new IslandRoleSnapshot(islandId, role, role.ordinal(), role.name()));
-            }
+        for (RoleDefinition definition : RoleDefinition.defaultMemberRoles()) {
+            String roleKey = definition.roleId().value();
+            merged.put(roleKey, new IslandRoleSnapshot(islandId, roleKey, definition.weight(), definition.displayName()));
         }
         for (IslandRoleSnapshot override : overrides) {
             String roleKey = normalizeRoleKey(override.effectiveRoleKey());
@@ -35,9 +36,7 @@ public interface IslandRoleRepository {
         if (normalized.isBlank()) {
             return false;
         }
-        return !normalized.equals(IslandRole.OWNER.name())
-            && !normalized.equals(IslandRole.VISITOR.name())
-            && !normalized.equals(IslandRole.BANNED.name());
+        return RoleDefinition.editable(RoleId.of(normalized));
     }
 
     static String normalizeRoleKey(String roleKey) {
