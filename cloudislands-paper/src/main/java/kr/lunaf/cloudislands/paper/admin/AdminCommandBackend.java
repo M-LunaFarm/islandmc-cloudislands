@@ -18,6 +18,9 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
+import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
+import kr.lunaf.cloudislands.coreclient.AdminEventView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
@@ -163,11 +166,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return handleRankings(sender, args);
         }
         if (args[0].equalsIgnoreCase("events")) {
-            run(sender, "Events list", coreApiClient.listEvents().thenApply(this::eventListMessage));
+            run(sender, "Events list", coreApiClient.adminEvents().list(100).thenApply(this::eventListMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("audit")) {
-            run(sender, "Audit logs", coreApiClient.listAuditLogs().thenApply(this::auditListMessage));
+            run(sender, "Audit logs", coreApiClient.adminAudit().list(100).thenApply(this::auditListMessage));
             return true;
         }
         if (args[0].equalsIgnoreCase("metrics")) {
@@ -2512,39 +2515,25 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + " loadFallback=" + textValue(body, "addonStateTableKeyValueBulkLoadFallback");
     }
 
-    private String eventListMessage(String body) {
-        String events = arrayValue(body, "events");
-        if (events.isBlank()) {
+    private String eventListMessage(AdminEventStreamView stream) {
+        if (stream.events().isEmpty()) {
             return adminText("admin-command-events-empty", "Events: empty");
         }
         List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < events.length() && entries.size() < 10) {
-            int objectStart = events.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(events, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = events.substring(objectStart, objectEnd + 1);
-            String type = textValue(object, "type");
-            String occurredAt = textValue(object, "occurredAt");
-            String fields = objectValue(object, "fields");
-            String islandId = textValue(fields, "islandId");
-            String ticketId = textValue(fields, "ticketId");
-            String playerUuid = textValue(fields, "playerUuid");
-            String action = textValue(fields, "action");
-            String reason = textValue(fields, "reason");
-            String requestedNode = textValue(fields, "requestedNode");
-            String clearedSession = textValue(fields, "clearedSession");
-            String clearedTicket = textValue(fields, "clearedTicket");
-            String nodeId = textValue(fields, "nodeId");
+        for (AdminEventView event : stream.events().stream().limit(10).toList()) {
+            String islandId = event.fields().getOrDefault("islandId", "");
+            String ticketId = event.fields().getOrDefault("ticketId", "");
+            String playerUuid = event.fields().getOrDefault("playerUuid", "");
+            String action = event.fields().getOrDefault("action", "");
+            String reason = event.fields().getOrDefault("reason", "");
+            String requestedNode = event.fields().getOrDefault("requestedNode", "");
+            String clearedSession = event.fields().getOrDefault("clearedSession", "");
+            String clearedTicket = event.fields().getOrDefault("clearedTicket", "");
+            String nodeId = event.fields().getOrDefault("nodeId", "");
             if (nodeId.isBlank()) {
-                nodeId = textValue(fields, "targetNode");
+                nodeId = event.fields().getOrDefault("targetNode", "");
             }
-            entries.add((type.isBlank() ? "UNKNOWN_EVENT" : type)
+            entries.add((event.type().isBlank() ? "UNKNOWN_EVENT" : event.type())
                 + (islandId.isBlank() ? "" : adminText("admin-command-event-island-prefix", " island=") + islandId)
                 + (ticketId.isBlank() ? "" : adminText("admin-command-event-ticket-prefix", " ticket=") + shortId(ticketId))
                 + (playerUuid.isBlank() ? "" : adminText("admin-command-event-player-prefix", " player=") + shortId(playerUuid))
@@ -2554,39 +2543,21 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 + (clearedSession.isBlank() ? "" : adminText("admin-command-event-session-prefix", " session=") + clearedSession)
                 + (clearedTicket.isBlank() ? "" : adminText("admin-command-event-ticket-cleared-prefix", " ticketCleared=") + clearedTicket)
                 + (nodeId.isBlank() ? "" : adminText("admin-command-event-node-prefix", " node=") + nodeId)
-                + (occurredAt.isBlank() ? "" : adminText("admin-command-event-at-prefix", " at=") + occurredAt));
-            index = objectEnd + 1;
+                + (event.occurredAt().isBlank() ? "" : adminText("admin-command-event-at-prefix", " at=") + event.occurredAt()));
         }
         return entries.isEmpty() ? adminText("admin-command-events-empty", "Events: empty") : adminText("admin-command-events-prefix", "Events: ") + String.join(" | ", entries);
     }
 
-    private String auditListMessage(String body) {
-        String audit = arrayValue(body, "audit");
-        if (audit.isBlank()) {
+    private String auditListMessage(List<AdminAuditEntryView> audit) {
+        if (audit.isEmpty()) {
             return adminText("admin-command-audit-empty", "Audit: empty");
         }
         List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < audit.length() && entries.size() < 10) {
-            int objectStart = audit.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(audit, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = audit.substring(objectStart, objectEnd + 1);
-            String action = textValue(object, "action");
-            String actorType = textValue(object, "actorType");
-            String targetType = textValue(object, "targetType");
-            String targetId = textValue(object, "targetId");
-            String createdAt = textValue(object, "createdAt");
-            entries.add((action.isBlank() ? "UNKNOWN_ACTION" : action)
-                + (targetType.isBlank() && targetId.isBlank() ? "" : adminText("admin-command-audit-target-prefix", " target=") + targetType + ":" + targetId)
-                + (actorType.isBlank() ? "" : adminText("admin-command-audit-actor-prefix", " actor=") + actorType)
-                + (createdAt.isBlank() ? "" : adminText("admin-command-audit-at-prefix", " at=") + createdAt));
-            index = objectEnd + 1;
+        for (AdminAuditEntryView entry : audit.stream().limit(10).toList()) {
+            entries.add((entry.action().isBlank() ? "UNKNOWN_ACTION" : entry.action())
+                + (entry.targetType().isBlank() && entry.targetId().isBlank() ? "" : adminText("admin-command-audit-target-prefix", " target=") + entry.targetType() + ":" + entry.targetId())
+                + (entry.actorType().isBlank() ? "" : adminText("admin-command-audit-actor-prefix", " actor=") + entry.actorType())
+                + (entry.createdAt().isBlank() ? "" : adminText("admin-command-audit-at-prefix", " at=") + entry.createdAt()));
         }
         return entries.isEmpty() ? adminText("admin-command-audit-empty", "Audit: empty") : adminText("admin-command-audit-prefix", "Audit: ") + String.join(" | ", entries);
     }

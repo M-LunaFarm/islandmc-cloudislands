@@ -160,6 +160,14 @@ public interface CoreApiClient {
         return new CoreAdminRouteClient(this);
     }
 
+    default AdminEventQueryClient adminEvents() {
+        return new CoreAdminEventQueryClient(this);
+    }
+
+    default AdminAuditQueryClient adminAudit() {
+        return new CoreAdminAuditQueryClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

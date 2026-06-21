@@ -1245,6 +1245,58 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void adminEventAndAuditClientsReturnTypedEntries() {
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "listEvents" -> {
+                    calls.add("events:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"oldestSeq":1,"latestSeq":3,"events":[
+                          {"seq":3,"type":"ROUTE_CLEAR","fields":{"playerUuid":"player-a","ticketId":"ticket-a","clearedSession":"true","targetNode":"node-a"},"occurredAt":"now"}
+                        ]}
+                        """);
+                }
+                case "listEventsSince" -> {
+                    calls.add("eventsSince:" + args[0] + ":" + args[1]);
+                    yield CompletableFuture.completedFuture("""
+                        {"oldestSeq":1,"latestSeq":4,"events":[
+                          {"seq":4,"type":"ISLAND_ACTIVATED","fields":{"islandId":"island-a","nodeId":"node-b"},"occurredAt":"later"}
+                        ]}
+                        """);
+                }
+                case "listAuditLogs" -> {
+                    calls.add("audit:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"audit":[
+                          {"id":"audit-a","actorUuid":null,"actorType":"ADMIN","action":"NODE_DRAIN","targetType":"NODE","targetId":"node-a","payload":{"reason":"maintenance"},"createdAt":"now"}
+                        ]}
+                        """);
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+
+        AdminEventQueryClient events = new CoreAdminEventQueryClient(raw);
+        AdminAuditQueryClient audit = new CoreAdminAuditQueryClient(raw);
+
+        AdminEventStreamView stream = events.list(5000).join();
+        AdminEventStreamView since = events.listSince(-1L, 0).join();
+        List<AdminAuditEntryView> auditEntries = audit.list(1000).join();
+
+        assertEquals(3L, stream.latestSeq());
+        assertEquals("ROUTE_CLEAR", stream.events().get(0).type());
+        assertEquals("ticket-a", stream.events().get(0).fields().get("ticketId"));
+        assertEquals(4L, since.events().get(0).seq());
+        assertEquals("node-b", since.events().get(0).fields().get("nodeId"));
+        assertEquals("NODE_DRAIN", auditEntries.get(0).action());
+        assertEquals("maintenance", auditEntries.get(0).payload().get("reason"));
+        assertEquals(List.of("events:4096", "eventsSince:0:1", "audit:500"), calls);
+    }
+
+    @Test
     void lifecycleCommandClientReturnsTypedResetResult() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
