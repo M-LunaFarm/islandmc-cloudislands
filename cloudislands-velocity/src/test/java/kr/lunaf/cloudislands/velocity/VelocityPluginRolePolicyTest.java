@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.velocity;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -44,5 +46,14 @@ class VelocityPluginRolePolicyTest {
             assertFalse(owned.contains(forbidden));
             assertFalse(VelocityPluginRolePolicy.ownsProxyResponsibility(forbidden));
         }
+    }
+
+    @Test
+    void velocityActionSupportDoesNotKeepRawJsonActionHelpers() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityActionSupport.java"));
+
+        assertFalse(source.contains("sendPlayerPayloadFuture("), "Velocity actions must not keep raw player payload futures");
+        assertFalse(source.contains("sendInviteActionResult("), "Velocity actions must not infer invite success from raw JSON bodies");
+        assertFalse(source.contains("body.contains(\"\\\"accepted\\\":false\")"), "Velocity actions must not inspect raw JSON success flags");
     }
 }

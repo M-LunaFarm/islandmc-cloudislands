@@ -68,17 +68,6 @@ abstract class VelocityActionSupport {
         this.pendingRoutes = context.pendingRoutes();
     }
 
-    protected void sendPlayerPayload(Player player, String body, String emptyMessage, String successMessage) {
-        player.sendMessage(Component.text(playerPayloads.playerPayloadMessage(body, emptyMessage, successMessage)));
-    }
-
-    protected void sendPlayerPayloadFuture(Player player, CompletableFuture<String> future, String emptyMessage, String successMessage) {
-        future.thenAccept(body -> sendPlayerPayload(player, body, emptyMessage, successMessage)).exceptionally(error -> {
-            player.sendMessage(Component.text(emptyMessage));
-            return null;
-        });
-    }
-
     protected void sendActionResult(Player player, CompletableFuture<Void> future, String successMessage, String failureMessage) {
         future.thenRun(() -> player.sendMessage(Component.text(successMessage))).exceptionally(error -> {
             player.sendMessage(Component.text(failureMessage));
@@ -127,19 +116,6 @@ abstract class VelocityActionSupport {
 
     protected String snapshotListMessage(List<CoreGuiViews.SnapshotView> snapshots) {
         return snapshotMessages.snapshotList(snapshots);
-    }
-
-    protected void sendInviteActionResult(Player player, CompletableFuture<String> future, String successMessage, String failureMessage) {
-        future.thenAccept(body -> {
-            if (body == null || body.isBlank() || body.contains("\"error\"") || body.contains("\"accepted\":false")) {
-                player.sendMessage(Component.text(failureMessage));
-                return;
-            }
-            player.sendMessage(Component.text(successMessage));
-        }).exceptionally(error -> {
-            player.sendMessage(Component.text(failureMessage));
-            return null;
-        });
     }
 
     protected void adminIslandTarget(Player player, String target, Consumer<UUID> action) {
