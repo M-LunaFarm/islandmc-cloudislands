@@ -1225,7 +1225,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return post("/v1/addons/islands/state", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\"}");
+        return post("/v1/addons/islands/state", jsonObject("addonId", addonId, "islandId", islandId));
     }
 
     @Override
@@ -1233,7 +1233,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(key)) {
             return invalidAddonState("Addon id, island id, and key are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/set", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"key\":\"" + escape(key) + "\",\"value\":\"" + escape(value) + "\"}");
+        return postWithResultBody("/v1/addons/islands/state/set", jsonObject("addonId", addonId, "islandId", islandId, "key", key, "value", value));
     }
 
     @Override
@@ -1241,7 +1241,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values) + "}");
+        return postWithResultBody("/v1/addons/islands/state/bulk", jsonObject("addonId", addonId, "islandId", islandId, "values", rawJson(stringMapJson(values))));
     }
 
     @Override
@@ -1249,7 +1249,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/islands/state/bulk", jsonObject("addonId", addonId, "islandId", islandId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1262,7 +1262,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/save", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/islands/state/save", jsonObject("addonId", addonId, "islandId", islandId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1270,7 +1270,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody(AddonStateBulkSaveRequest.ISLAND_LEGACY_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody(AddonStateBulkSaveRequest.ISLAND_LEGACY_ENDPOINT, jsonObject("addonId", addonId, "islandId", islandId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1278,7 +1278,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody(AddonStateBulkSaveRequest.ISLAND_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody(AddonStateBulkSaveRequest.ISLAND_ENDPOINT, jsonObject("addonId", addonId, "islandId", islandId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1294,16 +1294,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     private String bulkSaveRequestJson(AddonStateBulkSaveRequest request, boolean includeIslandId) {
         Map<String, String> rootValues = request.tableScoped() ? Map.of() : request.values();
-        String json = "{\"addonId\":\"" + escape(request.addonId()) + "\"";
         if (includeIslandId) {
-            json += ",\"islandId\":\"" + request.islandId() + "\"";
+            if (request.tableScoped()) {
+                return jsonObject("addonId", request.addonId(), "islandId", request.islandId(), "table", request.table(), "values", rawJson(stringMapJson(request.values())), "tables", rawJson(tableMapJson(request.tablesWithScopedTable())));
+            }
+            return jsonObject("addonId", request.addonId(), "islandId", request.islandId(), "values", rawJson(stringMapJson(rootValues)), "tables", rawJson(tableMapJson(request.tablesWithScopedTable())));
         }
         if (request.tableScoped()) {
-            json += ",\"table\":\"" + escape(request.table()) + "\",\"values\":" + stringMapJson(request.values());
-        } else {
-            json += ",\"values\":" + stringMapJson(rootValues);
+            return jsonObject("addonId", request.addonId(), "table", request.table(), "values", rawJson(stringMapJson(request.values())), "tables", rawJson(tableMapJson(request.tablesWithScopedTable())));
         }
-        return json + ",\"tables\":" + tableMapJson(request.tablesWithScopedTable()) + "}";
+        return jsonObject("addonId", request.addonId(), "values", rawJson(stringMapJson(rootValues)), "tables", rawJson(tableMapJson(request.tablesWithScopedTable())));
     }
 
     @Override
@@ -1316,7 +1316,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
             return invalidAddonState("Addon id, island id, and table are required");
         }
-        return postWithResultBody(AddonStateBulkSaveRequest.ISLAND_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + "}");
+        return postWithResultBody(AddonStateBulkSaveRequest.ISLAND_ENDPOINT, jsonObject("addonId", addonId, "islandId", islandId, "table", table, "values", rawJson(stringMapJson(values == null ? Map.of() : values))));
     }
 
     @Override
@@ -1329,7 +1329,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk/save", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk/save", jsonObject("addonId", addonId, "islandId", islandId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1337,7 +1337,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"values\":" + stringMapJson(values == null ? Map.of() : values) + ",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/islands/state/table/key-value/bulk", jsonObject("addonId", addonId, "islandId", islandId, "values", rawJson(stringMapJson(values == null ? Map.of() : values)), "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1350,7 +1350,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/table/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody("/v1/addons/islands/state/table/bulk", jsonObject("addonId", addonId, "islandId", islandId, "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1363,7 +1363,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody(AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_SET_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"tables\":" + tableMapJson(tables) + "}");
+        return postWithResultBody(AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_SET_ENDPOINT, jsonObject("addonId", addonId, "islandId", islandId, "tables", rawJson(tableMapJson(tables))));
     }
 
     @Override
@@ -1376,7 +1376,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
             return invalidAddonState("Addon id, island id, and table are required");
         }
-        return post(AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS, "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
+        return post(AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS, jsonObject("addonId", addonId, "islandId", islandId, "table", table));
     }
 
     @Override
@@ -1384,7 +1384,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
             return invalidAddonState("Addon id, island id, and table are required");
         }
-        return post(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
+        return post(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, jsonObject("addonId", addonId, "islandId", islandId, "table", table));
     }
 
     @Override
@@ -1403,7 +1403,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
             return invalidAddonState("Addon id, island id, and table are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/table/bulk", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values) + "}");
+        return postWithResultBody("/v1/addons/islands/state/table/bulk", jsonObject("addonId", addonId, "islandId", islandId, "table", table, "values", rawJson(stringMapJson(values))));
     }
 
     @Override
@@ -1416,7 +1416,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
             return invalidAddonState("Addon id, island id, and table are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/table/replace", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\",\"values\":" + stringMapJson(values) + "}");
+        return postWithResultBody("/v1/addons/islands/state/table/replace", jsonObject("addonId", addonId, "islandId", islandId, "table", table, "values", rawJson(stringMapJson(values))));
     }
 
     @Override
@@ -1424,7 +1424,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(table)) {
             return invalidAddonState("Addon id, island id, and table are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/table/clear", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"table\":\"" + escape(table) + "\"}");
+        return postWithResultBody("/v1/addons/islands/state/table/clear", jsonObject("addonId", addonId, "islandId", islandId, "table", table));
     }
 
     @Override
@@ -1432,7 +1432,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId) || blank(key)) {
             return invalidAddonState("Addon id, island id, and key are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/remove", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\",\"key\":\"" + escape(key) + "\"}");
+        return postWithResultBody("/v1/addons/islands/state/remove", jsonObject("addonId", addonId, "islandId", islandId, "key", key));
     }
 
     @Override
@@ -1440,7 +1440,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         if (blank(addonId) || missingIslandId(islandId)) {
             return invalidAddonState("Addon id and island id are required");
         }
-        return postWithResultBody("/v1/addons/islands/state/clear", "{\"addonId\":\"" + escape(addonId) + "\",\"islandId\":\"" + islandId + "\"}");
+        return postWithResultBody("/v1/addons/islands/state/clear", jsonObject("addonId", addonId, "islandId", islandId));
     }
 
     private static boolean blank(String value) {

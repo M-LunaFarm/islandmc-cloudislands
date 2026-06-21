@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -393,6 +394,84 @@ class CoreMutationContextTest {
             assertEquals("{\"addonId\":\"addon\\\"one\",\"table\":\"table\\\"one\"}", requestBodies.get("tableClear"));
             assertEquals("{\"addonId\":\"addon\\\"one\",\"key\":\"key\\\"one\"}", requestBodies.get("remove"));
             assertEquals("{\"addonId\":\"addon\\\"one\"}", requestBodies.get("clear"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void jdkClientBuildsIslandAddonStatePayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("alpha", "one\"1");
+        values.put("beta", "two");
+        Map<String, String> tableValues = new LinkedHashMap<>();
+        tableValues.put("row", "value\"1");
+        Map<String, Map<String, String>> tables = new LinkedHashMap<>();
+        tables.put("table\"one", tableValues);
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/addons/islands/state", exchange -> respond(exchange, requestBodies, "state", "{\"values\":{}}"));
+        server.createContext("/v1/addons/islands/state/set", exchange -> respond(exchange, requestBodies, "set", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/bulk", exchange -> respond(exchange, requestBodies, "bulk", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/save", exchange -> respond(exchange, requestBodies, "save", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/table-key-value/bulk-save", exchange -> respond(exchange, requestBodies, "legacyBulkSave", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/table/key-value/bulk-save", exchange -> respond(exchange, requestBodies, "bulkSave", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/table/key-value/bulk/save", exchange -> respond(exchange, requestBodies, "bulkSaveAlias", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/table/key-value/bulk", exchange -> respond(exchange, requestBodies, "bulkAlias", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/table/bulk", exchange -> respond(exchange, requestBodies, "tableBulk", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/table/bulk-set", exchange -> respond(exchange, requestBodies, "tableBulkSet", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/table/load", exchange -> respond(exchange, requestBodies, "tableLoadAlias", "{\"values\":{}}"));
+        server.createContext("/v1/addons/islands/state/table/key-value/bulk-load", exchange -> respond(exchange, requestBodies, "tableLoad", "{\"values\":{}}"));
+        server.createContext("/v1/addons/islands/state/table/replace", exchange -> respond(exchange, requestBodies, "tableReplace", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/table/clear", exchange -> respond(exchange, requestBodies, "tableClear", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/remove", exchange -> respond(exchange, requestBodies, "remove", "{\"accepted\":true}"));
+        server.createContext("/v1/addons/islands/state/clear", exchange -> respond(exchange, requestBodies, "clear", "{\"accepted\":true}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.addonIslandState("addon\"one", islandId).join();
+            client.putAddonIslandState("addon\"one", islandId, "key\"one", "value\"one").join();
+            client.putAddonIslandState("addon\"one", islandId, values).join();
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"}}", requestBodies.get("bulk"));
+            client.putAddonIslandState("addon\"one", islandId, values, tables).join();
+            client.saveAddonIslandState("addon\"one", islandId, values, tables).join();
+            client.bulkSaveAddonIslandState("addon\"one", islandId, values, tables).join();
+            client.tableKeyValueBulkSaveAddonIslandState(AddonStateBulkSaveRequest.island("addon\"one", islandId, Map.of(), Map.of())).join();
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"values\":{},\"tables\":{}}", requestBodies.get("bulkSave"));
+            client.tableKeyValueBulkSaveAddonIslandState("addon\"one", islandId, values, tables).join();
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("bulkSave"));
+            client.tableKeyValueBulkSaveAddonIslandState("addon\"one", islandId, "table\"one", values).join();
+            client.tableKeyValueBulkSaveAliasAddonIslandState("addon\"one", islandId, values, tables).join();
+            client.tableKeyValueBulkAddonIslandState("addon\"one", islandId, values, tables).join();
+            client.tableBulkAddonIslandState("addon\"one", islandId, tables).join();
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("tableBulk"));
+            client.tableBulkSetAddonIslandState("addon\"one", islandId, tables).join();
+            client.addonIslandTableState("addon\"one", islandId, "table\"one").join();
+            client.tableKeyValueBulkLoadAddonIslandState("addon\"one", islandId, "table\"one").join();
+            client.putAddonIslandTableState("addon\"one", islandId, "table\"one", values).join();
+            client.replaceAddonIslandTableState("addon\"one", islandId, "table\"one", values).join();
+            client.clearAddonIslandTableState("addon\"one", islandId, "table\"one").join();
+            client.removeAddonIslandState("addon\"one", islandId, "key\"one").join();
+            client.clearAddonIslandState("addon\"one", islandId).join();
+
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\"}", requestBodies.get("state"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"key\":\"key\\\"one\",\"value\":\"value\\\"one\"}", requestBodies.get("set"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("bulk"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("save"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("legacyBulkSave"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"table\":\"table\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"}}", requestBodies.get("bulkSave"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("bulkSaveAlias"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"},\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("bulkAlias"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"table\":\"table\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"}}", requestBodies.get("tableBulk"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"tables\":{\"table\\\"one\":{\"row\":\"value\\\"1\"}}}", requestBodies.get("tableBulkSet"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"table\":\"table\\\"one\"}", requestBodies.get("tableLoadAlias"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"table\":\"table\\\"one\"}", requestBodies.get("tableLoad"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"table\":\"table\\\"one\",\"values\":{\"alpha\":\"one\\\"1\",\"beta\":\"two\"}}", requestBodies.get("tableReplace"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"table\":\"table\\\"one\"}", requestBodies.get("tableClear"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\",\"key\":\"key\\\"one\"}", requestBodies.get("remove"));
+            assertEquals("{\"addonId\":\"addon\\\"one\",\"islandId\":\"" + islandId + "\"}", requestBodies.get("clear"));
         } finally {
             server.stop(0);
         }
