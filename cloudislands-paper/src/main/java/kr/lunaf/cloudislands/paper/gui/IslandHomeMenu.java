@@ -21,7 +21,17 @@ import org.bukkit.plugin.Plugin;
 public final class IslandHomeMenu implements Listener {
     private static final String TITLE_KEY = "home-menu-title";
     private static final String TITLE = "섬 홈 관리";
-    private static final String MENU_ID = "island.homes";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/homes.yml",
+        new GuiMenuDefinition("island.homes", 6, TITLE_KEY, Map.of(
+            "open", "island.homes.open",
+            "home", "island.home",
+            "set", "island.home.set",
+            "settings", "island.settings.open",
+            "back", "island.main.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -44,11 +54,11 @@ public final class IslandHomeMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandHomes(client, islandId)
             .thenAccept(homes -> openSync(plugin, player, session, homes, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "home-menu-load-failed", "섬 홈을 불러오지 못했습니다."), "island.homes.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "home-menu-load-failed", "섬 홈을 불러오지 못했습니다."), "island.homes.open", "island.settings.open");
                 return null;
             });
     }
@@ -66,37 +76,36 @@ public final class IslandHomeMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
-        player.closeInventory();
-        if (slot == 45) {
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        if (data.getOrDefault("mode", "").equals("set-default")) {
+            player.closeInventory();
             if (event.isRightClick()) {
                 player.sendMessage(message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>"));
                 return;
             }
-            actions.execute(player, "island.home.set", java.util.Map.of("homeName", "default"), GuiClick.from(event));
+            actions.execute(player, GuiItems.actionId(event.getCurrentItem()), java.util.Map.of("homeName", "default"), GuiClick.from(event));
             return;
         }
-        if (slot == 49) {
-            actions.execute(player, "island.settings.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 53) {
-            actions.execute(player, "island.main.open", GuiClick.from(event));
-            return;
-        }
-        String homeName = GuiItems.data(event.getCurrentItem()).getOrDefault("homeName", "");
+        String homeName = data.getOrDefault("homeName", "");
         if (!homeName.isBlank()) {
+            player.closeInventory();
             if (event.isRightClick()) {
                 actions.execute(player, "island.home.set", java.util.Map.of("homeName", homeName), GuiClick.from(event));
                 return;
             }
             actions.execute(player, "island.home", java.util.Map.of("homeName", homeName), GuiClick.from(event));
+            return;
+        }
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (!actionId.isBlank()) {
+            player.closeInventory();
+            actions.execute(player, actionId, data, GuiClick.from(event));
         }
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<HomeView> homes, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
-            inventory.setItem(45, item(Material.RED_BED, message(messages, "home-menu-set-current-name", "현재 위치를 홈으로 설정"), message(messages, "home-menu-set-default-click", "좌클릭: default 홈으로 설정"), message(messages, "home-menu-set-named-click", "우클릭: ") + message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>")));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             int slot = 0;
             for (HomeView home : homes.stream().limit(45).toList()) {
                 inventory.setItem(slot++, homeItem(home, messages));
@@ -104,18 +113,12 @@ public final class IslandHomeMenu implements Listener {
             if (homes.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "home-menu-empty-title", "홈 없음"), message(messages, "home-menu-empty", "현재 등록된 섬 홈이 없습니다.")));
             }
-            inventory.setItem(49, item(Material.COMPARATOR, message(messages, "home-menu-settings-name", "설정"), message(messages, "home-menu-settings-command", "/섬 설정")));
-            inventory.setItem(53, item(Material.COMPASS, message(messages, "home-menu-main-menu-name", "메인 메뉴"), message(messages, "home-menu-main-menu-command", "/섬 메뉴")));
             player.openInventory(inventory);
         });
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static ItemStack homeItem(HomeView home, MessageRenderer messages) {

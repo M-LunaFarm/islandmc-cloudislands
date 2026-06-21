@@ -1,8 +1,49 @@
 id: island.homes
 rows: 6
 title-key: menu.homes.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "D...S...M"
+items:
+  D:
+    material: RED_BED
+    name-key: home-menu-set-current-name
+    fallback-name: 현재 위치를 홈으로 설정
+    lore-keys:
+      - home-menu-set-default-click
+      - home-menu-set-named-click
+    fallback-lore:
+      - "좌클릭: default 홈으로 설정"
+      - "우클릭: 사용법: /섬 셋홈 <이름>"
+    data:
+      homeName: default
+      mode: set-default
+    action: set
+  S:
+    material: COMPARATOR
+    name-key: home-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - home-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: settings
+  M:
+    material: COMPASS
+    name-key: home-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - home-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: back
 actions:
   open: island.homes.open
   home: island.home
   set: island.home.set
+  settings: island.settings.open
   back: island.main.open

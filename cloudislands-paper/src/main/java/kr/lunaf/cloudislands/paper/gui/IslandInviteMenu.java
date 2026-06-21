@@ -20,7 +20,18 @@ import org.bukkit.plugin.Plugin;
 public final class IslandInviteMenu implements Listener {
     private static final String TITLE_KEY = "invite-menu-title";
     private static final String TITLE = "섬 초대 목록";
-    private static final String MENU_ID = "island.invites";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/invites.yml",
+        new GuiMenuDefinition("island.invites", 6, TITLE_KEY, Map.of(
+            "open", "island.invites.open",
+            "accept", "island.invite.accept",
+            "decline", "island.invite.decline",
+            "back", "island.members.open",
+            "members", "island.members.open",
+            "main", "island.main.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -43,11 +54,11 @@ public final class IslandInviteMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.pendingInvites(client, player.getUniqueId())
             .thenAccept(invites -> openSync(plugin, player, session, invites, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "invite-menu-load-failed", "섬 초대 목록을 불러오지 못했습니다."), "island.invites.open", "island.members.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "invite-menu-load-failed", "섬 초대 목록을 불러오지 못했습니다."), "island.invites.open", "island.members.open");
                 return null;
             });
     }
@@ -65,29 +76,23 @@ public final class IslandInviteMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
-        player.closeInventory();
-        if (slot == 49) {
-            actions.execute(player, "island.invites.open", GuiClick.from(event));
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        String inviteId = data.getOrDefault("inviteId", "");
+        if (!inviteId.isBlank()) {
+            player.closeInventory();
+            actions.execute(player, event.isRightClick() ? "island.invite.decline" : "island.invite.accept", java.util.Map.of("inviteId", inviteId), GuiClick.from(event));
             return;
         }
-        if (slot == 45) {
-            actions.execute(player, "island.members.open", GuiClick.from(event));
-            return;
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (!actionId.isBlank()) {
+            player.closeInventory();
+            actions.execute(player, actionId, data, GuiClick.from(event));
         }
-        if (slot == 53) {
-            actions.execute(player, "island.main.open", GuiClick.from(event));
-            return;
-        }
-        String inviteId = GuiItems.data(event.getCurrentItem()).getOrDefault("inviteId", "");
-        if (inviteId.isBlank()) {
-            return;
-        }
-        actions.execute(player, event.isRightClick() ? "island.invite.decline" : "island.invite.accept", java.util.Map.of("inviteId", inviteId), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<InviteView> invites, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             if (invites.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "invite-menu-empty-title", "대기 중인 초대 없음"), message(messages, "invite-menu-empty", "받은 섬 초대가 없습니다.")));
             } else {
@@ -96,9 +101,6 @@ public final class IslandInviteMenu implements Listener {
                     inventory.setItem(slot++, inviteItem(invite, messages));
                 }
             }
-            inventory.setItem(45, item(Material.NAME_TAG, message(messages, "invite-menu-member-name", "멤버 관리"), message(messages, "invite-menu-member-command", "/섬 멤버관리")));
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "invite-menu-refresh-name", "새로고침"), message(messages, "invite-menu-refresh-command", "/섬 초대목록")));
-            inventory.setItem(53, item(Material.COMPASS, message(messages, "invite-menu-main-menu-name", "메인 메뉴"), message(messages, "invite-menu-main-menu-command", "/섬 메뉴")));
             player.openInventory(inventory);
         });
     }
@@ -115,11 +117,7 @@ public final class IslandInviteMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

@@ -351,6 +351,35 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledHomeAndInviteMenuDefinitionsCoverFooterControlsDeclaratively() {
+        GuiMenuDefinition homes = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/homes.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition invites = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/invites.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.homes", homes.id());
+        assertEquals("D", homes.itemAt(45).orElseThrow().symbol());
+        assertEquals("default", homes.itemAt(45).orElseThrow().data().get("homeName"));
+        assertEquals("island.home.set", homes.action(homes.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("S", homes.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.settings.open", homes.action(homes.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("M", homes.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.main.open", homes.action(homes.itemAt(53).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.invites", invites.id());
+        assertEquals("M", invites.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.members.open", invites.action(invites.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("R", invites.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.invites.open", invites.action(invites.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("B", invites.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.main.open", invites.action(invites.itemAt(53).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",

@@ -1,8 +1,45 @@
 id: island.invites
 rows: 6
 title-key: menu.invites.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "M...R...B"
+items:
+  M:
+    material: NAME_TAG
+    name-key: invite-menu-member-name
+    fallback-name: 멤버 관리
+    lore-keys:
+      - invite-menu-member-command
+    fallback-lore:
+      - "/섬 멤버관리"
+    action: members
+  R:
+    material: CLOCK
+    name-key: invite-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - invite-menu-refresh-command
+    fallback-lore:
+      - "/섬 초대목록"
+    action: open
+  B:
+    material: COMPASS
+    name-key: invite-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - invite-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: main
 actions:
   open: island.invites.open
   accept: island.invite.accept
   decline: island.invite.decline
   back: island.members.open
+  members: island.members.open
+  main: island.main.open
