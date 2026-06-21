@@ -26,6 +26,10 @@ public final class MemberManagementUseCase {
         return coreApiClient.removeIslandMemberResult(islandId, actorUuid, targetUuid);
     }
 
+    public CompletableFuture<MemberActionResult> removeMemberAction(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return removeMember(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "MEMBER_REMOVED"));
+    }
+
     public CompletableFuture<String> listMembers(UUID islandId) {
         requireIslandId(islandId);
         return coreApiClient.listIslandMembers(islandId);
@@ -148,6 +152,10 @@ public final class MemberManagementUseCase {
         return coreApiClient.setIslandMemberResult(islandId, actorUuid, targetUuid, normalizedRoleKey);
     }
 
+    public CompletableFuture<MemberActionResult> setRoleAction(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
+        return setRole(islandId, actorUuid, targetUuid, roleKey).thenApply(body -> memberAction(body, "MEMBER_ROLE_SET"));
+    }
+
     public CompletableFuture<String> trustTemporarily(UUID islandId, UUID actorUuid, UUID targetUuid, long durationSeconds) {
         requireIds(islandId, actorUuid, targetUuid);
         if (durationSeconds <= 0L) {
@@ -156,9 +164,17 @@ public final class MemberManagementUseCase {
         return coreApiClient.trustIslandMemberTemporary(islandId, actorUuid, targetUuid, durationSeconds);
     }
 
+    public CompletableFuture<MemberActionResult> trustTemporarilyAction(UUID islandId, UUID actorUuid, UUID targetUuid, long durationSeconds) {
+        return trustTemporarily(islandId, actorUuid, targetUuid, durationSeconds).thenApply(body -> memberAction(body, "TEMP_TRUST_SET"));
+    }
+
     public CompletableFuture<String> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.transferIslandOwnershipResult(islandId, actorUuid, targetUuid);
+    }
+
+    public CompletableFuture<MemberActionResult> transferOwnershipAction(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return transferOwnership(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "OWNERSHIP_TRANSFERRED"));
     }
 
     public CompletableFuture<String> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) {
@@ -166,14 +182,26 @@ public final class MemberManagementUseCase {
         return coreApiClient.banIslandVisitorResult(islandId, actorUuid, targetUuid, reason == null ? "" : reason);
     }
 
+    public CompletableFuture<MemberActionResult> banVisitorAction(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) {
+        return banVisitor(islandId, actorUuid, targetUuid, reason).thenApply(body -> memberAction(body, "VISITOR_BANNED"));
+    }
+
     public CompletableFuture<String> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.pardonIslandVisitorResult(islandId, actorUuid, targetUuid);
     }
 
+    public CompletableFuture<MemberActionResult> pardonVisitorAction(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return pardonVisitor(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "VISITOR_PARDONED"));
+    }
+
     public CompletableFuture<String> kickVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.kickIslandVisitorResult(islandId, actorUuid, targetUuid);
+    }
+
+    public CompletableFuture<MemberActionResult> kickVisitorAction(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return kickVisitor(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "VISITOR_KICKED"));
     }
 
     public CompletableFuture<String> listBans(UUID islandId) {
@@ -264,6 +292,14 @@ public final class MemberManagementUseCase {
         return new IslandInviteActionResult(accepted, accepted ? successCode : (code.isBlank() ? "FAILED" : code));
     }
 
+    private static MemberActionResult memberAction(String body, String successCode) {
+        java.util.Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        boolean accepted = bool(root, "accepted") && !root.containsKey("error");
+        String code = SimpleJson.text(root.get("code"));
+        String expiresAt = SimpleJson.text(root.get("expiresAt"));
+        return new MemberActionResult(accepted, accepted ? successCode : (code.isBlank() ? "FAILED" : code), expiresAt);
+    }
+
     private static boolean bool(java.util.Map<?, ?> object, String key) {
         Object value = object.get(key);
         return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
@@ -277,6 +313,13 @@ public final class MemberManagementUseCase {
             return UUID.fromString(value);
         } catch (RuntimeException ignored) {
             return null;
+        }
+    }
+
+    public record MemberActionResult(boolean accepted, String code, String expiresAt) {
+        public MemberActionResult {
+            code = code == null ? "" : code;
+            expiresAt = expiresAt == null ? "" : expiresAt;
         }
     }
 }

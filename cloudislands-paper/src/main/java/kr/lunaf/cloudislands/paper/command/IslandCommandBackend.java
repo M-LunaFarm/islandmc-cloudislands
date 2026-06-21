@@ -25,6 +25,7 @@ import kr.lunaf.cloudislands.coreclient.CoreGuiViews.MemberView;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase.MemberActionResult;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
@@ -1186,8 +1187,8 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.member.remove", () -> memberManagement.removeMember(islandId, player.getUniqueId(), targetUuid))
-                    .thenAccept(body -> message(player, actionResultMessage("섬 멤버 제거", targetUuid, body)))
+                mutateIdempotent("island.member.remove", () -> memberManagement.removeMemberAction(islandId, player.getUniqueId(), targetUuid))
+                    .thenAccept(result -> message(player, memberActionMessage("섬 멤버 제거", targetUuid, result)))
                     .exceptionally(error -> {
                         message(player, "섬 멤버를 제거하지 못했습니다.");
                         return null;
@@ -1207,8 +1208,8 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutate("island.member.role.set", () -> memberManagement.setRole(islandId, player.getUniqueId(), targetUuid, roleKey))
-                    .thenAccept(body -> message(player, actionResultMessage(successMessage, targetUuid, body)))
+                mutate("island.member.role.set", () -> memberManagement.setRoleAction(islandId, player.getUniqueId(), targetUuid, roleKey))
+                    .thenAccept(result -> message(player, memberActionMessage(successMessage, targetUuid, result)))
                     .exceptionally(error -> {
                         message(player, "섬 멤버 역할을 변경하지 못했습니다.");
                         return null;
@@ -1229,8 +1230,8 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutate("island.member.temp-trust", () -> memberManagement.trustTemporarily(islandId, player.getUniqueId(), targetUuid, seconds))
-                    .thenAccept(body -> message(player, actionResultMessage("섬 임시 신뢰 설정 " + formatDuration(seconds), targetUuid, body) + " 만료=" + text(body, "expiresAt")))
+                mutate("island.member.temp-trust", () -> memberManagement.trustTemporarilyAction(islandId, player.getUniqueId(), targetUuid, seconds))
+                    .thenAccept(result -> message(player, memberActionMessage("섬 임시 신뢰 설정 " + formatDuration(seconds), targetUuid, result) + (result.expiresAt().isBlank() ? "" : " 만료=" + result.expiresAt())))
                     .exceptionally(error -> {
                         message(player, "섬 임시 신뢰를 설정하지 못했습니다.");
                         return null;
@@ -1242,8 +1243,8 @@ final class IslandCommandBackend {
     private void transferIslandOwnership(Player player, String target) {
         currentIsland(player, "섬 안에서만 소유권을 양도할 수 있습니다.").ifPresent(islandId -> {
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.ownership.transfer", () -> memberManagement.transferOwnership(islandId, player.getUniqueId(), targetUuid))
-                    .thenAccept(body -> message(player, actionResultMessage("섬 소유권 양도", targetUuid, body)))
+                mutateIdempotent("island.ownership.transfer", () -> memberManagement.transferOwnershipAction(islandId, player.getUniqueId(), targetUuid))
+                    .thenAccept(result -> message(player, memberActionMessage("섬 소유권 양도", targetUuid, result)))
                     .exceptionally(error -> {
                         message(player, "섬 소유권을 양도하지 못했습니다.");
                         return null;
@@ -1259,14 +1260,14 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.visitor.ban", () -> memberManagement.banVisitor(islandId, player.getUniqueId(), targetUuid, reason))
-                    .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                        if (resultRejected(body)) {
-                            player.sendMessage(playerMessage(actionResultMessage("섬 방문자 밴", targetUuid, body)));
+                mutateIdempotent("island.visitor.ban", () -> memberManagement.banVisitorAction(islandId, player.getUniqueId(), targetUuid, reason))
+                    .thenAccept(result -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+                        if (!result.accepted()) {
+                            player.sendMessage(playerMessage(memberActionMessage("섬 방문자 밴", targetUuid, result)));
                             return;
                         }
                         moveVisitorToFallback(islandId, targetUuid, "섬에서 밴되어 로비로 이동합니다.", "섬에서 밴되어 로비로 이동하지 못했습니다.");
-                        player.sendMessage(playerMessage(actionResultMessage("섬 방문자 밴", targetUuid, body)));
+                        player.sendMessage(playerMessage(memberActionMessage("섬 방문자 밴", targetUuid, result)));
                     }))
                     .exceptionally(error -> {
                         message(player, "섬 방문자를 밴하지 못했습니다.");
@@ -1283,8 +1284,8 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.visitor.pardon", () -> memberManagement.pardonVisitor(islandId, player.getUniqueId(), targetUuid))
-                    .thenAccept(body -> message(player, actionResultMessage("섬 방문자 밴 해제", targetUuid, body)))
+                mutateIdempotent("island.visitor.pardon", () -> memberManagement.pardonVisitorAction(islandId, player.getUniqueId(), targetUuid))
+                    .thenAccept(result -> message(player, memberActionMessage("섬 방문자 밴 해제", targetUuid, result)))
                     .exceptionally(error -> {
                         message(player, "섬 방문자 밴을 해제하지 못했습니다.");
                         return null;
@@ -1300,10 +1301,10 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.visitor.kick", () -> memberManagement.kickVisitor(islandId, player.getUniqueId(), targetUuid))
-                    .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                        if (resultRejected(body)) {
-                            player.sendMessage(playerMessage(actionResultMessage("섬 방문자 추방", targetUuid, body)));
+                mutateIdempotent("island.visitor.kick", () -> memberManagement.kickVisitorAction(islandId, player.getUniqueId(), targetUuid))
+                    .thenAccept(result -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+                        if (!result.accepted()) {
+                            player.sendMessage(playerMessage(memberActionMessage("섬 방문자 추방", targetUuid, result)));
                             return;
                         }
                         if (plugin.getServer().getPlayer(targetUuid) == null) {
@@ -1314,7 +1315,7 @@ final class IslandCommandBackend {
                             message(player, routeMessage("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다."));
                             return;
                         }
-                        player.sendMessage(playerMessage(actionResultMessage("섬 방문자 추방", targetUuid, body)));
+                        player.sendMessage(playerMessage(memberActionMessage("섬 방문자 추방", targetUuid, result)));
                     }))
                     .exceptionally(error -> {
                         message(player, "섬 방문자를 추방하지 못했습니다.");
@@ -1656,6 +1657,10 @@ final class IslandCommandBackend {
 
     private String inviteActionMessage(String label, UUID inviteId, IslandInviteActionResult result) {
         return actionStatusMessage(label, inviteId == null ? "" : inviteId.toString(), result != null && result.applied(), result == null ? "" : result.code());
+    }
+
+    private String memberActionMessage(String label, UUID targetId, MemberActionResult result) {
+        return actionStatusMessage(label, targetId == null ? "" : targetId.toString(), result != null && result.accepted(), result == null ? "" : result.code());
     }
 
     private String actionResultMessage(String label, UUID targetId, String body) {

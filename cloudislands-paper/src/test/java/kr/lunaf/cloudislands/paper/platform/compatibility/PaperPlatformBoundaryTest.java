@@ -210,7 +210,7 @@ class PaperPlatformBoundaryTest {
         String usecase = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/MemberManagementUseCase.java"));
 
         assertTrue(backend.contains("MemberManagementUseCase"), "Island command backend must own the member management usecase");
-        assertTrue(backend.contains("memberManagement.removeMember("), "Command and GUI member removal must call the application usecase");
+        assertTrue(backend.contains("memberManagement.removeMemberAction("), "Command and GUI member removal must call the typed application usecase");
         assertTrue(backend.contains("memberManagement.listMemberViews("), "Member list reads must call the typed application usecase");
         assertTrue(backend.contains("memberManagement.playerUuidByName("), "Player profile lookups in member flows must call the typed application usecase");
         assertTrue(backend.contains("memberManagement.resolveInviteByPlayerNameOrIslandName("), "Invite target resolution must live behind the application usecase");
@@ -218,10 +218,10 @@ class PaperPlatformBoundaryTest {
         assertTrue(backend.contains("memberManagement.acceptInviteAction("), "Invite accept must call the typed application usecase");
         assertTrue(backend.contains("memberManagement.declineInviteAction("), "Invite decline must call the typed application usecase");
         assertTrue(backend.contains("memberManagement.listBanViews("), "Ban list reads must call the typed application usecase");
-        assertTrue(backend.contains("memberManagement.setRole("), "Command and GUI member role changes must call the application usecase");
-        assertTrue(backend.contains("memberManagement.trustTemporarily("), "Temporary trust changes must call the application usecase");
-        assertTrue(backend.contains("memberManagement.transferOwnership("), "Ownership transfers must call the application usecase");
-        assertTrue(backend.contains("memberManagement.kickVisitor("), "Visitor kicks must call the application usecase");
+        assertTrue(backend.contains("memberManagement.setRoleAction("), "Command and GUI member role changes must call the typed application usecase");
+        assertTrue(backend.contains("memberManagement.trustTemporarilyAction("), "Temporary trust changes must call the typed application usecase");
+        assertTrue(backend.contains("memberManagement.transferOwnershipAction("), "Ownership transfers must call the typed application usecase");
+        assertTrue(backend.contains("memberManagement.kickVisitorAction("), "Visitor kicks must call the typed application usecase");
         assertTrue(!backend.contains("coreApiClient.removeIslandMemberResult("), "Presentation code must not call member removal Core API directly");
         assertTrue(!backend.contains("coreApiClient.listIslandMembers("), "Presentation code must not call member list Core API directly");
         assertTrue(!backend.contains("coreApiClient.playerInfoByName("), "Presentation code must not call player lookup Core API directly");

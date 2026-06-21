@@ -77,6 +77,31 @@ class MemberManagementUseCaseTest {
         assertEquals("test", useCase.listBanViews(islandId).join().get(0).reason());
     }
 
+    @Test
+    void typedMemberActionsExposeStatusAndTemporaryTrustExpiry() {
+        UUID actorUuid = uuid("00000000-0000-0000-0000-000000000002");
+        UUID targetUuid = uuid("00000000-0000-0000-0000-000000000003");
+        UUID islandId = uuid("00000000-0000-0000-0000-000000000020");
+
+        MemberManagementUseCase useCase = new MemberManagementUseCase(client(Map.of(
+            "removeIslandMemberResult", "{\"accepted\":true,\"code\":\"MEMBER_REMOVED\"}",
+            "setIslandMemberResult", "{\"accepted\":true,\"code\":\"MEMBER_ROLE_SET\"}",
+            "trustIslandMemberTemporary", "{\"accepted\":true,\"code\":\"TEMP_TRUST_SET\",\"expiresAt\":\"2026-06-21T10:00:00Z\"}",
+            "transferIslandOwnershipResult", "{\"accepted\":true,\"code\":\"OWNERSHIP_TRANSFERRED\"}",
+            "banIslandVisitorResult", "{\"accepted\":false,\"code\":\"VISITOR_BAN_DENIED\"}",
+            "pardonIslandVisitorResult", "{\"accepted\":true,\"code\":\"VISITOR_PARDONED\"}",
+            "kickIslandVisitorResult", "{\"accepted\":true,\"code\":\"VISITOR_KICKED\"}"
+        )));
+
+        assertEquals("MEMBER_REMOVED", useCase.removeMemberAction(islandId, actorUuid, targetUuid).join().code());
+        assertEquals("MEMBER_ROLE_SET", useCase.setRoleAction(islandId, actorUuid, targetUuid, "trusted").join().code());
+        assertEquals("2026-06-21T10:00:00Z", useCase.trustTemporarilyAction(islandId, actorUuid, targetUuid, 3600L).join().expiresAt());
+        assertEquals("OWNERSHIP_TRANSFERRED", useCase.transferOwnershipAction(islandId, actorUuid, targetUuid).join().code());
+        assertEquals(false, useCase.banVisitorAction(islandId, actorUuid, targetUuid, "reason").join().accepted());
+        assertEquals("VISITOR_PARDONED", useCase.pardonVisitorAction(islandId, actorUuid, targetUuid).join().code());
+        assertEquals("VISITOR_KICKED", useCase.kickVisitorAction(islandId, actorUuid, targetUuid).join().code());
+    }
+
     private static CoreApiClient client(Map<String, String> bodies) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
