@@ -107,6 +107,20 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void cloudMenuClicksAreCancelledBeforeMenuSpecificActions() throws Exception {
+        String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));
+        String items = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiItems.java"));
+
+        assertTrue(guard.contains("InventoryClickEvent"), "GUI click events must be guarded globally");
+        assertTrue(guard.contains("event.getView().getTopInventory()"), "click guard must inspect the open top inventory");
+        assertTrue(guard.contains("top.getHolder() instanceof CloudIslandsMenuHolder"), "click guard must only apply to CloudIslands menus");
+        assertTrue(guard.contains("event.setCancelled(true)"), "CloudIslands GUI clicks, including player-inventory clicks, must be cancelled");
+        assertTrue(items.contains("event.getClickedInventory() == event.getView().getTopInventory()"), "menu actions must only execute for top inventory clicks");
+        assertTrue(items.contains("event.getRawSlot() >= 0"), "menu actions must reject negative raw slots");
+        assertTrue(items.contains("event.getRawSlot() < event.getView().getTopInventory().getSize()"), "menu actions must reject player-inventory raw slots");
+    }
+
+    @Test
     void executorBoundaryUsesTypedActions() throws Exception {
         String executor = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionExecutor.java"));
         String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));
