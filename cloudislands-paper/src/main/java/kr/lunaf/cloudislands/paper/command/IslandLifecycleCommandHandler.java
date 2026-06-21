@@ -59,6 +59,22 @@ final class IslandLifecycleCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.IslandCreate islandCreate) {
+            createIsland(player, islandCreate.templateId());
+            return true;
+        }
+        if (action instanceof GuiAction.DangerResetConfirm resetConfirm) {
+            if (dangerConfirmed(player, resetConfirm.data(), click, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN)) {
+                resetIsland(player, resetConfirm.reason());
+            }
+            return true;
+        }
+        if (action instanceof GuiAction.DangerDeleteConfirm deleteConfirm) {
+            if (dangerConfirmed(player, deleteConfirm.data(), click, DangerousGuiActionPolicy.DELETE_OPERATION, DangerousGuiActionPolicy.DELETE_TOKEN)) {
+                deleteIsland(player);
+            }
+            return true;
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {

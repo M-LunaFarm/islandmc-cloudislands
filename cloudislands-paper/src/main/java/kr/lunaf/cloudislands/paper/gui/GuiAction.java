@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -20,6 +20,22 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
             if (actionId.isBlank()) {
                 throw new IllegalArgumentException("actionId is required");
             }
+        }
+    }
+
+    record IslandCreate(String templateId) implements GuiAction {
+        public IslandCreate {
+            templateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return "island.create";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("templateId", templateId);
         }
     }
 
@@ -483,6 +499,51 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
         @Override
         public Map<String, String> data() {
             return Map.of("upgradeKey", upgradeKey);
+        }
+    }
+
+    record DangerResetConfirm(String operation, String token, String reason) implements GuiAction {
+        public DangerResetConfirm {
+            operation = operation == null ? "" : operation.trim();
+            token = token == null ? "" : token.trim();
+            reason = reason == null || reason.isBlank() ? "player-reset" : reason.trim();
+            if (!DangerousGuiActionPolicy.RESET_OPERATION.equals(operation) || !DangerousGuiActionPolicy.RESET_TOKEN.equals(token)) {
+                throw new IllegalArgumentException("invalid reset confirmation");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return DangerousGuiActionPolicy.RESET_CONFIRM_ACTION;
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of(
+                DangerousGuiActionPolicy.OPERATION_KEY, operation,
+                DangerousGuiActionPolicy.TOKEN_KEY, token,
+                "reason", reason
+            );
+        }
+    }
+
+    record DangerDeleteConfirm(String operation, String token) implements GuiAction {
+        public DangerDeleteConfirm {
+            operation = operation == null ? "" : operation.trim();
+            token = token == null ? "" : token.trim();
+            if (!DangerousGuiActionPolicy.DELETE_OPERATION.equals(operation) || !DangerousGuiActionPolicy.DELETE_TOKEN.equals(token)) {
+                throw new IllegalArgumentException("invalid delete confirmation");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return DangerousGuiActionPolicy.DELETE_CONFIRM_ACTION;
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of(DangerousGuiActionPolicy.OPERATION_KEY, operation, DangerousGuiActionPolicy.TOKEN_KEY, token);
         }
     }
 

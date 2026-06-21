@@ -9,6 +9,8 @@ public final class DangerousGuiActionPolicy {
     public static final String DELETE_OPERATION = "delete";
     public static final String RESET_TOKEN = "RESET_WORLD";
     public static final String DELETE_TOKEN = "DELETE_ISLAND";
+    public static final String RESET_CONFIRM_ACTION = "island.danger." + "reset.confirm";
+    public static final String DELETE_CONFIRM_ACTION = "island.danger." + "delete.confirm";
 
     private DangerousGuiActionPolicy() {
     }

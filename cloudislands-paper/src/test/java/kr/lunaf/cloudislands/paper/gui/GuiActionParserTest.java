@@ -33,7 +33,23 @@ class GuiActionParserTest {
         assertTrue(GuiActionParser.parse("island.log.detail", Map.of("actorUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
         assertTrue(GuiActionParser.parse("island.mission.complete", Map.of("missionKey", "")).isEmpty());
         assertTrue(GuiActionParser.parse("island.upgrade.purchase", Map.of("upgradeKey", "")).isEmpty());
+        assertTrue(GuiActionParser.parse(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION, Map.of(DangerousGuiActionPolicy.OPERATION_KEY, "reset", DangerousGuiActionPolicy.TOKEN_KEY, "NOPE")).isEmpty());
+        assertTrue(GuiActionParser.parse(DangerousGuiActionPolicy.DELETE_CONFIRM_ACTION, Map.of(DangerousGuiActionPolicy.OPERATION_KEY, "delete")).isEmpty());
         assertTrue(GuiActionParser.parse("island.member.remove.prepare", Map.of("playerUuid", "not-a-uuid")).isEmpty());
+    }
+
+    @Test
+    void parsesCreateAndDangerConfirmActionsIntoTypedActions() {
+        GuiAction create = GuiActionParser.parse("island.create", Map.of("templateId", " starter ")).orElseThrow();
+        GuiAction reset = GuiActionParser.parse(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION, DangerousGuiActionPolicy.resetConfirmationData()).orElseThrow();
+        GuiAction delete = GuiActionParser.parse(DangerousGuiActionPolicy.DELETE_CONFIRM_ACTION, DangerousGuiActionPolicy.deleteConfirmationData()).orElseThrow();
+
+        assertTrue(create instanceof GuiAction.IslandCreate);
+        assertEquals(Map.of("templateId", "starter"), create.data());
+        assertTrue(reset instanceof GuiAction.DangerResetConfirm);
+        assertEquals(DangerousGuiActionPolicy.resetConfirmationData(), reset.data());
+        assertTrue(delete instanceof GuiAction.DangerDeleteConfirm);
+        assertEquals(DangerousGuiActionPolicy.deleteConfirmationData(), delete.data());
     }
 
     @Test

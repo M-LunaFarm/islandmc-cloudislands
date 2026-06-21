@@ -54,7 +54,23 @@ public final class GuiActionParser {
                     safeData
                 ));
             }
+            if (safeAction.equals(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION)) {
+                return Optional.of(new GuiAction.DangerResetConfirm(
+                    required(safeData, DangerousGuiActionPolicy.OPERATION_KEY),
+                    required(safeData, DangerousGuiActionPolicy.TOKEN_KEY),
+                    safeData.getOrDefault("reason", "player-reset")
+                ));
+            }
+            if (safeAction.equals(DangerousGuiActionPolicy.DELETE_CONFIRM_ACTION)) {
+                return Optional.of(new GuiAction.DangerDeleteConfirm(
+                    required(safeData, DangerousGuiActionPolicy.OPERATION_KEY),
+                    required(safeData, DangerousGuiActionPolicy.TOKEN_KEY)
+                ));
+            }
             return switch (safeAction) {
+                case "island.create" -> Optional.of(new GuiAction.IslandCreate(
+                    safeData.getOrDefault("templateId", "default")
+                ));
                 case "island.bank.deposit", "island.bank.withdraw" -> Optional.of(new GuiAction.BankAmount(
                     safeAction,
                     positiveDecimal(required(safeData, "amount"))
