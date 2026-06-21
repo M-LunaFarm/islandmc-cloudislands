@@ -1167,55 +1167,13 @@ final class IslandCommandBackend {
     private CompletableFuture<UUID> resolveInviteTarget(Player player, String target) {
         UUID parsed = uuid(target);
         if (parsed != null) {
-            return memberManagement.listPendingInvites(player.getUniqueId()).thenApply(body -> {
-                UUID inviteId = findInviteId(body, parsed);
-                return inviteId == null ? parsed : inviteId;
-            });
+            return memberManagement.resolveInviteIdOrDirectId(player.getUniqueId(), parsed);
         }
         Player online = plugin.getServer().getPlayerExact(target);
         if (online != null) {
-            return memberManagement.listPendingInvites(player.getUniqueId()).thenApply(body -> findInviteId(body, online.getUniqueId()));
+            return memberManagement.resolveInviteByPlayerUuid(player.getUniqueId(), online.getUniqueId());
         }
-        return memberManagement.playerInfoByName(target)
-            .handle((body, error) -> error == null ? uuid(text(body, "playerUuid")) : null)
-            .thenCompose(playerUuid -> {
-                if (playerUuid == null) {
-                    return resolveInviteIslandName(player, target);
-                }
-                return memberManagement.listPendingInvites(player.getUniqueId()).thenCompose(invites -> {
-                    UUID inviteId = findInviteId(invites, playerUuid);
-                    return inviteId == null ? resolveInviteIslandName(player, target) : CompletableFuture.completedFuture(inviteId);
-                });
-            });
-    }
-
-    private CompletableFuture<UUID> resolveInviteIslandName(Player player, String islandName) {
-        return memberManagement.islandInfoByName(islandName)
-            .thenCompose(body -> memberManagement.listPendingInvites(player.getUniqueId()).thenApply(invites -> findInviteId(invites, uuid(text(body, "islandId")))));
-    }
-
-    private UUID findInviteId(String body, UUID targetUuid) {
-        if (body == null || targetUuid == null) {
-            return null;
-        }
-        int index = 0;
-        while (index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            UUID inviteId = uuid(text(object, "inviteId"));
-            if (targetUuid.equals(inviteId) || targetUuid.equals(uuid(text(object, "islandId"))) || targetUuid.equals(uuid(text(object, "inviterUuid")))) {
-                return inviteId;
-            }
-            index = objectEnd + 1;
-        }
-        return null;
+        return memberManagement.resolveInviteByPlayerNameOrIslandName(player.getUniqueId(), target);
     }
 
     private void removeIslandMember(Player player, String target) {

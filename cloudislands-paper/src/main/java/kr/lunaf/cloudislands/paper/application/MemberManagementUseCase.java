@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.application;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class MemberManagementUseCase {
@@ -48,6 +49,52 @@ public final class MemberManagementUseCase {
     public CompletableFuture<String> listPendingInvites(UUID playerUuid) {
         requirePlayerId(playerUuid);
         return coreApiClient.listPendingInvites(playerUuid);
+    }
+
+    public CompletableFuture<UUID> resolveInviteIdOrDirectId(UUID playerUuid, UUID inviteOrTargetUuid) {
+        requirePlayerId(playerUuid);
+        if (inviteOrTargetUuid == null) {
+            throw new IllegalArgumentException("inviteOrTargetUuid is required");
+        }
+        return listPendingInvites(playerUuid).thenApply(body -> {
+            UUID inviteId = findPendingInviteId(body, inviteOrTargetUuid);
+            return inviteId == null ? inviteOrTargetUuid : inviteId;
+        });
+    }
+
+    public CompletableFuture<UUID> resolveInviteByPlayerUuid(UUID playerUuid, UUID targetUuid) {
+        requireIdsForInviteLookup(playerUuid, targetUuid);
+        return listPendingInvites(playerUuid).thenApply(body -> findPendingInviteId(body, targetUuid));
+    }
+
+    public CompletableFuture<UUID> resolveInviteByPlayerNameOrIslandName(UUID playerUuid, String target) {
+        requirePlayerId(playerUuid);
+        String normalizedTarget = target == null ? "" : target.trim();
+        if (normalizedTarget.isBlank()) {
+            throw new IllegalArgumentException("target is required");
+        }
+        return playerInfoByName(normalizedTarget)
+            .handle((body, error) -> error == null ? uuid(text(body, "playerUuid")) : null)
+            .thenCompose(targetUuid -> {
+                if (targetUuid == null) {
+                    return resolveInviteByIslandName(playerUuid, normalizedTarget);
+                }
+                return resolveInviteByPlayerUuid(playerUuid, targetUuid)
+                    .thenCompose(inviteId -> inviteId == null ? resolveInviteByIslandName(playerUuid, normalizedTarget) : CompletableFuture.completedFuture(inviteId));
+            });
+    }
+
+    public CompletableFuture<UUID> resolveInviteByIslandName(UUID playerUuid, String islandName) {
+        requirePlayerId(playerUuid);
+        String normalizedIslandName = islandName == null ? "" : islandName.trim();
+        if (normalizedIslandName.isBlank()) {
+            throw new IllegalArgumentException("islandName is required");
+        }
+        return islandInfoByName(normalizedIslandName)
+            .thenCompose(body -> {
+                UUID islandId = uuid(text(body, "islandId"));
+                return islandId == null ? CompletableFuture.completedFuture(null) : resolveInviteByPlayerUuid(playerUuid, islandId);
+            });
     }
 
     public CompletableFuture<String> acceptInvite(UUID inviteId, UUID playerUuid) {
@@ -121,6 +168,13 @@ public final class MemberManagementUseCase {
         requirePlayerId(playerUuid);
     }
 
+    private static void requireIdsForInviteLookup(UUID playerUuid, UUID targetUuid) {
+        requirePlayerId(playerUuid);
+        if (targetUuid == null) {
+            throw new IllegalArgumentException("targetUuid is required");
+        }
+    }
+
     private static void requireIds(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIslandId(islandId);
         if (actorUuid == null) {
@@ -128,6 +182,52 @@ public final class MemberManagementUseCase {
         }
         if (targetUuid == null) {
             throw new IllegalArgumentException("targetUuid is required");
+        }
+    }
+
+    static UUID findPendingInviteId(String body, UUID targetUuid) {
+        if (body == null || targetUuid == null) {
+            return null;
+        }
+        Object parsed = SimpleJson.parse(body);
+        java.util.List<?> invites = invites(parsed);
+        for (Object item : invites) {
+            java.util.Map<?, ?> object = SimpleJson.object(item);
+            UUID inviteId = uuid(SimpleJson.text(object.get("inviteId")));
+            if (targetUuid.equals(inviteId)
+                || targetUuid.equals(uuid(SimpleJson.text(object.get("islandId"))))
+                || targetUuid.equals(uuid(SimpleJson.text(object.get("inviterUuid"))))) {
+                return inviteId;
+            }
+        }
+        return null;
+    }
+
+    private static java.util.List<?> invites(Object parsed) {
+        java.util.List<?> rootList = SimpleJson.list(parsed);
+        if (!rootList.isEmpty()) {
+            return rootList;
+        }
+        java.util.Map<?, ?> root = SimpleJson.object(parsed);
+        java.util.List<?> invites = SimpleJson.list(root.get("invites"));
+        if (!invites.isEmpty()) {
+            return invites;
+        }
+        return root.containsKey("inviteId") ? java.util.List.of(root) : java.util.List.of();
+    }
+
+    private static String text(String json, String key) {
+        return SimpleJson.text(SimpleJson.object(SimpleJson.parse(json)).get(key));
+    }
+
+    private static UUID uuid(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 }

@@ -205,7 +205,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(backend.contains("memberManagement.removeMember("), "Command and GUI member removal must call the application usecase");
         assertTrue(backend.contains("memberManagement.listMembers("), "Member list reads must call the application usecase");
         assertTrue(backend.contains("memberManagement.playerInfoByName("), "Player profile lookups in member flows must call the application usecase");
-        assertTrue(backend.contains("memberManagement.islandInfoByName("), "Island-name invite lookups must call the application usecase");
+        assertTrue(backend.contains("memberManagement.resolveInviteByPlayerNameOrIslandName("), "Invite target resolution must live behind the application usecase");
         assertTrue(backend.contains("memberManagement.createInvite("), "Member invite creation must call the application usecase");
         assertTrue(backend.contains("memberManagement.acceptInvite("), "Invite accept must call the application usecase");
         assertTrue(backend.contains("memberManagement.declineInvite("), "Invite decline must call the application usecase");
@@ -233,6 +233,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(usecase.contains("coreApiClient.listIslandMembers("), "The application usecase must own the Core member list call");
         assertTrue(usecase.contains("coreApiClient.playerInfoByName("), "The application usecase must own the Core player lookup call");
         assertTrue(usecase.contains("coreApiClient.islandInfoByName("), "The application usecase must own the Core island-name lookup call");
+        assertTrue(usecase.contains("findPendingInviteId("), "The application usecase must own pending invite matching");
         assertTrue(usecase.contains("coreApiClient.createIslandInvite("), "The application usecase must own the Core invite creation call");
         assertTrue(usecase.contains("coreApiClient.acceptIslandInviteResult("), "The application usecase must own the Core invite accept call");
         assertTrue(usecase.contains("coreApiClient.declineIslandInviteResult("), "The application usecase must own the Core invite decline call");
