@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -92,6 +92,46 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.MainOpen, Gui
         @Override
         public Map<String, String> data() {
             return Map.of();
+        }
+    }
+
+    record NoPayload(NoPayloadType type) implements GuiAction {
+        public NoPayload {
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of();
+        }
+    }
+
+    enum NoPayloadType {
+        BIOME_OPEN("island.biome.open"),
+        BIOME_SHOW("island.biome.show"),
+        LIMITS_OPEN("island.limits.open"),
+        LIMITS_LIST("island.limits.list"),
+        SETTINGS_OPEN("island.settings.open"),
+        PUBLIC_TOGGLE("island.public.toggle"),
+        LOCK_TOGGLE("island.lock.toggle"),
+        FLAGS_OPEN("island.flags.open"),
+        FLAGS_LIST("island.flags.list");
+
+        private final String actionId;
+
+        NoPayloadType(String actionId) {
+            this.actionId = actionId;
+        }
+
+        public String actionId() {
+            return actionId;
         }
     }
 

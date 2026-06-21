@@ -126,6 +126,27 @@ final class IslandEnvironmentCommandHandler {
             setLimit(player, limitSet.limitKey(), limitSet.value());
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload) {
+            return switch (noPayload.type()) {
+                case BIOME_OPEN -> {
+                    openBiomeMenu(player);
+                    yield true;
+                }
+                case BIOME_SHOW -> {
+                    showBiome(player);
+                    yield true;
+                }
+                case LIMITS_OPEN -> {
+                    openLimitMenu(player);
+                    yield true;
+                }
+                case LIMITS_LIST -> {
+                    listLimits(player);
+                    yield true;
+                }
+                default -> false;
+            };
+        }
         String actionId = action.actionId();
         return switch (actionId) {
             case "island.biome.open" -> {

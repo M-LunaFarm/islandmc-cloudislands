@@ -74,6 +74,15 @@ public final class GuiActionParser {
                 case "island.chat.open" -> Optional.of(new GuiAction.ChatOpen());
                 case "island.logs.open" -> Optional.of(new GuiAction.LogsOpen());
                 case "island.logs.list" -> Optional.of(new GuiAction.LogsList());
+                case "island.biome.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BIOME_OPEN));
+                case "island.biome.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BIOME_SHOW));
+                case "island.limits.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LIMITS_OPEN));
+                case "island.limits.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LIMITS_LIST));
+                case "island.settings.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SETTINGS_OPEN));
+                case "island.public.toggle" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.PUBLIC_TOGGLE));
+                case "island.lock.toggle" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LOCK_TOGGLE));
+                case "island.flags.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.FLAGS_OPEN));
+                case "island.flags.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.FLAGS_LIST));
                 case "island.create" -> Optional.of(new GuiAction.IslandCreate(
                     safeData.getOrDefault("templateId", "default")
                 ));

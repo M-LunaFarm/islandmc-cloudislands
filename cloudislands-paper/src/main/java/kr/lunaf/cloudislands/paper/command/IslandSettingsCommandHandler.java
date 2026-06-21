@@ -102,6 +102,31 @@ final class IslandSettingsCommandHandler {
             setFlag(player, flagSet.flag(), rightClick ? "false" : "true");
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload) {
+            return switch (noPayload.type()) {
+                case SETTINGS_OPEN -> {
+                    openSettings(player);
+                    yield true;
+                }
+                case PUBLIC_TOGGLE -> {
+                    setPublicAccess(player, !rightClick);
+                    yield true;
+                }
+                case LOCK_TOGGLE -> {
+                    setLocked(player, rightClick);
+                    yield true;
+                }
+                case FLAGS_OPEN -> {
+                    openFlagMenu(player);
+                    yield true;
+                }
+                case FLAGS_LIST -> {
+                    listFlags(player);
+                    yield true;
+                }
+                default -> false;
+            };
+        }
         String actionId = action.actionId();
         return switch (actionId) {
             case "island.settings.open" -> {

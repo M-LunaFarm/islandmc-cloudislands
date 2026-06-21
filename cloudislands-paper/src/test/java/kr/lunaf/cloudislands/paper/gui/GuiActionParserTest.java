@@ -67,6 +67,19 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesEnvironmentAndSettingsNavigationIntoTypedActions() {
+        assertNoPayloadType("island.biome.open", GuiAction.NoPayloadType.BIOME_OPEN);
+        assertNoPayloadType("island.biome.show", GuiAction.NoPayloadType.BIOME_SHOW);
+        assertNoPayloadType("island.limits.open", GuiAction.NoPayloadType.LIMITS_OPEN);
+        assertNoPayloadType("island.limits.list", GuiAction.NoPayloadType.LIMITS_LIST);
+        assertNoPayloadType("island.settings.open", GuiAction.NoPayloadType.SETTINGS_OPEN);
+        assertNoPayloadType("island.public.toggle", GuiAction.NoPayloadType.PUBLIC_TOGGLE);
+        assertNoPayloadType("island.lock.toggle", GuiAction.NoPayloadType.LOCK_TOGGLE);
+        assertNoPayloadType("island.flags.open", GuiAction.NoPayloadType.FLAGS_OPEN);
+        assertNoPayloadType("island.flags.list", GuiAction.NoPayloadType.FLAGS_LIST);
+    }
+
+    @Test
     void parsesCreateAndDangerConfirmActionsIntoTypedActions() {
         GuiAction create = GuiActionParser.parse("island.create", Map.of("templateId", " starter ")).orElseThrow();
         GuiAction reset = GuiActionParser.parse(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION, DangerousGuiActionPolicy.resetConfirmationData()).orElseThrow();
@@ -299,5 +312,13 @@ class GuiActionParserTest {
         assertTrue(GuiActionParser.parse("island.member.demote", Map.of("playerUuid", "nope")).isEmpty());
         assertTrue(GuiActionParser.parse("island.ban.pardon.prepare", Map.of("playerUuid", "")).isEmpty());
         assertTrue(GuiActionParser.parse("island.ban.pardon.confirm", Map.of("playerUuid", "nope")).isEmpty());
+    }
+
+    private static void assertNoPayloadType(String actionId, GuiAction.NoPayloadType expectedType) {
+        GuiAction action = GuiActionParser.parse(actionId, Map.of()).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.NoPayload);
+        assertEquals(expectedType, ((GuiAction.NoPayload) action).type());
+        assertEquals(Map.of(), action.data());
     }
 }
