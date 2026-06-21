@@ -8,14 +8,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase;
 import org.bukkit.entity.Player;
 
 final class IslandWarehouseCommandHandler {
-    private final CoreApiClient coreApiClient;
+    private final IslandWarehouseUseCase warehouseUseCase;
     private final Runtime runtime;
 
     IslandWarehouseCommandHandler(CoreApiClient coreApiClient, Runtime runtime) {
-        this.coreApiClient = coreApiClient;
+        this.warehouseUseCase = new IslandWarehouseUseCase(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -45,7 +46,7 @@ final class IslandWarehouseCommandHandler {
 
     private void listWarehouse(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 창고를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandWarehouse(islandId, Math.max(1, Math.min(limit, 100)))
+            warehouseUseCase.list(islandId, limit)
                 .thenAccept(body -> runtime.message(player, warehouseListMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 창고를 불러오지 못했습니다.");
@@ -65,16 +66,15 @@ final class IslandWarehouseCommandHandler {
                 runtime.message(player, runtime.playerCodeMessage("INVALID_AMOUNT", runtime.routeMessage("input-amount-invalid", "올바른 수량을 입력해주세요.")));
                 return;
             }
-            CompletableFuture<String> request = deposit
-                ? runtime.mutateIdempotent("island.warehouse.deposit", () -> coreApiClient.depositIslandWarehouse(islandId, player.getUniqueId(), materialKey, amount))
-                : runtime.mutateIdempotent("island.warehouse.withdraw", () -> coreApiClient.withdrawIslandWarehouse(islandId, player.getUniqueId(), materialKey, amount));
+            CompletableFuture<IslandWarehouseUseCase.WarehouseOperationResult> request = deposit
+                ? warehouseUseCase.deposit(islandId, player.getUniqueId(), materialKey, amount, runtime::mutateIdempotent)
+                : warehouseUseCase.withdraw(islandId, player.getUniqueId(), materialKey, amount, runtime::mutateIdempotent);
             request.thenAccept(body -> {
-                    String code = text(body, "code");
-                    if (body.contains("\"accepted\":false")) {
-                        runtime.message(player, runtime.playerCodeMessage(code, deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
+                    if (!body.accepted()) {
+                        runtime.message(player, runtime.playerCodeMessage(body.code(), deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
                         return;
                     }
-                    runtime.message(player, (deposit ? "섬 창고 입금 완료: " : "섬 창고 출금 완료: ") + text(body, "materialKey") + " x" + (long) decimal(body, "amount"));
+                    runtime.message(player, (deposit ? "섬 창고 입금 완료: " : "섬 창고 출금 완료: ") + body.materialKey() + " x" + body.amount());
                 })
                 .exceptionally(error -> {
                     runtime.message(player, runtime.coreWriteFailureMessage(error, deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
