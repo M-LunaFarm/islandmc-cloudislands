@@ -65,11 +65,20 @@ public final class JobRoutes implements RouteGroup {
             merged.putAll(payload);
             return new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(merged), job.createdAt());
         });
-        if (claimed.isEmpty() || !jobs.complete(nodeId, jobId)) {
+        if (claimed.isEmpty()) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
             return;
         }
-        claimed.ifPresent(completion::completed);
+        try {
+            completion.completed(claimed.get());
+        } catch (RuntimeException exception) {
+            CoreHttpResponses.write(exchange, 500, ApiResponses.error("JOB_COMPLETION_FAILED", "Job completion was not committed; retry the claimed job"));
+            return;
+        }
+        if (!jobs.complete(nodeId, jobId)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
+            return;
+        }
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 

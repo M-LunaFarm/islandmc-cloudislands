@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -35,5 +37,16 @@ class JobRoutesTest {
 
         assertTrue(types.contains(IslandJobType.CREATE_ISLAND));
         assertTrue(types.contains(IslandJobType.RESET_ISLAND));
+    }
+
+    @Test
+    void completeRouteCommitsCompletionBeforeAcknowledgingClaimedJob() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/JobRoutes.java"));
+        int completionIndex = source.indexOf("completion.completed(claimed.get())");
+        int ackIndex = source.indexOf("jobs.complete(nodeId, jobId)");
+
+        assertTrue(completionIndex > 0, "completion must be explicitly committed");
+        assertTrue(ackIndex > completionIndex, "job queue ack must happen only after completion state is committed");
+        assertTrue(source.contains("\"JOB_COMPLETION_FAILED\""), "completion commit failure must keep the job claimed for retry");
     }
 }

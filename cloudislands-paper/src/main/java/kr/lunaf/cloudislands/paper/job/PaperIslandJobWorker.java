@@ -141,10 +141,12 @@ public final class PaperIslandJobWorker {
                     .with("placementSource", result.placementSource())
                     .withPreMutationSnapshot(result.preMutationSnapshotNo(), result.preMutationReason(), result.preMutationChecksum(), result.preMutationSizeBytes())
                     .withSnapshot(result.creationSnapshotNo(), "CREATED", result.creationSnapshotChecksum(), result.creationSnapshotSizeBytes());
-                jobSource.complete(nodeId, job.jobId(), completePayload(job, payload));
+                reportComplete(job, completePayload(job, payload));
             } else {
                 jobSource.fail(nodeId, job.jobId(), result.state());
             }
+        } catch (CompletionReportFailedException ignored) {
+            return;
         } catch (RuntimeException exception) {
             jobSource.fail(nodeId, job.jobId(), exception.getMessage());
         }
@@ -166,7 +168,7 @@ public final class PaperIslandJobWorker {
             if (job.type() == IslandJobType.DELETE_ISLAND && job.payload().containsKey("ownerUuid")) {
                 payload = payload.with("ownerUuid", job.payload().get("ownerUuid"));
             }
-            jobSource.complete(nodeId, job.jobId(), completePayload(job, payload));
+            reportComplete(job, completePayload(job, payload));
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
         }
@@ -180,7 +182,7 @@ public final class PaperIslandJobWorker {
         String reason = job.payload().getOrDefault("reason", defaultSnapshotReason(job.type()));
         IslandDeactivationHandler.DeactivationResult result = deactivationHandler.saveOnly(job.islandId(), reason);
         if (result.success()) {
-            jobSource.complete(nodeId, job.jobId(), completePayload(job, IslandJobCompletionPayload.snapshot(result.snapshotNo(), reason, result.checksum(), result.sizeBytes())));
+            reportComplete(job, completePayload(job, IslandJobCompletionPayload.snapshot(result.snapshotNo(), reason, result.checksum(), result.sizeBytes())));
         } else {
             jobSource.fail(nodeId, job.jobId(), result.errorMessage());
         }
@@ -216,5 +218,22 @@ public final class PaperIslandJobWorker {
 
     private Map<String, String> completePayload(IslandJob job, IslandJobCompletionPayload payload) {
         return IslandJobCompletionPolicy.carryJobContext(job, payload, nodeId).asMap();
+    }
+
+    private void reportComplete(IslandJob job, Map<String, String> payload) {
+        try {
+            jobSource.complete(nodeId, job.jobId(), payload);
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("CloudIslands job completion report failed; leaving claimed job for retry: " + job.jobId() + " " + exception.getMessage());
+            throw new CompletionReportFailedException(exception);
+        }
+    }
+
+    private static final class CompletionReportFailedException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        private CompletionReportFailedException(Throwable cause) {
+            super(cause);
+        }
     }
 }
