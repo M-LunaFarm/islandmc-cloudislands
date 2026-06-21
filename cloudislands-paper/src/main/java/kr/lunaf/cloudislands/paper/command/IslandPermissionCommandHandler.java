@@ -11,6 +11,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
@@ -22,12 +23,14 @@ import org.bukkit.plugin.Plugin;
 final class IslandPermissionCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final PermissionManagementUseCase permissionUseCase;
     private final Runtime runtime;
-    private final Map<UUID, Map<String, StagedPermissionChange>> stagedPermissionChanges = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<String, PermissionManagementUseCase.PermissionChange>> stagedPermissionChanges = new ConcurrentHashMap<>();
 
     IslandPermissionCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.permissionUseCase = new PermissionManagementUseCase(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -86,7 +89,7 @@ final class IslandPermissionCommandHandler {
                 return;
             }
             boolean allowed = booleanValue(allowedValue);
-            StagedPermissionChange change = new StagedPermissionChange(roleKey, permission, allowed, expectedVersion);
+            PermissionManagementUseCase.PermissionChange change = new PermissionManagementUseCase.PermissionChange(roleKey, permission, allowed, expectedVersion);
             stagedPermissionChanges.computeIfAbsent(player.getUniqueId(), _uuid -> new ConcurrentHashMap<>()).put(change.key(), change);
             runtime.message(player, runtime.routeMessage("permission-stage-success-prefix", "권한 변경을 임시 저장했습니다. 저장 버튼을 눌러 반영하세요: ")
                 + roleKey + ":" + permission.name() + "=" + allowed);
@@ -100,7 +103,7 @@ final class IslandPermissionCommandHandler {
     }
 
     void saveStagedIslandPermissions(Player player) {
-        Map<String, StagedPermissionChange> staged = stagedPermissionChanges.getOrDefault(player.getUniqueId(), Map.of());
+        Map<String, PermissionManagementUseCase.PermissionChange> staged = stagedPermissionChanges.getOrDefault(player.getUniqueId(), Map.of());
         if (staged.isEmpty()) {
             runtime.message(player, runtime.routeMessage("permission-stage-empty", "저장할 권한 변경이 없습니다."));
             return;
@@ -110,7 +113,7 @@ final class IslandPermissionCommandHandler {
                 runtime.message(player, runtime.routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
                 return;
             }
-            List<StagedPermissionChange> changes = new ArrayList<>(staged.values());
+            List<PermissionManagementUseCase.PermissionChange> changes = new ArrayList<>(staged.values());
             GuiStateMenus.openSaving(plugin, player, runtime.messagesFor(player), runtime.routeMessage("permission-save-title", "권한 저장"));
             saveStagedChangesSequentially(islandId, player, changes)
                 .thenAccept(_ignored -> {
@@ -128,16 +131,8 @@ final class IslandPermissionCommandHandler {
         });
     }
 
-    private CompletableFuture<String> saveStagedChangesSequentially(UUID islandId, Player player, List<StagedPermissionChange> changes) {
-        CompletableFuture<String> chain = CompletableFuture.completedFuture("");
-        for (StagedPermissionChange change : changes) {
-            chain = chain.thenCompose(previousBody -> {
-                String previousVersion = text(previousBody, "version");
-                String expectedVersion = previousVersion.isBlank() ? change.expectedVersion() : previousVersion;
-                return runtime.mutate("island.permission.batch-save", () -> coreApiClient.setIslandPermissionResult(islandId, player.getUniqueId(), change.roleKey(), change.permission(), change.allowed(), expectedVersion));
-            });
-        }
-        return chain;
+    private CompletableFuture<String> saveStagedChangesSequentially(UUID islandId, Player player, List<PermissionManagementUseCase.PermissionChange> changes) {
+        return permissionUseCase.saveSequentially(islandId, player.getUniqueId(), changes, runtime::mutate);
     }
 
     void upsertIslandRole(Player player, String roleKey, int weight, String displayName) {
@@ -422,16 +417,6 @@ final class IslandPermissionCommandHandler {
             escaped = false;
         }
         return builder.toString();
-    }
-
-    private record StagedPermissionChange(String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
-        private StagedPermissionChange {
-            expectedVersion = expectedVersion == null ? "" : expectedVersion.trim();
-        }
-
-        private String key() {
-            return roleKey + ":" + permission.name();
-        }
     }
 
     interface Runtime {
