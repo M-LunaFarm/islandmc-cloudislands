@@ -59,6 +59,18 @@ final class IslandChatLogCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.ChatOpen) {
+            openChatMenu(player);
+            return true;
+        }
+        if (action instanceof GuiAction.LogsOpen) {
+            openLogMenu(player);
+            return true;
+        }
+        if (action instanceof GuiAction.LogsList) {
+            listLogs(player, 10);
+            return true;
+        }
         if (action instanceof GuiAction.LogDetail detail) {
             showLogDetail(player, detail.logAction(), detail.createdAt(), detail.actorUuid(), detail.payload());
             return true;

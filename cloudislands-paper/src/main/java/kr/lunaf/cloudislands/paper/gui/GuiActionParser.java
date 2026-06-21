@@ -71,6 +71,9 @@ public final class GuiActionParser {
                 case "island.main.open" -> Optional.of(new GuiAction.MainOpen());
                 case "island.info.open" -> Optional.of(new GuiAction.InfoOpen());
                 case "island.list.open" -> Optional.of(new GuiAction.IslandListOpen());
+                case "island.chat.open" -> Optional.of(new GuiAction.ChatOpen());
+                case "island.logs.open" -> Optional.of(new GuiAction.LogsOpen());
+                case "island.logs.list" -> Optional.of(new GuiAction.LogsList());
                 case "island.create" -> Optional.of(new GuiAction.IslandCreate(
                     safeData.getOrDefault("templateId", "default")
                 ));
