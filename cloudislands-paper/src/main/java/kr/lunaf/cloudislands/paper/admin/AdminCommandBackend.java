@@ -1671,26 +1671,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + adminText("admin-command-storage-restore-policy-prefix", ", restore=") + "verify-manifest-checksum)";
     }
 
-    private String nodeSweepMessage(String body) {
-        String nodes = arrayValue(body, "nodes");
-        long recoveryRequired = longValue(body, "recoveryRequired");
-        List<String> swept = new ArrayList<>();
-        int index = 0;
-        while (index < nodes.length()) {
-            int valueStart = nodes.indexOf('"', index);
-            if (valueStart < 0) {
-                break;
-            }
-            int valueEnd = nodes.indexOf('"', valueStart + 1);
-            if (valueEnd < 0) {
-                break;
-            }
-            swept.add(nodes.substring(valueStart + 1, valueEnd));
-            index = valueEnd + 1;
-        }
-        return adminText("admin-command-node-sweep-nodes-prefix", "Node sweep: nodes=") + (swept.isEmpty() ? adminText("admin-command-none", "none") : String.join(",", swept)) + adminText("admin-command-node-sweep-recovery-prefix", " recoveryRequired=") + recoveryRequired;
-    }
-
     private String jobListMessage(List<JobView> jobs) {
         if (jobs.isEmpty()) {
             return adminText("admin-command-jobs-empty", "Jobs: empty");
@@ -1763,60 +1743,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return adminText("admin-command-job-prefix", "Job ") + "recover" + adminText("admin-command-job-failed-code-prefix", ": failed code=") + result.code();
         }
         return adminText("admin-command-job-recover-prefix", "Job recover: recovered=") + (result.recovered().isBlank() ? "0" : result.recovered());
-    }
-
-    private String actionResultMessage(String label, String targetId, String body) {
-        if (body == null || body.isBlank()) {
-            return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(targetId);
-        }
-        String code = textValue(body, "code");
-        boolean accepted = body.contains("\"accepted\"") ? boolValue(body, "accepted") : !body.contains("\"accepted\":false");
-        StringBuilder builder = new StringBuilder(label)
-            .append(": ")
-            .append(accepted ? adminText("admin-command-action-result-accepted", "accepted") : adminText("admin-command-action-result-rejected", "rejected"))
-            .append(adminText("admin-command-action-result-target-prefix", " target="))
-            .append(compactTarget(targetId));
-        if (!code.isBlank()) {
-            builder.append(adminText("admin-command-action-result-code-prefix", " code=")).append(code);
-            String detail = adminCodeDetail(code);
-            if (!detail.isBlank()) {
-                builder.append(adminText("admin-command-action-result-detail-prefix", " detail=")).append(detail);
-            }
-        }
-        String islandId = textValue(body, "islandId");
-        if (!islandId.isBlank() && !islandId.equals(targetId)) {
-            builder.append(adminText("admin-command-action-result-island-prefix", " island=")).append(shortId(islandId));
-        }
-        String materialKey = textValue(body, "materialKey");
-        if (!materialKey.isBlank()) {
-            builder.append(adminText("admin-command-action-result-material-prefix", " material=")).append(materialKey);
-        }
-        String worth = textValue(body, "worth");
-        if (!worth.isBlank()) {
-            builder.append(adminText("admin-command-action-result-worth-prefix", " worth=")).append(worth);
-        }
-        if (body.contains("\"snapshotNo\"")) {
-            builder.append(adminText("admin-command-action-result-snapshot-prefix", " snapshot=")).append(longValue(body, "snapshotNo"));
-        }
-        String storagePath = textValue(body, "storagePath");
-        if (!storagePath.isBlank()) {
-            builder.append(adminText("admin-command-action-result-storage-path-prefix", " storagePath=")).append(storagePath);
-        }
-        if (body.contains("\"restoreManifestRequired\"")) {
-            builder.append(adminText("admin-command-action-result-restore-manifest-prefix", " restoreManifest=")).append(boolValue(body, "restoreManifestRequired"));
-        }
-        String restoreChecksumPolicy = textValue(body, "restoreChecksumPolicy");
-        if (!restoreChecksumPolicy.isBlank()) {
-            builder.append(adminText("admin-command-action-result-restore-checksum-prefix", " restoreChecksum=")).append(restoreChecksumPolicy);
-        }
-        if (body.contains("\"restorePortableRequired\"")) {
-            builder.append(adminText("admin-command-action-result-restore-portable-prefix", " restorePortable=")).append(boolValue(body, "restorePortableRequired"));
-        }
-        String restoreSupportedFormats = textValue(body, "restoreSupportedFormats");
-        if (!restoreSupportedFormats.isBlank()) {
-            builder.append(adminText("admin-command-action-result-restore-formats-prefix", " restoreFormats=")).append(restoreSupportedFormats);
-        }
-        return builder.toString();
     }
 
     private String islandLifecycleActionMessage(String label, UUID requestedIslandId, IslandLifecycleActionView action) {
@@ -2776,17 +2702,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return primary;
         }
         return doubleValue(breakdown, fallbackKey);
-    }
-
-    private String nodeActionSummaryMessage(String label, String nodeId, String body) {
-        if (body == null || body.isBlank()) {
-            return label + adminText("admin-command-node-action-accepted-node-prefix", ": accepted node=") + nodeId;
-        }
-        String code = textValue(body, "code");
-        if (!code.isBlank()) {
-            return label + ": " + (boolValue(body, "accepted") ? adminText("admin-command-node-action-accepted", "accepted") : adminText("admin-command-node-action-rejected", "rejected")) + adminText("admin-command-node-action-node-prefix", " node=") + nodeId + adminText("admin-command-node-action-code-prefix", " code=") + code;
-        }
-        return label + ": " + (boolValue(body, "accepted") ? adminText("admin-command-node-action-accepted", "accepted") : adminText("admin-command-node-action-requested", "requested")) + adminText("admin-command-node-action-node-prefix", " node=") + nodeId;
     }
 
     private String nodeActionSummaryMessage(String label, String requestedNodeId, AdminNodeActionView result) {
