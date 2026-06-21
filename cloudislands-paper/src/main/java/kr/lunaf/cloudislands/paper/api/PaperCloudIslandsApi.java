@@ -2400,22 +2400,22 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<String>> listNodes() {
-            return client.listNodes().thenApply(PaperCloudIslandsApi::nodeIds);
+            return client.adminNodes().nodes().thenApply(PaperCloudIslandsApi::nodeIds);
         }
 
         @Override
         public CompletableFuture<List<IslandNodeSnapshot>> listNodeSnapshots() {
-            return client.listNodes().thenApply(PaperCloudIslandsApi::nodes);
+            return client.adminNodes().nodes();
         }
 
         @Override
         public CompletableFuture<Optional<IslandNodeSnapshot>> getNodeSnapshot(String nodeId) {
-            return client.nodeInfo(nodeId).thenApply(PaperCloudIslandsApi::node);
+            return client.adminNodes().nodeSnapshot(nodeId);
         }
 
         @Override
         public CompletableFuture<List<IslandRuntimeSnapshot>> listNodeIslands(String nodeId, int limit) {
-            return client.nodeIslands(nodeId, limit).thenApply(PaperCloudIslandsApi::nodeIslands);
+            return client.adminNodes().nodeIslandRuntimes(nodeId, limit).thenApply(PaperCloudIslandsApi::nodeIslands);
         }
 
         @Override
@@ -2915,6 +2915,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             runtimes.add(runtime(object));
         }
         return runtimes;
+    }
+
+    private static List<IslandRuntimeSnapshot> nodeIslands(List<AdminIslandRuntimeView> views) {
+        return (views == null ? List.<AdminIslandRuntimeView>of() : views).stream()
+            .map(PaperCloudIslandsApi::runtime)
+            .toList();
     }
 
     private static RoutePlan plan(RouteTicket ticket) {
@@ -3686,6 +3692,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             index = end + 1;
         }
         return ids;
+    }
+
+    private static List<String> nodeIds(List<IslandNodeSnapshot> nodes) {
+        return (nodes == null ? List.<IslandNodeSnapshot>of() : nodes).stream()
+            .map(IslandNodeSnapshot::nodeId)
+            .filter(nodeId -> nodeId != null && !nodeId.isBlank())
+            .toList();
     }
 
     private static NodeSweepResult nodeSweep(String json) {

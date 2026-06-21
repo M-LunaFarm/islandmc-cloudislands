@@ -1,8 +1,14 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
+import kr.lunaf.cloudislands.api.model.NodeLevelScanSnapshot;
+import kr.lunaf.cloudislands.api.model.NodeState;
+import kr.lunaf.cloudislands.api.model.NodeStorageSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
@@ -16,8 +22,19 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
     }
 
     @Override
+    public CompletableFuture<List<IslandNodeSnapshot>> nodes() {
+        return delegate.listNodes().thenApply(CoreAdminNodeQueryClient::nodes);
+    }
+
+    @Override
     public CompletableFuture<AdminNodeSummaryView> listNodesSummary() {
         return delegate.listNodes().thenApply(CoreAdminNodeQueryClient::summary);
+    }
+
+    @Override
+    public CompletableFuture<Optional<IslandNodeSnapshot>> nodeSnapshot(String nodeId) {
+        String normalizedNodeId = requireNode(nodeId);
+        return delegate.nodeInfo(normalizedNodeId).thenApply(body -> node(normalizedNodeId, body));
     }
 
     @Override
@@ -27,9 +44,95 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
     }
 
     @Override
+    public CompletableFuture<List<AdminIslandRuntimeView>> nodeIslandRuntimes(String nodeId, int limit) {
+        return delegate.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 100)))
+            .thenApply(CoreAdminNodeQueryClient::runtimes);
+    }
+
+    @Override
     public CompletableFuture<AdminNodeSummaryView> nodeIslandsSummary(String nodeId, int limit) {
         return delegate.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 100)))
             .thenApply(CoreAdminNodeQueryClient::summary);
+    }
+
+    private static List<IslandNodeSnapshot> nodes(String body) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        return SimpleJson.list(root.get("nodes")).stream()
+            .map(SimpleJson::object)
+            .map(node -> node(text(firstPresent(node, "nodeId", "id")), node))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .toList();
+    }
+
+    private static Optional<IslandNodeSnapshot> node(String fallbackNodeId, String body) {
+        if (body == null || body.isBlank()) {
+            return Optional.empty();
+        }
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        if (root.containsKey("error") || root.containsKey("code")) {
+            return Optional.empty();
+        }
+        return node(fallbackNodeId, root);
+    }
+
+    private static Optional<IslandNodeSnapshot> node(String fallbackNodeId, Map<?, ?> root) {
+        String nodeId = text(firstPresent(root, "nodeId", "id"));
+        if (nodeId.isBlank()) {
+            nodeId = fallbackNodeId == null ? "" : fallbackNodeId;
+        }
+        if (nodeId.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(new IslandNodeSnapshot(
+            nodeId,
+            text(root, "pool"),
+            text(firstPresent(root, "serverName", "server")),
+            text(root, "nodeVersion"),
+            enumValue(text(root, "state")),
+            intValue(root, "players"),
+            intValue(root, "softPlayerCap"),
+            intValue(root, "hardPlayerCap"),
+            intValue(root, "reservedSlots"),
+            intValue(root, "activeIslands"),
+            intValue(root, "maxActiveIslands"),
+            decimal(root, "mspt"),
+            intValue(root, "activationQueue"),
+            intValue(root, "maxActivationQueue"),
+            decimal(root, "chunkLoadPressure"),
+            number(root, "heapUsedMb"),
+            number(root, "heapMaxMb"),
+            intValue(root, "recentFailurePenalty"),
+            bool(root, "storageAvailable"),
+            text(root, "supportedTemplates"),
+            instant(text(root, "lastHeartbeat")),
+            decimal(root, "score"),
+            decimalMap(SimpleJson.object(root.get("scoreBreakdown"))),
+            bool(root, "eligibleForNewActivation"),
+            text(root, "allocationBlockReason"),
+            levelScan(SimpleJson.object(root.get("levelScan"))),
+            storage(SimpleJson.object(root.get("storage")))
+        ));
+    }
+
+    private static List<AdminIslandRuntimeView> runtimes(String body) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        return SimpleJson.list(root.get("islands")).stream()
+            .map(SimpleJson::object)
+            .map(runtime -> new AdminIslandRuntimeView(
+                text(runtime, "islandId"),
+                text(runtime, "state"),
+                nullableText(runtime, "activeNode"),
+                nullableText(runtime, "activeWorld"),
+                nullableNumber(runtime.get("cellX")),
+                nullableNumber(runtime.get("cellZ")),
+                nullableText(runtime, "leaseOwner"),
+                number(runtime, "fencingToken"),
+                nullableText(runtime, "activatedAt"),
+                nullableText(runtime, "lastHeartbeat"),
+                text(runtime, "code")
+            ))
+            .toList();
     }
 
     private static AdminNodeSummaryView summary(String body) {
@@ -80,8 +183,122 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
         return SimpleJson.text(object.get(key));
     }
 
+    private static String text(Object value) {
+        return SimpleJson.text(value);
+    }
+
+    private static Object firstPresent(Map<?, ?> object, String first, String second) {
+        return object.containsKey(first) ? object.get(first) : object.get(second);
+    }
+
     private static long number(Map<?, ?> object, String key) {
         return SimpleJson.number(object.get(key));
+    }
+
+    private static Long nullableNumber(Object value) {
+        return value == null ? null : SimpleJson.number(value);
+    }
+
+    private static String nullableText(Map<?, ?> object, String key) {
+        if (!object.containsKey(key) || object.get(key) == null) {
+            return null;
+        }
+        return SimpleJson.text(object.get(key));
+    }
+
+    private static int intValue(Map<?, ?> object, String key) {
+        long value = number(object, key);
+        if (value > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        if (value < Integer.MIN_VALUE) {
+            return Integer.MIN_VALUE;
+        }
+        return (int) value;
+    }
+
+    private static double decimal(Map<?, ?> object, String key) {
+        Object value = object.get(key);
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        try {
+            return Double.parseDouble(SimpleJson.text(value));
+        } catch (NumberFormatException ignored) {
+            return 0.0D;
+        }
+    }
+
+    private static boolean bool(Map<?, ?> object, String key) {
+        Object value = object.get(key);
+        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
+    }
+
+    private static Instant instant(String value) {
+        if (value == null || value.isBlank()) {
+            return Instant.EPOCH;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (RuntimeException ignored) {
+            return Instant.EPOCH;
+        }
+    }
+
+    private static NodeState enumValue(String value) {
+        if (value == null || value.isBlank()) {
+            return NodeState.DOWN;
+        }
+        try {
+            return NodeState.valueOf(value);
+        } catch (IllegalArgumentException ignored) {
+            return NodeState.DOWN;
+        }
+    }
+
+    private static Map<String, Double> decimalMap(Map<?, ?> object) {
+        return object.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
+            entry -> SimpleJson.text(entry.getKey()),
+            entry -> {
+                Object value = entry.getValue();
+                if (value instanceof Number number) {
+                    return number.doubleValue();
+                }
+                try {
+                    return Double.parseDouble(SimpleJson.text(value));
+                } catch (NumberFormatException ignored) {
+                    return 0.0D;
+                }
+            }
+        ));
+    }
+
+    private static NodeLevelScanSnapshot levelScan(Map<?, ?> object) {
+        if (object.isEmpty()) {
+            return NodeLevelScanSnapshot.empty();
+        }
+        return new NodeLevelScanSnapshot(
+            bool(object, "running"),
+            text(object, "lastIsland"),
+            number(object, "startedAt"),
+            number(object, "finishedAt"),
+            number(object, "failedAt")
+        );
+    }
+
+    private static NodeStorageSnapshot storage(Map<?, ?> object) {
+        if (object.isEmpty()) {
+            return NodeStorageSnapshot.empty();
+        }
+        return new NodeStorageSnapshot(
+            bool(object, "primaryDegraded"),
+            decimal(object, "uploadSeconds"),
+            decimal(object, "downloadSeconds"),
+            number(object, "healthCheckFailures"),
+            number(object, "uploadFailures"),
+            number(object, "downloadFailures"),
+            number(object, "operationFailures")
+        );
     }
 
     private static String compactId(String value) {

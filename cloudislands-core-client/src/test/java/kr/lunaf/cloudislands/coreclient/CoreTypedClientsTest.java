@@ -17,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -1180,6 +1181,7 @@ class CoreTypedClientsTest {
 
     @Test
     void adminNodeQueryClientReturnsTypedSummariesAndNodeInfo() {
+        UUID islandId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
@@ -1187,17 +1189,24 @@ class CoreTypedClientsTest {
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listNodes" -> {
                     calls.add("nodes");
-                    yield CompletableFuture.completedFuture("{\"nodes\":[{\"nodeId\":\"node-a\"},{\"nodeId\":\"node-b\"}]}");
+                    yield CompletableFuture.completedFuture("""
+                        {"nodes":[
+                          {"nodeId":"node-a","pool":"default","serverName":"server-a","nodeVersion":"1.0.0","state":"READY","players":5,"softPlayerCap":50,"hardPlayerCap":80,"reservedSlots":2,"activeIslands":2,"maxActiveIslands":10,"mspt":"12.5","activationQueue":1,"maxActivationQueue":5,"chunkLoadPressure":"0.25","heapUsedMb":512,"heapMaxMb":2048,"recentFailurePenalty":3,"storageAvailable":true,"supportedTemplates":"default,nether","lastHeartbeat":"2026-06-21T00:00:00Z","score":"88.5","scoreBreakdown":{"load":"1.5"},"eligibleForNewActivation":true,"allocationBlockReason":"","levelScan":{"running":true,"lastIsland":"island-a","startedAt":10},"storage":{"primaryDegraded":true,"uploadSeconds":"0.4","downloadSeconds":"0.5","healthCheckFailures":1}},
+                          {"nodeId":"node-b","state":"DOWN"}
+                        ]}
+                        """);
                 }
                 case "nodeInfo" -> {
                     calls.add("info:" + args[0]);
                     yield CompletableFuture.completedFuture("""
-                        {"state":"READY","pool":"default","players":5,"softPlayerCap":50,"hardPlayerCap":80,"activeIslands":2,"maxActiveIslands":10,"activationQueue":1,"maxActivationQueue":5,"mspt":"12.5"}
+                        {"state":"READY","pool":"default","players":5,"softPlayerCap":50,"hardPlayerCap":80,"activeIslands":2,"maxActiveIslands":10,"activationQueue":1,"maxActivationQueue":5,"mspt":"12.5","lastHeartbeat":"2026-06-21T00:00:00Z"}
                         """);
                 }
                 case "nodeIslands" -> {
                     calls.add("islands:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"nodeId\":\"node-a\",\"count\":2}");
+                    yield CompletableFuture.completedFuture("""
+                        {"nodeId":"node-a","count":2,"islands":[{"islandId":"%s","state":"ACTIVE","activeNode":"node-a","activeWorld":"world-a","cellX":1,"cellZ":2,"fencingToken":9,"activatedAt":"2026-06-21T00:00:00Z"}]}
+                        """.formatted(islandId));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
@@ -1205,9 +1214,23 @@ class CoreTypedClientsTest {
         AdminNodeQueryClient client = new CoreAdminNodeQueryClient(raw);
 
         assertEquals("nodes=2", client.listNodesSummary().join().text());
+        List<IslandNodeSnapshot> nodes = client.nodes().join();
+        assertEquals(2, nodes.size());
+        assertEquals("node-a", nodes.get(0).nodeId());
+        assertEquals("server-a", nodes.get(0).serverName());
+        assertEquals(88.5D, nodes.get(0).score());
+        assertTrue(nodes.get(0).eligibleForNewActivation());
+        assertEquals(Map.of("load", 1.5D), nodes.get(0).scoreBreakdown());
+        assertTrue(nodes.get(0).levelScan().running());
+        assertTrue(nodes.get(0).storage().primaryDegraded());
         assertEquals("READY", client.nodeInfo(" node-a ").join().state());
+        assertEquals("node-a", client.nodeSnapshot(" node-a ").join().orElseThrow().nodeId());
         assertEquals("node=node-a count=2", client.nodeIslandsSummary("node-a", 500).join().text());
-        assertEquals(List.of("nodes", "info:node-a", "islands:node-a:100"), calls);
+        List<AdminIslandRuntimeView> runtimes = client.nodeIslandRuntimes("node-a", 50).join();
+        assertEquals(1, runtimes.size());
+        assertEquals(islandId.toString(), runtimes.get(0).islandId());
+        assertEquals("world-a", runtimes.get(0).activeWorld());
+        assertEquals(List.of("nodes", "nodes", "info:node-a", "info:node-a", "islands:node-a:100", "islands:node-a:50"), calls);
     }
 
     @Test
