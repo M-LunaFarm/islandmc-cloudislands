@@ -21,8 +21,31 @@ import org.bukkit.plugin.Plugin;
 public final class IslandWarpMenu implements Listener {
     private static final String TITLE = "섬 워프 관리";
     private static final String PUBLIC_TITLE = "공개 섬 워프";
-    private static final String MENU_ID = "island.warps";
-    private static final String PUBLIC_MENU_ID = "island.public-warps";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/warps.yml",
+        new GuiMenuDefinition("island.warps", 6, "menu.warps.title", Map.of(
+            "open", "island.warps.open",
+            "teleport", "island.warp.teleport",
+            "public-toggle", "island.warp.public.toggle",
+            "public", "island.warp.public",
+            "private", "island.warp.private",
+            "delete-prepare", "island.warp.delete.prepare",
+            "delete-confirm", "island.warp.delete.confirm",
+            "settings", "island.settings.open",
+            "back", "island.main.open"
+        ))
+    );
+    private static final GuiMenuDefinition PUBLIC_MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/public-warps.yml",
+        new GuiMenuDefinition("island.public-warps", 6, "menu.public-warps.title", Map.of(
+            "open", "island.visit.public.open",
+            "teleport", "island.warp.teleport",
+            "settings", "island.settings.open",
+            "back", "island.main.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
+    private static final String PUBLIC_MENU_ID = PUBLIC_MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -45,11 +68,11 @@ public final class IslandWarpMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandWarps(client, islandId)
             .thenAccept(warps -> openSync(plugin, player, session, TITLE, warps, false, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다."), "island.warps.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다."), "island.warps.open", "island.settings.open");
                 return null;
             });
     }
@@ -60,11 +83,11 @@ public final class IslandWarpMenu implements Listener {
 
     public static void openPublic(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, PUBLIC_MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, PUBLIC_TITLE);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, PUBLIC_MENU.titleKey(), PUBLIC_TITLE));
         PaperGuiViews.publicWarps(client, 45)
             .thenAccept(warps -> openSync(plugin, player, session, PUBLIC_TITLE, warps, true, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, PUBLIC_TITLE, message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다."), "island.visit.public.open", "island.visit.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, PUBLIC_MENU.titleKey(), PUBLIC_TITLE), message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다."), "island.visit.public.open", "island.visit.open");
                 return null;
             });
     }
@@ -83,28 +106,23 @@ public final class IslandWarpMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
-        player.closeInventory();
-        if (!publicMenu && slot == 45) {
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        if (!publicMenu && data.getOrDefault("mode", "").equals("set-current")) {
+            player.closeInventory();
             player.sendMessage(message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>"));
             return;
         }
-        if (publicMenu && slot == 45) {
-            actions.execute(player, "island.visit.public.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 49) {
-            actions.execute(player, "island.settings.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 53) {
-            actions.execute(player, "island.main.open", GuiClick.from(event));
-            return;
-        }
-        Map<String, String> data = GuiItems.data(event.getCurrentItem());
         String warpName = data.getOrDefault("warpName", "");
         if (warpName.isBlank()) {
+            String actionId = GuiItems.actionId(event.getCurrentItem());
+            if (actionId.isBlank()) {
+                return;
+            }
+            player.closeInventory();
+            actions.execute(player, actionId, data, GuiClick.from(event));
             return;
         }
+        player.closeInventory();
         String islandId = data.getOrDefault("islandId", "");
         if (publicMenu && !islandId.isBlank()) {
             actions.execute(player, "island.warp.teleport", java.util.Map.of("islandId", String.valueOf(islandId), "warpName", warpName), GuiClick.from(event));
@@ -124,26 +142,18 @@ public final class IslandWarpMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String title, List<WarpView> warps, boolean publicMenu, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(publicMenu ? PUBLIC_MENU_ID : MENU_ID, session, 54, title);
-            inventory.setItem(45, publicMenu
-                ? item(Material.COMPASS, message(messages, "warp-menu-public-refresh-name", "공개 워프 새로고침"), message(messages, "warp-menu-public-refresh-command", "/섬 공개워프목록"))
-                : item(Material.ENDER_PEARL, message(messages, "warp-menu-set-current-name", "현재 위치를 워프로 설정"), message(messages, "warp-menu-set-usage", "사용법: /섬 워프설정 <이름>")));
+            GuiMenuDefinition menu = publicMenu ? PUBLIC_MENU : MENU;
+            Inventory inventory = GuiMenuRenderer.render(menu, session, messages, title, item -> true);
             int slot = 0;
             for (WarpView warp : warps.stream().limit(45).toList()) {
                 inventory.setItem(slot++, warpItem(warp, publicMenu, messages));
             }
-            inventory.setItem(49, item(Material.COMPARATOR, message(messages, "warp-menu-settings-name", "설정"), message(messages, "warp-menu-settings-command", "/섬 설정")));
-            inventory.setItem(53, item(Material.COMPASS, message(messages, "warp-menu-main-menu-name", "메인 메뉴"), message(messages, "warp-menu-main-menu-command", "/섬 메뉴")));
             player.openInventory(inventory);
         });
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static ItemStack warpItem(WarpView warp, boolean publicMenu, MessageRenderer messages) {
@@ -164,17 +174,6 @@ public final class IslandWarpMenu implements Listener {
             message(messages, "warp-menu-left-click", "좌클릭: 이동"),
             message(messages, "warp-menu-toggle-click", "우클릭: 공개/비공개 전환"),
             message(messages, "warp-menu-delete-click", "Shift+우클릭: 삭제"));
-    }
-
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
     }
 
 }

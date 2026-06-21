@@ -440,6 +440,34 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledWarpMenuDefinitionsCoverPrivateAndPublicNavigationDeclaratively() {
+        GuiMenuDefinition warps = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/warps.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition publicWarps = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/public-warps.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.warps", warps.id());
+        assertEquals("W", warps.itemAt(45).orElseThrow().symbol());
+        assertEquals("set-current", warps.itemAt(45).orElseThrow().data().get("mode"));
+        assertEquals("S", warps.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.settings.open", warps.action(warps.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("M", warps.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.main.open", warps.action(warps.itemAt(53).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.public-warps", publicWarps.id());
+        assertEquals("R", publicWarps.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.visit.public.open", publicWarps.action(publicWarps.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("S", publicWarps.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.settings.open", publicWarps.action(publicWarps.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("M", publicWarps.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.main.open", publicWarps.action(publicWarps.itemAt(53).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",

@@ -65,6 +65,7 @@ public final class PaperRuntimeConfigLoader {
         "ui/menus/my-islands.yml",
         "ui/menus/ranking.yml",
         "ui/menus/roles.yml",
+        "ui/menus/public-warps.yml",
         "ui/menus/settings.yml",
         "ui/menus/snapshots.yml",
         "ui/menus/upgrades.yml",
