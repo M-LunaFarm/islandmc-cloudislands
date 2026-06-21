@@ -639,8 +639,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<String> config = diagnosticSection("core-config", coreApiClient.adminCoreConfig().config().thenApply(this::coreConfigMessage));
         CompletableFuture<String> metrics = diagnosticSection("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
         CompletableFuture<String> storage = diagnosticSection("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
-        CompletableFuture<String> nodeSnapshot = coreApiClient.listNodes().thenApply(Object::toString);
-        CompletableFuture<String> nodes = diagnosticSection("nodes", nodeSnapshot);
+        CompletableFuture<AdminNodeSummaryView> nodeSnapshot = coreApiClient.adminNodes().listNodesSummary();
+        CompletableFuture<String> nodes = diagnosticSection("nodes", nodeSnapshot.thenApply(summary -> adminNodeSummaryMessage("Nodes", summary)));
         CompletableFuture<String> heartbeatLag = diagnosticSection("heartbeat-lag", nodeSnapshot.thenApply(this::heartbeatLagDiagnosticBody));
         CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
         CompletableFuture<String> routes = diagnosticSection("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
@@ -703,11 +703,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
     }
 
-    private String heartbeatLagDiagnosticBody(String nodesJson) {
-        return "nodeCount=" + longValue(nodesJson, "nodeCount") + '\n'
-            + "routeCandidateCount=" + longValue(nodesJson, "routeCandidateCount") + '\n'
-            + "staleNodeCount=" + longValue(nodesJson, "staleNodeCount") + '\n'
-            + "heartbeatTimeoutSeconds=" + longValue(nodesJson, "heartbeatTimeoutSeconds") + '\n';
+    private String heartbeatLagDiagnosticBody(AdminNodeSummaryView nodes) {
+        return "nodeCount=" + nodes.nodeCount() + '\n'
+            + "routeCandidateCount=" + nodes.routeCandidateCount() + '\n'
+            + "staleNodeCount=" + nodes.staleNodeCount() + '\n'
+            + "heartbeatTimeoutSeconds=" + nodes.heartbeatTimeoutSeconds() + '\n';
     }
 
     private static String redactDiagnostic(String value) {

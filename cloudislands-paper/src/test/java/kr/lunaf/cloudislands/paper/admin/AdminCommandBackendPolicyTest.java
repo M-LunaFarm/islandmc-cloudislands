@@ -25,13 +25,16 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.adminStorage().status()"), "Diagnostics export must include typed storage health");
         assertTrue(source.contains("coreApiClient.adminMetrics().summary()"), "Diagnostics export must include typed metrics");
         assertTrue(source.contains("coreApiClient.adminCoreConfig().config()"), "Diagnostics export must include typed core config");
+        assertTrue(source.contains("coreApiClient.adminNodes().listNodesSummary()"), "Diagnostics export must include typed node context");
+        assertTrue(source.contains("heartbeatLagDiagnosticBody(AdminNodeSummaryView"), "Heartbeat diagnostics must render from typed node context");
+        assertTrue(!source.contains("coreApiClient.listNodes().thenApply(Object::toString)"), "Diagnostics export must not parse raw node list bodies");
         assertTrue(source.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Diagnostics export must include typed route ticket debug state");
         assertTrue(source.contains("coreApiClient.jobs().list().thenApply(this::jobListMessage)"), "Diagnostics export must include typed job context");
         assertTrue(source.contains("diagnosticSection(\"route-debug\""), "Diagnostics bundle must have a route debug section");
         assertTrue(source.contains("diagnosticSection(\"heartbeat-lag\""), "Diagnostics bundle must have a heartbeat lag section");
         assertTrue(source.contains("heartbeatLagDiagnosticBody"), "Diagnostics export must summarize heartbeat lag from node state");
-        assertTrue(source.contains("\"staleNodeCount\""), "Heartbeat diagnostics must expose stale node count");
-        assertTrue(source.contains("\"heartbeatTimeoutSeconds\""), "Heartbeat diagnostics must expose heartbeat timeout");
+        assertTrue(source.contains("nodes.staleNodeCount()"), "Heartbeat diagnostics must expose typed stale node count");
+        assertTrue(source.contains("nodes.heartbeatTimeoutSeconds()"), "Heartbeat diagnostics must expose typed heartbeat timeout");
         assertTrue(source.contains("coreApiClient.adminAudit().list(25)"), "Diagnostics export must include bounded typed audit context");
         assertTrue(source.contains("configValidationDiagnosticSection"), "Diagnostics export must include local config validation");
         assertTrue(source.contains("effectiveConfigDiagnosticSection"), "Diagnostics export must include redacted effective config");

@@ -49,12 +49,19 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
             }
             List<?> nodes = SimpleJson.list(root.get("nodes"));
             if (!nodes.isEmpty()) {
-                return new AdminNodeSummaryView("nodes=" + nodes.size());
+                long nodeCount = number(root, "nodeCount");
+                return new AdminNodeSummaryView(
+                    "nodes=" + nodes.size(),
+                    nodeCount > 0L ? nodeCount : nodes.size(),
+                    number(root, "routeCandidateCount"),
+                    number(root, "staleNodeCount"),
+                    number(root, "heartbeatTimeoutSeconds")
+                );
             }
         }
         List<?> values = SimpleJson.list(parsed);
         if (!values.isEmpty()) {
-            return new AdminNodeSummaryView("nodes=" + values.size());
+            return new AdminNodeSummaryView("nodes=" + values.size(), values.size(), 0L, 0L, 0L);
         }
         if (body == null || body.isBlank()) {
             return new AdminNodeSummaryView("");
@@ -71,6 +78,10 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
 
     private static String text(Map<?, ?> object, String key) {
         return SimpleJson.text(object.get(key));
+    }
+
+    private static long number(Map<?, ?> object, String key) {
+        return SimpleJson.number(object.get(key));
     }
 
     private static String compactId(String value) {
