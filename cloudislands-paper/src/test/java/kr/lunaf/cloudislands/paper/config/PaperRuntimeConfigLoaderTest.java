@@ -20,6 +20,7 @@ class PaperRuntimeConfigLoaderTest {
         String gameplay = Files.readString(root.resolve("src/main/resources/config-v2/gameplay.yml"), StandardCharsets.UTF_8);
 
         assertTrue(loader.contains("public static PaperRuntimeConfig load(JavaPlugin plugin"), "Paper runtime loader must accept the plugin as the config composition root");
+        assertFalse(loader.contains("public static PaperRuntimeConfig load(FileConfiguration"), "Paper runtime loader must not expose a legacy Bukkit config entrypoint");
         assertTrue(loader.contains("paperConfigV2Sources"), "Paper runtime loader must discover bundled or data-folder config-v2 files");
         assertFalse(loader.contains("plugin.getConfig()"), "Paper runtime loader must not read legacy Bukkit config");
         assertTrue(loader.contains("paper/config-v2/empty"), "Paper runtime loader must use an empty Config v2 source when no files are present");

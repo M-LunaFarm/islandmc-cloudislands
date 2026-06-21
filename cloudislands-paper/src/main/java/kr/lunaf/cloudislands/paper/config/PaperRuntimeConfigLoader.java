@@ -86,19 +86,15 @@ public final class PaperRuntimeConfigLoader {
         return loadV2(sources, envResolver);
     }
 
-    public static PaperRuntimeConfig load(FileConfiguration config, Function<String, String> envResolver) {
-        return load(config, envResolver, null);
-    }
-
     public static PaperRuntimeConfig loadV2(List<ConfigSource> sources, Function<String, String> envResolver) {
         validateV2Sources(sources);
         YamlConfiguration mapped = mapV2Sources(sources);
         if (mapped.getKeys(true).isEmpty()) {
-            return load(new YamlConfiguration(), envResolver);
+            return loadMappedConfig(new YamlConfiguration(), envResolver, null);
         }
         ConfigSnapshot snapshot = ConfigV2Loader.load(List.of(new ConfigSource("paper-config-v2-runtime", 10, mapped.saveToString())));
         requireValidSnapshot(snapshot);
-        return load(mapped, envResolver, snapshot);
+        return loadMappedConfig(mapped, envResolver, snapshot);
     }
 
     private static void validateV2Sources(List<ConfigSource> sources) {
@@ -131,7 +127,7 @@ public final class PaperRuntimeConfigLoader {
         }
     }
 
-    private static PaperRuntimeConfig load(FileConfiguration config, Function<String, String> envResolver, ConfigSnapshot sourceConfig) {
+    private static PaperRuntimeConfig loadMappedConfig(FileConfiguration config, Function<String, String> envResolver, ConfigSnapshot sourceConfig) {
         Function<String, String> resolver = envResolver == null ? value -> value == null ? "" : value.trim() : envResolver;
         FileConfiguration safeConfig = config == null ? new YamlConfiguration() : config;
         PaperRuntimeConfig.Node node = node(safeConfig);
