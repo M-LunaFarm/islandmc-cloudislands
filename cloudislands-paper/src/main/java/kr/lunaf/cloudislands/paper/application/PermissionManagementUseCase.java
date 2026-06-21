@@ -36,32 +36,18 @@ public final class PermissionManagementUseCase {
         this.permissionCommands = permissionCommands;
     }
 
-    public CompletableFuture<String> listPermissions(UUID islandId) {
+    private CompletableFuture<String> listPermissionBodies(UUID islandId) {
         requireIsland(islandId);
         return coreApiClient.listIslandPermissions(islandId);
     }
 
     public CompletableFuture<List<PermissionView>> listPermissionViews(UUID islandId) {
-        return listPermissions(islandId).thenApply(PermissionManagementUseCase::permissionViews);
-    }
-
-    public CompletableFuture<String> listRoles(UUID islandId) {
-        requireIsland(islandId);
-        return coreApiClient.listIslandRoles(islandId);
+        return listPermissionBodies(islandId).thenApply(PermissionManagementUseCase::permissionViews);
     }
 
     public CompletableFuture<List<RoleView>> listRoleViews(UUID islandId) {
         requireIsland(islandId);
         return CoreGuiViews.islandRoles(coreApiClient, islandId);
-    }
-
-    public CompletableFuture<String> upsertRole(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName, MutationRunner runner) {
-        requireIsland(islandId);
-        requireActor(actorUuid);
-        requireRunner(runner);
-        String normalizedRoleKey = RoleId.of(roleKey).value();
-        String normalizedDisplayName = displayName == null || displayName.isBlank() ? normalizedRoleKey : displayName.trim();
-        return runner.mutate("island.role.upsert", () -> coreApiClient.upsertIslandRole(islandId, actorUuid, normalizedRoleKey, weight, normalizedDisplayName));
     }
 
     public CompletableFuture<MutationResult<RoleView>> upsertRoleTyped(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName, MutationRunner runner) {
@@ -71,14 +57,6 @@ public final class PermissionManagementUseCase {
         return runner.mutate("island.role.upsert", () -> permissionCommands.upsertRole(islandId, actorUuid, roleKey, weight, displayName));
     }
 
-    public CompletableFuture<String> resetRole(UUID islandId, UUID actorUuid, String roleKey, IdempotentMutationRunner runner) {
-        requireIsland(islandId);
-        requireActor(actorUuid);
-        requireIdempotentRunner(runner);
-        String normalizedRoleKey = RoleId.of(roleKey).value();
-        return runner.mutateIdempotent("island.role.reset", () -> coreApiClient.resetIslandRole(islandId, actorUuid, normalizedRoleKey));
-    }
-
     public CompletableFuture<MutationResult<RoleView>> resetRoleTyped(UUID islandId, UUID actorUuid, String roleKey, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
@@ -86,7 +64,7 @@ public final class PermissionManagementUseCase {
         return runner.mutateIdempotent("island.role.reset", () -> permissionCommands.resetRole(islandId, actorUuid, roleKey));
     }
 
-    public CompletableFuture<String> setPermission(UUID islandId, UUID actorUuid, PermissionChange change, MutationRunner runner) {
+    private CompletableFuture<String> setPermissionBody(UUID islandId, UUID actorUuid, PermissionChange change, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
@@ -97,11 +75,11 @@ public final class PermissionManagementUseCase {
     }
 
     public CompletableFuture<PermissionActionResult> setPermissionAction(UUID islandId, UUID actorUuid, PermissionChange change, MutationRunner runner) {
-        return setPermission(islandId, actorUuid, change, runner)
+        return setPermissionBody(islandId, actorUuid, change, runner)
             .thenApply(body -> permissionAction(body, "PERMISSION_SET"));
     }
 
-    public CompletableFuture<String> setPermissionOverride(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed, MutationRunner runner) {
+    private CompletableFuture<String> setPermissionOverrideBody(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         if (targetUuid == null) {
@@ -115,13 +93,13 @@ public final class PermissionManagementUseCase {
     }
 
     public CompletableFuture<PermissionActionResult> setPermissionOverrideAction(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed, MutationRunner runner) {
-        return setPermissionOverride(islandId, actorUuid, targetUuid, permission, allowed, runner)
+        return setPermissionOverrideBody(islandId, actorUuid, targetUuid, permission, allowed, runner)
             .thenApply(body -> permissionAction(body, "PERMISSION_OVERRIDE_SET"));
     }
 
-    public CompletableFuture<String> saveSequentially(UUID islandId, UUID actorUuid, List<PermissionChange> changes, MutationRunner runner) {
+    public CompletableFuture<MutationResult<PermissionMatrixView>> saveSequentiallyTyped(UUID islandId, UUID actorUuid, List<PermissionChange> changes, MutationRunner runner) {
         requireRunner(runner);
-        return runner.mutate("island.permission.batch-save", () -> saveSequentiallyTyped(islandId, actorUuid, changes).thenApply(MutationResult::version));
+        return runner.mutate("island.permission.batch-save", () -> saveSequentiallyTyped(islandId, actorUuid, changes));
     }
 
     public CompletableFuture<MutationResult<PermissionMatrixView>> saveSequentiallyTyped(UUID islandId, UUID actorUuid, List<PermissionChange> changes) {

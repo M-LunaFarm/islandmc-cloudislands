@@ -12,6 +12,8 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
+import kr.lunaf.cloudislands.coreclient.MutationResult;
+import kr.lunaf.cloudislands.coreclient.PermissionMatrixView;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionActionResult;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionView;
@@ -134,8 +136,8 @@ final class IslandPermissionCommandHandler {
         });
     }
 
-    private CompletableFuture<String> saveStagedChangesSequentially(UUID islandId, Player player, List<PermissionManagementUseCase.PermissionChange> changes) {
-        return permissionUseCase.saveSequentially(islandId, player.getUniqueId(), changes, runtime::mutate);
+    private CompletableFuture<MutationResult<PermissionMatrixView>> saveStagedChangesSequentially(UUID islandId, Player player, List<PermissionManagementUseCase.PermissionChange> changes) {
+        return permissionUseCase.saveSequentiallyTyped(islandId, player.getUniqueId(), changes, runtime::mutate);
     }
 
     void upsertIslandRole(Player player, String roleKey, int weight, String displayName) {

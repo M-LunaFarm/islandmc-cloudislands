@@ -380,6 +380,8 @@ class IslandCommandControllerPolicyTest {
     void membershipCommandsRouteOutsideCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String membershipHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
+        String permissionHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandPermissionCommandHandler.java"));
+        String permissionUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/PermissionManagementUseCase.java"));
 
         assertTrue(backend.contains("private final IslandMembershipCommandHandler membershipCommands;"));
         assertTrue(routerSource().contains("membershipCommands.handleCommand(player, subcommand, args)"));
@@ -391,6 +393,20 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(membershipHandler.contains("subcommand.equals(\"members\")"));
         assertTrue(membershipHandler.contains("case PERMISSIONS_OPEN"));
+        assertTrue(permissionHandler.contains("permissionUseCase.listPermissionViews"));
+        assertTrue(permissionHandler.contains("permissionUseCase.listRoleViews"));
+        assertTrue(permissionHandler.contains("permissionUseCase.saveSequentiallyTyped"));
+        assertTrue(permissionHandler.contains("permissionUseCase.upsertRoleTyped"));
+        assertTrue(permissionHandler.contains("permissionUseCase.resetRoleTyped"));
+        assertTrue(permissionHandler.contains("permissionUseCase.setPermissionAction"));
+        assertTrue(permissionHandler.contains("permissionUseCase.setPermissionOverrideAction"));
+        assertFalse(permissionUseCase.contains("public CompletableFuture<String> listPermissions("), "permission list usecase must expose typed views instead of raw JSON");
+        assertFalse(permissionUseCase.contains("public CompletableFuture<String> listRoles("), "role list usecase must expose typed views instead of raw JSON");
+        assertFalse(permissionUseCase.contains("public CompletableFuture<String> upsertRole("), "role upsert usecase must expose typed results instead of raw JSON");
+        assertFalse(permissionUseCase.contains("public CompletableFuture<String> resetRole("), "role reset usecase must expose typed results instead of raw JSON");
+        assertFalse(permissionUseCase.contains("public CompletableFuture<String> setPermission("), "permission mutation usecase must expose typed actions instead of raw JSON");
+        assertFalse(permissionUseCase.contains("public CompletableFuture<String> setPermissionOverride("), "permission override usecase must expose typed actions instead of raw JSON");
+        assertFalse(permissionUseCase.contains("public CompletableFuture<String> saveSequentially("), "permission save usecase must expose typed mutation results instead of raw strings");
     }
 
     @Test

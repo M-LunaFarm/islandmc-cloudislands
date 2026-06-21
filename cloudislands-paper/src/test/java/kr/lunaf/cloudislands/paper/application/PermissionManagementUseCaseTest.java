@@ -29,7 +29,7 @@ class PermissionManagementUseCaseTest {
         UUID actorUuid = UUID.randomUUID();
         List<String> auditActions = new ArrayList<>();
 
-        String version = useCase.saveSequentially(
+        MutationResult<PermissionMatrixView> result = useCase.saveSequentiallyTyped(
             islandId,
             actorUuid,
             List.of(
@@ -41,7 +41,8 @@ class PermissionManagementUseCaseTest {
 
         assertEquals(List.of("v1", "v2"), expectedVersions);
         assertEquals(List.of("island.permission.batch-save"), auditActions);
-        assertEquals("v3", version);
+        assertEquals("v3", result.version());
+        assertEquals("MEMBER", result.value().rules().get(0).role());
     }
 
     @Test
@@ -85,12 +86,12 @@ class PermissionManagementUseCaseTest {
         UUID actorUuid = UUID.randomUUID();
         UUID targetUuid = UUID.fromString("00000000-0000-0000-0000-000000000080");
 
-        assertEquals("{\"roles\":[{\"role\":\"BUILDER\",\"weight\":50,\"displayName\":\"Builder\"}]}", useCase.listRoles(islandId).join());
-        assertEquals("{\"rules\":[{\"role\":\"BUILDER\",\"permission\":\"BUILD\",\"allowed\":true},{\"playerUuid\":\"%s\",\"permission\":\"BREAK\",\"allowed\":false}]}".formatted(targetUuid), useCase.listPermissions(islandId).join());
-        assertTrue(useCase.upsertRole(islandId, actorUuid, "builder", 50, "", mutationRunner(calls)).join().contains("\"role\":\"BUILDER\""));
-        assertTrue(useCase.resetRole(islandId, actorUuid, "builder", idempotentRunner(calls)).join().contains("\"role\":\"BUILDER\""));
-        assertEquals("{\"accepted\":true,\"code\":\"PERMISSION_SET\"}", useCase.setPermission(islandId, actorUuid, new PermissionManagementUseCase.PermissionChange("builder", IslandPermission.BUILD, true, ""), mutationRunner(calls)).join());
-        assertEquals("{\"accepted\":true,\"code\":\"PERMISSION_OVERRIDE_SET\"}", useCase.setPermissionOverride(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false, mutationRunner(calls)).join());
+        assertEquals("BUILDER", useCase.listRoleViews(islandId).join().getFirst().role());
+        assertEquals("BUILD", useCase.listPermissionViews(islandId).join().getFirst().permission());
+        assertEquals("BUILDER", useCase.upsertRoleTyped(islandId, actorUuid, "builder", 50, "", mutationRunner(calls)).join().value().role());
+        assertEquals("BUILDER", useCase.resetRoleTyped(islandId, actorUuid, "builder", idempotentRunner(calls)).join().value().role());
+        assertEquals("PERMISSION_SET", useCase.setPermissionAction(islandId, actorUuid, new PermissionManagementUseCase.PermissionChange("builder", IslandPermission.BUILD, true, ""), mutationRunner(calls)).join().code());
+        assertEquals("PERMISSION_OVERRIDE_SET", useCase.setPermissionOverrideAction(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false, mutationRunner(calls)).join().code());
 
         assertEquals(List.of(
             "listIslandRoles",
