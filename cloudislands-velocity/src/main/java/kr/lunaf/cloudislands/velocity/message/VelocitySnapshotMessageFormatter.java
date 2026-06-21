@@ -7,6 +7,8 @@ import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.matching
 
 import java.util.ArrayList;
 import java.util.List;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.SnapshotActionView;
 
 public final class VelocitySnapshotMessageFormatter {
     public String snapshotList(String body) {
@@ -41,6 +43,31 @@ public final class VelocitySnapshotMessageFormatter {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(" | ", entries);
+    }
+
+    public String snapshotList(List<CoreGuiViews.SnapshotView> snapshots) {
+        if (snapshots == null || snapshots.isEmpty()) {
+            return "섬 스냅샷이 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        for (CoreGuiViews.SnapshotView snapshot : snapshots) {
+            if (entries.size() >= 20) {
+                break;
+            }
+            if (snapshot.snapshotNo() > 0L) {
+                entries.add("#" + snapshot.snapshotNo()
+                    + (snapshot.reason().isBlank() ? "" : " 사유=" + snapshot.reason())
+                    + " 크기=" + snapshot.sizeBytes()
+                    + (snapshot.checksum().isBlank() ? "" : " checksum=" + shortChecksum(snapshot.checksum()))
+                    + (snapshot.createdAt().isBlank() ? "" : " 생성=" + snapshot.createdAt()));
+            }
+        }
+        return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(" | ", entries);
+    }
+
+    public String snapshotAction(String label, SnapshotActionView view) {
+        return label + ": " + (view.accepted() ? "접수됨" : "거부됨")
+            + (view.code().isBlank() ? "" : " code=" + view.code());
     }
 
     private String shortChecksum(String checksum) {

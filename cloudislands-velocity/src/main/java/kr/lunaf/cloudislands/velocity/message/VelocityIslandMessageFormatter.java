@@ -12,9 +12,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
+import kr.lunaf.cloudislands.coreclient.ChatActionView;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
+import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 
 public final class VelocityIslandMessageFormatter {
     private final VelocityRoutePrivacyFormatter routePrivacy;
@@ -188,6 +192,13 @@ public final class VelocityIslandMessageFormatter {
             return label + ": 실패 사유=" + code;
         }
         return label + ": 전송 완료 채널=" + jsonValue(body, "channel");
+    }
+
+    public String chatResult(String label, ChatActionView view) {
+        if (!view.accepted()) {
+            return label + ": 실패 사유=" + (view.code().isBlank() ? "FAILED" : view.code());
+        }
+        return label + ": 전송 완료 채널=" + view.channel();
     }
 
     public String islandInfo(String body) {
@@ -465,6 +476,16 @@ public final class VelocityIslandMessageFormatter {
             + " 유형=" + jsonValue(object, "type"));
     }
 
+    public String upgradeList(List<CoreGuiViews.UpgradeView> upgrades) {
+        if (upgrades == null || upgrades.isEmpty()) {
+            return "섬 업그레이드가 없습니다.";
+        }
+        return "섬 업그레이드: " + upgrades.stream()
+            .map(upgrade -> upgrade.key() + " 레벨=" + upgrade.level() + " 유형=" + upgrade.type())
+            .reduce((left, right) -> left + ", " + right)
+            .orElse("섬 업그레이드가 없습니다.");
+    }
+
     public String generatorInfo(String body) {
         String generatorKey = "default";
         long level = 1L;
@@ -498,6 +519,26 @@ public final class VelocityIslandMessageFormatter {
         return "섬 생성기: key=" + generatorKey + " level=" + level + " / 업그레이드: /섬 업그레이드구매 generator";
     }
 
+    public String generatorInfo(List<CoreGuiViews.UpgradeView> upgrades) {
+        String generatorKey = "default";
+        long level = 1L;
+        if (upgrades != null) {
+            for (CoreGuiViews.UpgradeView upgrade : upgrades) {
+                String upgradeKey = upgrade.key();
+                String normalized = upgradeKey.toLowerCase(Locale.ROOT);
+                if (normalized.equals("generator") || normalized.startsWith("generator:")) {
+                    long currentLevel = Math.max(1L, upgrade.level());
+                    String currentKey = generatorKey(upgradeKey);
+                    if (currentLevel > level || (currentLevel == level && generatorKey.equals("default") && !currentKey.equalsIgnoreCase("default"))) {
+                        level = currentLevel;
+                        generatorKey = currentKey.isBlank() ? "default" : currentKey;
+                    }
+                }
+            }
+        }
+        return "섬 생성기: key=" + generatorKey + " level=" + level + " / 업그레이드: /섬 업그레이드구매 generator";
+    }
+
     public String upgradePurchase(String body) {
         String code = jsonValue(body, "code");
         String upgrade = objectValue(body, "upgrade");
@@ -519,6 +560,16 @@ public final class VelocityIslandMessageFormatter {
         return namedObjectList(label, body, "missions", object -> jsonValue(object, "missionKey")
             + " " + longValue(object, "progress") + "/" + longValue(object, "goal")
             + " 완료=" + boolValue(object, "completed"));
+    }
+
+    public String missionList(String label, List<CoreGuiViews.MissionView> missions) {
+        if (missions == null || missions.isEmpty()) {
+            return label + "이 없습니다.";
+        }
+        return label + ": " + missions.stream()
+            .map(mission -> mission.key() + " " + mission.progress() + "/" + mission.goal() + " 완료=" + mission.completed())
+            .reduce((left, right) -> left + ", " + right)
+            .orElse(label + "이 없습니다.");
     }
 
     public String missionResult(String label, String body) {
@@ -543,6 +594,16 @@ public final class VelocityIslandMessageFormatter {
             + " 값=" + longValue(object, "value"));
     }
 
+    public String limitList(List<CoreGuiViews.LimitView> limits) {
+        if (limits == null || limits.isEmpty()) {
+            return "섬 제한이 없습니다.";
+        }
+        return "섬 제한: " + limits.stream()
+            .map(limit -> limit.key() + " 값=" + limit.value())
+            .reduce((left, right) -> left + ", " + right)
+            .orElse("섬 제한이 없습니다.");
+    }
+
     public String limitResult(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
@@ -551,6 +612,15 @@ public final class VelocityIslandMessageFormatter {
         return "섬 제한 변경: " + jsonValue(body, "limitKey")
             + "=" + longValue(body, "value")
             + " 섬=" + shortId(jsonValue(body, "islandId"));
+    }
+
+    public String limitResult(EnvironmentActionView view) {
+        if (!view.accepted()) {
+            return "섬 제한 변경: 실패 사유=" + (view.code().isBlank() ? "FAILED" : view.code());
+        }
+        return "섬 제한 변경: " + view.key()
+            + "=" + view.value()
+            + " 섬=" + shortId(view.islandId());
     }
 
     public String flagList(String body) {
@@ -617,6 +687,23 @@ public final class VelocityIslandMessageFormatter {
         return "업그레이드 규칙: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
+    public String upgradeRules(List<UpgradeRuleView> rules) {
+        if (rules == null || rules.isEmpty()) {
+            return "업그레이드 규칙: 없음";
+        }
+        List<String> entries = new ArrayList<>();
+        for (UpgradeRuleView rule : rules) {
+            if (entries.size() >= 12) {
+                break;
+            }
+            entries.add(rule.key()
+                + " 유형=" + rule.type()
+                + " 최대=" + rule.maxLevel()
+                + " 기본비용=" + rule.baseCost());
+        }
+        return "업그레이드 규칙: 전체 " + rules.size() + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
     private String namedObjectList(String label, String body, String arrayField, Function<String, String> formatter) {
         String array = arrayValue(body, arrayField);
         if (array.isBlank()) {
@@ -641,6 +728,14 @@ public final class VelocityIslandMessageFormatter {
             index = objectEnd + 1;
         }
         return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String generatorKey(String upgradeKey) {
+        if (upgradeKey == null || upgradeKey.isBlank()) {
+            return "default";
+        }
+        int separator = upgradeKey.indexOf(':');
+        return separator < 0 ? "default" : upgradeKey.substring(separator + 1);
     }
 
     private String adminCodeDetail(String code) {

@@ -32,7 +32,7 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
     }
 
     public void listUpgradeRules(Player player) {
-        sendBodyResult(player, coreApiClient.listUpgradeRules().thenApply(islandMessages::upgradeRules), "업그레이드 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.progression().upgradeRules().thenApply(islandMessages::upgradeRules), "업그레이드 목록을 불러오지 못했습니다.");
     }
 
     public void listUpgrades(Player player, UUID islandId) {
@@ -40,7 +40,7 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             return;
         }
         withResolvedIsland(player, islandId, "업그레이드를 확인할 섬을 찾지 못했습니다.", "섬 업그레이드를 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandUpgrades(resolved).thenApply(islandMessages::upgradeList), "섬 업그레이드를 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.progression().upgrades(resolved).thenApply(islandMessages::upgradeList), "섬 업그레이드를 불러오지 못했습니다."));
     }
 
     public void showGenerator(Player player, UUID islandId) {
@@ -48,7 +48,7 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             return;
         }
         withResolvedIsland(player, islandId, "생성기를 확인할 섬을 찾지 못했습니다.", "섬 생성기를 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandUpgrades(resolved).thenApply(islandMessages::generatorInfo), "섬 생성기를 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.progression().upgrades(resolved).thenApply(islandMessages::generatorInfo), "섬 생성기를 불러오지 못했습니다."));
     }
 
     public void purchaseUpgrade(Player player, UUID islandId, String upgradeKey) {
@@ -61,7 +61,7 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             return;
         }
         withResolvedIsland(player, islandId, "미션을 확인할 섬을 찾지 못했습니다.", "미션 목록을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandMissions(resolved, "MISSION").thenApply(body -> islandMessages.missionList("섬 미션", body)), "미션 목록을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.progression().missions(resolved, "MISSION").thenApply(missions -> islandMessages.missionList("섬 미션", missions)), "미션 목록을 불러오지 못했습니다."));
     }
 
     public void listChallenges(Player player, UUID islandId) {
@@ -69,7 +69,7 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             return;
         }
         withResolvedIsland(player, islandId, "챌린지를 확인할 섬을 찾지 못했습니다.", "챌린지 목록을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandMissions(resolved, "CHALLENGE").thenApply(body -> islandMessages.missionList("섬 챌린지", body)), "챌린지 목록을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.progression().missions(resolved, "CHALLENGE").thenApply(missions -> islandMessages.missionList("섬 챌린지", missions)), "챌린지 목록을 불러오지 못했습니다."));
     }
 
     public void completeMission(Player player, UUID islandId, String missionKey) {
@@ -87,12 +87,12 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             return;
         }
         withResolvedIsland(player, islandId, "제한을 확인할 섬을 찾지 못했습니다.", "섬 제한을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandLimits(resolved).thenApply(islandMessages::limitList), "섬 제한을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.environment().limitViews(resolved).thenApply(islandMessages::limitList), "섬 제한을 불러오지 못했습니다."));
     }
 
     public void setLimit(Player player, UUID islandId, String limitKey, long value) {
         withResolvedIsland(player, islandId, "제한을 변경할 섬을 찾지 못했습니다.", "섬 제한을 변경하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.setIslandLimit(resolved, player.getUniqueId(), limitKey, value).thenApply(islandMessages::limitResult), "섬 제한을 변경하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.environmentCommands().setLimit(resolved, player.getUniqueId(), limitKey, value).thenApply(islandMessages::limitResult), "섬 제한을 변경하지 못했습니다."));
     }
 
     public void sendIslandChat(Player player, UUID islandId, String channel, String message) {
@@ -107,21 +107,21 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
     }
 
     private void sendIslandChatResolved(Player player, UUID islandId, String channel, String message, String label) {
-        sendBodyResult(player, coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, message).thenApply(body -> islandMessages.chatResult(label, body)), label + "을 전송하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.communicationCommands().sendChat(islandId, player.getUniqueId(), channel, message).thenApply(result -> islandMessages.chatResult(label, result)), label + "을 전송하지 못했습니다.");
     }
 
     public void listSnapshots(Player player, UUID islandId) {
         withResolvedIsland(player, islandId, "스냅샷을 확인할 섬을 찾지 못했습니다.", "스냅샷 목록을 불러오지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.listIslandSnapshots(resolved, 20).thenApply(this::snapshotListMessage), "스냅샷 목록을 불러오지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.snapshots().listSnapshots(resolved, 20).thenApply(this::snapshotListMessage), "스냅샷 목록을 불러오지 못했습니다."));
     }
 
     public void snapshot(Player player, UUID islandId, String reason) {
         withResolvedIsland(player, islandId, "스냅샷을 만들 섬을 찾지 못했습니다.", "섬 스냅샷을 요청하지 못했습니다.",
-            resolved -> sendActionResult(player, coreApiClient.requestIslandSnapshot(resolved, reason), "섬 스냅샷을 요청했습니다.", "섬 스냅샷을 요청하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.snapshotCommands().requestSnapshot(resolved, reason).thenApply(result -> snapshotMessages.snapshotAction("섬 스냅샷 요청", result)), "섬 스냅샷을 요청하지 못했습니다."));
     }
 
     public void restore(Player player, UUID islandId, long snapshotNo) {
         withResolvedIsland(player, islandId, "복원할 섬을 찾지 못했습니다.", "섬 복원을 요청하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.restoreIslandSnapshotResult(resolved, snapshotNo).thenApply(body -> islandMessages.actionResult("Island restore", resolved.toString(), body)), "섬 복원을 요청하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.snapshotCommands().restoreSnapshot(resolved, snapshotNo).thenApply(result -> snapshotMessages.snapshotAction("섬 복원", result)), "섬 복원을 요청하지 못했습니다."));
     }
 }

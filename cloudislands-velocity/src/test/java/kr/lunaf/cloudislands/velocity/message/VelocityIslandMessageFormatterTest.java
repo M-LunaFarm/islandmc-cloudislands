@@ -2,9 +2,14 @@ package kr.lunaf.cloudislands.velocity.message;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
+import kr.lunaf.cloudislands.coreclient.ChatActionView;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
+import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import org.junit.jupiter.api.Test;
 
 class VelocityIslandMessageFormatterTest {
@@ -106,6 +111,38 @@ class VelocityIslandMessageFormatterTest {
         assertEquals(
             "섬 미션: 완료 키=builder 보상=coins:100",
             formatter.missionResult("섬 미션", new ProgressionMissionCompletionView(true, "", "55555555-5555-5555-5555-555555555555", "builder", "MISSION", "Builder", 10L, 10L, true, "coins:100", ""))
+        );
+    }
+
+    @Test
+    void formatsTypedProgressionListsAndActions() {
+        assertEquals(
+            "업그레이드 규칙: 전체 1개 / generator 유형=GENERATOR 최대=5 기본비용=100",
+            formatter.upgradeRules(List.of(new UpgradeRuleView("generator", "GENERATOR", 5L, "100", "2.0")))
+        );
+        assertEquals(
+            "섬 업그레이드: generator:stone 레벨=4 유형=GENERATOR",
+            formatter.upgradeList(List.of(new CoreGuiViews.UpgradeView("generator:stone", "GENERATOR", 4)))
+        );
+        assertEquals(
+            "섬 생성기: key=stone level=4 / 업그레이드: /섬 업그레이드구매 generator",
+            formatter.generatorInfo(List.of(new CoreGuiViews.UpgradeView("generator:stone", "GENERATOR", 4)))
+        );
+        assertEquals(
+            "섬 미션: builder 7/10 완료=false",
+            formatter.missionList("섬 미션", List.of(new CoreGuiViews.MissionView("builder", "Builder", 7L, 10L, false, "coins:100")))
+        );
+        assertEquals(
+            "섬 제한: members 값=8",
+            formatter.limitList(List.of(new CoreGuiViews.LimitView("members", 8L, "")))
+        );
+        assertEquals(
+            "섬 제한 변경: members=8 섬=55555555",
+            formatter.limitResult(new EnvironmentActionView(true, "", "members", 8L, "55555555-5555-5555-5555-555555555555", "", ""))
+        );
+        assertEquals(
+            "섬 채팅: 전송 완료 채널=ISLAND",
+            formatter.chatResult("섬 채팅", new ChatActionView(true, "CHAT_SENT", "ISLAND", "hello"))
         );
     }
 }

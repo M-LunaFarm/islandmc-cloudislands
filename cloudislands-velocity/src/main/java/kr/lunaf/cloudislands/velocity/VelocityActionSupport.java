@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.velocity;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 import com.velocitypowered.api.proxy.Player;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -12,6 +13,7 @@ import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreConfigMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityCoreStatusMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityEventMessageFormatter;
@@ -121,6 +123,10 @@ abstract class VelocityActionSupport {
 
     protected String snapshotListMessage(String body) {
         return snapshotMessages.snapshotList(body);
+    }
+
+    protected String snapshotListMessage(List<CoreGuiViews.SnapshotView> snapshots) {
+        return snapshotMessages.snapshotList(snapshots);
     }
 
     protected void sendInviteActionResult(Player player, CompletableFuture<String> future, String successMessage, String failureMessage) {
