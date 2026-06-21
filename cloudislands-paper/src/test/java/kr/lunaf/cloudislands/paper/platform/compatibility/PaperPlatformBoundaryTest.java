@@ -193,16 +193,16 @@ class PaperPlatformBoundaryTest {
         assertTrue(!adminUseCase.contains("public CompletableFuture<String> nodeInfo("), "Admin node info usecase must expose typed views instead of raw JSON");
         assertTrue(adminHandler.contains("case DRAIN ->"), "Admin node drain GUI action must call Core");
         assertTrue(adminHandler.contains("adminNodeUseCase.drainAction(nodeId"), "Admin node drain GUI action must call the typed Core usecase");
-        assertTrue(adminUseCase.contains("coreApiClient.drainNode("), "Admin node drain usecase must call Core");
+        assertTrue(adminUseCase.contains("adminNodeCommands.drainNode("), "Admin node drain usecase must call typed Core command client");
         assertTrue(adminHandler.contains("case UNDRAIN ->"), "Admin node undrain GUI action must call Core");
         assertTrue(adminHandler.contains("adminNodeUseCase.undrainAction(nodeId"), "Admin node undrain GUI action must call the typed Core usecase");
-        assertTrue(adminUseCase.contains("coreApiClient.undrainNode("), "Admin node undrain usecase must call Core");
+        assertTrue(adminUseCase.contains("adminNodeCommands.undrainNode("), "Admin node undrain usecase must call typed Core command client");
         assertTrue(adminHandler.contains("case SWEEP ->"), "Admin node sweep GUI action must call Core");
         assertTrue(adminHandler.contains("adminNodeUseCase.sweepAction(nodeId"), "Admin node sweep GUI action must call the typed Core usecase");
-        assertTrue(adminUseCase.contains("coreApiClient.sweepNode("), "Admin node sweep usecase must call Core");
+        assertTrue(adminUseCase.contains("adminNodeCommands.sweepNode("), "Admin node sweep usecase must call typed Core command client");
         assertTrue(!adminUseCase.contains("public CompletableFuture<String> nodeIslands("), "Admin node islands usecase must expose typed summaries instead of raw JSON");
-        assertTrue(adminUseCase.contains("coreApiClient.kickAllNode("), "Admin node kickall confirmation must call Core");
-        assertTrue(adminUseCase.contains("coreApiClient.shutdownNodeSafely("), "Admin node shutdown confirmation must call Core");
+        assertTrue(adminUseCase.contains("adminNodeCommands.kickAllNode("), "Admin node kickall confirmation must call typed Core command client");
+        assertTrue(adminUseCase.contains("adminNodeCommands.shutdownNodeSafely("), "Admin node shutdown confirmation must call typed Core command client");
         assertTrue(adminHandler.contains("confirmationAccepted(player, action, click)"), "Admin node danger actions must verify a typed confirmation token");
         assertTrue(tokens.contains("\"admin.node.kickall.confirm\""), "Admin node kickall must require a confirmation token");
         assertTrue(tokens.contains("\"admin.node.shutdown-safe.confirm\""), "Admin node shutdown-safe must require a confirmation token");
@@ -247,16 +247,16 @@ class PaperPlatformBoundaryTest {
         assertTrue(!backend.contains("unescape("), "Presentation code must not carry JSON string unescape helpers");
         assertTrue(!backend.contains("Double.parseDouble(json.substring"), "Presentation code must not parse Core JSON numbers manually");
         assertTrue(membership.contains("runtime.removeIslandMember(player"), "GUI confirmation and command routing must share the same member removal boundary");
-        assertTrue(usecase.contains("coreApiClient.removeIslandMemberResult("), "The application usecase must own the Core member removal call");
+        assertTrue(usecase.contains("memberCommands.removeMember("), "The application usecase must call typed member command client for removal");
         assertTrue(usecase.contains("islandQueries.listMembers("), "The application usecase must read members through the typed island query client");
         assertTrue(!usecase.contains("public CompletableFuture<String> listMembers("), "Member list usecase must expose typed views instead of raw JSON");
         assertTrue(usecase.contains("MemberQueryClient memberQueries"), "The application usecase must keep member reads behind a typed query client");
         assertTrue(usecase.contains("memberQueries.playerProfileByName("), "The application usecase must read player profiles through the typed member query client");
         assertTrue(usecase.contains("islandQueries.findIslandByName("), "The application usecase must read island names through the typed island query client");
         assertTrue(usecase.contains("findPendingInviteId("), "The application usecase must own pending invite matching");
-        assertTrue(usecase.contains("coreApiClient.createIslandInvite("), "The application usecase must own the Core invite creation call");
-        assertTrue(usecase.contains("coreApiClient.acceptIslandInviteResult("), "The application usecase must own the Core invite accept call");
-        assertTrue(usecase.contains("coreApiClient.declineIslandInviteResult("), "The application usecase must own the Core invite decline call");
+        assertTrue(usecase.contains("memberCommands.createInvite("), "The application usecase must call typed member command client for invite creation");
+        assertTrue(usecase.contains("memberCommands.acceptInvite("), "The application usecase must call typed member command client for invite accept");
+        assertTrue(usecase.contains("memberCommands.declineInvite("), "The application usecase must call typed member command client for invite decline");
         assertTrue(!usecase.contains("public CompletableFuture<String> listPendingInvites("), "Pending invite usecase must expose typed views instead of raw JSON");
         assertTrue(usecase.contains("memberQueries.pendingInvites("), "The application usecase must read pending invites through the typed member query client");
         assertTrue(usecase.contains("memberQueries.bans("), "The application usecase must read bans through the typed member query client");
@@ -264,12 +264,12 @@ class PaperPlatformBoundaryTest {
         assertTrue(!usecase.contains("coreApiClient.listPendingInvites("), "The application usecase must not parse raw pending invite bodies");
         assertTrue(!usecase.contains("coreApiClient.listIslandBans("), "The application usecase must not parse raw ban bodies");
         assertTrue(!usecase.contains("public CompletableFuture<String> listBans("), "Ban list usecase must expose typed views instead of raw JSON");
-        assertTrue(usecase.contains("coreApiClient.setIslandMemberResult("), "The application usecase must own the Core member role call");
-        assertTrue(usecase.contains("coreApiClient.trustIslandMemberTemporary("), "The application usecase must own the Core temporary trust call");
-        assertTrue(usecase.contains("coreApiClient.transferIslandOwnershipResult("), "The application usecase must own the Core ownership transfer call");
-        assertTrue(usecase.contains("coreApiClient.banIslandVisitorResult("), "The application usecase must own the Core visitor ban call");
-        assertTrue(usecase.contains("coreApiClient.pardonIslandVisitorResult("), "The application usecase must own the Core visitor pardon call");
-        assertTrue(usecase.contains("coreApiClient.kickIslandVisitorResult("), "The application usecase must own the Core visitor kick call");
+        assertTrue(usecase.contains("memberCommands.setRole("), "The application usecase must call typed member command client for role changes");
+        assertTrue(usecase.contains("memberCommands.trustTemporarily("), "The application usecase must call typed member command client for temporary trust");
+        assertTrue(usecase.contains("memberCommands.transferOwnership("), "The application usecase must call typed member command client for ownership transfer");
+        assertTrue(usecase.contains("memberCommands.banVisitor("), "The application usecase must call typed member command client for visitor ban");
+        assertTrue(usecase.contains("memberCommands.pardonVisitor("), "The application usecase must call typed member command client for visitor pardon");
+        assertTrue(usecase.contains("memberCommands.kickVisitor("), "The application usecase must call typed member command client for visitor kick");
     }
 
     @Test
