@@ -8,6 +8,8 @@ layout:
 items:
   P:
     material: LIME_DYE
+    active-material: LIME_DYE
+    inactive-material: GRAY_DYE
     name-key: settings-menu-public-name
     fallback-name: 공개 설정
     lore-keys:
@@ -19,6 +21,8 @@ items:
     action: public-toggle
   L:
     material: OAK_DOOR
+    active-material: IRON_DOOR
+    inactive-material: OAK_DOOR
     name-key: settings-menu-lock-name
     fallback-name: 잠금 설정
     lore-keys:

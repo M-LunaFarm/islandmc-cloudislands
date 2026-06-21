@@ -539,8 +539,12 @@ class GuiMenuDefinitionTest {
         assertEquals(27, definition.size());
         assertEquals("menu.settings.title", definition.titleKey());
         assertEquals("P", definition.itemAt(10).orElseThrow().symbol());
+        assertEquals("LIME_DYE", definition.itemAt(10).orElseThrow().materialKey(true));
+        assertEquals("GRAY_DYE", definition.itemAt(10).orElseThrow().materialKey(false));
         assertEquals("island.public.toggle", definition.action(definition.itemAt(10).orElseThrow().actionKey(), ""));
         assertEquals("L", definition.itemAt(11).orElseThrow().symbol());
+        assertEquals("IRON_DOOR", definition.itemAt(11).orElseThrow().materialKey(true));
+        assertEquals("OAK_DOOR", definition.itemAt(11).orElseThrow().materialKey(false));
         assertEquals("island.lock.toggle", definition.action(definition.itemAt(11).orElseThrow().actionKey(), ""));
         assertEquals("M", definition.itemAt(12).orElseThrow().symbol());
         assertEquals("island.members.open", definition.action(definition.itemAt(12).orElseThrow().actionKey(), ""));

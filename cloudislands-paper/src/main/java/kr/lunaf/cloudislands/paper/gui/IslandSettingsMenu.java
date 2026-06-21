@@ -1,10 +1,10 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.util.List;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -59,14 +59,21 @@ public final class IslandSettingsMenu implements Listener {
             boolean publicAccess = view.publicAccess();
             boolean locked = view.locked();
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
-            inventory.setItem(10, GuiItems.action(publicAccess ? Material.LIME_DYE : Material.GRAY_DYE, message(messages, "settings-menu-public-name", "공개 설정"), "island.public.toggle", message(messages, "settings-menu-current", "현재: ") + (publicAccess ? message(messages, "settings-menu-public", "공개") : message(messages, "settings-menu-private", "비공개")), message(messages, "settings-menu-public-left-click", "좌클릭: /섬 공개"), message(messages, "settings-menu-public-right-click", "우클릭: /섬 비공개")));
-            inventory.setItem(11, GuiItems.action(locked ? Material.IRON_DOOR : Material.OAK_DOOR, message(messages, "settings-menu-lock-name", "잠금 설정"), "island.lock.toggle", message(messages, "settings-menu-current", "현재: ") + (locked ? message(messages, "settings-menu-locked", "잠김") : message(messages, "settings-menu-open", "열림")), message(messages, "settings-menu-lock-left-click", "좌클릭: /섬 잠금해제"), message(messages, "settings-menu-lock-right-click", "우클릭: /섬 잠금")));
+            setStateItem(inventory, 10, messages, publicAccess,
+                message(messages, "settings-menu-current", "현재: ") + (publicAccess ? message(messages, "settings-menu-public", "공개") : message(messages, "settings-menu-private", "비공개")));
+            setStateItem(inventory, 11, messages, locked,
+                message(messages, "settings-menu-current", "현재: ") + (locked ? message(messages, "settings-menu-locked", "잠김") : message(messages, "settings-menu-open", "열림")));
             player.openInventory(inventory);
         });
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
         return GuiMenuRenderer.message(messages, key, fallback);
+    }
+
+    private static void setStateItem(Inventory inventory, int slot, MessageRenderer messages, boolean active, String currentLore) {
+        MENU.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.stateItem(MENU, item, messages, active, java.util.Map.of(), List.of(currentLore))));
     }
 
     @EventHandler

@@ -172,6 +172,21 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void settingsMenuToggleMaterialsRenderFromMenuDefinition() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandSettingsMenu.java"));
+        String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/settings.yml"));
+
+        assertTrue(config.contains("active-material: LIME_DYE"), "public enabled material must live in config-v2");
+        assertTrue(config.contains("inactive-material: GRAY_DYE"), "public disabled material must live in config-v2");
+        assertTrue(config.contains("active-material: IRON_DOOR"), "locked material must live in config-v2");
+        assertTrue(menu.contains("GuiMenuRenderer.stateItem(MENU, item, messages"), "settings toggles must render stateful configured menu items");
+        assertFalse(menu.contains("Material.LIME_DYE"), "settings menu must not hard-code public enabled material");
+        assertFalse(menu.contains("Material.GRAY_DYE"), "settings menu must not hard-code public disabled material");
+        assertFalse(menu.contains("Material.IRON_DOOR"), "settings menu must not hard-code locked material");
+        assertFalse(menu.contains("Material.OAK_DOOR"), "settings menu must not hard-code unlocked material");
+    }
+
+    @Test
     void guiSessionsAreRevisionGuardedAndClearedOnPluginDisable() throws Exception {
         String sessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));

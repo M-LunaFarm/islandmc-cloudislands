@@ -145,6 +145,8 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
                 currentList = "";
                 switch (key) {
                     case "material" -> builder.material(value);
+                    case "active-material" -> builder.activeMaterial(value);
+                    case "inactive-material" -> builder.inactiveMaterial(value);
                     case "name-key" -> builder.nameKey(value);
                     case "fallback-name" -> builder.fallbackName(value);
                     case "action" -> builder.actionKey(value);
@@ -190,6 +192,8 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
         String materialKey,
         String nameKey,
         String fallbackName,
+        String activeMaterialKey,
+        String inactiveMaterialKey,
         List<String> loreKeys,
         List<String> fallbackLore,
         Map<String, String> data,
@@ -200,10 +204,17 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
             materialKey = materialKey == null || materialKey.isBlank() ? "STONE" : materialKey;
             nameKey = nameKey == null ? "" : nameKey;
             fallbackName = fallbackName == null ? "" : fallbackName;
+            activeMaterialKey = activeMaterialKey == null ? "" : activeMaterialKey;
+            inactiveMaterialKey = inactiveMaterialKey == null ? "" : inactiveMaterialKey;
             loreKeys = loreKeys == null ? List.of() : List.copyOf(loreKeys);
             fallbackLore = fallbackLore == null ? List.of() : List.copyOf(fallbackLore);
             data = data == null ? Map.of() : Map.copyOf(data);
             actionKey = actionKey == null ? "" : actionKey;
+        }
+
+        public String materialKey(boolean active) {
+            String override = active ? activeMaterialKey : inactiveMaterialKey;
+            return override.isBlank() ? materialKey : override;
         }
 
         private Builder toBuilder() {
@@ -211,6 +222,8 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
             builder.materialKey = materialKey;
             builder.nameKey = nameKey;
             builder.fallbackName = fallbackName;
+            builder.activeMaterialKey = activeMaterialKey;
+            builder.inactiveMaterialKey = inactiveMaterialKey;
             builder.loreKeys.addAll(loreKeys);
             builder.fallbackLore.addAll(fallbackLore);
             builder.data.putAll(data);
@@ -223,6 +236,8 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
             private String materialKey = "STONE";
             private String nameKey = "";
             private String fallbackName = "";
+            private String activeMaterialKey = "";
+            private String inactiveMaterialKey = "";
             private final ArrayList<String> loreKeys = new ArrayList<>();
             private final ArrayList<String> fallbackLore = new ArrayList<>();
             private final LinkedHashMap<String, String> data = new LinkedHashMap<>();
@@ -234,6 +249,14 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
 
             private void material(String value) {
                 materialKey = value == null || value.isBlank() ? "STONE" : value;
+            }
+
+            private void activeMaterial(String value) {
+                activeMaterialKey = value == null ? "" : value;
+            }
+
+            private void inactiveMaterial(String value) {
+                inactiveMaterialKey = value == null ? "" : value;
             }
 
             private void nameKey(String value) {
@@ -263,7 +286,7 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
             }
 
             private MenuItem build() {
-                return new MenuItem(symbol, materialKey, nameKey, fallbackName, loreKeys, fallbackLore, data, actionKey);
+                return new MenuItem(symbol, materialKey, nameKey, fallbackName, activeMaterialKey, inactiveMaterialKey, loreKeys, fallbackLore, data, actionKey);
             }
         }
     }
