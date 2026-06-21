@@ -6,7 +6,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreRoutingCommandClient;
 import kr.lunaf.cloudislands.coreclient.RouteClearView;
 import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
 
@@ -19,7 +18,7 @@ public final class IslandRoutingUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.routingCommands = new CoreRoutingCommandClient(coreApiClient);
+        this.routingCommands = coreApiClient.routingCommands();
     }
 
     IslandRoutingUseCase(CoreApiClient coreApiClient, RoutingCommandClient routingCommands) {

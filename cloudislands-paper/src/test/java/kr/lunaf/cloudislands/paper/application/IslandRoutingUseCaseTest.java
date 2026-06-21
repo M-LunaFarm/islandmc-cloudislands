@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreRoutingCommandClient;
 import org.junit.jupiter.api.Test;
 
 class IslandRoutingUseCaseTest {
@@ -46,6 +47,7 @@ class IslandRoutingUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
+                case "routingCommands" -> new CoreRoutingCommandClient((CoreApiClient) _proxy);
                 case "createWarpTicket" -> {
                     calls.add("createWarpTicket:" + args[2]);
                     yield CompletableFuture.completedFuture(ticket);
