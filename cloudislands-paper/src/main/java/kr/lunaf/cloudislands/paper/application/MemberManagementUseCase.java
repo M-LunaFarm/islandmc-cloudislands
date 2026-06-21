@@ -30,14 +30,14 @@ public final class MemberManagementUseCase {
         return removeMember(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "MEMBER_REMOVED"));
     }
 
-    public CompletableFuture<String> listMembers(UUID islandId) {
+    private CompletableFuture<String> listMembersBody(UUID islandId) {
         requireIslandId(islandId);
         return coreApiClient.listIslandMembers(islandId);
     }
 
     public CompletableFuture<List<MemberView>> listMemberViews(UUID islandId) {
         requireIslandId(islandId);
-        return CoreGuiViews.islandMembers(coreApiClient, islandId);
+        return listMembersBody(islandId).thenApply(CoreGuiViews::memberViews);
     }
 
     public CompletableFuture<String> playerInfoByName(String playerName) {
@@ -69,14 +69,14 @@ public final class MemberManagementUseCase {
         return createInvite(islandId, actorUuid, targetUuid).thenApply(CoreGuiViews::inviteView);
     }
 
-    public CompletableFuture<String> listPendingInvites(UUID playerUuid) {
+    private CompletableFuture<String> listPendingInvitesBody(UUID playerUuid) {
         requirePlayerId(playerUuid);
         return coreApiClient.listPendingInvites(playerUuid);
     }
 
     public CompletableFuture<List<InviteView>> listPendingInviteViews(UUID playerUuid) {
         requirePlayerId(playerUuid);
-        return CoreGuiViews.pendingInvites(coreApiClient, playerUuid);
+        return listPendingInvitesBody(playerUuid).thenApply(CoreGuiViews::inviteViews);
     }
 
     public CompletableFuture<UUID> resolveInviteIdOrDirectId(UUID playerUuid, UUID inviteOrTargetUuid) {
@@ -84,7 +84,7 @@ public final class MemberManagementUseCase {
         if (inviteOrTargetUuid == null) {
             throw new IllegalArgumentException("inviteOrTargetUuid is required");
         }
-        return listPendingInvites(playerUuid).thenApply(body -> {
+        return listPendingInvitesBody(playerUuid).thenApply(body -> {
             UUID inviteId = findPendingInviteId(body, inviteOrTargetUuid);
             return inviteId == null ? inviteOrTargetUuid : inviteId;
         });
@@ -92,7 +92,7 @@ public final class MemberManagementUseCase {
 
     public CompletableFuture<UUID> resolveInviteByPlayerUuid(UUID playerUuid, UUID targetUuid) {
         requireIdsForInviteLookup(playerUuid, targetUuid);
-        return listPendingInvites(playerUuid).thenApply(body -> findPendingInviteId(body, targetUuid));
+        return listPendingInvitesBody(playerUuid).thenApply(body -> findPendingInviteId(body, targetUuid));
     }
 
     public CompletableFuture<UUID> resolveInviteByPlayerNameOrIslandName(UUID playerUuid, String target) {
@@ -204,14 +204,14 @@ public final class MemberManagementUseCase {
         return kickVisitor(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "VISITOR_KICKED"));
     }
 
-    public CompletableFuture<String> listBans(UUID islandId) {
+    private CompletableFuture<String> listBansBody(UUID islandId) {
         requireIslandId(islandId);
         return coreApiClient.listIslandBans(islandId);
     }
 
     public CompletableFuture<List<BanView>> listBanViews(UUID islandId) {
         requireIslandId(islandId);
-        return CoreGuiViews.islandBans(coreApiClient, islandId);
+        return listBansBody(islandId).thenApply(CoreGuiViews::banViews);
     }
 
     private static void requireIslandId(UUID islandId) {
