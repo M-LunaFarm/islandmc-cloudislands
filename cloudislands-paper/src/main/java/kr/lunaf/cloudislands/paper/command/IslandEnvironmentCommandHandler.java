@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
@@ -25,12 +26,14 @@ import org.bukkit.plugin.Plugin;
 final class IslandEnvironmentCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final IslandEnvironmentUseCase environmentUseCase;
     private final ProtectionController protection;
     private final Runtime runtime;
 
     IslandEnvironmentCommandHandler(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.environmentUseCase = new IslandEnvironmentUseCase(coreApiClient);
         this.protection = protection;
         this.runtime = runtime;
     }
@@ -152,7 +155,7 @@ final class IslandEnvironmentCommandHandler {
 
     private void showBiome(Player player) {
         runtime.currentIsland(player, "섬 안에서만 바이옴을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandBiome(islandId)
+            environmentUseCase.islandBiome(islandId)
                 .thenAccept(body -> runtime.message(player, "섬 바이옴: " + text(body, "biomeKey")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 바이옴을 불러오지 못했습니다.");
@@ -171,7 +174,7 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, runtime.routeMessage("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.biome.set", () -> coreApiClient.setIslandBiomeResult(islandId, player.getUniqueId(), biomeKey))
+            environmentUseCase.setBiome(islandId, player.getUniqueId(), biomeKey, runtime::mutate)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 바이옴 변경 " + biomeKey, biomeKey, body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 바이옴을 변경하지 못했습니다.");
@@ -182,7 +185,7 @@ final class IslandEnvironmentCommandHandler {
 
     private void showSize(Player player) {
         runtime.currentIsland(player, "섬 안에서만 크기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandInfo(islandId)
+            environmentUseCase.islandInfo(islandId)
                 .thenAccept(body -> runtime.message(player, "섬 크기: " + (long) decimal(body, "size")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 크기를 불러오지 못했습니다.");
@@ -193,8 +196,8 @@ final class IslandEnvironmentCommandHandler {
 
     private void showBorder(Player player) {
         runtime.currentIsland(player, "섬 안에서만 경계를 확인할 수 있습니다.").ifPresent(islandId -> {
-            CompletableFuture<String> info = coreApiClient.islandInfo(islandId);
-            CompletableFuture<String> flags = coreApiClient.listIslandFlags(islandId);
+            CompletableFuture<String> info = environmentUseCase.islandInfo(islandId);
+            CompletableFuture<String> flags = environmentUseCase.listFlags(islandId);
             info.thenCombine(flags, IslandEnvironmentCommandHandler::borderSummary)
                 .thenAccept(summary -> runtime.message(player, summary))
                 .exceptionally(error -> {
@@ -257,7 +260,7 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, runtime.routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.flag.set", () -> coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value))
+            environmentUseCase.setFlag(islandId, player.getUniqueId(), flag, value, runtime::mutate)
                 .thenAccept(body -> {
                     runtime.message(player, runtime.actionResultMessage("섬 경계 정책 변경 " + flag.name() + "=" + value, flag.name(), body));
                     if (applyAfterSave && !resultRejected(body)) {
@@ -278,8 +281,8 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, "섬 경계 위치를 확인하지 못했습니다.");
                 return;
             }
-            CompletableFuture<String> info = coreApiClient.islandInfo(islandId);
-            CompletableFuture<String> flags = coreApiClient.listIslandFlags(islandId);
+            CompletableFuture<String> info = environmentUseCase.islandInfo(islandId);
+            CompletableFuture<String> flags = environmentUseCase.listFlags(islandId);
             info.thenCombine(flags, (infoBody, flagBody) -> new BorderView(infoBody, flagBody, region.get()))
                 .thenAccept(view -> PaperSchedulers.run(plugin, () -> applyBorderSync(player, view, announce)))
                 .exceptionally(error -> {
@@ -312,7 +315,7 @@ final class IslandEnvironmentCommandHandler {
 
     private void listLimits(Player player) {
         runtime.currentIsland(player, "섬 안에서만 제한을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandLimits(islandId)
+            environmentUseCase.listLimits(islandId)
                 .thenAccept(body -> runtime.message(player, limitListMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 제한을 불러오지 못했습니다.");
@@ -339,7 +342,7 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, runtime.routeMessage("limit-set-denied", "섬 제한을 변경할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.limit.set", () -> coreApiClient.setIslandLimit(islandId, player.getUniqueId(), limitKey, value))
+            environmentUseCase.setLimit(islandId, player.getUniqueId(), limitKey, value, runtime::mutate)
                 .thenAccept(body -> {
                     if (resultRejected(body)) {
                         runtime.message(player, runtime.playerCodeMessage(text(body, "code"), "섬 제한을 변경하지 못했습니다."));

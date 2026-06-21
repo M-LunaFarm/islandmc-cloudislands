@@ -164,6 +164,7 @@ class IslandCommandControllerPolicyTest {
     void environmentCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String environmentHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"));
+        String environmentUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandEnvironmentUseCase.java"));
 
         assertTrue(backend.contains("private final IslandEnvironmentCommandHandler environmentCommands;"));
         assertTrue(routerSource().contains("environmentCommands.handleCommand(player, subcommand, args)"));
@@ -173,9 +174,16 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("applyIslandBorder("), "border UI logic belongs in IslandEnvironmentCommandHandler");
         assertTrue(environmentHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(environmentHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
-        assertTrue(environmentHandler.contains("coreApiClient.setIslandBiomeResult"));
-        assertTrue(environmentHandler.contains("coreApiClient.setIslandLimit"));
-        assertTrue(environmentHandler.contains("coreApiClient.setIslandFlagResult"));
+        assertTrue(environmentHandler.contains("IslandEnvironmentUseCase"));
+        assertTrue(environmentHandler.contains("environmentUseCase.setBiome"));
+        assertTrue(environmentHandler.contains("environmentUseCase.setLimit"));
+        assertTrue(environmentHandler.contains("environmentUseCase.setFlag"));
+        assertFalse(environmentHandler.contains("coreApiClient.setIslandBiomeResult"));
+        assertFalse(environmentHandler.contains("coreApiClient.setIslandLimit"));
+        assertFalse(environmentHandler.contains("coreApiClient.setIslandFlagResult"));
+        assertTrue(environmentUseCase.contains("coreApiClient.setIslandBiomeResult"));
+        assertTrue(environmentUseCase.contains("coreApiClient.setIslandLimit"));
+        assertTrue(environmentUseCase.contains("coreApiClient.setIslandFlagResult"));
     }
 
     @Test
