@@ -480,7 +480,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> replaceBlockCounts(UUID islandId, Map<String, Long> counts) {
-        return postWithResultBody("/v1/islands/blocks/replace", "{\"islandId\":\"" + islandId + "\",\"counts\":\"" + escape(countsPayload(counts)) + "\"}");
+        return postWithResultBody("/v1/islands/blocks/replace", jsonObject("islandId", islandId, "counts", countsPayload(counts)));
     }
 
     @Override
@@ -1452,7 +1452,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     private static CompletableFuture<String> invalidAddonState(String message) {
-        return CompletableFuture.completedFuture("{\"code\":\"INVALID_ADDON_STATE\",\"message\":\"" + escape(message) + "\"}");
+        return CompletableFuture.completedFuture(jsonObject("code", "INVALID_ADDON_STATE", "message", message));
     }
 
     private static String stringMapJson(Map<String, String> values) {
@@ -1479,48 +1479,48 @@ public final class JdkCoreApiClient implements CoreApiClient {
             default -> "";
         };
         if (endpoint.isBlank()) {
-            return CompletableFuture.completedFuture("{\"code\":\"INVALID_MIGRATION_ACTION\",\"message\":\"Unknown SuperiorSkyblock2 migration action: " + escape(normalizedAction) + "\"}");
+            return CompletableFuture.completedFuture(jsonObject("code", "INVALID_MIGRATION_ACTION", "message", "Unknown SuperiorSkyblock2 migration action: " + normalizedAction));
         }
         String value = path == null ? "" : path;
         String payload = endpoint.equals("import")
-            ? "{\"approval\":\"" + escape(value) + "\"}"
-            : (endpoint.equals("rollback") || endpoint.equals("status")) ? "{}" : "{\"path\":\"" + escape(value) + "\"}";
+            ? jsonObject("approval", value)
+            : (endpoint.equals("rollback") || endpoint.equals("status")) ? "{}" : jsonObject("path", value);
         return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, payload);
     }
 
     @Override
     public CompletableFuture<String> playerInfo(UUID playerUuid) {
-        return postWithResultBody("/v1/admin/players/info", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/admin/players/info", jsonObject("playerUuid", playerUuid));
     }
 
     @Override
     public CompletableFuture<String> playerInfoByName(String lastName) {
-        return post("/v1/players/info", "{\"lastName\":\"" + escape(lastName) + "\"}");
+        return post("/v1/players/info", jsonObject("lastName", lastName));
     }
 
     @Override
     public CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName) {
-        return postWithResultBody("/v1/players/touch", "{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"" + escape(lastName) + "\"}");
+        return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName));
     }
 
     @Override
     public CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName, String locale) {
-        return postWithResultBody("/v1/players/touch", "{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"" + escape(lastName) + "\",\"locale\":\"" + escape(locale) + "\"}");
+        return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName, "locale", locale));
     }
 
     @Override
     public CompletableFuture<String> setPlayerLocale(UUID playerUuid, String locale) {
-        return postWithResultBody("/v1/players/locale", "{\"playerUuid\":\"" + playerUuid + "\",\"locale\":\"" + escape(locale) + "\"}");
+        return postWithResultBody("/v1/players/locale", jsonObject("playerUuid", playerUuid, "locale", locale));
     }
 
     @Override
     public CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId) {
-        return postWithResultBody("/v1/admin/players/setisland", "{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}");
+        return postWithResultBody("/v1/admin/players/setisland", jsonObject("playerUuid", playerUuid, "islandId", islandId));
     }
 
     @Override
     public CompletableFuture<String> clearPlayerIsland(UUID playerUuid) {
-        return postWithResultBody("/v1/admin/players/clearisland", "{\"playerUuid\":\"" + playerUuid + "\"}");
+        return postWithResultBody("/v1/admin/players/clearisland", jsonObject("playerUuid", playerUuid));
     }
 
     @Override
@@ -1530,23 +1530,23 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion) {
-        return postWithResultBody("/v1/admin/templates/upsert", "{\"templateId\":\"" + escape(templateId) + "\",\"displayName\":\"" + escape(displayName) + "\",\"enabled\":" + enabled + ",\"minNodeVersion\":\"" + escape(minNodeVersion) + "\"}");
+        return postWithResultBody("/v1/admin/templates/upsert", jsonObject("templateId", templateId, "displayName", displayName, "enabled", enabled, "minNodeVersion", minNodeVersion));
     }
 
     @Override
     public CompletableFuture<String> enableTemplate(String templateId) {
-        return postWithResultBody("/v1/admin/templates/enable", "{\"templateId\":\"" + escape(templateId) + "\"}");
+        return postWithResultBody("/v1/admin/templates/enable", jsonObject("templateId", templateId));
     }
 
     @Override
     public CompletableFuture<String> disableTemplate(String templateId) {
-        return postWithResultBody("/v1/admin/templates/disable", "{\"templateId\":\"" + escape(templateId) + "\"}");
+        return postWithResultBody("/v1/admin/templates/disable", jsonObject("templateId", templateId));
     }
 
     @Override
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
-        return postWithResultBody("/v1/jobs/claim", "{\"nodeId\":\"" + escape(nodeId) + "\",\"supportedTypes\":\"" + escape(types) + "\",\"maxJobs\":" + maxJobs + "}").thenApply(IslandJobJson::readArray);
+        return postWithResultBody("/v1/jobs/claim", jsonObject("nodeId", nodeId, "supportedTypes", types, "maxJobs", maxJobs)).thenApply(IslandJobJson::readArray);
     }
 
     @Override
@@ -1561,7 +1561,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> retryJobResult(UUID jobId) {
-        return postWithResultBody("/v1/admin/jobs/retry", "{\"jobId\":\"" + jobId + "\"}");
+        return postWithResultBody("/v1/admin/jobs/retry", jsonObject("jobId", jobId));
     }
 
     @Override
@@ -1571,7 +1571,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> cancelJobResult(UUID jobId) {
-        return postWithResultBody("/v1/admin/jobs/cancel", "{\"jobId\":\"" + jobId + "\"}");
+        return postWithResultBody("/v1/admin/jobs/cancel", jsonObject("jobId", jobId));
     }
 
     @Override
@@ -1581,7 +1581,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) {
-        return postWithResultBody("/v1/admin/jobs/recover", "{\"nodeId\":\"" + escape(nodeId) + "\",\"minIdleMillis\":" + minIdleMillis + ",\"maxJobs\":" + maxJobs + "}");
+        return postWithResultBody("/v1/admin/jobs/recover", jsonObject("nodeId", nodeId, "minIdleMillis", minIdleMillis, "maxJobs", maxJobs));
     }
 
     @Override
@@ -1596,7 +1596,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload) {
-        return postWithResultBody("/v1/jobs/complete", "{\"nodeId\":\"" + escape(nodeId) + "\",\"jobId\":\"" + jobId + "\",\"payload\":" + mapJson(payload) + "}");
+        return postWithResultBody("/v1/jobs/complete", jsonObject("nodeId", nodeId, "jobId", jobId, "payload", rawJson(mapJson(payload))));
     }
 
     @Override
@@ -1606,7 +1606,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> failJobResult(String nodeId, UUID jobId, String errorMessage) {
-        return postWithResultBody("/v1/jobs/fail", "{\"nodeId\":\"" + escape(nodeId) + "\",\"jobId\":\"" + jobId + "\",\"error\":\"" + escape(errorMessage) + "\"}");
+        return postWithResultBody("/v1/jobs/fail", jsonObject("nodeId", nodeId, "jobId", jobId, "error", errorMessage));
     }
 
     @Override
@@ -1616,7 +1616,29 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> publishHeartbeatResult(NodeHeartbeatRequest request) {
-        return postWithResultBody("/v1/nodes/heartbeat", "{\"protocolVersion\":" + request.protocolVersion() + ",\"nodeId\":\"" + escape(request.nodeId()) + "\",\"pool\":\"" + escape(request.pool()) + "\",\"velocityServerName\":\"" + escape(request.velocityServerName()) + "\",\"nodeVersion\":\"" + escape(request.nodeVersion()) + "\",\"state\":\"" + request.state() + "\",\"players\":" + request.players() + ",\"softPlayerCap\":" + request.softPlayerCap() + ",\"hardPlayerCap\":" + request.hardPlayerCap() + ",\"reservedSlots\":" + request.reservedSlots() + ",\"activeIslands\":" + request.activeIslands() + ",\"maxActiveIslands\":" + request.maxActiveIslands() + ",\"mspt\":" + request.mspt() + ",\"activationQueue\":" + request.activationQueue() + ",\"maxActivationQueue\":" + request.maxActivationQueue() + ",\"chunkLoadPressure\":" + request.chunkLoadPressure() + ",\"heapUsedMb\":" + request.heapUsedMb() + ",\"heapMaxMb\":" + request.heapMaxMb() + ",\"recentFailurePenalty\":" + request.recentFailurePenalty() + ",\"storageAvailable\":" + request.storageAvailable() + ",\"supportedTemplates\":\"" + escape(request.supportedTemplates()) + "\"}");
+        return postWithResultBody("/v1/nodes/heartbeat", jsonObject(
+            "protocolVersion", request.protocolVersion(),
+            "nodeId", request.nodeId(),
+            "pool", request.pool(),
+            "velocityServerName", request.velocityServerName(),
+            "nodeVersion", request.nodeVersion(),
+            "state", request.state().name(),
+            "players", request.players(),
+            "softPlayerCap", request.softPlayerCap(),
+            "hardPlayerCap", request.hardPlayerCap(),
+            "reservedSlots", request.reservedSlots(),
+            "activeIslands", request.activeIslands(),
+            "maxActiveIslands", request.maxActiveIslands(),
+            "mspt", request.mspt(),
+            "activationQueue", request.activationQueue(),
+            "maxActivationQueue", request.maxActivationQueue(),
+            "chunkLoadPressure", request.chunkLoadPressure(),
+            "heapUsedMb", request.heapUsedMb(),
+            "heapMaxMb", request.heapMaxMb(),
+            "recentFailurePenalty", request.recentFailurePenalty(),
+            "storageAvailable", request.storageAvailable(),
+            "supportedTemplates", request.supportedTemplates()
+        ));
     }
 
     private String mapJson(Map<String, String> payload) {

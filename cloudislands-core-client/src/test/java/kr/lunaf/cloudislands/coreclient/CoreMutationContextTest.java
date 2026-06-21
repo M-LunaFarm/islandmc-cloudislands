@@ -22,6 +22,9 @@ import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.NodeState;
+import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import org.junit.jupiter.api.Test;
 
 class CoreMutationContextTest {
@@ -325,6 +328,98 @@ class CoreMutationContextTest {
     }
 
     @Test
+    void jdkClientBuildsPlayerTemplateJobAndHeartbeatPayloadsWithStructuredHelper() throws Exception {
+        UUID playerUuid = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        Map<String, String> jobPayload = new LinkedHashMap<>();
+        jobPayload.put("path", "jobs/one\"two");
+        jobPayload.put("note", "done");
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/admin/players/info", exchange -> respond(exchange, requestBodies, "playerInfo", "{\"player\":{}}"));
+        server.createContext("/v1/players/info", exchange -> respond(exchange, requestBodies, "playerInfoByName", "{\"player\":{}}"));
+        server.createContext("/v1/players/touch", exchange -> respond(exchange, requestBodies, "playerTouch", "{\"accepted\":true}"));
+        server.createContext("/v1/players/locale", exchange -> respond(exchange, requestBodies, "playerLocale", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/players/setisland", exchange -> respond(exchange, requestBodies, "playerSetIsland", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/players/clearisland", exchange -> respond(exchange, requestBodies, "playerClearIsland", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/templates/upsert", exchange -> respond(exchange, requestBodies, "templateUpsert", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/templates/enable", exchange -> respond(exchange, requestBodies, "templateEnable", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/templates/disable", exchange -> respond(exchange, requestBodies, "templateDisable", "{\"accepted\":true}"));
+        server.createContext("/v1/jobs/claim", exchange -> respond(exchange, requestBodies, "jobClaim", "[]"));
+        server.createContext("/v1/admin/jobs/retry", exchange -> respond(exchange, requestBodies, "jobRetry", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/jobs/cancel", exchange -> respond(exchange, requestBodies, "jobCancel", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/jobs/recover", exchange -> respond(exchange, requestBodies, "jobRecover", "{\"accepted\":true}"));
+        server.createContext("/v1/jobs/complete", exchange -> respond(exchange, requestBodies, "jobComplete", "{\"accepted\":true}"));
+        server.createContext("/v1/jobs/fail", exchange -> respond(exchange, requestBodies, "jobFail", "{\"accepted\":true}"));
+        server.createContext("/v1/nodes/heartbeat", exchange -> respond(exchange, requestBodies, "heartbeat", "{\"accepted\":true}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.playerInfo(playerUuid).join();
+            client.playerInfoByName("Player \"One\"").join();
+            client.touchPlayerProfile(playerUuid, "Player \"One\"").join();
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"Player \\\"One\\\"\"}", requestBodies.get("playerTouch"));
+            client.touchPlayerProfile(playerUuid, "Player \"One\"", "ko\"KR").join();
+            client.setPlayerLocale(playerUuid, "en\"US").join();
+            client.setPlayerIsland(playerUuid, islandId).join();
+            client.clearPlayerIsland(playerUuid).join();
+            client.upsertTemplate("template\"one", "Template \"One\"", true, "1.21\"11").join();
+            client.enableTemplate("template\"one").join();
+            client.disableTemplate("template\"one").join();
+            client.claimJobs("node\"a", List.of(IslandJobType.CREATE_ISLAND, IslandJobType.SAVE_ISLAND), 3).join();
+            client.retryJobResult(jobId).join();
+            client.cancelJobResult(jobId).join();
+            client.recoverJobsResult("node\"a", 50L, 2).join();
+            client.completeJobResult("node\"a", jobId, jobPayload).join();
+            client.failJobResult("node\"a", jobId, "failed \"hard\"").join();
+            client.publishHeartbeatResult(new NodeHeartbeatRequest(
+                NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION,
+                "node\"a",
+                "default\"pool",
+                "island-a",
+                "1.0\"rc",
+                NodeState.READY,
+                10,
+                20,
+                30,
+                2,
+                5,
+                15,
+                19.5D,
+                1,
+                4,
+                0.25D,
+                512L,
+                2048L,
+                3,
+                true,
+                "default,nether\"template"
+            )).join();
+
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("playerInfo"));
+            assertEquals("{\"lastName\":\"Player \\\"One\\\"\"}", requestBodies.get("playerInfoByName"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"Player \\\"One\\\"\",\"locale\":\"ko\\\"KR\"}", requestBodies.get("playerTouch"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"locale\":\"en\\\"US\"}", requestBodies.get("playerLocale"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}", requestBodies.get("playerSetIsland"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("playerClearIsland"));
+            assertEquals("{\"templateId\":\"template\\\"one\",\"displayName\":\"Template \\\"One\\\"\",\"enabled\":true,\"minNodeVersion\":\"1.21\\\"11\"}", requestBodies.get("templateUpsert"));
+            assertEquals("{\"templateId\":\"template\\\"one\"}", requestBodies.get("templateEnable"));
+            assertEquals("{\"templateId\":\"template\\\"one\"}", requestBodies.get("templateDisable"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"supportedTypes\":\"CREATE_ISLAND,SAVE_ISLAND\",\"maxJobs\":3}", requestBodies.get("jobClaim"));
+            assertEquals("{\"jobId\":\"" + jobId + "\"}", requestBodies.get("jobRetry"));
+            assertEquals("{\"jobId\":\"" + jobId + "\"}", requestBodies.get("jobCancel"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"minIdleMillis\":50,\"maxJobs\":2}", requestBodies.get("jobRecover"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"jobId\":\"" + jobId + "\",\"payload\":{\"path\":\"jobs/one\\\"two\",\"note\":\"done\"}}", requestBodies.get("jobComplete"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"jobId\":\"" + jobId + "\",\"error\":\"failed \\\"hard\\\"\"}", requestBodies.get("jobFail"));
+            assertEquals("{\"protocolVersion\":1,\"nodeId\":\"node\\\"a\",\"pool\":\"default\\\"pool\",\"velocityServerName\":\"island-a\",\"nodeVersion\":\"1.0\\\"rc\",\"state\":\"READY\",\"players\":10,\"softPlayerCap\":20,\"hardPlayerCap\":30,\"reservedSlots\":2,\"activeIslands\":5,\"maxActiveIslands\":15,\"mspt\":19.5,\"activationQueue\":1,\"maxActivationQueue\":4,\"chunkLoadPressure\":0.25,\"heapUsedMb\":512,\"heapMaxMb\":2048,\"recentFailurePenalty\":3,\"storageAvailable\":true,\"supportedTemplates\":\"default,nether\\\"template\"}", requestBodies.get("heartbeat"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void jdkClientBuildsGlobalAddonStatePayloadsWithStructuredHelper() throws Exception {
         Map<String, String> values = new LinkedHashMap<>();
         values.put("alpha", "one\"1");
@@ -550,6 +645,7 @@ class CoreMutationContextTest {
         ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/v1/islands/blocks/delta", exchange -> respond(exchange, requestBodies, "blockDelta", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/blocks/replace", exchange -> respond(exchange, requestBodies, "blockReplace", "{\"accepted\":true}"));
         server.createContext("/v1/islands/blocks", exchange -> respond(exchange, requestBodies, "blockDetails", "{\"blocks\":[],\"summary\":{}}"));
         server.createContext("/v1/islands/level/recalculate", exchange -> respond(exchange, requestBodies, "recalculate", "{\"level\":1}"));
         server.createContext("/v1/rankings/level", exchange -> respond(exchange, requestBodies, "rankLevel", "{\"rankings\":[]}"));
@@ -560,8 +656,12 @@ class CoreMutationContextTest {
         server.start();
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+            Map<String, Long> counts = new LinkedHashMap<>();
+            counts.put("minecraft:stone\"block", 3L);
+            counts.put("ignored", 0L);
 
             client.recordBlockDeltaResult(islandId, "minecraft:diamond\"block", 3L).join();
+            client.replaceBlockCounts(islandId, counts).join();
             client.islandBlockDetails(islandId, 25).join();
             client.recalculateIslandLevel(islandId, actorUuid).join();
             client.topIslandsByLevel(10).join();
@@ -571,6 +671,7 @@ class CoreMutationContextTest {
             client.setBlockValueResult(actorUuid, "minecraft:emerald\"block", "100.50", 20L, 64L).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"materialKey\":\"minecraft:diamond\\\"block\",\"delta\":3}", requestBodies.get("blockDelta"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"counts\":\"minecraft:stone\\\"block=3\"}", requestBodies.get("blockReplace"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":25}", requestBodies.get("blockDetails"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\"}", requestBodies.get("recalculate"));
             assertEquals("{\"limit\":10}", requestBodies.get("rankLevel"));
