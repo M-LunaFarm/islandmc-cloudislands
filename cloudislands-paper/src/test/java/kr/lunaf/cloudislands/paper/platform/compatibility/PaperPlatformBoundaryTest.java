@@ -194,6 +194,20 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void memberRemovalFlowsThroughApplicationUsecase() throws Exception {
+        Path root = repositoryRoot();
+        String backend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String membership = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
+        String usecase = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/MemberManagementUseCase.java"));
+
+        assertTrue(backend.contains("MemberManagementUseCase"), "Island command backend must own the member management usecase");
+        assertTrue(backend.contains("memberManagement.removeMember("), "Command and GUI member removal must call the application usecase");
+        assertTrue(!backend.contains("coreApiClient.removeIslandMemberResult("), "Presentation code must not call member removal Core API directly");
+        assertTrue(membership.contains("runtime.removeIslandMember(player"), "GUI confirmation and command routing must share the same member removal boundary");
+        assertTrue(usecase.contains("coreApiClient.removeIslandMemberResult("), "The application usecase must own the Core member removal call");
+    }
+
+    @Test
     void paperRuntimeDoesNotReenterCommandsThroughPlayerCommandStrings() throws Exception {
         Path root = repositoryRoot();
         Path paperSource = root.resolve("cloudislands-paper/src/main/java");

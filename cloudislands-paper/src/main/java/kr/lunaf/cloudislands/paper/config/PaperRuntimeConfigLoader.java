@@ -80,7 +80,7 @@ public final class PaperRuntimeConfigLoader {
         }
         List<ConfigSource> sources = paperConfigV2Sources(plugin);
         if (sources.isEmpty()) {
-            return load(plugin.getConfig(), envResolver);
+            return loadV2(List.of(new ConfigSource("paper/config-v2/empty", 10, "")), envResolver);
         }
         return loadV2(sources, envResolver);
     }

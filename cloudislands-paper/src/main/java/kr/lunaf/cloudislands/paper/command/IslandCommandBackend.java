@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
@@ -77,6 +78,7 @@ final class IslandCommandBackend {
     private final PlayerLocaleCache locales;
     private final PaperPlayerGateway players;
     private final PaperWorldGateway worlds;
+    private final MemberManagementUseCase memberManagement;
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
@@ -119,6 +121,7 @@ final class IslandCommandBackend {
         this.coreApiClient = coreApiClient;
         this.protection = protection;
         this.levelScanService = levelScanService;
+        this.memberManagement = new MemberManagementUseCase(coreApiClient);
         this.routingCommands = new IslandRoutingCommandHandler(plugin, coreApiClient, routeWaitSeconds, fallbackServerName, new IslandRoutingCommandHandler.Runtime() {
             @Override
             public void message(Player player, String message) {
@@ -1222,7 +1225,7 @@ final class IslandCommandBackend {
                 return;
             }
             resolvePlayerUuid(target).thenAccept(targetUuid -> {
-                mutateIdempotent("island.member.remove", () -> coreApiClient.removeIslandMemberResult(islandId, player.getUniqueId(), targetUuid))
+                mutateIdempotent("island.member.remove", () -> memberManagement.removeMember(islandId, player.getUniqueId(), targetUuid))
                     .thenAccept(body -> message(player, actionResultMessage("섬 멤버 제거", targetUuid, body)))
                     .exceptionally(error -> {
                         message(player, "섬 멤버를 제거하지 못했습니다.");

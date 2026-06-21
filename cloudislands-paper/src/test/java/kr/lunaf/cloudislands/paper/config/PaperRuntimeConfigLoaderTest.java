@@ -21,8 +21,8 @@ class PaperRuntimeConfigLoaderTest {
 
         assertTrue(loader.contains("public static PaperRuntimeConfig load(JavaPlugin plugin"), "Paper runtime loader must accept the plugin as the config composition root");
         assertTrue(loader.contains("paperConfigV2Sources"), "Paper runtime loader must discover bundled or data-folder config-v2 files");
-        assertTrue(loader.contains("return load(plugin.getConfig(), envResolver);"), "Paper runtime loader may read legacy Bukkit config only when config-v2 sources are absent");
-        assertFalse(loader.contains("FileConfiguration legacyConfig = plugin.getConfig()"), "Paper runtime loader must not read legacy config before deciding config-v2 is absent");
+        assertFalse(loader.contains("plugin.getConfig()"), "Paper runtime loader must not read legacy Bukkit config");
+        assertTrue(loader.contains("paper/config-v2/empty"), "Paper runtime loader must use an empty Config v2 source when no files are present");
         assertFalse(loader.contains("copyScalars(legacy"), "Config v2 runtime mapping must not merge legacy config values into the authoritative snapshot");
         assertTrue(loader.contains("validateV2Sources"), "Paper runtime loader must validate raw config-v2 sources before mapping");
         assertTrue(loader.contains("ConfigV2Validator.validateYaml"), "Paper runtime loader must run schema and secret validation on config-v2 sources");
