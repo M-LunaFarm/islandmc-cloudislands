@@ -192,6 +192,12 @@ public final class GuiActionParser {
                     safeData.getOrDefault("createdAt", ""),
                     safeData.getOrDefault("payload", "")
                 ));
+                case "island.ranking.list" -> Optional.of(new GuiAction.RankingList(
+                    safeData.getOrDefault("kind", "")
+                ));
+                case "island.missions.open" -> Optional.of(new GuiAction.MissionsOpen(
+                    safeData.getOrDefault("kind", "MISSION")
+                ));
                 case "island.mission.complete" -> Optional.of(new GuiAction.MissionComplete(
                     required(safeData, "missionKey"),
                     safeData.getOrDefault("kind", "MISSION"),

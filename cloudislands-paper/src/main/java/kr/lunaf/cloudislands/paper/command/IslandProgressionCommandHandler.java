@@ -153,6 +153,14 @@ final class IslandProgressionCommandHandler {
             purchaseUpgrade(player, upgradePurchase.upgradeKey());
             return true;
         }
+        if (action instanceof GuiAction.RankingList rankingList) {
+            listRanking(player, rankingList.worth(), 10);
+            return true;
+        }
+        if (action instanceof GuiAction.MissionsOpen missionsOpen) {
+            openMissionMenu(player, missionsOpen.kind());
+            return true;
+        }
         if (action instanceof GuiAction.NoPayload noPayload) {
             return switch (noPayload.type()) {
                 case RANKING_OPEN -> {

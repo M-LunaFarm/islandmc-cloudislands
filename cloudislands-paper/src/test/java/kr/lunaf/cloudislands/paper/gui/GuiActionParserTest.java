@@ -139,11 +139,11 @@ class GuiActionParserTest {
 
     @Test
     void preservesRegisteredRawActions() {
-        GuiAction action = GuiActionParser.parse("island.ranking.list", Map.of("kind", "worth")).orElseThrow();
+        GuiAction action = GuiActionParser.parse("admin.island.where.prompt", Map.of("islandId", "abc")).orElseThrow();
 
         assertTrue(action instanceof GuiAction.Raw);
-        assertEquals("island.ranking.list", action.actionId());
-        assertEquals(Map.of("kind", "worth"), action.data());
+        assertEquals("admin.island.where.prompt", action.actionId());
+        assertEquals(Map.of("islandId", "abc"), action.data());
     }
 
     @Test
@@ -204,6 +204,18 @@ class GuiActionParserTest {
             "createdAt", "now",
             "payload", "amount=100"
         ), action.data());
+    }
+
+    @Test
+    void parsesProgressionListsIntoTypedActions() {
+        GuiAction ranking = GuiActionParser.parse("island.ranking.list", Map.of("kind", " worth ")).orElseThrow();
+        GuiAction missions = GuiActionParser.parse("island.missions.open", Map.of("kind", " challenge ")).orElseThrow();
+
+        assertTrue(ranking instanceof GuiAction.RankingList);
+        assertEquals(Map.of("kind", "WORTH"), ranking.data());
+        assertTrue(((GuiAction.RankingList) ranking).worth());
+        assertTrue(missions instanceof GuiAction.MissionsOpen);
+        assertEquals(Map.of("kind", "CHALLENGE"), missions.data());
     }
 
     @Test
