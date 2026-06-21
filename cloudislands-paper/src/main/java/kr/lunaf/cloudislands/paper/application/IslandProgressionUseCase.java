@@ -5,35 +5,43 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreProgressionQueryClient;
+import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.ProgressionQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MissionView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.UpgradeView;
 
 public final class IslandProgressionUseCase {
-    private final CoreApiClient coreApiClient;
     private final ProgressionQueryClient progressionQueries;
+    private final ProgressionCommandClient progressionCommands;
 
     public IslandProgressionUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
-        this.coreApiClient = coreApiClient;
         this.progressionQueries = new CoreProgressionQueryClient(coreApiClient);
+        this.progressionCommands = new CoreProgressionCommandClient(coreApiClient);
     }
 
     IslandProgressionUseCase(CoreApiClient coreApiClient, ProgressionQueryClient progressionQueries) {
+        this(coreApiClient, progressionQueries, new CoreProgressionCommandClient(coreApiClient));
+    }
+
+    IslandProgressionUseCase(CoreApiClient coreApiClient, ProgressionQueryClient progressionQueries, ProgressionCommandClient progressionCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (progressionQueries == null) {
             throw new IllegalArgumentException("progressionQueries is required");
         }
-        this.coreApiClient = coreApiClient;
+        if (progressionCommands == null) {
+            throw new IllegalArgumentException("progressionCommands is required");
+        }
         this.progressionQueries = progressionQueries;
+        this.progressionCommands = progressionCommands;
     }
 
     public CompletableFuture<IslandLevelView> islandLevel(UUID islandId) {
@@ -58,14 +66,14 @@ public final class IslandProgressionUseCase {
         return progressionQueries.topReviews(limit).thenApply(views -> views.stream().map(IslandProgressionUseCase::reviewRankingEntryView).toList());
     }
 
-    private CompletableFuture<String> recalculateLevelBody(UUID islandId, UUID actorUuid) {
+    private CompletableFuture<IslandLevelView> recalculateLevelResult(UUID islandId, UUID actorUuid) {
         requireIsland(islandId);
         requireActor(actorUuid);
-        return coreApiClient.recalculateIslandLevel(islandId, actorUuid);
+        return progressionCommands.recalculateLevel(islandId, actorUuid).thenApply(IslandProgressionUseCase::levelView);
     }
 
     public CompletableFuture<IslandLevelView> recalculateLevelView(UUID islandId, UUID actorUuid) {
-        return recalculateLevelBody(islandId, actorUuid).thenApply(IslandProgressionUseCase::levelView);
+        return recalculateLevelResult(islandId, actorUuid);
     }
 
     public CompletableFuture<List<UpgradeView>> upgradeViews(UUID islandId) {
@@ -73,16 +81,16 @@ public final class IslandProgressionUseCase {
         return progressionQueries.upgrades(islandId).thenApply(views -> views.stream().map(IslandProgressionUseCase::upgradeView).toList());
     }
 
-    private CompletableFuture<String> purchaseUpgradeBody(UUID islandId, UUID actorUuid, String upgradeKey, IdempotentMutationRunner runner) {
+    private CompletableFuture<UpgradePurchaseResult> purchaseUpgradeBody(UUID islandId, UUID actorUuid, String upgradeKey, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireIdempotentRunner(runner);
-        return runner.mutateIdempotent("island.upgrade.purchase", () -> coreApiClient.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey == null ? "" : upgradeKey));
+        return runner.mutateIdempotent("island.upgrade.purchase", () -> progressionCommands.purchaseUpgrade(islandId, actorUuid, upgradeKey))
+            .thenApply(result -> new UpgradePurchaseResult(result.accepted(), result.code(), result.upgradeKey(), result.level(), result.cost()));
     }
 
     public CompletableFuture<UpgradePurchaseResult> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey, IdempotentMutationRunner runner) {
-        return purchaseUpgradeBody(islandId, actorUuid, upgradeKey, runner)
-            .thenApply(body -> upgradePurchaseResult(body, upgradeKey));
+        return purchaseUpgradeBody(islandId, actorUuid, upgradeKey, runner);
     }
 
     public CompletableFuture<List<MissionView>> missionViews(UUID islandId, String kind) {
@@ -90,16 +98,16 @@ public final class IslandProgressionUseCase {
         return progressionQueries.missions(islandId, normalizeKind(kind)).thenApply(views -> views.stream().map(IslandProgressionUseCase::missionView).toList());
     }
 
-    private CompletableFuture<String> completeMissionBody(UUID islandId, UUID actorUuid, String missionKey, String kind, IdempotentMutationRunner runner) {
+    private CompletableFuture<MissionCompletionResult> completeMissionBody(UUID islandId, UUID actorUuid, String missionKey, String kind, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireIdempotentRunner(runner);
-        return runner.mutateIdempotent("island.mission.complete", () -> coreApiClient.completeIslandMission(islandId, actorUuid, missionKey == null ? "" : missionKey, normalizeKind(kind)));
+        return runner.mutateIdempotent("island.mission.complete", () -> progressionCommands.completeMission(islandId, actorUuid, missionKey, normalizeKind(kind)))
+            .thenApply(result -> new MissionCompletionResult(result.accepted(), result.code(), result.missionKey(), result.title(), result.reward()));
     }
 
     public CompletableFuture<MissionCompletionResult> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, IdempotentMutationRunner runner) {
-        return completeMissionBody(islandId, actorUuid, missionKey, kind, runner)
-            .thenApply(body -> missionCompletionResult(body, missionKey));
+        return completeMissionBody(islandId, actorUuid, missionKey, kind, runner);
     }
 
     private static IslandLevelView levelView(String body) {
@@ -137,58 +145,6 @@ public final class IslandProgressionUseCase {
         return new MissionView(view.key(), view.title(), view.progress(), view.goal(), view.completed(), view.reward());
     }
 
-    private static UpgradePurchaseResult upgradePurchaseResult(String body, String fallbackKey) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        Map<?, ?> upgrade = SimpleJson.object(root.get("upgrade"));
-        boolean accepted = accepted(root);
-        String code = text(root, "code");
-        String upgradeKey = text(upgrade, "upgradeKey");
-        if (upgradeKey.isBlank()) {
-            upgradeKey = text(root, "upgradeKey");
-        }
-        if (upgradeKey.isBlank()) {
-            upgradeKey = fallbackKey == null ? "" : fallbackKey;
-        }
-        return new UpgradePurchaseResult(accepted, code, upgradeKey, SimpleJson.number(upgrade.get("level")), text(root, "cost"));
-    }
-
-    private static MissionCompletionResult missionCompletionResult(String body, String fallbackKey) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = accepted(root);
-        String code = text(root, "code");
-        return new MissionCompletionResult(
-            accepted,
-            code,
-            text(root, "missionKey").isBlank() ? fallbackKey : text(root, "missionKey"),
-            text(root, "title"),
-            text(root, "reward")
-        );
-    }
-
-    private static boolean accepted(Map<?, ?> root) {
-        return !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static double doubleValue(Object value) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        if (value instanceof String text) {
-            try {
-                return Double.parseDouble(text);
-            } catch (NumberFormatException ignored) {
-                return 0D;
-            }
-        }
-        return 0D;
-    }
-
     private static String normalizeKind(String kind) {
         return kind == null || kind.isBlank() ? "MISSION" : kind;
     }
@@ -213,7 +169,7 @@ public final class IslandProgressionUseCase {
 
     @FunctionalInterface
     public interface IdempotentMutationRunner {
-        CompletableFuture<String> mutateIdempotent(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     public record IslandLevelView(long level, String worth) {

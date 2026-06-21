@@ -68,6 +68,10 @@ public interface CoreApiClient {
         return new CoreProgressionQueryClient(this);
     }
 
+    default ProgressionCommandClient progressionCommands() {
+        return new CoreProgressionCommandClient(this);
+    }
+
     default MemberQueryClient members() {
         return new CoreMemberQueryClient(this);
     }

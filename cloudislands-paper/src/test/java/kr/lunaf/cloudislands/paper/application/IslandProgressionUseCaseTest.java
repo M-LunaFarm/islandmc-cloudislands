@@ -95,9 +95,12 @@ class IslandProgressionUseCaseTest {
     }
 
     private static IslandProgressionUseCase.IdempotentMutationRunner idempotentRunner(List<String> calls) {
-        return (auditAction, operation) -> {
-            calls.add("audit:" + auditAction);
-            return operation.get();
+        return new IslandProgressionUseCase.IdempotentMutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, java.util.function.Supplier<CompletableFuture<T>> operation) {
+                calls.add("audit:" + auditAction);
+                return operation.get();
+            }
         };
     }
 

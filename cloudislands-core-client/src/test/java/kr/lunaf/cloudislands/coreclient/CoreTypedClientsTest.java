@@ -409,6 +409,47 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void progressionCommandClientReturnsTypedMutationViews() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "recalculateIslandLevel" -> {
+                    calls.add("recalculate");
+                    yield CompletableFuture.completedFuture("{\"islandId\":\"%s\",\"level\":8,\"worth\":\"14.00\"}".formatted(islandId));
+                }
+                case "purchaseIslandUpgrade" -> {
+                    calls.add("purchase:" + args[2]);
+                    yield CompletableFuture.completedFuture("""
+                        {"accepted":true,"code":"UPGRADED","cost":"10.00","upgrade":{"upgradeKey":"generator:ore","level":3}}
+                        """);
+                }
+                case "completeIslandMission" -> {
+                    calls.add("mission:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("""
+                        {"accepted":true,"code":"MISSION_COMPLETED","missionKey":"starter","title":"Starter","reward":"10"}
+                        """);
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        ProgressionCommandClient client = new CoreProgressionCommandClient(raw);
+
+        CoreGuiViews.IslandInfoView level = client.recalculateLevel(islandId, actorUuid).join();
+        ProgressionUpgradePurchaseView upgrade = client.purchaseUpgrade(islandId, actorUuid, "generator").join();
+        ProgressionMissionCompletionView mission = client.completeMission(islandId, actorUuid, "starter", "CHALLENGE").join();
+
+        assertEquals(8L, level.level());
+        assertEquals("generator:ore", upgrade.upgradeKey());
+        assertEquals(3L, upgrade.level());
+        assertEquals("Starter", mission.title());
+        assertEquals(List.of("recalculate", "purchase:generator", "mission:starter:CHALLENGE"), calls);
+    }
+
+    @Test
     void memberQueryClientReturnsTypedProfileInvitesAndBans() {
         UUID playerUuid = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();

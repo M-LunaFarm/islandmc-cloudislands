@@ -192,12 +192,16 @@ class IslandCommandControllerPolicyTest {
         assertTrue(progressionUseCase.contains("progressionQueries.blockDetails"));
         assertTrue(progressionUseCase.contains("progressionQueries.topWorth"));
         assertTrue(progressionUseCase.contains("progressionQueries.upgrades"));
+        assertTrue(progressionUseCase.contains("ProgressionCommandClient progressionCommands"), "progression mutations must stay behind a typed core-client command boundary");
+        assertTrue(progressionUseCase.contains("progressionCommands.recalculateLevel"));
+        assertTrue(progressionUseCase.contains("progressionCommands.purchaseUpgrade"));
+        assertTrue(progressionUseCase.contains("progressionCommands.completeMission"));
         assertFalse(progressionUseCase.contains("coreApiClient.islandBlockDetails"));
         assertFalse(progressionUseCase.contains("PaperGuiViews.islandUpgrades(coreApiClient"));
         assertFalse(progressionUseCase.contains("PaperGuiViews.islandMissions(coreApiClient"));
-        assertTrue(progressionUseCase.contains("coreApiClient.recalculateIslandLevel"));
-        assertTrue(progressionUseCase.contains("coreApiClient.purchaseIslandUpgrade"));
-        assertTrue(progressionUseCase.contains("coreApiClient.completeIslandMission"));
+        assertFalse(progressionUseCase.contains("coreApiClient.recalculateIslandLevel"));
+        assertFalse(progressionUseCase.contains("coreApiClient.purchaseIslandUpgrade"));
+        assertFalse(progressionUseCase.contains("coreApiClient.completeIslandMission"));
     }
 
     @Test
