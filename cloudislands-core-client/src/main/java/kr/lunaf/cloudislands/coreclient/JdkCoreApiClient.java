@@ -57,6 +57,9 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkPlayerProfileClient playerProfileClient;
     private final JdkTemplateClient templateClient;
     private final JdkJobClient jobClient;
+    private final JdkBlockValueClient blockValueClient;
+    private final JdkAdminMetricsClient adminMetricsClient;
+    private final JdkAdminCoreConfigClient adminCoreConfigClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -79,6 +82,9 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.playerProfileClient = new JdkPlayerProfileClient();
         this.templateClient = new JdkTemplateClient();
         this.jobClient = new JdkJobClient();
+        this.blockValueClient = new JdkBlockValueClient();
+        this.adminMetricsClient = new JdkAdminMetricsClient();
+        this.adminCoreConfigClient = new JdkAdminCoreConfigClient();
     }
 
     @Override
@@ -174,6 +180,26 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public JobCommandClient jobCommands() {
         return jobClient;
+    }
+
+    @Override
+    public BlockValueQueryClient blockValues() {
+        return blockValueClient;
+    }
+
+    @Override
+    public BlockValueCommandClient blockValueCommands() {
+        return blockValueClient;
+    }
+
+    @Override
+    public AdminMetricsQueryClient adminMetrics() {
+        return adminMetricsClient;
+    }
+
+    @Override
+    public AdminCoreConfigQueryClient adminCoreConfig() {
+        return adminCoreConfigClient;
     }
 
     @Override
@@ -1331,6 +1357,51 @@ public final class JdkCoreApiClient implements CoreApiClient {
             if (jobId == null) {
                 throw new IllegalArgumentException("jobId is required");
             }
+        }
+    }
+
+    private final class JdkBlockValueClient implements BlockValueQueryClient, BlockValueCommandClient {
+        @Override
+        public CompletableFuture<List<BlockValueView>> list() {
+            return postWithResultBody("/v1/admin/block-values/list", "{}")
+                .thenApply(CoreBlockValueJson::values);
+        }
+
+        @Override
+        public CompletableFuture<BlockValueActionView> set(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
+            UUID safeActor = actorUuid == null ? new UUID(0L, 0L) : actorUuid;
+            String safeMaterial = requireMaterial(materialKey);
+            return postWithResultBody("/v1/admin/block-values", jsonObject(
+                "actorUuid", safeActor,
+                "materialKey", safeMaterial,
+                "worth", worth == null ? "0" : worth,
+                "levelPoints", levelPoints,
+                "limit", limit
+            )).thenApply(body -> CoreBlockValueJson.action(body, safeMaterial));
+        }
+
+        private String requireMaterial(String materialKey) {
+            String normalized = materialKey == null ? "" : materialKey.trim();
+            if (normalized.isBlank()) {
+                throw new IllegalArgumentException("materialKey is required");
+            }
+            return normalized;
+        }
+    }
+
+    private final class JdkAdminMetricsClient implements AdminMetricsQueryClient {
+        @Override
+        public CompletableFuture<AdminMetricsSummaryView> summary() {
+            return postWithResultBody("/metrics", "{}")
+                .thenApply(AdminMetricsSummaryView::parse);
+        }
+    }
+
+    private final class JdkAdminCoreConfigClient implements AdminCoreConfigQueryClient {
+        @Override
+        public CompletableFuture<AdminCoreConfigView> config() {
+            return postWithResultBody("/v1/admin/config", "{}")
+                .thenApply(AdminCoreConfigView::parse);
         }
     }
 
