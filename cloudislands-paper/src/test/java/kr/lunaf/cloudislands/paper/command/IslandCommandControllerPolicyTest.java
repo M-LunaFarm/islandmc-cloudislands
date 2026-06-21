@@ -459,6 +459,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage)"), "member role execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void trustIslandMemberTemporary(Player player, String target, String duration)"), "temporary trust execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void transferIslandOwnership(Player player, String target)"), "ownership transfer execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("private void banIslandVisitor(Player player, String target, String reason)"), "visitor ban execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("private void pardonIslandVisitor(Player player, String target)"), "visitor pardon execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("private void kickIslandVisitor(Player player, String target)"), "visitor kick execution belongs in IslandMembershipCommandHandler");
         assertFalse(backend.contains("private void listPendingInvites(Player player)"), "invite list execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void inviteIslandMember(Player player, String target)"), "invite creation execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid)"), "invite creation mutation must not stay in IslandCommandBackend");
@@ -470,6 +473,9 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage)"), "member role execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void trustIslandMemberTemporary(Player player, String target, String duration)"), "temporary trust execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void transferIslandOwnership(Player player, String target)"), "ownership transfer execution must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private void banIslandVisitor(Player player, String target, String reason)"), "visitor ban execution must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private void pardonIslandVisitor(Player player, String target)"), "visitor pardon execution must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private void kickIslandVisitor(Player player, String target)"), "visitor kick execution must not stay in IslandCommandBackend");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> removeMember("), "member removal usecase must expose typed actions instead of raw JSON");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> playerInfoByName("), "player lookup usecase must expose typed UUID lookup instead of raw JSON");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> islandInfoByName("), "island lookup usecase must expose typed invite resolution instead of raw JSON");

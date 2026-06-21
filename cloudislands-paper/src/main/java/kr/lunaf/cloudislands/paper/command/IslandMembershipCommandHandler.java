@@ -181,7 +181,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-ban-player-required", "밴할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.banIslandVisitor(player, args[1], args.length > 2 ? runtime.joined(args, 2) : "");
+            banIslandVisitor(player, args[1], args.length > 2 ? runtime.joined(args, 2) : "");
             return true;
         }
         if (subcommand.equals("unban") || subcommand.equals("pardon") || subcommand.equals("밴해제")) {
@@ -189,7 +189,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-pardon-player-required", "밴 해제할 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.pardonIslandVisitor(player, args[1]);
+            pardonIslandVisitor(player, args[1]);
             return true;
         }
         if (subcommand.equals("kickvisitor") || subcommand.equals("방문자추방")) {
@@ -197,7 +197,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-kick-visitor-required", "추방할 방문자를 입력해주세요."));
                 return true;
             }
-            runtime.kickIslandVisitor(player, args[1]);
+            kickIslandVisitor(player, args[1]);
             return true;
         }
         if (subcommand.equals("bans") || subcommand.equals("ban-menu") || subcommand.equals("banlist") || subcommand.equals("밴목록")) {
@@ -319,7 +319,7 @@ final class IslandMembershipCommandHandler {
                 return true;
             }
             if (runtime.confirmationAccepted(player, action, click)) {
-                runtime.pardonIslandVisitor(player, banPardon.playerUuid().toString());
+                pardonIslandVisitor(player, banPardon.playerUuid().toString());
             }
             return true;
         }
@@ -518,6 +518,81 @@ final class IslandMembershipCommandHandler {
                         runtime.message(player, "섬 소유권을 양도하지 못했습니다.");
                         return null;
                     });
+            });
+        });
+    }
+
+    private void banIslandVisitor(Player player, String target, String reason) {
+        runtime.currentIsland(player, "섬 안에서만 방문자를 밴할 수 있습니다.").ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.BAN_VISITOR)) {
+                runtime.message(player, runtime.routeMessage("visitor-ban-denied", "섬 방문자를 밴할 권한이 없습니다."));
+                return;
+            }
+            runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                runtime.mutateIdempotent("island.visitor.ban", () -> memberManagement.banVisitorAction(islandId, player.getUniqueId(), targetUuid, reason))
+                    .thenAccept(result -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+                        if (!result.accepted()) {
+                            player.sendMessage(runtime.playerMessage(memberActionMessage("섬 방문자 밴", targetUuid, result)));
+                            return;
+                        }
+                        runtime.moveVisitorToFallback(islandId, targetUuid, "섬에서 밴되어 로비로 이동합니다.", "섬에서 밴되어 로비로 이동하지 못했습니다.");
+                        player.sendMessage(runtime.playerMessage(memberActionMessage("섬 방문자 밴", targetUuid, result)));
+                    }))
+                    .exceptionally(error -> {
+                        runtime.message(player, "섬 방문자를 밴하지 못했습니다.");
+                        return null;
+                    });
+            });
+        });
+    }
+
+    private void pardonIslandVisitor(Player player, String target) {
+        runtime.currentIsland(player, "섬 안에서만 방문자 밴을 해제할 수 있습니다.").ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.BAN_VISITOR)) {
+                runtime.message(player, runtime.routeMessage("visitor-pardon-denied", "섬 방문자 밴을 해제할 권한이 없습니다."));
+                return;
+            }
+            runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                runtime.mutateIdempotent("island.visitor.pardon", () -> memberManagement.pardonVisitorAction(islandId, player.getUniqueId(), targetUuid))
+                    .thenAccept(result -> runtime.message(player, memberActionMessage("섬 방문자 밴 해제", targetUuid, result)))
+                    .exceptionally(error -> {
+                        runtime.message(player, "섬 방문자 밴을 해제하지 못했습니다.");
+                        return null;
+                    });
+            });
+        });
+    }
+
+    private void kickIslandVisitor(Player player, String target) {
+        runtime.currentIsland(player, "섬 안에서만 방문자를 추방할 수 있습니다.").ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.KICK_VISITOR)) {
+                runtime.message(player, runtime.routeMessage("visitor-kick-denied", "섬 방문자를 추방할 권한이 없습니다."));
+                return;
+            }
+            runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
+                runtime.mutateIdempotent("island.visitor.kick", () -> memberManagement.kickVisitorAction(islandId, player.getUniqueId(), targetUuid))
+                    .thenAccept(result -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+                        if (!result.accepted()) {
+                            player.sendMessage(runtime.playerMessage(memberActionMessage("섬 방문자 추방", targetUuid, result)));
+                            return;
+                        }
+                        if (plugin.getServer().getPlayer(targetUuid) == null) {
+                            runtime.message(player, runtime.routeMessage("visitor-kick-target-offline", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 온라인이 아닙니다."));
+                            return;
+                        }
+                        if (!runtime.moveVisitorToFallback(islandId, targetUuid, "섬에서 추방되어 로비로 이동합니다.", "섬에서 추방되어 로비로 이동하지 못했습니다.")) {
+                            runtime.message(player, runtime.routeMessage("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다."));
+                            return;
+                        }
+                        player.sendMessage(runtime.playerMessage(memberActionMessage("섬 방문자 추방", targetUuid, result)));
+                    }))
+                    .exceptionally(error -> {
+                        runtime.message(player, "섬 방문자를 추방하지 못했습니다.");
+                        return null;
+                    });
+            }).exceptionally(error -> {
+                runtime.message(player, "대상 플레이어를 찾지 못했습니다.");
+                return null;
             });
         });
     }
@@ -738,15 +813,13 @@ final class IslandMembershipCommandHandler {
 
         CompletableFuture<UUID> resolvePlayerUuid(String value);
 
+        boolean moveVisitorToFallback(UUID islandId, UUID targetUuid, String successMessage, String failureMessage);
+
+        String playerMessage(String message);
+
         void openIslandMemberMenu(Player player);
 
         void openIslandMemberMenu(Player player, int page);
-
-        void banIslandVisitor(Player player, String target, String reason);
-
-        void pardonIslandVisitor(Player player, String target);
-
-        void kickIslandVisitor(Player player, String target);
 
         void openIslandBanMenu(Player player);
 
