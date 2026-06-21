@@ -117,7 +117,6 @@ import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
-import kr.lunaf.cloudislands.coreclient.BankMutationView;
 import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
@@ -2053,7 +2052,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
         @Override
         public CompletableFuture<IslandBankSnapshot> getBank(UUID islandId) {
-            return client.bank().islandBank(islandId).thenApply(bank -> bank(islandId, bank));
+            return client.bank().snapshot(islandId);
         }
     }
 
@@ -2658,9 +2657,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> sendTeamChat(UUID islandId, UUID actorUuid, String message) { return sendTeamChatResult(islandId, actorUuid, message).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandChatResult> sendTeamChatResult(UUID islandId, UUID actorUuid, String message) { return sendChatResult(islandId, actorUuid, "TEAM", message); }
         @Override public CompletableFuture<Void> depositBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return depositBankResult(islandId, actorUuid, amount).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandBankChangeSnapshot> depositBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.deposit", () -> client.bankCommands().deposit(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankDeposit); }
+        @Override public CompletableFuture<IslandBankChangeSnapshot> depositBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.deposit", () -> client.bankCommands().depositSnapshot(islandId, actorUuid, amount.toPlainString())).thenApply(view -> bankChange(view, "DEPOSITED")); }
         @Override public CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount) { return withdrawBankResult(islandId, actorUuid, amount).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.withdraw", () -> client.bankCommands().withdraw(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankChange); }
+        @Override public CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.withdraw", () -> client.bankCommands().withdrawSnapshot(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankChange); }
 
         private CompletableFuture<Optional<IslandInviteSnapshot>> pendingInvite(UUID playerUuid, java.util.function.Predicate<IslandInviteSnapshot> predicate) {
             return client.members().pendingInvites(playerUuid)
@@ -3172,41 +3171,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static IslandBankSnapshot bank(UUID islandId, CoreGuiViews.BankView view) {
-        return new IslandBankSnapshot(
-            islandId == null ? new UUID(0L, 0L) : islandId,
-            view == null || view.balance() == null || view.balance().isBlank() ? "0" : view.balance(),
-            instant(view == null ? "" : view.updatedAt())
-        );
-    }
-
-    private static IslandBankChangeSnapshot bankDeposit(BankMutationView view) {
-        if (view == null) {
-            return new IslandBankChangeSnapshot(false, "FAILED", null);
-        }
-        return bankChange(view, "DEPOSITED");
-    }
-
-    private static IslandBankChangeSnapshot bankChange(BankMutationView view) {
+    private static IslandBankChangeSnapshot bankChange(IslandBankChangeSnapshot view) {
         if (view == null) {
             return new IslandBankChangeSnapshot(false, "FAILED", null);
         }
         return bankChange(view, "");
     }
 
-    private static IslandBankChangeSnapshot bankChange(BankMutationView view, String acceptedCode) {
+    private static IslandBankChangeSnapshot bankChange(IslandBankChangeSnapshot view, String acceptedCode) {
         String code = view.code().isBlank() && view.accepted() ? acceptedCode : view.code();
         if (code.isBlank() && !view.accepted()) {
             code = "FAILED";
         }
-        IslandBankSnapshot bank = view.islandId().isBlank() && view.balance().isBlank()
-            ? null
-            : new IslandBankSnapshot(
-                uuidValueOrZero(view.islandId()),
-                view.balance(),
-                view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
-            );
-        return new IslandBankChangeSnapshot(view.accepted(), code, bank);
+        return new IslandBankChangeSnapshot(view.accepted(), code, view.bank());
     }
 
     private static IslandChatResult chatResult(ChatActionView view) {

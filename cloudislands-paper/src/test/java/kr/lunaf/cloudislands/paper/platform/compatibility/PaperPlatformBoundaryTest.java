@@ -250,8 +250,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.homeWarpCommands().deleteWarp(islandId, actorUuid, name)"), "Warp deletion must use the typed home/warp command client");
         assertTrue(source.contains("client.homeWarpCommands().setWarpPublicAccess(islandId, actorUuid, name, publicAccess)"), "Warp visibility mutation must use the typed home/warp command client");
         assertTrue(source.contains("client.communicationCommands().sendChat(islandId, actorUuid, channel, message)"), "Chat mutation must use the typed communication command client");
-        assertTrue(source.contains("client.bankCommands().deposit(islandId, actorUuid, amount.toPlainString())"), "Bank deposit must use the typed bank command client");
-        assertTrue(source.contains("client.bankCommands().withdraw(islandId, actorUuid, amount.toPlainString())"), "Bank withdraw must use the typed bank command client");
+        assertTrue(source.contains("client.bankCommands().depositSnapshot(islandId, actorUuid, amount.toPlainString())"), "Bank deposit must use the typed bank DTO command client");
+        assertTrue(source.contains("client.bankCommands().withdrawSnapshot(islandId, actorUuid, amount.toPlainString())"), "Bank withdraw must use the typed bank DTO command client");
         assertTrue(!source.contains("bankDeposit(view.body())"), "Bank deposit results must not be reparsed from raw Core JSON");
         assertTrue(!source.contains("bankChange(view.body())"), "Bank withdraw results must not be reparsed from raw Core JSON");
         assertTrue(!source.contains("private static Optional<IslandSnapshot> island(String json)"), "Island info must not keep raw JSON converters");
@@ -588,7 +588,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.members().bans(islandId).thenApply(views -> bans(islandId, views))"), "Public API bans must use typed member query client");
         assertTrue(source.contains("client.snapshots().listSnapshots(islandId, limit).thenApply(views -> snapshots(islandId, views))"), "Public API snapshots must use typed snapshot query client");
         assertTrue(source.contains("client.communication().listLogs(islandId, limit).thenApply(views -> logs(islandId, views))"), "Public API logs must use typed communication query client");
-        assertTrue(source.contains("client.bank().islandBank(islandId).thenApply(bank -> bank(islandId, bank))"), "Public API bank lookup must use typed bank query client");
+        assertTrue(source.contains("client.bank().snapshot(islandId)"), "Public API bank lookup must use the typed bank DTO query client");
         assertTrue(source.contains("client.warehouse().listItems(islandId, limit).thenApply(PaperCloudIslandsApi::warehouseItems)"), "Public API warehouse lookup must use typed warehouse query client");
         assertTrue(source.contains("client.visitorStats().stats(islandId, limit).thenApply(PaperCloudIslandsApi::visitorStats)"), "Public API visitor stats must use typed visitor stats query client");
         assertTrue(source.contains("client.adminEvents().list(limit).thenApply(PaperCloudIslandsApi::events)"), "Public API events must use typed admin event query client");
@@ -1245,7 +1245,7 @@ class PaperPlatformBoundaryTest {
                 if (line.contains(".thenCompose(_body -> client.")) {
                     continue;
                 }
-                if (line.contains("client.bank().islandBank(")) {
+                if (line.contains("client.bank().islandBank(") || line.contains("client.bank().snapshot(")) {
                     continue;
                 }
                 if (line.contains("client.members().bans(") || line.contains("client.progression().")) {

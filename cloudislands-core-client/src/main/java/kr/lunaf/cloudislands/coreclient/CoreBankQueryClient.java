@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreclient;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 
 public final class CoreBankQueryClient implements BankQueryClient {
     private final CoreApiClient delegate;
@@ -14,9 +15,9 @@ public final class CoreBankQueryClient implements BankQueryClient {
     }
 
     @Override
-    public CompletableFuture<CoreGuiViews.BankView> islandBank(UUID islandId) {
+    public CompletableFuture<IslandBankSnapshot> snapshot(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandBank(delegate, islandId);
+        return delegate.islandBank(islandId).thenApply(CoreBankJson::snapshot);
     }
 
     private static void requireIsland(UUID islandId) {

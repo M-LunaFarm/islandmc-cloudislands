@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
@@ -76,13 +77,13 @@ public final class IslandBankRoutes implements RouteGroup {
             return;
         }
         if (amount.signum() <= 0) {
-            CoreHttpResponses.write(exchange, 409, "{\"accepted\":false,\"code\":\"INVALID_AMOUNT\",\"bank\":" + bankJson(bankRepository.balance(islandId)) + "}");
+            CoreHttpResponses.write(exchange, 409, bankChangeJson(new IslandBankChangeSnapshot(false, "INVALID_AMOUNT", bankRepository.balance(islandId))));
             return;
         }
         long bankLimit = limitValue(islandId, "BANK", Long.MAX_VALUE);
         var result = bankRepository.deposit(islandId, amount, bankLimit == Long.MAX_VALUE ? null : BigDecimal.valueOf(bankLimit));
         if (!result.accepted()) {
-            CoreHttpResponses.write(exchange, 409, "{\"accepted\":false,\"code\":\"" + result.code() + "\",\"bank\":" + bankJson(result.snapshot()) + "}");
+            CoreHttpResponses.write(exchange, 409, bankChangeJson(new IslandBankChangeSnapshot(false, result.code(), result.snapshot())));
             return;
         }
         var snapshot = result.snapshot();
@@ -106,7 +107,7 @@ public final class IslandBankRoutes implements RouteGroup {
         if (result.accepted()) {
             events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "operation", "WITHDRAW", "amount", amount.toPlainString(), "balance", result.snapshot().balance()));
         }
-        CoreHttpResponses.write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"bank\":" + bankJson(result.snapshot()) + "}");
+        CoreHttpResponses.write(exchange, result.accepted() ? 202 : 409, bankChangeJson(new IslandBankChangeSnapshot(result.accepted(), result.code(), result.snapshot())));
     }
 
     private boolean requireIslandPermission(HttpExchange exchange, UUID islandId, UUID actorUuid, IslandPermission permission) throws IOException {
@@ -146,10 +147,22 @@ public final class IslandBankRoutes implements RouteGroup {
     }
 
     static String bankJson(IslandBankSnapshot bank) {
+        return SimpleJson.stringify(bankMap(bank));
+    }
+
+    static String bankChangeJson(IslandBankChangeSnapshot change) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", change.accepted());
+        values.put("code", change.code());
+        values.put("bank", bankMap(change.bank()));
+        return SimpleJson.stringify(values);
+    }
+
+    private static Map<String, Object> bankMap(IslandBankSnapshot bank) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("islandId", bank.islandId());
         values.put("balance", bank.balance());
         values.put("updatedAt", bank.updatedAt());
-        return SimpleJson.stringify(values);
+        return values;
     }
 }

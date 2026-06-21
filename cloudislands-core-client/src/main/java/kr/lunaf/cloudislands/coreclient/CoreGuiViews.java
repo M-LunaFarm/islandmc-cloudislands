@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreGuiViews {
@@ -39,10 +40,14 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<BankView> islandBank(CoreApiClient client, UUID islandId) {
-        return client.islandBank(islandId).thenApply(body -> {
-            Map<?, ?> root = root(body);
-            return new BankView(text(root, "balance"), text(root, "updatedAt"));
-        });
+        return client.bank().snapshot(islandId).thenApply(CoreGuiViews::bankView);
+    }
+
+    private static BankView bankView(IslandBankSnapshot snapshot) {
+        return new BankView(
+            snapshot == null ? "0" : snapshot.balance(),
+            snapshot == null || snapshot.updatedAt() == null || snapshot.updatedAt().equals(java.time.Instant.EPOCH) ? "" : snapshot.updatedAt().toString()
+        );
     }
 
     public static CompletableFuture<BiomeView> islandBiome(CoreApiClient client, UUID islandId) {

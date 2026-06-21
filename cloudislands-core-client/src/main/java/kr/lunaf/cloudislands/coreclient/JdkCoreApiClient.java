@@ -36,6 +36,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final String adminToken;
     private final Duration timeout;
     private final HttpClient httpClient;
+    private final JdkBankClient bankClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -47,6 +48,17 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.adminToken = adminToken == null ? "" : adminToken;
         this.timeout = timeout == null || timeout.isNegative() || timeout.isZero() ? Duration.ofSeconds(5) : timeout;
         this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
+        this.bankClient = new JdkBankClient();
+    }
+
+    @Override
+    public BankQueryClient bank() {
+        return bankClient;
+    }
+
+    @Override
+    public BankCommandClient bankCommands() {
+        return bankClient;
     }
 
     @Override
@@ -647,6 +659,37 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount) {
         return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount));
+    }
+
+    private final class JdkBankClient implements BankQueryClient, BankCommandClient {
+        @Override
+        public CompletableFuture<kr.lunaf.cloudislands.api.model.IslandBankSnapshot> snapshot(UUID islandId) {
+            requireId(islandId, "islandId");
+            return post("/v1/islands/bank", jsonObject("islandId", islandId))
+                .thenApply(CoreBankJson::snapshot);
+        }
+
+        @Override
+        public CompletableFuture<kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot> depositSnapshot(UUID islandId, UUID actorUuid, String amount) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return postWithResultBody("/v1/islands/bank/deposit", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
+                .thenApply(CoreBankJson::mutation);
+        }
+
+        @Override
+        public CompletableFuture<kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot> withdrawSnapshot(UUID islandId, UUID actorUuid, String amount) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
+                .thenApply(CoreBankJson::mutation);
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
     }
 
     @Override

@@ -1,9 +1,8 @@
 package kr.lunaf.cloudislands.coreclient;
 
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 
 public final class CoreBankCommandClient implements BankCommandClient {
     private final CoreApiClient delegate;
@@ -16,36 +15,19 @@ public final class CoreBankCommandClient implements BankCommandClient {
     }
 
     @Override
-    public CompletableFuture<BankMutationView> deposit(UUID islandId, UUID actorUuid, String amount) {
+    public CompletableFuture<IslandBankChangeSnapshot> depositSnapshot(UUID islandId, UUID actorUuid, String amount) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         return delegate.depositIslandBank(islandId, actorUuid, amount == null ? "" : amount)
-            .thenApply(CoreBankCommandClient::bankMutation);
+            .thenApply(CoreBankJson::mutation);
     }
 
     @Override
-    public CompletableFuture<BankMutationView> withdraw(UUID islandId, UUID actorUuid, String amount) {
+    public CompletableFuture<IslandBankChangeSnapshot> withdrawSnapshot(UUID islandId, UUID actorUuid, String amount) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         return delegate.withdrawIslandBank(islandId, actorUuid, amount == null ? "" : amount)
-            .thenApply(CoreBankCommandClient::bankMutation);
-    }
-
-    private static BankMutationView bankMutation(String body) {
-        Map<?, ?> root = CoreJson.object(body);
-        Map<?, ?> bank = SimpleJson.object(root.get("bank"));
-        String islandId = firstText(root, bank, "islandId");
-        String balance = firstText(root, bank, "balance");
-        String updatedAt = firstText(root, bank, "updatedAt");
-        return new BankMutationView(CoreJson.accepted(root), CoreJson.text(root, "code"), islandId, balance, updatedAt);
-    }
-
-    private static String firstText(Map<?, ?> root, Map<?, ?> nested, String key) {
-        String rootValue = SimpleJson.text(root.get(key));
-        if (!rootValue.isBlank()) {
-            return rootValue;
-        }
-        return SimpleJson.text(nested.get(key));
+            .thenApply(CoreBankJson::mutation);
     }
 
     private static void requireId(UUID id, String name) {

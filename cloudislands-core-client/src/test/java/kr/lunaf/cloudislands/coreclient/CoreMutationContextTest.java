@@ -627,9 +627,9 @@ class CoreMutationContextTest {
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
-            client.islandBank(islandId).join();
-            client.depositIslandBank(islandId, actorUuid, "12.50").join();
-            client.withdrawIslandBank(islandId, actorUuid, "4.25").join();
+            client.bank().snapshot(islandId).join();
+            client.bankCommands().depositSnapshot(islandId, actorUuid, "12.50").join();
+            client.bankCommands().withdrawSnapshot(islandId, actorUuid, "4.25").join();
             client.islandWarehouse(islandId, 50).join();
             client.depositIslandWarehouse(islandId, actorUuid, "minecraft:stone", 12L).join();
             client.withdrawIslandWarehouse(islandId, actorUuid, "minecraft:dirt", 7L).join();

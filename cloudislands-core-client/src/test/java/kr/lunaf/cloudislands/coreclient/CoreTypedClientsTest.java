@@ -16,6 +16,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -719,16 +721,20 @@ class CoreTypedClientsTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "islandBank" -> CompletableFuture.completedFuture("{\"balance\":\"55\",\"updatedAt\":\"now\"}");
+                case "islandBank" -> CompletableFuture.completedFuture("{\"islandId\":\"%s\",\"balance\":\"55\",\"updatedAt\":\"2026-01-02T03:04:05Z\"}".formatted(islandId));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
         BankQueryClient client = new CoreBankQueryClient(raw);
 
+        IslandBankSnapshot snapshot = client.snapshot(islandId).join();
         CoreGuiViews.BankView bank = client.islandBank(islandId).join();
 
+        assertEquals(islandId, snapshot.islandId());
+        assertEquals("55", snapshot.balance());
+        assertEquals(Instant.parse("2026-01-02T03:04:05Z"), snapshot.updatedAt());
         assertEquals("55", bank.balance());
-        assertEquals("now", bank.updatedAt());
+        assertEquals("2026-01-02T03:04:05Z", bank.updatedAt());
     }
 
     @Test
@@ -742,30 +748,34 @@ class CoreTypedClientsTest {
             (_proxy, method, args) -> switch (method.getName()) {
                 case "depositIslandBank" -> {
                     calls.add("deposit:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"bank\":{\"islandId\":\"%s\",\"balance\":\"70\",\"updatedAt\":\"now\"}}".formatted(islandId));
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"bank\":{\"islandId\":\"%s\",\"balance\":\"70\",\"updatedAt\":\"2026-01-02T03:04:05Z\"}}".formatted(islandId));
                 }
                 case "withdrawIslandBank" -> {
                     calls.add("withdraw:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_FUNDS\",\"islandId\":\"%s\",\"balance\":\"20\",\"updatedAt\":\"later\"}".formatted(islandId));
+                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_FUNDS\",\"islandId\":\"%s\",\"balance\":\"20\",\"updatedAt\":\"2026-01-02T04:04:05Z\"}".formatted(islandId));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
         BankCommandClient client = new CoreBankCommandClient(raw);
 
+        IslandBankChangeSnapshot depositSnapshot = client.depositSnapshot(islandId, actorUuid, "15").join();
         BankMutationView deposit = client.deposit(islandId, actorUuid, "15").join();
         BankMutationView withdraw = client.withdraw(islandId, actorUuid, "4").join();
 
+        assertTrue(depositSnapshot.accepted());
+        assertEquals(islandId, depositSnapshot.bank().islandId());
+        assertEquals("70", depositSnapshot.bank().balance());
         assertTrue(deposit.accepted());
         assertEquals(islandId.toString(), deposit.islandId());
         assertEquals("70", deposit.balance());
-        assertEquals("now", deposit.updatedAt());
+        assertEquals("2026-01-02T03:04:05Z", deposit.updatedAt());
         assertFalse(withdraw.accepted());
         assertEquals("NO_FUNDS", withdraw.code());
         assertEquals(islandId.toString(), withdraw.islandId());
         assertEquals("20", withdraw.balance());
-        assertEquals("later", withdraw.updatedAt());
-        assertEquals(List.of("deposit:15", "withdraw:4"), calls);
+        assertEquals("2026-01-02T04:04:05Z", withdraw.updatedAt());
+        assertEquals(List.of("deposit:15", "deposit:15", "withdraw:4"), calls);
     }
 
     @Test
