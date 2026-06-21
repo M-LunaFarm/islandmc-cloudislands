@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
@@ -21,11 +22,13 @@ import org.bukkit.plugin.Plugin;
 final class IslandSettingsCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final IslandSettingsUseCase settingsUseCase;
     private final Runtime runtime;
 
     IslandSettingsCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.settingsUseCase = new IslandSettingsUseCase(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -140,7 +143,7 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, runtime.routeMessage("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.public-access.set", () -> coreApiClient.setIslandPublicAccessResult(islandId, player.getUniqueId(), publicAccess))
+            settingsUseCase.setPublicAccess(islandId, player.getUniqueId(), publicAccess, runtime::mutate)
                 .thenAccept(body -> {
                     runtime.message(player, runtime.actionResultMessage(publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId, body));
                     if (!resultRejected(body)) {
@@ -160,7 +163,7 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, runtime.routeMessage("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.locked.set", () -> coreApiClient.setIslandLockedResult(islandId, player.getUniqueId(), locked))
+            settingsUseCase.setLocked(islandId, player.getUniqueId(), locked, runtime::mutate)
                 .thenAccept(body -> {
                     runtime.message(player, runtime.actionResultMessage(locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId, body));
                     if (!resultRejected(body)) {
@@ -180,7 +183,7 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, runtime.routeMessage("name-change-denied", "섬 이름을 변경할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.name.set", () -> coreApiClient.setIslandNameResult(islandId, player.getUniqueId(), name))
+            settingsUseCase.setName(islandId, player.getUniqueId(), name, runtime::mutate)
                 .thenAccept(body -> {
                     runtime.message(player, runtime.actionResultMessage("섬 이름 변경", name, body));
                     if (!resultRejected(body)) {
@@ -196,7 +199,7 @@ final class IslandSettingsCommandHandler {
 
     private void listFlags(Player player) {
         runtime.currentIsland(player, "섬 안에서만 플래그를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandFlags(islandId)
+            settingsUseCase.listFlags(islandId)
                 .thenAccept(body -> runtime.message(player, flagListMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 플래그를 불러오지 못했습니다.");
@@ -224,7 +227,7 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, runtime.routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
                 return;
             }
-            runtime.mutate("island.flag.set", () -> coreApiClient.setIslandFlagResult(islandId, player.getUniqueId(), flag, value))
+            settingsUseCase.setFlag(islandId, player.getUniqueId(), flag, value, runtime::mutate)
                 .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 플래그 변경 " + flag.name() + "=" + value, flag.name(), body)))
                 .exceptionally(error -> {
                     runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 플래그를 변경하지 못했습니다."));

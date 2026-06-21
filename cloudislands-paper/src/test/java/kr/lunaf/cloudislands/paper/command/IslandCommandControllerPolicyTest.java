@@ -182,6 +182,7 @@ class IslandCommandControllerPolicyTest {
     void settingsCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String settingsHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSettingsCommandHandler.java"));
+        String settingsUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandSettingsUseCase.java"));
 
         assertTrue(backend.contains("private final IslandSettingsCommandHandler settingsCommands;"));
         assertTrue(routerSource().contains("settingsCommands.handleCommand(player, subcommand, args)"));
@@ -191,9 +192,16 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("setIslandName("), "name mutation logic belongs in IslandSettingsCommandHandler");
         assertTrue(settingsHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(settingsHandler.contains("boolean handleGuiAction(Player player, GuiAction action, boolean rightClick)"));
-        assertTrue(settingsHandler.contains("coreApiClient.setIslandPublicAccessResult"));
-        assertTrue(settingsHandler.contains("coreApiClient.setIslandFlagResult"));
-        assertTrue(settingsHandler.contains("coreApiClient.setIslandNameResult"));
+        assertTrue(settingsHandler.contains("IslandSettingsUseCase"));
+        assertTrue(settingsHandler.contains("settingsUseCase.setPublicAccess"));
+        assertTrue(settingsHandler.contains("settingsUseCase.setFlag"));
+        assertTrue(settingsHandler.contains("settingsUseCase.setName"));
+        assertFalse(settingsHandler.contains("coreApiClient.setIslandPublicAccessResult"));
+        assertFalse(settingsHandler.contains("coreApiClient.setIslandFlagResult"));
+        assertFalse(settingsHandler.contains("coreApiClient.setIslandNameResult"));
+        assertTrue(settingsUseCase.contains("coreApiClient.setIslandPublicAccessResult"));
+        assertTrue(settingsUseCase.contains("coreApiClient.setIslandFlagResult"));
+        assertTrue(settingsUseCase.contains("coreApiClient.setIslandNameResult"));
     }
 
     @Test
