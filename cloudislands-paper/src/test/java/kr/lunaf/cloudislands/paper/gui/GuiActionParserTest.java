@@ -365,12 +365,10 @@ class GuiActionParserTest {
     }
 
     @Test
-    void parsesEveryRegisteredActionIntoNonRawTypedAction() {
+    void parsesEveryRegisteredActionIntoTypedAction() {
         for (String actionId : GuiActionSchema.registeredActionIds()) {
-            GuiAction action = GuiActionParser.parse(actionId, sampleDataFor(actionId))
+            GuiActionParser.parse(actionId, sampleDataFor(actionId))
                 .orElseThrow(() -> new AssertionError("registered action is not typed: " + actionId));
-
-            assertFalse(action instanceof GuiAction.Raw, actionId);
         }
     }
 
