@@ -119,6 +119,10 @@ final class IslandEnvironmentCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.LimitSet limitSet) {
+            setLimit(player, limitSet.limitKey(), limitSet.value());
+            return true;
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {
@@ -140,10 +144,6 @@ final class IslandEnvironmentCommandHandler {
             }
             case "island.limits.list" -> {
                 listLimits(player);
-                yield true;
-            }
-            case "island.limit.set" -> {
-                setLimit(player, data.getOrDefault("limitKey", ""), longValue(data.getOrDefault("value", "0"), 0L));
                 yield true;
             }
             default -> false;

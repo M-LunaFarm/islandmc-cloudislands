@@ -65,6 +65,15 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesLimitSetIntoTypedAction() {
+        GuiAction action = GuiActionParser.parse("island.limit.set", Map.of("limitKey", " redstone-blocks ", "value", "12")).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.LimitSet);
+        assertEquals("island.limit.set", action.actionId());
+        assertEquals(Map.of("limitKey", "REDSTONE_BLOCKS", "value", "12"), action.data());
+    }
+
+    @Test
     void rejectsUnregisteredActionIdsInsteadOfExecutingRawMaps() {
         assertTrue(GuiActionParser.parse("island.member.remvoe", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
         assertTrue(GuiActionParser.parse("island.unknown.open", Map.of()).isEmpty());
@@ -72,5 +81,8 @@ class GuiActionParserTest {
         assertTrue(GuiActionParser.parse("island.bank.deposit", Map.of("amount", "abc")).isEmpty());
         assertTrue(GuiActionParser.parse("island.snapshot.restore.prepare", Map.of("snapshotNo", "0")).isEmpty());
         assertTrue(GuiActionParser.parse("island.snapshot.restore.confirm", Map.of("snapshotNo", "abc")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.limit.set", Map.of("limitKey", "", "value", "1")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.limit.set", Map.of("limitKey", "ENTITY", "value", "-1")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.limit.set", Map.of("limitKey", "ENTITY", "value", "abc")).isEmpty());
     }
 }

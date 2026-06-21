@@ -1,12 +1,13 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.LimitSet, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -84,6 +85,32 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
 
         private static boolean snapshotRestoreConfirmation(String actionId) {
             return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".snapshot.restore.confirm");
+        }
+    }
+
+    record LimitSet(String limitKey, long value) implements GuiAction {
+        public LimitSet {
+            limitKey = normalizeKey(limitKey);
+            if (limitKey.isBlank()) {
+                throw new IllegalArgumentException("limitKey is required");
+            }
+            if (value < 0L) {
+                throw new IllegalArgumentException("limit value must be non-negative");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return "island.limit.set";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("limitKey", limitKey, "value", Long.toString(value));
+        }
+
+        private static String normalizeKey(String value) {
+            return value == null ? "" : value.trim().toUpperCase(Locale.ROOT).replace('-', '_');
         }
     }
 
