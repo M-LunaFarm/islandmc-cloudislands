@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import kr.lunaf.cloudislands.api.model.IslandLocation;
 import org.junit.jupiter.api.Test;
 
 class CoreMutationContextTest {
@@ -162,6 +163,38 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":50}", requestBodies.get("warehouse"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:stone\",\"amount\":12}", requestBodies.get("warehouseDeposit"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:dirt\",\"amount\":7}", requestBodies.get("warehouseWithdraw"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void jdkClientBuildsWarpAndSettingsPayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        IslandLocation location = new IslandLocation("world\"nether", 1.25D, 64.0D, -3.5D, 90.0F, 12.5F);
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/warps/set", exchange -> respond(exchange, requestBodies, "warpSet", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/warps/delete", exchange -> respond(exchange, requestBodies, "warpDelete", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/warps/access", exchange -> respond(exchange, requestBodies, "warpAccess", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/access", exchange -> respond(exchange, requestBodies, "publicAccess", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/lock", exchange -> respond(exchange, requestBodies, "locked", "{\"accepted\":true}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.setIslandWarpResult(islandId, actorUuid, "spawn\"main", location, true, "market").join();
+            client.deleteIslandWarpResult(islandId, actorUuid, "spawn\"main").join();
+            client.setIslandWarpPublicAccessResult(islandId, actorUuid, "spawn\"main", false).join();
+            client.setIslandPublicAccessResult(islandId, actorUuid, true).join();
+            client.setIslandLockedResult(islandId, actorUuid, false).join();
+
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\\\"main\",\"category\":\"market\",\"worldName\":\"world\\\"nether\",\"localX\":1.25,\"localY\":64.0,\"localZ\":-3.5,\"yaw\":90.0,\"pitch\":12.5,\"publicAccess\":true}", requestBodies.get("warpSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\\\"main\"}", requestBodies.get("warpDelete"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\\\"main\",\"publicAccess\":false}", requestBodies.get("warpAccess"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"publicAccess\":true}", requestBodies.get("publicAccess"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"locked\":false}", requestBodies.get("locked"));
         } finally {
             server.stop(0);
         }

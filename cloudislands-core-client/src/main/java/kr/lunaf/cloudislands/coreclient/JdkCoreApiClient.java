@@ -418,12 +418,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
-        return postWithResultBody("/v1/islands/warps/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"worldName\":\"" + escape(location.worldName()) + "\",\"localX\":" + location.localX() + ",\"localY\":" + location.localY() + ",\"localZ\":" + location.localZ() + ",\"yaw\":" + location.yaw() + ",\"pitch\":" + location.pitch() + ",\"publicAccess\":" + publicAccess + "}");
+        return postWithResultBody("/v1/islands/warps/set", warpPayload(islandId, actorUuid, name, "", location, publicAccess));
     }
 
     @Override
     public CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category) {
-        return postWithResultBody("/v1/islands/warps/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"category\":\"" + escape(category) + "\",\"worldName\":\"" + escape(location.worldName()) + "\",\"localX\":" + location.localX() + ",\"localY\":" + location.localY() + ",\"localZ\":" + location.localZ() + ",\"yaw\":" + location.yaw() + ",\"pitch\":" + location.pitch() + ",\"publicAccess\":" + publicAccess + "}");
+        return postWithResultBody("/v1/islands/warps/set", warpPayload(islandId, actorUuid, name, category, location, publicAccess));
     }
 
     @Override
@@ -433,7 +433,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> deleteIslandWarpResult(UUID islandId, UUID actorUuid, String name) {
-        return postWithResultBody("/v1/islands/warps/delete", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\"}");
+        return postWithResultBody("/v1/islands/warps/delete", jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", name));
     }
 
     @Override
@@ -443,7 +443,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setIslandWarpPublicAccessResult(UUID islandId, UUID actorUuid, String name, boolean publicAccess) {
-        return postWithResultBody("/v1/islands/warps/access", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"" + escape(name) + "\",\"publicAccess\":" + publicAccess + "}");
+        return postWithResultBody("/v1/islands/warps/access", jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", name, "publicAccess", publicAccess));
     }
 
     @Override
@@ -453,7 +453,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setIslandPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess) {
-        return postWithResultBody("/v1/islands/access", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"publicAccess\":" + publicAccess + "}");
+        return postWithResultBody("/v1/islands/access", jsonObject("islandId", islandId, "actorUuid", actorUuid, "publicAccess", publicAccess));
     }
 
     @Override
@@ -463,7 +463,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<String> setIslandLockedResult(UUID islandId, UUID actorUuid, boolean locked) {
-        return postWithResultBody("/v1/islands/lock", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"locked\":" + locked + "}");
+        return postWithResultBody("/v1/islands/lock", jsonObject("islandId", islandId, "actorUuid", actorUuid, "locked", locked));
     }
 
     @Override
@@ -2011,6 +2011,36 @@ public final class JdkCoreApiClient implements CoreApiClient {
             return;
         }
         builder.append('"').append(escape(value == null ? "" : String.valueOf(value))).append('"');
+    }
+
+    private static String warpPayload(UUID islandId, UUID actorUuid, String name, String category, IslandLocation location, boolean publicAccess) {
+        if (category == null || category.isBlank()) {
+            return jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "name", name,
+                "worldName", location.worldName(),
+                "localX", location.localX(),
+                "localY", location.localY(),
+                "localZ", location.localZ(),
+                "yaw", location.yaw(),
+                "pitch", location.pitch(),
+                "publicAccess", publicAccess
+            );
+        }
+        return jsonObject(
+            "islandId", islandId,
+            "actorUuid", actorUuid,
+            "name", name,
+            "category", category,
+            "worldName", location.worldName(),
+            "localX", location.localX(),
+            "localY", location.localY(),
+            "localZ", location.localZ(),
+            "yaw", location.yaw(),
+            "pitch", location.pitch(),
+            "publicAccess", publicAccess
+        );
     }
 
     private static String normalizeRoleKey(String roleKey) {
