@@ -47,7 +47,7 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<RankingData> rankings(CoreApiClient client, int limit) {
-        return new CoreProgressionQueryClient(client).rankings(limit);
+        return client.progression().rankings(limit);
     }
 
     public static CompletableFuture<List<MemberView>> islandMembers(CoreApiClient client, UUID islandId) {
