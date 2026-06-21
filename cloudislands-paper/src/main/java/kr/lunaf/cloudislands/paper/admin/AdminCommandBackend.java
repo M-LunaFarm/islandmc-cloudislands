@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
 import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
+import kr.lunaf.cloudislands.coreclient.AdminMaintenanceResultView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
@@ -137,7 +138,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             } else {
                 localCaches.invalidateAll();
             }
-            run(sender, "CloudIslands local cache cleared. Core cache clear", coreApiClient.clearCache().thenApply(body -> maintenanceMessage("Cache clear", body)));
+            run(sender, "CloudIslands local cache cleared. Core cache clear", coreApiClient.adminMaintenance().clearCache().thenApply(result -> maintenanceMessage("Cache clear", result)));
             return true;
         }
         if (args[0].equalsIgnoreCase("addons")) {
@@ -148,7 +149,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[0].equalsIgnoreCase("reload")) {
-            run(sender, "Core reload", coreApiClient.reload().thenApply(body -> maintenanceMessage("Core reload", body)));
+            run(sender, "Core reload", coreApiClient.adminMaintenance().reload().thenApply(result -> maintenanceMessage("Core reload", result)));
             return true;
         }
         if (args[0].equalsIgnoreCase("node")) {
@@ -464,7 +465,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 return true;
             }
             reloadRuntimeConfig();
-            run(sender, "Config reload", coreApiClient.reload().thenApply(body -> maintenanceMessage("Core reload", body)));
+            run(sender, "Config reload", coreApiClient.adminMaintenance().reload().thenApply(result -> maintenanceMessage("Core reload", result)));
             return true;
         }
         sendCommandUsage(sender, List.of(
@@ -2010,12 +2011,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return adminText("admin-command-upgrade-rules-total-prefix", "Upgrade rules: total=") + rules.size() + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
-    private String maintenanceMessage(String label, String body) {
-        String code = textValue(body, "code");
-        if (!code.isBlank()) {
-            return label + adminText("admin-command-maintenance-failed-code-prefix", ": failed code=") + code;
+    private String maintenanceMessage(String label, AdminMaintenanceResultView result) {
+        if (!result.code().isBlank()) {
+            return label + adminText("admin-command-maintenance-failed-code-prefix", ": failed code=") + result.code();
         }
-        return label + adminText("admin-command-maintenance-accepted-sessions-prefix", ": accepted sessions=") + longValue(body, "clearedSessions") + adminText("admin-command-maintenance-tickets-prefix", " tickets=") + longValue(body, "clearedTickets");
+        return label + adminText("admin-command-maintenance-accepted-sessions-prefix", ": accepted sessions=") + result.clearedSessions() + adminText("admin-command-maintenance-tickets-prefix", " tickets=") + result.clearedTickets();
     }
 
     private String addonListMessage(List<CloudIslandsAddonSnapshot> addons) {

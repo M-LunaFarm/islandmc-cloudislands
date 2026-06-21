@@ -180,6 +180,10 @@ public interface CoreApiClient {
         return new CoreAdminStorageQueryClient(this);
     }
 
+    default AdminMaintenanceCommandClient adminMaintenance() {
+        return new CoreAdminMaintenanceCommandClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

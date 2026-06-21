@@ -433,6 +433,37 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void adminMaintenanceClientReturnsTypedCacheAndReloadResults() {
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "clearCache" -> {
+                    calls.add("clear");
+                    yield CompletableFuture.completedFuture("{\"clearedSessions\":2,\"clearedTickets\":3,\"clearedRedisKeys\":4}");
+                }
+                case "reload" -> {
+                    calls.add("reload");
+                    yield CompletableFuture.completedFuture("{\"reloaded\":true,\"clearedSessions\":5,\"clearedTickets\":6,\"clearedRedisKeys\":7}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        AdminMaintenanceCommandClient client = new CoreAdminMaintenanceCommandClient(raw);
+
+        AdminMaintenanceResultView clear = client.clearCache().join();
+        AdminMaintenanceResultView reload = client.reload().join();
+
+        assertFalse(clear.reloaded());
+        assertEquals(2L, clear.clearedSessions());
+        assertEquals(3L, clear.clearedTickets());
+        assertTrue(reload.reloaded());
+        assertEquals(7L, reload.clearedRedisKeys());
+        assertEquals(List.of("clear", "reload"), calls);
+    }
+
+    @Test
     void snapshotCommandClientReturnsTypedActionViews() {
         UUID islandId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
