@@ -3,11 +3,14 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -160,14 +163,18 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
     }
 
     static String levelJson(IslandRankSnapshot snapshot) {
-        return "{\"islandId\":\"" + snapshot.islandId() + "\",\"level\":" + snapshot.level() + ",\"worth\":\"" + snapshot.worth().toPlainString() + "\",\"calculatedAt\":\"" + snapshot.updatedAt() + "\"}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", snapshot.islandId());
+        values.put("level", snapshot.level());
+        values.put("worth", snapshot.worth().toPlainString());
+        values.put("calculatedAt", snapshot.updatedAt());
+        return SimpleJson.stringify(values);
     }
 
     static String blockDetailsJson(UUID islandId, Map<String, Long> counts, Map<String, RankingRecalculationService.BlockValue> values, int limit) {
-        StringBuilder builder = new StringBuilder("{\"islandId\":\"").append(islandId).append("\",\"blocks\":[");
+        List<Object> renderedBlocks = new ArrayList<>();
         final BigDecimal[] totalWorth = {BigDecimal.ZERO};
         final long[] totalLevelPoints = {0L};
-        boolean[] first = {true};
         counts.entrySet().stream()
             .filter(entry -> entry.getValue() != null && entry.getValue() > 0L)
             .sorted((left, right) -> Long.compare(right.getValue(), left.getValue()))
@@ -178,44 +185,35 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
                 long rowLevelPoints = Math.multiplyExact(value.levelPoints(), entry.getValue());
                 totalWorth[0] = totalWorth[0].add(rowWorth);
                 totalLevelPoints[0] += rowLevelPoints;
-                if (!first[0]) {
-                    builder.append(',');
-                }
-                first[0] = false;
-                builder.append("{\"materialKey\":\"").append(escape(entry.getKey())).append("\",")
-                    .append("\"count\":").append(entry.getValue()).append(',')
-                    .append("\"unitWorth\":\"").append(value.worth().toPlainString()).append("\",")
-                    .append("\"totalWorth\":\"").append(rowWorth.toPlainString()).append("\",")
-                    .append("\"levelPoints\":").append(rowLevelPoints).append(',')
-                    .append("\"limit\":").append(value.limit())
-                    .append('}');
+                LinkedHashMap<String, Object> rendered = new LinkedHashMap<>();
+                rendered.put("materialKey", entry.getKey());
+                rendered.put("count", entry.getValue());
+                rendered.put("unitWorth", value.worth().toPlainString());
+                rendered.put("totalWorth", rowWorth.toPlainString());
+                rendered.put("levelPoints", rowLevelPoints);
+                rendered.put("limit", value.limit());
+                renderedBlocks.add(rendered);
             });
-        return builder.append("],\"summary\":{\"totalWorth\":\"")
-            .append(totalWorth[0].toPlainString())
-            .append("\",\"totalLevelPoints\":")
-            .append(totalLevelPoints[0])
-            .append("}}")
-            .toString();
+        LinkedHashMap<String, Object> summary = new LinkedHashMap<>();
+        summary.put("totalWorth", totalWorth[0].toPlainString());
+        summary.put("totalLevelPoints", totalLevelPoints[0]);
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
+        result.put("islandId", islandId);
+        result.put("blocks", renderedBlocks);
+        result.put("summary", summary);
+        return SimpleJson.stringify(result);
     }
 
     static String blockValuesJson(Map<String, RankingRecalculationService.BlockValue> values) {
-        StringBuilder builder = new StringBuilder("{\"values\":[");
-        boolean first = true;
+        List<Object> renderedValues = new ArrayList<>();
         for (var entry : values.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append("{\"materialKey\":\"").append(escape(entry.getKey())).append("\",")
-                .append("\"worth\":\"").append(entry.getValue().worth().toPlainString()).append("\",")
-                .append("\"levelPoints\":").append(entry.getValue().levelPoints()).append(',')
-                .append("\"limit\":").append(entry.getValue().limit())
-                .append('}');
+            LinkedHashMap<String, Object> rendered = new LinkedHashMap<>();
+            rendered.put("materialKey", entry.getKey());
+            rendered.put("worth", entry.getValue().worth().toPlainString());
+            rendered.put("levelPoints", entry.getValue().levelPoints());
+            rendered.put("limit", entry.getValue().limit());
+            renderedValues.add(rendered);
         }
-        return builder.append("]}").toString();
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return SimpleJson.stringify(Map.of("values", renderedValues));
     }
 }
