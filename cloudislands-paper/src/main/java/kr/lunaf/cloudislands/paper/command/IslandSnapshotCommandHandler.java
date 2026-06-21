@@ -87,6 +87,19 @@ final class IslandSnapshotCommandHandler {
             }
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload) {
+            return switch (noPayload.type()) {
+                case SNAPSHOTS_OPEN -> {
+                    openSnapshotMenu(player);
+                    yield true;
+                }
+                case SNAPSHOTS_LIST -> {
+                    listSnapshots(player, 10);
+                    yield true;
+                }
+                default -> false;
+            };
+        }
         String actionId = action.actionId();
         return switch (actionId) {
             case "island.snapshots.open" -> {

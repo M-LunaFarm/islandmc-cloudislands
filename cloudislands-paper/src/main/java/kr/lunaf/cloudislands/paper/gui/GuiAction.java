@@ -114,6 +114,15 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.MainOpen, Gui
     }
 
     enum NoPayloadType {
+        BANK_OPEN("island.bank.open"),
+        SNAPSHOTS_OPEN("island.snapshots.open"),
+        SNAPSHOTS_LIST("island.snapshots.list"),
+        RANKING_OPEN("island.ranking.open"),
+        LEVEL_RECALCULATE("island.level.recalculate"),
+        LEVEL_SHOW("island.level.show"),
+        WORTH_SHOW("island.worth.show"),
+        UPGRADES_OPEN("island.upgrades.open"),
+        UPGRADES_LIST("island.upgrades.list"),
         BIOME_OPEN("island.biome.open"),
         BIOME_SHOW("island.biome.show"),
         LIMITS_OPEN("island.limits.open"),

@@ -80,6 +80,19 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesBankSnapshotAndProgressionNavigationIntoTypedActions() {
+        assertNoPayloadType("island.bank.open", GuiAction.NoPayloadType.BANK_OPEN);
+        assertNoPayloadType("island.snapshots.open", GuiAction.NoPayloadType.SNAPSHOTS_OPEN);
+        assertNoPayloadType("island.snapshots.list", GuiAction.NoPayloadType.SNAPSHOTS_LIST);
+        assertNoPayloadType("island.ranking.open", GuiAction.NoPayloadType.RANKING_OPEN);
+        assertNoPayloadType("island.level.recalculate", GuiAction.NoPayloadType.LEVEL_RECALCULATE);
+        assertNoPayloadType("island.level.show", GuiAction.NoPayloadType.LEVEL_SHOW);
+        assertNoPayloadType("island.worth.show", GuiAction.NoPayloadType.WORTH_SHOW);
+        assertNoPayloadType("island.upgrades.open", GuiAction.NoPayloadType.UPGRADES_OPEN);
+        assertNoPayloadType("island.upgrades.list", GuiAction.NoPayloadType.UPGRADES_LIST);
+    }
+
+    @Test
     void parsesCreateAndDangerConfirmActionsIntoTypedActions() {
         GuiAction create = GuiActionParser.parse("island.create", Map.of("templateId", " starter ")).orElseThrow();
         GuiAction reset = GuiActionParser.parse(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION, DangerousGuiActionPolicy.resetConfirmationData()).orElseThrow();
@@ -95,11 +108,11 @@ class GuiActionParserTest {
 
     @Test
     void preservesRegisteredRawActions() {
-        GuiAction action = GuiActionParser.parse("island.bank.open", Map.of()).orElseThrow();
+        GuiAction action = GuiActionParser.parse("island.ranking.list", Map.of("kind", "worth")).orElseThrow();
 
         assertTrue(action instanceof GuiAction.Raw);
-        assertEquals("island.bank.open", action.actionId());
-        assertEquals(Map.of(), action.data());
+        assertEquals("island.ranking.list", action.actionId());
+        assertEquals(Map.of("kind", "worth"), action.data());
     }
 
     @Test

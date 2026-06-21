@@ -68,6 +68,15 @@ public final class GuiActionParser {
                 ));
             }
             return switch (safeAction) {
+                case "island.bank.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BANK_OPEN));
+                case "island.snapshots.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_OPEN));
+                case "island.snapshots.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_LIST));
+                case "island.ranking.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.RANKING_OPEN));
+                case "island.level.recalculate" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LEVEL_RECALCULATE));
+                case "island.level.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LEVEL_SHOW));
+                case "island.worth.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.WORTH_SHOW));
+                case "island.upgrades.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.UPGRADES_OPEN));
+                case "island.upgrades.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.UPGRADES_LIST));
                 case "island.main.open" -> Optional.of(new GuiAction.MainOpen());
                 case "island.info.open" -> Optional.of(new GuiAction.InfoOpen());
                 case "island.list.open" -> Optional.of(new GuiAction.IslandListOpen());

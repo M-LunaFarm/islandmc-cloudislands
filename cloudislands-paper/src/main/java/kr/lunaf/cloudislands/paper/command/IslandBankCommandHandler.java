@@ -65,6 +65,10 @@ final class IslandBankCommandHandler {
             }
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload && noPayload.type() == GuiAction.NoPayloadType.BANK_OPEN) {
+            openBankMenu(player);
+            return true;
+        }
         String actionId = action.actionId();
         return switch (actionId) {
             case "island.bank.open" -> {

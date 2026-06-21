@@ -153,6 +153,35 @@ final class IslandProgressionCommandHandler {
             purchaseUpgrade(player, upgradePurchase.upgradeKey());
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload) {
+            return switch (noPayload.type()) {
+                case RANKING_OPEN -> {
+                    openRankingMenu(player);
+                    yield true;
+                }
+                case LEVEL_RECALCULATE -> {
+                    recalculateLevel(player);
+                    yield true;
+                }
+                case LEVEL_SHOW -> {
+                    showLevel(player);
+                    yield true;
+                }
+                case WORTH_SHOW -> {
+                    showWorth(player);
+                    yield true;
+                }
+                case UPGRADES_OPEN -> {
+                    openUpgradeMenu(player);
+                    yield true;
+                }
+                case UPGRADES_LIST -> {
+                    listUpgrades(player);
+                    yield true;
+                }
+                default -> false;
+            };
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {
