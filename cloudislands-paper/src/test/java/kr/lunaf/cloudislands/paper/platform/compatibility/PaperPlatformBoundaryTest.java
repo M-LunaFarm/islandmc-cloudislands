@@ -568,6 +568,14 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.environment().islandBiome(islandId).thenApply(view -> biome(islandId, view))"), "Public API biome must use typed environment query client");
         assertTrue(source.contains("client.environment().flagValues(islandId).thenApply(values -> flags(islandId, values))"), "Public API flags must use typed environment query client");
         assertTrue(source.contains("client.environment().limitViews(islandId).thenApply(views -> limits(islandId, views))"), "Public API limits must use typed environment query client");
+        assertTrue(!source.contains("private static List<IslandMemberSnapshot> members(String json)"), "Public API must not keep raw member JSON converters");
+        assertTrue(!source.contains("private static List<IslandBanSnapshot> bans(String json)"), "Public API must not keep raw ban JSON converters");
+        assertTrue(!source.contains("private static List<IslandInviteSnapshot> invites(String json)"), "Public API must not keep raw invite JSON converters");
+        assertTrue(!source.contains("private static List<IslandPermissionRuleSnapshot> permissionRules(String json)"), "Public API must not keep raw permission JSON converters");
+        assertTrue(!source.contains("private static List<IslandRoleSnapshot> roles(String json)"), "Public API must not keep raw role JSON converters");
+        assertTrue(!source.contains("private static IslandBiomeSnapshot biome(String json)"), "Public API must not keep raw biome JSON converters");
+        assertTrue(!source.contains("private static IslandFlagsSnapshot flags(String json)"), "Public API must not keep raw flag JSON converters");
+        assertTrue(!source.contains("private static List<IslandLimitSnapshot> limits(String json)"), "Public API must not keep raw limit JSON converters");
         assertTrue(source.contains("client.blockValues().list().thenApply(PaperCloudIslandsApi::blockValues)"), "Public API block values must use typed block value query client");
         assertTrue(source.contains("client.members().bans(islandId).thenApply(views -> bans(islandId, views))"), "Public API bans must use typed member query client");
         assertTrue(source.contains("client.snapshots().listSnapshots(islandId, limit).thenApply(views -> snapshots(islandId, views))"), "Public API snapshots must use typed snapshot query client");

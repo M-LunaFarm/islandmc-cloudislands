@@ -2946,20 +2946,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new RoutePlan(ticket.islandId(), ticket.targetNode(), ticket.payload().getOrDefault("targetServerName", ticket.targetNode()), ticket.action(), ticket.state() == RouteTicketState.PREPARING);
     }
 
-    private static List<IslandMemberSnapshot> members(String json) {
-        List<IslandMemberSnapshot> members = new ArrayList<>();
-        for (String object : objects(json, "members")) {
-            members.add(new IslandMemberSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                uuid(object, "playerUuid", new UUID(0L, 0L)),
-                roleKey(object, "VISITOR"),
-                instant(text(object, "joinedAt", Instant.EPOCH.toString())),
-                nullableInstant(object, "expiresAt")
-            ));
-        }
-        return members;
-    }
-
     private static List<IslandMemberSnapshot> members(UUID islandId, List<CoreGuiViews.MemberView> views) {
         return views.stream()
             .map(view -> new IslandMemberSnapshot(
@@ -2970,21 +2956,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 view.expiresAt().isBlank() ? null : instant(view.expiresAt())
             ))
             .toList();
-    }
-
-    private static List<IslandBanSnapshot> bans(String json) {
-        List<IslandBanSnapshot> bans = new ArrayList<>();
-        for (String object : objects(json, "bans")) {
-            bans.add(new IslandBanSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                uuid(object, "bannedUuid", new UUID(0L, 0L)),
-                uuid(object, "actorUuid", new UUID(0L, 0L)),
-                text(object, "reason", ""),
-                instant(text(object, "createdAt", Instant.EPOCH.toString())),
-                nullableInstant(object, "expiresAt")
-            ));
-        }
-        return bans;
     }
 
     private static List<IslandBanSnapshot> bans(UUID islandId, List<CoreGuiViews.BanView> views) {
@@ -2998,14 +2969,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 view.expiresAt().isBlank() ? null : instant(view.expiresAt())
             ))
             .toList();
-    }
-
-    private static List<IslandInviteSnapshot> invites(String json) {
-        List<IslandInviteSnapshot> invites = new ArrayList<>();
-        for (String object : objects(json, "invites")) {
-            invites.add(invite(object));
-        }
-        return invites;
     }
 
     private static List<IslandInviteSnapshot> invites(List<CoreGuiViews.InviteView> views) {
@@ -3205,19 +3168,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static List<IslandPermissionRuleSnapshot> permissionRules(String json) {
-        List<IslandPermissionRuleSnapshot> rules = new ArrayList<>();
-        for (String object : objects(json, "rules")) {
-            rules.add(new IslandPermissionRuleSnapshot(
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                roleKey(object, "VISITOR"),
-                enumValue(IslandPermission.class, text(object, "permission", "INTERACT"), IslandPermission.INTERACT),
-                bool(object, "allowed", false)
-            ));
-        }
-        return rules;
-    }
-
     private static List<IslandPermissionRuleSnapshot> permissionRules(UUID islandId, List<PermissionAssignmentView> views) {
         return views.stream()
             .filter(view -> view.playerUuid().isBlank())
@@ -3228,14 +3178,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 view.allowed()
             ))
             .toList();
-    }
-
-    private static List<IslandRoleSnapshot> roles(String json) {
-        List<IslandRoleSnapshot> roles = new ArrayList<>();
-        for (String object : objects(json, "roles")) {
-            roles.add(role(object));
-        }
-        return roles;
     }
 
     private static List<IslandRoleSnapshot> roles(UUID islandId, List<CoreGuiViews.RoleView> views) {
@@ -3249,15 +3191,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             .toList();
     }
 
-    private static IslandRoleSnapshot role(String json) {
-        return new IslandRoleSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            roleKey(json, "MEMBER"),
-            integer(json, "weight", 0),
-            text(json, "displayName", "")
-        );
-    }
-
     private static IslandRoleSnapshot role(UUID islandId, CoreGuiViews.RoleView view) {
         return new IslandRoleSnapshot(
             islandId == null ? new UUID(0L, 0L) : islandId,
@@ -3267,26 +3200,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static String roleKey(String json, String fallback) {
-        String value = text(json, "roleKey", "");
-        if (value.isBlank()) {
-            value = text(json, "role", fallback);
-        }
-        return value.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
-    }
-
     private static String normalizedRoleKey(String value, String fallback) {
         String roleKey = value == null || value.isBlank() ? fallback : value;
         return roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
-    }
-
-    private static IslandBiomeSnapshot biome(String json) {
-        return new IslandBiomeSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            text(json, "biomeKey", "minecraft:plains"),
-            uuid(json, "updatedBy", new UUID(0L, 0L)),
-            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
-        );
     }
 
     private static IslandBiomeSnapshot biome(UUID islandId, CoreGuiViews.BiomeView view) {
@@ -3296,17 +3212,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             view == null ? new UUID(0L, 0L) : uuidValueOrZero(view.updatedBy()),
             instant(view == null ? "" : view.updatedAt())
         );
-    }
-
-    private static IslandFlagsSnapshot flags(String json) {
-        Map<IslandFlag, String> values = new EnumMap<>(IslandFlag.class);
-        for (IslandFlag flag : IslandFlag.values()) {
-            String value = text(json, flag.name(), null);
-            if (value != null) {
-                values.put(flag, value);
-            }
-        }
-        return new IslandFlagsSnapshot(uuid(json, "islandId", new UUID(0L, 0L)), Map.copyOf(values));
     }
 
     private static IslandFlagsSnapshot flags(UUID islandId, Map<IslandFlag, String> values) {
@@ -3321,14 +3226,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new IslandFlagsSnapshot(islandId == null ? new UUID(0L, 0L) : islandId, Map.copyOf(safeValues));
     }
 
-    private static List<IslandLimitSnapshot> limits(String json) {
-        List<IslandLimitSnapshot> limits = new ArrayList<>();
-        for (String object : objects(json, "limits")) {
-            limits.add(limit(object));
-        }
-        return limits;
-    }
-
     private static List<IslandLimitSnapshot> limits(UUID islandId, List<CoreGuiViews.LimitView> views) {
         UUID safeIslandId = islandId == null ? new UUID(0L, 0L) : islandId;
         return (views == null ? List.<CoreGuiViews.LimitView>of() : views).stream()
@@ -3340,16 +3237,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 instant(view.updatedAt())
             ))
             .toList();
-    }
-
-    private static IslandLimitSnapshot limit(String json) {
-        return new IslandLimitSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            text(json, "limitKey", ""),
-            longValue(json, "value", 0L),
-            uuid(json, "updatedBy", new UUID(0L, 0L)),
-            instant(text(json, "updatedAt", Instant.EPOCH.toString()))
-        );
     }
 
     private static IslandLimitSnapshot limit(UUID islandId, UUID actorUuid, EnvironmentActionView view) {
