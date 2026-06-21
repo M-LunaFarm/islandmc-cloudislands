@@ -234,9 +234,13 @@ class IslandCommandControllerPolicyTest {
         assertFalse(environmentUseCase.contains("public CompletableFuture<String> setBiome("), "biome mutation usecase must expose typed actions instead of raw JSON");
         assertFalse(environmentUseCase.contains("public CompletableFuture<String> setLimit("), "limit mutation usecase must expose typed actions instead of raw JSON");
         assertFalse(environmentUseCase.contains("public CompletableFuture<String> setFlag("), "flag mutation usecase must expose typed actions instead of raw JSON");
-        assertTrue(environmentUseCase.contains("coreApiClient.setIslandBiomeResult"));
-        assertTrue(environmentUseCase.contains("coreApiClient.setIslandLimit"));
-        assertTrue(environmentUseCase.contains("coreApiClient.setIslandFlagResult"));
+        assertTrue(environmentUseCase.contains("IslandEnvironmentCommandClient environmentCommands"));
+        assertTrue(environmentUseCase.contains("environmentCommands.setBiome"));
+        assertTrue(environmentUseCase.contains("environmentCommands.setLimit"));
+        assertTrue(environmentUseCase.contains("environmentCommands.setFlag"));
+        assertFalse(environmentUseCase.contains("coreApiClient.setIslandBiomeResult"));
+        assertFalse(environmentUseCase.contains("coreApiClient.setIslandLimit"));
+        assertFalse(environmentUseCase.contains("coreApiClient.setIslandFlagResult"));
     }
 
     @Test
@@ -265,9 +269,14 @@ class IslandCommandControllerPolicyTest {
         assertFalse(settingsUseCase.contains("public CompletableFuture<String> setName("), "name usecase must expose typed actions instead of raw JSON");
         assertFalse(settingsUseCase.contains("public CompletableFuture<String> setFlag("), "flag usecase must expose typed actions instead of raw JSON");
         assertFalse(settingsUseCase.contains("public CompletableFuture<String> listFlags("), "flag list usecase must expose typed values instead of raw JSON");
-        assertTrue(settingsUseCase.contains("coreApiClient.setIslandPublicAccessResult"));
-        assertTrue(settingsUseCase.contains("coreApiClient.setIslandFlagResult"));
-        assertTrue(settingsUseCase.contains("coreApiClient.setIslandNameResult"));
+        assertTrue(settingsUseCase.contains("IslandSettingsCommandClient settingsCommands"));
+        assertTrue(settingsUseCase.contains("settingsCommands.setPublicAccess"));
+        assertTrue(settingsUseCase.contains("settingsCommands.setFlag"));
+        assertTrue(settingsUseCase.contains("settingsCommands.setName"));
+        assertFalse(settingsUseCase.contains("coreApiClient.setIslandPublicAccessResult"));
+        assertFalse(settingsUseCase.contains("coreApiClient.setIslandFlagResult"));
+        assertFalse(settingsUseCase.contains("coreApiClient.setIslandNameResult"));
+        assertFalse(settingsUseCase.contains("coreApiClient.setIslandLockedResult"));
     }
 
     @Test

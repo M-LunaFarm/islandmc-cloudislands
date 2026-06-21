@@ -156,6 +156,80 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void environmentCommandClientReturnsTypedActionViews() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "setIslandBiomeResult" -> {
+                    calls.add("biome:" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"BIOME_SET\",\"biomeKey\":\"PLAINS\"}");
+                }
+                case "setIslandFlagResult" -> {
+                    calls.add("flag:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"FLAG_SET\",\"flag\":\"BORDER_VISIBLE\"}");
+                }
+                case "setIslandLimit" -> {
+                    calls.add("limit:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"LIMIT_SET\",\"limitKey\":\"HOPPER\",\"value\":64}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        IslandEnvironmentCommandClient client = new CoreIslandEnvironmentCommandClient(raw);
+
+        EnvironmentActionView biome = client.setBiome(islandId, actorUuid, "PLAINS").join();
+        EnvironmentActionView flag = client.setFlag(islandId, actorUuid, IslandFlag.BORDER_VISIBLE, "true").join();
+        EnvironmentActionView limit = client.setLimit(islandId, actorUuid, "HOPPER", 64L).join();
+
+        assertEquals("PLAINS", biome.key());
+        assertEquals("BORDER_VISIBLE", flag.key());
+        assertEquals("HOPPER", limit.key());
+        assertEquals(64L, limit.value());
+        assertEquals(List.of("biome:PLAINS", "flag:BORDER_VISIBLE:true", "limit:HOPPER:64"), calls);
+    }
+
+    @Test
+    void settingsCommandClientReturnsTypedActionViews() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "setIslandPublicAccessResult" -> {
+                    calls.add("public:" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PUBLIC_ACCESS_ENABLED\"}");
+                }
+                case "setIslandLockedResult" -> {
+                    calls.add("locked:" + args[2]);
+                    yield CompletableFuture.completedFuture("plain-success");
+                }
+                case "setIslandNameResult" -> {
+                    calls.add("name:" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"ISLAND_RENAMED\"}");
+                }
+                case "setIslandFlagResult" -> {
+                    calls.add("flag:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"FLAG_SET\"}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        IslandSettingsCommandClient client = new CoreIslandSettingsCommandClient(raw);
+
+        assertEquals("PUBLIC_ACCESS_ENABLED", client.setPublicAccess(islandId, actorUuid, true).join().code());
+        assertEquals("ISLAND_UNLOCKED", client.setLocked(islandId, actorUuid, false).join().code());
+        assertEquals("ISLAND_RENAMED", client.setName(islandId, actorUuid, "My Island").join().code());
+        assertEquals("FLAG_SET", client.setFlag(islandId, actorUuid, IslandFlag.PVP, "false").join().code());
+        assertEquals(List.of("public:true", "locked:false", "name:My Island", "flag:PVP:false"), calls);
+    }
+
+    @Test
     void snapshotQueryClientReturnsTypedSnapshotsWithChecksums() {
         UUID islandId = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(

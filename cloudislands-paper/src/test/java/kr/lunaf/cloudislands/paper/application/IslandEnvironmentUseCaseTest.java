@@ -95,9 +95,12 @@ class IslandEnvironmentUseCaseTest {
     }
 
     private static IslandEnvironmentUseCase.MutationRunner mutationRunner(List<String> calls) {
-        return (auditAction, operation) -> {
-            calls.add("audit:" + auditAction);
-            return operation.get();
+        return new IslandEnvironmentUseCase.MutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, java.util.function.Supplier<CompletableFuture<T>> operation) {
+                calls.add("audit:" + auditAction);
+                return operation.get();
+            }
         };
     }
 

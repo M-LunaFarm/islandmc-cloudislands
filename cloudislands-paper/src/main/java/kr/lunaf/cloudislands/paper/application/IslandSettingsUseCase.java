@@ -5,14 +5,17 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
+import kr.lunaf.cloudislands.coreclient.CoreIslandSettingsCommandClient;
 import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
+import kr.lunaf.cloudislands.coreclient.IslandSettingsCommandClient;
+import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 
 public final class IslandSettingsUseCase {
     private final CoreApiClient coreApiClient;
     private final IslandEnvironmentQueryClient environmentQueries;
+    private final IslandSettingsCommandClient settingsCommands;
 
     public IslandSettingsUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
@@ -20,53 +23,62 @@ public final class IslandSettingsUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.environmentQueries = new CoreIslandEnvironmentQueryClient(coreApiClient);
+        this.settingsCommands = new CoreIslandSettingsCommandClient(coreApiClient);
     }
 
     IslandSettingsUseCase(CoreApiClient coreApiClient, IslandEnvironmentQueryClient environmentQueries) {
+        this(coreApiClient, environmentQueries, new CoreIslandSettingsCommandClient(coreApiClient));
+    }
+
+    IslandSettingsUseCase(CoreApiClient coreApiClient, IslandEnvironmentQueryClient environmentQueries, IslandSettingsCommandClient settingsCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (environmentQueries == null) {
             throw new IllegalArgumentException("environmentQueries is required");
         }
+        if (settingsCommands == null) {
+            throw new IllegalArgumentException("settingsCommands is required");
+        }
         this.coreApiClient = coreApiClient;
         this.environmentQueries = environmentQueries;
+        this.settingsCommands = settingsCommands;
     }
 
-    private CompletableFuture<String> setPublicAccessBody(UUID islandId, UUID actorUuid, boolean publicAccess, MutationRunner runner) {
+    private CompletableFuture<SettingsActionView> setPublicAccessBody(UUID islandId, UUID actorUuid, boolean publicAccess, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
-        return runner.mutate("island.public-access.set", () -> coreApiClient.setIslandPublicAccessResult(islandId, actorUuid, publicAccess));
+        return runner.mutate("island.public-access.set", () -> settingsCommands.setPublicAccess(islandId, actorUuid, publicAccess));
     }
 
     public CompletableFuture<SettingsActionResult> setPublicAccessAction(UUID islandId, UUID actorUuid, boolean publicAccess, MutationRunner runner) {
         return setPublicAccessBody(islandId, actorUuid, publicAccess, runner)
-            .thenApply(body -> actionResult(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED"));
+            .thenApply(IslandSettingsUseCase::actionResult);
     }
 
-    private CompletableFuture<String> setLockedBody(UUID islandId, UUID actorUuid, boolean locked, MutationRunner runner) {
+    private CompletableFuture<SettingsActionView> setLockedBody(UUID islandId, UUID actorUuid, boolean locked, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
-        return runner.mutate("island.locked.set", () -> coreApiClient.setIslandLockedResult(islandId, actorUuid, locked));
+        return runner.mutate("island.locked.set", () -> settingsCommands.setLocked(islandId, actorUuid, locked));
     }
 
     public CompletableFuture<SettingsActionResult> setLockedAction(UUID islandId, UUID actorUuid, boolean locked, MutationRunner runner) {
         return setLockedBody(islandId, actorUuid, locked, runner)
-            .thenApply(body -> actionResult(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED"));
+            .thenApply(IslandSettingsUseCase::actionResult);
     }
 
-    private CompletableFuture<String> setNameBody(UUID islandId, UUID actorUuid, String name, MutationRunner runner) {
+    private CompletableFuture<SettingsActionView> setNameBody(UUID islandId, UUID actorUuid, String name, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
-        return runner.mutate("island.name.set", () -> coreApiClient.setIslandNameResult(islandId, actorUuid, name == null ? "" : name));
+        return runner.mutate("island.name.set", () -> settingsCommands.setName(islandId, actorUuid, name == null ? "" : name));
     }
 
     public CompletableFuture<SettingsActionResult> setNameAction(UUID islandId, UUID actorUuid, String name, MutationRunner runner) {
         return setNameBody(islandId, actorUuid, name, runner)
-            .thenApply(body -> actionResult(body, "ISLAND_RENAMED"));
+            .thenApply(IslandSettingsUseCase::actionResult);
     }
 
     public CompletableFuture<Map<IslandFlag, String>> flagValues(UUID islandId) {
@@ -74,29 +86,21 @@ public final class IslandSettingsUseCase {
         return environmentQueries.flagValues(islandId);
     }
 
-    private CompletableFuture<String> setFlagBody(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
+    private CompletableFuture<SettingsActionView> setFlagBody(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireFlag(flag);
         requireRunner(runner);
-        return runner.mutate("island.flag.set", () -> coreApiClient.setIslandFlagResult(islandId, actorUuid, flag, value == null ? "" : value));
+        return runner.mutate("island.flag.set", () -> settingsCommands.setFlag(islandId, actorUuid, flag, value == null ? "" : value));
     }
 
     public CompletableFuture<SettingsActionResult> setFlagAction(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
         return setFlagBody(islandId, actorUuid, flag, value, runner)
-            .thenApply(body -> actionResult(body, "FLAG_SET"));
+            .thenApply(IslandSettingsUseCase::actionResult);
     }
 
-    private static SettingsActionResult actionResult(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new SettingsActionResult(accepted, code);
+    private static SettingsActionResult actionResult(SettingsActionView view) {
+        return new SettingsActionResult(view.accepted(), view.code());
     }
 
     private static void requireIsland(UUID islandId) {
@@ -125,7 +129,7 @@ public final class IslandSettingsUseCase {
 
     @FunctionalInterface
     public interface MutationRunner {
-        CompletableFuture<String> mutate(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     public record SettingsActionResult(boolean accepted, String code) {

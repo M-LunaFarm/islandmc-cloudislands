@@ -28,6 +28,14 @@ public interface CoreApiClient {
         return new CoreIslandEnvironmentQueryClient(this);
     }
 
+    default IslandEnvironmentCommandClient environmentCommands() {
+        return new CoreIslandEnvironmentCommandClient(this);
+    }
+
+    default IslandSettingsCommandClient settingsCommands() {
+        return new CoreIslandSettingsCommandClient(this);
+    }
+
     default PermissionCommandClient permissions() {
         return new CorePermissionCommandClient(this);
     }
