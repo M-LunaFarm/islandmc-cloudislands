@@ -6,7 +6,6 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandLifecycleCommandClient;
 import kr.lunaf.cloudislands.coreclient.IslandLifecycleCommandClient;
 
 public final class IslandCreationUseCase {
@@ -18,7 +17,7 @@ public final class IslandCreationUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.lifecycleCommands = new CoreIslandLifecycleCommandClient(coreApiClient);
+        this.lifecycleCommands = coreApiClient.lifecycle();
     }
 
     IslandCreationUseCase(CoreApiClient coreApiClient, IslandLifecycleCommandClient lifecycleCommands) {

@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreIslandLifecycleCommandClient;
 import org.junit.jupiter.api.Test;
 
 class IslandCreationUseCaseTest {
@@ -39,6 +40,7 @@ class IslandCreationUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
+                case "lifecycle" -> new CoreIslandLifecycleCommandClient((CoreApiClient) _proxy);
                 case "createIsland" -> {
                     calls.add("createIsland:" + args[1]);
                     yield CompletableFuture.completedFuture(new CreateIslandResult(true, "CREATED", null, null));
