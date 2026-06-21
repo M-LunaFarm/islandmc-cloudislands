@@ -12,5 +12,7 @@ public interface RoutingCommandClient {
 
     CompletableFuture<Void> publishRouteSession(RouteTicket ticket);
 
+    CompletableFuture<RoutePublishView> publishRouteSessionResult(RouteTicket ticket);
+
     CompletableFuture<RouteClearView> clearRoute(RouteTicket ticket, String reason);
 }

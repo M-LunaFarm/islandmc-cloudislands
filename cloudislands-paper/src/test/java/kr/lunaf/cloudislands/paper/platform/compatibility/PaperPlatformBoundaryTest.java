@@ -252,6 +252,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.communicationCommands().sendChat(islandId, actorUuid, channel, message)"), "Chat mutation must use the typed communication command client");
         assertTrue(source.contains("client.bankCommands().deposit(islandId, actorUuid, amount.toPlainString())"), "Bank deposit must use the typed bank command client");
         assertTrue(source.contains("client.bankCommands().withdraw(islandId, actorUuid, amount.toPlainString())"), "Bank withdraw must use the typed bank command client");
+        assertTrue(source.contains("client.routingCommands().publishRouteSessionResult(ticket)"), "Route session publish must use the typed routing command client");
+        assertTrue(source.contains("client.lifecycle().repairIsland(islandId, reason)"), "Island repair must use the typed lifecycle command client");
 
         assertTrue(!source.contains("client.activateIslandResult(islandId)"), "Paper public API must not call raw activation JSON endpoints");
         assertTrue(!source.contains("client.deactivateIslandResult(islandId)"), "Paper public API must not call raw deactivation JSON endpoints");
@@ -292,6 +294,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("client.sendIslandChat(islandId, actorUuid, channel, message)"), "Paper public API must not call raw chat JSON endpoints");
         assertTrue(!source.contains("client.depositIslandBank(islandId, actorUuid, amount.toPlainString())"), "Paper public API must not call raw bank deposit JSON endpoints");
         assertTrue(!source.contains("client.withdrawIslandBank(islandId, actorUuid, amount.toPlainString())"), "Paper public API must not call raw bank withdraw JSON endpoints");
+        assertTrue(!source.contains("client.publishRouteSessionResult(ticket)"), "Paper public API must not call raw route session publish JSON endpoints");
+        assertTrue(!source.contains("client.repairIslandResult(islandId, reason)"), "Paper public API must not call raw repair JSON endpoints");
     }
 
     @Test

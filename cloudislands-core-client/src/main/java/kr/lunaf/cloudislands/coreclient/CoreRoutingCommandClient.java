@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreRoutingCommandClient implements RoutingCommandClient {
     private final CoreApiClient delegate;
@@ -30,8 +32,13 @@ public final class CoreRoutingCommandClient implements RoutingCommandClient {
 
     @Override
     public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) {
+        return publishRouteSessionResult(ticket).thenApply(_result -> null);
+    }
+
+    @Override
+    public CompletableFuture<RoutePublishView> publishRouteSessionResult(RouteTicket ticket) {
         requireTicket(ticket);
-        return delegate.publishRouteSession(ticket);
+        return delegate.publishRouteSessionResult(ticket).thenApply(CoreRoutingCommandClient::routePublishResult);
     }
 
     @Override
@@ -45,6 +52,19 @@ public final class CoreRoutingCommandClient implements RoutingCommandClient {
     private static RouteClearView routeClearResult(String body) {
         String code = body == null || body.isBlank() ? "CLEARED" : body.trim();
         return new RouteClearView(true, code);
+    }
+
+    private static RoutePublishView routePublishResult(String body) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        boolean accepted = !root.containsKey("error")
+            && !Boolean.FALSE.equals(root.get("accepted"))
+            && !Boolean.FALSE.equals(root.get("ok"))
+            && !Boolean.FALSE.equals(root.get("applied"));
+        String code = SimpleJson.text(root.get("code"));
+        if (code.isBlank()) {
+            code = accepted ? "ROUTE_SESSION_PUBLISHED" : "FAILED";
+        }
+        return new RoutePublishView(accepted, code);
     }
 
     private static void requireTicket(RouteTicket ticket) {

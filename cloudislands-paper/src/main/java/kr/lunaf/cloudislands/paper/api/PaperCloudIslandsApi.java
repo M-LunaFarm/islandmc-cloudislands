@@ -144,6 +144,7 @@ import kr.lunaf.cloudislands.coreclient.ProgressionReviewRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.ReviewListView;
 import kr.lunaf.cloudislands.coreclient.ReviewView;
+import kr.lunaf.cloudislands.coreclient.RoutePublishView;
 import kr.lunaf.cloudislands.coreclient.RuntimeActionView;
 import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
@@ -2175,7 +2176,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) { return mutate("route.ticket.random-visit", () -> client.createRandomVisitTicket(visitorUuid)); }
         @Override public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) { return mutate("route.ticket.warp", () -> client.createWarpTicket(playerUuid, islandId, warpName)); }
         @Override public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) { return publishRouteSessionResult(ticket).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> publishRouteSessionResult(RouteTicket ticket) { return mutate("route.session.publish", () -> client.publishRouteSessionResult(ticket)).thenApply(body -> action(body, "ROUTE_SESSION_PUBLISHED")); }
+        @Override public CompletableFuture<IslandActionResult> publishRouteSessionResult(RouteTicket ticket) { return mutate("route.session.publish", () -> client.routingCommands().publishRouteSessionResult(ticket)).thenApply(view -> action(view, "ROUTE_SESSION_PUBLISHED")); }
         @Override public CompletableFuture<Optional<PlayerRouteSessionSnapshot>> consumeRouteSession(UUID playerUuid, String nodeId) { return mutate("route.session.consume", () -> client.consumeRouteSession(playerUuid, nodeId)).thenApply(session -> session.map(PaperCloudIslandsApi::routeSession)); }
         @Override public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce) { return client.routeTicketStatus(ticketId, playerUuid, nonce); }
         @Override public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) { return mutate("route.ticket.consume", () -> client.consumeTicket(ticketId, playerUuid, nodeId, nonce)); }
@@ -2383,7 +2384,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> quarantineIsland(UUID islandId, String reason) { return quarantineIslandResult(islandId, reason).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> quarantineIslandResult(UUID islandId, String reason) { return mutateIdempotent("admin.island.quarantine", () -> client.lifecycle().quarantineIsland(islandId, reason)).thenApply(view -> action(view, "QUARANTINED")); }
         @Override public CompletableFuture<Void> repairIsland(UUID islandId, String reason) { return repairIslandResult(islandId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<Optional<IslandRuntimeSnapshot>> repairIslandResult(UUID islandId, String reason) { return mutateIdempotent("admin.island.repair", () -> client.repairIslandResult(islandId, reason)).thenApply(PaperCloudIslandsApi::runtimeOptional); }
+        @Override public CompletableFuture<Optional<IslandRuntimeSnapshot>> repairIslandResult(UUID islandId, String reason) { return mutateIdempotent("admin.island.repair", () -> client.lifecycle().repairIsland(islandId, reason)).thenCompose(view -> view.accepted() ? client.adminIslands().runtime(islandId).thenApply(runtime -> Optional.of(PaperCloudIslandsApi.runtime(runtime))) : CompletableFuture.completedFuture(Optional.empty())); }
         @Override public CompletableFuture<Void> deleteIsland(UUID islandId) { return adminDeleteIslandResult(islandId).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> adminDeleteIslandResult(UUID islandId) { return mutateIdempotent("admin.island.delete", () -> client.lifecycle().adminDeleteIsland(islandId)).thenApply(view -> action(view, "ISLAND_DELETED")); }
         @Override public CompletableFuture<RouteTicket> createAdminTeleportTicket(UUID playerUuid, UUID islandId) { return mutate("admin.route.teleport", () -> client.adminIslandTeleport(playerUuid, islandId)); }
@@ -3069,6 +3070,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static IslandActionResult action(RuntimeActionView view, String fallbackCode) {
+        if (view == null) {
+            return new IslandActionResult(false, "FAILED");
+        }
+        return new IslandActionResult(view.accepted(), view.code().isBlank() ? (view.accepted() ? fallbackCode : "FAILED") : view.code());
+    }
+
+    private static IslandActionResult action(RoutePublishView view, String fallbackCode) {
         if (view == null) {
             return new IslandActionResult(false, "FAILED");
         }
