@@ -259,17 +259,28 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(homeWarpHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(homeWarpHandler.contains("IslandHomeWarpUseCase"));
-        assertTrue(homeWarpHandler.contains("homeWarpUseCase.setHome"));
-        assertTrue(homeWarpHandler.contains("homeWarpUseCase.setWarp"));
-        assertTrue(homeWarpHandler.contains("homeWarpUseCase.deleteWarp"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.setHomeAction"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.setWarpAction"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.deleteWarpAction"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.homeViews"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.warpViews"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.publicWarpViews"));
         assertFalse(homeWarpHandler.contains("coreApiClient.setIslandHomeResult"));
         assertFalse(homeWarpHandler.contains("coreApiClient.setIslandWarpResult"));
         assertFalse(homeWarpHandler.contains("coreApiClient.deleteIslandWarpResult"));
         assertFalse(homeWarpHandler.contains("coreApiClient.listPublicWarps"));
+        assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> setHome("), "home mutation usecase must expose typed actions instead of raw JSON");
+        assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> setWarp("), "warp mutation usecase must expose typed actions instead of raw JSON");
+        assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> listHomes("), "home list usecase must expose typed views instead of raw JSON");
+        assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> listWarps("), "warp list usecase must expose typed views instead of raw JSON");
+        assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> islandInfo("), "island info usecase must expose typed views instead of raw JSON");
+        assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> deleteWarp("), "warp delete usecase must expose typed actions instead of raw JSON");
+        assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> setWarpPublicAccess("), "warp access usecase must expose typed actions instead of raw JSON");
+        assertFalse(homeWarpUseCase.contains("public CompletableFuture<String> listPublicWarps("), "public warp list usecase must expose typed views instead of raw JSON");
         assertTrue(homeWarpUseCase.contains("coreApiClient.setIslandHomeResult"));
         assertTrue(homeWarpUseCase.contains("coreApiClient.setIslandWarpResult"));
         assertTrue(homeWarpUseCase.contains("coreApiClient.deleteIslandWarpResult"));
-        assertTrue(homeWarpUseCase.contains("coreApiClient.listPublicWarps"));
+        assertTrue(homeWarpUseCase.contains("PaperGuiViews.publicWarps(coreApiClient"));
     }
 
     @Test

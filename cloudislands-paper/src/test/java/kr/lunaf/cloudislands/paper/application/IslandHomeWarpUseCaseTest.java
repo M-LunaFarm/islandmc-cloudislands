@@ -20,47 +20,27 @@ class IslandHomeWarpUseCaseTest {
         UUID actorUuid = uuid("00000000-0000-0000-0000-000000000001");
         IslandLocation location = new IslandLocation("world", 1.0d, 2.0d, 3.0d, 90.0f, 0.0f);
 
-        assertEquals("home-set", useCase.setHome(islandId, actorUuid, "home", location, mutationRunner(calls)).join());
         assertEquals("HOME_SET", useCase.setHomeAction(islandId, actorUuid, "home", location, mutationRunner(calls)).join().code());
-        assertEquals("warp-set", useCase.setWarp(islandId, actorUuid, "spawn", location, false, mutationRunner(calls)).join());
         assertEquals("WARP_SET", useCase.setWarpAction(islandId, actorUuid, "spawn", location, false, mutationRunner(calls)).join().code());
-        assertEquals(homesJson(), useCase.listHomes(islandId).join());
         assertEquals("home", useCase.homeViews(islandId).join().getFirst().name());
-        assertEquals(warpsJson(islandId), useCase.listWarps(islandId).join());
         assertEquals("spawn", useCase.warpViews(islandId).join().getFirst().name());
-        assertEquals(infoJson(islandId), useCase.islandInfo(islandId).join());
         assertEquals("Island", useCase.islandInfoView(islandId).join().name());
-        assertEquals("deleted", useCase.deleteWarp(islandId, actorUuid, "spawn", idempotentMutationRunner(calls)).join());
         assertEquals("WARP_DELETED", useCase.deleteWarpAction(islandId, actorUuid, "spawn", idempotentMutationRunner(calls)).join().code());
-        assertEquals("access", useCase.setWarpPublicAccess(islandId, actorUuid, "spawn", true, mutationRunner(calls)).join());
         assertEquals("WARP_PUBLIC", useCase.setWarpPublicAccessAction(islandId, actorUuid, "spawn", true, mutationRunner(calls)).join().code());
-        assertEquals(publicWarpsJson(islandId), useCase.listPublicWarps(200, null, null).join());
         assertEquals("spawn", useCase.publicWarpViews(200, null, null).join().getFirst().name());
 
         assertEquals(List.of(
             "audit:island.home.set",
             "setIslandHomeResult:home",
-            "audit:island.home.set",
-            "setIslandHomeResult:home",
-            "audit:island.warp.set",
-            "setIslandWarpResult:spawn:false",
             "audit:island.warp.set",
             "setIslandWarpResult:spawn:false",
             "listIslandHomes",
-            "listIslandHomes",
-            "listIslandWarps",
             "listIslandWarps",
             "islandInfo",
-            "islandInfo",
-            "audit:island.warp.delete",
-            "deleteIslandWarpResult:spawn",
             "audit:island.warp.delete",
             "deleteIslandWarpResult:spawn",
             "audit:island.warp.public-access.set",
             "setIslandWarpPublicAccessResult:spawn:true",
-            "audit:island.warp.public-access.set",
-            "setIslandWarpPublicAccessResult:spawn:true",
-            "listPublicWarps:100::",
             "listPublicWarps:100::"
         ), calls);
     }
