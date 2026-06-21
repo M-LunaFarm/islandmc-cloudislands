@@ -2,6 +2,9 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -10,6 +13,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -149,37 +153,34 @@ public final class IslandUpgradeRoutes implements RouteGroup {
         events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", IslandFlag.FLY.name(), "value", "true"));
     }
 
-    static String upgradesJson(java.util.List<IslandUpgradeSnapshot> upgrades) {
-        StringBuilder builder = new StringBuilder("{\"upgrades\":[");
-        boolean first = true;
+    static String upgradesJson(List<IslandUpgradeSnapshot> upgrades) {
+        List<Object> renderedUpgrades = new ArrayList<>();
         for (IslandUpgradeSnapshot upgrade : upgrades) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(upgradeJson(upgrade));
+            renderedUpgrades.add(upgradeMap(upgrade));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("upgrades", renderedUpgrades));
     }
 
     static String upgradePurchaseJson(UpgradePurchaseResult result) {
-        return "{\"accepted\":" + result.accepted()
-            + ",\"code\":\"" + result.code() + "\""
-            + ",\"cost\":\"" + result.cost().toPlainString() + "\""
-            + ",\"upgrade\":" + (result.snapshot() == null ? "null" : upgradeJson(result.snapshot()))
-            + "}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", result.accepted());
+        values.put("code", result.code());
+        values.put("cost", result.cost().toPlainString());
+        values.put("upgrade", result.snapshot() == null ? null : upgradeMap(result.snapshot()));
+        return SimpleJson.stringify(values);
     }
 
     static String upgradeJson(IslandUpgradeSnapshot upgrade) {
-        return "{\"islandId\":\"" + upgrade.islandId()
-            + "\",\"upgradeKey\":\"" + escape(upgrade.upgradeKey())
-            + "\",\"type\":\"" + upgrade.type()
-            + "\",\"level\":" + upgrade.level()
-            + ",\"updatedAt\":\"" + upgrade.updatedAt()
-            + "\"}";
+        return SimpleJson.stringify(upgradeMap(upgrade));
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    private static Map<String, Object> upgradeMap(IslandUpgradeSnapshot upgrade) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", upgrade.islandId());
+        values.put("upgradeKey", upgrade.upgradeKey());
+        values.put("type", upgrade.type());
+        values.put("level", upgrade.level());
+        values.put("updatedAt", upgrade.updatedAt());
+        return values;
     }
 }
