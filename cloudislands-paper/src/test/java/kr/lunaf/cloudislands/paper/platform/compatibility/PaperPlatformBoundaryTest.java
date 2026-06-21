@@ -424,6 +424,7 @@ class PaperPlatformBoundaryTest {
 
         assertTrue(source.contains("client.islands().getIsland(islandId).thenApply(PaperCloudIslandsApi::island)"), "Public API island lookup must use typed island query client");
         assertTrue(source.contains("client.islands().getIslandByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island)"), "Public API owner lookup must use typed island query client");
+        assertTrue(source.contains("client.islands().listMembers(islandId).thenApply(views -> members(islandId, views))"), "Public API members must use typed island query client");
         assertTrue(source.contains("client.navigation().publicIslands(limit).thenApply(PaperCloudIslandsApi::publicIslands)"), "Public API public island list must use typed navigation query client");
         assertTrue(source.contains("CoreGuiViews.playerIslands(client, playerUuid).thenApply(PaperCloudIslandsApi::playerIslands)"), "Public API joined island list must use typed Core views");
         assertTrue(source.contains("client.homeWarps().homes(islandId).thenApply(views -> homes(islandId, views))"), "Public API homes must use typed home/warp query client");
@@ -437,11 +438,13 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.progression().upgrades(islandId).thenApply(views -> upgrades(islandId, views))"), "Public API upgrades must use typed progression query client");
         assertTrue(source.contains("client.progression().upgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules)"), "Public API upgrade rules must use typed progression query client");
         assertTrue(source.contains("client.progression().missions(islandId, kind).thenApply(views -> missions(islandId, kind, views))"), "Public API missions must use typed progression query client");
+        assertTrue(source.contains("client.members().bans(islandId).thenApply(views -> bans(islandId, views))"), "Public API bans must use typed member query client");
         assertTrue(source.contains("client.bank().islandBank(islandId).thenApply(bank -> bank(islandId, bank))"), "Public API bank lookup must use typed bank query client");
         assertTrue(source.contains("client.warehouse().listItems(islandId, limit).thenApply(PaperCloudIslandsApi::warehouseItems)"), "Public API warehouse lookup must use typed warehouse query client");
         assertTrue(source.contains("client.visitorStats().stats(islandId, limit).thenApply(PaperCloudIslandsApi::visitorStats)"), "Public API visitor stats must use typed visitor stats query client");
         assertTrue(!source.contains("return client.islandInfo(islandId).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for island lookup");
         assertTrue(!source.contains("return client.islandInfoByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island);"), "Public API query surface must not use raw island JSON for owner lookup");
+        assertTrue(!source.contains("return client.listIslandMembers(islandId).thenApply(PaperCloudIslandsApi::members);"), "Public API query surface must not use raw member JSON for members");
         assertTrue(!source.contains("return client.listIslandHomes(islandId).thenApply(PaperCloudIslandsApi::homes);"), "Public API query surface must not use raw home JSON for homes");
         assertTrue(!source.contains("return client.listIslandWarps(islandId).thenApply(PaperCloudIslandsApi::warps);"), "Public API query surface must not use raw warp JSON for warps");
         assertTrue(!source.contains("return client.listPublicWarps(limit).thenApply(PaperCloudIslandsApi::warps);"), "Public API query surface must not use raw public warp JSON for public warps");
@@ -453,6 +456,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("return client.listIslandUpgrades(islandId).thenApply(PaperCloudIslandsApi::upgrades);"), "Public API query surface must not use raw upgrade JSON for upgrades");
         assertTrue(!source.contains("return client.listUpgradeRules().thenApply(PaperCloudIslandsApi::upgradeRules);"), "Public API query surface must not use raw upgrade rule JSON for upgrade rules");
         assertTrue(!source.contains("return client.listIslandMissions(islandId, kind).thenApply(PaperCloudIslandsApi::missions);"), "Public API query surface must not use raw mission JSON for missions");
+        assertTrue(!source.contains("return client.listIslandBans(islandId).thenApply(PaperCloudIslandsApi::bans);"), "Public API query surface must not use raw ban JSON for bans");
         assertTrue(!source.contains("return client.listPublicIslands(limit).thenApply(PaperCloudIslandsApi::islands);"), "Public API query surface must not use raw island JSON for public island lists");
         assertTrue(!source.contains("return client.listPlayerIslands(playerUuid).thenApply(PaperCloudIslandsApi::islands);"), "Public API query surface must not use raw island JSON for joined island lists");
         assertTrue(!source.contains("return client.islandBank(islandId).thenApply(PaperCloudIslandsApi::bank);"), "Public API query surface must not use raw bank JSON for bank lookup");
@@ -1002,6 +1006,9 @@ class PaperPlatformBoundaryTest {
                     continue;
                 }
                 if (line.contains("client.bank().islandBank(")) {
+                    continue;
+                }
+                if (line.contains("client.members().bans(") || line.contains("client.progression().")) {
                     continue;
                 }
                 if (containsAnyText(line, "coreApiClient.", "client.", "coreClient.")

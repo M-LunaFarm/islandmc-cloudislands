@@ -1882,7 +1882,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandMemberSnapshot>> getMembers(UUID islandId) {
-            return client.listIslandMembers(islandId).thenApply(PaperCloudIslandsApi::members);
+            return client.islands().listMembers(islandId).thenApply(views -> members(islandId, views));
         }
 
         @Override
@@ -1927,7 +1927,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandBanSnapshot>> getBans(UUID islandId) {
-            return client.listIslandBans(islandId).thenApply(PaperCloudIslandsApi::bans);
+            return client.members().bans(islandId).thenApply(views -> bans(islandId, views));
         }
 
         @Override
@@ -2875,6 +2875,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return members;
     }
 
+    private static List<IslandMemberSnapshot> members(UUID islandId, List<CoreGuiViews.MemberView> views) {
+        return views.stream()
+            .map(view -> new IslandMemberSnapshot(
+                islandId,
+                uuidValueOrZero(view.playerUuid()),
+                normalizedRoleKey(view.role(), "VISITOR"),
+                view.joinedAt().isBlank() ? Instant.EPOCH : instant(view.joinedAt()),
+                view.expiresAt().isBlank() ? null : instant(view.expiresAt())
+            ))
+            .toList();
+    }
+
     private static List<IslandBanSnapshot> bans(String json) {
         List<IslandBanSnapshot> bans = new ArrayList<>();
         for (String object : objects(json, "bans")) {
@@ -2888,6 +2900,19 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return bans;
+    }
+
+    private static List<IslandBanSnapshot> bans(UUID islandId, List<CoreGuiViews.BanView> views) {
+        return views.stream()
+            .map(view -> new IslandBanSnapshot(
+                islandId,
+                uuidValueOrZero(view.bannedUuid()),
+                uuidValueOrZero(view.actorUuid()),
+                view.reason(),
+                view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt()),
+                view.expiresAt().isBlank() ? null : instant(view.expiresAt())
+            ))
+            .toList();
     }
 
     private static List<IslandInviteSnapshot> invites(String json) {
