@@ -695,17 +695,24 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> publishRouteSessionResult(RouteTicket ticket) {
         String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
-        return postWithResultBody("/v1/routes/session", "{\"playerUuid\":\"" + ticket.playerUuid() + "\",\"ticketId\":\"" + ticket.ticketId() + "\",\"targetNode\":\"" + escape(ticket.targetNode()) + "\",\"targetServerName\":\"" + escape(targetServerName) + "\",\"nonce\":\"" + escape(ticket.nonce()) + "\",\"expiresAt\":\"" + ticket.expiresAt() + "\"}");
+        return postWithResultBody("/v1/routes/session", jsonObject(
+            "playerUuid", ticket.playerUuid(),
+            "ticketId", ticket.ticketId(),
+            "targetNode", ticket.targetNode(),
+            "targetServerName", targetServerName,
+            "nonce", ticket.nonce(),
+            "expiresAt", ticket.expiresAt()
+        ));
     }
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId) {
-        return post("/v1/routes/session/find", "{\"playerUuid\":\"" + playerUuid + "\",\"nodeId\":\"" + escape(nodeId) + "\"}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+        return post("/v1/routes/session/find", jsonObject("playerUuid", playerUuid, "nodeId", nodeId)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
     }
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid) {
-        return post("/v1/routes/session/find-any", "{\"playerUuid\":\"" + playerUuid + "\"}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+        return post("/v1/routes/session/find-any", jsonObject("playerUuid", playerUuid)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
     }
 
     @Override
@@ -715,22 +722,22 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, boolean reportMissing) {
-        return post("/v1/routes/session/consume", "{\"playerUuid\":\"" + playerUuid + "\",\"nodeId\":\"" + escape(nodeId) + "\",\"reportMissing\":" + reportMissing + "}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+        return post("/v1/routes/session/consume", jsonObject("playerUuid", playerUuid, "nodeId", nodeId, "reportMissing", reportMissing)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
     }
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, UUID ticketId, String nonce, boolean reportMissing) {
-        return post("/v1/routes/session/consume", "{\"playerUuid\":\"" + playerUuid + "\",\"nodeId\":\"" + escape(nodeId) + "\",\"ticketId\":\"" + ticketId + "\",\"nonce\":\"" + escape(nonce) + "\",\"reportMissing\":" + reportMissing + "}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+        return post("/v1/routes/session/consume", jsonObject("playerUuid", playerUuid, "nodeId", nodeId, "ticketId", ticketId, "nonce", nonce, "reportMissing", reportMissing)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
     }
 
     @Override
     public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce) {
-        return post("/v1/routes/ticket-status", "{\"ticketId\":\"" + ticketId + "\",\"playerUuid\":\"" + playerUuid + "\",\"nonce\":\"" + escape(nonce) + "\"}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(RouteTicketJson.parse(body)));
+        return post("/v1/routes/ticket-status", jsonObject("ticketId", ticketId, "playerUuid", playerUuid, "nonce", nonce)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(RouteTicketJson.parse(body)));
     }
 
     @Override
     public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
-        return post("/v1/routes/consume", "{\"ticketId\":\"" + ticketId + "\",\"playerUuid\":\"" + playerUuid + "\",\"nodeId\":\"" + escape(nodeId) + "\",\"nonce\":\"" + escape(nonce) + "\"}").thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(RouteTicketJson.parse(body)));
+        return post("/v1/routes/consume", jsonObject("ticketId", ticketId, "playerUuid", playerUuid, "nodeId", nodeId, "nonce", nonce)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(RouteTicketJson.parse(body)));
     }
 
     @Override
@@ -1969,6 +1976,32 @@ public final class JdkCoreApiClient implements CoreApiClient {
             }
         }
         return builder.toString();
+    }
+
+    private static String jsonObject(Object... fields) {
+        if (fields == null || fields.length == 0) {
+            return "{}";
+        }
+        if (fields.length % 2 != 0) {
+            throw new IllegalArgumentException("JSON object fields must be key-value pairs");
+        }
+        StringBuilder builder = new StringBuilder("{");
+        for (int i = 0; i < fields.length; i += 2) {
+            if (i > 0) {
+                builder.append(',');
+            }
+            builder.append('"').append(escape(String.valueOf(fields[i]))).append("\":");
+            appendJsonValue(builder, fields[i + 1]);
+        }
+        return builder.append('}').toString();
+    }
+
+    private static void appendJsonValue(StringBuilder builder, Object value) {
+        if (value instanceof Number || value instanceof Boolean) {
+            builder.append(value);
+            return;
+        }
+        builder.append('"').append(escape(value == null ? "" : String.valueOf(value))).append('"');
     }
 
     private static String normalizeRoleKey(String roleKey) {

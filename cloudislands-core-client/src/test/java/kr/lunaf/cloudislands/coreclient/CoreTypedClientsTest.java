@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -22,6 +23,20 @@ import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import org.junit.jupiter.api.Test;
 
 class CoreTypedClientsTest {
+    @Test
+    void jdkCoreApiClientJsonObjectEscapesRouteRequestFields() throws Exception {
+        Method method = JdkCoreApiClient.class.getDeclaredMethod("jsonObject", Object[].class);
+        method.setAccessible(true);
+
+        String body = (String) method.invoke(null, (Object) new Object[] {
+            "nodeId", "paper\"east",
+            "reportMissing", true,
+            "retry", 2
+        });
+
+        assertEquals("{\"nodeId\":\"paper\\\"east\",\"reportMissing\":true,\"retry\":2}", body);
+    }
+
     @Test
     void islandQueryClientReturnsTypedIslandAndMemberPages() {
         UUID islandId = UUID.randomUUID();
