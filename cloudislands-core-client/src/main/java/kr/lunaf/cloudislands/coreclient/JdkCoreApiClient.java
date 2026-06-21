@@ -114,6 +114,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public HomeWarpCommandClient homeWarpCommands() {
+        return homeWarpClient;
+    }
+
+    @Override
     public IslandQueryClient islands() {
         return islandClient;
     }
@@ -882,7 +887,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         }
     }
 
-    private final class JdkHomeWarpClient implements HomeWarpQueryClient {
+    private final class JdkHomeWarpClient implements HomeWarpQueryClient, HomeWarpCommandClient {
         @Override
         public CompletableFuture<List<IslandHomeSnapshot>> homeSnapshots(UUID islandId) {
             requireId(islandId, "islandId");
@@ -910,10 +915,59 @@ public final class JdkCoreApiClient implements CoreApiClient {
                 .thenApply(body -> CoreHomeWarpJson.warps(null, body));
         }
 
+        @Override
+        public CompletableFuture<HomeWarpActionView> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            requireLocation(location);
+            return JdkCoreApiClient.this.setIslandHomeResult(islandId, actorUuid, normalizeName(name), location)
+                .thenApply(body -> actionResult(body, "HOME_SET"));
+        }
+
+        @Override
+        public CompletableFuture<HomeWarpActionView> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            requireLocation(location);
+            return JdkCoreApiClient.this.setIslandWarpResult(islandId, actorUuid, normalizeName(name), location, publicAccess)
+                .thenApply(body -> actionResult(body, "WARP_SET"));
+        }
+
+        @Override
+        public CompletableFuture<HomeWarpActionView> deleteWarp(UUID islandId, UUID actorUuid, String name) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return JdkCoreApiClient.this.deleteIslandWarpResult(islandId, actorUuid, normalizeName(name))
+                .thenApply(body -> actionResult(body, "WARP_DELETED"));
+        }
+
+        @Override
+        public CompletableFuture<HomeWarpActionView> setWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return JdkCoreApiClient.this.setIslandWarpPublicAccessResult(islandId, actorUuid, normalizeName(name), publicAccess)
+                .thenApply(body -> actionResult(body, publicAccess ? "WARP_PUBLIC" : "WARP_PRIVATE"));
+        }
+
         private void requireId(UUID id, String name) {
             if (id == null) {
                 throw new IllegalArgumentException(name + " is required");
             }
+        }
+
+        private void requireLocation(IslandLocation location) {
+            if (location == null) {
+                throw new IllegalArgumentException("location is required");
+            }
+        }
+
+        private String normalizeName(String name) {
+            return name == null || name.isBlank() ? "default" : name;
+        }
+
+        private HomeWarpActionView actionResult(String body, String successCode) {
+            Map<?, ?> root = CoreJson.object(body);
+            return new HomeWarpActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
         }
     }
 

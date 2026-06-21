@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreHomeWarpCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreHomeWarpQueryClient;
 import org.junit.jupiter.api.Test;
 
@@ -52,6 +53,7 @@ class IslandHomeWarpUseCaseTest {
 	            new Class<?>[] {CoreApiClient.class},
 	            (_proxy, method, args) -> switch (method.getName()) {
 	                case "homeWarps" -> new CoreHomeWarpQueryClient((CoreApiClient) _proxy);
+	                case "homeWarpCommands" -> new CoreHomeWarpCommandClient((CoreApiClient) _proxy);
 	                case "setIslandHomeResult" -> {
                     calls.add("setIslandHomeResult:" + args[2]);
                     yield CompletableFuture.completedFuture("home-set");

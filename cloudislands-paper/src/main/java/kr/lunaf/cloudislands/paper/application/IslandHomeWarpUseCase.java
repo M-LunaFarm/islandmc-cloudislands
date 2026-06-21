@@ -7,7 +7,6 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
-import kr.lunaf.cloudislands.coreclient.CoreHomeWarpCommandClient;
 import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
 import kr.lunaf.cloudislands.coreclient.HomeWarpCommandClient;
 import kr.lunaf.cloudislands.coreclient.HomeWarpQueryClient;
@@ -26,11 +25,11 @@ public final class IslandHomeWarpUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.homeWarpQueries = coreApiClient.homeWarps();
-        this.homeWarpCommands = new CoreHomeWarpCommandClient(coreApiClient);
+        this.homeWarpCommands = coreApiClient.homeWarpCommands();
     }
 
     IslandHomeWarpUseCase(CoreApiClient coreApiClient, HomeWarpQueryClient homeWarpQueries) {
-        this(coreApiClient, homeWarpQueries, new CoreHomeWarpCommandClient(coreApiClient));
+        this(coreApiClient, homeWarpQueries, coreApiClient.homeWarpCommands());
     }
 
     IslandHomeWarpUseCase(CoreApiClient coreApiClient, HomeWarpQueryClient homeWarpQueries, HomeWarpCommandClient homeWarpCommands) {
