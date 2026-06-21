@@ -18,9 +18,18 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandFlagMenu implements Listener {
-    private static final String MENU_ID = "island.flags";
     private static final String TITLE_KEY = "flag-menu-title";
     private static final String TITLE = "섬 플래그 설정";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/flags.yml",
+        new GuiMenuDefinition("island.flags", 6, TITLE_KEY, Map.of(
+            "open", "island.flags.open",
+            "list", "island.flags.list",
+            "set", "island.flag.set",
+            "back", "island.settings.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -65,31 +74,27 @@ public final class IslandFlagMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
-        player.closeInventory();
-        if (slot == 49) {
-            actions.execute(player, "island.flags.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 53) {
-            actions.execute(player, "island.settings.open", GuiClick.from(event));
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (!actionId.isBlank()) {
+            player.closeInventory();
+            actions.execute(player, actionId, GuiClick.from(event));
             return;
         }
         String flag = GuiItems.data(event.getCurrentItem()).getOrDefault("flag", "");
         if (flag.isBlank()) {
             return;
         }
+        player.closeInventory();
         actions.execute(player, "island.flag.set", java.util.Map.of("flag", flag), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, Map<IslandFlag, String> values, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             int slot = 0;
             for (IslandFlag flag : java.util.Arrays.stream(IslandFlag.values()).limit(49).toList()) {
                 inventory.setItem(slot++, flagItem(flag, values.get(flag), messages));
             }
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "flag-menu-refresh-name", "새로고침"), message(messages, "flag-menu-refresh-command", "/섬 플래그")));
-            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "flag-menu-settings-name", "설정"), message(messages, "flag-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
@@ -101,23 +106,8 @@ public final class IslandFlagMenu implements Listener {
         return GuiItems.action(material, flag.name(), "island.flag.set", java.util.Map.of("flag", flag.name()), message(messages, "flag-menu-current-value", "현재 값: ") + state, message(messages, "flag-menu-click-actions", "좌클릭: 허용, 우클릭: 거부"));
     }
 
-    private static ItemStack item(Material material, String name, String lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(java.util.List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
 }

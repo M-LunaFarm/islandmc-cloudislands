@@ -1,6 +1,32 @@
 id: island.flags
 rows: 6
 title-key: menu.flags.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "....R...S"
+items:
+  R:
+    material: CLOCK
+    name-key: flag-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - flag-menu-refresh-command
+    fallback-lore:
+      - "/섬 플래그"
+    action: open
+  S:
+    material: COMPARATOR
+    name-key: flag-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - flag-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: back
 actions:
   open: island.flags.open
   list: island.flags.list

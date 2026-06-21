@@ -234,6 +234,34 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledFlagAndLimitMenuDefinitionsCoverFooterControlsDeclaratively() {
+        GuiMenuDefinition flags = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/flags.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition limits = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/limits.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.flags", flags.id());
+        assertEquals(54, flags.size());
+        assertEquals("R", flags.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.flags.open", flags.action(flags.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("S", flags.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.settings.open", flags.action(flags.itemAt(53).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.limits", limits.id());
+        assertEquals(54, limits.size());
+        assertEquals("M", limits.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.main.open", limits.action(limits.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("R", limits.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.limits.open", limits.action(limits.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("S", limits.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.settings.open", limits.action(limits.itemAt(53).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",

@@ -21,7 +21,17 @@ import org.bukkit.plugin.Plugin;
 public final class IslandLimitMenu implements Listener {
     private static final String TITLE_KEY = "limit-menu-title";
     private static final String TITLE = "섬 제한";
-    private static final String MENU_ID = "island.limits";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/limits.yml",
+        new GuiMenuDefinition("island.limits", 6, TITLE_KEY, Map.of(
+            "open", "island.limits.open",
+            "list", "island.limits.list",
+            "set", "island.limit.set",
+            "main", "island.main.open",
+            "back", "island.settings.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -66,17 +76,10 @@ public final class IslandLimitMenu implements Listener {
         if (slot < 0 || slot >= 54) {
             return;
         }
-        player.closeInventory();
-        if (slot == 45) {
-            actions.execute(player, "island.main.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 49) {
-            actions.execute(player, "island.limits.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 53) {
-            actions.execute(player, "island.settings.open", GuiClick.from(event));
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (!actionId.isBlank()) {
+            player.closeInventory();
+            actions.execute(player, actionId, GuiClick.from(event));
             return;
         }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
@@ -87,12 +90,13 @@ public final class IslandLimitMenu implements Listener {
         long value = number(data.getOrDefault("value", "0"));
         long step = event.isShiftClick() ? 10L : 1L;
         long nextValue = event.isRightClick() ? Math.max(0L, value - step) : value + step;
+        player.closeInventory();
         actions.execute(player, "island.limit.set", java.util.Map.of("limitKey", limitKey, "value", String.valueOf(nextValue)), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<LimitView> limits, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 54, message(messages, TITLE_KEY, TITLE));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             int slot = 0;
             for (LimitView limit : limits.stream().limit(45).toList()) {
                 inventory.setItem(slot++, limitItem(limit, messages));
@@ -100,9 +104,6 @@ public final class IslandLimitMenu implements Listener {
             if (limits.isEmpty()) {
                 inventory.setItem(22, item(Material.BARRIER, message(messages, "limit-menu-empty-title", "제한 없음"), message(messages, "limit-menu-empty", "현재 설정된 섬 제한이 없습니다.")));
             }
-            inventory.setItem(45, item(Material.COMPASS, message(messages, "limit-menu-main-menu-name", "메인 메뉴"), message(messages, "limit-menu-main-menu-command", "/섬 메뉴")));
-            inventory.setItem(49, item(Material.CLOCK, message(messages, "limit-menu-refresh-name", "새로고침"), message(messages, "limit-menu-refresh-command", "/섬 제한")));
-            inventory.setItem(53, item(Material.COMPARATOR, message(messages, "limit-menu-settings-name", "설정"), message(messages, "limit-menu-settings-command", "/섬 설정")));
             player.openInventory(inventory);
         });
     }
@@ -118,11 +119,7 @@ public final class IslandLimitMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static ItemStack item(Material material, String name, String... lore) {

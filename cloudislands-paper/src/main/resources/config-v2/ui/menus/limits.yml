@@ -1,8 +1,44 @@
 id: island.limits
 rows: 6
 title-key: menu.limits.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "M...R...S"
+items:
+  M:
+    material: COMPASS
+    name-key: limit-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - limit-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: main
+  R:
+    material: CLOCK
+    name-key: limit-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - limit-menu-refresh-command
+    fallback-lore:
+      - "/섬 제한"
+    action: open
+  S:
+    material: COMPARATOR
+    name-key: limit-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - limit-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: back
 actions:
   open: island.limits.open
   list: island.limits.list
   set: island.limit.set
+  main: island.main.open
   back: island.settings.open
