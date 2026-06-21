@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.paper.integration.spi;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
 
@@ -49,7 +51,9 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
     protected IntegrationResult guardedStateHook(String operation, IntegrationContext context, String... requiredMetadata) {
         CloudIntegrationPolicy.HookDecision decision = validateRuntimeAuthority(context, true);
         if (!decision.allowed()) {
-            return IntegrationResult.failed(pluginName + " " + operation + " denied: " + String.join(",", decision.violations()));
+            return IntegrationResult.failed(
+                pluginName + " " + operation + " denied: " + String.join(",", decision.violations()),
+                failureDetails(operation, context, "violations", String.join(",", decision.violations())));
         }
         return guardedMetadataHook(operation, context, requiredMetadata);
     }
@@ -57,7 +61,9 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
     protected IntegrationResult guardedObservationHook(String operation, IntegrationContext context, String... requiredMetadata) {
         CloudIntegrationPolicy.HookDecision decision = validateRuntimeAuthority(context, false);
         if (!decision.allowed()) {
-            return IntegrationResult.failed(pluginName + " " + operation + " denied: " + String.join(",", decision.violations()));
+            return IntegrationResult.failed(
+                pluginName + " " + operation + " denied: " + String.join(",", decision.violations()),
+                failureDetails(operation, context, "violations", String.join(",", decision.violations())));
         }
         return guardedMetadataHook(operation, context, requiredMetadata);
     }
@@ -65,9 +71,39 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
     protected IntegrationResult guardedMetadataHook(String operation, IntegrationContext context, String... requiredMetadata) {
         Set<String> missingMetadata = context == null ? Set.of("context") : context.missingMetadata(requiredMetadata);
         if (!missingMetadata.isEmpty()) {
-            return IntegrationResult.failed(pluginName + " " + operation + " missing metadata: " + String.join(",", missingMetadata));
+            return IntegrationResult.failed(
+                pluginName + " " + operation + " missing metadata: " + String.join(",", missingMetadata),
+                failureDetails(operation, context, "missingMetadata", String.join(",", missingMetadata)));
         }
-        return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId());
+        return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId(), successDetails(operation, context));
+    }
+
+    private Map<String, String> failureDetails(String operation, IntegrationContext context, String key, String value) {
+        Map<String, String> details = contextDetails(operation, context);
+        details.put(key, value == null ? "" : value);
+        return details;
+    }
+
+    private Map<String, String> successDetails(String operation, IntegrationContext context) {
+        return Map.copyOf(contextDetails(operation, context));
+    }
+
+    private Map<String, String> contextDetails(String operation, IntegrationContext context) {
+        LinkedHashMap<String, String> details = new LinkedHashMap<>();
+        details.put("plugin", pluginName);
+        details.put("operation", operation == null ? "" : operation);
+        if (context == null) {
+            return details;
+        }
+        details.put("islandId", context.islandId() == null ? "" : context.islandId().toString());
+        details.put("nodeId", context.nodeId());
+        details.put("fencingToken", Long.toString(context.fencingToken()));
+        details.put("nodeOwnsIsland", Boolean.toString(context.nodeOwnsIsland()));
+        details.put("idempotencyKey", context.idempotencyKey());
+        context.metadata().entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(entry -> details.put("metadata." + entry.getKey(), entry.getValue()));
+        return details;
     }
 
     private static int compareVersions(String actual, String minimum) {

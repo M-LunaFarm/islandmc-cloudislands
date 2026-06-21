@@ -79,7 +79,15 @@ class PaperIntegrationRegistryTest {
             "cell", "12,-4",
             "bundleKey", "bundles/island.tar.zst"
         ));
-        assertEquals(IntegrationResult.Status.SUCCESS, integration.exportState(exportContext).status());
+        IntegrationResult exportResult = integration.exportState(exportContext);
+        assertEquals(IntegrationResult.Status.SUCCESS, exportResult.status());
+        assertEquals("CoreProtect", exportResult.details().get("plugin"));
+        assertEquals("audit-export", exportResult.details().get("operation"));
+        assertEquals(exportContext.islandId().toString(), exportResult.details().get("islandId"));
+        assertEquals("island-node-01", exportResult.details().get("nodeId"));
+        assertEquals("77", exportResult.details().get("fencingToken"));
+        assertEquals("coreprotect:export:2", exportResult.details().get("idempotencyKey"));
+        assertEquals("bundles/island.tar.zst", exportResult.details().get("metadata.bundleKey"));
 
         IntegrationContext restoreContext = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:restore:1", Map.of(
             "world", "islands",
@@ -87,7 +95,11 @@ class PaperIntegrationRegistryTest {
             "rollbackSeconds", "3600",
             "bundleKey", "bundles/island.tar.zst"
         ));
-        assertEquals(IntegrationResult.Status.SUCCESS, integration.restoreState(restoreContext).status());
+        IntegrationResult restoreResult = integration.restoreState(restoreContext);
+        assertEquals(IntegrationResult.Status.SUCCESS, restoreResult.status());
+        assertEquals("rollback-restore", restoreResult.details().get("operation"));
+        assertEquals("3600", restoreResult.details().get("metadata.rollbackSeconds"));
+        assertEquals("true", restoreResult.details().get("nodeOwnsIsland"));
     }
 
     @Test
