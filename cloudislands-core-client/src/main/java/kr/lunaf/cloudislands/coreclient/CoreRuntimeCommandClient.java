@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 
 public final class CoreRuntimeCommandClient implements RuntimeCommandClient {
@@ -47,16 +46,8 @@ public final class CoreRuntimeCommandClient implements RuntimeCommandClient {
     }
 
     private static RuntimeActionView action(String body, String fallbackCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("ok"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (code.isBlank()) {
-            code = accepted ? fallbackCode : "FAILED";
-        }
-        return new RuntimeActionView(accepted, code);
+        Map<?, ?> root = CoreJson.object(body);
+        return new RuntimeActionView(CoreJson.accepted(root), CoreJson.code(root, fallbackCode));
     }
 
     private static UUID requireId(UUID id, String name) {

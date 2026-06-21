@@ -43,6 +43,23 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void coreJsonNormalizesTypedCommandResultStatus() {
+        Map<?, ?> blank = CoreJson.object("");
+        Map<?, ?> ok = CoreJson.object("{\"ok\":true,\"nodeId\":\"paper-a\",\"nodes\":[\"paper-a\",\"\"]}");
+        Map<?, ?> rejected = CoreJson.object("{\"accepted\":false}");
+        Map<?, ?> failed = CoreJson.object("{\"error\":{\"code\":\"STALE_NODE\"}}");
+
+        assertTrue(CoreJson.accepted(blank));
+        assertEquals("FALLBACK", CoreJson.code(blank, "FALLBACK"));
+        assertTrue(CoreJson.accepted(ok));
+        assertEquals("paper-a", CoreJson.text(ok, "nodeId"));
+        assertEquals(List.of("paper-a"), CoreJson.strings(ok, "nodes"));
+        assertFalse(CoreJson.accepted(rejected));
+        assertEquals("FAILED", CoreJson.code(rejected, "IGNORED"));
+        assertFalse(CoreJson.accepted(failed));
+    }
+
+    @Test
     void islandQueryClientReturnsTypedIslandAndMemberPages() {
         UUID islandId = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(

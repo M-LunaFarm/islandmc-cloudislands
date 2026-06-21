@@ -4,7 +4,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreCommunicationCommandClient implements CommunicationCommandClient {
     private final CoreApiClient delegate;
@@ -30,15 +29,8 @@ public final class CoreCommunicationCommandClient implements CommunicationComman
     }
 
     private static ChatActionView chatAction(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new ChatActionView(accepted, code, SimpleJson.text(root.get("channel")), SimpleJson.text(root.get("message")));
+        Map<?, ?> root = CoreJson.object(body);
+        return new ChatActionView(CoreJson.accepted(root), CoreJson.code(root, successCode), CoreJson.text(root, "channel"), CoreJson.text(root, "message"));
     }
 
     private static void requireId(UUID id, String name) {

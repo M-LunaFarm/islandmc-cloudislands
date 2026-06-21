@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreIslandEnvironmentCommandClient implements IslandEnvironmentCommandClient {
     private final CoreApiClient delegate;
@@ -42,41 +41,16 @@ public final class CoreIslandEnvironmentCommandClient implements IslandEnvironme
     }
 
     private static EnvironmentActionView actionResult(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = bool(root, "accepted", true);
-        accepted = accepted && !root.containsKey("error") && !Boolean.FALSE.equals(root.get("applied"));
-        String code = text(root, "code");
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
+        Map<?, ?> root = CoreJson.object(body);
         return new EnvironmentActionView(
-            accepted,
-            code,
-            firstText(root, "limitKey", "biomeKey", "flag", "key"),
-            SimpleJson.number(root.get("value")),
-            text(root, "islandId"),
-            text(root, "updatedBy"),
-            text(root, "updatedAt")
+            CoreJson.accepted(root),
+            CoreJson.code(root, successCode),
+            CoreJson.firstText(root, "limitKey", "biomeKey", "flag", "key"),
+            CoreJson.number(root, "value"),
+            CoreJson.text(root, "islandId"),
+            CoreJson.text(root, "updatedBy"),
+            CoreJson.text(root, "updatedAt")
         );
-    }
-
-    private static String firstText(Map<?, ?> root, String... keys) {
-        for (String key : keys) {
-            String value = text(root, key);
-            if (!value.isBlank()) {
-                return value;
-            }
-        }
-        return "";
-    }
-
-    private static String text(Map<?, ?> root, String key) {
-        return SimpleJson.text(root.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> root, String key, boolean fallback) {
-        Object value = root.get(key);
-        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 
     private static void requireId(UUID id, String name) {

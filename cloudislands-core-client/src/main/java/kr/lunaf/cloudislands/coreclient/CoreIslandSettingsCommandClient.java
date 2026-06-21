@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreIslandSettingsCommandClient implements IslandSettingsCommandClient {
     private final CoreApiClient delegate;
@@ -50,15 +49,8 @@ public final class CoreIslandSettingsCommandClient implements IslandSettingsComm
     }
 
     private static SettingsActionView actionResult(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new SettingsActionView(accepted, code);
+        Map<?, ?> root = CoreJson.object(body);
+        return new SettingsActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
     }
 
     private static void requireId(UUID id, String name) {

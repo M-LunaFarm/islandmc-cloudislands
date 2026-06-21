@@ -32,15 +32,12 @@ public final class CoreBankCommandClient implements BankCommandClient {
     }
 
     private static BankMutationView bankMutation(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> bank = SimpleJson.object(root.get("bank"));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
         String islandId = firstText(root, bank, "islandId");
         String balance = firstText(root, bank, "balance");
         String updatedAt = firstText(root, bank, "updatedAt");
-        return new BankMutationView(accepted, SimpleJson.text(root.get("code")), islandId, balance, updatedAt);
+        return new BankMutationView(CoreJson.accepted(root), CoreJson.text(root, "code"), islandId, balance, updatedAt);
     }
 
     private static String firstText(Map<?, ?> root, Map<?, ?> nested, String key) {

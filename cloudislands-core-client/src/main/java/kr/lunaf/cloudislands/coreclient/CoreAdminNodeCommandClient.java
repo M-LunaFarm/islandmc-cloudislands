@@ -1,9 +1,7 @@
 package kr.lunaf.cloudislands.coreclient;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreAdminNodeCommandClient implements AdminNodeCommandClient {
     private final CoreApiClient delegate;
@@ -41,25 +39,15 @@ public final class CoreAdminNodeCommandClient implements AdminNodeCommandClient 
     }
 
     private static AdminNodeActionView actionResult(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
+        Map<?, ?> root = CoreJson.object(body);
         return new AdminNodeActionView(
-            accepted,
-            SimpleJson.text(root.get("code")),
-            SimpleJson.text(root.get("nodeId")),
-            SimpleJson.text(root.get("operation")),
-            strings(root.get("nodes")),
-            (int) SimpleJson.number(root.get("recoveryRequired"))
+            CoreJson.accepted(root),
+            CoreJson.text(root, "code"),
+            CoreJson.text(root, "nodeId"),
+            CoreJson.text(root, "operation"),
+            CoreJson.strings(root, "nodes"),
+            (int) CoreJson.number(root, "recoveryRequired")
         );
-    }
-
-    private static List<String> strings(Object value) {
-        return SimpleJson.list(value).stream()
-            .map(SimpleJson::text)
-            .filter(text -> !text.isBlank())
-            .toList();
     }
 
     private static String requireNode(String nodeId) {

@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreSnapshotCommandClient implements SnapshotCommandClient {
     private final CoreApiClient delegate;
@@ -52,14 +51,8 @@ public final class CoreSnapshotCommandClient implements SnapshotCommandClient {
     }
 
     private static SnapshotActionView snapshotAction(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = bool(root, "accepted", true);
-        accepted = accepted && !root.containsKey("error") && !Boolean.FALSE.equals(root.get("applied"));
-        String code = text(root, "code");
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new SnapshotActionView(accepted, code);
+        Map<?, ?> root = CoreJson.object(body);
+        return new SnapshotActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
     }
 
     private static String normalizeReason(String reason) {
@@ -71,15 +64,6 @@ public final class CoreSnapshotCommandClient implements SnapshotCommandClient {
 
     private static String textOrEmpty(String value) {
         return value == null ? "" : value.trim();
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key, boolean fallback) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 
     private static void requireId(UUID id, String name) {

@@ -5,7 +5,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreRoutingCommandClient implements RoutingCommandClient {
     private final CoreApiClient delegate;
@@ -55,16 +54,8 @@ public final class CoreRoutingCommandClient implements RoutingCommandClient {
     }
 
     private static RoutePublishView routePublishResult(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("ok"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (code.isBlank()) {
-            code = accepted ? "ROUTE_SESSION_PUBLISHED" : "FAILED";
-        }
-        return new RoutePublishView(accepted, code);
+        Map<?, ?> root = CoreJson.object(body);
+        return new RoutePublishView(CoreJson.accepted(root), CoreJson.code(root, "ROUTE_SESSION_PUBLISHED"));
     }
 
     private static void requireTicket(RouteTicket ticket) {
