@@ -6,62 +6,56 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
-import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreProgressionQueryClient;
+import kr.lunaf.cloudislands.coreclient.ProgressionQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MissionView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.UpgradeView;
 
 public final class IslandProgressionUseCase {
     private final CoreApiClient coreApiClient;
+    private final ProgressionQueryClient progressionQueries;
 
     public IslandProgressionUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.progressionQueries = new CoreProgressionQueryClient(coreApiClient);
     }
 
-    private CompletableFuture<String> islandInfoBody(UUID islandId) {
-        requireIsland(islandId);
-        return coreApiClient.islandInfo(islandId);
+    IslandProgressionUseCase(CoreApiClient coreApiClient, ProgressionQueryClient progressionQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (progressionQueries == null) {
+            throw new IllegalArgumentException("progressionQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.progressionQueries = progressionQueries;
     }
 
     public CompletableFuture<IslandLevelView> islandLevel(UUID islandId) {
-        return islandInfoBody(islandId).thenApply(IslandProgressionUseCase::levelView);
-    }
-
-    private CompletableFuture<String> blockDetailsBody(UUID islandId, int limit) {
         requireIsland(islandId);
-        return coreApiClient.islandBlockDetails(islandId, boundedLimit(limit));
+        return progressionQueries.islandInfo(islandId).thenApply(IslandProgressionUseCase::levelView);
     }
 
     public CompletableFuture<BlockDetailsView> blockDetailsView(UUID islandId, int limit) {
-        return blockDetailsBody(islandId, limit).thenApply(IslandProgressionUseCase::blockDetailsView);
-    }
-
-    private CompletableFuture<String> topIslandsByWorthBody(int limit) {
-        return coreApiClient.topIslandsByWorth(boundedLimit(limit));
+        requireIsland(islandId);
+        return progressionQueries.blockDetails(islandId, limit).thenApply(IslandProgressionUseCase::blockDetailsView);
     }
 
     public CompletableFuture<List<RankingEntryView>> topWorthViews(int limit) {
-        return topIslandsByWorthBody(limit).thenApply(body -> rankingViews(body, "worth"));
-    }
-
-    private CompletableFuture<String> topIslandsByLevelBody(int limit) {
-        return coreApiClient.topIslandsByLevel(boundedLimit(limit));
+        return progressionQueries.topWorth(limit).thenApply(views -> views.stream().map(IslandProgressionUseCase::rankingEntryView).toList());
     }
 
     public CompletableFuture<List<RankingEntryView>> topLevelViews(int limit) {
-        return topIslandsByLevelBody(limit).thenApply(body -> rankingViews(body, "level"));
-    }
-
-    private CompletableFuture<String> topIslandsByReviewsBody(int limit) {
-        return coreApiClient.topIslandsByReviews(boundedLimit(limit));
+        return progressionQueries.topLevel(limit).thenApply(views -> views.stream().map(IslandProgressionUseCase::rankingEntryView).toList());
     }
 
     public CompletableFuture<List<ReviewRankingEntryView>> topReviewViews(int limit) {
-        return topIslandsByReviewsBody(limit).thenApply(IslandProgressionUseCase::reviewRankingViews);
+        return progressionQueries.topReviews(limit).thenApply(views -> views.stream().map(IslandProgressionUseCase::reviewRankingEntryView).toList());
     }
 
     private CompletableFuture<String> recalculateLevelBody(UUID islandId, UUID actorUuid) {
@@ -76,7 +70,7 @@ public final class IslandProgressionUseCase {
 
     public CompletableFuture<List<UpgradeView>> upgradeViews(UUID islandId) {
         requireIsland(islandId);
-        return PaperGuiViews.islandUpgrades(coreApiClient, islandId);
+        return progressionQueries.upgrades(islandId).thenApply(views -> views.stream().map(IslandProgressionUseCase::upgradeView).toList());
     }
 
     private CompletableFuture<String> purchaseUpgradeBody(UUID islandId, UUID actorUuid, String upgradeKey, IdempotentMutationRunner runner) {
@@ -93,7 +87,7 @@ public final class IslandProgressionUseCase {
 
     public CompletableFuture<List<MissionView>> missionViews(UUID islandId, String kind) {
         requireIsland(islandId);
-        return PaperGuiViews.islandMissions(coreApiClient, islandId, normalizeKind(kind));
+        return progressionQueries.missions(islandId, normalizeKind(kind)).thenApply(views -> views.stream().map(IslandProgressionUseCase::missionView).toList());
     }
 
     private CompletableFuture<String> completeMissionBody(UUID islandId, UUID actorUuid, String missionKey, String kind, IdempotentMutationRunner runner) {
@@ -110,51 +104,37 @@ public final class IslandProgressionUseCase {
 
     private static IslandLevelView levelView(String body) {
         CoreGuiViews.IslandInfoView info = CoreGuiViews.islandInfoView(body);
+        return levelView(info);
+    }
+
+    private static IslandLevelView levelView(CoreGuiViews.IslandInfoView info) {
         return new IslandLevelView(info.level(), info.worth().isBlank() ? "0" : info.worth());
     }
 
-    private static BlockDetailsView blockDetailsView(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        Map<?, ?> summary = SimpleJson.object(root.get("summary"));
-        List<BlockDetailView> blocks = SimpleJson.list(root.get("blocks")).stream()
-            .map(SimpleJson::object)
-            .map(block -> new BlockDetailView(
-                text(block, "materialKey"),
-                SimpleJson.number(block.get("count")),
-                text(block, "totalWorth"),
-                SimpleJson.number(block.get("levelPoints"))
-            ))
-            .filter(block -> !block.materialKey().isBlank())
-            .toList();
+    private static BlockDetailsView blockDetailsView(kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailsView view) {
         return new BlockDetailsView(
-            text(summary, "totalWorth"),
-            SimpleJson.number(summary.get("totalLevelPoints")),
-            blocks
+            view.totalWorth(),
+            view.totalLevelPoints(),
+            view.blocks().stream()
+                .map(block -> new BlockDetailView(block.materialKey(), block.count(), block.totalWorth(), block.levelPoints()))
+                .toList()
         );
     }
 
-    private static List<RankingEntryView> rankingViews(String body, String valueKey) {
-        return entries(body).stream()
-            .map(object -> new RankingEntryView(
-                text(object, "islandId"),
-                text(object, "name"),
-                SimpleJson.number(object.get("level")),
-                text(object, "worth"),
-                valueKey
-            ))
-            .filter(entry -> !entry.islandId().isBlank())
-            .toList();
+    private static RankingEntryView rankingEntryView(kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView view) {
+        return new RankingEntryView(view.islandId(), view.name(), view.level(), view.worth(), view.valueKey());
     }
 
-    private static List<ReviewRankingEntryView> reviewRankingViews(String body) {
-        return entries(body).stream()
-            .map(object -> new ReviewRankingEntryView(
-                text(object, "islandId"),
-                doubleValue(object.get("averageRating")),
-                SimpleJson.number(object.get("reviewCount"))
-            ))
-            .filter(entry -> !entry.islandId().isBlank())
-            .toList();
+    private static ReviewRankingEntryView reviewRankingEntryView(kr.lunaf.cloudislands.coreclient.ProgressionReviewRankingEntryView view) {
+        return new ReviewRankingEntryView(view.islandId(), view.averageRating(), view.reviewCount());
+    }
+
+    private static UpgradeView upgradeView(CoreGuiViews.UpgradeView view) {
+        return new UpgradeView(view.key(), view.type(), view.level());
+    }
+
+    private static MissionView missionView(CoreGuiViews.MissionView view) {
+        return new MissionView(view.key(), view.title(), view.progress(), view.goal(), view.completed(), view.reward());
     }
 
     private static UpgradePurchaseResult upgradePurchaseResult(String body, String fallbackKey) {
@@ -191,26 +171,6 @@ public final class IslandProgressionUseCase {
             && !Boolean.FALSE.equals(root.get("applied"));
     }
 
-    private static List<Map<?, ?>> entries(String body) {
-        Object parsed = SimpleJson.parse(body);
-        if (parsed instanceof List<?>) {
-            return SimpleJson.list(parsed).stream()
-                .map(SimpleJson::object)
-                .filter(map -> !map.isEmpty())
-                .toList();
-        }
-        Map<?, ?> root = SimpleJson.object(parsed);
-        for (Object value : root.values()) {
-            if (value instanceof List<?>) {
-                return SimpleJson.list(value).stream()
-                    .map(SimpleJson::object)
-                    .filter(map -> !map.isEmpty())
-                    .toList();
-            }
-        }
-        return root.isEmpty() ? List.of() : List.of(root);
-    }
-
     private static String text(Map<?, ?> object, String key) {
         return SimpleJson.text(object.get(key));
     }
@@ -227,10 +187,6 @@ public final class IslandProgressionUseCase {
             }
         }
         return 0D;
-    }
-
-    private static int boundedLimit(int limit) {
-        return Math.max(1, Math.min(limit, 100));
     }
 
     private static String normalizeKind(String kind) {

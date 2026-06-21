@@ -188,6 +188,13 @@ class IslandCommandControllerPolicyTest {
         assertFalse(progressionUseCase.contains("public CompletableFuture<String> purchaseUpgrade("), "upgrade mutation usecase must expose typed results instead of raw JSON");
         assertFalse(progressionUseCase.contains("public CompletableFuture<String> listMissions("), "mission list usecase must expose typed views instead of raw JSON");
         assertFalse(progressionUseCase.contains("public CompletableFuture<String> completeMission("), "mission mutation usecase must expose typed results instead of raw JSON");
+        assertTrue(progressionUseCase.contains("ProgressionQueryClient progressionQueries"), "progression reads must stay behind a typed core-client query boundary");
+        assertTrue(progressionUseCase.contains("progressionQueries.blockDetails"));
+        assertTrue(progressionUseCase.contains("progressionQueries.topWorth"));
+        assertTrue(progressionUseCase.contains("progressionQueries.upgrades"));
+        assertFalse(progressionUseCase.contains("coreApiClient.islandBlockDetails"));
+        assertFalse(progressionUseCase.contains("PaperGuiViews.islandUpgrades(coreApiClient"));
+        assertFalse(progressionUseCase.contains("PaperGuiViews.islandMissions(coreApiClient"));
         assertTrue(progressionUseCase.contains("coreApiClient.recalculateIslandLevel"));
         assertTrue(progressionUseCase.contains("coreApiClient.purchaseIslandUpgrade"));
         assertTrue(progressionUseCase.contains("coreApiClient.completeIslandMission"));

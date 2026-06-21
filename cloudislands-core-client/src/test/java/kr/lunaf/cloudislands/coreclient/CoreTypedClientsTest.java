@@ -279,6 +279,74 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void progressionQueryClientReturnsTypedReadViews() {
+        UUID islandId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "islandInfo" -> {
+                    calls.add("info");
+                    yield CompletableFuture.completedFuture("""
+                        {"islandId":"%s","name":"Base","state":"ACTIVE","level":7,"worth":"12.50"}
+                        """.formatted(islandId));
+                }
+                case "islandBlockDetails" -> {
+                    calls.add("blocks:" + args[1]);
+                    yield CompletableFuture.completedFuture("""
+                        {"blocks":[{"materialKey":"minecraft:diamond_block","count":2,"totalWorth":"2000.00","levelPoints":20}],"summary":{"totalWorth":"2000.00","totalLevelPoints":20}}
+                        """);
+                }
+                case "topIslandsByWorth", "topIslandsByLevel" -> {
+                    calls.add(method.getName() + ":" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"rankings":[{"islandId":"%s","name":"Base","level":7,"worth":"12.50"}]}
+                        """.formatted(islandId));
+                }
+                case "topIslandsByReviews" -> {
+                    calls.add("reviews:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"rankings":[{"islandId":"%s","averageRating":4.5,"reviewCount":2}]}
+                        """.formatted(islandId));
+                }
+                case "listIslandUpgrades" -> {
+                    calls.add("upgrades");
+                    yield CompletableFuture.completedFuture("""
+                        {"upgrades":[{"upgradeKey":"generator:ore","type":"GENERATOR","level":3}]}
+                        """);
+                }
+                case "listIslandMissions" -> {
+                    calls.add("missions:" + args[1]);
+                    yield CompletableFuture.completedFuture("""
+                        {"missions":[{"missionKey":"starter","title":"Starter","progress":1,"goal":2,"completed":false,"reward":"10"}]}
+                        """);
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        ProgressionQueryClient client = new CoreProgressionQueryClient(raw);
+
+        assertEquals(7L, client.islandInfo(islandId).join().level());
+        assertEquals("2000.00", client.blockDetails(islandId, 500).join().totalWorth());
+        assertEquals("12.50", client.topWorth(500).join().get(0).worth());
+        assertEquals(7L, client.topLevel(0).join().get(0).level());
+        assertEquals(2L, client.topReviews(10).join().get(0).reviewCount());
+        assertEquals("generator:ore", client.upgrades(islandId).join().get(0).key());
+        assertEquals("starter", client.missions(islandId, null).join().get(0).key());
+
+        assertEquals(List.of(
+            "info",
+            "blocks:100",
+            "topIslandsByWorth:100",
+            "topIslandsByLevel:1",
+            "reviews:10",
+            "upgrades",
+            "missions:MISSION"
+        ), calls);
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

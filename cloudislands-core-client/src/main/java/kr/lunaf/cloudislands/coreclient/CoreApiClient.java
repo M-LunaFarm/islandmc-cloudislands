@@ -56,6 +56,10 @@ public interface CoreApiClient {
         return new CoreNavigationQueryClient(this);
     }
 
+    default ProgressionQueryClient progression() {
+        return new CoreProgressionQueryClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);
