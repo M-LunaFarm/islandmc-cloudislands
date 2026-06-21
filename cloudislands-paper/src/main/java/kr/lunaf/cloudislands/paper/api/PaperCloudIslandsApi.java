@@ -2112,12 +2112,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<Optional<PlayerIslandProfile>> setPrimaryIsland(UUID playerUuid, UUID islandId) {
-            return mutate("player.primary-island.set", () -> client.setPlayerIsland(playerUuid, islandId)).thenApply(PaperCloudIslandsApi::playerProfile);
+            return mutate("player.primary-island.set", () -> client.playerProfileCommands().setPrimaryIsland(playerUuid, islandId)).thenApply(PaperCloudIslandsApi::playerProfile);
         }
 
         @Override
         public CompletableFuture<Optional<PlayerIslandProfile>> clearPrimaryIsland(UUID playerUuid) {
-            return mutate("player.primary-island.clear", () -> client.clearPlayerIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile);
+            return mutate("player.primary-island.clear", () -> client.playerProfileCommands().clearPrimaryIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile);
         }
     }
 
@@ -2366,8 +2366,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Void> reload() { return reloadResult().thenApply(_result -> null); }
         @Override public CompletableFuture<CoreMaintenanceResult> reloadResult() { return mutate("admin.core.reload", () -> client.reloadResult()).thenApply(body -> maintenance(body, bool(body, "reloaded", false))); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> getPlayerProfile(UUID playerUuid) { return client.playerProfiles().profile(playerUuid).thenApply(PaperCloudIslandsApi::playerProfile); }
-        @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return mutate("admin.player.primary-island.set", () -> client.setPlayerIsland(playerUuid, islandId)).thenApply(PaperCloudIslandsApi::playerProfile); }
-        @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return mutate("admin.player.primary-island.clear", () -> client.clearPlayerIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile); }
+        @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return mutate("admin.player.primary-island.set", () -> client.playerProfileCommands().setPrimaryIsland(playerUuid, islandId)).thenApply(PaperCloudIslandsApi::playerProfile); }
+        @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return mutate("admin.player.primary-island.clear", () -> client.playerProfileCommands().clearPrimaryIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return mutate("admin.block-value.set", () -> client.setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit)).thenApply(body -> action(body, "BLOCK_VALUE_SET")); }
         @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.listEvents().thenApply(PaperCloudIslandsApi::events); }
@@ -2684,20 +2684,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static IslandWorthSnapshot worth(String json) {
         return new IslandWorthSnapshot(uuid(json, "islandId", new UUID(0L, 0L)), text(json, "worth", "0"));
-    }
-
-    private static Optional<PlayerIslandProfile> playerProfile(String json) {
-        if (json == null || json.isBlank() || json.contains("\"error\"")) {
-            return Optional.empty();
-        }
-        String primaryIslandId = nullableText(json, "primaryIslandId");
-        return Optional.of(new PlayerIslandProfile(
-            uuid(json, "playerUuid", new UUID(0L, 0L)),
-            text(json, "lastName", ""),
-            primaryIslandId == null || primaryIslandId.isBlank() ? Optional.empty() : Optional.of(uuid(json, "primaryIslandId", new UUID(0L, 0L))),
-            instant(text(json, "lastSeenAt", Instant.EPOCH.toString())),
-            text(json, "locale", "ko_kr")
-        ));
     }
 
     private static Optional<PlayerIslandProfile> playerProfile(PlayerProfileView profile) {
