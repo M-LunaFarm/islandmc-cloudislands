@@ -9,9 +9,17 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 
 public final class IslandDangerMenu implements Listener {
-    private static final String TITLE_KEY = "danger-menu-title";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/danger.yml",
+        new GuiMenuDefinition("island.danger", 3, "danger-menu-title", java.util.Map.of(
+            "snapshot", "island.snapshots.open",
+            "reset", "island.danger.reset.prepare",
+            "delete", "island.danger.delete.prepare",
+            "back", "island.settings.open"
+        ))
+    );
     private static final String TITLE = "섬 위험 작업";
-    private static final String MENU_ID = "island.danger";
+    private static final String MENU_ID = MENU.id();
     private static final String RESET_CONFIRM_MENU_ID = "island.danger.reset-confirm";
     private static final String DELETE_CONFIRM_MENU_ID = "island.danger.delete-confirm";
     private static final String RESET_CONFIRM_TITLE = "섬 리셋 확인";
@@ -41,11 +49,7 @@ public final class IslandDangerMenu implements Listener {
     }
 
     public static void open(Player player, MessageRenderer messages) {
-        Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
-        inventory.setItem(10, GuiItems.action(Material.CHEST, message(messages, "danger-menu-snapshot-name", "스냅샷 확인"), "island.snapshots.open", message(messages, "danger-menu-snapshot-description", "위험 작업 전에 복구 지점을 확인합니다.")));
-        inventory.setItem(12, GuiItems.action(Material.TNT, message(messages, "danger-menu-reset-name", "섬 리셋"), "island.danger.reset.prepare", message(messages, "danger-menu-reset-description", "월드 초기화 범위를 확인한 뒤 실행합니다.")));
-        inventory.setItem(14, GuiItems.action(Material.LAVA_BUCKET, message(messages, "danger-menu-delete-name", "섬 삭제"), "island.danger.delete.prepare", message(messages, "danger-menu-delete-description", "삭제 영향을 확인한 뒤 요청합니다.")));
-        inventory.setItem(22, GuiItems.action(Material.OAK_DOOR, message(messages, "danger-menu-back-name", "돌아가기"), "island.settings.open"));
+        Inventory inventory = GuiMenuRenderer.render(MENU, messages, TITLE);
         player.openInventory(inventory);
     }
 
@@ -91,10 +95,6 @@ public final class IslandDangerMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 }

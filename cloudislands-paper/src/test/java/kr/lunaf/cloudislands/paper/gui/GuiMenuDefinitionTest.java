@@ -119,4 +119,24 @@ class GuiMenuDefinitionTest {
         assertEquals("D", definition.itemAt(26).orElseThrow().symbol());
         assertEquals("island.danger.open", definition.action(definition.itemAt(26).orElseThrow().actionKey(), ""));
     }
+
+    @Test
+    void bundledDangerMenuDefinitionCoversDangerActionsDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/danger.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.danger", definition.id());
+        assertEquals(27, definition.size());
+        assertEquals("menu.danger.title", definition.titleKey());
+        assertEquals("S", definition.itemAt(10).orElseThrow().symbol());
+        assertEquals("island.snapshots.open", definition.action(definition.itemAt(10).orElseThrow().actionKey(), ""));
+        assertEquals("R", definition.itemAt(12).orElseThrow().symbol());
+        assertEquals("island.danger.reset.prepare", definition.action(definition.itemAt(12).orElseThrow().actionKey(), ""));
+        assertEquals("D", definition.itemAt(14).orElseThrow().symbol());
+        assertEquals("island.danger.delete.prepare", definition.action(definition.itemAt(14).orElseThrow().actionKey(), ""));
+        assertEquals("B", definition.itemAt(22).orElseThrow().symbol());
+        assertEquals("island.settings.open", definition.action(definition.itemAt(22).orElseThrow().actionKey(), ""));
+    }
 }

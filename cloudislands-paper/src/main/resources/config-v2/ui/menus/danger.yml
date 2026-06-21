@@ -1,6 +1,47 @@
 id: island.danger
 rows: 3
 title-key: menu.danger.title
+layout:
+  - "........."
+  - ".S.R.D..."
+  - "....B...."
+items:
+  S:
+    material: CHEST
+    name-key: danger-menu-snapshot-name
+    fallback-name: 스냅샷 확인
+    lore-keys:
+      - danger-menu-snapshot-description
+    fallback-lore:
+      - "위험 작업 전에 복구 지점을 확인합니다."
+    action: snapshot
+  R:
+    material: TNT
+    name-key: danger-menu-reset-name
+    fallback-name: 섬 리셋 확인
+    lore-keys:
+      - danger-menu-reset-description
+    fallback-lore:
+      - "월드를 초기화하고 복구 작업을 요청합니다."
+    action: reset
+  D:
+    material: LAVA_BUCKET
+    name-key: danger-menu-delete-name
+    fallback-name: 섬 삭제 확인
+    lore-keys:
+      - danger-menu-delete-description
+    fallback-lore:
+      - "섬 삭제 작업을 요청합니다."
+    action: delete
+  B:
+    material: OAK_DOOR
+    name-key: danger-menu-back-name
+    fallback-name: 돌아가기
+    lore-keys:
+      - danger-menu-back-command
+    fallback-lore:
+      - "/섬 설정"
+    action: back
 actions:
   snapshot: island.snapshots.open
   reset: island.danger.reset.prepare
