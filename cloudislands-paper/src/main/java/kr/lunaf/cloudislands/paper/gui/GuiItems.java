@@ -56,9 +56,11 @@ public final class GuiItems {
 
     public static boolean topInventoryClick(InventoryClickEvent event) {
         return event.getClickedInventory() != null
-            && event.getClickedInventory() == event.getView().getTopInventory()
-            && event.getRawSlot() >= 0
-            && event.getRawSlot() < event.getView().getTopInventory().getSize();
+            && GuiInventoryEventPolicy.acceptsMenuActionSlot(
+                event.getClickedInventory() == event.getView().getTopInventory(),
+                event.getRawSlot(),
+                event.getView().getTopInventory().getSize()
+            );
     }
 
     public static boolean menuClick(InventoryClickEvent event, String menuId) {

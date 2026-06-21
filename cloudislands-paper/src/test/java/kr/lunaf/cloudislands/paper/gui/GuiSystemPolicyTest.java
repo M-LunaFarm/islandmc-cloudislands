@@ -98,28 +98,30 @@ class GuiSystemPolicyTest {
     @Test
     void menuDragEventsCannotWriteIntoTopInventory() throws Exception {
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));
+        String policy = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiInventoryEventPolicy.java"));
         String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandGuiMenuRegistrar.java"));
 
         assertTrue(registrar.contains("new GuiEventGuard()"), "GUI event guard must be registered with menu listeners");
         assertTrue(guard.contains("InventoryDragEvent"), "drag events must be guarded globally");
         assertTrue(guard.contains("top.getHolder() instanceof CloudIslandsMenuHolder"), "drag guard must only apply to CloudIslands menus");
-        assertTrue(guard.contains("touchesTopInventory(event.getRawSlots(), top.getSize())"), "drag guard must inspect raw slots against the top inventory");
+        assertTrue(guard.contains("GuiInventoryEventPolicy.cancelDrag(true, event.getRawSlots(), top.getSize())"), "drag guard must delegate raw slot decisions to the tested policy");
         assertTrue(guard.contains("event.setCancelled(true)"), "dragging into a GUI top inventory must be cancelled");
-        assertTrue(guard.contains("rawSlot >= 0 && rawSlot < topSize"), "top inventory slot detection must use raw slot bounds");
+        assertTrue(policy.contains("rawSlot >= 0 && rawSlot < topSize"), "top inventory slot detection must use raw slot bounds");
     }
 
     @Test
     void cloudMenuClicksAreCancelledBeforeMenuSpecificActions() throws Exception {
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));
         String items = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiItems.java"));
+        String policy = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiInventoryEventPolicy.java"));
 
         assertTrue(guard.contains("InventoryClickEvent"), "GUI click events must be guarded globally");
         assertTrue(guard.contains("event.getView().getTopInventory()"), "click guard must inspect the open top inventory");
         assertTrue(guard.contains("top.getHolder() instanceof CloudIslandsMenuHolder"), "click guard must only apply to CloudIslands menus");
+        assertTrue(guard.contains("GuiInventoryEventPolicy.cancelClick"), "click guard must delegate cancellation decisions to the tested policy");
         assertTrue(guard.contains("event.setCancelled(true)"), "CloudIslands GUI clicks, including player-inventory clicks, must be cancelled");
-        assertTrue(items.contains("event.getClickedInventory() == event.getView().getTopInventory()"), "menu actions must only execute for top inventory clicks");
-        assertTrue(items.contains("event.getRawSlot() >= 0"), "menu actions must reject negative raw slots");
-        assertTrue(items.contains("event.getRawSlot() < event.getView().getTopInventory().getSize()"), "menu actions must reject player-inventory raw slots");
+        assertTrue(items.contains("GuiInventoryEventPolicy.acceptsMenuActionSlot"), "menu actions must route slot decisions through the tested policy");
+        assertTrue(policy.contains("clickedTopInventory && rawSlot >= 0 && rawSlot < topSize"), "menu actions must only execute for top inventory raw slots");
     }
 
     @Test

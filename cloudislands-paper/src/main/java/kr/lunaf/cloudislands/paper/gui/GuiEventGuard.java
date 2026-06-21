@@ -1,6 +1,4 @@
 package kr.lunaf.cloudislands.paper.gui;
-
-import java.util.Set;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,7 +12,7 @@ final class GuiEventGuard implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         Inventory top = event.getView().getTopInventory();
-        if (top.getHolder() instanceof CloudIslandsMenuHolder) {
+        if (GuiInventoryEventPolicy.cancelClick(top.getHolder() instanceof CloudIslandsMenuHolder)) {
             event.setCancelled(true);
         }
     }
@@ -25,7 +23,7 @@ final class GuiEventGuard implements Listener {
         if (!(top.getHolder() instanceof CloudIslandsMenuHolder)) {
             return;
         }
-        if (touchesTopInventory(event.getRawSlots(), top.getSize())) {
+        if (GuiInventoryEventPolicy.cancelDrag(true, event.getRawSlots(), top.getSize())) {
             event.setCancelled(true);
         }
     }
@@ -41,12 +39,4 @@ final class GuiEventGuard implements Listener {
         }
     }
 
-    private static boolean touchesTopInventory(Set<Integer> rawSlots, int topSize) {
-        for (int rawSlot : rawSlots) {
-            if (rawSlot >= 0 && rawSlot < topSize) {
-                return true;
-            }
-        }
-        return false;
-    }
 }
