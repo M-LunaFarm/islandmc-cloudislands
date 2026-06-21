@@ -11,6 +11,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
@@ -141,8 +142,8 @@ final class IslandPermissionCommandHandler {
                 runtime.message(player, runtime.routeMessage("role-edit-denied", "섬 역할을 편집할 권한이 없습니다."));
                 return;
             }
-            permissionUseCase.upsertRole(islandId, player.getUniqueId(), roleKey, weight, displayName, runtime::mutate)
-                .thenAccept(body -> runtime.message(player, "섬 역할 저장 완료: " + text(body, "role") + " weight=" + (long) decimal(body, "weight") + " name=" + text(body, "displayName")))
+            permissionUseCase.upsertRoleTyped(islandId, player.getUniqueId(), roleKey, weight, displayName, runtime::mutate)
+                .thenAccept(result -> runtime.message(player, roleSavedMessage(result.value())))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 역할을 저장하지 못했습니다.");
                     return null;
@@ -171,8 +172,8 @@ final class IslandPermissionCommandHandler {
                 runtime.message(player, runtime.routeMessage("role-reset-denied", "섬 역할을 초기화할 권한이 없습니다."));
                 return;
             }
-            permissionUseCase.resetRole(islandId, player.getUniqueId(), roleKey, runtime::mutateIdempotent)
-                .thenAccept(body -> runtime.message(player, "섬 역할 초기화 완료: " + text(body, "role")))
+            permissionUseCase.resetRoleTyped(islandId, player.getUniqueId(), roleKey, runtime::mutateIdempotent)
+                .thenAccept(result -> runtime.message(player, "섬 역할 초기화 완료: " + result.value().role()))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 역할을 초기화하지 못했습니다.");
                     return null;
@@ -325,6 +326,10 @@ final class IslandPermissionCommandHandler {
             index = objectEnd + 1;
         }
         return entries.isEmpty() ? "섬 커스텀 역할이 없습니다." : "섬 역할: " + String.join(", ", entries);
+    }
+
+    private String roleSavedMessage(RoleView role) {
+        return "섬 역할 저장 완료: " + role.role() + " weight=" + role.weight() + " name=" + role.displayName();
     }
 
     private String text(String json, String key) {

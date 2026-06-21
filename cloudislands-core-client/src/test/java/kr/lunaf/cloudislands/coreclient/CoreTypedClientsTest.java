@@ -85,4 +85,41 @@ class CoreTypedClientsTest {
         assertEquals("OPEN_CONTAINER", result.value().rules().get(0).permission());
         assertFalse(result.value().rules().get(0).allowed());
     }
+
+    @Test
+    void permissionCommandClientReturnsTypedRoleMutations() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "upsertIslandRole" -> {
+                    calls.add("upsert:" + args[2] + ":" + args[3] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture("""
+                        {"islandId":"%s","role":"%s","roleKey":"%s","weight":%s,"displayName":"%s"}
+                        """.formatted(islandId, args[2], args[2], args[3], args[4]));
+                }
+                case "resetIslandRole" -> {
+                    calls.add("reset:" + args[2]);
+                    yield CompletableFuture.completedFuture("""
+                        {"accepted":true,"code":"ROLE_RESET","role":"%s","roleKey":"%s","removed":true}
+                        """.formatted(args[2], args[2]));
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        PermissionCommandClient client = new CorePermissionCommandClient(raw);
+
+        MutationResult<CoreGuiViews.RoleView> upserted = client.upsertRole(islandId, actorUuid, "builder", 42, "Builder").join();
+        MutationResult<CoreGuiViews.RoleView> reset = client.resetRole(islandId, actorUuid, "builder").join();
+
+        assertEquals(List.of("upsert:BUILDER:42:Builder", "reset:BUILDER"), calls);
+        assertEquals("BUILDER", upserted.value().role());
+        assertEquals(42, upserted.value().weight());
+        assertEquals("Builder", upserted.value().displayName());
+        assertEquals("BUILDER", reset.value().role());
+        assertTrue(reset.changed());
+    }
 }

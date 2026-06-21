@@ -2,14 +2,17 @@ package kr.lunaf.cloudislands.paper.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
 import kr.lunaf.cloudislands.coreclient.PermissionMatrixView;
 import org.junit.jupiter.api.Test;
@@ -31,10 +34,7 @@ class PermissionManagementUseCaseTest {
                 new PermissionManagementUseCase.PermissionChange("builder", IslandPermission.BUILD, true, "v1"),
                 new PermissionManagementUseCase.PermissionChange("member", IslandPermission.OPEN_CONTAINER, false, "stale")
             ),
-            (auditAction, operation) -> {
-                auditActions.add(auditAction);
-                return operation.get();
-            }
+            auditActionRecorder(auditActions)
         ).join();
 
         assertEquals(List.of("v1", "v2"), expectedVersions);
@@ -85,8 +85,8 @@ class PermissionManagementUseCaseTest {
 
         assertEquals("roles", useCase.listRoles(islandId).join());
         assertEquals("permissions", useCase.listPermissions(islandId).join());
-        assertEquals("upsert", useCase.upsertRole(islandId, actorUuid, "builder", 50, "", mutationRunner(calls)).join());
-        assertEquals("reset", useCase.resetRole(islandId, actorUuid, "builder", idempotentRunner(calls)).join());
+        assertTrue(useCase.upsertRole(islandId, actorUuid, "builder", 50, "", mutationRunner(calls)).join().contains("\"role\":\"BUILDER\""));
+        assertTrue(useCase.resetRole(islandId, actorUuid, "builder", idempotentRunner(calls)).join().contains("\"role\":\"BUILDER\""));
         assertEquals("set", useCase.setPermission(islandId, actorUuid, new PermissionManagementUseCase.PermissionChange("builder", IslandPermission.BUILD, true, ""), mutationRunner(calls)).join());
         assertEquals("override", useCase.setPermissionOverride(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false, mutationRunner(calls)).join());
 
@@ -101,6 +101,29 @@ class PermissionManagementUseCaseTest {
             "set:BUILDER:BUILD:true",
             "audit:island.permission.override.set",
             "override:BREAK:false"
+        ), calls);
+    }
+
+    @Test
+    void roleMutationsCanReturnTypedResultsBehindUsecaseAuditBoundaries() {
+        List<String> calls = new ArrayList<>();
+        CoreApiClient client = commandClient(calls);
+        PermissionManagementUseCase useCase = new PermissionManagementUseCase(client);
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+
+        MutationResult<RoleView> upserted = useCase.upsertRoleTyped(islandId, actorUuid, "builder", 50, "", mutationRunner(calls)).join();
+        MutationResult<RoleView> reset = useCase.resetRoleTyped(islandId, actorUuid, "builder", idempotentRunner(calls)).join();
+
+        assertEquals("BUILDER", upserted.value().role());
+        assertEquals(50, upserted.value().weight());
+        assertEquals("BUILDER", upserted.value().displayName());
+        assertEquals("BUILDER", reset.value().role());
+        assertEquals(List.of(
+            "audit:island.role.upsert",
+            "upsert:BUILDER:50:BUILDER",
+            "audit-idempotent:island.role.reset",
+            "reset:BUILDER"
         ), calls);
     }
 
@@ -135,11 +158,15 @@ class PermissionManagementUseCaseTest {
                 }
                 case "upsertIslandRole" -> {
                     calls.add("upsert:" + args[2] + ":" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("upsert");
+                    yield CompletableFuture.completedFuture("""
+                        {"islandId":"00000000-0000-0000-0000-000000000001","role":"%s","roleKey":"%s","weight":%s,"displayName":"%s"}
+                        """.formatted(args[2], args[2], args[3], args[4]));
                 }
                 case "resetIslandRole" -> {
                     calls.add("reset:" + args[2]);
-                    yield CompletableFuture.completedFuture("reset");
+                    yield CompletableFuture.completedFuture("""
+                        {"accepted":true,"code":"ROLE_RESET","role":"%s","roleKey":"%s","removed":true}
+                        """.formatted(args[2], args[2]));
                 }
                 case "setIslandPermissionResult" -> {
                     calls.add("set:" + args[2] + ":" + args[3] + ":" + args[4]);
@@ -155,16 +182,32 @@ class PermissionManagementUseCaseTest {
     }
 
     private PermissionManagementUseCase.MutationRunner mutationRunner(List<String> calls) {
-        return (auditAction, operation) -> {
-            calls.add("audit:" + auditAction);
-            return operation.get();
+        return new PermissionManagementUseCase.MutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                calls.add("audit:" + auditAction);
+                return operation.get();
+            }
+        };
+    }
+
+    private PermissionManagementUseCase.MutationRunner auditActionRecorder(List<String> calls) {
+        return new PermissionManagementUseCase.MutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                calls.add(auditAction);
+                return operation.get();
+            }
         };
     }
 
     private PermissionManagementUseCase.IdempotentMutationRunner idempotentRunner(List<String> calls) {
-        return (auditAction, operation) -> {
-            calls.add("audit-idempotent:" + auditAction);
-            return operation.get();
+        return new PermissionManagementUseCase.IdempotentMutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                calls.add("audit-idempotent:" + auditAction);
+                return operation.get();
+            }
         };
     }
 }

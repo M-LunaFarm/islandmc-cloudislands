@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
 import kr.lunaf.cloudislands.coreclient.CorePermissionCommandClient;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
 import kr.lunaf.cloudislands.coreclient.PermissionCommandClient;
@@ -51,12 +52,26 @@ public final class PermissionManagementUseCase {
         return runner.mutate("island.role.upsert", () -> coreApiClient.upsertIslandRole(islandId, actorUuid, normalizedRoleKey, weight, normalizedDisplayName));
     }
 
+    public CompletableFuture<MutationResult<RoleView>> upsertRoleTyped(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName, MutationRunner runner) {
+        requireIsland(islandId);
+        requireActor(actorUuid);
+        requireRunner(runner);
+        return runner.mutate("island.role.upsert", () -> permissionCommands.upsertRole(islandId, actorUuid, roleKey, weight, displayName));
+    }
+
     public CompletableFuture<String> resetRole(UUID islandId, UUID actorUuid, String roleKey, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireIdempotentRunner(runner);
         String normalizedRoleKey = RoleId.of(roleKey).value();
         return runner.mutateIdempotent("island.role.reset", () -> coreApiClient.resetIslandRole(islandId, actorUuid, normalizedRoleKey));
+    }
+
+    public CompletableFuture<MutationResult<RoleView>> resetRoleTyped(UUID islandId, UUID actorUuid, String roleKey, IdempotentMutationRunner runner) {
+        requireIsland(islandId);
+        requireActor(actorUuid);
+        requireIdempotentRunner(runner);
+        return runner.mutateIdempotent("island.role.reset", () -> permissionCommands.resetRole(islandId, actorUuid, roleKey));
     }
 
     public CompletableFuture<String> setPermission(UUID islandId, UUID actorUuid, PermissionChange change, MutationRunner runner) {
@@ -122,12 +137,12 @@ public final class PermissionManagementUseCase {
 
     @FunctionalInterface
     public interface MutationRunner {
-        CompletableFuture<String> mutate(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     @FunctionalInterface
     public interface IdempotentMutationRunner {
-        CompletableFuture<String> mutateIdempotent(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     public record PermissionChange(String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {

@@ -109,6 +109,10 @@ public final class CoreGuiViews {
         return client.listIslandRoles(islandId).thenApply(CoreGuiViews::roles);
     }
 
+    public static RoleView roleView(String body) {
+        return role(root(body));
+    }
+
     public static CompletableFuture<List<UpgradeView>> islandUpgrades(CoreApiClient client, UUID islandId) {
         return client.listIslandUpgrades(islandId).thenApply(CoreGuiViews::upgrades);
     }
@@ -323,12 +327,20 @@ public final class CoreGuiViews {
     private static List<RoleView> roles(String body) {
         List<RoleView> roles = new ArrayList<>();
         for (Map<?, ?> object : entries(body)) {
-            String role = text(object, "role");
-            if (!role.isBlank()) {
-                roles.add(new RoleView(role, intValue(object, "weight"), text(object, "displayName")));
+            RoleView role = role(object);
+            if (!role.role().isBlank()) {
+                roles.add(role);
             }
         }
         return roles;
+    }
+
+    private static RoleView role(Map<?, ?> object) {
+        String role = text(object, "role");
+        if (role.isBlank()) {
+            role = text(object, "roleKey");
+        }
+        return new RoleView(role, intValue(object, "weight"), text(object, "displayName"));
     }
 
     private static List<UpgradeView> upgrades(String body) {

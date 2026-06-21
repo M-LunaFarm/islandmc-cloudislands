@@ -1,7 +1,9 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.RoleId;
 
 public final class CorePermissionCommandClient implements PermissionCommandClient {
     private final CoreApiClient delegate;
@@ -42,9 +44,29 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
         return chain;
     }
 
+    @Override
+    public CompletableFuture<MutationResult<CoreGuiViews.RoleView>> upsertRole(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName) {
+        String normalizedRoleKey = RoleId.of(roleKey).value();
+        String normalizedDisplayName = displayName == null || displayName.isBlank() ? normalizedRoleKey : displayName.trim();
+        return delegate.upsertIslandRole(islandId, actorUuid, normalizedRoleKey, weight, normalizedDisplayName)
+            .thenApply(CorePermissionCommandClient::roleMutationResult);
+    }
+
+    @Override
+    public CompletableFuture<MutationResult<CoreGuiViews.RoleView>> resetRole(UUID islandId, UUID actorUuid, String roleKey) {
+        String normalizedRoleKey = RoleId.of(roleKey).value();
+        return delegate.resetIslandRole(islandId, actorUuid, normalizedRoleKey)
+            .thenApply(CorePermissionCommandClient::roleMutationResult);
+    }
+
     private static MutationResult<PermissionMatrixView> mutationResult(String body) {
         CoreGuiViews.PermissionRulesView rules = CoreGuiViews.permissionRulesView(body);
         PermissionMatrixView view = new PermissionMatrixView(rules.version(), rules.rules());
         return new MutationResult<>(view, view.version(), true);
+    }
+
+    private static MutationResult<CoreGuiViews.RoleView> roleMutationResult(String body) {
+        CoreGuiViews.RoleView role = CoreGuiViews.roleView(body);
+        return new MutationResult<>(role, "", true);
     }
 }
