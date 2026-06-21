@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
@@ -22,12 +23,14 @@ import org.bukkit.plugin.Plugin;
 final class IslandProgressionCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final IslandProgressionUseCase progressionUseCase;
     private final IslandLevelScanService levelScanService;
     private final Runtime runtime;
 
     IslandProgressionCommandHandler(Plugin plugin, CoreApiClient coreApiClient, IslandLevelScanService levelScanService, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.progressionUseCase = new IslandProgressionUseCase(coreApiClient);
         this.levelScanService = levelScanService;
         this.runtime = runtime;
     }
@@ -194,7 +197,7 @@ final class IslandProgressionCommandHandler {
 
     private void showLevel(Player player) {
         runtime.currentIsland(player, "섬 안에서만 레벨을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandInfo(islandId)
+            progressionUseCase.islandInfo(islandId)
                 .thenAccept(body -> runtime.message(player, "섬 레벨: " + (long) decimal(body, "level")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 레벨을 불러오지 못했습니다.");
@@ -205,7 +208,7 @@ final class IslandProgressionCommandHandler {
 
     private void showWorth(Player player) {
         runtime.currentIsland(player, "섬 안에서만 가치를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandInfo(islandId)
+            progressionUseCase.islandInfo(islandId)
                 .thenAccept(body -> {
                     String worth = text(body, "worth");
                     runtime.message(player, "섬 가치: " + (worth.isBlank() ? "0" : worth));
@@ -219,7 +222,7 @@ final class IslandProgressionCommandHandler {
 
     private void showBlockDetails(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 블록 상세를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.islandBlockDetails(islandId, Math.max(1, Math.min(limit, 100)))
+            progressionUseCase.blockDetails(islandId, limit)
                 .thenAccept(body -> runtime.message(player, blockDetailsMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 블록 상세를 불러오지 못했습니다.");
@@ -235,7 +238,7 @@ final class IslandProgressionCommandHandler {
     private void listRanking(Player player, boolean worthRanking, int limit) {
         int cappedLimit = Math.max(1, Math.min(limit, 100));
         if (worthRanking) {
-            coreApiClient.topIslandsByWorth(cappedLimit)
+            progressionUseCase.topIslandsByWorth(cappedLimit)
                 .thenAccept(body -> runtime.message(player, rankingMessage(body, "섬 가치 랭킹", "worth")))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 가치 랭킹을 불러오지 못했습니다.");
@@ -243,7 +246,7 @@ final class IslandProgressionCommandHandler {
                 });
             return;
         }
-        coreApiClient.topIslandsByLevel(cappedLimit)
+        progressionUseCase.topIslandsByLevel(cappedLimit)
             .thenAccept(body -> runtime.message(player, rankingMessage(body, "섬 레벨 랭킹", "level")))
             .exceptionally(error -> {
                 runtime.message(player, "섬 레벨 랭킹을 불러오지 못했습니다.");
@@ -253,7 +256,7 @@ final class IslandProgressionCommandHandler {
 
     private void listReviewRanking(Player player, int limit) {
         int cappedLimit = Math.max(1, Math.min(limit, 100));
-        coreApiClient.topIslandsByReviews(cappedLimit)
+        progressionUseCase.topIslandsByReviews(cappedLimit)
             .thenAccept(body -> runtime.message(player, reviewRankingMessage(body)))
             .exceptionally(error -> {
                 runtime.message(player, "섬 후기 랭킹을 불러오지 못했습니다.");
@@ -269,7 +272,7 @@ final class IslandProgressionCommandHandler {
             }
             player.sendActionBar(Component.text(runtime.routeMessage("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
             CompletableFuture<Void> rescan = levelScanService == null ? CompletableFuture.completedFuture(null) : levelScanService.rescanIsland(islandId);
-            rescan.thenCompose(ignored -> coreApiClient.recalculateIslandLevel(islandId, player.getUniqueId()))
+            rescan.thenCompose(ignored -> progressionUseCase.recalculateLevel(islandId, player.getUniqueId()))
                 .thenAccept(body -> {
                     String worth = text(body, "worth");
                     runtime.message(player, "섬 레벨 계산 완료: 레벨 " + (long) decimal(body, "level") + " / 가치 " + (worth.isBlank() ? "0" : worth));
@@ -283,7 +286,7 @@ final class IslandProgressionCommandHandler {
 
     private void listUpgrades(Player player) {
         runtime.currentIsland(player, "섬 안에서만 업그레이드를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandUpgrades(islandId)
+            progressionUseCase.listUpgrades(islandId)
                 .thenAccept(body -> runtime.message(player, upgradeListMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 업그레이드를 불러오지 못했습니다.");
@@ -294,7 +297,7 @@ final class IslandProgressionCommandHandler {
 
     private void showGenerator(Player player) {
         runtime.currentIsland(player, "섬 안에서만 생성기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandUpgrades(islandId)
+            progressionUseCase.listUpgrades(islandId)
                 .thenAccept(body -> runtime.message(player, generatorInfoMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 생성기를 불러오지 못했습니다.");
@@ -313,7 +316,7 @@ final class IslandProgressionCommandHandler {
                 runtime.message(player, runtime.routeMessage("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다."));
                 return;
             }
-            runtime.mutateIdempotent("island.upgrade.purchase", () -> coreApiClient.purchaseIslandUpgrade(islandId, player.getUniqueId(), upgradeKey))
+            progressionUseCase.purchaseUpgrade(islandId, player.getUniqueId(), upgradeKey, runtime::mutateIdempotent)
                 .thenAccept(body -> {
                     String key = text(body, "upgradeKey");
                     String cost = text(body, "cost");
@@ -332,7 +335,7 @@ final class IslandProgressionCommandHandler {
 
     private void listMissions(Player player, String kind, String label) {
         runtime.currentIsland(player, "섬 안에서만 " + label + "을 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandMissions(islandId, kind)
+            progressionUseCase.listMissions(islandId, kind)
                 .thenAccept(body -> runtime.message(player, missionListMessage(body, label)))
                 .exceptionally(error -> {
                     runtime.message(player, label + "을 불러오지 못했습니다.");
@@ -355,7 +358,7 @@ final class IslandProgressionCommandHandler {
 
     private void completeTask(Player player, String missionKey, String kind, String label) {
         runtime.currentIsland(player, "섬 안에서만 " + label + "을 완료할 수 있습니다.").ifPresent(islandId -> {
-            runtime.mutateIdempotent("island.mission.complete", () -> coreApiClient.completeIslandMission(islandId, player.getUniqueId(), missionKey, kind))
+            progressionUseCase.completeMission(islandId, player.getUniqueId(), missionKey, kind, runtime::mutateIdempotent)
                 .thenAccept(body -> {
                     if (resultRejected(body)) {
                         runtime.message(player, runtime.playerCodeMessage(text(body, "code"), label + "을 완료하지 못했습니다."));

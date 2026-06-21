@@ -146,6 +146,7 @@ class IslandCommandControllerPolicyTest {
     void progressionCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String progressionHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandProgressionCommandHandler.java"));
+        String progressionUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandProgressionUseCase.java"));
 
         assertTrue(backend.contains("private final IslandProgressionCommandHandler progressionCommands;"));
         assertTrue(routerSource().contains("progressionCommands.handleCommand(player, subcommand, args)"));
@@ -155,9 +156,16 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("completeIslandTask("), "mission completion logic belongs in IslandProgressionCommandHandler");
         assertTrue(progressionHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(progressionHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
-        assertTrue(progressionHandler.contains("coreApiClient.recalculateIslandLevel"));
-        assertTrue(progressionHandler.contains("coreApiClient.purchaseIslandUpgrade"));
-        assertTrue(progressionHandler.contains("coreApiClient.completeIslandMission"));
+        assertTrue(progressionHandler.contains("IslandProgressionUseCase"));
+        assertTrue(progressionHandler.contains("progressionUseCase.recalculateLevel"));
+        assertTrue(progressionHandler.contains("progressionUseCase.purchaseUpgrade"));
+        assertTrue(progressionHandler.contains("progressionUseCase.completeMission"));
+        assertFalse(progressionHandler.contains("coreApiClient.recalculateIslandLevel"));
+        assertFalse(progressionHandler.contains("coreApiClient.purchaseIslandUpgrade"));
+        assertFalse(progressionHandler.contains("coreApiClient.completeIslandMission"));
+        assertTrue(progressionUseCase.contains("coreApiClient.recalculateIslandLevel"));
+        assertTrue(progressionUseCase.contains("coreApiClient.purchaseIslandUpgrade"));
+        assertTrue(progressionUseCase.contains("coreApiClient.completeIslandMission"));
     }
 
     @Test
