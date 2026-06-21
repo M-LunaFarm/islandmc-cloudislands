@@ -116,6 +116,16 @@ class BankUseCaseTest {
         assertNull(BankUseCase.positiveAmount("abc"));
     }
 
+    @Test
+    void bankBalanceUsesTypedCoreView() {
+        BankUseCase useCase = new BankUseCase(coreApiClient(new ScriptedCoreBank()), null);
+
+        BankUseCase.BankOperationResult result = useCase.bank(UUID.randomUUID()).join();
+
+        assertEquals(BankUseCase.Status.SUCCESS, result.status());
+        assertEquals("55", result.balance());
+    }
+
     private CoreApiClient coreApiClient(ScriptedCoreBank core) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),

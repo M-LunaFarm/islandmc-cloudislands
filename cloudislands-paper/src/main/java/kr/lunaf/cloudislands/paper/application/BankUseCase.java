@@ -1,11 +1,14 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 
 public final class BankUseCase {
     private final CoreApiClient coreApiClient;
@@ -21,7 +24,8 @@ public final class BankUseCase {
 
     public CompletableFuture<BankOperationResult> bank(UUID islandId) {
         requireIsland(islandId);
-        return coreApiClient.islandBank(islandId).thenApply(body -> BankOperationResult.success(body, bankBalance(body)));
+        return CoreGuiViews.islandBank(coreApiClient, islandId)
+            .thenApply(view -> BankOperationResult.success("", normalizedBalance(view.balance())));
     }
 
     public CompletableFuture<BankOperationResult> deposit(UUID islandId, UUID actorUuid, BigDecimal amount, MutationRunner runner) {
@@ -42,7 +46,7 @@ public final class BankUseCase {
                     .thenCompose(body -> {
                         if (rejected(body)) {
                             return refundPlayer(actorUuid, amount)
-                                .thenApply(_ignored -> BankOperationResult.coreRejected(body, text(body, "code")));
+                                .thenApply(_ignored -> BankOperationResult.coreRejected(body, text(root(body), "code")));
                         }
                         return CompletableFuture.completedFuture(BankOperationResult.success(body, bankBalance(body)));
                     })
@@ -62,7 +66,7 @@ public final class BankUseCase {
         return runner.mutateIdempotent("island.bank.withdraw", () -> coreApiClient.withdrawIslandBank(islandId, actorUuid, normalizedAmount))
             .thenCompose(body -> {
                 if (rejected(body)) {
-                    return CompletableFuture.completedFuture(BankOperationResult.coreRejected(body, text(body, "code")));
+                    return CompletableFuture.completedFuture(BankOperationResult.coreRejected(body, text(root(body), "code")));
                 }
                 String balance = bankBalance(body);
                 return economyBridge.deposit(actorUuid, amount, "CloudIslands island bank withdraw")
@@ -115,78 +119,26 @@ public final class BankUseCase {
     }
 
     private static boolean rejected(String body) {
-        return body != null && body.contains("\"accepted\":false");
+        Map<?, ?> root = root(body);
+        return root.containsKey("error")
+            || Boolean.FALSE.equals(root.get("accepted"))
+            || Boolean.FALSE.equals(root.get("applied"));
     }
 
     private static String bankBalance(String body) {
-        String balance = text(body, "balance");
-        return balance.isBlank() ? "0" : balance;
+        return normalizedBalance(text(root(body), "balance"));
     }
 
-    private static String text(String json, String key) {
-        String marker = "\"" + key + "\"";
-        int keyIndex = json == null ? -1 : json.indexOf(marker);
-        if (keyIndex < 0) {
-            return "";
-        }
-        int colon = json.indexOf(':', keyIndex + marker.length());
-        if (colon < 0) {
-            return "";
-        }
-        int start = json.indexOf('"', colon + 1);
-        if (start < 0) {
-            return "";
-        }
-        int end = jsonStringEnd(json, start + 1);
-        if (end < 0) {
-            return "";
-        }
-        return unescape(json.substring(start + 1, end));
+    private static String normalizedBalance(String balance) {
+        return balance == null || balance.isBlank() ? "0" : balance;
     }
 
-    private static int jsonStringEnd(String value, int start) {
-        boolean escaped = false;
-        for (int index = start; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (current == '"') {
-                return index;
-            }
-        }
-        return -1;
+    private static String text(Map<?, ?> object, String key) {
+        return SimpleJson.text(object.get(key));
     }
 
-    private static String unescape(String value) {
-        StringBuilder builder = new StringBuilder();
-        boolean escaped = false;
-        for (int index = 0; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (!escaped) {
-                if (current == '\\') {
-                    escaped = true;
-                } else {
-                    builder.append(current);
-                }
-                continue;
-            }
-            switch (current) {
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                default -> builder.append(current);
-            }
-            escaped = false;
-        }
-        return builder.toString();
+    private static Map<?, ?> root(String body) {
+        return SimpleJson.object(SimpleJson.parse(body));
     }
 
     @FunctionalInterface
