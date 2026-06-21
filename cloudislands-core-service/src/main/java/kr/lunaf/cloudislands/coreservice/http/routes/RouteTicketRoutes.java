@@ -283,7 +283,7 @@ public final class RouteTicketRoutes implements RouteGroup {
         if (sessions instanceof RedisRouteSessionStore redisSessions) {
             return redisSessions.toJson();
         }
-        return "{\"sessions\":[]}";
+        return SimpleJson.stringify(Map.of("sessions", List.of()));
     }
 
     static String sessionJson(PlayerRouteSession session) {

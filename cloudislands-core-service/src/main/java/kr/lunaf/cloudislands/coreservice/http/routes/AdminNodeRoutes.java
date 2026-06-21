@@ -2,10 +2,12 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.common.routing.NodeDrainPolicy;
 import kr.lunaf.cloudislands.coreservice.NodeFailureMonitor;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
@@ -137,7 +139,11 @@ public final class AdminNodeRoutes implements RouteGroup {
         String nodesCsv = String.join(",", downNodes);
         audit.log(SYSTEM_ACTOR, "ADMIN", "NODE_SWEEP", "NODE", nodeId.isBlank() ? "*" : nodeId, Map.of("recoveryRequired", Integer.toString(affected), "recoveryQueued", Integer.toString(recoveryQueued), "nodes", nodesCsv));
         events.publish(CloudIslandEventType.NODE_STATE_CHANGED.name(), Map.of("nodeId", nodeId.isBlank() ? "*" : nodeId, "state", "SWEEP", "recoveryRequired", Integer.toString(affected), "recoveryQueued", Integer.toString(recoveryQueued), "nodes", nodesCsv));
-        CoreHttpResponses.write(exchange, 202, "{\"nodes\":" + nodesJson(downNodes) + ",\"recoveryRequired\":" + affected + ",\"recoveryQueued\":" + recoveryQueued + "}");
+        LinkedHashMap<String, Object> response = new LinkedHashMap<>();
+        response.put("nodes", downNodes);
+        response.put("recoveryRequired", affected);
+        response.put("recoveryQueued", recoveryQueued);
+        CoreHttpResponses.write(exchange, 202, SimpleJson.stringify(response));
     }
 
     static Map<String, String> nodeLifecycleFields(String nodeId, String state, String operation) {
@@ -156,24 +162,21 @@ public final class AdminNodeRoutes implements RouteGroup {
         String nextStep = operation != null && operation.equals("UNDRAIN")
             ? NodeDrainPolicy.UNDRAIN_NEXT_STEP
             : NodeDrainPolicy.DRAIN_NEXT_STEP;
-        return "{\"accepted\":true"
-            + ",\"nodeId\":\"" + escape(nodeId == null ? "" : nodeId) + "\""
-            + ",\"state\":\"" + escape(state == null ? "" : state) + "\""
-            + ",\"operation\":\"" + escape(operation == null ? "" : operation) + "\""
-            + ",\"drainContract\":\"" + escape(NodeDrainPolicy.CONTRACT) + "\""
-            + ",\"newRoutePolicy\":\"" + escape(NodeDrainPolicy.NEW_ROUTE_POLICY) + "\""
-            + ",\"activeIslandPolicy\":\"" + escape(NodeDrainPolicy.ACTIVE_ISLAND_POLICY) + "\""
-            + ",\"ownerMemberPolicy\":\"" + escape(NodeDrainPolicy.OWNER_MEMBER_POLICY) + "\""
-            + ",\"visitorPolicy\":\"" + escape(NodeDrainPolicy.VISITOR_POLICY) + "\""
-            + ",\"nextStep\":\"" + escape(nextStep) + "\""
-            + "}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("nodeId", nodeId == null ? "" : nodeId);
+        values.put("state", state == null ? "" : state);
+        values.put("operation", operation == null ? "" : operation);
+        values.put("drainContract", NodeDrainPolicy.CONTRACT);
+        values.put("newRoutePolicy", NodeDrainPolicy.NEW_ROUTE_POLICY);
+        values.put("activeIslandPolicy", NodeDrainPolicy.ACTIVE_ISLAND_POLICY);
+        values.put("ownerMemberPolicy", NodeDrainPolicy.OWNER_MEMBER_POLICY);
+        values.put("visitorPolicy", NodeDrainPolicy.VISITOR_POLICY);
+        values.put("nextStep", nextStep);
+        return SimpleJson.stringify(values);
     }
 
     static String nodesJson(List<String> nodes) {
-        return "[\"" + String.join("\",\"", nodes.stream().map(value -> value.replace("\"", "'")).toList()) + "\"]";
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return SimpleJson.stringify(nodes);
     }
 }

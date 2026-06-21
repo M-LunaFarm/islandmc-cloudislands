@@ -1,7 +1,10 @@
 package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Supplier;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
@@ -20,7 +23,7 @@ public final class HealthRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/live", exchange -> CoreHttpResponses.write(exchange, 200, "{\"status\":\"UP\"}"));
+        registry.route("/live", exchange -> CoreHttpResponses.write(exchange, 200, SimpleJson.stringify(Map.of("status", "UP"))));
         registry.route("/ready", this::readiness);
         registry.route("/health", this::readiness);
         registry.route("/metrics", exchange -> CoreHttpResponses.write(exchange, 200, metrics.get(), METRICS_CONTENT_TYPE));
@@ -32,16 +35,13 @@ public final class HealthRoutes implements RouteGroup {
     }
 
     static String readinessJson(CoreServiceConfig config, boolean ready) {
-        return "{\"status\":\"" + (ready ? "UP" : "DOWN") + "\""
-            + ",\"databaseReady\":" + ready
-            + ",\"databaseDurable\":" + config.setupDatabaseProductionDurable()
-            + ",\"databaseReadiness\":\"" + escape(config.setupDatabaseFallbackReadiness()) + "\""
-            + ",\"databaseEffectiveBackend\":\"" + escape(config.setupDatabaseEffectiveBackend()) + "\""
-            + ",\"databaseEffectiveAuthority\":\"" + escape(config.setupDatabaseEffectiveAuthority()) + "\""
-            + "}";
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("status", ready ? "UP" : "DOWN");
+        values.put("databaseReady", ready);
+        values.put("databaseDurable", config.setupDatabaseProductionDurable());
+        values.put("databaseReadiness", config.setupDatabaseFallbackReadiness());
+        values.put("databaseEffectiveBackend", config.setupDatabaseEffectiveBackend());
+        values.put("databaseEffectiveAuthority", config.setupDatabaseEffectiveAuthority());
+        return SimpleJson.stringify(values);
     }
 }

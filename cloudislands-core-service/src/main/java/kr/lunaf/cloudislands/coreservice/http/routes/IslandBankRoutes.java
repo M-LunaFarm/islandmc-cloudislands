@@ -3,11 +3,13 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -144,10 +146,10 @@ public final class IslandBankRoutes implements RouteGroup {
     }
 
     static String bankJson(IslandBankSnapshot bank) {
-        return "{\"islandId\":\"" + bank.islandId() + "\",\"balance\":\"" + escape(bank.balance()) + "\",\"updatedAt\":\"" + bank.updatedAt() + "\"}";
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", bank.islandId());
+        values.put("balance", bank.balance());
+        values.put("updatedAt", bank.updatedAt());
+        return SimpleJson.stringify(values);
     }
 }

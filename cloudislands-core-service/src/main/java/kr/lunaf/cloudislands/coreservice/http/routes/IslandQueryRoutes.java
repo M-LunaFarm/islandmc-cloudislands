@@ -3,12 +3,14 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -235,21 +237,18 @@ public final class IslandQueryRoutes {
     }
 
     static String runtimeJson(IslandRuntimeSnapshot runtime) {
-        return "{\"islandId\":\"" + runtime.islandId()
-            + "\",\"state\":\"" + runtime.state()
-            + "\",\"activeNode\":" + nullable(runtime.activeNode())
-            + ",\"activeWorld\":" + nullable(runtime.activeWorld())
-            + ",\"cellX\":" + (runtime.cellX() == null ? "null" : runtime.cellX())
-            + ",\"cellZ\":" + (runtime.cellZ() == null ? "null" : runtime.cellZ())
-            + ",\"leaseOwner\":" + nullable(runtime.leaseOwner())
-            + ",\"fencingToken\":" + runtime.fencingToken()
-            + ",\"activatedAt\":" + nullable(runtime.activatedAt() == null ? null : runtime.activatedAt().toString())
-            + ",\"lastHeartbeat\":" + nullable(runtime.lastHeartbeat() == null ? null : runtime.lastHeartbeat().toString())
-            + "}";
-    }
-
-    private static String nullable(String value) {
-        return value == null ? "null" : "\"" + escape(value) + "\"";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", runtime.islandId());
+        values.put("state", runtime.state());
+        values.put("activeNode", runtime.activeNode());
+        values.put("activeWorld", runtime.activeWorld());
+        values.put("cellX", runtime.cellX());
+        values.put("cellZ", runtime.cellZ());
+        values.put("leaseOwner", runtime.leaseOwner());
+        values.put("fencingToken", runtime.fencingToken());
+        values.put("activatedAt", runtime.activatedAt());
+        values.put("lastHeartbeat", runtime.lastHeartbeat());
+        return SimpleJson.stringify(values);
     }
 
     private static UUID queryUuid(HttpExchange exchange, String key, UUID fallback) {
@@ -277,10 +276,6 @@ public final class IslandQueryRoutes {
         } catch (IllegalArgumentException exception) {
             return new UUID(0L, 0L);
         }
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @FunctionalInterface

@@ -3,9 +3,11 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
@@ -140,15 +142,16 @@ public final class JobRoutes implements RouteGroup {
         }
         if (jobs instanceof RedisIslandJobQueue redisJobs) {
             Map<String, Long> counts = redisJobs.countsByState();
-            return "{\"mode\":\"REDIS\""
-                + ",\"pending\":" + counts.getOrDefault("PENDING", 0L)
-                + ",\"claimed\":" + counts.getOrDefault("CLAIMED", 0L)
-                + ",\"failed\":" + counts.getOrDefault("FAILED", 0L)
-                + ",\"retryAttempts\":" + redisJobs.retryAttemptsTotal()
-                + ",\"redisFailures\":" + redisJobs.redisFailuresTotal()
-                + "}";
+            LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+            values.put("mode", "REDIS");
+            values.put("pending", counts.getOrDefault("PENDING", 0L));
+            values.put("claimed", counts.getOrDefault("CLAIMED", 0L));
+            values.put("failed", counts.getOrDefault("FAILED", 0L));
+            values.put("retryAttempts", redisJobs.retryAttemptsTotal());
+            values.put("redisFailures", redisJobs.redisFailuresTotal());
+            return SimpleJson.stringify(values);
         }
-        return "{\"mode\":\"EXTERNAL\"}";
+        return SimpleJson.stringify(Map.of("mode", "EXTERNAL"));
     }
 
     static List<IslandJobType> supportedJobTypes(String value) {

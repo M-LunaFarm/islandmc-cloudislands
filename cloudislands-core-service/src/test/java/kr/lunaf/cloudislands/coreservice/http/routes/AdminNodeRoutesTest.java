@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import org.junit.jupiter.api.Test;
 
 class AdminNodeRoutesTest {
@@ -35,6 +36,8 @@ class AdminNodeRoutesTest {
 
     @Test
     void rendersNodeSweepNodeList() {
-        assertEquals("[\"node-1\",\"node-'2\"]", AdminNodeRoutes.nodesJson(List.of("node-1", "node-\"2")));
+        List<?> nodes = SimpleJson.list(SimpleJson.parse(AdminNodeRoutes.nodesJson(List.of("node-1", "node-\"2"))));
+
+        assertEquals(List.of("node-1", "node-\"2"), nodes);
     }
 }

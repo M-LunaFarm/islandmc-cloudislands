@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -268,20 +270,21 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
     }
 
     private static void lifecycle(HttpExchange exchange, IslandLifecycleWorkflow.Result result) throws IOException {
-        CoreHttpResponses.write(exchange, result.accepted() ? 202 : 409, "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}");
+        CoreHttpResponses.write(exchange, result.accepted() ? 202 : 409, SimpleJson.stringify(Map.of("accepted", result.accepted(), "code", result.code())));
     }
 
     private static void restoreLifecycle(HttpExchange exchange, IslandLifecycleWorkflow.Result result, long snapshotNo, String storagePath) throws IOException {
+        LinkedHashMap<String, Object> response = new LinkedHashMap<>();
+        response.put("accepted", result.accepted());
+        response.put("code", result.code());
+        response.put("snapshotNo", snapshotNo);
+        response.put("storagePath", storagePath == null ? "" : storagePath);
+        response.put("restoreManifestRequired", IslandLifecycleWorkflow.RESTORE_MANIFEST_REQUIRED);
+        response.put("restoreChecksumPolicy", IslandLifecycleWorkflow.RESTORE_CHECKSUM_POLICY);
+        response.put("restorePortableRequired", IslandLifecycleWorkflow.RESTORE_PORTABLE_REQUIRED);
+        response.put("restoreSupportedFormats", IslandLifecycleWorkflow.RESTORE_SUPPORTED_FORMATS);
         CoreHttpResponses.write(exchange, result.accepted() ? 202 : 409,
-            "{\"accepted\":" + result.accepted()
-                + ",\"code\":\"" + result.code() + "\""
-                + ",\"snapshotNo\":" + snapshotNo
-                + ",\"storagePath\":\"" + escape(storagePath == null ? "" : storagePath) + "\""
-                + ",\"restoreManifestRequired\":" + IslandLifecycleWorkflow.RESTORE_MANIFEST_REQUIRED
-                + ",\"restoreChecksumPolicy\":\"" + IslandLifecycleWorkflow.RESTORE_CHECKSUM_POLICY + "\""
-                + ",\"restorePortableRequired\":" + IslandLifecycleWorkflow.RESTORE_PORTABLE_REQUIRED
-                + ",\"restoreSupportedFormats\":\"" + IslandLifecycleWorkflow.RESTORE_SUPPORTED_FORMATS + "\""
-                + "}");
+            SimpleJson.stringify(response));
     }
 
     private static String adminSaveReason(String reason) {
@@ -302,7 +305,4 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
         }
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
 }
