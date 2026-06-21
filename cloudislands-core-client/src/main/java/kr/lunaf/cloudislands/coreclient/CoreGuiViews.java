@@ -459,27 +459,11 @@ public final class CoreGuiViews {
     }
 
     private static Map<?, ?> root(String body) {
-        return SimpleJson.object(SimpleJson.parse(body));
+        return CoreJson.object(body);
     }
 
     private static List<Map<?, ?>> entries(String body) {
-        Object parsed = SimpleJson.parse(body);
-        if (parsed instanceof List<?>) {
-            return SimpleJson.list(parsed).stream()
-                .map(SimpleJson::object)
-                .filter(map -> !map.isEmpty())
-                .toList();
-        }
-        Map<?, ?> root = SimpleJson.object(parsed);
-        for (Object value : root.values()) {
-            if (value instanceof List<?>) {
-                return SimpleJson.list(value).stream()
-                    .map(SimpleJson::object)
-                    .filter(map -> !map.isEmpty())
-                    .toList();
-            }
-        }
-        return root.isEmpty() ? List.of() : List.of(root);
+        return CoreJson.entries(body);
     }
 
     private static Map<?, ?> object(Map<?, ?> object, String key) {

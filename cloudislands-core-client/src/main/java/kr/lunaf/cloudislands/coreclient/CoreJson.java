@@ -9,7 +9,31 @@ final class CoreJson {
     }
 
     static Map<?, ?> object(String body) {
-        return SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        return SimpleJson.object(value(body));
+    }
+
+    static Object value(String body) {
+        return SimpleJson.parse(body == null || body.isBlank() ? "{}" : body);
+    }
+
+    static List<Map<?, ?>> entries(String body) {
+        Object parsed = value(body);
+        if (parsed instanceof List<?>) {
+            return SimpleJson.list(parsed).stream()
+                .map(SimpleJson::object)
+                .filter(map -> !map.isEmpty())
+                .toList();
+        }
+        Map<?, ?> root = SimpleJson.object(parsed);
+        for (Object value : root.values()) {
+            if (value instanceof List<?>) {
+                return SimpleJson.list(value).stream()
+                    .map(SimpleJson::object)
+                    .filter(map -> !map.isEmpty())
+                    .toList();
+            }
+        }
+        return root.isEmpty() ? List.of() : List.of(root);
     }
 
     static boolean accepted(Map<?, ?> root) {

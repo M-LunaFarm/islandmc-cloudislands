@@ -45,23 +45,7 @@ public final class CorePermissionQueryClient implements PermissionQueryClient {
     }
 
     private static List<Map<?, ?>> entries(String body) {
-        Object parsed = SimpleJson.parse(body);
-        if (parsed instanceof List<?>) {
-            return SimpleJson.list(parsed).stream()
-                .map(SimpleJson::object)
-                .filter(map -> !map.isEmpty())
-                .toList();
-        }
-        Map<?, ?> root = SimpleJson.object(parsed);
-        for (Object value : root.values()) {
-            if (value instanceof List<?>) {
-                return SimpleJson.list(value).stream()
-                    .map(SimpleJson::object)
-                    .filter(map -> !map.isEmpty())
-                    .toList();
-            }
-        }
-        return root.isEmpty() ? List.of() : List.of(root);
+        return CoreJson.entries(body);
     }
 
     private static void requireIsland(UUID islandId) {

@@ -56,6 +56,8 @@ class CoreTypedClientsTest {
         assertTrue(CoreJson.acceptedWithCode(ok, "FALLBACK"));
         assertEquals("paper-a", CoreJson.text(ok, "nodeId"));
         assertEquals(List.of("paper-a"), CoreJson.strings(ok, "nodes"));
+        assertEquals(2, CoreJson.entries("[{\"nodeId\":\"paper-a\"},{\"nodeId\":\"paper-b\"}]").size());
+        assertEquals("paper-a", CoreJson.text(CoreJson.entries("{\"nodes\":[{\"nodeId\":\"paper-a\"}]}").get(0), "nodeId"));
         assertFalse(CoreJson.accepted(rejected));
         assertEquals("FAILED", CoreJson.code(rejected, "IGNORED"));
         assertFalse(CoreJson.accepted(failed));

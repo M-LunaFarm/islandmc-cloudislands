@@ -136,7 +136,7 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
     }
 
     private static AdminNodeSummaryView summary(String body) {
-        Object parsed = SimpleJson.parse(body);
+        Object parsed = CoreJson.value(body);
         Map<?, ?> root = SimpleJson.object(parsed);
         if (!root.isEmpty()) {
             String code = text(root, "code");

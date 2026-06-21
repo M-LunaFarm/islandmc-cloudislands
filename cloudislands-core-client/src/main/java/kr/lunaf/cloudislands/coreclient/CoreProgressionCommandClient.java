@@ -124,7 +124,7 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
     }
 
     private static List<MissionProviderDefinitionSnapshot> missionDefinitions(String body) {
-        Object parsed = SimpleJson.parse(body == null || body.isBlank() ? "{}" : body);
+        Object parsed = CoreJson.value(body);
         List<?> entries = parsed instanceof List<?> ? SimpleJson.list(parsed) : SimpleJson.list(SimpleJson.object(parsed).get("missions"));
         return entries.stream()
             .map(entry -> missionDefinition(SimpleJson.object(entry)))
