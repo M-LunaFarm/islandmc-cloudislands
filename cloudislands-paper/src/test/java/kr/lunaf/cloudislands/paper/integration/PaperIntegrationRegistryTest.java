@@ -324,6 +324,8 @@ class PaperIntegrationRegistryTest {
         assertEquals("LuckPerms#userManager+trackManager#restoreContextState", restoredLuckPerms.details().get("external.api"));
 
         assertFalse(plan.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
+        assertTrue(plan.capabilities().contains(IntegrationCapability.STATE_EXPORT));
+        assertTrue(plan.capabilities().contains(IntegrationCapability.STATE_RESTORE));
         IntegrationResult missingPlan = plan.exportState(new IntegrationContext(null, "", 0L, false, "", Map.of("analyticsScope", "island-presence")));
         assertEquals(IntegrationResult.Status.FAILED, missingPlan.status());
         assertTrue(missingPlan.message().contains("bundleKey"));
@@ -334,6 +336,14 @@ class PaperIntegrationRegistryTest {
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, exportedPlan.status());
         assertEquals("PlanAPI#queryService", exportedPlan.details().get("external.api"));
+
+        IntegrationResult restoredPlan = plan.restoreState(new IntegrationContext(null, "", 0L, false, "", Map.of(
+            "analyticsScope", "island-presence",
+            "bundleKey", "bundles/analytics.json"
+        )));
+        assertEquals(IntegrationResult.Status.SUCCESS, restoredPlan.status());
+        assertEquals("PlanAPI#importService", restoredPlan.details().get("external.api"));
+        assertEquals("analytics-restore", restoredPlan.details().get("operation"));
     }
 
     @Test

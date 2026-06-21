@@ -13,7 +13,8 @@ public final class PlanIntegration extends PolicyBackedCloudIntegration {
             IntegrationCapability.VALIDATE_VERSION,
             IntegrationCapability.ISLAND_ACTIVATE,
             IntegrationCapability.ISLAND_DEACTIVATE,
-            IntegrationCapability.STATE_EXPORT
+            IntegrationCapability.STATE_EXPORT,
+            IntegrationCapability.STATE_RESTORE
         ));
     }
 
@@ -33,10 +34,16 @@ public final class PlanIntegration extends PolicyBackedCloudIntegration {
     }
 
     @Override
+    public IntegrationResult restoreState(IntegrationContext context) {
+        return guardedObservationHook("analytics-restore", context, "analyticsScope", "bundleKey");
+    }
+
+    @Override
     protected String externalApiCall(String operation) {
         return switch (operation == null ? "" : operation) {
             case "presence-activate", "presence-deactivate" -> "PlanAPI#playerContainer";
             case "analytics-export" -> "PlanAPI#queryService";
+            case "analytics-restore" -> "PlanAPI#importService";
             default -> "";
         };
     }
