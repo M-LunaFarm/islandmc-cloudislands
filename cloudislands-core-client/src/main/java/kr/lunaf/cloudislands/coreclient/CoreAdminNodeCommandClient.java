@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
@@ -44,7 +45,21 @@ public final class CoreAdminNodeCommandClient implements AdminNodeCommandClient 
         boolean accepted = !root.containsKey("error")
             && !Boolean.FALSE.equals(root.get("accepted"))
             && !Boolean.FALSE.equals(root.get("applied"));
-        return new AdminNodeActionView(accepted, SimpleJson.text(root.get("code")), SimpleJson.text(root.get("nodeId")), SimpleJson.text(root.get("operation")));
+        return new AdminNodeActionView(
+            accepted,
+            SimpleJson.text(root.get("code")),
+            SimpleJson.text(root.get("nodeId")),
+            SimpleJson.text(root.get("operation")),
+            strings(root.get("nodes")),
+            (int) SimpleJson.number(root.get("recoveryRequired"))
+        );
+    }
+
+    private static List<String> strings(Object value) {
+        return SimpleJson.list(value).stream()
+            .map(SimpleJson::text)
+            .filter(text -> !text.isBlank())
+            .toList();
     }
 
     private static String requireNode(String nodeId) {

@@ -111,10 +111,12 @@ import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
 import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
+import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
+import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
@@ -2343,15 +2345,15 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override public CompletableFuture<Void> drainNode(String nodeId) { return drainNodeResult(nodeId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> drainNodeResult(String nodeId) { return mutate("admin.node.drain", () -> client.drainNodeResult(nodeId)).thenApply(body -> action(body, "NODE_DRAINED")); }
+        @Override public CompletableFuture<IslandActionResult> drainNodeResult(String nodeId) { return mutate("admin.node.drain", () -> client.adminNodeCommands().drainNode(nodeId)).thenApply(view -> action(view, "NODE_DRAINED")); }
         @Override public CompletableFuture<Void> undrainNode(String nodeId) { return undrainNodeResult(nodeId).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId) { return mutate("admin.node.undrain", () -> client.undrainNodeResult(nodeId)).thenApply(body -> action(body, "NODE_UNDRAINED")); }
+        @Override public CompletableFuture<IslandActionResult> undrainNodeResult(String nodeId) { return mutate("admin.node.undrain", () -> client.adminNodeCommands().undrainNode(nodeId)).thenApply(view -> action(view, "NODE_UNDRAINED")); }
         @Override public CompletableFuture<Void> sweepNode(String nodeId) { return sweepNodeResult(nodeId).thenApply(_result -> null); }
-        @Override public CompletableFuture<NodeSweepResult> sweepNodeResult(String nodeId) { return mutate("admin.node.sweep", () -> client.sweepNodeResult(nodeId)).thenApply(PaperCloudIslandsApi::nodeSweep); }
+        @Override public CompletableFuture<NodeSweepResult> sweepNodeResult(String nodeId) { return mutate("admin.node.sweep", () -> client.adminNodeCommands().sweepNode(nodeId)).thenApply(PaperCloudIslandsApi::nodeSweep); }
         @Override public CompletableFuture<Void> kickAllNode(String nodeId, String reason) { return kickAllNodeResult(nodeId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> kickAllNodeResult(String nodeId, String reason) { return mutateIdempotent("admin.node.kickall", () -> client.kickAllNodeResult(nodeId, reason)).thenApply(body -> action(body, "NODE_KICKALL_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> kickAllNodeResult(String nodeId, String reason) { return mutateIdempotent("admin.node.kickall", () -> client.adminNodeCommands().kickAllNode(nodeId, reason)).thenApply(view -> action(view, "NODE_KICKALL_REQUESTED")); }
         @Override public CompletableFuture<Void> shutdownNodeSafely(String nodeId, String reason) { return shutdownNodeSafelyResult(nodeId, reason).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> shutdownNodeSafelyResult(String nodeId, String reason) { return mutateIdempotent("admin.node.shutdown-safe", () -> client.shutdownNodeSafelyResult(nodeId, reason)).thenApply(body -> action(body, "NODE_SHUTDOWN_SAFE_REQUESTED")); }
+        @Override public CompletableFuture<IslandActionResult> shutdownNodeSafelyResult(String nodeId, String reason) { return mutateIdempotent("admin.node.shutdown-safe", () -> client.adminNodeCommands().shutdownNodeSafely(nodeId, reason)).thenApply(view -> action(view, "NODE_SHUTDOWN_SAFE_REQUESTED")); }
         @Override public CompletableFuture<Void> activateIsland(UUID islandId) { return activateIslandResult(islandId).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> activateIslandResult(UUID islandId) { return mutate("admin.island.activate", () -> client.activateIslandResult(islandId)).thenApply(body -> actionCode(body, "ACTIVATE_REQUESTED")); }
         @Override public CompletableFuture<Void> deactivateIsland(UUID islandId) { return deactivateIslandResult(islandId).thenApply(_result -> null); }
@@ -2395,7 +2397,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> setPlayerPrimaryIsland(UUID playerUuid, UUID islandId) { return mutate("admin.player.primary-island.set", () -> client.playerProfileCommands().setPrimaryIsland(playerUuid, islandId)).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Optional<PlayerIslandProfile>> clearPlayerPrimaryIsland(UUID playerUuid) { return mutate("admin.player.primary-island.clear", () -> client.playerProfileCommands().clearPrimaryIsland(playerUuid)).thenApply(PaperCloudIslandsApi::playerProfile); }
         @Override public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_result -> null); }
-        @Override public CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return mutate("admin.block-value.set", () -> client.setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit)).thenApply(body -> action(body, "BLOCK_VALUE_SET")); }
+        @Override public CompletableFuture<IslandActionResult> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) { return mutate("admin.block-value.set", () -> client.blockValueCommands().set(actorUuid, materialKey, worth, levelPoints, limit)).thenApply(view -> action(view, "BLOCK_VALUE_SET")); }
         @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents() { return client.adminEvents().list(100).thenApply(PaperCloudIslandsApi::events); }
         @Override public CompletableFuture<List<GlobalEventSnapshot>> listEvents(int limit) { return client.adminEvents().list(limit).thenApply(PaperCloudIslandsApi::events); }
         @Override public CompletableFuture<GlobalEventBatchSnapshot> listEventBatch() { return client.adminEvents().list(100).thenApply(PaperCloudIslandsApi::eventBatch); }
@@ -2430,17 +2432,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandTemplateSnapshot> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion) {
-            return mutate("admin.template.upsert", () -> client.upsertTemplate(templateId, displayName, enabled, minNodeVersion)).thenApply(PaperCloudIslandsApi::template);
+            return mutate("admin.template.upsert", () -> client.templateCommands().upsert(templateId, displayName, enabled, minNodeVersion)).thenApply(PaperCloudIslandsApi::template);
         }
 
         @Override
         public CompletableFuture<IslandTemplateSnapshot> enableTemplate(String templateId) {
-            return mutate("admin.template.enable", () -> client.enableTemplate(templateId)).thenApply(PaperCloudIslandsApi::template);
+            return mutate("admin.template.enable", () -> client.templateCommands().enable(templateId)).thenApply(PaperCloudIslandsApi::template);
         }
 
         @Override
         public CompletableFuture<IslandTemplateSnapshot> disableTemplate(String templateId) {
-            return mutate("admin.template.disable", () -> client.disableTemplate(templateId)).thenApply(PaperCloudIslandsApi::template);
+            return mutate("admin.template.disable", () -> client.templateCommands().disable(templateId)).thenApply(PaperCloudIslandsApi::template);
         }
 
         @Override
@@ -3039,6 +3041,20 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return new IslandActionResult(false, "FAILED");
         }
         return new IslandActionResult(view.accepted(), view.code().isBlank() ? (view.accepted() ? "ACCEPTED" : "FAILED") : view.code());
+    }
+
+    private static IslandActionResult action(AdminNodeActionView view, String fallbackCode) {
+        if (view == null) {
+            return new IslandActionResult(false, "FAILED");
+        }
+        return new IslandActionResult(view.accepted(), view.code().isBlank() ? (view.accepted() ? fallbackCode : "FAILED") : view.code());
+    }
+
+    private static IslandActionResult action(BlockValueActionView view, String fallbackCode) {
+        if (view == null) {
+            return new IslandActionResult(false, "FAILED");
+        }
+        return new IslandActionResult(view.accepted(), view.code().isBlank() ? (view.accepted() ? fallbackCode : "FAILED") : view.code());
     }
 
     private static IslandActionResult actionCode(String json, String fallbackCode) {
@@ -3762,6 +3778,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new NodeSweepResult(stringArray(json, "nodes"), integer(json, "recoveryRequired", 0));
     }
 
+    private static NodeSweepResult nodeSweep(AdminNodeActionView view) {
+        if (view == null) {
+            return new NodeSweepResult(List.of(), 0);
+        }
+        return new NodeSweepResult(view.nodes(), view.recoveryRequired());
+    }
+
     private static List<String> stringArray(String json, String field) {
         List<String> values = new ArrayList<>();
         String needle = "\"" + field + "\":[";
@@ -3886,6 +3909,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             bool(json, "enabled", false),
             text(json, "minNodeVersion", "")
         );
+    }
+
+    private static IslandTemplateSnapshot template(TemplateView view) {
+        if (view == null) {
+            return new IslandTemplateSnapshot("", "", false, "");
+        }
+        return new IslandTemplateSnapshot(view.id(), view.displayName(), view.enabled(), view.minNodeVersion());
     }
 
     private static MigrationRunSnapshot migrationRun(String json) {

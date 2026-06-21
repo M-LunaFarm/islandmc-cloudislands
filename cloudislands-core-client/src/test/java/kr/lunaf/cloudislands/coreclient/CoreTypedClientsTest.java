@@ -1258,9 +1258,13 @@ class CoreTypedClientsTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "drainNode", "undrainNode", "sweepNode" -> {
+                case "drainNode", "undrainNode" -> {
                     calls.add(method.getName() + ":" + args[0]);
                     yield CompletableFuture.completedFuture("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"" + method.getName() + "\"}");
+                }
+                case "sweepNode" -> {
+                    calls.add(method.getName() + ":" + args[0]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"sweepNode\",\"nodes\":[\"node-a\",\"node-b\"],\"recoveryRequired\":2}");
                 }
                 case "kickAllNode", "shutdownNodeSafely" -> {
                     calls.add(method.getName() + ":" + args[0] + ":" + args[1]);
@@ -1273,7 +1277,10 @@ class CoreTypedClientsTest {
 
         assertEquals("drainNode", client.drainNode(" node-a ").join().operation());
         assertEquals("undrainNode", client.undrainNode("node-a").join().operation());
-        assertEquals("sweepNode", client.sweepNode("node-a").join().operation());
+        AdminNodeActionView sweep = client.sweepNode("node-a").join();
+        assertEquals("sweepNode", sweep.operation());
+        assertEquals(List.of("node-a", "node-b"), sweep.nodes());
+        assertEquals(2, sweep.recoveryRequired());
         assertEquals("kickAllNode", client.kickAllNode("node-a", "admin").join().operation());
         assertEquals("shutdownNodeSafely", client.shutdownNodeSafely("node-a", "admin").join().operation());
         assertEquals(List.of(
