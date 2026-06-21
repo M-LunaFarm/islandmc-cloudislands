@@ -817,8 +817,8 @@ class CoreTypedClientsTest {
                 case "listIslandReviews" -> {
                     calls.add("reviews:" + args[1]);
                     yield CompletableFuture.completedFuture("""
-                        {"reviews":[{"reviewerUuid":"%s","rating":5,"comment":"nice"}],"summary":{"count":1,"average":5.0}}
-                        """.formatted(reviewerUuid));
+                        {"reviews":[{"islandId":"%s","reviewerUuid":"%s","rating":5,"comment":"nice","createdAt":"2026-06-21T00:00:00Z","updatedAt":"2026-06-21T00:01:00Z"}],"summary":{"count":1,"average":5.0}}
+                        """.formatted(islandId, reviewerUuid));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
@@ -833,7 +833,9 @@ class CoreTypedClientsTest {
         assertEquals(islandId.toString(), profile.primaryIslandId());
         assertEquals("Spawn", island.name());
         assertEquals(1L, reviews.count());
+        assertEquals(islandId.toString(), reviews.reviews().get(0).islandId());
         assertEquals("nice", reviews.reviews().get(0).comment());
+        assertEquals("2026-06-21T00:01:00Z", reviews.reviews().get(0).updatedAt());
     }
 
     @Test

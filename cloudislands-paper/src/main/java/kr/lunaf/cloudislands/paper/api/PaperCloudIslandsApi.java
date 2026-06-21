@@ -120,6 +120,8 @@ import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionReviewRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.ReviewListView;
+import kr.lunaf.cloudislands.coreclient.ReviewView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
@@ -1977,7 +1979,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandReviewSnapshot>> getReviews(UUID islandId, int limit) {
-            return client.listIslandReviews(islandId, limit).thenApply(PaperCloudIslandsApi::reviews);
+            return client.navigation().listReviews(islandId, limit).thenApply(view -> reviews(islandId, view));
         }
 
         @Override
@@ -3263,6 +3265,20 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return reviews;
+    }
+
+    private static List<IslandReviewSnapshot> reviews(UUID islandId, ReviewListView view) {
+        UUID fallbackIslandId = islandId == null ? new UUID(0L, 0L) : islandId;
+        return (view == null ? List.<ReviewView>of() : view.reviews()).stream()
+            .map(review -> new IslandReviewSnapshot(
+                review.islandId().isBlank() ? fallbackIslandId : uuidValueOrZero(review.islandId()),
+                uuidValueOrZero(review.reviewerUuid()),
+                intValue(review.rating()),
+                review.comment(),
+                instant(review.createdAt()),
+                instant(review.updatedAt())
+            ))
+            .toList();
     }
 
     private static IslandVisitorStatsSnapshot visitorStats(String json) {

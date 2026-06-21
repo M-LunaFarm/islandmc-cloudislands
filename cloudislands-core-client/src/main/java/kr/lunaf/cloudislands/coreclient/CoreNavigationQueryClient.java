@@ -39,9 +39,12 @@ public final class CoreNavigationQueryClient implements NavigationQueryClient {
         List<ReviewView> reviews = SimpleJson.list(root.get("reviews")).stream()
             .map(SimpleJson::object)
             .map(review -> new ReviewView(
+                text(review, "islandId"),
                 text(review, "reviewerUuid"),
                 SimpleJson.number(review.get("rating")),
-                text(review, "comment")
+                text(review, "comment"),
+                text(review, "createdAt"),
+                text(review, "updatedAt")
             ))
             .filter(review -> !review.reviewerUuid().isBlank())
             .toList();
