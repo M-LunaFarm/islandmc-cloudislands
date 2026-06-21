@@ -175,15 +175,16 @@ class PaperPlatformBoundaryTest {
         String tokens = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/ConfirmationTokenPolicy.java"));
 
         assertTrue(router.contains("adminCommands.handleGuiAction(player, action"), "Admin node GUI actions must route through the admin handler");
-        assertTrue(adminHandler.contains("case \"admin.node.list\""), "Admin node list GUI action must call the Core usecase path");
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"), "Admin node GUI actions must use typed actions");
+        assertTrue(adminHandler.contains("case LIST ->"), "Admin node list GUI action must call the Core usecase path");
         assertTrue(adminHandler.contains("coreApiClient.listNodes()"), "Admin node list GUI action must call Core");
-        assertTrue(adminHandler.contains("case \"admin.node.info\""), "Admin node info GUI action must refresh from Core");
+        assertTrue(adminHandler.contains("case INFO ->"), "Admin node info GUI action must refresh from Core");
         assertTrue(adminHandler.contains("coreApiClient.nodeInfo(nodeId)"), "Admin node info GUI action must refresh from Core");
-        assertTrue(adminHandler.contains("case \"admin.node.drain\""), "Admin node drain GUI action must call Core");
+        assertTrue(adminHandler.contains("case DRAIN ->"), "Admin node drain GUI action must call Core");
         assertTrue(adminHandler.contains("coreApiClient.drainNode(nodeId)"), "Admin node drain GUI action must call Core");
-        assertTrue(adminHandler.contains("case \"admin.node.undrain\""), "Admin node undrain GUI action must call Core");
+        assertTrue(adminHandler.contains("case UNDRAIN ->"), "Admin node undrain GUI action must call Core");
         assertTrue(adminHandler.contains("coreApiClient.undrainNode(nodeId)"), "Admin node undrain GUI action must call Core");
-        assertTrue(adminHandler.contains("case \"admin.node.sweep\""), "Admin node sweep GUI action must call Core");
+        assertTrue(adminHandler.contains("case SWEEP ->"), "Admin node sweep GUI action must call Core");
         assertTrue(adminHandler.contains("coreApiClient.sweepNode(nodeId)"), "Admin node sweep GUI action must call Core");
         assertTrue(adminHandler.contains("coreApiClient.kickAllNode("), "Admin node kickall confirmation must call Core");
         assertTrue(adminHandler.contains("coreApiClient.shutdownNodeSafely("), "Admin node shutdown confirmation must call Core");

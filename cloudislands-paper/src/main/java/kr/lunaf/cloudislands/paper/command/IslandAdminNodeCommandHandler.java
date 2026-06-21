@@ -33,65 +33,7 @@ final class IslandAdminNodeCommandHandler {
             runtime.message(player, runtime.routeMessage("admin-node-direct-required", "섬 UUID와 대상 노드 입력이 필요한 관리 작업입니다. 관리자 명령 도움말을 확인해주세요."));
             return true;
         }
-        String actionId = action.actionId();
-        Map<String, String> data = action.data();
-        return switch (actionId) {
-            case "admin.node.open" -> {
-                openAdminNodeMenu(player, adminNodeId(data));
-                yield true;
-            }
-            case "admin.node.list" -> {
-                listAdminNodes(player);
-                yield true;
-            }
-            case "admin.node.info" -> {
-                refreshAdminNodeInfo(player, adminNodeId(data));
-                yield true;
-            }
-            case "admin.node.islands" -> {
-                listAdminNodeIslands(player, adminNodeId(data));
-                yield true;
-            }
-            case "admin.node.drain" -> {
-                drainAdminNode(player, adminNodeId(data));
-                yield true;
-            }
-            case "admin.node.undrain" -> {
-                undrainAdminNode(player, adminNodeId(data));
-                yield true;
-            }
-            case "admin.node.sweep" -> {
-                sweepAdminNode(player, adminNodeId(data));
-                yield true;
-            }
-            case "admin.node.kickall.prepare" -> {
-                openAdminNodeKickAllConfirmation(player, adminNodeId(data));
-                yield true;
-            }
-            case "admin.node.shutdown-safe.prepare" -> {
-                openAdminNodeShutdownConfirmation(player, adminNodeId(data));
-                yield true;
-            }
-            case "admin.node.kickall.confirm" -> {
-                if (runtime.confirmationAccepted(player, action, click)) {
-                    String nodeId = adminNodeId(data);
-                    kickAllAdminNode(player, nodeId, data.getOrDefault("reason", "admin-gui"));
-                }
-                yield true;
-            }
-            case "admin.node.shutdown-safe.confirm" -> {
-                if (runtime.confirmationAccepted(player, action, click)) {
-                    String nodeId = adminNodeId(data);
-                    shutdownAdminNodeSafely(player, nodeId, data.getOrDefault("reason", "admin-gui"));
-                }
-                yield true;
-            }
-            case "admin.island.where.prompt", "admin.island.migrate.prompt" -> {
-                runtime.message(player, runtime.routeMessage("admin-node-direct-required", "섬 UUID와 대상 노드 입력이 필요한 관리 작업입니다. 관리자 명령 도움말을 확인해주세요."));
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private boolean handleAdminNodeAction(Player player, GuiAction.AdminNodeAction action, GuiClick click) {

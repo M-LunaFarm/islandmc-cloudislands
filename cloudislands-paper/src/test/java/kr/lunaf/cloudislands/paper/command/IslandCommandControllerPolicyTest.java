@@ -291,7 +291,8 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("drainAdminNode("), "admin node mutations belong in IslandAdminNodeCommandHandler");
         assertFalse(backend.contains("shutdownAdminNodeSafely("), "admin danger mutations belong in IslandAdminNodeCommandHandler");
         assertTrue(adminHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
-        assertTrue(adminHandler.contains("case \"admin.node.list\""));
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"));
+        assertTrue(adminHandler.contains("case LIST ->"));
         assertTrue(adminHandler.contains("coreApiClient.drainNode(nodeId)"));
         assertTrue(adminHandler.contains("coreApiClient.shutdownNodeSafely("));
     }

@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -190,51 +189,7 @@ final class IslandProgressionCommandHandler {
                 default -> false;
             };
         }
-        String actionId = action.actionId();
-        Map<String, String> data = action.data();
-        return switch (actionId) {
-            case "island.ranking.open" -> {
-                openRankingMenu(player);
-                yield true;
-            }
-            case "island.ranking.list" -> {
-                listRanking(player, data.getOrDefault("kind", "").equalsIgnoreCase("worth"), 10);
-                yield true;
-            }
-            case "island.level.recalculate" -> {
-                recalculateLevel(player);
-                yield true;
-            }
-            case "island.level.show" -> {
-                showLevel(player);
-                yield true;
-            }
-            case "island.worth.show" -> {
-                showWorth(player);
-                yield true;
-            }
-            case "island.missions.open" -> {
-                openMissionMenu(player, data.getOrDefault("kind", "MISSION"));
-                yield true;
-            }
-            case "island.mission.complete" -> {
-                completeTask(player, data.getOrDefault("missionKey", ""), data.getOrDefault("kind", "MISSION"), data.getOrDefault("label", "섬 미션"));
-                yield true;
-            }
-            case "island.upgrades.open" -> {
-                openUpgradeMenu(player);
-                yield true;
-            }
-            case "island.upgrades.list" -> {
-                listUpgrades(player);
-                yield true;
-            }
-            case "island.upgrade.purchase" -> {
-                purchaseUpgrade(player, data.getOrDefault("upgradeKey", ""));
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private void showLevel(Player player) {

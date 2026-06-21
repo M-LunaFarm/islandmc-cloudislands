@@ -129,10 +129,6 @@ final class IslandCommandRouter {
             sendCommandList(player, "섬", "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
             return;
         }
-        String actionId = action.actionId();
-        if (actionId == null || actionId.isBlank()) {
-            return;
-        }
         if (bankCommands.handleGuiAction(player, action)) {
             return;
         }
@@ -169,11 +165,7 @@ final class IslandCommandRouter {
         if (adminCommands.handleGuiAction(player, action, click)) {
             return;
         }
-        switch (actionId) {
-            case "island.main.open" -> sendCommandList(player, "섬", "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
-            case "gui.close" -> player.closeInventory();
-            default -> runtime.message(player, runtime.routeMessage("gui-action-unknown", "알 수 없는 GUI 작업입니다: ") + actionId);
-        }
+        runtime.message(player, runtime.routeMessage("gui-action-unknown", "알 수 없는 GUI 작업입니다: ") + action.actionId());
     }
 
     private void sendCommandList(Player player, String label, String title, List<String> commands, int page) {
