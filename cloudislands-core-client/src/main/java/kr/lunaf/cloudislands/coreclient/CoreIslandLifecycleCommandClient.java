@@ -37,19 +37,93 @@ public final class CoreIslandLifecycleCommandClient implements IslandLifecycleCo
         requireId(actorUuid, "actorUuid");
         String normalizedReason = reason == null || reason.isBlank() ? "player-reset" : reason.trim();
         return delegate.resetIslandResult(islandId, actorUuid, normalizedReason)
-            .thenApply(body -> actionResult(body, "RESET_QUEUED"));
+            .thenApply(body -> actionResult(body, "RESET_QUEUED", islandId));
     }
 
-    private static IslandLifecycleActionView actionResult(String body, String successCode) {
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> activateIsland(UUID islandId) {
+        requireId(islandId, "islandId");
+        return delegate.activateIslandResult(islandId).thenApply(body -> actionResult(body, "ACTIVATING", islandId));
+    }
+
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> deactivateIsland(UUID islandId) {
+        requireId(islandId, "islandId");
+        return delegate.deactivateIslandResult(islandId).thenApply(body -> actionResult(body, "SAVING", islandId));
+    }
+
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> migrateIsland(UUID islandId, String targetNode) {
+        requireId(islandId, "islandId");
+        return delegate.migrateIslandResult(islandId, targetNode == null ? "" : targetNode.trim()).thenApply(body -> actionResult(body, "MIGRATING", islandId));
+    }
+
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> saveIsland(UUID islandId, String reason) {
+        requireId(islandId, "islandId");
+        return delegate.requestIslandSaveResult(islandId, reason == null || reason.isBlank() ? "ADMIN_SAVE" : reason.trim()).thenApply(body -> actionResult(body, "SNAPSHOT_QUEUED", islandId));
+    }
+
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> snapshotIsland(UUID islandId, String reason) {
+        requireId(islandId, "islandId");
+        return delegate.requestIslandSnapshotResult(islandId, reason == null || reason.isBlank() ? "ADMIN_MANUAL" : reason.trim()).thenApply(body -> actionResult(body, "SNAPSHOT_QUEUED", islandId));
+    }
+
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> restoreIslandSnapshot(UUID islandId, long snapshotNo) {
+        requireId(islandId, "islandId");
+        return delegate.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionResult(body, "RESTORE_QUEUED", islandId));
+    }
+
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> rollbackIslandSnapshot(UUID islandId, long snapshotNo) {
+        requireId(islandId, "islandId");
+        return delegate.rollbackIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionResult(body, "RESTORE_QUEUED", islandId));
+    }
+
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> quarantineIsland(UUID islandId, String reason) {
+        requireId(islandId, "islandId");
+        return delegate.quarantineIslandResult(islandId, reason == null || reason.isBlank() ? "admin" : reason.trim()).thenApply(body -> actionResult(body, "QUARANTINED", islandId));
+    }
+
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> repairIsland(UUID islandId, String reason) {
+        requireId(islandId, "islandId");
+        return delegate.repairIslandResult(islandId, reason == null || reason.isBlank() ? "admin" : reason.trim()).thenApply(body -> actionResult(body, "REPAIRED", islandId));
+    }
+
+    @Override
+    public CompletableFuture<IslandLifecycleActionView> adminDeleteIsland(UUID islandId) {
+        requireId(islandId, "islandId");
+        return delegate.adminDeleteIslandResult(islandId).thenApply(body -> actionResult(body, "DELETED", islandId));
+    }
+
+    private static IslandLifecycleActionView actionResult(String body, String successCode, UUID fallbackIslandId) {
         Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
+        Map<?, ?> error = SimpleJson.object(root.get("error"));
+        boolean accepted = error.isEmpty()
             && !Boolean.FALSE.equals(root.get("accepted"))
             && !Boolean.FALSE.equals(root.get("applied"));
         String code = SimpleJson.text(root.get("code"));
         if (code.isBlank()) {
+            code = SimpleJson.text(error.get("code"));
+        }
+        if (code.isBlank()) {
             code = accepted ? successCode : "FAILED";
         }
-        return new IslandLifecycleActionView(accepted, code);
+        String islandId = SimpleJson.text(root.get("islandId"));
+        if (islandId.isBlank() && fallbackIslandId != null) {
+            islandId = fallbackIslandId.toString();
+        }
+        return new IslandLifecycleActionView(
+            accepted,
+            code,
+            islandId,
+            SimpleJson.number(root.get("snapshotNo")),
+            SimpleJson.text(root.get("storagePath"))
+        );
     }
 
     private static void requireId(UUID id, String name) {

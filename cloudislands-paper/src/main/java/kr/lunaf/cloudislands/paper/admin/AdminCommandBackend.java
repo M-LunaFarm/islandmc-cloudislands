@@ -33,6 +33,7 @@ import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
 import kr.lunaf.cloudislands.coreclient.JobView;
@@ -837,11 +838,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("activate")) {
-            run(sender, "Island activate", coreApiClient.activateIsland(islandId).thenApply(body -> actionResultMessage("Island activate", islandId.toString(), body)));
+            run(sender, "Island activate", coreApiClient.lifecycle().activateIsland(islandId).thenApply(action -> islandLifecycleActionMessage("Island activate", islandId, action)));
             return true;
         }
         if (args[1].equalsIgnoreCase("deactivate")) {
-            run(sender, "Island deactivate", coreApiClient.deactivateIsland(islandId).thenApply(body -> actionResultMessage("Island deactivate", islandId.toString(), body)));
+            run(sender, "Island deactivate", coreApiClient.lifecycle().deactivateIsland(islandId).thenApply(action -> islandLifecycleActionMessage("Island deactivate", islandId, action)));
             return true;
         }
         if (args[1].equalsIgnoreCase("migrate")) {
@@ -849,17 +850,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 sender.sendMessage(adminText("admin-command-target-node-required", "대상 노드를 입력해주세요."));
                 return true;
             }
-            run(sender, "Island migrate", coreApiClient.migrateIsland(islandId, args[3]).thenApply(body -> actionResultMessage("Island migrate", islandId.toString(), body)));
+            run(sender, "Island migrate", coreApiClient.lifecycle().migrateIsland(islandId, args[3]).thenApply(action -> islandLifecycleActionMessage("Island migrate", islandId, action)));
             return true;
         }
         if (args[1].equalsIgnoreCase("save")) {
             String reason = args.length > 3 ? joined(args, 3) : "ADMIN_SAVE";
-            run(sender, "Island save", coreApiClient.requestIslandSaveResult(islandId, reason).thenApply(body -> actionResultMessage("Island save", islandId.toString(), body)));
+            run(sender, "Island save", coreApiClient.lifecycle().saveIsland(islandId, reason).thenApply(action -> islandLifecycleActionMessage("Island save", islandId, action)));
             return true;
         }
         if (args[1].equalsIgnoreCase("snapshot")) {
             String reason = args.length > 3 ? joined(args, 3) : "ADMIN_MANUAL";
-            run(sender, "Island snapshot", coreApiClient.requestIslandSnapshotResult(islandId, reason).thenApply(body -> actionResultMessage("Island snapshot", islandId.toString(), body)));
+            run(sender, "Island snapshot", coreApiClient.lifecycle().snapshotIsland(islandId, reason).thenApply(action -> islandLifecycleActionMessage("Island snapshot", islandId, action)));
             return true;
         }
         if (args[1].equalsIgnoreCase("snapshots")) {
@@ -878,22 +879,22 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 return true;
             }
             if (args[1].equalsIgnoreCase("rollback")) {
-                run(sender, "Island rollback", coreApiClient.rollbackIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionResultMessage("Island rollback", islandId.toString(), body)));
+                run(sender, "Island rollback", coreApiClient.lifecycle().rollbackIslandSnapshot(islandId, snapshotNo).thenApply(action -> islandLifecycleActionMessage("Island rollback", islandId, action)));
             } else {
-                run(sender, "Island restore", coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo).thenApply(body -> actionResultMessage("Island restore", islandId.toString(), body)));
+                run(sender, "Island restore", coreApiClient.lifecycle().restoreIslandSnapshot(islandId, snapshotNo).thenApply(action -> islandLifecycleActionMessage("Island restore", islandId, action)));
             }
             return true;
         }
         if (args[1].equalsIgnoreCase("quarantine")) {
-            run(sender, "Island quarantine", coreApiClient.quarantineIsland(islandId, args.length > 3 ? joined(args, 3) : "admin").thenApply(body -> actionResultMessage("Island quarantine", islandId.toString(), body)));
+            run(sender, "Island quarantine", coreApiClient.lifecycle().quarantineIsland(islandId, args.length > 3 ? joined(args, 3) : "admin").thenApply(action -> islandLifecycleActionMessage("Island quarantine", islandId, action)));
             return true;
         }
         if (args[1].equalsIgnoreCase("repair")) {
-            run(sender, "Island repair", coreApiClient.repairIsland(islandId, args.length > 3 ? joined(args, 3) : "admin").thenApply(body -> actionResultMessage("Island repair", islandId.toString(), body)));
+            run(sender, "Island repair", coreApiClient.lifecycle().repairIsland(islandId, args.length > 3 ? joined(args, 3) : "admin").thenApply(action -> islandLifecycleActionMessage("Island repair", islandId, action)));
             return true;
         }
         if (args[1].equalsIgnoreCase("delete")) {
-            run(sender, "Island delete", coreApiClient.adminDeleteIsland(islandId).thenApply(body -> actionResultMessage("Island delete", islandId.toString(), body)));
+            run(sender, "Island delete", coreApiClient.lifecycle().adminDeleteIsland(islandId).thenApply(action -> islandLifecycleActionMessage("Island delete", islandId, action)));
             return true;
         }
         sendIslandCommandUsage(sender);
@@ -1823,6 +1824,29 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         String restoreSupportedFormats = textValue(body, "restoreSupportedFormats");
         if (!restoreSupportedFormats.isBlank()) {
             builder.append(adminText("admin-command-action-result-restore-formats-prefix", " restoreFormats=")).append(restoreSupportedFormats);
+        }
+        return builder.toString();
+    }
+
+    private String islandLifecycleActionMessage(String label, UUID requestedIslandId, IslandLifecycleActionView action) {
+        String targetId = action.islandId().isBlank() ? requestedIslandId.toString() : action.islandId();
+        StringBuilder builder = new StringBuilder(label)
+            .append(": ")
+            .append(action.accepted() ? adminText("admin-command-action-result-accepted", "accepted") : adminText("admin-command-action-result-rejected", "rejected"))
+            .append(adminText("admin-command-action-result-target-prefix", " target="))
+            .append(compactTarget(targetId));
+        if (!action.code().isBlank()) {
+            builder.append(adminText("admin-command-action-result-code-prefix", " code=")).append(action.code());
+            String detail = adminCodeDetail(action.code());
+            if (!detail.isBlank()) {
+                builder.append(adminText("admin-command-action-result-detail-prefix", " detail=")).append(detail);
+            }
+        }
+        if (action.snapshotNo() > 0L) {
+            builder.append(adminText("admin-command-action-result-snapshot-prefix", " snapshot=")).append(action.snapshotNo());
+        }
+        if (!action.storagePath().isBlank()) {
+            builder.append(adminText("admin-command-action-result-storage-path-prefix", " storagePath=")).append(action.storagePath());
         }
         return builder.toString();
     }

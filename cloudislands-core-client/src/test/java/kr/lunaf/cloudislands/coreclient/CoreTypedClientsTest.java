@@ -1264,6 +1264,46 @@ class CoreTypedClientsTest {
                     calls.add("reset:" + args[2]);
                     yield CompletableFuture.completedFuture("{\"accepted\":true}");
                 }
+                case "activateIslandResult" -> {
+                    calls.add("activate:" + args[0]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"ACTIVATING\"}");
+                }
+                case "deactivateIslandResult" -> {
+                    calls.add("deactivate:" + args[0]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"SAVING\"}");
+                }
+                case "migrateIslandResult" -> {
+                    calls.add("migrate:" + args[0] + ":" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_READY_NODE\"}");
+                }
+                case "requestIslandSaveResult" -> {
+                    calls.add("save:" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"SNAPSHOT_QUEUED\"}");
+                }
+                case "requestIslandSnapshotResult" -> {
+                    calls.add("snapshot:" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                }
+                case "restoreIslandSnapshotResult" -> {
+                    calls.add("restore:" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"RESTORE_QUEUED\",\"snapshotNo\":7,\"storagePath\":\"snapshots/7.tar\"}");
+                }
+                case "rollbackIslandSnapshotResult" -> {
+                    calls.add("rollback:" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"snapshotNo\":6}");
+                }
+                case "quarantineIslandResult" -> {
+                    calls.add("quarantine:" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"QUARANTINED\"}");
+                }
+                case "repairIslandResult" -> {
+                    calls.add("repair:" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"islandId\":\"%s\",\"state\":\"INACTIVE_READY\"}".formatted(args[0]));
+                }
+                case "adminDeleteIslandResult" -> {
+                    calls.add("adminDelete:" + args[0]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
@@ -1275,7 +1315,33 @@ class CoreTypedClientsTest {
 
         assertTrue(result.accepted());
         assertEquals("RESET_QUEUED", result.code());
-        assertEquals(List.of("create:default", "delete:" + islandId, "reset:player-reset"), calls);
+        assertEquals("ACTIVATING", client.activateIsland(islandId).join().code());
+        assertEquals("SAVING", client.deactivateIsland(islandId).join().code());
+        assertFalse(client.migrateIsland(islandId, " node-b ").join().accepted());
+        assertEquals("SNAPSHOT_QUEUED", client.saveIsland(islandId, " now ").join().code());
+        assertEquals("SNAPSHOT_QUEUED", client.snapshotIsland(islandId, " ").join().code());
+        IslandLifecycleActionView restored = client.restoreIslandSnapshot(islandId, 7L).join();
+        assertEquals(7L, restored.snapshotNo());
+        assertEquals("snapshots/7.tar", restored.storagePath());
+        assertEquals(6L, client.rollbackIslandSnapshot(islandId, 6L).join().snapshotNo());
+        assertEquals("QUARANTINED", client.quarantineIsland(islandId, " bad ").join().code());
+        assertEquals("REPAIRED", client.repairIsland(islandId, " repair ").join().code());
+        assertEquals("DELETED", client.adminDeleteIsland(islandId).join().code());
+        assertEquals(List.of(
+            "create:default",
+            "delete:" + islandId,
+            "reset:player-reset",
+            "activate:" + islandId,
+            "deactivate:" + islandId,
+            "migrate:" + islandId + ":node-b",
+            "save:now",
+            "snapshot:ADMIN_MANUAL",
+            "restore:7",
+            "rollback:6",
+            "quarantine:bad",
+            "repair:repair",
+            "adminDelete:" + islandId
+        ), calls);
     }
 
     @Test
