@@ -81,23 +81,23 @@ public final class IslandHomeMenu implements Listener {
                 player.sendMessage(message(messages, "home-menu-set-usage", "사용법: /섬 셋홈 <이름>"));
                 return;
             }
-            actions.execute(player, GuiItems.actionId(event.getCurrentItem()), java.util.Map.of("homeName", "default"), GuiClick.from(event));
+            actions.execute(player, new GuiAction.HomeTeleport("default"), GuiClick.from(event));
             return;
         }
         String homeName = data.getOrDefault("homeName", "");
         if (!homeName.isBlank()) {
             player.closeInventory();
             if (event.isRightClick()) {
-                actions.execute(player, "island.home.set", java.util.Map.of("homeName", homeName), GuiClick.from(event));
+                actions.execute(player, new GuiAction.HomeSet(homeName), GuiClick.from(event));
                 return;
             }
-            actions.execute(player, "island.home", java.util.Map.of("homeName", homeName), GuiClick.from(event));
+            actions.execute(player, new GuiAction.HomeTeleport(homeName), GuiClick.from(event));
             return;
         }
         String actionId = GuiItems.actionId(event.getCurrentItem());
         if (!actionId.isBlank()) {
             player.closeInventory();
-            actions.execute(player, actionId, data, GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
         }
     }
 

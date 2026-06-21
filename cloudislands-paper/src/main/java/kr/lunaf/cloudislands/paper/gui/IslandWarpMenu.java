@@ -119,25 +119,25 @@ public final class IslandWarpMenu implements Listener {
                 return;
             }
             player.closeInventory();
-            actions.execute(player, actionId, data, GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
             return;
         }
         player.closeInventory();
         String islandId = data.getOrDefault("islandId", "");
         if (publicMenu && !islandId.isBlank()) {
-            actions.execute(player, "island.warp.teleport", java.util.Map.of("islandId", String.valueOf(islandId), "warpName", warpName), GuiClick.from(event));
+            actions.execute(player, new GuiAction.WarpTeleport(warpName, UUID.fromString(islandId)), GuiClick.from(event));
             return;
         }
         if (event.isShiftClick() && event.isRightClick()) {
-            actions.execute(player, "island.warp.delete.prepare", java.util.Map.of("warpName", warpName), GuiClick.from(event));
+            actions.execute(player, new GuiAction.WarpDelete(GuiAction.WarpDeleteType.PREPARE, warpName, ""), GuiClick.from(event));
             return;
         }
         if (event.isRightClick()) {
             boolean publicAccess = Boolean.parseBoolean(data.getOrDefault("publicAccess", "false"));
-            actions.execute(player, "island.warp.public.toggle", java.util.Map.of("warpName", warpName, "publicAccess", String.valueOf(publicAccess)), GuiClick.from(event));
+            actions.execute(player, new GuiAction.WarpAccess("island.warp.public.toggle", warpName, publicAccess), GuiClick.from(event));
             return;
         }
-        actions.execute(player, "island.warp.teleport", java.util.Map.of("warpName", warpName), GuiClick.from(event));
+        actions.execute(player, new GuiAction.WarpTeleport(warpName, null), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String title, List<WarpView> warps, boolean publicMenu, MessageRenderer messages) {

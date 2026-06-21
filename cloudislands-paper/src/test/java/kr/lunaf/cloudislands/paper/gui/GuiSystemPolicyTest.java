@@ -68,9 +68,12 @@ class GuiSystemPolicyTest {
     @Test
     void actionRegistryRejectsUnsupportedClicks() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionRegistry.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActions.java"));
         assertTrue(source.contains("GuiClick.UNSUPPORTED"), "null clicks must not be treated as LEFT");
         assertTrue(source.contains("!safeClick.supported()"), "unsupported clicks must be dropped before action execution");
-        assertTrue(source.contains("GuiActionParser.parse(actionId, data)"), "GUI actions must pass through typed parser before execution");
+        assertTrue(source.contains("void execute(Player player, GuiAction action, GuiClick click)"), "registry boundary must receive typed GUI actions");
+        assertFalse(source.contains("String actionId, Map<String, String> data"), "registry boundary must not expose raw action id and payload map");
+        assertTrue(actions.contains("GuiActionParser.parse(actionId, data)"), "PDC action data must pass through typed parser before registry execution");
         assertTrue(source.contains("dedupePolicy.accept"), "rapid duplicate GUI actions must be dropped before executor dispatch");
         assertTrue(source.contains("executor.execute(player, action, safeClick)"), "parsed GUI actions must be executed as typed action objects");
         assertTrue(source.contains("private final GuiActionExecutor executor"), "GUI action executor must be constructor-injected");

@@ -130,7 +130,7 @@ public final class AdminNodeMenu implements Listener {
             return;
         }
         if (!actionId.isBlank()) {
-            actions.execute(player, actionId, data, GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
         }
     }
 

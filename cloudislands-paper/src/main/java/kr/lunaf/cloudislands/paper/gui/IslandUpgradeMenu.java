@@ -82,11 +82,11 @@ public final class IslandUpgradeMenu implements Listener {
                 return;
             }
             player.closeInventory();
-            actions.execute(player, actionId, data, GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
             return;
         }
         player.closeInventory();
-        actions.execute(player, "island.upgrade.purchase", java.util.Map.of("upgradeKey", key), GuiClick.from(event));
+        actions.execute(player, new GuiAction.UpgradePurchase(key), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<UpgradeView> upgrades, MessageRenderer messages) {

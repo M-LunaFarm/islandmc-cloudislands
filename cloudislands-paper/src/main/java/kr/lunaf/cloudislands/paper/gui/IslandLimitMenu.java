@@ -77,7 +77,7 @@ public final class IslandLimitMenu implements Listener {
         String actionId = GuiItems.actionId(event.getCurrentItem());
         if (!actionId.isBlank()) {
             player.closeInventory();
-            actions.execute(player, actionId, GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId).orElse(null), GuiClick.from(event));
             return;
         }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
@@ -89,7 +89,7 @@ public final class IslandLimitMenu implements Listener {
         long step = event.isShiftClick() ? 10L : 1L;
         long nextValue = event.isRightClick() ? Math.max(0L, value - step) : value + step;
         player.closeInventory();
-        actions.execute(player, "island.limit.set", java.util.Map.of("limitKey", limitKey, "value", String.valueOf(nextValue)), GuiClick.from(event));
+        actions.execute(player, new GuiAction.LimitSet(limitKey, nextValue), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<LimitView> limits, MessageRenderer messages) {

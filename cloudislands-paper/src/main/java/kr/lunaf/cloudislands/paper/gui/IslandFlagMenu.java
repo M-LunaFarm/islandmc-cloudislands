@@ -77,7 +77,7 @@ public final class IslandFlagMenu implements Listener {
         String actionId = GuiItems.actionId(event.getCurrentItem());
         if (!actionId.isBlank()) {
             player.closeInventory();
-            actions.execute(player, actionId, GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId).orElse(null), GuiClick.from(event));
             return;
         }
         String flag = GuiItems.data(event.getCurrentItem()).getOrDefault("flag", "");
@@ -85,7 +85,7 @@ public final class IslandFlagMenu implements Listener {
             return;
         }
         player.closeInventory();
-        actions.execute(player, "island.flag.set", java.util.Map.of("flag", flag), GuiClick.from(event));
+        actions.execute(player, new GuiAction.FlagSet(IslandFlag.valueOf(flag)), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, Map<IslandFlag, String> values, MessageRenderer messages) {

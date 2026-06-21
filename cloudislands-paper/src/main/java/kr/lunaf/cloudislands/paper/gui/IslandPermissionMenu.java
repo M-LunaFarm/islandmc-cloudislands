@@ -109,7 +109,7 @@ public final class IslandPermissionMenu implements Listener {
         if (!actionId.equals("island.permissions.set")) {
             player.closeInventory();
         }
-        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
+        actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String version, List<PermissionRuleView> rules, List<RoleView> roleViews, MessageRenderer messages, int page, int rolePage) {

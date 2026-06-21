@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.Map;
 import org.bukkit.entity.Player;
 
 public final class GuiActionRegistry {
@@ -16,17 +15,13 @@ public final class GuiActionRegistry {
         this.dedupePolicy = dedupePolicy == null ? new GuiActionDedupePolicy() : dedupePolicy;
     }
 
-    public void execute(Player player, String actionId, GuiClick click) {
-        execute(player, actionId, Map.of(), click);
-    }
-
-    public void execute(Player player, String actionId, Map<String, String> data, GuiClick click) {
+    public void execute(Player player, GuiAction action, GuiClick click) {
         GuiClick safeClick = click == null ? GuiClick.UNSUPPORTED : click;
-        if (!safeClick.supported()) {
+        if (player == null || action == null || !safeClick.supported()) {
             return;
         }
-        GuiActionParser.parse(actionId, data)
-            .filter(action -> player != null && dedupePolicy.accept(player.getUniqueId(), action, safeClick, System.currentTimeMillis()))
-            .ifPresent(action -> executor.execute(player, action, safeClick));
+        if (dedupePolicy.accept(player.getUniqueId(), action, safeClick, System.currentTimeMillis())) {
+            executor.execute(player, action, safeClick);
+        }
     }
 }

@@ -80,7 +80,7 @@ public final class IslandRankingMenu implements Listener {
             return;
         }
         player.closeInventory();
-        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
+        actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, MessageRenderer messages) {

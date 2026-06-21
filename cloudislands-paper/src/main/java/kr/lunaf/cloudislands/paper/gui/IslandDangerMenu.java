@@ -99,7 +99,7 @@ public final class IslandDangerMenu implements Listener {
             return;
         }
         player.closeInventory();
-        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
+        actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
     }
 
     private static void attachConfirmData(Inventory inventory, GuiMenuDefinition menu, MessageRenderer messages, Map<String, String> data) {

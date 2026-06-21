@@ -86,7 +86,7 @@ public final class IslandMissionMenu implements Listener {
         if (actionId.equals("island.mission.complete")) {
             data.putIfAbsent("label", mission ? "섬 미션" : "섬 챌린지");
         }
-        actions.execute(player, actionId, data, GuiClick.from(event));
+        actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String kind, List<MissionView> missions, MessageRenderer messages) {

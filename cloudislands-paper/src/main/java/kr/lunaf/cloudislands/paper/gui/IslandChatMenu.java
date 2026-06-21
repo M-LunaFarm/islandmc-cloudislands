@@ -66,7 +66,7 @@ public final class IslandChatMenu implements Listener {
         } else if (menuItem.symbol().equals("T")) {
             player.sendMessage(message(messages, "chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>"));
         } else if (!menuItem.actionKey().isBlank()) {
-            actions.execute(player, MENU.action(menuItem.actionKey(), ""), GuiClick.from(event));
+            actions.execute(player, GuiActions.from(MENU.action(menuItem.actionKey(), "")).orElse(null), GuiClick.from(event));
         }
     }
 

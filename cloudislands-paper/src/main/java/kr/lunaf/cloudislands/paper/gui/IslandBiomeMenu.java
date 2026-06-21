@@ -89,7 +89,7 @@ public final class IslandBiomeMenu implements Listener {
         String actionId = GuiItems.actionId(event.getCurrentItem());
         if (!actionId.isBlank()) {
             player.closeInventory();
-            actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
             return;
         }
         String biomeKey = GuiItems.data(event.getCurrentItem()).getOrDefault("biomeKey", "");
@@ -97,7 +97,7 @@ public final class IslandBiomeMenu implements Listener {
             return;
         }
         player.closeInventory();
-        actions.execute(player, "island.biome.set", java.util.Map.of("biomeKey", biomeKey), GuiClick.from(event));
+        actions.execute(player, new GuiAction.BiomeSet(biomeKey), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String currentBiome, MessageRenderer messages) {

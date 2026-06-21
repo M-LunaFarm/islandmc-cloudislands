@@ -115,7 +115,7 @@ public final class GuiStateMenus implements Listener {
             return;
         }
         player.closeInventory();
-        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
+        actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
     @EventHandler

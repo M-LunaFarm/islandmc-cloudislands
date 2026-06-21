@@ -82,7 +82,7 @@ public final class IslandBanMenu implements Listener {
                 return;
             }
             player.closeInventory();
-            actions.execute(player, actionId, data, GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
             return;
         }
         player.closeInventory();
@@ -90,7 +90,7 @@ public final class IslandBanMenu implements Listener {
             return;
         }
         if (event.isRightClick()) {
-            actions.execute(player, "island.ban.pardon.prepare", java.util.Map.of("playerUuid", bannedUuid), GuiClick.from(event));
+            actions.execute(player, new GuiAction.BanPardon(GuiAction.BanPardonType.PREPARE, java.util.UUID.fromString(bannedUuid), ""), GuiClick.from(event));
             return;
         }
         player.sendMessage(message(messages, "ban-menu-detail-title", "방문자 밴 상세"));

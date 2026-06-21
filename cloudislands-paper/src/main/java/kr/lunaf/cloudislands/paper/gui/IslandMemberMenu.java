@@ -111,7 +111,7 @@ public final class IslandMemberMenu implements Listener {
             }
         }
         player.closeInventory();
-        actions.execute(player, actionId, data, click);
+        actions.execute(player, GuiActions.from(actionId, data).orElse(null), click);
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<MemberView> members, MessageRenderer messages, int page) {

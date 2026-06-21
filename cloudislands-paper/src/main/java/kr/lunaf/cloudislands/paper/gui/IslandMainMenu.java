@@ -62,10 +62,10 @@ public final class IslandMainMenu implements Listener {
         }
         player.closeInventory();
         if (actionId.equals("island.visit.open") && click.right()) {
-            actions.execute(player, "island.visit.random", GuiItems.data(event.getCurrentItem()), click);
+            actions.execute(player, new GuiAction.NoPayload(GuiAction.NoPayloadType.VISIT_RANDOM), click);
             return;
         }
-        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), click);
+        actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
     }
 
     private static boolean showItem(Player player, GuiMenuDefinition.MenuItem item) {

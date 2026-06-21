@@ -78,13 +78,13 @@ public final class IslandInviteMenu implements Listener {
         String inviteId = data.getOrDefault("inviteId", "");
         if (!inviteId.isBlank()) {
             player.closeInventory();
-            actions.execute(player, event.isRightClick() ? "island.invite.decline" : "island.invite.accept", java.util.Map.of("inviteId", inviteId), GuiClick.from(event));
+            actions.execute(player, new GuiAction.InviteAction(event.isRightClick() ? "island.invite.decline" : "island.invite.accept", java.util.UUID.fromString(inviteId)), GuiClick.from(event));
             return;
         }
         String actionId = GuiItems.actionId(event.getCurrentItem());
         if (!actionId.isBlank()) {
             player.closeInventory();
-            actions.execute(player, actionId, data, GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
         }
     }
 

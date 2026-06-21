@@ -81,7 +81,7 @@ public final class IslandSnapshotMenu implements Listener {
         if (!snapshotNo.isBlank()) {
             player.closeInventory();
             if (event.isShiftClick() && event.isRightClick()) {
-                actions.execute(player, "island.snapshot.restore.prepare", java.util.Map.of("snapshotNo", String.valueOf(snapshotNo)), GuiClick.from(event));
+                actions.execute(player, new GuiAction.SnapshotRestore(GuiAction.SnapshotRestoreType.PREPARE, Long.parseLong(snapshotNo), ""), GuiClick.from(event));
                 return;
             }
             if (event.isRightClick()) {
@@ -98,7 +98,7 @@ public final class IslandSnapshotMenu implements Listener {
         String actionId = GuiItems.actionId(event.getCurrentItem());
         if (!actionId.isBlank()) {
             player.closeInventory();
-            actions.execute(player, actionId, data, GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
         }
     }
 
