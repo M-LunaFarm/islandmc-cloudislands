@@ -195,18 +195,7 @@ final class IslandHomeWarpCommandHandler {
                 default -> false;
             };
         }
-        String actionId = action.actionId();
-        return switch (actionId) {
-            case "island.homes.open" -> {
-                openHomeMenu(player);
-                yield true;
-            }
-            case "island.warps.open" -> {
-                openWarpMenu(player);
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private void setHome(Player player, String name) {

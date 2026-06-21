@@ -82,22 +82,7 @@ final class IslandVisitReviewCommandHandler {
                 default -> false;
             };
         }
-        String actionId = action.actionId();
-        return switch (actionId) {
-            case "island.visit.open" -> {
-                IslandVisitMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
-                yield true;
-            }
-            case "island.visit.random" -> {
-                routeRandomVisit(player);
-                yield true;
-            }
-            case "island.visit.public.open" -> {
-                listPublicIslands(player, 10);
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private void routeVisitTarget(Player player, String target) {

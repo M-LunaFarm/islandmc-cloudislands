@@ -96,43 +96,7 @@ final class IslandLifecycleCommandHandler {
                 default -> false;
             };
         }
-        String actionId = action.actionId();
-        Map<String, String> data = action.data();
-        return switch (actionId) {
-            case "island.create.open" -> {
-                IslandCreateMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
-                yield true;
-            }
-            case "island.create" -> {
-                createIsland(player, data.getOrDefault("templateId", "default"));
-                yield true;
-            }
-            case "island.danger.open" -> {
-                IslandDangerMenu.open(player, runtime.messagesFor(player));
-                yield true;
-            }
-            case "island.danger.reset.prepare" -> {
-                IslandDangerMenu.openResetConfirm(player, runtime.messagesFor(player));
-                yield true;
-            }
-            case "island.danger.delete.prepare" -> {
-                IslandDangerMenu.openDeleteConfirm(player, runtime.messagesFor(player));
-                yield true;
-            }
-            case "island.danger.reset.confirm" -> {
-                if (dangerConfirmed(player, data, click, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN)) {
-                    resetIsland(player, data.getOrDefault("reason", "player-reset"));
-                }
-                yield true;
-            }
-            case "island.danger.delete.confirm" -> {
-                if (dangerConfirmed(player, data, click, DangerousGuiActionPolicy.DELETE_OPERATION, DangerousGuiActionPolicy.DELETE_TOKEN)) {
-                    deleteIsland(player);
-                }
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private boolean dangerConfirmed(Player player, Map<String, String> data, GuiClick click, String operation, String token) {
