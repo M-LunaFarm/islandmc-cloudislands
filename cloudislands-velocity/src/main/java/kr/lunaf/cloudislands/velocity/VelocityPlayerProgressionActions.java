@@ -28,7 +28,7 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
 
     public void recalculateLevel(Player player, UUID islandId) {
         withResolvedIsland(player, islandId, "레벨을 계산할 섬을 찾지 못했습니다.", "레벨 계산을 시작하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.recalculateIslandLevel(resolved, player.getUniqueId()).thenApply(islandMessages::levelRecalculation), "레벨 계산을 시작하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.progressionCommands().recalculateLevel(resolved, player.getUniqueId()).thenApply(islandMessages::levelRecalculation), "레벨 계산을 시작하지 못했습니다."));
     }
 
     public void listUpgradeRules(Player player) {
@@ -53,7 +53,7 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
 
     public void purchaseUpgrade(Player player, UUID islandId, String upgradeKey) {
         withResolvedIsland(player, islandId, "업그레이드할 섬을 찾지 못했습니다.", "업그레이드에 실패했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.purchaseIslandUpgrade(resolved, player.getUniqueId(), upgradeKey).thenApply(islandMessages::upgradePurchase), "업그레이드에 실패했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.progressionCommands().purchaseUpgrade(resolved, player.getUniqueId(), upgradeKey).thenApply(islandMessages::upgradePurchase), "업그레이드에 실패했습니다."));
     }
 
     public void listMissions(Player player, UUID islandId) {
@@ -74,12 +74,12 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
 
     public void completeMission(Player player, UUID islandId, String missionKey) {
         withResolvedIsland(player, islandId, "미션을 완료할 섬을 찾지 못했습니다.", "미션을 완료하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.completeIslandMission(resolved, player.getUniqueId(), missionKey, "MISSION").thenApply(body -> islandMessages.missionResult("섬 미션", body)), "미션을 완료하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.progressionCommands().completeMission(resolved, player.getUniqueId(), missionKey, "MISSION").thenApply(result -> islandMessages.missionResult("섬 미션", result)), "미션을 완료하지 못했습니다."));
     }
 
     public void completeChallenge(Player player, UUID islandId, String missionKey) {
         withResolvedIsland(player, islandId, "챌린지를 완료할 섬을 찾지 못했습니다.", "챌린지를 완료하지 못했습니다.",
-            resolved -> sendBodyResult(player, coreApiClient.completeIslandMission(resolved, player.getUniqueId(), missionKey, "CHALLENGE").thenApply(body -> islandMessages.missionResult("섬 챌린지", body)), "챌린지를 완료하지 못했습니다."));
+            resolved -> sendBodyResult(player, coreApiClient.progressionCommands().completeMission(resolved, player.getUniqueId(), missionKey, "CHALLENGE").thenApply(result -> islandMessages.missionResult("섬 챌린지", result)), "챌린지를 완료하지 못했습니다."));
     }
 
     public void listLimits(Player player, UUID islandId) {

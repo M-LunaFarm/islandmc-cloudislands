@@ -2,6 +2,9 @@ package kr.lunaf.cloudislands.velocity.message;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import kr.lunaf.cloudislands.coreclient.LevelView;
+import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
+import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import org.junit.jupiter.api.Test;
 
 class VelocityIslandMessageFormatterTest {
@@ -87,6 +90,22 @@ class VelocityIslandMessageFormatterTest {
         assertEquals(
             "Island runtime: 섬=33333333 state=READY node=island-1 world=ci_shard_001 cell=3,4 fence=7",
             visible.runtimeInfo("{\"islandId\":\"33333333-3333-3333-3333-333333333333\",\"state\":\"READY\",\"activeNode\":\"island-1\",\"activeWorld\":\"ci_shard_001\",\"cellX\":3,\"cellZ\":4,\"fencingToken\":7}")
+        );
+    }
+
+    @Test
+    void formatsTypedProgressionCommandResults() {
+        assertEquals(
+            "레벨 계산: 섬=55555555 level=12 worth=9876",
+            formatter.levelRecalculation(new LevelView("55555555-5555-5555-5555-555555555555", 12L, "9876", ""))
+        );
+        assertEquals(
+            "업그레이드 구매: 접수됨 비용=250 업그레이드=generator 레벨=3",
+            formatter.upgradePurchase(new ProgressionUpgradePurchaseView(true, "", "55555555-5555-5555-5555-555555555555", "generator", "GENERATOR", 3L, "250", ""))
+        );
+        assertEquals(
+            "섬 미션: 완료 키=builder 보상=coins:100",
+            formatter.missionResult("섬 미션", new ProgressionMissionCompletionView(true, "", "55555555-5555-5555-5555-555555555555", "builder", "MISSION", "Builder", 10L, 10L, true, "coins:100", ""))
         );
     }
 }

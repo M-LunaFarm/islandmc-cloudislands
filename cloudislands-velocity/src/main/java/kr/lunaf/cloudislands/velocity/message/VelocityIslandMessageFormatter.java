@@ -12,6 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
+import kr.lunaf.cloudislands.coreclient.LevelView;
+import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
+import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 
 public final class VelocityIslandMessageFormatter {
     private final VelocityRoutePrivacyFormatter routePrivacy;
@@ -450,6 +453,12 @@ public final class VelocityIslandMessageFormatter {
             + " worth=" + jsonValue(body, "worth");
     }
 
+    public String levelRecalculation(LevelView view) {
+        return "레벨 계산: 섬=" + shortId(view.islandId())
+            + " level=" + view.level()
+            + " worth=" + view.worth();
+    }
+
     public String upgradeList(String body) {
         return namedObjectList("섬 업그레이드", body, "upgrades", object -> jsonValue(object, "upgradeKey")
             + " 레벨=" + longValue(object, "level")
@@ -499,6 +508,13 @@ public final class VelocityIslandMessageFormatter {
             + (upgrade.isBlank() ? "" : " 업그레이드=" + jsonValue(upgrade, "upgradeKey") + " 레벨=" + longValue(upgrade, "level"));
     }
 
+    public String upgradePurchase(ProgressionUpgradePurchaseView view) {
+        return "업그레이드 구매: " + (view.accepted() ? "접수됨" : "거부됨")
+            + (view.code().isBlank() ? "" : " 사유=" + view.code())
+            + " 비용=" + view.cost()
+            + (view.upgradeKey().isBlank() ? "" : " 업그레이드=" + view.upgradeKey() + " 레벨=" + view.level());
+    }
+
     public String missionList(String label, String body) {
         return namedObjectList(label, body, "missions", object -> jsonValue(object, "missionKey")
             + " " + longValue(object, "progress") + "/" + longValue(object, "goal")
@@ -512,6 +528,14 @@ public final class VelocityIslandMessageFormatter {
         }
         return label + ": 완료 키=" + jsonValue(body, "missionKey")
             + " 보상=" + jsonValue(body, "reward");
+    }
+
+    public String missionResult(String label, ProgressionMissionCompletionView view) {
+        if (!view.code().isBlank()) {
+            return label + ": 실패 사유=" + view.code();
+        }
+        return label + ": 완료 키=" + view.missionKey()
+            + " 보상=" + view.reward();
     }
 
     public String limitList(String body) {
