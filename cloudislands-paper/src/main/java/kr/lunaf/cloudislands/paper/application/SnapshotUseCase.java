@@ -27,7 +27,7 @@ public final class SnapshotUseCase {
         return listSnapshotBodies(islandId, limit).thenApply(SnapshotUseCase::snapshotViews);
     }
 
-    public CompletableFuture<String> requestSnapshot(UUID islandId, String reason, MutationRunner runner) {
+    private CompletableFuture<String> requestSnapshotBody(UUID islandId, String reason, MutationRunner runner) {
         requireIsland(islandId);
         requireRunner(runner);
         String normalizedReason = normalizeReason(reason);
@@ -35,11 +35,11 @@ public final class SnapshotUseCase {
     }
 
     public CompletableFuture<SnapshotActionResult> requestSnapshotAction(UUID islandId, String reason, MutationRunner runner) {
-        return requestSnapshot(islandId, reason, runner)
+        return requestSnapshotBody(islandId, reason, runner)
             .thenApply(body -> snapshotAction(body, "SNAPSHOT_REQUESTED"));
     }
 
-    public CompletableFuture<String> restoreSnapshot(UUID islandId, long snapshotNo, IdempotentMutationRunner runner) {
+    private CompletableFuture<String> restoreSnapshotBody(UUID islandId, long snapshotNo, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireSnapshotNo(snapshotNo);
         requireIdempotentRunner(runner);
@@ -47,7 +47,7 @@ public final class SnapshotUseCase {
     }
 
     public CompletableFuture<SnapshotActionResult> restoreSnapshotAction(UUID islandId, long snapshotNo, IdempotentMutationRunner runner) {
-        return restoreSnapshot(islandId, snapshotNo, runner)
+        return restoreSnapshotBody(islandId, snapshotNo, runner)
             .thenApply(body -> snapshotAction(body, "RESTORE_REQUESTED"));
     }
 

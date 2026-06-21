@@ -32,15 +32,15 @@ class SnapshotUseCaseTest {
         SnapshotUseCase useCase = new SnapshotUseCase(coreApiClient(core));
         List<String> auditActions = new ArrayList<>();
 
-        String body = useCase.requestSnapshot(UUID.randomUUID(), "  ", (auditAction, operation) -> {
+        SnapshotUseCase.SnapshotActionResult result = useCase.requestSnapshotAction(UUID.randomUUID(), "  ", (auditAction, operation) -> {
             auditActions.add(auditAction);
             return operation.get();
         }).join();
 
-        assertEquals("{\"code\":\"SNAPSHOT_REQUESTED\"}", body);
-        assertTrue(useCase.requestSnapshotAction(UUID.randomUUID(), "manual", (_auditAction, operation) -> operation.get()).join().accepted());
+        assertTrue(result.accepted());
+        assertEquals("SNAPSHOT_REQUESTED", result.code());
         assertEquals(List.of("island.snapshot.create"), auditActions);
-        assertEquals(List.of("request:manual", "request:manual"), core.calls);
+        assertEquals(List.of("request:manual"), core.calls);
     }
 
     @Test
@@ -49,15 +49,15 @@ class SnapshotUseCaseTest {
         SnapshotUseCase useCase = new SnapshotUseCase(coreApiClient(core));
         List<String> auditActions = new ArrayList<>();
 
-        String body = useCase.restoreSnapshot(UUID.randomUUID(), 7L, (auditAction, operation) -> {
+        SnapshotUseCase.SnapshotActionResult result = useCase.restoreSnapshotAction(UUID.randomUUID(), 7L, (auditAction, operation) -> {
             auditActions.add(auditAction);
             return operation.get();
         }).join();
 
-        assertEquals("{\"code\":\"RESTORE_REQUESTED\"}", body);
-        assertTrue(useCase.restoreSnapshotAction(UUID.randomUUID(), 7L, (_auditAction, operation) -> operation.get()).join().accepted());
+        assertTrue(result.accepted());
+        assertEquals("RESTORE_REQUESTED", result.code());
         assertEquals(List.of("island.snapshot.restore"), auditActions);
-        assertEquals(List.of("restore:7", "restore:7"), core.calls);
+        assertEquals(List.of("restore:7"), core.calls);
     }
 
     @Test
@@ -67,7 +67,7 @@ class SnapshotUseCaseTest {
         assertEquals(9L, SnapshotUseCase.positiveSnapshotNo(" 9 "));
         assertEquals(0L, SnapshotUseCase.positiveSnapshotNo("0"));
         assertEquals(0L, SnapshotUseCase.positiveSnapshotNo("bad"));
-        assertThrows(IllegalArgumentException.class, () -> useCase.restoreSnapshot(
+        assertThrows(IllegalArgumentException.class, () -> useCase.restoreSnapshotAction(
             UUID.randomUUID(),
             0L,
             (_auditAction, operation) -> operation.get()

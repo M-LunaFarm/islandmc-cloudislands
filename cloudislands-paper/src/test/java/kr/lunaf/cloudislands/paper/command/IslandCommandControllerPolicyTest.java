@@ -95,6 +95,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(snapshotHandler.contains("snapshotUseCase.requestSnapshotAction("));
         assertTrue(snapshotHandler.contains("snapshotUseCase.restoreSnapshotAction("));
         assertFalse(snapshotUseCase.contains("public CompletableFuture<String> listSnapshots("), "snapshot list usecase must expose typed views instead of raw JSON");
+        assertFalse(snapshotUseCase.contains("public CompletableFuture<String> requestSnapshot("), "snapshot create usecase must expose typed actions instead of raw JSON");
+        assertFalse(snapshotUseCase.contains("public CompletableFuture<String> restoreSnapshot("), "snapshot restore usecase must expose typed actions instead of raw JSON");
         assertFalse(snapshotHandler.contains("coreApiClient.requestIslandSnapshotResult"), "snapshot mutation logic belongs in SnapshotUseCase");
         assertFalse(snapshotHandler.contains("coreApiClient.restoreIslandSnapshotResult"), "snapshot mutation logic belongs in SnapshotUseCase");
         assertTrue(snapshotUseCase.contains("coreApiClient.requestIslandSnapshotResult"));
