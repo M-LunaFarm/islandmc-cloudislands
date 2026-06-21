@@ -1,8 +1,12 @@
 package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -88,25 +92,25 @@ public final class TemplateRoutes implements RouteGroup {
         return JsonFields.text(body, "templateId", JsonFields.text(body, "id", "default"));
     }
 
-    static String templatesJson(java.util.List<IslandTemplateSnapshot> templates) {
-        StringBuilder builder = new StringBuilder("{\"templates\":[");
-        boolean first = true;
+    static String templatesJson(List<IslandTemplateSnapshot> templates) {
+        List<Map<String, Object>> values = new ArrayList<>();
         for (IslandTemplateSnapshot template : templates) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append(templateJson(template));
+            values.add(templateMap(template));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("templates", values));
     }
 
     static String templateJson(IslandTemplateSnapshot template) {
-        return "{\"id\":\"" + escape(template.id())
-            + "\",\"displayName\":\"" + escape(template.displayName())
-            + "\",\"enabled\":" + template.enabled()
-            + ",\"minNodeVersion\":\"" + escape(template.minNodeVersion())
-            + "\"}";
+        return SimpleJson.stringify(templateMap(template));
+    }
+
+    private static Map<String, Object> templateMap(IslandTemplateSnapshot template) {
+        LinkedHashMap<String, Object> value = new LinkedHashMap<>();
+        value.put("id", template.id());
+        value.put("displayName", template.displayName());
+        value.put("enabled", template.enabled());
+        value.put("minNodeVersion", template.minNodeVersion());
+        return value;
     }
 
     static boolean migrationInputOnlyTemplate(String templateId) {
@@ -117,7 +121,4 @@ public final class TemplateRoutes implements RouteGroup {
         return ApiResponses.error("TEMPLATE_MIGRATION_INPUT_ONLY", "This template is reserved for migration imports and cannot be enabled for normal island creation");
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
 }

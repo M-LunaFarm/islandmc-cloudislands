@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot;
 import org.junit.jupiter.api.Test;
 
@@ -28,13 +30,17 @@ class TemplateRoutesTest {
     void rendersTemplateList() {
         String json = TemplateRoutes.templatesJson(List.of(
             new IslandTemplateSnapshot("default", "Default Island", true, ""),
-            new IslandTemplateSnapshot("sky", "Sky \"Island\"", false, "1.2")
+            new IslandTemplateSnapshot("sky", "Sky \"Island\", North", false, "1.2")
         ));
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
+        List<?> templates = SimpleJson.list(root.get("templates"));
+        Map<?, ?> first = SimpleJson.object(templates.get(0));
+        Map<?, ?> second = SimpleJson.object(templates.get(1));
 
-        assertTrue(json.contains("\"id\":\"default\""));
-        assertTrue(json.contains("\"enabled\":true"));
-        assertTrue(json.contains("\"displayName\":\"Sky \\\"Island\\\"\""));
-        assertTrue(json.contains("\"minNodeVersion\":\"1.2\""));
+        assertEquals("default", SimpleJson.text(first.get("id")));
+        assertEquals(true, first.get("enabled"));
+        assertEquals("Sky \"Island\", North", SimpleJson.text(second.get("displayName")));
+        assertEquals("1.2", SimpleJson.text(second.get("minNodeVersion")));
     }
 
     @Test
