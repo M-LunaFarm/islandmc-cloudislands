@@ -80,6 +80,7 @@ class PaperConfigSurfaceTest {
         assertTrue(snapshot.contains("record Messages"), "Paper runtime config must expose typed message settings");
         assertTrue(snapshot.contains("record Storage"), "Paper runtime config must expose typed storage settings");
         assertTrue(snapshot.contains("record Migration"), "Paper runtime config must expose typed migration settings");
+        assertTrue(snapshot.contains("return new Migration(false)"), "old plugin migration must be opt-in only");
         assertTrue(snapshot.contains("record Worker"), "Paper runtime config must expose typed island worker settings");
         assertTrue(loader.contains("node.id"), "Paper runtime config loader must own node paths");
         assertTrue(loader.contains("redis.uri"), "Paper runtime config loader must own Redis paths");
@@ -88,6 +89,7 @@ class PaperConfigSurfaceTest {
         assertTrue(loader.contains("messages.translations"), "Paper runtime config loader must own message paths");
         assertTrue(loader.contains("setup.storage.type"), "Paper runtime config loader must own storage paths");
         assertTrue(loader.contains("migration.superiorskyblock2.enabled"), "Paper runtime config loader must own migration paths");
+        assertTrue(loader.contains("booleanValue(config, \"migration.superiorskyblock2.enabled\", false)"), "missing migration.yml must not enable old plugin migration");
         assertTrue(loader.contains("heartbeat.interval-ticks"), "Paper runtime config loader must own heartbeat paths");
         assertTrue(loader.contains("health.enabled"), "Paper runtime config loader must own health paths");
         assertTrue(loader.contains("island-node.shard-count"), "Paper runtime config loader must own island worker paths");

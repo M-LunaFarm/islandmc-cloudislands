@@ -426,9 +426,9 @@ public final class PaperRuntimeConfigLoader {
     }
 
     private static PaperRuntimeConfig.Migration migration(FileConfiguration config) {
-        boolean enabled = booleanValue(config, "migration.superiorskyblock2.enabled", true);
+        boolean enabled = booleanValue(config, "migration.superiorskyblock2.enabled", false);
         if (config.contains("migration.superiorskyblock2-enabled")) {
-            enabled = enabled && booleanValue(config, "migration.superiorskyblock2-enabled", true);
+            enabled = enabled && booleanValue(config, "migration.superiorskyblock2-enabled", false);
         }
         return new PaperRuntimeConfig.Migration(enabled);
     }

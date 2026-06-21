@@ -243,7 +243,7 @@ public record PaperRuntimeConfig(
 
     public record Migration(boolean superiorSkyblock2Enabled) {
         public static Migration defaults() {
-            return new Migration(true);
+            return new Migration(false);
         }
     }
 
