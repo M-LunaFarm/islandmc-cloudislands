@@ -29,7 +29,7 @@ public final class CorePermissionQueryClient implements PermissionQueryClient {
     }
 
     private static List<PermissionAssignmentView> permissionViews(String body) {
-        String version = text(SimpleJson.object(SimpleJson.parse(body)), "version");
+        String version = text(CoreJson.object(body), "version");
         return entries(body).stream()
             .map(object -> {
                 String permission = text(object, "permission");

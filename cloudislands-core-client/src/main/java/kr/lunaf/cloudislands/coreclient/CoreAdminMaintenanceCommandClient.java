@@ -25,7 +25,7 @@ public final class CoreAdminMaintenanceCommandClient implements AdminMaintenance
     }
 
     private static AdminMaintenanceResultView result(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> error = SimpleJson.object(root.get("error"));
         String code = text(root, "code");
         if (code.isBlank()) {

@@ -9,7 +9,7 @@ final class CoreJobJson {
     }
 
     static List<JobView> jobs(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         return SimpleJson.list(root.get("jobs")).stream()
             .map(SimpleJson::object)
             .filter(object -> !object.isEmpty())

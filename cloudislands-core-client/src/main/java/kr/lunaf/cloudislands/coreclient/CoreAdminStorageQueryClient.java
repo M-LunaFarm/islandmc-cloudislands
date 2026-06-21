@@ -21,7 +21,7 @@ public final class CoreAdminStorageQueryClient implements AdminStorageQueryClien
     }
 
     private static AdminStorageStatusView status(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         List<AdminStorageStatusView.NodeView> nodes = SimpleJson.list(root.get("nodes")).stream()
             .map(SimpleJson::object)
             .map(CoreAdminStorageQueryClient::node)

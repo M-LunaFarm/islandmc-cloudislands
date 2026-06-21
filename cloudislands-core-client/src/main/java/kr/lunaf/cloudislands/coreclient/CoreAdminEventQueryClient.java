@@ -26,7 +26,7 @@ public final class CoreAdminEventQueryClient implements AdminEventQueryClient {
     }
 
     private static AdminEventStreamView stream(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         List<AdminEventView> events = SimpleJson.list(root.get("events")).stream()
             .map(SimpleJson::object)
             .map(event -> new AdminEventView(

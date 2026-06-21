@@ -41,7 +41,7 @@ public final class CoreAdminIslandQueryClient implements AdminIslandQueryClient 
     }
 
     private static AdminIslandRuntimeView runtime(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         return new AdminIslandRuntimeView(
             text(root, "islandId"),
             text(root, "state"),

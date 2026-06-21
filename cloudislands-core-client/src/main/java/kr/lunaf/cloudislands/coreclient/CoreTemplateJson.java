@@ -9,7 +9,7 @@ final class CoreTemplateJson {
     }
 
     static List<TemplateView> templates(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         return SimpleJson.list(root.get("templates")).stream()
             .map(SimpleJson::object)
             .filter(object -> !object.isEmpty())
@@ -19,7 +19,7 @@ final class CoreTemplateJson {
     }
 
     static TemplateView template(String body) {
-        return template(SimpleJson.object(SimpleJson.parse(body)));
+        return template(CoreJson.object(body));
     }
 
     private static TemplateView template(Map<?, ?> object) {

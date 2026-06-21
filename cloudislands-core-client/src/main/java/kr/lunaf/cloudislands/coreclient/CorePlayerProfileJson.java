@@ -8,7 +8,7 @@ final class CorePlayerProfileJson {
     }
 
     static PlayerProfileView profile(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         return new PlayerProfileView(
             text(root, "playerUuid"),
             text(root, "lastName"),

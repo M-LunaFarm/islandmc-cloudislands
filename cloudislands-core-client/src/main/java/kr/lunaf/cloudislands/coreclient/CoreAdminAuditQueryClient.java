@@ -21,7 +21,7 @@ public final class CoreAdminAuditQueryClient implements AdminAuditQueryClient {
     }
 
     private static List<AdminAuditEntryView> entries(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         return SimpleJson.list(root.get("audit")).stream()
             .map(SimpleJson::object)
             .map(entry -> new AdminAuditEntryView(

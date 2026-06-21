@@ -9,7 +9,7 @@ final class CoreBlockValueJson {
     }
 
     static List<BlockValueView> values(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         return SimpleJson.list(root.get("values")).stream()
             .map(SimpleJson::object)
             .filter(object -> !object.isEmpty())

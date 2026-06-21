@@ -10,7 +10,7 @@ final class CoreAdminRouteJson {
     }
 
     static AdminRouteDebugView debug(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         List<AdminRouteSessionView> sessions = SimpleJson.list(root.get("sessions")).stream()
             .map(SimpleJson::object)
             .map(session -> new AdminRouteSessionView(
@@ -35,7 +35,7 @@ final class CoreAdminRouteJson {
         if (body == null || body.isBlank()) {
             return Optional.empty();
         }
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root = CoreJson.object(body);
         if (root.containsKey("code") || root.containsKey("error")) {
             return Optional.empty();
         }
@@ -68,7 +68,7 @@ final class CoreAdminRouteJson {
     }
 
     static AdminRouteClearView clear(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         return new AdminRouteClearView(bool(root, "clearedSession"), bool(root, "clearedTicket"), text(root, "reason"));
     }
 

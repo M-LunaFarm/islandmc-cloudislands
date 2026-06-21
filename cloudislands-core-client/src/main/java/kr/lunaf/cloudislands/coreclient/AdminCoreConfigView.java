@@ -27,7 +27,7 @@ public record AdminCoreConfigView(Map<String, Object> values, String code) {
     }
 
     static AdminCoreConfigView parse(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body == null || body.isBlank() ? "{}" : body));
+        Map<?, ?> root = CoreJson.object(body);
         Map<String, Object> values = new LinkedHashMap<>();
         root.forEach((key, value) -> values.put(SimpleJson.text(key), value));
         Map<?, ?> error = SimpleJson.object(root.get("error"));
