@@ -140,6 +140,14 @@ public interface CoreApiClient {
         return new CoreJobCommandClient(this);
     }
 
+    default TemplateQueryClient templates() {
+        return new CoreTemplateQueryClient(this);
+    }
+
+    default TemplateCommandClient templateCommands() {
+        return new CoreTemplateCommandClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

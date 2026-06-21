@@ -1089,6 +1089,65 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void templateClientsReturnTypedTemplates() {
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "listTemplates" -> CompletableFuture.completedFuture("""
+                    {"templates":[
+                      {"id":"default","displayName":"Default","enabled":true,"minNodeVersion":""},
+                      {"id":"hard","displayName":"Hard","enabled":false,"minNodeVersion":"1.21.11"}
+                    ]}
+                    """);
+                case "upsertTemplate" -> {
+                    calls.add("upsert:" + args[0] + ":" + args[1] + ":" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("""
+                        {"id":"%s","displayName":"%s","enabled":%s,"minNodeVersion":"%s"}
+                        """.formatted(args[0], args[1], args[2], args[3]));
+                }
+                case "enableTemplate" -> {
+                    calls.add("enable:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"id":"%s","displayName":"Enabled","enabled":true,"minNodeVersion":""}
+                        """.formatted(args[0]));
+                }
+                case "disableTemplate" -> {
+                    calls.add("disable:" + args[0]);
+                    yield CompletableFuture.completedFuture("""
+                        {"id":"%s","displayName":"Disabled","enabled":false,"minNodeVersion":""}
+                        """.formatted(args[0]));
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        TemplateQueryClient queries = new CoreTemplateQueryClient(raw);
+        TemplateCommandClient commands = new CoreTemplateCommandClient(raw);
+
+        List<TemplateView> templates = queries.list().join();
+        TemplateView upserted = commands.upsert(" hard ", "Hard", false, "1.21.11").join();
+        TemplateView enabled = commands.enable("hard").join();
+        TemplateView disabled = commands.disable("hard").join();
+
+        assertEquals(2, templates.size());
+        assertEquals("default", templates.get(0).id());
+        assertTrue(templates.get(0).enabled());
+        assertEquals("1.21.11", templates.get(1).minNodeVersion());
+        assertEquals("hard", upserted.id());
+        assertFalse(upserted.enabled());
+        assertEquals("hard", enabled.id());
+        assertTrue(enabled.enabled());
+        assertEquals("hard", disabled.id());
+        assertFalse(disabled.enabled());
+        assertEquals(List.of(
+            "upsert:hard:Hard:false:1.21.11",
+            "enable:hard",
+            "disable:hard"
+        ), calls);
+    }
+
+    @Test
     void lifecycleCommandClientReturnsTypedResetResult() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

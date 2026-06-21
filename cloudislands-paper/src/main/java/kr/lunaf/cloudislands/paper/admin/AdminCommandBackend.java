@@ -28,6 +28,7 @@ import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
 import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
+import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
@@ -1077,7 +1078,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private boolean handleTemplate(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
-            run(sender, "Template list", coreApiClient.listTemplates().thenApply(this::templateListMessage));
+            run(sender, "Template list", coreApiClient.templates().list().thenApply(this::templateListMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("upsert")) {
@@ -1089,7 +1090,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
             boolean enabled = args.length < 5 || booleanArgument(args[4], false);
             String minNodeVersion = args.length > 5 ? args[5] : "";
-            run(sender, "Template upsert", coreApiClient.upsertTemplate(args[2], args[3], enabled, minNodeVersion).thenApply(body -> actionResultMessage("Template upsert", args[2], body)));
+            run(sender, "Template upsert", coreApiClient.templateCommands().upsert(args[2], args[3], enabled, minNodeVersion).thenApply(template -> templateActionMessage("Template upsert", args[2], template)));
             return true;
         }
         if (args.length < 3) {
@@ -1097,11 +1098,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("enable")) {
-            run(sender, "Template enable", coreApiClient.enableTemplate(args[2]).thenApply(body -> actionResultMessage("Template enable", args[2], body)));
+            run(sender, "Template enable", coreApiClient.templateCommands().enable(args[2]).thenApply(template -> templateActionMessage("Template enable", args[2], template)));
             return true;
         }
         if (args[1].equalsIgnoreCase("disable")) {
-            run(sender, "Template disable", coreApiClient.disableTemplate(args[2]).thenApply(body -> actionResultMessage("Template disable", args[2], body)));
+            run(sender, "Template disable", coreApiClient.templateCommands().disable(args[2]).thenApply(template -> templateActionMessage("Template disable", args[2], template)));
             return true;
         }
         sendCommandUsage(sender, List.of(
@@ -1950,38 +1951,29 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return adminText("admin-command-block-values-total-prefix", "Block values: total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
-    private String templateListMessage(String body) {
-        String templates = arrayValue(body, "templates");
-        if (templates.isBlank()) {
+    private String templateListMessage(List<TemplateView> templates) {
+        if (templates.isEmpty()) {
             return adminText("admin-command-templates-empty", "Templates: empty");
         }
         List<String> entries = new ArrayList<>();
-        int total = 0;
         int enabled = 0;
-        int index = 0;
-        while (index < templates.length()) {
-            int objectStart = templates.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(templates, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = templates.substring(objectStart, objectEnd + 1);
-            total++;
-            if (boolValue(object, "enabled")) {
+        for (TemplateView template : templates) {
+            if (template.enabled()) {
                 enabled++;
             }
             if (entries.size() < 10) {
-                String minNodeVersion = textValue(object, "minNodeVersion");
-                entries.add(textValue(object, "id")
-                    + " " + (boolValue(object, "enabled") ? adminText("admin-command-template-enabled", "enabled") : adminText("admin-command-template-disabled", "disabled"))
+                String minNodeVersion = template.minNodeVersion();
+                entries.add(template.id()
+                    + " " + (template.enabled() ? adminText("admin-command-template-enabled", "enabled") : adminText("admin-command-template-disabled", "disabled"))
                     + (minNodeVersion.isBlank() ? "" : adminText("admin-command-template-min-prefix", " min=") + minNodeVersion));
             }
-            index = objectEnd + 1;
         }
-        return adminText("admin-command-templates-total-prefix", "Templates: total=") + total + adminText("admin-command-templates-enabled-prefix", " enabled=") + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return adminText("admin-command-templates-total-prefix", "Templates: total=") + templates.size() + adminText("admin-command-templates-enabled-prefix", " enabled=") + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String templateActionMessage(String label, String targetId, TemplateView template) {
+        String resolvedTarget = template.id().isBlank() ? targetId : template.id();
+        return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(resolvedTarget);
     }
 
     private String upgradeRulesMessage(String body) {
