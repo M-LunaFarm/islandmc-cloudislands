@@ -374,6 +374,39 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void bankCommandClientReturnsTypedMutationViews() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "depositIslandBank" -> {
+                    calls.add("deposit:" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"balance\":\"70\"}");
+                }
+                case "withdrawIslandBank" -> {
+                    calls.add("withdraw:" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_FUNDS\",\"balance\":\"20\"}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        BankCommandClient client = new CoreBankCommandClient(raw);
+
+        BankMutationView deposit = client.deposit(islandId, actorUuid, "15").join();
+        BankMutationView withdraw = client.withdraw(islandId, actorUuid, "4").join();
+
+        assertTrue(deposit.accepted());
+        assertEquals("70", deposit.balance());
+        assertFalse(withdraw.accepted());
+        assertEquals("NO_FUNDS", withdraw.code());
+        assertEquals("20", withdraw.balance());
+        assertEquals(List.of("deposit:15", "withdraw:4"), calls);
+    }
+
+    @Test
     void warehouseQueryClientReturnsTypedWarehouseItems() {
         UUID islandId = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
@@ -393,6 +426,38 @@ class CoreTypedClientsTest {
         assertEquals(1, items.size());
         assertEquals("STONE", items.get(0).materialKey());
         assertEquals(12L, items.get(0).amount());
+    }
+
+    @Test
+    void warehouseCommandClientReturnsTypedMutationViews() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "depositIslandWarehouse" -> {
+                    calls.add("deposit:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"materialKey\":\"STONE\",\"amount\":12}");
+                }
+                case "withdrawIslandWarehouse" -> {
+                    calls.add("withdraw:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_STOCK\",\"materialKey\":\"DIRT\",\"amount\":7}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        WarehouseCommandClient client = new CoreWarehouseCommandClient(raw);
+
+        WarehouseMutationView deposit = client.deposit(islandId, actorUuid, "STONE", 12L).join();
+        WarehouseMutationView withdraw = client.withdraw(islandId, actorUuid, "DIRT", 7L).join();
+
+        assertTrue(deposit.accepted());
+        assertEquals("STONE", deposit.materialKey());
+        assertFalse(withdraw.accepted());
+        assertEquals("NO_STOCK", withdraw.code());
+        assertEquals(List.of("deposit:STONE:12", "withdraw:DIRT:7"), calls);
     }
 
     @Test

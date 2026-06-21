@@ -1,18 +1,20 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreWarehouseCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreWarehouseQueryClient;
+import kr.lunaf.cloudislands.coreclient.WarehouseCommandClient;
+import kr.lunaf.cloudislands.coreclient.WarehouseMutationView;
 import kr.lunaf.cloudislands.coreclient.WarehouseQueryClient;
 
 public final class IslandWarehouseUseCase {
     private final CoreApiClient coreApiClient;
     private final WarehouseQueryClient warehouseQueries;
+    private final WarehouseCommandClient warehouseCommands;
 
     public IslandWarehouseUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
@@ -20,17 +22,26 @@ public final class IslandWarehouseUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.warehouseQueries = new CoreWarehouseQueryClient(coreApiClient);
+        this.warehouseCommands = new CoreWarehouseCommandClient(coreApiClient);
     }
 
     IslandWarehouseUseCase(CoreApiClient coreApiClient, WarehouseQueryClient warehouseQueries) {
+        this(coreApiClient, warehouseQueries, new CoreWarehouseCommandClient(coreApiClient));
+    }
+
+    IslandWarehouseUseCase(CoreApiClient coreApiClient, WarehouseQueryClient warehouseQueries, WarehouseCommandClient warehouseCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (warehouseQueries == null) {
             throw new IllegalArgumentException("warehouseQueries is required");
         }
+        if (warehouseCommands == null) {
+            throw new IllegalArgumentException("warehouseCommands is required");
+        }
         this.coreApiClient = coreApiClient;
         this.warehouseQueries = warehouseQueries;
+        this.warehouseCommands = warehouseCommands;
     }
 
     public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
@@ -47,8 +58,8 @@ public final class IslandWarehouseUseCase {
         requireMaterial(materialKey);
         requireAmount(amount);
         requireRunner(runner);
-        return runner.mutateIdempotent("island.warehouse.deposit", () -> coreApiClient.depositIslandWarehouse(islandId, actorUuid, materialKey, amount))
-            .thenApply(WarehouseOperationResult::fromBody);
+        return runner.mutateIdempotent("island.warehouse.deposit", () -> warehouseCommands.deposit(islandId, actorUuid, materialKey, amount))
+            .thenApply(WarehouseOperationResult::fromMutation);
     }
 
     public CompletableFuture<WarehouseOperationResult> withdraw(UUID islandId, UUID actorUuid, String materialKey, long amount, MutationRunner runner) {
@@ -57,8 +68,8 @@ public final class IslandWarehouseUseCase {
         requireMaterial(materialKey);
         requireAmount(amount);
         requireRunner(runner);
-        return runner.mutateIdempotent("island.warehouse.withdraw", () -> coreApiClient.withdrawIslandWarehouse(islandId, actorUuid, materialKey, amount))
-            .thenApply(WarehouseOperationResult::fromBody);
+        return runner.mutateIdempotent("island.warehouse.withdraw", () -> warehouseCommands.withdraw(islandId, actorUuid, materialKey, amount))
+            .thenApply(WarehouseOperationResult::fromMutation);
     }
 
     private static void requireIsland(UUID islandId) {
@@ -91,26 +102,14 @@ public final class IslandWarehouseUseCase {
         }
     }
 
-    private static Map<?, ?> root(String body) {
-        return SimpleJson.object(SimpleJson.parse(body));
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
     @FunctionalInterface
     public interface MutationRunner {
-        CompletableFuture<String> mutateIdempotent(String auditAction, Supplier<CompletableFuture<String>> operation);
+        CompletableFuture<WarehouseMutationView> mutateIdempotent(String auditAction, Supplier<CompletableFuture<WarehouseMutationView>> operation);
     }
 
     public record WarehouseOperationResult(boolean accepted, String code, String materialKey, long amount) {
-        private static WarehouseOperationResult fromBody(String body) {
-            Map<?, ?> root = root(body);
-            boolean accepted = !root.containsKey("error")
-                && !Boolean.FALSE.equals(root.get("accepted"))
-                && !Boolean.FALSE.equals(root.get("applied"));
-            return new WarehouseOperationResult(accepted, text(root, "code"), text(root, "materialKey"), SimpleJson.number(root.get("amount")));
+        private static WarehouseOperationResult fromMutation(WarehouseMutationView mutation) {
+            return new WarehouseOperationResult(mutation.accepted(), mutation.code(), mutation.materialKey(), mutation.amount());
         }
     }
 

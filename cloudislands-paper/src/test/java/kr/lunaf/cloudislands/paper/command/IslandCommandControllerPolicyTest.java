@@ -73,8 +73,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(bankHandler.contains("bankUseCase.withdraw("));
         assertFalse(bankHandler.contains("coreApiClient.depositIslandBank"), "bank mutation logic belongs in BankUseCase");
         assertFalse(bankHandler.contains("coreApiClient.withdrawIslandBank"), "bank mutation logic belongs in BankUseCase");
-        assertTrue(bankUseCase.contains("coreApiClient.depositIslandBank"));
-        assertTrue(bankUseCase.contains("coreApiClient.withdrawIslandBank"));
+        assertTrue(bankUseCase.contains("BankCommandClient bankCommands"));
+        assertTrue(bankUseCase.contains("bankCommands.deposit"));
+        assertTrue(bankUseCase.contains("bankCommands.withdraw"));
+        assertFalse(bankUseCase.contains("coreApiClient.depositIslandBank"));
+        assertFalse(bankUseCase.contains("coreApiClient.withdrawIslandBank"));
     }
 
     @Test
@@ -126,8 +129,11 @@ class IslandCommandControllerPolicyTest {
         assertFalse(warehouseUseCase.contains("public CompletableFuture<String> list("), "warehouse list usecase must expose typed item views instead of raw JSON");
         assertTrue(warehouseUseCase.contains("warehouseQueries.listItems"));
         assertFalse(warehouseUseCase.contains("coreApiClient.islandWarehouse"));
-        assertTrue(warehouseUseCase.contains("coreApiClient.depositIslandWarehouse"));
-        assertTrue(warehouseUseCase.contains("coreApiClient.withdrawIslandWarehouse"));
+        assertTrue(warehouseUseCase.contains("WarehouseCommandClient warehouseCommands"));
+        assertTrue(warehouseUseCase.contains("warehouseCommands.deposit"));
+        assertTrue(warehouseUseCase.contains("warehouseCommands.withdraw"));
+        assertFalse(warehouseUseCase.contains("coreApiClient.depositIslandWarehouse"));
+        assertFalse(warehouseUseCase.contains("coreApiClient.withdrawIslandWarehouse"));
     }
 
     @Test

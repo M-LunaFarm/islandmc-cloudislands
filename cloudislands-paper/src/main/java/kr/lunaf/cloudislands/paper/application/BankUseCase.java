@@ -1,19 +1,21 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreclient.BankCommandClient;
+import kr.lunaf.cloudislands.coreclient.BankMutationView;
 import kr.lunaf.cloudislands.coreclient.BankQueryClient;
+import kr.lunaf.cloudislands.coreclient.CoreBankCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreBankQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class BankUseCase {
     private final CoreApiClient coreApiClient;
     private final BankQueryClient bankQueries;
+    private final BankCommandClient bankCommands;
     private final EconomyBridge economyBridge;
 
     public BankUseCase(CoreApiClient coreApiClient, EconomyBridge economyBridge) {
@@ -22,18 +24,27 @@ public final class BankUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.bankQueries = new CoreBankQueryClient(coreApiClient);
+        this.bankCommands = new CoreBankCommandClient(coreApiClient);
         this.economyBridge = economyBridge;
     }
 
     BankUseCase(CoreApiClient coreApiClient, BankQueryClient bankQueries, EconomyBridge economyBridge) {
+        this(coreApiClient, bankQueries, new CoreBankCommandClient(coreApiClient), economyBridge);
+    }
+
+    BankUseCase(CoreApiClient coreApiClient, BankQueryClient bankQueries, BankCommandClient bankCommands, EconomyBridge economyBridge) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (bankQueries == null) {
             throw new IllegalArgumentException("bankQueries is required");
         }
+        if (bankCommands == null) {
+            throw new IllegalArgumentException("bankCommands is required");
+        }
         this.coreApiClient = coreApiClient;
         this.bankQueries = bankQueries;
+        this.bankCommands = bankCommands;
         this.economyBridge = economyBridge;
     }
 
@@ -57,13 +68,13 @@ public final class BankUseCase {
                 if (!withdrawn) {
                     return CompletableFuture.completedFuture(BankOperationResult.economyWithdrawDenied());
                 }
-                return runner.mutateIdempotent("island.bank.deposit", () -> coreApiClient.depositIslandBank(islandId, actorUuid, normalizedAmount))
-                    .thenCompose(body -> {
-                        if (rejected(body)) {
+                return runner.mutateIdempotent("island.bank.deposit", () -> bankCommands.deposit(islandId, actorUuid, normalizedAmount))
+                    .thenCompose(mutation -> {
+                        if (!mutation.accepted()) {
                             return refundPlayer(actorUuid, amount)
-                                .thenApply(_ignored -> BankOperationResult.coreRejected(body, text(root(body), "code")));
+                                .thenApply(_ignored -> BankOperationResult.coreRejected(mutation.body(), mutation.balance(), mutation.code()));
                         }
-                        return CompletableFuture.completedFuture(BankOperationResult.success(body, bankBalance(body)));
+                        return CompletableFuture.completedFuture(BankOperationResult.success(mutation.body(), mutation.balance()));
                     })
                     .exceptionallyCompose(error -> refundPlayer(actorUuid, amount).thenCompose(_ignored -> CompletableFuture.failedFuture(error)));
             });
@@ -78,17 +89,17 @@ public final class BankUseCase {
             return CompletableFuture.completedFuture(BankOperationResult.economyUnavailable());
         }
         String normalizedAmount = amount.toPlainString();
-        return runner.mutateIdempotent("island.bank.withdraw", () -> coreApiClient.withdrawIslandBank(islandId, actorUuid, normalizedAmount))
-            .thenCompose(body -> {
-                if (rejected(body)) {
-                    return CompletableFuture.completedFuture(BankOperationResult.coreRejected(body, text(root(body), "code")));
+        return runner.mutateIdempotent("island.bank.withdraw", () -> bankCommands.withdraw(islandId, actorUuid, normalizedAmount))
+            .thenCompose(mutation -> {
+                if (!mutation.accepted()) {
+                    return CompletableFuture.completedFuture(BankOperationResult.coreRejected(mutation.body(), mutation.balance(), mutation.code()));
                 }
-                String balance = bankBalance(body);
+                String balance = mutation.balance();
                 return economyBridge.deposit(actorUuid, amount, "CloudIslands island bank withdraw")
-                    .thenApply(_ignored -> BankOperationResult.success(body, balance))
-                    .exceptionallyCompose(error -> runner.mutateIdempotent("island.bank.withdraw.rollback", () -> coreApiClient.depositIslandBank(islandId, actorUuid, normalizedAmount))
-                        .thenApply(_ignored -> BankOperationResult.rolledBackAfterEconomyDepositFailure(body, balance))
-                        .exceptionally(_rollbackError -> BankOperationResult.rollbackFailedAfterEconomyDepositFailure(body, balance)));
+                    .thenApply(_ignored -> BankOperationResult.success(mutation.body(), balance))
+                    .exceptionallyCompose(error -> runner.mutateIdempotent("island.bank.withdraw.rollback", () -> bankCommands.deposit(islandId, actorUuid, normalizedAmount))
+                        .thenApply(_ignored -> BankOperationResult.rolledBackAfterEconomyDepositFailure(mutation.body(), balance))
+                        .exceptionally(_rollbackError -> BankOperationResult.rollbackFailedAfterEconomyDepositFailure(mutation.body(), balance)));
             });
     }
 
@@ -133,32 +144,13 @@ public final class BankUseCase {
         }
     }
 
-    private static boolean rejected(String body) {
-        Map<?, ?> root = root(body);
-        return root.containsKey("error")
-            || Boolean.FALSE.equals(root.get("accepted"))
-            || Boolean.FALSE.equals(root.get("applied"));
-    }
-
-    private static String bankBalance(String body) {
-        return normalizedBalance(text(root(body), "balance"));
-    }
-
     private static String normalizedBalance(String balance) {
         return balance == null || balance.isBlank() ? "0" : balance;
     }
 
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static Map<?, ?> root(String body) {
-        return SimpleJson.object(SimpleJson.parse(body));
-    }
-
     @FunctionalInterface
     public interface MutationRunner {
-        CompletableFuture<String> mutateIdempotent(String auditAction, Supplier<CompletableFuture<String>> operation);
+        CompletableFuture<BankMutationView> mutateIdempotent(String auditAction, Supplier<CompletableFuture<BankMutationView>> operation);
     }
 
     public enum Status {
@@ -183,8 +175,8 @@ public final class BankUseCase {
             return new BankOperationResult(Status.ECONOMY_WITHDRAW_DENIED, "", "", "INSUFFICIENT_FUNDS");
         }
 
-        private static BankOperationResult coreRejected(String body, String code) {
-            return new BankOperationResult(Status.CORE_REJECTED, body, bankBalance(body), code == null ? "" : code);
+        private static BankOperationResult coreRejected(String body, String balance, String code) {
+            return new BankOperationResult(Status.CORE_REJECTED, body, balance, code == null ? "" : code);
         }
 
         private static BankOperationResult rolledBackAfterEconomyDepositFailure(String body, String balance) {

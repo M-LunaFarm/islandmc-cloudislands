@@ -64,8 +64,16 @@ public interface CoreApiClient {
         return new CoreBankQueryClient(this);
     }
 
+    default BankCommandClient bankCommands() {
+        return new CoreBankCommandClient(this);
+    }
+
     default WarehouseQueryClient warehouse() {
         return new CoreWarehouseQueryClient(this);
+    }
+
+    default WarehouseCommandClient warehouseCommands() {
+        return new CoreWarehouseCommandClient(this);
     }
 
     default HomeWarpQueryClient homeWarps() {
