@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.IslandCommunicationUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLogMenu;
@@ -17,11 +18,13 @@ import org.bukkit.plugin.Plugin;
 final class IslandChatLogCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final IslandCommunicationUseCase communicationUseCase;
     private final Runtime runtime;
 
     IslandChatLogCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.communicationUseCase = new IslandCommunicationUseCase(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -91,7 +94,7 @@ final class IslandChatLogCommandHandler {
 
     private void sendChat(Player player, String channel, String chatMessage, String label) {
         runtime.currentIsland(player, "섬 안에서만 " + label + "을 사용할 수 있습니다.").ifPresent(islandId -> {
-            runtime.mutate("island.chat.send", () -> coreApiClient.sendIslandChat(islandId, player.getUniqueId(), channel, chatMessage))
+            communicationUseCase.sendChat(islandId, player.getUniqueId(), channel, chatMessage, runtime::mutate)
                 .thenAccept(body -> {
                     if (body == null || body.isBlank() || !body.contains("\"accepted\":true")) {
                         runtime.message(player, label + "을 전송하지 못했습니다.");
@@ -108,7 +111,7 @@ final class IslandChatLogCommandHandler {
 
     private void listLogs(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 로그를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.listIslandLogs(islandId, Math.max(1, Math.min(limit, 30)))
+            communicationUseCase.listLogs(islandId, limit)
                 .thenAccept(body -> runtime.message(player, logListMessage(body)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 로그를 불러오지 못했습니다.");

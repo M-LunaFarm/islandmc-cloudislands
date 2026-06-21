@@ -118,6 +118,7 @@ class IslandCommandControllerPolicyTest {
     void chatAndLogCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String chatLogHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandChatLogCommandHandler.java"));
+        String communicationUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandCommunicationUseCase.java"));
 
         assertTrue(backend.contains("private final IslandChatLogCommandHandler chatLogCommands;"));
         assertTrue(routerSource().contains("chatLogCommands.handleCommand(player, subcommand, args)"));
@@ -126,8 +127,12 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("listIslandLogs("), "log list logic belongs in IslandChatLogCommandHandler");
         assertTrue(chatLogHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(chatLogHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
-        assertTrue(chatLogHandler.contains("coreApiClient.sendIslandChat"));
-        assertTrue(chatLogHandler.contains("coreApiClient.listIslandLogs"));
+        assertTrue(chatLogHandler.contains("IslandCommunicationUseCase"));
+        assertTrue(chatLogHandler.contains("communicationUseCase.sendChat"));
+        assertFalse(chatLogHandler.contains("coreApiClient.sendIslandChat"));
+        assertFalse(chatLogHandler.contains("coreApiClient.listIslandLogs"));
+        assertTrue(communicationUseCase.contains("coreApiClient.sendIslandChat"));
+        assertTrue(communicationUseCase.contains("coreApiClient.listIslandLogs"));
     }
 
     @Test
