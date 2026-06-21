@@ -364,7 +364,7 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
     enum SnapshotRestoreType {
         PREPARE("island.snapshot.restore.prepare", false),
-        CONFIRM("island.snapshot.restore.confirm", true);
+        CONFIRM(ConfirmationTokenPolicy.SNAPSHOT_RESTORE_CONFIRM_ACTION, true);
 
         private final String actionId;
         private final boolean confirmation;
@@ -548,7 +548,7 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
     enum WarpDeleteType {
         PREPARE("island.warp.delete.prepare", false),
-        CONFIRM("island.warp.delete.confirm", true);
+        CONFIRM(ConfirmationTokenPolicy.WARP_DELETE_CONFIRM_ACTION, true);
 
         private final String actionId;
         private final boolean confirmation;
@@ -759,7 +759,7 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
     enum BanPardonType {
         PREPARE("island.ban.pardon.prepare", false),
-        CONFIRM("island.ban.pardon.confirm", true);
+        CONFIRM(ConfirmationTokenPolicy.BAN_PARDON_CONFIRM_ACTION, true);
 
         private final String actionId;
         private final boolean confirmation;
@@ -1010,7 +1010,7 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
     enum MemberRemovalType {
         PREPARE("island.member.remove.prepare", false),
-        CONFIRM("island.member.remove.confirm", true);
+        CONFIRM(ConfirmationTokenPolicy.MEMBER_REMOVE_CONFIRM_ACTION, true);
 
         private final String actionId;
         private final boolean confirmation;
