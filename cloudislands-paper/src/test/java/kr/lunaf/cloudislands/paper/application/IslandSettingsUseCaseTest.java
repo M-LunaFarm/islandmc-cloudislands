@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -19,11 +20,17 @@ class IslandSettingsUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000040");
         UUID actorUuid = uuid("00000000-0000-0000-0000-000000000001");
 
-        assertEquals("public", useCase.setPublicAccess(islandId, actorUuid, true, mutationRunner(calls)).join());
-        assertEquals("locked", useCase.setLocked(islandId, actorUuid, false, mutationRunner(calls)).join());
-        assertEquals("named", useCase.setName(islandId, actorUuid, "My Island", mutationRunner(calls)).join());
-        assertEquals("flags", useCase.listFlags(islandId).join());
-        assertEquals("flagged", useCase.setFlag(islandId, actorUuid, IslandFlag.PVP, "false", mutationRunner(calls)).join());
+        assertEquals("{\"accepted\":true,\"code\":\"PUBLIC_ACCESS_ENABLED\"}", useCase.setPublicAccess(islandId, actorUuid, true, mutationRunner(calls)).join());
+        assertEquals("{\"accepted\":true,\"code\":\"ISLAND_UNLOCKED\"}", useCase.setLocked(islandId, actorUuid, false, mutationRunner(calls)).join());
+        assertEquals("{\"accepted\":true,\"code\":\"ISLAND_RENAMED\"}", useCase.setName(islandId, actorUuid, "My Island", mutationRunner(calls)).join());
+        assertEquals("{\"flags\":{\"PVP\":\"true\",\"FLY\":\"false\"}}", useCase.listFlags(islandId).join());
+        Map<IslandFlag, String> flags = useCase.flagValues(islandId).join();
+        assertEquals("true", flags.get(IslandFlag.PVP));
+        assertEquals("{\"accepted\":true,\"code\":\"FLAG_SET\",\"flag\":\"PVP\"}", useCase.setFlag(islandId, actorUuid, IslandFlag.PVP, "false", mutationRunner(calls)).join());
+        assertEquals("PUBLIC_ACCESS_ENABLED", useCase.setPublicAccessAction(islandId, actorUuid, true, mutationRunner(calls)).join().code());
+        assertEquals("ISLAND_UNLOCKED", useCase.setLockedAction(islandId, actorUuid, false, mutationRunner(calls)).join().code());
+        assertEquals("ISLAND_RENAMED", useCase.setNameAction(islandId, actorUuid, "My Island", mutationRunner(calls)).join().code());
+        assertEquals("FLAG_SET", useCase.setFlagAction(islandId, actorUuid, IslandFlag.PVP, "false", mutationRunner(calls)).join().code());
 
         assertEquals(List.of(
             "audit:island.public-access.set",
@@ -33,6 +40,15 @@ class IslandSettingsUseCaseTest {
             "audit:island.name.set",
             "setIslandNameResult:My Island",
             "listIslandFlags",
+            "listIslandFlags",
+            "audit:island.flag.set",
+            "setIslandFlagResult:PVP:false",
+            "audit:island.public-access.set",
+            "setIslandPublicAccessResult:true",
+            "audit:island.locked.set",
+            "setIslandLockedResult:false",
+            "audit:island.name.set",
+            "setIslandNameResult:My Island",
             "audit:island.flag.set",
             "setIslandFlagResult:PVP:false"
         ), calls);
@@ -45,23 +61,23 @@ class IslandSettingsUseCaseTest {
             (_proxy, method, args) -> switch (method.getName()) {
                 case "setIslandPublicAccessResult" -> {
                     calls.add("setIslandPublicAccessResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("public");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PUBLIC_ACCESS_ENABLED\"}");
                 }
                 case "setIslandLockedResult" -> {
                     calls.add("setIslandLockedResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("locked");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"ISLAND_UNLOCKED\"}");
                 }
                 case "setIslandNameResult" -> {
                     calls.add("setIslandNameResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("named");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"ISLAND_RENAMED\"}");
                 }
                 case "listIslandFlags" -> {
                     calls.add("listIslandFlags");
-                    yield CompletableFuture.completedFuture("flags");
+                    yield CompletableFuture.completedFuture("{\"flags\":{\"PVP\":\"true\",\"FLY\":\"false\"}}");
                 }
                 case "setIslandFlagResult" -> {
                     calls.add("setIslandFlagResult:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("flagged");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"FLAG_SET\",\"flag\":\"PVP\"}");
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });

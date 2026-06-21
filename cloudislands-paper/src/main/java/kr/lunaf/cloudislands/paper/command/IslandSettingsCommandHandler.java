@@ -1,8 +1,8 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase;
+import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase.SettingsActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
@@ -143,10 +144,10 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, runtime.routeMessage("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            settingsUseCase.setPublicAccess(islandId, player.getUniqueId(), publicAccess, runtime::mutate)
-                .thenAccept(body -> {
-                    runtime.message(player, runtime.actionResultMessage(publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId, body));
-                    if (!resultRejected(body)) {
+            settingsUseCase.setPublicAccessAction(islandId, player.getUniqueId(), publicAccess, runtime::mutate)
+                .thenAccept(result -> {
+                    runtime.message(player, settingsActionMessage(publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId.toString(), result));
+                    if (result.accepted()) {
                         PaperSchedulers.run(plugin, () -> openSettings(player));
                     }
                 })
@@ -163,10 +164,10 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, runtime.routeMessage("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            settingsUseCase.setLocked(islandId, player.getUniqueId(), locked, runtime::mutate)
-                .thenAccept(body -> {
-                    runtime.message(player, runtime.actionResultMessage(locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId, body));
-                    if (!resultRejected(body)) {
+            settingsUseCase.setLockedAction(islandId, player.getUniqueId(), locked, runtime::mutate)
+                .thenAccept(result -> {
+                    runtime.message(player, settingsActionMessage(locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId.toString(), result));
+                    if (result.accepted()) {
                         PaperSchedulers.run(plugin, () -> openSettings(player));
                     }
                 })
@@ -183,10 +184,10 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, runtime.routeMessage("name-change-denied", "섬 이름을 변경할 권한이 없습니다."));
                 return;
             }
-            settingsUseCase.setName(islandId, player.getUniqueId(), name, runtime::mutate)
-                .thenAccept(body -> {
-                    runtime.message(player, runtime.actionResultMessage("섬 이름 변경", name, body));
-                    if (!resultRejected(body)) {
+            settingsUseCase.setNameAction(islandId, player.getUniqueId(), name, runtime::mutate)
+                .thenAccept(result -> {
+                    runtime.message(player, settingsActionMessage("섬 이름 변경", name, result));
+                    if (result.accepted()) {
                         PaperSchedulers.run(plugin, () -> openSettings(player));
                     }
                 })
@@ -199,8 +200,8 @@ final class IslandSettingsCommandHandler {
 
     private void listFlags(Player player) {
         runtime.currentIsland(player, "섬 안에서만 플래그를 확인할 수 있습니다.").ifPresent(islandId -> {
-            settingsUseCase.listFlags(islandId)
-                .thenAccept(body -> runtime.message(player, flagListMessage(body)))
+            settingsUseCase.flagValues(islandId)
+                .thenAccept(flags -> runtime.message(player, flagListMessage(flags)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 플래그를 불러오지 못했습니다.");
                     return null;
@@ -227,8 +228,8 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, runtime.routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
                 return;
             }
-            settingsUseCase.setFlag(islandId, player.getUniqueId(), flag, value, runtime::mutate)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 플래그 변경 " + flag.name() + "=" + value, flag.name(), body)))
+            settingsUseCase.setFlagAction(islandId, player.getUniqueId(), flag, value, runtime::mutate)
+                .thenAccept(result -> runtime.message(player, settingsActionMessage("섬 플래그 변경 " + flag.name() + "=" + value, flag.name(), result)))
                 .exceptionally(error -> {
                     runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 플래그를 변경하지 못했습니다."));
                     return null;
@@ -236,37 +237,23 @@ final class IslandSettingsCommandHandler {
         });
     }
 
-    private static String flagListMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return "섬 플래그가 없습니다.";
-        }
-        int flagsStart = body.indexOf("\"flags\":{");
-        if (flagsStart < 0) {
-            return "섬 플래그가 없습니다.";
-        }
-        int objectStart = body.indexOf('{', flagsStart);
-        int objectEnd = body.indexOf('}', objectStart);
-        if (objectStart < 0 || objectEnd < 0) {
-            return "섬 플래그가 없습니다.";
-        }
-        String flags = body.substring(objectStart + 1, objectEnd);
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < flags.length()) {
-            int keyStart = flags.indexOf('"', index);
-            if (keyStart < 0) {
-                break;
-            }
-            int keyEnd = flags.indexOf('"', keyStart + 1);
-            int valueStart = flags.indexOf('"', keyEnd + 1);
-            int valueEnd = valueStart < 0 ? -1 : flags.indexOf('"', valueStart + 1);
-            if (keyEnd < 0 || valueStart < 0 || valueEnd < 0) {
-                break;
-            }
-            entries.add(flags.substring(keyStart + 1, keyEnd) + "=" + unescape(flags.substring(valueStart + 1, valueEnd)));
-            index = valueEnd + 1;
-        }
+    private static String flagListMessage(Map<IslandFlag, String> flags) {
+        List<String> entries = flags.entrySet().stream()
+            .map(entry -> entry.getKey().name() + "=" + entry.getValue())
+            .toList();
         return entries.isEmpty() ? "섬 플래그가 없습니다." : "섬 플래그: " + String.join(", ", entries);
+    }
+
+    private static String settingsActionMessage(String label, String targetId, SettingsActionResult result) {
+        StringBuilder builder = new StringBuilder(label)
+            .append(result.accepted() ? " 완료" : " 실패");
+        if (targetId != null && !targetId.isBlank()) {
+            builder.append(": 대상=").append(compactId(targetId));
+        }
+        if (!result.accepted() && !result.code().isBlank()) {
+            builder.append(" 사유=").append(result.code());
+        }
+        return builder.toString();
     }
 
     private static IslandFlag islandFlag(String value) {
@@ -302,40 +289,8 @@ final class IslandSettingsCommandHandler {
         return builder.toString();
     }
 
-    private static boolean resultRejected(String body) {
-        return body == null || body.contains("\"error\"") || body.contains("\"accepted\":false") || body.contains("\"applied\":false");
-    }
-
-    private static String unescape(String value) {
-        StringBuilder builder = new StringBuilder(value.length());
-        boolean escaping = false;
-        for (int index = 0; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (!escaping) {
-                if (current == '\\') {
-                    escaping = true;
-                } else {
-                    builder.append(current);
-                }
-                continue;
-            }
-            switch (current) {
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                case '/' -> builder.append('/');
-                case 'b' -> builder.append('\b');
-                case 'f' -> builder.append('\f');
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                default -> builder.append(current);
-            }
-            escaping = false;
-        }
-        if (escaping) {
-            builder.append('\\');
-        }
-        return builder.toString();
+    private static String compactId(String value) {
+        return value != null && value.length() == 36 && value.indexOf('-') > 0 ? value.substring(0, 8) : value;
     }
 
     interface Runtime {
@@ -346,10 +301,6 @@ final class IslandSettingsCommandHandler {
         void message(Player player, String message);
 
         String routeMessage(String key, String fallback);
-
-        String actionResultMessage(String label, UUID targetId, String body);
-
-        String actionResultMessage(String label, String targetId, String body);
 
         String coreWriteFailureMessage(Throwable error, String fallback);
 
