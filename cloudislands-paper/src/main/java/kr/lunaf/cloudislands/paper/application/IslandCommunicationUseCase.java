@@ -1,19 +1,21 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CommunicationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreCommunicationCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreCommunicationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LogEntryView;
+import kr.lunaf.cloudislands.coreclient.CommunicationCommandClient;
 
 public final class IslandCommunicationUseCase {
     private final CoreApiClient coreApiClient;
     private final CommunicationQueryClient communicationQueries;
+    private final CommunicationCommandClient communicationCommands;
 
     public IslandCommunicationUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
@@ -21,20 +23,29 @@ public final class IslandCommunicationUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.communicationQueries = new CoreCommunicationQueryClient(coreApiClient);
+        this.communicationCommands = new CoreCommunicationCommandClient(coreApiClient);
     }
 
     IslandCommunicationUseCase(CoreApiClient coreApiClient, CommunicationQueryClient communicationQueries) {
+        this(coreApiClient, communicationQueries, new CoreCommunicationCommandClient(coreApiClient));
+    }
+
+    IslandCommunicationUseCase(CoreApiClient coreApiClient, CommunicationQueryClient communicationQueries, CommunicationCommandClient communicationCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (communicationQueries == null) {
             throw new IllegalArgumentException("communicationQueries is required");
         }
+        if (communicationCommands == null) {
+            throw new IllegalArgumentException("communicationCommands is required");
+        }
         this.coreApiClient = coreApiClient;
         this.communicationQueries = communicationQueries;
+        this.communicationCommands = communicationCommands;
     }
 
-    private CompletableFuture<String> sendChatBody(UUID islandId, UUID actorUuid, String channel, String message, MutationRunner runner) {
+    private CompletableFuture<ChatActionView> sendChatBody(UUID islandId, UUID actorUuid, String channel, String message, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
@@ -43,12 +54,12 @@ public final class IslandCommunicationUseCase {
         if (normalizedMessage.isBlank()) {
             throw new IllegalArgumentException("message is required");
         }
-        return runner.mutate("island.chat.send", () -> coreApiClient.sendIslandChat(islandId, actorUuid, normalizedChannel, normalizedMessage));
+        return runner.mutate("island.chat.send", () -> communicationCommands.sendChat(islandId, actorUuid, normalizedChannel, normalizedMessage));
     }
 
     public CompletableFuture<ChatActionResult> sendChatAction(UUID islandId, UUID actorUuid, String channel, String message, MutationRunner runner) {
         return sendChatBody(islandId, actorUuid, channel, message, runner)
-            .thenApply(body -> chatAction(body, "CHAT_SENT"));
+            .thenApply(IslandCommunicationUseCase::chatAction);
     }
 
     public CompletableFuture<List<LogEntryView>> logViews(UUID islandId, int limit) {
@@ -74,21 +85,13 @@ public final class IslandCommunicationUseCase {
         }
     }
 
-    private static ChatActionResult chatAction(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new ChatActionResult(accepted, code);
+    private static ChatActionResult chatAction(ChatActionView view) {
+        return new ChatActionResult(view.accepted(), view.code());
     }
 
     @FunctionalInterface
     public interface MutationRunner {
-        CompletableFuture<String> mutate(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     public record ChatActionResult(boolean accepted, String code) {

@@ -253,6 +253,32 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void snapshotCommandClientReturnsTypedActionViews() {
+        UUID islandId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "requestIslandSnapshotResult" -> {
+                    calls.add("request:" + args[1]);
+                    yield CompletableFuture.completedFuture("{\"code\":\"SNAPSHOT_REQUESTED\"}");
+                }
+                case "restoreIslandSnapshotResult" -> {
+                    calls.add("restore:" + args[1]);
+                    yield CompletableFuture.completedFuture("plain-success");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        SnapshotCommandClient client = new CoreSnapshotCommandClient(raw);
+
+        assertEquals("SNAPSHOT_REQUESTED", client.requestSnapshot(islandId, "  ").join().code());
+        assertEquals("RESTORE_REQUESTED", client.restoreSnapshot(islandId, 7L).join().code());
+        assertEquals(List.of("request:manual", "restore:7"), calls);
+    }
+
+    @Test
     void communicationQueryClientReturnsTypedLogEntries() {
         UUID islandId = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
@@ -273,6 +299,31 @@ class CoreTypedClientsTest {
         assertEquals("CREATE", log.action());
         assertEquals("island", log.payload().get("target"));
         assertFalse(log.payload().containsKey("activeNode"));
+    }
+
+    @Test
+    void communicationCommandClientReturnsTypedChatAction() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "sendIslandChat" -> {
+                    calls.add("chat:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"CHAT_SENT\"}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        CommunicationCommandClient client = new CoreCommunicationCommandClient(raw);
+
+        ChatActionView chat = client.sendChat(islandId, actorUuid, "team", " hello ").join();
+
+        assertTrue(chat.accepted());
+        assertEquals("CHAT_SENT", chat.code());
+        assertEquals(List.of("chat:TEAM:hello"), calls);
     }
 
     @Test

@@ -1,18 +1,20 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreSnapshotCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreSnapshotQueryClient;
+import kr.lunaf.cloudislands.coreclient.SnapshotActionView;
+import kr.lunaf.cloudislands.coreclient.SnapshotCommandClient;
 import kr.lunaf.cloudislands.coreclient.SnapshotQueryClient;
 
 public final class SnapshotUseCase {
     private final CoreApiClient coreApiClient;
     private final SnapshotQueryClient snapshotQueries;
+    private final SnapshotCommandClient snapshotCommands;
 
     public SnapshotUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
@@ -20,17 +22,26 @@ public final class SnapshotUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.snapshotQueries = new CoreSnapshotQueryClient(coreApiClient);
+        this.snapshotCommands = new CoreSnapshotCommandClient(coreApiClient);
     }
 
     SnapshotUseCase(CoreApiClient coreApiClient, SnapshotQueryClient snapshotQueries) {
+        this(coreApiClient, snapshotQueries, new CoreSnapshotCommandClient(coreApiClient));
+    }
+
+    SnapshotUseCase(CoreApiClient coreApiClient, SnapshotQueryClient snapshotQueries, SnapshotCommandClient snapshotCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         if (snapshotQueries == null) {
             throw new IllegalArgumentException("snapshotQueries is required");
         }
+        if (snapshotCommands == null) {
+            throw new IllegalArgumentException("snapshotCommands is required");
+        }
         this.coreApiClient = coreApiClient;
         this.snapshotQueries = snapshotQueries;
+        this.snapshotCommands = snapshotCommands;
     }
 
     public CompletableFuture<List<SnapshotView>> snapshotViews(UUID islandId, int limit) {
@@ -41,28 +52,28 @@ public final class SnapshotUseCase {
                 .toList());
     }
 
-    private CompletableFuture<String> requestSnapshotBody(UUID islandId, String reason, MutationRunner runner) {
+    private CompletableFuture<SnapshotActionView> requestSnapshotBody(UUID islandId, String reason, MutationRunner runner) {
         requireIsland(islandId);
         requireRunner(runner);
         String normalizedReason = normalizeReason(reason);
-        return runner.mutate("island.snapshot.create", () -> coreApiClient.requestIslandSnapshotResult(islandId, normalizedReason));
+        return runner.mutate("island.snapshot.create", () -> snapshotCommands.requestSnapshot(islandId, normalizedReason));
     }
 
     public CompletableFuture<SnapshotActionResult> requestSnapshotAction(UUID islandId, String reason, MutationRunner runner) {
         return requestSnapshotBody(islandId, reason, runner)
-            .thenApply(body -> snapshotAction(body, "SNAPSHOT_REQUESTED"));
+            .thenApply(SnapshotUseCase::snapshotAction);
     }
 
-    private CompletableFuture<String> restoreSnapshotBody(UUID islandId, long snapshotNo, IdempotentMutationRunner runner) {
+    private CompletableFuture<SnapshotActionView> restoreSnapshotBody(UUID islandId, long snapshotNo, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requireSnapshotNo(snapshotNo);
         requireIdempotentRunner(runner);
-        return runner.mutateIdempotent("island.snapshot.restore", () -> coreApiClient.restoreIslandSnapshotResult(islandId, snapshotNo));
+        return runner.mutateIdempotent("island.snapshot.restore", () -> snapshotCommands.restoreSnapshot(islandId, snapshotNo));
     }
 
     public CompletableFuture<SnapshotActionResult> restoreSnapshotAction(UUID islandId, long snapshotNo, IdempotentMutationRunner runner) {
         return restoreSnapshotBody(islandId, snapshotNo, runner)
-            .thenApply(body -> snapshotAction(body, "RESTORE_REQUESTED"));
+            .thenApply(SnapshotUseCase::snapshotAction);
     }
 
     public static long positiveSnapshotNo(String value) {
@@ -112,34 +123,18 @@ public final class SnapshotUseCase {
         }
     }
 
-    private static SnapshotActionResult snapshotAction(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = bool(root, "accepted", true);
-        accepted = accepted && !root.containsKey("error") && !Boolean.FALSE.equals(root.get("applied"));
-        String code = text(root, "code");
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new SnapshotActionResult(accepted, code);
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key, boolean fallback) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
+    private static SnapshotActionResult snapshotAction(SnapshotActionView view) {
+        return new SnapshotActionResult(view.accepted(), view.code());
     }
 
     @FunctionalInterface
     public interface MutationRunner {
-        CompletableFuture<String> mutate(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     @FunctionalInterface
     public interface IdempotentMutationRunner {
-        CompletableFuture<String> mutateIdempotent(String auditAction, Supplier<CompletableFuture<String>> operation);
+        <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
     public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String checksum) {

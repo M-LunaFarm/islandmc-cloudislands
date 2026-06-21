@@ -48,8 +48,16 @@ public interface CoreApiClient {
         return new CoreSnapshotQueryClient(this);
     }
 
+    default SnapshotCommandClient snapshotCommands() {
+        return new CoreSnapshotCommandClient(this);
+    }
+
     default CommunicationQueryClient communication() {
         return new CoreCommunicationQueryClient(this);
+    }
+
+    default CommunicationCommandClient communicationCommands() {
+        return new CoreCommunicationCommandClient(this);
     }
 
     default BankQueryClient bank() {

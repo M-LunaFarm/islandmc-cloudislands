@@ -32,9 +32,12 @@ class SnapshotUseCaseTest {
         SnapshotUseCase useCase = new SnapshotUseCase(coreApiClient(core));
         List<String> auditActions = new ArrayList<>();
 
-        SnapshotUseCase.SnapshotActionResult result = useCase.requestSnapshotAction(UUID.randomUUID(), "  ", (auditAction, operation) -> {
-            auditActions.add(auditAction);
-            return operation.get();
+        SnapshotUseCase.SnapshotActionResult result = useCase.requestSnapshotAction(UUID.randomUUID(), "  ", new SnapshotUseCase.MutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, java.util.function.Supplier<CompletableFuture<T>> operation) {
+                auditActions.add(auditAction);
+                return operation.get();
+            }
         }).join();
 
         assertTrue(result.accepted());
@@ -49,9 +52,12 @@ class SnapshotUseCaseTest {
         SnapshotUseCase useCase = new SnapshotUseCase(coreApiClient(core));
         List<String> auditActions = new ArrayList<>();
 
-        SnapshotUseCase.SnapshotActionResult result = useCase.restoreSnapshotAction(UUID.randomUUID(), 7L, (auditAction, operation) -> {
-            auditActions.add(auditAction);
-            return operation.get();
+        SnapshotUseCase.SnapshotActionResult result = useCase.restoreSnapshotAction(UUID.randomUUID(), 7L, new SnapshotUseCase.IdempotentMutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, java.util.function.Supplier<CompletableFuture<T>> operation) {
+                auditActions.add(auditAction);
+                return operation.get();
+            }
         }).join();
 
         assertTrue(result.accepted());
@@ -70,7 +76,12 @@ class SnapshotUseCaseTest {
         assertThrows(IllegalArgumentException.class, () -> useCase.restoreSnapshotAction(
             UUID.randomUUID(),
             0L,
-            (_auditAction, operation) -> operation.get()
+            new SnapshotUseCase.IdempotentMutationRunner() {
+                @Override
+                public <T> CompletableFuture<T> mutateIdempotent(String auditAction, java.util.function.Supplier<CompletableFuture<T>> operation) {
+                    return operation.get();
+                }
+            }
         ));
     }
 

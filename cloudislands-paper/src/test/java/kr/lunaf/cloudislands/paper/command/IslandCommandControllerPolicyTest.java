@@ -99,8 +99,11 @@ class IslandCommandControllerPolicyTest {
         assertFalse(snapshotUseCase.contains("public CompletableFuture<String> restoreSnapshot("), "snapshot restore usecase must expose typed actions instead of raw JSON");
         assertFalse(snapshotHandler.contains("coreApiClient.requestIslandSnapshotResult"), "snapshot mutation logic belongs in SnapshotUseCase");
         assertFalse(snapshotHandler.contains("coreApiClient.restoreIslandSnapshotResult"), "snapshot mutation logic belongs in SnapshotUseCase");
-        assertTrue(snapshotUseCase.contains("coreApiClient.requestIslandSnapshotResult"));
-        assertTrue(snapshotUseCase.contains("coreApiClient.restoreIslandSnapshotResult"));
+        assertTrue(snapshotUseCase.contains("SnapshotCommandClient snapshotCommands"));
+        assertTrue(snapshotUseCase.contains("snapshotCommands.requestSnapshot"));
+        assertTrue(snapshotUseCase.contains("snapshotCommands.restoreSnapshot"));
+        assertFalse(snapshotUseCase.contains("coreApiClient.requestIslandSnapshotResult"));
+        assertFalse(snapshotUseCase.contains("coreApiClient.restoreIslandSnapshotResult"));
     }
 
     @Test
@@ -147,7 +150,9 @@ class IslandCommandControllerPolicyTest {
         assertFalse(chatLogHandler.contains("coreApiClient.listIslandLogs"));
         assertFalse(communicationUseCase.contains("public CompletableFuture<String> sendChat("), "chat send usecase must expose typed actions instead of raw JSON");
         assertFalse(communicationUseCase.contains("public CompletableFuture<String> listLogs("), "log list usecase must expose typed log views instead of raw JSON");
-        assertTrue(communicationUseCase.contains("coreApiClient.sendIslandChat"));
+        assertTrue(communicationUseCase.contains("CommunicationCommandClient communicationCommands"));
+        assertTrue(communicationUseCase.contains("communicationCommands.sendChat"));
+        assertFalse(communicationUseCase.contains("coreApiClient.sendIslandChat"));
         assertTrue(communicationUseCase.contains("communicationQueries.listLogs"));
         assertFalse(communicationUseCase.contains("coreApiClient.listIslandLogs"));
     }

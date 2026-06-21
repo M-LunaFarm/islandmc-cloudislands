@@ -52,9 +52,12 @@ class IslandCommunicationUseCaseTest {
     }
 
     private static IslandCommunicationUseCase.MutationRunner mutationRunner(List<String> calls) {
-        return (auditAction, operation) -> {
-            calls.add("audit:" + auditAction);
-            return operation.get();
+        return new IslandCommunicationUseCase.MutationRunner() {
+            @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, java.util.function.Supplier<CompletableFuture<T>> operation) {
+                calls.add("audit:" + auditAction);
+                return operation.get();
+            }
         };
     }
 
