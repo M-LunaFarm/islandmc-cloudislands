@@ -9,6 +9,8 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandHomeWarpUseCase;
+import kr.lunaf.cloudislands.paper.application.IslandHomeWarpUseCase.HomeWarpActionResult;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.WarpView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
@@ -207,8 +209,8 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("home-set-denied", "섬 홈을 설정할 권한이 없습니다."));
                 return;
             }
-            homeWarpUseCase.setHome(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), runtime::mutate)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 홈 설정 " + name, name, body)))
+            homeWarpUseCase.setHomeAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), runtime::mutate)
+                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("섬 홈 설정 " + name, name, result)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 홈을 설정하지 못했습니다.");
                     return null;
@@ -222,8 +224,8 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("warp-set-denied", "섬 워프를 설정할 권한이 없습니다."));
                 return;
             }
-            homeWarpUseCase.setWarp(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false, runtime::mutate)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 워프 설정 " + name, name, body)))
+            homeWarpUseCase.setWarpAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false, runtime::mutate)
+                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("섬 워프 설정 " + name, name, result)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 워프를 설정하지 못했습니다.");
                     return null;
@@ -312,8 +314,8 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("warp-delete-denied", "섬 워프를 삭제할 권한이 없습니다."));
                 return;
             }
-            homeWarpUseCase.deleteWarp(islandId, player.getUniqueId(), name, runtime::mutateIdempotent)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("섬 워프 삭제 " + name, name, body)))
+            homeWarpUseCase.deleteWarpAction(islandId, player.getUniqueId(), name, runtime::mutateIdempotent)
+                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("섬 워프 삭제 " + name, name, result)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 워프를 삭제하지 못했습니다.");
                     return null;
@@ -327,8 +329,8 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("warp-access-denied", "섬 워프 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            homeWarpUseCase.setWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess, runtime::mutate)
-                .thenAccept(body -> runtime.message(player, runtime.actionResultMessage(publicAccess ? "섬 워프 공개 " + name : "섬 워프 비공개 " + name, name, body)))
+            homeWarpUseCase.setWarpPublicAccessAction(islandId, player.getUniqueId(), name, publicAccess, runtime::mutate)
+                .thenAccept(result -> runtime.message(player, homeWarpActionMessage(publicAccess ? "섬 워프 공개 " + name : "섬 워프 비공개 " + name, name, result)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 워프 공개 상태를 변경하지 못했습니다.");
                     return null;
@@ -337,52 +339,51 @@ final class IslandHomeWarpCommandHandler {
     }
 
     private void listPublicWarps(Player player, String category, String query) {
-        homeWarpUseCase.listPublicWarps(20, category, query)
-            .thenAccept(body -> runtime.message(player, publicWarpListMessage(body, category, query)))
+        homeWarpUseCase.publicWarpViews(20, category, query)
+            .thenAccept(warps -> runtime.message(player, publicWarpListMessage(warps, category, query)))
             .exceptionally(error -> {
                 runtime.message(player, "공개 워프 목록을 불러오지 못했습니다.");
                 return null;
             });
     }
 
-    private static String publicWarpListMessage(String body, String category, String query) {
-        if (body == null || body.isBlank()) {
-            return "공개 워프가 없습니다.";
-        }
+    private static String publicWarpListMessage(java.util.List<WarpView> warps, String category, String query) {
         StringBuilder message = new StringBuilder();
-        int index = body.indexOf("\"warps\"");
         int count = 0;
-        while (index >= 0 && index < body.length() && count < 20) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
+        for (WarpView warp : warps == null ? java.util.List.<WarpView>of() : warps) {
+            if (count >= 20) {
                 break;
             }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
+            if (warp.name().isBlank() || warp.islandId().isBlank()) {
+                continue;
             }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String name = text(object, "name");
-            String islandId = text(object, "islandId");
-            if (!name.isBlank() && !islandId.isBlank()) {
-                String warpCategory = text(object, "category");
-                if (message.length() > 0) {
-                    message.append(" | ");
-                }
-                message.append(++count)
-                    .append(". ")
-                    .append(name)
-                    .append(" (섬=")
-                    .append(compactId(islandId))
-                    .append(", 카테고리=")
-                    .append(warpCategory.isBlank() ? "default" : warpCategory)
-                    .append(')');
+            if (message.length() > 0) {
+                message.append(" | ");
             }
-            index = objectEnd + 1;
+            message.append(++count)
+                .append(". ")
+                .append(warp.name())
+                .append(" (섬=")
+                .append(compactId(warp.islandId()))
+                .append(", 카테고리=")
+                .append(warp.category().isBlank() ? "default" : warp.category())
+                .append(')');
         }
         String suffix = (category == null || category.isBlank() ? "" : " category=" + category)
             + (query == null || query.isBlank() ? "" : " query=" + query);
         return message.length() == 0 ? "공개 워프가 없습니다." + suffix : "공개 워프" + suffix + ": " + message;
+    }
+
+    private static String homeWarpActionMessage(String label, String targetId, HomeWarpActionResult result) {
+        StringBuilder builder = new StringBuilder(label)
+            .append(result.accepted() ? " 완료" : " 실패");
+        if (targetId != null && !targetId.isBlank()) {
+            builder.append(": 대상=").append(targetId);
+        }
+        if (!result.accepted() && !result.code().isBlank()) {
+            builder.append(" 사유=").append(result.code());
+        }
+        return builder.toString();
     }
 
     private static String joined(String[] args, int start) {
@@ -405,65 +406,10 @@ final class IslandHomeWarpCommandHandler {
     }
 
     private static String compactId(String value) {
-        return value == null || value.length() <= 8 ? String.valueOf(value) : value.substring(0, 8);
-    }
-
-    private static String text(String json, String key) {
-        if (json == null || key == null) {
-            return "";
+        if (value == null || value.length() <= 8) {
+            return String.valueOf(value);
         }
-        String pattern = "\"" + key + "\":\"";
-        int start = json.indexOf(pattern);
-        if (start < 0) {
-            return "";
-        }
-        int valueStart = start + pattern.length();
-        int valueEnd = jsonStringEnd(json, valueStart);
-        return valueEnd < 0 ? "" : unescape(json.substring(valueStart, valueEnd));
-    }
-
-    private static int jsonStringEnd(String value, int start) {
-        boolean escaping = false;
-        for (int index = start; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (!escaping && current == '"') {
-                return index;
-            }
-            escaping = !escaping && current == '\\';
-        }
-        return -1;
-    }
-
-    private static String unescape(String value) {
-        StringBuilder builder = new StringBuilder(value.length());
-        boolean escaping = false;
-        for (int index = 0; index < value.length(); index++) {
-            char current = value.charAt(index);
-            if (!escaping) {
-                if (current == '\\') {
-                    escaping = true;
-                } else {
-                    builder.append(current);
-                }
-                continue;
-            }
-            switch (current) {
-                case '"' -> builder.append('"');
-                case '\\' -> builder.append('\\');
-                case '/' -> builder.append('/');
-                case 'b' -> builder.append('\b');
-                case 'f' -> builder.append('\f');
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                default -> builder.append(current);
-            }
-            escaping = false;
-        }
-        if (escaping) {
-            builder.append('\\');
-        }
-        return builder.toString();
+        return new StringBuilder(8).append(value, 0, 8).toString();
     }
 
     record Point(String worldName, double x, double y, double z, float yaw, float pitch, boolean publicAccess) {}
@@ -476,8 +422,6 @@ final class IslandHomeWarpCommandHandler {
         void message(Player player, String message);
 
         String routeMessage(String key, String fallback);
-
-        String actionResultMessage(String label, String targetId, String body);
 
         String coreWriteFailureMessage(Throwable error, String fallback);
 

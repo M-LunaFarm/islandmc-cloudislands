@@ -21,17 +21,26 @@ class IslandHomeWarpUseCaseTest {
         IslandLocation location = new IslandLocation("world", 1.0d, 2.0d, 3.0d, 90.0f, 0.0f);
 
         assertEquals("home-set", useCase.setHome(islandId, actorUuid, "home", location, mutationRunner(calls)).join());
+        assertEquals("HOME_SET", useCase.setHomeAction(islandId, actorUuid, "home", location, mutationRunner(calls)).join().code());
         assertEquals("warp-set", useCase.setWarp(islandId, actorUuid, "spawn", location, false, mutationRunner(calls)).join());
+        assertEquals("WARP_SET", useCase.setWarpAction(islandId, actorUuid, "spawn", location, false, mutationRunner(calls)).join().code());
         assertEquals("homes", useCase.listHomes(islandId).join());
         assertEquals("warps", useCase.listWarps(islandId).join());
         assertEquals("info", useCase.islandInfo(islandId).join());
         assertEquals("deleted", useCase.deleteWarp(islandId, actorUuid, "spawn", idempotentMutationRunner(calls)).join());
+        assertEquals("WARP_DELETED", useCase.deleteWarpAction(islandId, actorUuid, "spawn", idempotentMutationRunner(calls)).join().code());
         assertEquals("access", useCase.setWarpPublicAccess(islandId, actorUuid, "spawn", true, mutationRunner(calls)).join());
-        assertEquals("public-warps", useCase.listPublicWarps(200, null, null).join());
+        assertEquals("WARP_PUBLIC", useCase.setWarpPublicAccessAction(islandId, actorUuid, "spawn", true, mutationRunner(calls)).join().code());
+        assertEquals(publicWarpsJson(islandId), useCase.listPublicWarps(200, null, null).join());
+        assertEquals("spawn", useCase.publicWarpViews(200, null, null).join().getFirst().name());
 
         assertEquals(List.of(
             "audit:island.home.set",
             "setIslandHomeResult:home",
+            "audit:island.home.set",
+            "setIslandHomeResult:home",
+            "audit:island.warp.set",
+            "setIslandWarpResult:spawn:false",
             "audit:island.warp.set",
             "setIslandWarpResult:spawn:false",
             "listIslandHomes",
@@ -39,8 +48,13 @@ class IslandHomeWarpUseCaseTest {
             "islandInfo",
             "audit:island.warp.delete",
             "deleteIslandWarpResult:spawn",
+            "audit:island.warp.delete",
+            "deleteIslandWarpResult:spawn",
             "audit:island.warp.public-access.set",
             "setIslandWarpPublicAccessResult:spawn:true",
+            "audit:island.warp.public-access.set",
+            "setIslandWarpPublicAccessResult:spawn:true",
+            "listPublicWarps:100::",
             "listPublicWarps:100::"
         ), calls);
     }
@@ -80,7 +94,7 @@ class IslandHomeWarpUseCaseTest {
                 }
                 case "listPublicWarps" -> {
                     calls.add("listPublicWarps:" + args[0] + ":" + args[1] + ":" + args[2]);
-                    yield CompletableFuture.completedFuture("public-warps");
+                    yield CompletableFuture.completedFuture(publicWarpsJson(UUID.fromString("00000000-0000-0000-0000-000000000060")));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });
@@ -102,5 +116,9 @@ class IslandHomeWarpUseCaseTest {
 
     private static UUID uuid(String value) {
         return UUID.fromString(value);
+    }
+
+    private static String publicWarpsJson(UUID islandId) {
+        return "{\"warps\":[{\"islandId\":\"" + islandId + "\",\"name\":\"spawn\",\"location\":{\"worldName\":\"world\",\"x\":1.0,\"y\":2.0,\"z\":3.0},\"publicAccess\":true,\"category\":\"market\"}]}";
     }
 }
