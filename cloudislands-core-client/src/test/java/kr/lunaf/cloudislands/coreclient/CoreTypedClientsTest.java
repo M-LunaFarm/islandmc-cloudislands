@@ -19,9 +19,11 @@ import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
+import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import org.junit.jupiter.api.Test;
 
 class CoreTypedClientsTest {
@@ -483,6 +485,58 @@ class CoreTypedClientsTest {
         assertTrue(reload.reloaded());
         assertEquals(7L, reload.clearedRedisKeys());
         assertEquals(List.of("clear", "reload"), calls);
+    }
+
+    @Test
+    void runtimeCommandClientReturnsTypedActionViews() {
+        UUID islandId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "publishHeartbeatResult" -> {
+                    NodeHeartbeatRequest request = (NodeHeartbeatRequest) args[0];
+                    calls.add("heartbeat:" + request.nodeId());
+                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                }
+                case "recordBlockDeltaResult" -> {
+                    calls.add("delta:" + args[1] + ":" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"BLOCK_DELTA_RECORDED\"}");
+                }
+                case "completeJobResult" -> {
+                    calls.add("complete:" + args[0] + ":" + args[1] + ":" + ((Map<?, ?>) args[2]).get("saved"));
+                    yield CompletableFuture.completedFuture("{\"ok\":true}");
+                }
+                case "failJobResult" -> {
+                    calls.add("fail:" + args[0] + ":" + args[1] + ":" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"JOB_REJECTED\"}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        RuntimeCommandClient client = new CoreRuntimeCommandClient(raw);
+
+        RuntimeActionView heartbeat = client.publishHeartbeat(heartbeat(" node-a ")).join();
+        RuntimeActionView delta = client.recordBlockDelta(islandId, " minecraft:diamond_block ", 3L).join();
+        RuntimeActionView complete = client.completeJob(" node-a ", jobId, Map.of("saved", "true")).join();
+        RuntimeActionView failed = client.failJob(" node-a ", jobId, "bad state").join();
+
+        assertTrue(heartbeat.accepted());
+        assertEquals("HEARTBEAT_ACCEPTED", heartbeat.code());
+        assertTrue(delta.accepted());
+        assertEquals("BLOCK_DELTA_RECORDED", delta.code());
+        assertTrue(complete.accepted());
+        assertEquals("JOB_COMPLETED", complete.code());
+        assertFalse(failed.accepted());
+        assertEquals("JOB_REJECTED", failed.code());
+        assertEquals(List.of(
+            "heartbeat: node-a ",
+            "delta:minecraft:diamond_block:3",
+            "complete:node-a:" + jobId + ":true",
+            "fail:node-a:" + jobId + ":bad state"
+        ), calls);
     }
 
     @Test
@@ -1783,6 +1837,32 @@ class CoreTypedClientsTest {
             Instant.EPOCH.plusSeconds(60),
             "nonce",
             Map.of()
+        );
+    }
+
+    private static NodeHeartbeatRequest heartbeat(String nodeId) {
+        return new NodeHeartbeatRequest(
+            NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION,
+            nodeId,
+            "island",
+            nodeId,
+            "test",
+            NodeState.READY,
+            1,
+            90,
+            110,
+            20,
+            2,
+            600,
+            19.5D,
+            0,
+            20,
+            0.0D,
+            128,
+            512,
+            0,
+            true,
+            "*"
         );
     }
 }

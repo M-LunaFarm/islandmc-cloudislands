@@ -100,6 +100,10 @@ public interface CoreApiClient {
         return new CoreRoutingCommandClient(this);
     }
 
+    default RuntimeCommandClient runtimeCommands() {
+        return new CoreRuntimeCommandClient(this);
+    }
+
     default ProgressionQueryClient progression() {
         return new CoreProgressionQueryClient(this);
     }

@@ -225,6 +225,10 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.lifecycle().adminDeleteIsland(islandId)"), "Admin island deletion must use the typed lifecycle client");
         assertTrue(source.contains("client.adminMaintenance().clearCache()"), "Cache clearing must use the typed maintenance client");
         assertTrue(source.contains("client.adminMaintenance().reload()"), "Reload must use the typed maintenance client");
+        assertTrue(source.contains("client.runtimeCommands().publishHeartbeat("), "Heartbeat publishing must use the typed runtime command client");
+        assertTrue(source.contains("client.runtimeCommands().recordBlockDelta(islandId, materialKey, delta)"), "Block deltas must use the typed runtime command client");
+        assertTrue(source.contains("client.runtimeCommands().completeJob(nodeId, jobId, payload)"), "Runtime job completion must use the typed runtime command client");
+        assertTrue(source.contains("client.runtimeCommands().failJob(nodeId, jobId, errorMessage)"), "Runtime job failure must use the typed runtime command client");
 
         assertTrue(!source.contains("client.activateIslandResult(islandId)"), "Paper public API must not call raw activation JSON endpoints");
         assertTrue(!source.contains("client.deactivateIslandResult(islandId)"), "Paper public API must not call raw deactivation JSON endpoints");
@@ -237,6 +241,10 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("client.adminDeleteIslandResult(islandId)"), "Paper public API must not call raw admin delete JSON endpoints");
         assertTrue(!source.contains("client.clearCacheResult()"), "Paper public API must not call raw cache maintenance JSON endpoints");
         assertTrue(!source.contains("client.reloadResult()"), "Paper public API must not call raw reload maintenance JSON endpoints");
+        assertTrue(!source.contains("client.publishHeartbeatResult("), "Paper public API must not call raw heartbeat JSON endpoints");
+        assertTrue(!source.contains("client.recordBlockDeltaResult(islandId, materialKey, delta)"), "Paper public API must not call raw block delta JSON endpoints");
+        assertTrue(!source.contains("client.completeJobResult(nodeId, jobId, payload)"), "Paper public API must not call raw runtime job completion JSON endpoints");
+        assertTrue(!source.contains("client.failJobResult(nodeId, jobId, errorMessage)"), "Paper public API must not call raw runtime job failure JSON endpoints");
     }
 
     @Test

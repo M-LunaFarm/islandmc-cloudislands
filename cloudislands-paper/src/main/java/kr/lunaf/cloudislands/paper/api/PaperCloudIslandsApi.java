@@ -137,6 +137,7 @@ import kr.lunaf.cloudislands.coreclient.ProgressionReviewRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.ReviewListView;
 import kr.lunaf.cloudislands.coreclient.ReviewView;
+import kr.lunaf.cloudislands.coreclient.RuntimeActionView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
@@ -2232,7 +2233,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> heartbeatResult(String nodeId, NodeHeartbeat heartbeat) {
-            return mutate("runtime.heartbeat.publish", () -> client.publishHeartbeatResult(new NodeHeartbeatRequest(
+            return mutate("runtime.heartbeat.publish", () -> client.runtimeCommands().publishHeartbeat(new NodeHeartbeatRequest(
                 NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION,
                 nodeId,
                 "island",
@@ -2254,7 +2255,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 0,
                 true,
                 "*"
-            ))).thenApply(body -> action(body, "HEARTBEAT_ACCEPTED"));
+            ))).thenApply(view -> action(view, "HEARTBEAT_ACCEPTED"));
         }
 
         @Override
@@ -2264,7 +2265,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> recordBlockDeltaResult(UUID islandId, String materialKey, long delta) {
-            return mutate("runtime.block-delta.record", () -> client.recordBlockDeltaResult(islandId, materialKey, delta)).thenApply(body -> action(body, "BLOCK_DELTA_RECORDED"));
+            return mutate("runtime.block-delta.record", () -> client.runtimeCommands().recordBlockDelta(islandId, materialKey, delta)).thenApply(view -> action(view, "BLOCK_DELTA_RECORDED"));
         }
 
         @Override
@@ -2289,7 +2290,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload) {
-            return mutateIdempotent("runtime.job.complete", () -> client.completeJobResult(nodeId, jobId, payload)).thenApply(body -> action(body, "JOB_COMPLETED"));
+            return mutateIdempotent("runtime.job.complete", () -> client.runtimeCommands().completeJob(nodeId, jobId, payload)).thenApply(view -> action(view, "JOB_COMPLETED"));
         }
 
         @Override
@@ -2299,7 +2300,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<IslandActionResult> failJobResult(String nodeId, UUID jobId, String errorMessage) {
-            return mutateIdempotent("runtime.job.fail", () -> client.failJobResult(nodeId, jobId, errorMessage)).thenApply(body -> action(body, "JOB_FAILED"));
+            return mutateIdempotent("runtime.job.fail", () -> client.runtimeCommands().failJob(nodeId, jobId, errorMessage)).thenApply(view -> action(view, "JOB_FAILED"));
         }
     }
 
@@ -3053,6 +3054,13 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static IslandActionResult action(IslandLifecycleActionView view, String fallbackCode) {
+        if (view == null) {
+            return new IslandActionResult(false, "FAILED");
+        }
+        return new IslandActionResult(view.accepted(), view.code().isBlank() ? (view.accepted() ? fallbackCode : "FAILED") : view.code());
+    }
+
+    private static IslandActionResult action(RuntimeActionView view, String fallbackCode) {
         if (view == null) {
             return new IslandActionResult(false, "FAILED");
         }
