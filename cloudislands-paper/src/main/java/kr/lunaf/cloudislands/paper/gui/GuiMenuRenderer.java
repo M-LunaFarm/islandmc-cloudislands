@@ -58,16 +58,28 @@ public final class GuiMenuRenderer {
     }
 
     public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, Map<String, String> data) {
+        return item(definition, item, messages, data, List.of());
+    }
+
+    public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, Map<String, String> data, List<String> extraLore) {
         java.util.LinkedHashMap<String, String> mergedData = new java.util.LinkedHashMap<>(item.data());
         if (data != null) {
             mergedData.putAll(data);
+        }
+        java.util.ArrayList<String> renderedLore = new java.util.ArrayList<>(lore(item, messages));
+        if (extraLore != null) {
+            for (String line : extraLore) {
+                if (line != null && !line.isBlank()) {
+                    renderedLore.add(line);
+                }
+            }
         }
         return GuiItems.action(
             material(item.materialKey()),
             message(messages, item.nameKey(), item.fallbackName()),
             definition.action(item.actionKey(), item.actionKey()),
             mergedData,
-            lore(item, messages).toArray(String[]::new)
+            renderedLore.toArray(String[]::new)
         );
     }
 

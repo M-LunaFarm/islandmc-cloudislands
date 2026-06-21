@@ -2,8 +2,71 @@ id: island.members
 rows: 6
 title-key: menu.members.title
 page-size: 45
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "........."
+  - "IPXNRLGSB"
+items:
+  I:
+    material: WRITABLE_BOOK
+    name-key: member-menu-invite-name
+    fallback-name: 멤버 초대
+    lore-keys:
+      - member-menu-invite-usage
+    fallback-lore:
+      - "사용법: /섬 초대 <플레이어>"
+    action: invite-help
+  P:
+    material: ARROW
+    name-key: member-menu-prev-page-name
+    fallback-name: 이전 페이지
+    action: page
+  X:
+    material: COMPARATOR
+    name-key: member-menu-permission-name
+    fallback-name: 권한 설정
+    action: permissions
+  N:
+    material: ARROW
+    name-key: member-menu-next-page-name
+    fallback-name: 다음 페이지
+    action: page
+  R:
+    material: CLOCK
+    name-key: member-menu-refresh-name
+    fallback-name: 새로고침
+    action: open
+  L:
+    material: PAPER
+    name-key: member-menu-invite-list-name
+    fallback-name: 초대 목록
+    action: invites
+  G:
+    material: MAP
+    name-key: member-menu-page-name
+    fallback-name: 페이지
+    action: list
+  S:
+    material: REDSTONE_TORCH
+    name-key: member-menu-settings-name
+    fallback-name: 설정
+    action: settings
+  B:
+    material: COMPASS
+    name-key: member-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    action: back
 actions:
+  open: island.members.open
   detail: island.member.detail
   invite: island.member.invite
+  invite-help: island.member.invite.help
+  invites: island.invites.open
   permissions: island.permissions.open
+  page: island.members.page
+  list: island.member.list
+  settings: island.settings.open
   back: island.main.open
