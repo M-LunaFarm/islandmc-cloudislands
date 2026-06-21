@@ -10,7 +10,6 @@ import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
-import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -686,6 +685,11 @@ final class IslandCommandBackend {
             }
 
             @Override
+            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+                return IslandCommandBackend.this.mutate(auditAction, operation);
+            }
+
+            @Override
             public void listIslandMembers(Player player) {
                 IslandCommandBackend.this.listIslandMembers(player);
             }
@@ -703,21 +707,6 @@ final class IslandCommandBackend {
             @Override
             public void inviteIslandMember(Player player, String target) {
                 IslandCommandBackend.this.inviteIslandMember(player, target);
-            }
-
-            @Override
-            public void listPendingInvites(Player player) {
-                IslandCommandBackend.this.listPendingInvites(player);
-            }
-
-            @Override
-            public void acceptIslandInviteTarget(Player player, String target) {
-                IslandCommandBackend.this.acceptIslandInviteTarget(player, target);
-            }
-
-            @Override
-            public void declineIslandInviteTarget(Player player, String target) {
-                IslandCommandBackend.this.declineIslandInviteTarget(player, target);
             }
 
             @Override
@@ -1041,79 +1030,6 @@ final class IslandCommandBackend {
             });
     }
 
-    private void listPendingInvites(Player player) {
-        memberManagement.listPendingInviteViews(player.getUniqueId())
-            .thenAccept(invites -> message(player, inviteListMessage(invites)))
-            .exceptionally(error -> {
-                message(player, "섬 초대 목록을 불러오지 못했습니다.");
-                return null;
-            });
-    }
-
-    private void acceptIslandInvite(Player player, UUID inviteId) {
-        if (inviteId == null) {
-            message(player, routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
-            return;
-        }
-            mutate("island.invite.accept", () -> memberManagement.acceptInviteAction(inviteId, player.getUniqueId()))
-            .thenAccept(result -> message(player, inviteActionMessage("섬 초대 수락", inviteId, result)))
-            .exceptionally(error -> {
-                message(player, "섬 초대를 수락하지 못했습니다.");
-                return null;
-            });
-    }
-
-    private void acceptIslandInviteTarget(Player player, String target) {
-        resolveInviteTarget(player, target).thenAccept(inviteId -> {
-            if (inviteId == null) {
-                message(player, "대상 초대를 찾지 못했습니다.");
-                return;
-            }
-            acceptIslandInvite(player, inviteId);
-        }).exceptionally(error -> {
-            message(player, "대상 초대를 찾지 못했습니다.");
-            return null;
-        });
-    }
-
-    private void declineIslandInvite(Player player, UUID inviteId) {
-        if (inviteId == null) {
-            message(player, routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
-            return;
-        }
-            mutate("island.invite.decline", () -> memberManagement.declineInviteAction(inviteId, player.getUniqueId()))
-            .thenAccept(result -> message(player, inviteActionMessage("섬 초대 거절", inviteId, result)))
-            .exceptionally(error -> {
-                message(player, "섬 초대를 거절하지 못했습니다.");
-                return null;
-            });
-    }
-
-    private void declineIslandInviteTarget(Player player, String target) {
-        resolveInviteTarget(player, target).thenAccept(inviteId -> {
-            if (inviteId == null) {
-                message(player, "대상 초대를 찾지 못했습니다.");
-                return;
-            }
-            declineIslandInvite(player, inviteId);
-        }).exceptionally(error -> {
-            message(player, "대상 초대를 찾지 못했습니다.");
-            return null;
-        });
-    }
-
-    private CompletableFuture<UUID> resolveInviteTarget(Player player, String target) {
-        UUID parsed = uuid(target);
-        if (parsed != null) {
-            return memberManagement.resolveInviteIdOrDirectId(player.getUniqueId(), parsed);
-        }
-        Player online = plugin.getServer().getPlayerExact(target);
-        if (online != null) {
-            return memberManagement.resolveInviteByPlayerUuid(player.getUniqueId(), online.getUniqueId());
-        }
-        return memberManagement.resolveInviteByPlayerNameOrIslandName(player.getUniqueId(), target);
-    }
-
     private void removeIslandMember(Player player, String target) {
         currentIsland(player, "섬 안에서만 멤버를 추방할 수 있습니다.").ifPresent(islandId -> {
             if (!allowed(player, IslandPermission.MANAGE_MEMBERS)) {
@@ -1338,19 +1254,6 @@ final class IslandCommandBackend {
         return entries.isEmpty() ? "섬 멤버가 없습니다." : "섬 멤버: " + String.join(", ", entries);
     }
 
-    private String inviteListMessage(List<InviteView> invites) {
-        List<String> entries = new ArrayList<>();
-        for (InviteView invite : invites == null ? List.<InviteView>of() : invites) {
-            String inviteId = invite.inviteId();
-            String islandId = invite.islandId();
-            String inviterUuid = invite.inviterUuid();
-            if (!inviteId.isBlank()) {
-                entries.add(compactId(inviteId) + (islandId.isBlank() ? "" : " 섬=" + compactId(islandId)) + (inviterUuid.isBlank() ? "" : " 초대한사람=" + compactId(inviterUuid)));
-            }
-        }
-        return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
-    }
-
     private String banListMessage(List<BanView> bans) {
         List<String> entries = new ArrayList<>();
         for (BanView ban : bans == null ? List.<BanView>of() : bans) {
@@ -1502,10 +1405,6 @@ final class IslandCommandBackend {
     private String inviteCreatedMessage(InviteView invite) {
         String inviteId = invite == null ? "" : invite.inviteId();
         return actionStatusMessage("섬 초대", inviteId, true, "");
-    }
-
-    private String inviteActionMessage(String label, UUID inviteId, IslandInviteActionResult result) {
-        return actionStatusMessage(label, inviteId == null ? "" : inviteId.toString(), result != null && result.applied(), result == null ? "" : result.code());
     }
 
     private String memberActionMessage(String label, UUID targetId, MemberActionResult result) {

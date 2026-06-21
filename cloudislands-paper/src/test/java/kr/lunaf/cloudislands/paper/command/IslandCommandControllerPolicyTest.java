@@ -448,6 +448,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(membershipHandler.contains("subcommand.equals(\"members\")"));
         assertTrue(membershipHandler.contains("case PERMISSIONS_OPEN"));
+        assertTrue(membershipHandler.contains("private void listPendingInvites(Player player)"), "invite list execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("private void acceptIslandInviteTarget(Player player, String target)"), "invite accept execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("private void declineIslandInviteTarget(Player player, String target)"), "invite decline execution belongs in IslandMembershipCommandHandler");
+        assertFalse(backend.contains("private void listPendingInvites(Player player)"), "invite list execution must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private void acceptIslandInviteTarget(Player player, String target)"), "invite accept execution must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private void declineIslandInviteTarget(Player player, String target)"), "invite decline execution must not stay in IslandCommandBackend");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> removeMember("), "member removal usecase must expose typed actions instead of raw JSON");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> playerInfoByName("), "player lookup usecase must expose typed UUID lookup instead of raw JSON");
         assertFalse(memberUseCase.contains("public CompletableFuture<String> islandInfoByName("), "island lookup usecase must expose typed invite resolution instead of raw JSON");

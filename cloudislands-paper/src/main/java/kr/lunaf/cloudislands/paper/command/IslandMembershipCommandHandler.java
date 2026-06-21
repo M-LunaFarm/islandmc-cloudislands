@@ -1,7 +1,15 @@
 package kr.lunaf.cloudislands.paper.command;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
+import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
@@ -13,11 +21,13 @@ import org.bukkit.plugin.Plugin;
 final class IslandMembershipCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final MemberManagementUseCase memberManagement;
     private final Runtime runtime;
 
     IslandMembershipCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.memberManagement = new MemberManagementUseCase(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -43,7 +53,7 @@ final class IslandMembershipCommandHandler {
             return true;
         }
         if (subcommand.equals("invite-list")) {
-            runtime.listPendingInvites(player);
+            listPendingInvites(player);
             return true;
         }
         if (subcommand.equals("accept") || subcommand.equals("invite-accept") || subcommand.equals("초대수락")) {
@@ -51,7 +61,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-invite-accept-target-required", "수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.acceptIslandInviteTarget(player, args[1]);
+            acceptIslandInviteTarget(player, args[1]);
             return true;
         }
         if (subcommand.equals("decline") || subcommand.equals("invite-decline") || subcommand.equals("초대거절")) {
@@ -59,7 +69,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-invite-decline-target-required", "거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
                 return true;
             }
-            runtime.declineIslandInviteTarget(player, args[1]);
+            declineIslandInviteTarget(player, args[1]);
             return true;
         }
         if (subcommand.equals("kick") || subcommand.equals("remove-member") || subcommand.equals("추방")) {
@@ -231,9 +241,9 @@ final class IslandMembershipCommandHandler {
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
         if (action instanceof GuiAction.InviteAction inviteAction) {
             if (inviteAction.accept()) {
-                runtime.acceptIslandInviteTarget(player, inviteAction.inviteId().toString());
+                acceptIslandInviteTarget(player, inviteAction.inviteId().toString());
             } else {
-                runtime.declineIslandInviteTarget(player, inviteAction.inviteId().toString());
+                declineIslandInviteTarget(player, inviteAction.inviteId().toString());
             }
             return true;
         }
@@ -386,6 +396,123 @@ final class IslandMembershipCommandHandler {
         return false;
     }
 
+    private void listPendingInvites(Player player) {
+        memberManagement.listPendingInviteViews(player.getUniqueId())
+            .thenAccept(invites -> runtime.message(player, inviteListMessage(invites)))
+            .exceptionally(error -> {
+                runtime.message(player, "섬 초대 목록을 불러오지 못했습니다.");
+                return null;
+            });
+    }
+
+    private void acceptIslandInviteTarget(Player player, String target) {
+        resolveInviteTarget(player, target).thenAccept(inviteId -> {
+            if (inviteId == null) {
+                runtime.message(player, "대상 초대를 찾지 못했습니다.");
+                return;
+            }
+            acceptIslandInvite(player, inviteId);
+        }).exceptionally(error -> {
+            runtime.message(player, "대상 초대를 찾지 못했습니다.");
+            return null;
+        });
+    }
+
+    private void acceptIslandInvite(Player player, UUID inviteId) {
+        if (inviteId == null) {
+            runtime.message(player, runtime.routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
+            return;
+        }
+        runtime.mutate("island.invite.accept", () -> memberManagement.acceptInviteAction(inviteId, player.getUniqueId()))
+            .thenAccept(result -> runtime.message(player, inviteActionMessage("섬 초대 수락", inviteId, result)))
+            .exceptionally(error -> {
+                runtime.message(player, "섬 초대를 수락하지 못했습니다.");
+                return null;
+            });
+    }
+
+    private void declineIslandInviteTarget(Player player, String target) {
+        resolveInviteTarget(player, target).thenAccept(inviteId -> {
+            if (inviteId == null) {
+                runtime.message(player, "대상 초대를 찾지 못했습니다.");
+                return;
+            }
+            declineIslandInvite(player, inviteId);
+        }).exceptionally(error -> {
+            runtime.message(player, "대상 초대를 찾지 못했습니다.");
+            return null;
+        });
+    }
+
+    private void declineIslandInvite(Player player, UUID inviteId) {
+        if (inviteId == null) {
+            runtime.message(player, runtime.routeMessage("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
+            return;
+        }
+        runtime.mutate("island.invite.decline", () -> memberManagement.declineInviteAction(inviteId, player.getUniqueId()))
+            .thenAccept(result -> runtime.message(player, inviteActionMessage("섬 초대 거절", inviteId, result)))
+            .exceptionally(error -> {
+                runtime.message(player, "섬 초대를 거절하지 못했습니다.");
+                return null;
+            });
+    }
+
+    private CompletableFuture<UUID> resolveInviteTarget(Player player, String target) {
+        UUID parsed = uuid(target);
+        if (parsed != null) {
+            return memberManagement.resolveInviteIdOrDirectId(player.getUniqueId(), parsed);
+        }
+        Player online = plugin.getServer().getPlayerExact(target);
+        if (online != null) {
+            return memberManagement.resolveInviteByPlayerUuid(player.getUniqueId(), online.getUniqueId());
+        }
+        return memberManagement.resolveInviteByPlayerNameOrIslandName(player.getUniqueId(), target);
+    }
+
+    private static String inviteListMessage(List<InviteView> invites) {
+        List<String> entries = new ArrayList<>();
+        for (InviteView invite : invites == null ? List.<InviteView>of() : invites) {
+            String inviteId = invite.inviteId();
+            String islandId = invite.islandId();
+            String inviterUuid = invite.inviterUuid();
+            if (!inviteId.isBlank()) {
+                entries.add(compactId(inviteId) + (islandId.isBlank() ? "" : " 섬=" + compactId(islandId)) + (inviterUuid.isBlank() ? "" : " 초대한사람=" + compactId(inviterUuid)));
+            }
+        }
+        return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
+    }
+
+    private static String inviteActionMessage(String label, UUID inviteId, IslandInviteActionResult result) {
+        return actionStatusMessage(label, inviteId == null ? "" : inviteId.toString(), result != null && result.applied(), result == null ? "" : result.code());
+    }
+
+    private static String actionStatusMessage(String label, String targetId, boolean accepted, String code) {
+        StringBuilder builder = new StringBuilder(label)
+            .append(accepted ? " 완료" : " 실패");
+        if (targetId != null && !targetId.isBlank()) {
+            builder.append(": 대상=").append(compactId(targetId));
+        }
+        if (code != null && !code.isBlank()) {
+            builder.append(" code=").append(code);
+        }
+        return builder.toString();
+    }
+
+    private static String compactId(String value) {
+        if (value == null || value.length() != 36 || !value.contains("-")) {
+            return value == null ? "" : value;
+        }
+        return value.substring(0, 8);
+    }
+
+    private static UUID uuid(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
     interface Runtime {
         void message(Player player, String message);
 
@@ -405,6 +532,8 @@ final class IslandMembershipCommandHandler {
 
         int defaultRoleWeight(String roleKey);
 
+        <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
+
         void listIslandMembers(Player player);
 
         void openIslandMemberMenu(Player player);
@@ -412,12 +541,6 @@ final class IslandMembershipCommandHandler {
         void openIslandMemberMenu(Player player, int page);
 
         void inviteIslandMember(Player player, String target);
-
-        void listPendingInvites(Player player);
-
-        void acceptIslandInviteTarget(Player player, String target);
-
-        void declineIslandInviteTarget(Player player, String target);
 
         void removeIslandMember(Player player, String target);
 
