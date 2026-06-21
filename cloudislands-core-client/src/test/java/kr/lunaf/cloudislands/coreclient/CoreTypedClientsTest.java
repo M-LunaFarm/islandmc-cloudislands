@@ -455,6 +455,31 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void lifecycleCommandClientReturnsTypedResetResult() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "resetIslandResult" -> {
+                    calls.add("reset:" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        IslandLifecycleCommandClient client = new CoreIslandLifecycleCommandClient(raw);
+
+        IslandLifecycleActionView result = client.resetIsland(islandId, actorUuid, " ").join();
+
+        assertTrue(result.accepted());
+        assertEquals("RESET_QUEUED", result.code());
+        assertEquals(List.of("reset:player-reset"), calls);
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

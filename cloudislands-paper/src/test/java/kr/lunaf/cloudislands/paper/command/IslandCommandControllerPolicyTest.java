@@ -368,7 +368,9 @@ class IslandCommandControllerPolicyTest {
         assertFalse(creationUseCase.contains("public CompletableFuture<String> reset("), "reset usecase must expose typed actions instead of raw JSON");
         assertTrue(creationUseCase.contains("coreApiClient.createIsland"));
         assertTrue(creationUseCase.contains("coreApiClient.deleteIsland"));
-        assertTrue(creationUseCase.contains("coreApiClient.resetIslandResult"));
+        assertTrue(creationUseCase.contains("IslandLifecycleCommandClient lifecycleCommands"), "reset mutation must stay behind a typed core-client command boundary");
+        assertTrue(creationUseCase.contains("lifecycleCommands.resetIsland"));
+        assertFalse(creationUseCase.contains("coreApiClient.resetIslandResult"));
         assertTrue(lifecycleHandler.contains("DangerousGuiActionPolicy.confirmed"));
     }
 

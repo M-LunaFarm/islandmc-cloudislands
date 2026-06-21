@@ -1,22 +1,35 @@
 package kr.lunaf.cloudislands.paper.application;
 
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreIslandLifecycleCommandClient;
+import kr.lunaf.cloudislands.coreclient.IslandLifecycleCommandClient;
 
 public final class IslandCreationUseCase {
     private final CoreApiClient coreApiClient;
+    private final IslandLifecycleCommandClient lifecycleCommands;
 
     public IslandCreationUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.lifecycleCommands = new CoreIslandLifecycleCommandClient(coreApiClient);
+    }
+
+    IslandCreationUseCase(CoreApiClient coreApiClient, IslandLifecycleCommandClient lifecycleCommands) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (lifecycleCommands == null) {
+            throw new IllegalArgumentException("lifecycleCommands is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.lifecycleCommands = lifecycleCommands;
     }
 
     public CompletableFuture<CreateIslandResult> create(UUID playerUuid, String templateId, MutationRunner runner) {
@@ -33,29 +46,17 @@ public final class IslandCreationUseCase {
         return runner.mutateIdempotent("island.delete", () -> coreApiClient.deleteIsland(playerUuid, islandId));
     }
 
-    private CompletableFuture<String> resetBody(UUID islandId, UUID actorUuid, String reason, IdempotentMutationRunner runner) {
+    private CompletableFuture<IslandActionResult> resetResult(UUID islandId, UUID actorUuid, String reason, IdempotentMutationRunner runner) {
         requireIsland(islandId);
         requirePlayer(actorUuid);
         requireIdempotentRunner(runner);
         String normalizedReason = reason == null || reason.isBlank() ? "player-reset" : reason.trim();
-        return runner.mutateIdempotent("island.reset", () -> coreApiClient.resetIslandResult(islandId, actorUuid, normalizedReason));
+        return runner.mutateIdempotent("island.reset", () -> lifecycleCommands.resetIsland(islandId, actorUuid, normalizedReason))
+            .thenApply(result -> new IslandActionResult(result.accepted(), result.code()));
     }
 
     public CompletableFuture<IslandActionResult> resetAction(UUID islandId, UUID actorUuid, String reason, IdempotentMutationRunner runner) {
-        return resetBody(islandId, actorUuid, reason, runner)
-            .thenApply(body -> actionResult(body, "RESET_QUEUED"));
-    }
-
-    private static IslandActionResult actionResult(String body, String successCode) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
-        boolean accepted = !root.containsKey("error")
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = SimpleJson.text(root.get("code"));
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        return new IslandActionResult(accepted, code);
+        return resetResult(islandId, actorUuid, reason, runner);
     }
 
     private static void requirePlayer(UUID playerUuid) {
