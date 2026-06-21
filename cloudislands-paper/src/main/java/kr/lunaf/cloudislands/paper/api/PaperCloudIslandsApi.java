@@ -3378,31 +3378,33 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static IslandBankChangeSnapshot bankDeposit(String json) {
-        boolean accepted = !json.contains("\"accepted\":false") && !hasError(json);
-        return new IslandBankChangeSnapshot(accepted, accepted ? "DEPOSITED" : text(json, "code", "FAILED"), json == null || json.isBlank() || json.contains("\"bank\":null") ? null : bank(json));
-    }
-
     private static IslandBankChangeSnapshot bankDeposit(BankMutationView view) {
         if (view == null) {
             return new IslandBankChangeSnapshot(false, "FAILED", null);
         }
-        return bankDeposit(view.body());
-    }
-
-    private static IslandBankChangeSnapshot bankChange(String json) {
-        return new IslandBankChangeSnapshot(
-            bool(json, "accepted", false),
-            text(json, "code", hasError(json) ? "FAILED" : ""),
-            json == null || json.isBlank() || json.contains("\"bank\":null") ? null : bank(json)
-        );
+        return bankChange(view, "DEPOSITED");
     }
 
     private static IslandBankChangeSnapshot bankChange(BankMutationView view) {
         if (view == null) {
             return new IslandBankChangeSnapshot(false, "FAILED", null);
         }
-        return bankChange(view.body());
+        return bankChange(view, "");
+    }
+
+    private static IslandBankChangeSnapshot bankChange(BankMutationView view, String acceptedCode) {
+        String code = view.code().isBlank() && view.accepted() ? acceptedCode : view.code();
+        if (code.isBlank() && !view.accepted()) {
+            code = "FAILED";
+        }
+        IslandBankSnapshot bank = view.islandId().isBlank() && view.balance().isBlank()
+            ? null
+            : new IslandBankSnapshot(
+                uuidValueOrZero(view.islandId()),
+                view.balance(),
+                view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
+            );
+        return new IslandBankChangeSnapshot(view.accepted(), code, bank);
     }
 
     private static IslandChatResult chatResult(String json) {

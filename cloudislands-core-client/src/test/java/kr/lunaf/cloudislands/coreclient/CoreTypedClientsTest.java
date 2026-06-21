@@ -719,11 +719,11 @@ class CoreTypedClientsTest {
             (_proxy, method, args) -> switch (method.getName()) {
                 case "depositIslandBank" -> {
                     calls.add("deposit:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"balance\":\"70\"}");
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"bank\":{\"islandId\":\"%s\",\"balance\":\"70\",\"updatedAt\":\"now\"}}".formatted(islandId));
                 }
                 case "withdrawIslandBank" -> {
                     calls.add("withdraw:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_FUNDS\",\"balance\":\"20\"}");
+                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_FUNDS\",\"islandId\":\"%s\",\"balance\":\"20\",\"updatedAt\":\"later\"}".formatted(islandId));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
@@ -734,10 +734,14 @@ class CoreTypedClientsTest {
         BankMutationView withdraw = client.withdraw(islandId, actorUuid, "4").join();
 
         assertTrue(deposit.accepted());
+        assertEquals(islandId.toString(), deposit.islandId());
         assertEquals("70", deposit.balance());
+        assertEquals("now", deposit.updatedAt());
         assertFalse(withdraw.accepted());
         assertEquals("NO_FUNDS", withdraw.code());
+        assertEquals(islandId.toString(), withdraw.islandId());
         assertEquals("20", withdraw.balance());
+        assertEquals("later", withdraw.updatedAt());
         assertEquals(List.of("deposit:15", "withdraw:4"), calls);
     }
 

@@ -252,6 +252,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.communicationCommands().sendChat(islandId, actorUuid, channel, message)"), "Chat mutation must use the typed communication command client");
         assertTrue(source.contains("client.bankCommands().deposit(islandId, actorUuid, amount.toPlainString())"), "Bank deposit must use the typed bank command client");
         assertTrue(source.contains("client.bankCommands().withdraw(islandId, actorUuid, amount.toPlainString())"), "Bank withdraw must use the typed bank command client");
+        assertTrue(!source.contains("bankDeposit(view.body())"), "Bank deposit results must not be reparsed from raw Core JSON");
+        assertTrue(!source.contains("bankChange(view.body())"), "Bank withdraw results must not be reparsed from raw Core JSON");
         assertTrue(source.contains("client.routingCommands().publishRouteSessionResult(ticket)"), "Route session publish must use the typed routing command client");
         assertTrue(source.contains("client.lifecycle().repairIsland(islandId, reason)"), "Island repair must use the typed lifecycle command client");
         assertTrue(source.contains("client.progressionCommands().registerMissionProvider(providerId, definitions)"), "Mission provider registration must use the typed progression command client");
