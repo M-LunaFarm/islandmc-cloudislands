@@ -54,14 +54,11 @@ class IslandNavigationUseCaseTest {
 
         assertEquals("spawn", useCase.publicIslandViews(500).join().getFirst().name());
         assertEquals(1L, useCase.reviewViews(islandId, 0).join().count());
-        assertEquals("{\"accepted\":true}", useCase.setReview(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join());
         assertEquals(true, useCase.setReviewAction(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join().accepted());
 
         assertEquals(List.of(
             "listPublicIslands:100",
             "listIslandReviews:1",
-            "audit-idempotent:island.review.set",
-            "setIslandReview:5:nice",
             "audit-idempotent:island.review.set",
             "setIslandReview:5:nice"
         ), calls);

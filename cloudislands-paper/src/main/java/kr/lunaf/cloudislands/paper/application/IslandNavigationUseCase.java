@@ -91,7 +91,7 @@ public final class IslandNavigationUseCase {
         return listReviewBodies(islandId, limit).thenApply(IslandNavigationUseCase::reviewViews);
     }
 
-    public CompletableFuture<String> setReview(UUID islandId, UUID reviewerUuid, int rating, String comment, IdempotentMutationRunner runner) {
+    private CompletableFuture<String> setReviewBody(UUID islandId, UUID reviewerUuid, int rating, String comment, IdempotentMutationRunner runner) {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
@@ -104,7 +104,7 @@ public final class IslandNavigationUseCase {
     }
 
     public CompletableFuture<ReviewActionResult> setReviewAction(UUID islandId, UUID reviewerUuid, int rating, String comment, IdempotentMutationRunner runner) {
-        return setReview(islandId, reviewerUuid, rating, comment, runner)
+        return setReviewBody(islandId, reviewerUuid, rating, comment, runner)
             .thenApply(IslandNavigationUseCase::reviewActionResult);
     }
 
