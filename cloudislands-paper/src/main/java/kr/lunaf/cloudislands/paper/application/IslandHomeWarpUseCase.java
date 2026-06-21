@@ -8,19 +8,34 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreHomeWarpQueryClient;
+import kr.lunaf.cloudislands.coreclient.HomeWarpQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.HomeView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.WarpView;
 
 public final class IslandHomeWarpUseCase {
     private final CoreApiClient coreApiClient;
+    private final HomeWarpQueryClient homeWarpQueries;
 
     public IslandHomeWarpUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
+        this.homeWarpQueries = new CoreHomeWarpQueryClient(coreApiClient);
+    }
+
+    IslandHomeWarpUseCase(CoreApiClient coreApiClient, HomeWarpQueryClient homeWarpQueries) {
+        if (coreApiClient == null) {
+            throw new IllegalArgumentException("coreApiClient is required");
+        }
+        if (homeWarpQueries == null) {
+            throw new IllegalArgumentException("homeWarpQueries is required");
+        }
+        this.coreApiClient = coreApiClient;
+        this.homeWarpQueries = homeWarpQueries;
     }
 
     private CompletableFuture<String> setHomeBody(UUID islandId, UUID actorUuid, String name, IslandLocation location, MutationRunner runner) {
@@ -51,17 +66,17 @@ public final class IslandHomeWarpUseCase {
 
     public CompletableFuture<List<HomeView>> homeViews(UUID islandId) {
         requireIsland(islandId);
-        return PaperGuiViews.islandHomes(coreApiClient, islandId);
+        return homeWarpQueries.homes(islandId).thenApply(views -> views.stream().map(IslandHomeWarpUseCase::homeView).toList());
     }
 
     public CompletableFuture<List<WarpView>> warpViews(UUID islandId) {
         requireIsland(islandId);
-        return PaperGuiViews.islandWarps(coreApiClient, islandId);
+        return homeWarpQueries.warps(islandId).thenApply(views -> views.stream().map(IslandHomeWarpUseCase::warpView).toList());
     }
 
     public CompletableFuture<IslandInfoView> islandInfoView(UUID islandId) {
         requireIsland(islandId);
-        return PaperGuiViews.islandInfo(coreApiClient, islandId);
+        return homeWarpQueries.islandInfo(islandId).thenApply(IslandHomeWarpUseCase::islandInfoView);
     }
 
     private CompletableFuture<String> deleteWarpBody(UUID islandId, UUID actorUuid, String name, IdempotentMutationRunner runner) {
@@ -89,7 +104,19 @@ public final class IslandHomeWarpUseCase {
     }
 
     public CompletableFuture<List<WarpView>> publicWarpViews(int limit, String category, String query) {
-        return PaperGuiViews.publicWarps(coreApiClient, Math.max(1, Math.min(limit, 100)), category == null ? "" : category, query == null ? "" : query);
+        return homeWarpQueries.publicWarps(limit, category, query).thenApply(views -> views.stream().map(IslandHomeWarpUseCase::warpView).toList());
+    }
+
+    private static HomeView homeView(CoreGuiViews.HomeView view) {
+        return new HomeView(view.name(), view.x(), view.y(), view.z(), view.createdAt());
+    }
+
+    private static WarpView warpView(CoreGuiViews.WarpView view) {
+        return new WarpView(view.islandId(), view.name(), view.x(), view.y(), view.z(), view.publicAccess(), view.category());
+    }
+
+    private static IslandInfoView islandInfoView(CoreGuiViews.IslandInfoView view) {
+        return new IslandInfoView(view.name(), view.state(), view.islandId(), view.level(), view.worth(), view.publicAccess(), view.locked(), view.size(), view.border(), view.ownerUuid());
     }
 
     private static HomeWarpActionResult actionResult(String body, String successCode) {

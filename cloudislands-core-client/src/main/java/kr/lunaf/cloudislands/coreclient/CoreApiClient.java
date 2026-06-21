@@ -48,6 +48,10 @@ public interface CoreApiClient {
         return new CoreWarehouseQueryClient(this);
     }
 
+    default HomeWarpQueryClient homeWarps() {
+        return new CoreHomeWarpQueryClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

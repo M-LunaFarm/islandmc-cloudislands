@@ -206,6 +206,36 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void homeWarpQueryClientReturnsTypedHomesWarpsAndIslandInfo() {
+        UUID islandId = UUID.randomUUID();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "listIslandHomes" -> CompletableFuture.completedFuture("""
+                    {"homes":[{"name":"home","location":{"x":1.0,"y":2.0,"z":3.0},"createdAt":"now"}]}
+                    """);
+                case "listIslandWarps" -> CompletableFuture.completedFuture("""
+                    {"warps":[{"islandId":"%s","name":"spawn","location":{"x":1.0,"y":2.0,"z":3.0},"publicAccess":true,"category":"default"}]}
+                    """.formatted(islandId));
+                case "islandInfo" -> CompletableFuture.completedFuture("""
+                    {"islandId":"%s","name":"Island","state":"ACTIVE"}
+                    """.formatted(islandId));
+                case "listPublicWarps" -> CompletableFuture.completedFuture("""
+                    {"warps":[{"islandId":"%s","name":"market","location":{"x":4.0,"y":5.0,"z":6.0},"publicAccess":true,"category":"market"}]}
+                    """.formatted(islandId));
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        HomeWarpQueryClient client = new CoreHomeWarpQueryClient(raw);
+
+        assertEquals("home", client.homes(islandId).join().get(0).name());
+        assertEquals("spawn", client.warps(islandId).join().get(0).name());
+        assertEquals("Island", client.islandInfo(islandId).join().name());
+        assertEquals("market", client.publicWarps(200, null, null).join().get(0).name());
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedRoleMutations() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

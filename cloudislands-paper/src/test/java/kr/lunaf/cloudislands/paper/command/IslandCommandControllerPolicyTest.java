@@ -297,7 +297,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpUseCase.contains("coreApiClient.setIslandHomeResult"));
         assertTrue(homeWarpUseCase.contains("coreApiClient.setIslandWarpResult"));
         assertTrue(homeWarpUseCase.contains("coreApiClient.deleteIslandWarpResult"));
-        assertTrue(homeWarpUseCase.contains("PaperGuiViews.publicWarps(coreApiClient"));
+        assertTrue(homeWarpUseCase.contains("homeWarpQueries.publicWarps"));
+        assertFalse(homeWarpUseCase.contains("PaperGuiViews.publicWarps(coreApiClient"));
     }
 
     @Test
