@@ -206,7 +206,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(progressionUseCase.contains("progressionQueries.blockDetails"));
         assertTrue(progressionUseCase.contains("progressionQueries.topWorth"));
         assertTrue(progressionUseCase.contains("progressionQueries.upgrades"));
-        assertTrue(paperGuiViews.contains("new CoreProgressionQueryClient(client).rankings(limit)"), "ranking GUI reads must stay behind a typed progression query boundary");
+        assertTrue(paperGuiViews.contains("client.progression().rankings(limit)"), "ranking GUI reads must stay behind a typed progression query boundary");
         assertFalse(paperGuiViews.contains("CoreGuiViews.rankings(client"), "ranking GUI reads must not call raw Core GUI ranking helpers directly");
         assertTrue(progressionUseCase.contains("ProgressionCommandClient progressionCommands"), "progression mutations must stay behind a typed core-client command boundary");
         assertTrue(progressionUseCase.contains("progressionCommands.recalculateLevel"));

@@ -7,7 +7,6 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
-import kr.lunaf.cloudislands.coreclient.CoreProgressionQueryClient;
 
 public final class PaperGuiViews {
     private PaperGuiViews() {
@@ -34,7 +33,7 @@ public final class PaperGuiViews {
     }
 
     public static CompletableFuture<RankingData> rankings(CoreApiClient client, int limit) {
-        return new CoreProgressionQueryClient(client).rankings(limit).thenApply(PaperGuiViews::rankings);
+        return client.progression().rankings(limit).thenApply(PaperGuiViews::rankings);
     }
 
     public static CompletableFuture<List<MemberView>> islandMembers(CoreApiClient client, UUID islandId) {
