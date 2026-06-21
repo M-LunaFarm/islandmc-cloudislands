@@ -1,12 +1,165 @@
 id: island.settings
-rows: 6
+rows: 3
 title-key: menu.settings.title
+layout:
+  - "........."
+  - ".PLMXFWBR"
+  - "KUGHSI..D"
+items:
+  P:
+    material: LIME_DYE
+    name-key: settings-menu-public-name
+    fallback-name: 공개 설정
+    lore-keys:
+      - settings-menu-public-left-click
+      - settings-menu-public-right-click
+    fallback-lore:
+      - "좌클릭: /섬 공개"
+      - "우클릭: /섬 비공개"
+    action: public-toggle
+  L:
+    material: OAK_DOOR
+    name-key: settings-menu-lock-name
+    fallback-name: 잠금 설정
+    lore-keys:
+      - settings-menu-lock-left-click
+      - settings-menu-lock-right-click
+    fallback-lore:
+      - "좌클릭: /섬 잠금해제"
+      - "우클릭: /섬 잠금"
+    action: lock-toggle
+  M:
+    material: NAME_TAG
+    name-key: settings-menu-member-name
+    fallback-name: 멤버 관리
+    lore-keys:
+      - settings-menu-member-command
+    fallback-lore:
+      - "/섬 멤버"
+    action: members
+  X:
+    material: COMPARATOR
+    name-key: settings-menu-permission-name
+    fallback-name: 권한 설정
+    lore-keys:
+      - settings-menu-permission-command
+    fallback-lore:
+      - "/섬 권한"
+    action: permissions
+  F:
+    material: REDSTONE_TORCH
+    name-key: settings-menu-flag-name
+    fallback-name: 플래그 설정
+    lore-keys:
+      - settings-menu-flag-command
+    fallback-lore:
+      - "/섬 플래그"
+    action: flags
+  W:
+    material: ENDER_PEARL
+    name-key: settings-menu-warp-name
+    fallback-name: 워프 관리
+    lore-keys:
+      - settings-menu-warp-command
+    fallback-lore:
+      - "/섬 워프"
+    action: warps
+  B:
+    material: BARRIER
+    name-key: settings-menu-ban-name
+    fallback-name: 방문자 밴
+    lore-keys:
+      - settings-menu-ban-command
+    fallback-lore:
+      - "/섬 밴목록"
+    action: bans
+  R:
+    material: NAME_TAG
+    name-key: settings-menu-role-name
+    fallback-name: 역할 설정
+    lore-keys:
+      - settings-menu-role-command
+    fallback-lore:
+      - "/섬 역할"
+    action: roles
+  K:
+    material: GOLD_BLOCK
+    name-key: settings-menu-bank-name
+    fallback-name: 은행
+    lore-keys:
+      - settings-menu-bank-command
+    fallback-lore:
+      - "/섬 은행"
+    action: bank
+  U:
+    material: BEACON
+    name-key: settings-menu-upgrade-name
+    fallback-name: 업그레이드
+    lore-keys:
+      - settings-menu-upgrade-command
+    fallback-lore:
+      - "/섬 업그레이드"
+    action: upgrades
+  G:
+    material: GRASS_BLOCK
+    name-key: settings-menu-biome-name
+    fallback-name: 바이옴
+    lore-keys:
+      - settings-menu-biome-command
+    fallback-lore:
+      - "/섬 바이옴"
+    action: biome
+  H:
+    material: HOPPER
+    name-key: settings-menu-limit-name
+    fallback-name: 제한
+    lore-keys:
+      - settings-menu-limit-command
+    fallback-lore:
+      - "/섬 제한"
+    action: limits
+  S:
+    material: CHEST
+    name-key: settings-menu-snapshot-name
+    fallback-name: 스냅샷
+    lore-keys:
+      - settings-menu-snapshot-command
+    fallback-lore:
+      - "/섬 스냅샷"
+    action: snapshots
+  I:
+    material: MAP
+    name-key: settings-menu-info-name
+    fallback-name: 섬 정보
+    lore-keys:
+      - settings-menu-info-command
+    fallback-lore:
+      - "/섬 정보"
+    action: info
+  D:
+    material: TNT
+    name-key: settings-menu-danger-name
+    fallback-name: 위험 작업
+    lore-keys:
+      - settings-menu-danger-command
+    fallback-lore:
+      - "/섬 위험작업"
+    action: danger
 actions:
   open: island.settings.open
   public-toggle: island.public.toggle
   lock-toggle: island.lock.toggle
+  members: island.members.open
+  permissions: island.permissions.open
   flags: island.flags.open
+  warps: island.warps.open
+  bans: island.bans.open
+  roles: island.roles.open
+  bank: island.bank.open
+  upgrades: island.upgrades.open
   limits: island.limits.open
   biome: island.biome.open
+  snapshots: island.snapshots.open
+  info: island.info.open
   danger: island.danger.open
   back: island.main.open

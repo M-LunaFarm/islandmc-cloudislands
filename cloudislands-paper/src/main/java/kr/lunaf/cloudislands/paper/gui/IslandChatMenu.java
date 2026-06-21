@@ -1,15 +1,11 @@
 package kr.lunaf.cloudislands.paper.gui;
 
-import java.util.List;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 public final class IslandChatMenu implements Listener {
     private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
@@ -43,11 +39,7 @@ public final class IslandChatMenu implements Listener {
     }
 
     public static void open(Player player, MessageRenderer messages) {
-        Inventory inventory = GuiInventories.create(MENU_ID, MENU.size(), message(messages, MENU.titleKey(), TITLE));
-        for (int slot = 0; slot < inventory.getSize(); slot++) {
-            int currentSlot = slot;
-            MENU.itemAt(slot).ifPresent(item -> inventory.setItem(currentSlot, item(item, messages)));
-        }
+        Inventory inventory = GuiMenuRenderer.render(MENU, messages, TITLE);
         player.openInventory(inventory);
     }
 
@@ -79,40 +71,6 @@ public final class IslandChatMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
-    }
-
-    private static ItemStack item(GuiMenuDefinition.MenuItem definition, MessageRenderer messages) {
-        ItemStack item = new ItemStack(material(definition.materialKey()));
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(message(messages, definition.nameKey(), definition.fallbackName()));
-            meta.setLore(lore(definition, messages));
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
-    private static List<String> lore(GuiMenuDefinition.MenuItem definition, MessageRenderer messages) {
-        java.util.ArrayList<String> lore = new java.util.ArrayList<>();
-        int count = Math.max(definition.loreKeys().size(), definition.fallbackLore().size());
-        for (int index = 0; index < count; index++) {
-            String key = index < definition.loreKeys().size() ? definition.loreKeys().get(index) : "";
-            String fallback = index < definition.fallbackLore().size() ? definition.fallbackLore().get(index) : "";
-            lore.add(message(messages, key, fallback));
-        }
-        return List.copyOf(lore);
-    }
-
-    private static Material material(String key) {
-        try {
-            return Material.valueOf(key == null ? "STONE" : key);
-        } catch (RuntimeException ignored) {
-            return Material.STONE;
-        }
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 }

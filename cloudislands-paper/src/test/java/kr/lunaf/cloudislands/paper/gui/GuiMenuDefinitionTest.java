@@ -95,4 +95,28 @@ class GuiMenuDefinitionTest {
         assertEquals("admin.node.open", definition.itemAt(52).orElseThrow().actionKey());
         assertEquals("D", definition.itemAt(53).orElseThrow().symbol());
     }
+
+    @Test
+    void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/settings.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.settings", definition.id());
+        assertEquals(27, definition.size());
+        assertEquals("menu.settings.title", definition.titleKey());
+        assertEquals("P", definition.itemAt(10).orElseThrow().symbol());
+        assertEquals("island.public.toggle", definition.action(definition.itemAt(10).orElseThrow().actionKey(), ""));
+        assertEquals("L", definition.itemAt(11).orElseThrow().symbol());
+        assertEquals("island.lock.toggle", definition.action(definition.itemAt(11).orElseThrow().actionKey(), ""));
+        assertEquals("M", definition.itemAt(12).orElseThrow().symbol());
+        assertEquals("island.members.open", definition.action(definition.itemAt(12).orElseThrow().actionKey(), ""));
+        assertEquals("X", definition.itemAt(13).orElseThrow().symbol());
+        assertEquals("island.permissions.open", definition.action(definition.itemAt(13).orElseThrow().actionKey(), ""));
+        assertEquals("R", definition.itemAt(17).orElseThrow().symbol());
+        assertEquals("island.roles.open", definition.action(definition.itemAt(17).orElseThrow().actionKey(), ""));
+        assertEquals("D", definition.itemAt(26).orElseThrow().symbol());
+        assertEquals("island.danger.open", definition.action(definition.itemAt(26).orElseThrow().actionKey(), ""));
+    }
 }
