@@ -1043,29 +1043,47 @@ class CoreTypedClientsTest {
                 case "purchaseIslandUpgrade" -> {
                     calls.add("purchase:" + args[2]);
                     yield CompletableFuture.completedFuture("""
-                        {"accepted":true,"code":"UPGRADED","cost":"10.00","upgrade":{"upgradeKey":"generator:ore","level":3}}
-                        """);
+                        {"accepted":true,"code":"UPGRADED","cost":"10.00","upgrade":{"islandId":"%s","upgradeKey":"generator:ore","type":"GENERATOR","level":3,"updatedAt":"2026-01-02T03:04:05Z"}}
+                        """.formatted(islandId));
+                }
+                case "progressIslandMission" -> {
+                    calls.add("progress:" + args[2] + ":" + args[3] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture("""
+                        {"accepted":true,"code":"MISSION_PROGRESS","islandId":"%s","missionKey":"starter","kind":"CHALLENGE","title":"Starter","progress":1,"goal":2,"completed":false,"reward":"10","updatedAt":"2026-01-02T03:04:05Z"}
+                        """.formatted(islandId));
                 }
                 case "completeIslandMission" -> {
                     calls.add("mission:" + args[2] + ":" + args[3]);
                     yield CompletableFuture.completedFuture("""
-                        {"accepted":true,"code":"MISSION_COMPLETED","missionKey":"starter","title":"Starter","reward":"10"}
-                        """);
+                        {"accepted":true,"code":"MISSION_COMPLETED","islandId":"%s","missionKey":"starter","kind":"CHALLENGE","title":"Starter","progress":2,"goal":2,"completed":true,"reward":"10","updatedAt":"2026-01-02T03:04:05Z"}
+                        """.formatted(islandId));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
         ProgressionCommandClient client = new CoreProgressionCommandClient(raw);
 
-        CoreGuiViews.IslandInfoView level = client.recalculateLevel(islandId, actorUuid).join();
+        LevelView level = client.recalculateLevel(islandId, actorUuid).join();
         ProgressionUpgradePurchaseView upgrade = client.purchaseUpgrade(islandId, actorUuid, "generator").join();
+        ProgressionMissionCompletionView progress = client.progressMission(islandId, actorUuid, "starter", "CHALLENGE", 1L).join();
         ProgressionMissionCompletionView mission = client.completeMission(islandId, actorUuid, "starter", "CHALLENGE").join();
 
         assertEquals(8L, level.level());
+        assertEquals(islandId.toString(), level.islandId());
+        assertEquals(islandId.toString(), upgrade.islandId());
         assertEquals("generator:ore", upgrade.upgradeKey());
+        assertEquals("GENERATOR", upgrade.type());
         assertEquals(3L, upgrade.level());
+        assertEquals("2026-01-02T03:04:05Z", upgrade.updatedAt());
+        assertEquals(1L, progress.progress());
+        assertFalse(progress.completed());
+        assertEquals(islandId.toString(), mission.islandId());
+        assertEquals("CHALLENGE", mission.kind());
+        assertEquals(2L, mission.progress());
+        assertEquals(2L, mission.goal());
+        assertTrue(mission.completed());
         assertEquals("Starter", mission.title());
-        assertEquals(List.of("recalculate", "purchase:generator", "mission:starter:CHALLENGE"), calls);
+        assertEquals(List.of("recalculate", "purchase:generator", "progress:starter:CHALLENGE:1", "mission:starter:CHALLENGE"), calls);
     }
 
     @Test

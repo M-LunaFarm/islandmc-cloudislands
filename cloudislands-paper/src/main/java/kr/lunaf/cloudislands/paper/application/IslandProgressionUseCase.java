@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.CoreProgressionQueryClient;
+import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.ProgressionQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MissionView;
@@ -112,6 +113,10 @@ public final class IslandProgressionUseCase {
 
     private static IslandLevelView levelView(CoreGuiViews.IslandInfoView info) {
         return new IslandLevelView(info.level(), info.worth().isBlank() ? "0" : info.worth());
+    }
+
+    private static IslandLevelView levelView(LevelView view) {
+        return new IslandLevelView(view.level(), view.worth().isBlank() ? "0" : view.worth());
     }
 
     private static BlockDetailsView blockDetailsView(kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailsView view) {

@@ -16,10 +16,10 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
     }
 
     @Override
-    public CompletableFuture<CoreGuiViews.IslandInfoView> recalculateLevel(UUID islandId, UUID actorUuid) {
+    public CompletableFuture<LevelView> recalculateLevel(UUID islandId, UUID actorUuid) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return delegate.recalculateIslandLevel(islandId, actorUuid).thenApply(CoreGuiViews::islandInfoView);
+        return delegate.recalculateIslandLevel(islandId, actorUuid).thenApply(CoreProgressionCommandClient::levelView);
     }
 
     @Override
@@ -36,7 +36,16 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         requireId(actorUuid, "actorUuid");
         String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
         return delegate.completeIslandMission(islandId, actorUuid, missionKey == null ? "" : missionKey, normalizedKind)
-            .thenApply(body -> missionCompletionResult(body, missionKey));
+            .thenApply(body -> missionCompletionResult(body, islandId, missionKey, normalizedKind));
+    }
+
+    @Override
+    public CompletableFuture<ProgressionMissionCompletionView> progressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
+        return delegate.progressIslandMission(islandId, actorUuid, missionKey == null ? "" : missionKey, normalizedKind, amount)
+            .thenApply(body -> missionCompletionResult(body, islandId, missionKey, normalizedKind));
     }
 
     private static ProgressionUpgradePurchaseView upgradePurchaseResult(String body, String fallbackKey) {
@@ -51,19 +60,56 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         if (upgradeKey.isBlank()) {
             upgradeKey = fallbackKey == null ? "" : fallbackKey;
         }
-        return new ProgressionUpgradePurchaseView(accepted, code, upgradeKey, SimpleJson.number(upgrade.get("level")), text(root, "cost"));
+        return new ProgressionUpgradePurchaseView(
+            accepted,
+            code,
+            text(upgrade, "islandId"),
+            upgradeKey,
+            text(upgrade, "type"),
+            SimpleJson.number(upgrade.get("level")),
+            text(root, "cost"),
+            text(upgrade, "updatedAt")
+        );
     }
 
-    private static ProgressionMissionCompletionView missionCompletionResult(String body, String fallbackKey) {
+    private static LevelView levelView(String body) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        return new LevelView(
+            text(root, "islandId"),
+            SimpleJson.number(root.get("level")),
+            text(root, "worth"),
+            text(root, "calculatedAt").isBlank() ? text(root, "updatedAt") : text(root, "calculatedAt")
+        );
+    }
+
+    private static ProgressionMissionCompletionView missionCompletionResult(String body, UUID fallbackIslandId, String fallbackKey, String fallbackKind) {
         Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
         boolean accepted = accepted(root);
         String code = text(root, "code");
+        String missionKey = text(root, "missionKey");
+        if (missionKey.isBlank()) {
+            missionKey = fallbackKey == null ? "" : fallbackKey;
+        }
+        String islandId = text(root, "islandId");
+        if (islandId.isBlank() && fallbackIslandId != null) {
+            islandId = fallbackIslandId.toString();
+        }
+        String kind = text(root, "kind");
+        if (kind.isBlank()) {
+            kind = fallbackKind == null || fallbackKind.isBlank() ? "MISSION" : fallbackKind;
+        }
         return new ProgressionMissionCompletionView(
             accepted,
             code,
-            text(root, "missionKey").isBlank() ? fallbackKey : text(root, "missionKey"),
+            islandId,
+            missionKey,
+            kind,
             text(root, "title"),
-            text(root, "reward")
+            SimpleJson.number(root.get("progress")),
+            SimpleJson.number(root.get("goal")),
+            bool(root.get("completed"), accepted),
+            text(root, "reward"),
+            text(root, "updatedAt")
         );
     }
 
@@ -81,5 +127,9 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
 
     private static String text(Map<?, ?> object, String key) {
         return SimpleJson.text(object.get(key));
+    }
+
+    private static boolean bool(Object value, boolean fallback) {
+        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 }

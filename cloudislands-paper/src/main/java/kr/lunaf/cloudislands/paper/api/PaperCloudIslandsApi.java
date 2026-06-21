@@ -127,8 +127,10 @@ import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
+import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionReviewRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.ReviewListView;
 import kr.lunaf.cloudislands.coreclient.ReviewView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
@@ -2626,14 +2628,14 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandActionResult> publishIslandResult(UUID islandId, UUID actorUuid) { return setPublicAccessResult(islandId, actorUuid, true); }
         @Override public CompletableFuture<Void> privatizeIsland(UUID islandId, UUID actorUuid) { return privatizeIslandResult(islandId, actorUuid).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandActionResult> privatizeIslandResult(UUID islandId, UUID actorUuid) { return setPublicAccessResult(islandId, actorUuid, false); }
-        @Override public CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid) { return mutate("island.level.recalculate", () -> client.recalculateIslandLevel(islandId, actorUuid)).thenApply(PaperCloudIslandsApi::level); }
+        @Override public CompletableFuture<IslandLevelSnapshot> recalculateLevel(UUID islandId, UUID actorUuid) { return mutate("island.level.recalculate", () -> client.progressionCommands().recalculateLevel(islandId, actorUuid)).thenApply(PaperCloudIslandsApi::level); }
         @Override public CompletableFuture<Void> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) { return purchaseUpgradeResult(islandId, actorUuid, upgradeKey).thenApply(_result -> null); }
-        @Override public CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey) { return mutateIdempotent("island.upgrade.purchase", () -> client.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey)).thenApply(PaperCloudIslandsApi::upgradePurchase); }
+        @Override public CompletableFuture<UpgradePurchaseSnapshot> purchaseUpgradeResult(UUID islandId, UUID actorUuid, String upgradeKey) { return mutateIdempotent("island.upgrade.purchase", () -> client.progressionCommands().purchaseUpgrade(islandId, actorUuid, upgradeKey)).thenApply(PaperCloudIslandsApi::upgradePurchase); }
         @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey) { return completeMission(islandId, actorUuid, missionKey, "MISSION"); }
         @Override public CompletableFuture<Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey) { return completeMissionResult(islandId, actorUuid, missionKey, "MISSION"); }
         @Override public CompletableFuture<Void> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind) { return completeMissionResult(islandId, actorUuid, missionKey, kind).thenApply(_result -> null); }
-        @Override public CompletableFuture<Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind) { return mutateIdempotent("island.mission.complete", () -> client.completeIslandMission(islandId, actorUuid, missionKey, kind)).thenApply(PaperCloudIslandsApi::mission); }
-        @Override public CompletableFuture<Optional<IslandMissionSnapshot>> progressMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) { return mutateIdempotent("island.mission.progress", () -> client.progressIslandMission(islandId, actorUuid, missionKey, kind, amount)).thenApply(PaperCloudIslandsApi::mission); }
+        @Override public CompletableFuture<Optional<IslandMissionSnapshot>> completeMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind) { return mutateIdempotent("island.mission.complete", () -> client.progressionCommands().completeMission(islandId, actorUuid, missionKey, kind)).thenApply(PaperCloudIslandsApi::mission); }
+        @Override public CompletableFuture<Optional<IslandMissionSnapshot>> progressMissionResult(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) { return mutateIdempotent("island.mission.progress", () -> client.progressionCommands().progressMission(islandId, actorUuid, missionKey, kind, amount)).thenApply(PaperCloudIslandsApi::mission); }
         @Override public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) { return mutate("island.mission-provider.register", () -> client.registerMissionProvider(providerId, missionDefinitionsJson(definitions))).thenApply(PaperCloudIslandsApi::missionDefinitions); }
         @Override public CompletableFuture<Void> sendChat(UUID islandId, UUID actorUuid, String channel, String message) { return sendChatResult(islandId, actorUuid, channel, message).thenApply(_result -> null); }
         @Override public CompletableFuture<IslandChatResult> sendChatResult(UUID islandId, UUID actorUuid, String channel, String message) { return mutate("island.chat.send", () -> client.sendIslandChat(islandId, actorUuid, channel, message)).thenApply(PaperCloudIslandsApi::chatResult); }
@@ -3311,6 +3313,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
+    private static IslandLevelSnapshot level(CoreGuiViews.IslandInfoView view) {
+        if (view == null) {
+            return new IslandLevelSnapshot(new UUID(0L, 0L), 0L, "0", Instant.EPOCH);
+        }
+        return new IslandLevelSnapshot(
+            uuidValueOrZero(view.islandId()),
+            view.level(),
+            view.worth().isBlank() ? "0" : view.worth(),
+            view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
+        );
+    }
+
     private static List<IslandRankSnapshot> rankings(String json) {
         List<IslandRankSnapshot> rankings = new ArrayList<>();
         for (String object : objects(json, "rankings")) {
@@ -3472,6 +3486,22 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
+    private static UpgradePurchaseSnapshot upgradePurchase(ProgressionUpgradePurchaseView view) {
+        if (view == null) {
+            return new UpgradePurchaseSnapshot(false, "", "0", null);
+        }
+        IslandUpgradeSnapshot upgrade = view.upgradeKey().isBlank()
+            ? null
+            : new IslandUpgradeSnapshot(
+                uuidValueOrZero(view.islandId()),
+                view.upgradeKey(),
+                enumValue(UpgradeType.class, view.type().isBlank() ? "ISLAND_SIZE" : view.type(), UpgradeType.ISLAND_SIZE),
+                intValue(view.level()),
+                view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
+            );
+        return new UpgradePurchaseSnapshot(view.accepted(), view.code(), view.cost(), upgrade);
+    }
+
     private static IslandUpgradeSnapshot upgrade(String json) {
         return new IslandUpgradeSnapshot(
             uuid(json, "islandId", new UUID(0L, 0L)),
@@ -3571,6 +3601,23 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             bool(json, "completed", false),
             text(json, "reward", ""),
             instant(text(json, "updatedAt", Instant.EPOCH.toString()))
+        ));
+    }
+
+    private static Optional<IslandMissionSnapshot> mission(ProgressionMissionCompletionView view) {
+        if (view == null || view.missionKey().isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(new IslandMissionSnapshot(
+            uuidValueOrZero(view.islandId()),
+            view.missionKey(),
+            view.kind().isBlank() ? "MISSION" : view.kind(),
+            view.title(),
+            view.progress(),
+            view.goal(),
+            view.completed(),
+            view.reward(),
+            view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
         ));
     }
 
