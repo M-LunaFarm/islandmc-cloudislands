@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
@@ -364,6 +365,16 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesEveryRegisteredActionIntoNonRawTypedAction() {
+        for (String actionId : GuiActionSchema.registeredActionIds()) {
+            GuiAction action = GuiActionParser.parse(actionId, sampleDataFor(actionId))
+                .orElseThrow(() -> new AssertionError("registered action is not typed: " + actionId));
+
+            assertFalse(action instanceof GuiAction.Raw, actionId);
+        }
+    }
+
+    @Test
     void rejectsUnregisteredActionIdsInsteadOfExecutingRawMaps() {
         assertTrue(GuiActionParser.parse("island.member.remvoe", Map.of("playerUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
         assertTrue(GuiActionParser.parse("island.unknown.open", Map.of()).isEmpty());
@@ -401,5 +412,60 @@ class GuiActionParserTest {
         assertTrue(action instanceof GuiAction.NoPayload);
         assertEquals(expectedType, ((GuiAction.NoPayload) action).type());
         assertEquals(Map.of(), action.data());
+    }
+
+    private static Map<String, String> sampleDataFor(String actionId) {
+        return switch (actionId) {
+            case "admin.node.kickall.confirm", "admin.node.shutdown-safe.confirm" -> Map.of(
+                "nodeId", "island-1",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
+            case "admin.node.drain", "admin.node.info", "admin.node.islands", "admin.node.kickall.prepare",
+                "admin.node.shutdown-safe.prepare", "admin.node.sweep", "admin.node.undrain",
+                "admin.island.migrate.prompt", "admin.island.where.prompt" -> Map.of("nodeId", "island-1");
+            case "island.bank.deposit", "island.bank.withdraw" -> Map.of("amount", "1");
+            case "island.biome.set" -> Map.of("biomeKey", "minecraft:plains");
+            case "island.create" -> Map.of("templateId", "default");
+            case "island.danger.delete.confirm" -> DangerousGuiActionPolicy.deleteConfirmationData();
+            case "island.danger.reset.confirm" -> DangerousGuiActionPolicy.resetConfirmationData();
+            case "island.flag.set" -> Map.of("flag", "PUBLIC_WARPS");
+            case "island.home", "island.home.set" -> Map.of("homeName", "default");
+            case "island.invite.accept", "island.invite.decline" -> Map.of("inviteId", "00000000-0000-0000-0000-000000000000");
+            case "island.limit.set" -> Map.of("limitKey", "ENTITY", "value", "1");
+            case "island.log.detail" -> Map.of("action", "BANK_DEPOSIT");
+            case "island.member.demote", "island.member.promote" -> Map.of(
+                "playerUuid", "00000000-0000-0000-0000-000000000000",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
+            case "island.ban.pardon.confirm", "island.member.remove.confirm" -> Map.of(
+                "playerUuid", "00000000-0000-0000-0000-000000000000",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
+            case "island.ban.pardon.prepare", "island.member.demote.prepare", "island.member.detail",
+                "island.member.promote.prepare", "island.member.remove.prepare" -> Map.of("playerUuid", "00000000-0000-0000-0000-000000000000");
+            case "island.members.page" -> Map.of("page", "0");
+            case "island.mission.complete" -> Map.of("missionKey", "starter");
+            case "island.missions.open" -> Map.of("kind", "MISSION");
+            case "island.permissions.page" -> Map.of("page", "0", "rolePage", "0");
+            case "island.permissions.set" -> Map.of("role", "MEMBER", "permission", "BUILD");
+            case "island.ranking.list" -> Map.of("kind", "LEVEL");
+            case "island.role.weight.adjust" -> Map.of("role", "MEMBER", "weight", "1");
+            case "island.snapshot.create" -> Map.of("reason", "manual");
+            case "island.snapshot.restore.confirm" -> Map.of(
+                "snapshotNo", "1",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
+            case "island.snapshot.restore.prepare" -> Map.of("snapshotNo", "1");
+            case "island.upgrade.purchase" -> Map.of("upgradeKey", "max-members");
+            case "island.visit.target" -> Map.of("target", "00000000-0000-0000-0000-000000000000");
+            case "island.warp.delete.confirm" -> Map.of(
+                "warpName", "shop",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
+            case "island.warp.delete.prepare", "island.warp.private", "island.warp.public",
+                "island.warp.teleport" -> Map.of("warpName", "shop");
+            case "island.warp.public.toggle" -> Map.of("warpName", "shop", "publicAccess", "true");
+            default -> Map.of();
+        };
     }
 }
