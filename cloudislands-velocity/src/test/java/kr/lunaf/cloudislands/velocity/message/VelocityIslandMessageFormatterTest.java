@@ -6,8 +6,10 @@ import java.util.List;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
+import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
+import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import org.junit.jupiter.api.Test;
@@ -143,6 +145,38 @@ class VelocityIslandMessageFormatterTest {
         assertEquals(
             "섬 채팅: 전송 완료 채널=ISLAND",
             formatter.chatResult("섬 채팅", new ChatActionView(true, "CHAT_SENT", "ISLAND", "hello"))
+        );
+    }
+
+    @Test
+    void formatsTypedRoutingViewsAndActions() {
+        assertEquals(
+            "공개 섬: 1. Market (ID=33333333, 레벨=9, 가치=1200)",
+            formatter.publicIslands(List.of(new CoreGuiViews.PublicIslandView("33333333-3333-3333-3333-333333333333", "99999999-9999-9999-9999-999999999999", "Market", 9L, "1200")))
+        );
+        assertEquals(
+            "섬 정보: ID=33333333 소유자=99999999 이름=Market 상태=READY 크기=100 레벨=9 가치=1200 공개=true",
+            formatter.islandInfo(new CoreGuiViews.IslandInfoView("Market", "READY", "33333333-3333-3333-3333-333333333333", 9L, "1200", true, false, 100L, 50L, "99999999-9999-9999-9999-999999999999"))
+        );
+        assertEquals(
+            "섬 가치: 섬=33333333 값=1200",
+            formatter.islandStat("섬 가치", "worth", new CoreGuiViews.IslandInfoView("Market", "READY", "33333333-3333-3333-3333-333333333333", 9L, "1200", true, false, 100L, 50L, "99999999-9999-9999-9999-999999999999"))
+        );
+        assertEquals(
+            "섬 바이옴: 섬=33333333 바이옴=PLAINS 변경자=99999999",
+            formatter.biomeInfo(java.util.UUID.fromString("33333333-3333-3333-3333-333333333333"), new CoreGuiViews.BiomeView("PLAINS", "99999999-9999-9999-9999-999999999999", ""))
+        );
+        assertEquals(
+            "섬 랭킹: 전체 1개 / #1 Market (ID=33333333, 레벨=9, 가치=1200)",
+            formatter.rankingList("섬 랭킹", List.of(new ProgressionRankingEntryView("33333333-3333-3333-3333-333333333333", "Market", 9L, "1200", "level")))
+        );
+        assertEquals(
+            "섬 워프: 전체 1개 / spawn(공개) 섬=33333333 위치=0.500,100.000,0.500",
+            formatter.warpList("섬 워프", List.of(new CoreGuiViews.WarpView("33333333-3333-3333-3333-333333333333", "spawn", 0.5D, 100.0D, 0.5D, true)))
+        );
+        assertEquals(
+            "섬 워프 설정: 접수됨 code=WARP_SET",
+            formatter.homeWarpAction("섬 워프 설정", new HomeWarpActionView(true, "WARP_SET"))
         );
     }
 }

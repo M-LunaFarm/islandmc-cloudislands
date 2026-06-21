@@ -1,17 +1,11 @@
 package kr.lunaf.cloudislands.velocity;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.parseLong;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
 import com.velocitypowered.api.proxy.Player;
 import java.util.Locale;
 import java.util.UUID;
-import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
-import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import net.kyori.adventure.text.Component;
 
@@ -58,35 +52,35 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void showMyIsland(Player player) {
-        sendBodyResult(player, coreApiClient.islandInfoByOwner(player.getUniqueId()).thenApply(islandMessages::islandInfo), "섬 정보를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islands().getIslandByOwner(player.getUniqueId()).thenApply(islandMessages::islandInfo), "섬 정보를 불러오지 못했습니다.");
     }
 
     public void showIslandSettings(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(islandMessages::islandInfo), "섬 설정을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islands().getIsland(islandId).thenApply(islandMessages::islandInfo), "섬 설정을 불러오지 못했습니다.");
     }
 
     public void showIslandLevel(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandMessages.islandStat("섬 레벨", "level", body)), "섬 레벨을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islands().getIsland(islandId).thenApply(view -> islandMessages.islandStat("섬 레벨", "level", view)), "섬 레벨을 불러오지 못했습니다.");
     }
 
     public void showIslandWorth(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandMessages.islandStat("섬 가치", "worth", body)), "섬 가치를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islands().getIsland(islandId).thenApply(view -> islandMessages.islandStat("섬 가치", "worth", view)), "섬 가치를 불러오지 못했습니다.");
     }
 
     public void showIslandSize(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandMessages.islandStat("섬 크기", "size", body)), "섬 크기를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islands().getIsland(islandId).thenApply(view -> islandMessages.islandStat("섬 크기", "size", view)), "섬 크기를 불러오지 못했습니다.");
     }
 
     public void showIslandBorder(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandInfo(islandId).thenApply(body -> islandMessages.islandStat("섬 경계", "border", body)), "섬 경계를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.islands().getIsland(islandId).thenApply(view -> islandMessages.islandStat("섬 경계", "border", view)), "섬 경계를 불러오지 못했습니다.");
     }
 
     public void showBiome(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.islandBiome(islandId).thenApply(islandMessages::biomeInfo), "섬 바이옴을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.environment().islandBiome(islandId).thenApply(view -> islandMessages.biomeInfo(islandId, view)), "섬 바이옴을 불러오지 못했습니다.");
     }
 
     public void setBiome(Player player, UUID islandId, String biomeKey) {
-        sendActionResult(player, coreApiClient.setIslandBiome(islandId, player.getUniqueId(), biomeKey), "섬 바이옴을 변경했습니다.", "섬 바이옴을 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.environmentCommands().setBiome(islandId, player.getUniqueId(), biomeKey).thenApply(result -> islandMessages.environmentAction("섬 바이옴 변경", result)), "섬 바이옴을 변경하지 못했습니다.");
     }
 
     public void routeHome(Player player, String homeName) {
@@ -130,13 +124,13 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
             player.sendMessage(Component.text("방문할 대상 이름을 입력해주세요."));
             return;
         }
-        coreApiClient.playerInfoByName(targetName).thenAccept(body -> {
-            UUID primaryIslandId = parseUuid(jsonValue(body, "primaryIslandId"));
+        coreApiClient.navigation().playerProfileByName(targetName).thenAccept(profile -> {
+            UUID primaryIslandId = parseUuid(profile.primaryIslandId());
             if (primaryIslandId.equals(new UUID(0L, 0L))) {
                 routeVisitName(player, targetName);
                 return;
             }
-            UUID ownerUuid = parseUuid(jsonValue(body, "playerUuid"));
+            UUID ownerUuid = parseUuid(profile.playerUuid());
             if (ownerUuid.equals(new UUID(0L, 0L))) {
                 routeVisit(player, primaryIslandId);
                 return;
@@ -189,7 +183,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void listPublicIslands(Player player, int limit) {
-        sendBodyResult(player, coreApiClient.listPublicIslands(Math.max(1, Math.min(limit, 100))).thenApply(islandMessages::publicIslands), "공개 섬 목록을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.navigation().publicIslands(Math.max(1, Math.min(limit, 100))).thenApply(islandMessages::publicIslands), "공개 섬 목록을 불러오지 못했습니다.");
     }
 
     public void routeWarp(Player player, UUID targetIslandId, String warpName) {
@@ -200,23 +194,23 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void listWarps(Player player, UUID islandId) {
-        sendBodyResult(player, coreApiClient.listIslandWarps(islandId).thenApply(body -> islandMessages.warpList("섬 워프", body)), "섬 워프를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.homeWarps().warps(islandId).thenApply(warps -> islandMessages.warpList("섬 워프", warps)), "섬 워프를 불러오지 못했습니다.");
     }
 
     public void listPublicWarps(Player player) {
-        sendBodyResult(player, coreApiClient.listPublicWarps(27).thenApply(body -> islandMessages.warpList("공개 워프", body)), "공개 워프를 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.homeWarps().publicWarps(27, "", "").thenApply(warps -> islandMessages.warpList("공개 워프", warps)), "공개 워프를 불러오지 못했습니다.");
     }
 
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
         IslandLocation defaultLocation = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
-        sendActionResult(player, coreApiClient.setIslandWarp(islandId, player.getUniqueId(), name, defaultLocation, publicAccess), "섬 워프를 설정했습니다.", "섬 워프를 설정하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.homeWarpCommands().setWarp(islandId, player.getUniqueId(), name, defaultLocation, publicAccess).thenApply(result -> islandMessages.homeWarpAction("섬 워프 설정", result)), "섬 워프를 설정하지 못했습니다.");
     }
 
     public void deleteWarp(Player player, UUID islandId, String name) {
-        sendActionResult(player, coreApiClient.deleteIslandWarp(islandId, player.getUniqueId(), name), "섬 워프를 삭제했습니다.", "섬 워프를 삭제하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.homeWarpCommands().deleteWarp(islandId, player.getUniqueId(), name).thenApply(result -> islandMessages.homeWarpAction("섬 워프 삭제", result)), "섬 워프를 삭제하지 못했습니다.");
     }
 
     public void setWarpPublicAccess(Player player, UUID islandId, String name, boolean publicAccess) {
-        sendActionResult(player, coreApiClient.setIslandWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess), publicAccess ? "섬 워프를 공개했습니다." : "섬 워프를 비공개로 변경했습니다.", "섬 워프 공개 상태를 변경하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.homeWarpCommands().setWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess).thenApply(result -> islandMessages.homeWarpAction(publicAccess ? "섬 워프 공개" : "섬 워프 비공개", result)), "섬 워프 공개 상태를 변경하지 못했습니다.");
     }
 }

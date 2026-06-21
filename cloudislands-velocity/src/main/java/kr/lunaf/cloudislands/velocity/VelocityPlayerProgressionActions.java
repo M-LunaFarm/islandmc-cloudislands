@@ -19,11 +19,11 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
     }
 
     public void showLevelRanking(Player player, int limit) {
-        sendBodyResult(player, coreApiClient.topIslandsByLevel(Math.max(1, Math.min(limit, 100))).thenApply(body -> islandMessages.rankingList("섬 랭킹", body)), "랭킹을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.progression().topLevel(Math.max(1, Math.min(limit, 100))).thenApply(rankings -> islandMessages.rankingList("섬 랭킹", rankings)), "랭킹을 불러오지 못했습니다.");
     }
 
     public void showWorthRanking(Player player, int limit) {
-        sendBodyResult(player, coreApiClient.topIslandsByWorth(Math.max(1, Math.min(limit, 100))).thenApply(body -> islandMessages.rankingList("가치 랭킹", body)), "가치 랭킹을 불러오지 못했습니다.");
+        sendBodyResult(player, coreApiClient.progression().topWorth(Math.max(1, Math.min(limit, 100))).thenApply(rankings -> islandMessages.rankingList("가치 랭킹", rankings)), "가치 랭킹을 불러오지 못했습니다.");
     }
 
     public void recalculateLevel(Player player, UUID islandId) {

@@ -15,8 +15,10 @@ import java.util.function.Function;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
+import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
+import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 
@@ -91,6 +93,26 @@ public final class VelocityIslandMessageFormatter {
                     + ", 가치=" + (worth.isBlank() ? "0" : worth) + ")");
             }
             index = objectEnd + 1;
+        }
+        return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
+    }
+
+    public String publicIslands(List<CoreGuiViews.PublicIslandView> islands) {
+        if (islands == null || islands.isEmpty()) {
+            return "공개 섬이 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        for (CoreGuiViews.PublicIslandView island : islands) {
+            if (entries.size() >= 20) {
+                break;
+            }
+            if (!island.islandId().isBlank()) {
+                entries.add((entries.size() + 1) + ". "
+                    + (island.name().isBlank() ? "이름 없는 섬" : island.name())
+                    + " (ID=" + shortId(island.islandId())
+                    + ", 레벨=" + island.level()
+                    + ", 가치=" + fallback(island.worth(), "0") + ")");
+            }
         }
         return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
     }
@@ -220,6 +242,17 @@ public final class VelocityIslandMessageFormatter {
             + " 공개=" + boolValue(body, "publicAccess");
     }
 
+    public String islandInfo(CoreGuiViews.IslandInfoView view) {
+        return "섬 정보: ID=" + shortId(view.islandId())
+            + " 소유자=" + shortId(view.ownerUuid())
+            + (view.name().isBlank() ? "" : " 이름=" + view.name())
+            + " 상태=" + (view.state().isBlank() ? "UNKNOWN" : view.state())
+            + " 크기=" + view.size()
+            + " 레벨=" + view.level()
+            + " 가치=" + view.worth()
+            + " 공개=" + view.publicAccess();
+    }
+
     public String islandStat(String label, String field, String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
@@ -230,6 +263,16 @@ public final class VelocityIslandMessageFormatter {
         return label + ": 섬=" + shortId(islandId) + " 값=" + value;
     }
 
+    public String islandStat(String label, String field, CoreGuiViews.IslandInfoView view) {
+        String value = switch (field) {
+            case "worth" -> view.worth();
+            case "size" -> Long.toString(view.size());
+            case "border" -> Long.toString(view.border());
+            default -> Long.toString(view.level());
+        };
+        return label + ": 섬=" + shortId(view.islandId()) + " 값=" + value;
+    }
+
     public String biomeInfo(String body) {
         String code = jsonValue(body, "code");
         if (!code.isBlank()) {
@@ -238,6 +281,17 @@ public final class VelocityIslandMessageFormatter {
         return "섬 바이옴: 섬=" + shortId(jsonValue(body, "islandId"))
             + " 바이옴=" + jsonValue(body, "biomeKey")
             + " 변경자=" + shortId(jsonValue(body, "updatedBy"));
+    }
+
+    public String biomeInfo(java.util.UUID islandId, CoreGuiViews.BiomeView view) {
+        return "섬 바이옴: 섬=" + shortId(islandId == null ? "" : islandId.toString())
+            + " 바이옴=" + view.key()
+            + " 변경자=" + shortId(view.updatedBy());
+    }
+
+    public String environmentAction(String label, EnvironmentActionView view) {
+        return label + ": " + (view.accepted() ? "접수됨" : "거부됨")
+            + (view.code().isBlank() ? "" : " code=" + view.code());
     }
 
     public String runtimeInfo(String body) {
@@ -299,6 +353,25 @@ public final class VelocityIslandMessageFormatter {
                     + ", 가치=" + jsonValue(object, "worth") + ")");
             }
             index = objectEnd + 1;
+        }
+        return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    public String rankingList(String label, List<ProgressionRankingEntryView> rankings) {
+        if (rankings == null || rankings.isEmpty()) {
+            return label + ": 기록이 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (ProgressionRankingEntryView ranking : rankings) {
+            total++;
+            if (entries.size() < 10) {
+                entries.add("#" + total
+                    + " " + ranking.name()
+                    + " (ID=" + shortId(ranking.islandId())
+                    + ", 레벨=" + ranking.level()
+                    + ", 가치=" + ranking.worth() + ")");
+            }
         }
         return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
@@ -410,6 +483,29 @@ public final class VelocityIslandMessageFormatter {
             + (boolValue(object, "publicAccess") ? "(공개)" : "")
             + " 섬=" + shortId(jsonValue(object, "islandId"))
             + " 위치=" + seconds(doubleValue(object, "localX")) + "," + seconds(doubleValue(object, "localY")) + "," + seconds(doubleValue(object, "localZ")));
+    }
+
+    public String warpList(String label, List<CoreGuiViews.WarpView> warps) {
+        if (warps == null || warps.isEmpty()) {
+            return label + ": empty";
+        }
+        List<String> entries = new ArrayList<>();
+        int total = 0;
+        for (CoreGuiViews.WarpView warp : warps) {
+            total++;
+            if (entries.size() < 10) {
+                entries.add(warp.name()
+                    + (warp.publicAccess() ? "(공개)" : "")
+                    + " 섬=" + shortId(warp.islandId())
+                    + " 위치=" + seconds(warp.x()) + "," + seconds(warp.y()) + "," + seconds(warp.z()));
+            }
+        }
+        return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    public String homeWarpAction(String label, HomeWarpActionView view) {
+        return label + ": " + (view.accepted() ? "접수됨" : "거부됨")
+            + (view.code().isBlank() ? "" : " code=" + view.code());
     }
 
     public String homeList(String body) {
