@@ -91,6 +91,35 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
+    void priorityStateAdaptersImplementFullIslandLifecycleContract() {
+        IntegrationContext worldCell = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "lifecycle:1", Map.of(
+            "world", "islands",
+            "cell", "12,-4",
+            "namespace", "itemsadder",
+            "entityCountKey", "limits.entities.effective",
+            "spawnerCountKey", "limits.spawners.effective",
+            "bundleKey", "bundles/island.tar.zst"
+        ));
+
+        CoreProtectIntegration coreProtect = new CoreProtectIntegration();
+        assertTrue(coreProtect.capabilities().contains(IntegrationCapability.ISLAND_ACTIVATE));
+        assertTrue(coreProtect.capabilities().contains(IntegrationCapability.ISLAND_DEACTIVATE));
+        assertEquals(IntegrationResult.Status.SUCCESS, coreProtect.onIslandActivate(worldCell).status());
+        assertEquals(IntegrationResult.Status.SUCCESS, coreProtect.onIslandDeactivate(worldCell).status());
+
+        CustomItemIntegration customItems = new CustomItemIntegration("ItemsAdder");
+        assertTrue(customItems.capabilities().contains(IntegrationCapability.ISLAND_DEACTIVATE));
+        assertEquals(IntegrationResult.Status.SUCCESS, customItems.onIslandActivate(worldCell).status());
+        assertEquals(IntegrationResult.Status.SUCCESS, customItems.onIslandDeactivate(worldCell).status());
+
+        StackerIntegration stacker = new StackerIntegration("RoseStacker");
+        assertTrue(stacker.capabilities().contains(IntegrationCapability.ISLAND_ACTIVATE));
+        assertTrue(stacker.capabilities().contains(IntegrationCapability.ISLAND_DEACTIVATE));
+        assertEquals(IntegrationResult.Status.SUCCESS, stacker.onIslandActivate(worldCell).status());
+        assertEquals(IntegrationResult.Status.SUCCESS, stacker.onIslandDeactivate(worldCell).status());
+    }
+
+    @Test
     void priorityAdaptersValidatePluginVersionMetadata() {
         CoreProtectIntegration integration = new CoreProtectIntegration();
 

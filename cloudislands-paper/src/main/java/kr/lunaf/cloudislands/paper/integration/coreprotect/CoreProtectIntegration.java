@@ -11,10 +11,22 @@ public final class CoreProtectIntegration extends PolicyBackedCloudIntegration {
         super("CoreProtect", Set.of(
             IntegrationCapability.DETECT,
             IntegrationCapability.VALIDATE_VERSION,
+            IntegrationCapability.ISLAND_ACTIVATE,
+            IntegrationCapability.ISLAND_DEACTIVATE,
             IntegrationCapability.STATE_EXPORT,
             IntegrationCapability.STATE_RESTORE,
             IntegrationCapability.RUNTIME_AUTHORITY
         ));
+    }
+
+    @Override
+    public IntegrationResult onIslandActivate(IntegrationContext context) {
+        return guardedStateHook("audit-activate", context, "world", "cell");
+    }
+
+    @Override
+    public IntegrationResult onIslandDeactivate(IntegrationContext context) {
+        return guardedStateHook("audit-deactivate", context, "world", "cell", "bundleKey");
     }
 
     @Override

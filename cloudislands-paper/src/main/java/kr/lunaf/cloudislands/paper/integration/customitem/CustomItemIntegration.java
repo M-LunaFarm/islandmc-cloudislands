@@ -12,6 +12,7 @@ public final class CustomItemIntegration extends PolicyBackedCloudIntegration {
             IntegrationCapability.DETECT,
             IntegrationCapability.VALIDATE_VERSION,
             IntegrationCapability.ISLAND_ACTIVATE,
+            IntegrationCapability.ISLAND_DEACTIVATE,
             IntegrationCapability.STATE_EXPORT,
             IntegrationCapability.STATE_RESTORE,
             IntegrationCapability.RUNTIME_AUTHORITY
@@ -21,6 +22,11 @@ public final class CustomItemIntegration extends PolicyBackedCloudIntegration {
     @Override
     public IntegrationResult onIslandActivate(IntegrationContext context) {
         return guardedStateHook("custom-item-index-activate", context, "world", "cell", "namespace");
+    }
+
+    @Override
+    public IntegrationResult onIslandDeactivate(IntegrationContext context) {
+        return guardedStateHook("custom-item-index-deactivate", context, "world", "cell", "namespace", "bundleKey");
     }
 
     @Override

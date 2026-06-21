@@ -11,10 +11,22 @@ public final class StackerIntegration extends PolicyBackedCloudIntegration {
         super(pluginName, Set.of(
             IntegrationCapability.DETECT,
             IntegrationCapability.VALIDATE_VERSION,
+            IntegrationCapability.ISLAND_ACTIVATE,
+            IntegrationCapability.ISLAND_DEACTIVATE,
             IntegrationCapability.STATE_EXPORT,
             IntegrationCapability.STATE_RESTORE,
             IntegrationCapability.RUNTIME_AUTHORITY
         ));
+    }
+
+    @Override
+    public IntegrationResult onIslandActivate(IntegrationContext context) {
+        return guardedStateHook("effective-stack-activate", context, "world", "cell", "entityCountKey", "spawnerCountKey");
+    }
+
+    @Override
+    public IntegrationResult onIslandDeactivate(IntegrationContext context) {
+        return guardedStateHook("effective-stack-deactivate", context, "world", "cell", "entityCountKey", "spawnerCountKey", "bundleKey");
     }
 
     @Override
