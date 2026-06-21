@@ -1,12 +1,12 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LogEntryView;
 import kr.lunaf.cloudislands.paper.application.IslandCommunicationUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
@@ -94,9 +94,9 @@ final class IslandChatLogCommandHandler {
 
     private void sendChat(Player player, String channel, String chatMessage, String label) {
         runtime.currentIsland(player, "섬 안에서만 " + label + "을 사용할 수 있습니다.").ifPresent(islandId -> {
-            communicationUseCase.sendChat(islandId, player.getUniqueId(), channel, chatMessage, runtime::mutate)
-                .thenAccept(body -> {
-                    if (body == null || body.isBlank() || !body.contains("\"accepted\":true")) {
+            communicationUseCase.sendChatAction(islandId, player.getUniqueId(), channel, chatMessage, runtime::mutate)
+                .thenAccept(result -> {
+                    if (!result.accepted()) {
                         runtime.message(player, label + "을 전송하지 못했습니다.");
                         return;
                     }
@@ -111,8 +111,8 @@ final class IslandChatLogCommandHandler {
 
     private void listLogs(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 로그를 확인할 수 있습니다.").ifPresent(islandId -> {
-            communicationUseCase.listLogs(islandId, limit)
-                .thenAccept(body -> runtime.message(player, logListMessage(body)))
+            communicationUseCase.logViews(islandId, limit)
+                .thenAccept(logs -> runtime.message(player, logListMessage(logs)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 로그를 불러오지 못했습니다.");
                     return null;
@@ -124,26 +124,11 @@ final class IslandChatLogCommandHandler {
         runtime.currentIsland(player, "섬 안에서만 로그를 확인할 수 있습니다.").ifPresent(islandId -> IslandLogMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
-    private static String logListMessage(String body) {
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = body.indexOf('}', objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
-            String action = text(object, "action");
-            if (!action.isBlank()) {
-                String actor = text(object, "actorUuid");
-                entries.add(action + (actor.isBlank() ? "" : " by " + actor));
-            }
-            index = objectEnd + 1;
-        }
+    private static String logListMessage(List<LogEntryView> logs) {
+        List<String> entries = logs.stream()
+            .filter(log -> !log.action().isBlank())
+            .map(log -> log.action() + (log.actorUuid().isBlank() ? "" : " by " + log.actorUuid()))
+            .toList();
         return entries.isEmpty() ? "섬 로그가 없습니다." : "섬 로그: " + String.join(" | ", entries);
     }
 
@@ -164,27 +149,6 @@ final class IslandChatLogCommandHandler {
         } catch (NumberFormatException exception) {
             return fallback;
         }
-    }
-
-    private static String text(String json, String key) {
-        String marker = "\"" + key + "\"";
-        int keyIndex = json.indexOf(marker);
-        if (keyIndex < 0) {
-            return "";
-        }
-        int colon = json.indexOf(':', keyIndex + marker.length());
-        if (colon < 0) {
-            return "";
-        }
-        int start = json.indexOf('"', colon + 1);
-        if (start < 0) {
-            return "";
-        }
-        int end = json.indexOf('"', start + 1);
-        if (end < 0) {
-            return "";
-        }
-        return json.substring(start + 1, end);
     }
 
     interface Runtime {

@@ -1,9 +1,14 @@
 package kr.lunaf.cloudislands.paper.application;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LogEntryView;
 
 public final class IslandCommunicationUseCase {
     private final CoreApiClient coreApiClient;
@@ -27,9 +32,19 @@ public final class IslandCommunicationUseCase {
         return runner.mutate("island.chat.send", () -> coreApiClient.sendIslandChat(islandId, actorUuid, normalizedChannel, normalizedMessage));
     }
 
+    public CompletableFuture<ChatActionResult> sendChatAction(UUID islandId, UUID actorUuid, String channel, String message, MutationRunner runner) {
+        return sendChat(islandId, actorUuid, channel, message, runner)
+            .thenApply(body -> chatAction(body, "CHAT_SENT"));
+    }
+
     public CompletableFuture<String> listLogs(UUID islandId, int limit) {
         requireIsland(islandId);
         return coreApiClient.listIslandLogs(islandId, Math.max(1, Math.min(limit, 30)));
+    }
+
+    public CompletableFuture<List<LogEntryView>> logViews(UUID islandId, int limit) {
+        requireIsland(islandId);
+        return CoreGuiViews.islandLogs(coreApiClient, islandId, Math.max(1, Math.min(limit, 30)));
     }
 
     private static void requireIsland(UUID islandId) {
@@ -50,8 +65,26 @@ public final class IslandCommunicationUseCase {
         }
     }
 
+    private static ChatActionResult chatAction(String body, String successCode) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        boolean accepted = !root.containsKey("error")
+            && !Boolean.FALSE.equals(root.get("accepted"))
+            && !Boolean.FALSE.equals(root.get("applied"));
+        String code = SimpleJson.text(root.get("code"));
+        if (code.isBlank()) {
+            code = accepted ? successCode : "FAILED";
+        }
+        return new ChatActionResult(accepted, code);
+    }
+
     @FunctionalInterface
     public interface MutationRunner {
         CompletableFuture<String> mutate(String auditAction, Supplier<CompletableFuture<String>> operation);
+    }
+
+    public record ChatActionResult(boolean accepted, String code) {
+        public ChatActionResult {
+            code = code == null ? "" : code;
+        }
     }
 }

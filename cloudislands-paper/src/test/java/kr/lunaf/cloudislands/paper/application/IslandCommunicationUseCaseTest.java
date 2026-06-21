@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LogEntryView;
+import kr.lunaf.cloudislands.paper.application.IslandCommunicationUseCase.ChatActionResult;
 import org.junit.jupiter.api.Test;
 
 class IslandCommunicationUseCaseTest {
@@ -19,11 +21,20 @@ class IslandCommunicationUseCaseTest {
         UUID actorUuid = uuid("00000000-0000-0000-0000-000000000001");
 
         assertEquals("{\"accepted\":true}", useCase.sendChat(islandId, actorUuid, "team", " hello ", mutationRunner(calls)).join());
-        assertEquals("logs", useCase.listLogs(islandId, 500).join());
+        ChatActionResult chat = useCase.sendChatAction(islandId, actorUuid, "team", " hello ", mutationRunner(calls)).join();
+        assertEquals(true, chat.accepted());
+        assertEquals("CHAT_SENT", chat.code());
+        assertEquals("{\"logs\":[{\"actorUuid\":\"00000000-0000-0000-0000-000000000001\",\"action\":\"CREATE\",\"createdAt\":\"now\",\"payload\":{\"target\":\"island\"}}]}", useCase.listLogs(islandId, 500).join());
+        List<LogEntryView> logs = useCase.logViews(islandId, 500).join();
+        assertEquals("CREATE", logs.get(0).action());
+        assertEquals("00000000-0000-0000-0000-000000000001", logs.get(0).actorUuid());
 
         assertEquals(List.of(
             "audit:island.chat.send",
             "sendIslandChat:TEAM:hello",
+            "audit:island.chat.send",
+            "sendIslandChat:TEAM:hello",
+            "listIslandLogs:30",
             "listIslandLogs:30"
         ), calls);
     }
@@ -39,7 +50,7 @@ class IslandCommunicationUseCaseTest {
                 }
                 case "listIslandLogs" -> {
                     calls.add("listIslandLogs:" + args[1]);
-                    yield CompletableFuture.completedFuture("logs");
+                    yield CompletableFuture.completedFuture("{\"logs\":[{\"actorUuid\":\"00000000-0000-0000-0000-000000000001\",\"action\":\"CREATE\",\"createdAt\":\"now\",\"payload\":{\"target\":\"island\"}}]}");
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });
