@@ -30,6 +30,7 @@ class GuiActionParserTest {
         assertTrue(GuiActionParser.parse("island.permissions.set", Map.of("role", "", "permission", "BUILD")).isEmpty());
         assertTrue(GuiActionParser.parse("island.permissions.set", Map.of("role", "MEMBER", "permission", "NOPE")).isEmpty());
         assertTrue(GuiActionParser.parse("island.role.weight.adjust", Map.of("role", "BUILDER", "weight", "-1")).isEmpty());
+        assertTrue(GuiActionParser.parse("island.log.detail", Map.of("actorUuid", "00000000-0000-0000-0000-000000000000")).isEmpty());
         assertTrue(GuiActionParser.parse("island.member.remove.prepare", Map.of("playerUuid", "not-a-uuid")).isEmpty());
     }
 
@@ -81,6 +82,25 @@ class GuiActionParserTest {
         assertTrue(action instanceof GuiAction.RoleWeightAdjust);
         assertEquals("island.role.weight.adjust", action.actionId());
         assertEquals(Map.of("role", "BUILDER", "weight", "42", "displayName", "Builder"), action.data());
+    }
+
+    @Test
+    void parsesLogDetailIntoTypedAction() {
+        GuiAction action = GuiActionParser.parse("island.log.detail", Map.of(
+            "action", " BANK_DEPOSIT ",
+            "actorUuid", " 00000000-0000-0000-0000-000000000000 ",
+            "createdAt", " now ",
+            "payload", " amount=100 "
+        )).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.LogDetail);
+        assertEquals("island.log.detail", action.actionId());
+        assertEquals(Map.of(
+            "action", "BANK_DEPOSIT",
+            "actorUuid", "00000000-0000-0000-0000-000000000000",
+            "createdAt", "now",
+            "payload", "amount=100"
+        ), action.data());
     }
 
     @Test

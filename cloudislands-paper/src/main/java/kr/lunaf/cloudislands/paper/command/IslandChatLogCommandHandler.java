@@ -59,6 +59,10 @@ final class IslandChatLogCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.LogDetail detail) {
+            showLogDetail(player, detail.logAction(), detail.createdAt(), detail.actorUuid(), detail.payload());
+            return true;
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {
@@ -75,15 +79,24 @@ final class IslandChatLogCommandHandler {
                 yield true;
             }
             case "island.log.detail" -> {
-                runtime.message(player, runtime.routeMessage("log-menu-detail-title", "섬 로그 상세"));
-                runtime.message(player, "- " + runtime.routeMessage("log-menu-action", "작업: ") + data.getOrDefault("action", "unknown"));
-                runtime.message(player, "- " + runtime.routeMessage("log-menu-time", "시간: ") + data.getOrDefault("createdAt", "unknown"));
-                runtime.message(player, "- " + runtime.routeMessage("log-menu-actor", "처리자: ") + data.getOrDefault("actorUuid", "unknown"));
-                runtime.message(player, "- " + runtime.routeMessage("log-menu-payload", "payload: ") + data.getOrDefault("payload", runtime.routeMessage("log-menu-payload-empty", "없음")));
+                showLogDetail(
+                    player,
+                    data.getOrDefault("action", "unknown"),
+                    data.getOrDefault("createdAt", "unknown"),
+                    data.getOrDefault("actorUuid", "unknown"),
+                    data.getOrDefault("payload", runtime.routeMessage("log-menu-payload-empty", "없음")));
                 yield true;
             }
             default -> false;
         };
+    }
+
+    private void showLogDetail(Player player, String action, String createdAt, String actorUuid, String payload) {
+        runtime.message(player, runtime.routeMessage("log-menu-detail-title", "섬 로그 상세"));
+        runtime.message(player, "- " + runtime.routeMessage("log-menu-action", "작업: ") + action);
+        runtime.message(player, "- " + runtime.routeMessage("log-menu-time", "시간: ") + (createdAt == null || createdAt.isBlank() ? "unknown" : createdAt));
+        runtime.message(player, "- " + runtime.routeMessage("log-menu-actor", "처리자: ") + (actorUuid == null || actorUuid.isBlank() ? "unknown" : actorUuid));
+        runtime.message(player, "- " + runtime.routeMessage("log-menu-payload", "payload: ") + (payload == null || payload.isBlank() ? runtime.routeMessage("log-menu-payload-empty", "없음") : payload));
     }
 
     private void openChatMenu(Player player) {

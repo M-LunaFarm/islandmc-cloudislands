@@ -88,11 +88,8 @@ public final class IslandLogMenu implements Listener {
         if (data.isEmpty()) {
             return;
         }
-        player.sendMessage(message(messages, "log-menu-detail-title", "섬 로그 상세"));
-        player.sendMessage("- " + message(messages, "log-menu-action", "작업: ") + fallback(data.get("action"), "unknown"));
-        player.sendMessage("- " + message(messages, "log-menu-time", "시간: ") + fallback(data.get("createdAt"), message(messages, "log-menu-unknown", "unknown")));
-        player.sendMessage("- " + message(messages, "log-menu-actor", "처리자: ") + shorten(data.get("actorUuid")));
-        player.sendMessage("- " + message(messages, "log-menu-payload", "payload: ") + fallback(data.get("payload"), message(messages, "log-menu-payload-empty", "없음")));
+        player.closeInventory();
+        actions.execute(player, "island.log.detail", data, GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<LogEntryView> entries, MessageRenderer messages) {

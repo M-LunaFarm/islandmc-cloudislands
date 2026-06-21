@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.RoleWeightAdjust, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -425,6 +425,30 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.BankAmount, G
         @Override
         public Map<String, String> data() {
             return Map.of("role", roleId.value(), "weight", Integer.toString(weight), "displayName", displayName);
+        }
+    }
+
+    record LogDetail(String logAction, String actorUuid, String createdAt, String payload) implements GuiAction {
+        public LogDetail {
+            logAction = requiredName(logAction, "logAction");
+            actorUuid = actorUuid == null ? "" : actorUuid.trim();
+            createdAt = createdAt == null ? "" : createdAt.trim();
+            payload = payload == null ? "" : payload.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return "island.log.detail";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of(
+                "action", logAction,
+                "actorUuid", actorUuid,
+                "createdAt", createdAt,
+                "payload", payload
+            );
         }
     }
 

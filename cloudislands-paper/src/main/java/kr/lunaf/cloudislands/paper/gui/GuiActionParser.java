@@ -123,6 +123,12 @@ public final class GuiActionParser {
                     nonNegativeInteger(required(safeData, "weight")),
                     safeData.getOrDefault("displayName", "")
                 ));
+                case "island.log.detail" -> Optional.of(new GuiAction.LogDetail(
+                    required(safeData, "action"),
+                    safeData.getOrDefault("actorUuid", ""),
+                    safeData.getOrDefault("createdAt", ""),
+                    safeData.getOrDefault("payload", "")
+                ));
                 default -> GuiActionSchema.registered(safeAction)
                     ? Optional.of(new GuiAction.Raw(safeAction, safeData))
                     : Optional.empty();
