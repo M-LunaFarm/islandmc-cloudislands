@@ -4,4 +4,5 @@ title-key: menu.chat.title
 actions:
   open: island.chat.open
   logs: island.logs.open
+  settings: island.settings.open
   back: island.main.open

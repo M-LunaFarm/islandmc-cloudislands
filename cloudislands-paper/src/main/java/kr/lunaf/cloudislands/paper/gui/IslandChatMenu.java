@@ -13,8 +13,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public final class IslandChatMenu implements Listener {
-    private static final String MENU_ID = "island.chat";
-    private static final String TITLE_KEY = "chat-menu-title";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/chat.yml",
+        new GuiMenuDefinition("island.chat", 3, "chat-menu-title", java.util.Map.of(
+            "logs", "island.logs.open",
+            "settings", "island.settings.open",
+            "back", "island.main.open"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private static final String TITLE = "섬 채팅";
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
@@ -37,7 +44,7 @@ public final class IslandChatMenu implements Listener {
     }
 
     public static void open(Player player, MessageRenderer messages) {
-        Inventory inventory = GuiInventories.create(MENU_ID, 27, message(messages, TITLE_KEY, TITLE));
+        Inventory inventory = GuiInventories.create(MENU_ID, MENU.size(), message(messages, MENU.titleKey(), TITLE));
         inventory.setItem(10, item(Material.WRITABLE_BOOK, message(messages, "chat-menu-island-name", "섬 채팅 보내기"), message(messages, "chat-menu-island-usage", "사용법: /섬 채팅 <메시지>"), message(messages, "chat-menu-island-description", "섬 전체 채널로 기록됩니다.")));
         inventory.setItem(12, item(Material.BOOK, message(messages, "chat-menu-team-name", "팀 채팅 보내기"), message(messages, "chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>"), message(messages, "chat-menu-team-description", "섬 팀 채널로 기록됩니다.")));
         inventory.setItem(14, item(Material.CLOCK, message(messages, "chat-menu-log-name", "최근 섬 로그"), message(messages, "chat-menu-log-command", "/섬 로그"), message(messages, "chat-menu-log-description", "채팅 기록도 섬 로그에서 확인합니다.")));
@@ -66,11 +73,11 @@ public final class IslandChatMenu implements Listener {
         } else if (slot == 12) {
             player.sendMessage(message(messages, "chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>"));
         } else if (slot == 14) {
-            actions.execute(player, "island.logs.open", GuiClick.from(event));
+            actions.execute(player, MENU.action("logs", "island.logs.open"), GuiClick.from(event));
         } else if (slot == 15) {
-            actions.execute(player, "island.settings.open", GuiClick.from(event));
+            actions.execute(player, MENU.action("settings", "island.settings.open"), GuiClick.from(event));
         } else if (slot == 16) {
-            actions.execute(player, "island.main.open", GuiClick.from(event));
+            actions.execute(player, MENU.action("back", "island.main.open"), GuiClick.from(event));
         }
     }
 
