@@ -556,10 +556,10 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.islands().getIsland(islandId).thenApply(PaperCloudIslandsApi::island)"), "Public API island lookup must use typed island query client");
         assertTrue(source.contains("client.islands().getIslandByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island)"), "Public API owner lookup must use typed island query client");
         assertTrue(source.contains("client.adminIslands().runtime(islandId).thenApply(PaperCloudIslandsApi::runtime)"), "Public API runtime lookup must use typed admin island query client");
-        assertTrue(source.contains("client.islands().listMembers(islandId).thenApply(views -> members(islandId, views))"), "Public API members must use typed island query client");
+        assertTrue(source.contains("client.islands().memberSnapshots(islandId)"), "Public API members must use typed island query client");
         assertTrue(source.contains("client.navigation().publicIslands(limit).thenApply(PaperCloudIslandsApi::publicIslands)"), "Public API public island list must use typed navigation query client");
         assertTrue(source.contains("CoreGuiViews.playerIslands(client, playerUuid).thenApply(PaperCloudIslandsApi::playerIslands)"), "Public API joined island list must use typed Core views");
-        assertTrue(source.contains("client.members().pendingInvites(playerUuid).thenApply(PaperCloudIslandsApi::invites)"), "Public API pending invites must use typed member query client");
+        assertTrue(source.contains("client.members().inviteSnapshots(playerUuid)"), "Public API pending invites must use typed member query client");
         assertTrue(source.contains("client.homeWarps().homeSnapshots(islandId)"), "Public API homes must use typed home/warp query client");
         assertTrue(source.contains("client.homeWarps().warpSnapshots(islandId)"), "Public API warps must use typed home/warp query client");
         assertTrue(source.contains("client.homeWarps().publicWarpSnapshots(limit, \"\", \"\")"), "Public API public warps must use typed home/warp query client");
@@ -585,7 +585,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("private static IslandFlagsSnapshot flags(String json)"), "Public API must not keep raw flag JSON converters");
         assertTrue(!source.contains("private static List<IslandLimitSnapshot> limits(String json)"), "Public API must not keep raw limit JSON converters");
         assertTrue(source.contains("client.blockValues().list().thenApply(PaperCloudIslandsApi::blockValues)"), "Public API block values must use typed block value query client");
-        assertTrue(source.contains("client.members().bans(islandId).thenApply(views -> bans(islandId, views))"), "Public API bans must use typed member query client");
+        assertTrue(source.contains("client.members().banSnapshots(islandId)"), "Public API bans must use typed member query client");
         assertTrue(source.contains("client.snapshots().records(islandId, limit)"), "Public API snapshots must use typed snapshot query client");
         assertTrue(source.contains("client.communication().records(islandId, limit)"), "Public API logs must use typed communication query client");
         assertTrue(source.contains("client.bank().snapshot(islandId)"), "Public API bank lookup must use the typed bank DTO query client");
@@ -1248,7 +1248,10 @@ class PaperPlatformBoundaryTest {
                 if (line.contains("client.bank().islandBank(") || line.contains("client.bank().snapshot(")) {
                     continue;
                 }
-                if (line.contains("client.members().bans(") || line.contains("client.progression().")) {
+                if (line.contains("client.members().bans(")
+                    || line.contains("client.members().banSnapshots(")
+                    || line.contains("client.members().inviteSnapshots(")
+                    || line.contains("client.progression().")) {
                     continue;
                 }
                 if (line.contains("client.snapshots().records(")) {

@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 
 public final class CoreIslandQueryClient implements IslandQueryClient {
     private final CoreApiClient delegate;
@@ -30,6 +31,13 @@ public final class CoreIslandQueryClient implements IslandQueryClient {
     public CompletableFuture<CoreGuiViews.IslandInfoView> findIslandByName(String islandName) {
         String normalizedIslandName = requireName(islandName);
         return delegate.islandInfoByName(normalizedIslandName).thenApply(CoreGuiViews::islandInfoView);
+    }
+
+    @Override
+    public CompletableFuture<List<IslandMemberSnapshot>> memberSnapshots(UUID islandId) {
+        requireIsland(islandId);
+        return delegate.listIslandMembers(islandId)
+            .thenApply(body -> CoreMemberJson.members(islandId, body));
     }
 
     @Override

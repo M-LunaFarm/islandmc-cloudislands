@@ -18,11 +18,14 @@ import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -77,6 +80,9 @@ class CoreTypedClientsTest {
     @Test
     void islandQueryClientReturnsTypedIslandAndMemberPages() {
         UUID islandId = UUID.randomUUID();
+        UUID firstMemberUuid = UUID.randomUUID();
+        UUID secondMemberUuid = UUID.randomUUID();
+        UUID thirdMemberUuid = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
@@ -92,11 +98,11 @@ class CoreTypedClientsTest {
                     """.formatted(islandId));
                 case "listIslandMembers" -> CompletableFuture.completedFuture("""
                     {"members":[
-                      {"playerUuid":"p1","role":"OWNER","joinedAt":"t1","playerName":"Alice"},
-                      {"playerUuid":"p2","role":"MEMBER","joinedAt":"t2","playerName":"Bob"},
-                      {"playerUuid":"p3","role":"TRUSTED","joinedAt":"t3","playerName":"Carol"}
+                      {"playerUuid":"%s","role":"OWNER","joinedAt":"2026-06-21T10:00:00Z","playerName":"Alice"},
+                      {"playerUuid":"%s","role":"MEMBER","joinedAt":"2026-06-21T10:01:00Z","playerName":"Bob"},
+                      {"playerUuid":"%s","role":"TRUSTED","joinedAt":"2026-06-21T10:02:00Z","playerName":"Carol"}
                     ]}
-                    """);
+                    """.formatted(firstMemberUuid, secondMemberUuid, thirdMemberUuid));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
@@ -106,6 +112,7 @@ class CoreTypedClientsTest {
         CoreGuiViews.IslandInfoView ownedIsland = client.getIslandByOwner(UUID.randomUUID()).join();
         CoreGuiViews.IslandInfoView namedIsland = client.findIslandByName(" Named ").join();
         List<CoreGuiViews.MemberView> members = client.listMembers(islandId).join();
+        IslandMemberSnapshot memberSnapshot = client.memberSnapshots(islandId).join().get(0);
         MemberPage firstPage = client.listMembers(islandId, new MemberCursor(0, 2)).join();
         MemberPage secondPage = client.listMembers(islandId, firstPage.nextCursor()).join();
 
@@ -118,6 +125,8 @@ class CoreTypedClientsTest {
         assertEquals("Named", namedIsland.name());
         assertEquals(12L, island.level());
         assertEquals(3, members.size());
+        assertEquals(firstMemberUuid, memberSnapshot.playerUuid());
+        assertEquals("OWNER", memberSnapshot.roleKey());
         assertEquals(2, firstPage.members().size());
         assertTrue(firstPage.hasNext());
         assertEquals("Bob", firstPage.members().get(1).playerName());
@@ -1295,12 +1304,17 @@ class CoreTypedClientsTest {
         MemberQueryClient client = new CoreMemberQueryClient(raw);
 
         assertEquals(playerUuid.toString(), client.playerProfileByName(" Alice ").join().playerUuid());
+        IslandInviteSnapshot inviteSnapshot = client.inviteSnapshots(playerUuid).join().get(0);
+        assertEquals(inviteId, inviteSnapshot.inviteId());
+        assertEquals(playerUuid, inviteSnapshot.targetUuid());
         CoreGuiViews.InviteView invite = client.pendingInvites(playerUuid).join().get(0);
         assertEquals(inviteId.toString(), invite.inviteId());
         assertEquals(playerUuid.toString(), invite.targetUuid());
         assertEquals("PENDING", invite.state());
+        IslandBanSnapshot banSnapshot = client.banSnapshots(islandId).join().get(0);
+        assertEquals(playerUuid, banSnapshot.bannedUuid());
         assertEquals("test", client.bans(islandId).join().get(0).reason());
-        assertEquals(List.of("profile:Alice", "invites", "bans"), calls);
+        assertEquals(List.of("profile:Alice", "invites", "invites", "bans", "bans"), calls);
     }
 
     @Test

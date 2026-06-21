@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 
 public final class CoreMemberQueryClient implements MemberQueryClient {
     private final CoreApiClient delegate;
@@ -21,15 +23,17 @@ public final class CoreMemberQueryClient implements MemberQueryClient {
     }
 
     @Override
-    public CompletableFuture<List<CoreGuiViews.InviteView>> pendingInvites(UUID playerUuid) {
+    public CompletableFuture<List<IslandInviteSnapshot>> inviteSnapshots(UUID playerUuid) {
         requirePlayer(playerUuid);
-        return CoreGuiViews.pendingInvites(delegate, playerUuid);
+        return delegate.listPendingInvites(playerUuid)
+            .thenApply(CoreMemberJson::invites);
     }
 
     @Override
-    public CompletableFuture<List<CoreGuiViews.BanView>> bans(UUID islandId) {
+    public CompletableFuture<List<IslandBanSnapshot>> banSnapshots(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandBans(delegate, islandId);
+        return delegate.listIslandBans(islandId)
+            .thenApply(body -> CoreMemberJson.bans(islandId, body));
     }
 
     private static void requirePlayer(UUID playerUuid) {

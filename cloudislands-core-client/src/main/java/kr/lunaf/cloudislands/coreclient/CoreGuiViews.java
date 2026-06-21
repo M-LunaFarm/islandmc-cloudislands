@@ -59,7 +59,7 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<InviteView>> pendingInvites(CoreApiClient client, UUID playerUuid) {
-        return client.listPendingInvites(playerUuid).thenApply(CoreGuiViews::invites);
+        return client.members().pendingInvites(playerUuid);
     }
 
     public static List<InviteView> inviteViews(String body) {
@@ -79,7 +79,7 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<BanView>> islandBans(CoreApiClient client, UUID islandId) {
-        return client.listIslandBans(islandId).thenApply(CoreGuiViews::bans);
+        return client.members().bans(islandId);
     }
 
     public static List<BanView> banViews(String body) {

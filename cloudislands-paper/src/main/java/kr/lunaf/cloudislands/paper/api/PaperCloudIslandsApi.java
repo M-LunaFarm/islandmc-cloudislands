@@ -1913,7 +1913,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandMemberSnapshot>> getMembers(UUID islandId) {
-            return client.islands().listMembers(islandId).thenApply(views -> members(islandId, views));
+            return client.islands().memberSnapshots(islandId);
         }
 
         @Override
@@ -1958,12 +1958,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandBanSnapshot>> getBans(UUID islandId) {
-            return client.members().bans(islandId).thenApply(views -> bans(islandId, views));
+            return client.members().banSnapshots(islandId);
         }
 
         @Override
         public CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid) {
-            return client.members().pendingInvites(playerUuid).thenApply(PaperCloudIslandsApi::invites);
+            return client.members().inviteSnapshots(playerUuid);
         }
 
         @Override
@@ -2662,8 +2662,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override public CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount) { return mutateIdempotent("island.bank.withdraw", () -> client.bankCommands().withdrawSnapshot(islandId, actorUuid, amount.toPlainString())).thenApply(PaperCloudIslandsApi::bankChange); }
 
         private CompletableFuture<Optional<IslandInviteSnapshot>> pendingInvite(UUID playerUuid, java.util.function.Predicate<IslandInviteSnapshot> predicate) {
-            return client.members().pendingInvites(playerUuid)
-                .thenApply(PaperCloudIslandsApi::invites)
+            return client.members().inviteSnapshots(playerUuid)
                 .thenApply(invites -> invites.stream().filter(predicate).findFirst());
         }
     }
@@ -2901,37 +2900,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static RoutePlan plan(RouteTicket ticket) {
         return new RoutePlan(ticket.islandId(), ticket.targetNode(), ticket.payload().getOrDefault("targetServerName", ticket.targetNode()), ticket.action(), ticket.state() == RouteTicketState.PREPARING);
-    }
-
-    private static List<IslandMemberSnapshot> members(UUID islandId, List<CoreGuiViews.MemberView> views) {
-        return views.stream()
-            .map(view -> new IslandMemberSnapshot(
-                islandId,
-                uuidValueOrZero(view.playerUuid()),
-                normalizedRoleKey(view.role(), "VISITOR"),
-                view.joinedAt().isBlank() ? Instant.EPOCH : instant(view.joinedAt()),
-                view.expiresAt().isBlank() ? null : instant(view.expiresAt())
-            ))
-            .toList();
-    }
-
-    private static List<IslandBanSnapshot> bans(UUID islandId, List<CoreGuiViews.BanView> views) {
-        return views.stream()
-            .map(view -> new IslandBanSnapshot(
-                islandId,
-                uuidValueOrZero(view.bannedUuid()),
-                uuidValueOrZero(view.actorUuid()),
-                view.reason(),
-                view.createdAt().isBlank() ? Instant.EPOCH : instant(view.createdAt()),
-                view.expiresAt().isBlank() ? null : instant(view.expiresAt())
-            ))
-            .toList();
-    }
-
-    private static List<IslandInviteSnapshot> invites(List<CoreGuiViews.InviteView> views) {
-        return (views == null ? List.<CoreGuiViews.InviteView>of() : views).stream()
-            .map(PaperCloudIslandsApi::invite)
-            .toList();
     }
 
     private static IslandInviteSnapshot invite(String json) {

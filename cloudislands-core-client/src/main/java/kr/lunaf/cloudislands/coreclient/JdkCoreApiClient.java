@@ -16,13 +16,16 @@ import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
@@ -48,6 +51,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkCommunicationClient communicationClient;
     private final JdkEnvironmentClient environmentClient;
     private final JdkHomeWarpClient homeWarpClient;
+    private final JdkIslandClient islandClient;
+    private final JdkMemberQueryClient memberQueryClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -64,6 +69,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.communicationClient = new JdkCommunicationClient();
         this.environmentClient = new JdkEnvironmentClient();
         this.homeWarpClient = new JdkHomeWarpClient();
+        this.islandClient = new JdkIslandClient();
+        this.memberQueryClient = new JdkMemberQueryClient();
     }
 
     @Override
@@ -104,6 +111,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public HomeWarpQueryClient homeWarps() {
         return homeWarpClient;
+    }
+
+    @Override
+    public IslandQueryClient islands() {
+        return islandClient;
+    }
+
+    @Override
+    public MemberQueryClient members() {
+        return memberQueryClient;
     }
 
     @Override
@@ -891,6 +908,92 @@ public final class JdkCoreApiClient implements CoreApiClient {
             int safeLimit = Math.max(1, Math.min(limit, 100));
             return post("/v1/islands/public-warps", jsonObject("limit", safeLimit, "category", category == null ? "" : category, "query", query == null ? "" : query))
                 .thenApply(body -> CoreHomeWarpJson.warps(null, body));
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkIslandClient implements IslandQueryClient {
+        @Override
+        public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
+            requireId(islandId, "islandId");
+            return JdkCoreApiClient.this.islandInfo(islandId).thenApply(CoreGuiViews::islandInfoView);
+        }
+
+        @Override
+        public CompletableFuture<CoreGuiViews.IslandInfoView> getIslandByOwner(UUID ownerUuid) {
+            requireId(ownerUuid, "ownerUuid");
+            return JdkCoreApiClient.this.islandInfoByOwner(ownerUuid).thenApply(CoreGuiViews::islandInfoView);
+        }
+
+        @Override
+        public CompletableFuture<CoreGuiViews.IslandInfoView> findIslandByName(String islandName) {
+            String normalized = islandName == null ? "" : islandName.trim();
+            if (normalized.isBlank()) {
+                throw new IllegalArgumentException("islandName is required");
+            }
+            return JdkCoreApiClient.this.islandInfoByName(normalized).thenApply(CoreGuiViews::islandInfoView);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandMemberSnapshot>> memberSnapshots(UUID islandId) {
+            requireId(islandId, "islandId");
+            return get("/v1/islands/" + islandId + "/members")
+                .thenApply(body -> CoreMemberJson.members(islandId, body));
+        }
+
+        @Override
+        public CompletableFuture<List<CoreGuiViews.MemberView>> listMembers(UUID islandId) {
+            requireId(islandId, "islandId");
+            return JdkCoreApiClient.this.listIslandMembers(islandId).thenApply(CoreGuiViews::memberViews);
+        }
+
+        @Override
+        public CompletableFuture<MemberPage> listMembers(UUID islandId, MemberCursor cursor) {
+            MemberCursor safeCursor = cursor == null ? MemberCursor.firstPage(45) : cursor;
+            return listMembers(islandId).thenApply(members -> {
+                List<CoreGuiViews.MemberView> safeMembers = members == null ? List.of() : members;
+                int total = safeMembers.size();
+                int from = Math.min(safeCursor.offset(), total);
+                int to = Math.min(from + safeCursor.limit(), total);
+                MemberCursor next = to < total ? new MemberCursor(to, safeCursor.limit()) : null;
+                return new MemberPage(safeMembers.subList(from, to), safeCursor, next, total);
+            });
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkMemberQueryClient implements MemberQueryClient {
+        @Override
+        public CompletableFuture<CoreGuiViews.PlayerProfileView> playerProfileByName(String playerName) {
+            String normalized = playerName == null ? "" : playerName.trim();
+            if (normalized.isBlank()) {
+                throw new IllegalArgumentException("playerName is required");
+            }
+            return playerInfoByName(normalized).thenApply(CoreGuiViews::playerProfile);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandInviteSnapshot>> inviteSnapshots(UUID playerUuid) {
+            requireId(playerUuid, "playerUuid");
+            return post("/v1/players/invites", jsonObject("playerUuid", playerUuid))
+                .thenApply(CoreMemberJson::invites);
+        }
+
+        @Override
+        public CompletableFuture<List<IslandBanSnapshot>> banSnapshots(UUID islandId) {
+            requireId(islandId, "islandId");
+            return get("/v1/islands/" + islandId + "/bans")
+                .thenApply(body -> CoreMemberJson.bans(islandId, body));
         }
 
         private void requireId(UUID id, String name) {

@@ -6,7 +6,6 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreMemberCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreMemberQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreIslandQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.BanView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
@@ -28,12 +27,12 @@ public final class MemberManagementUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.islandQueries = new CoreIslandQueryClient(coreApiClient);
-        this.memberQueries = new CoreMemberQueryClient(coreApiClient);
+        this.memberQueries = coreApiClient.members();
         this.memberCommands = new CoreMemberCommandClient(coreApiClient);
     }
 
     MemberManagementUseCase(CoreApiClient coreApiClient, IslandQueryClient islandQueries) {
-        this(coreApiClient, islandQueries, new CoreMemberQueryClient(coreApiClient), new CoreMemberCommandClient(coreApiClient));
+        this(coreApiClient, islandQueries, coreApiClient.members(), new CoreMemberCommandClient(coreApiClient));
     }
 
     MemberManagementUseCase(CoreApiClient coreApiClient, IslandQueryClient islandQueries, MemberQueryClient memberQueries) {
