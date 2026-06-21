@@ -76,15 +76,11 @@ public final class IslandNavigationUseCase {
             .exceptionallyCompose(_error -> createVisitTicketByName(visitorUuid, normalizedTarget, runner));
     }
 
-    public CompletableFuture<String> listPublicIslands(int limit) {
-        return coreApiClient.listPublicIslands(boundedLimit(limit));
-    }
-
     public CompletableFuture<List<PublicIslandView>> publicIslandViews(int limit) {
         return PaperGuiViews.publicIslands(coreApiClient, boundedLimit(limit));
     }
 
-    public CompletableFuture<String> listReviews(UUID islandId, int limit) {
+    private CompletableFuture<String> listReviewBodies(UUID islandId, int limit) {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
@@ -92,7 +88,7 @@ public final class IslandNavigationUseCase {
     }
 
     public CompletableFuture<ReviewListView> reviewViews(UUID islandId, int limit) {
-        return listReviews(islandId, limit).thenApply(IslandNavigationUseCase::reviewViews);
+        return listReviewBodies(islandId, limit).thenApply(IslandNavigationUseCase::reviewViews);
     }
 
     public CompletableFuture<String> setReview(UUID islandId, UUID reviewerUuid, int rating, String comment, IdempotentMutationRunner runner) {

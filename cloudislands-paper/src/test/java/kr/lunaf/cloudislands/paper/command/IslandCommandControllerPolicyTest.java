@@ -273,13 +273,17 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
         assertTrue(visitReviewHandler.contains("IslandNavigationUseCase"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.resolveVisitTarget"));
+        assertTrue(visitReviewHandler.contains("navigationUseCase.publicIslandViews"));
+        assertTrue(visitReviewHandler.contains("navigationUseCase.reviewViews"));
         assertFalse(visitReviewHandler.contains("coreApiClient.createVisitTicket"));
         assertFalse(visitReviewHandler.contains("coreApiClient.createRandomVisitTicket"));
         assertFalse(visitReviewHandler.contains("coreApiClient.listPublicIslands"));
         assertFalse(visitReviewHandler.contains("coreApiClient.setIslandReview"));
         assertTrue(navigationUseCase.contains("coreApiClient.createVisitTicket"));
         assertTrue(navigationUseCase.contains("coreApiClient.createRandomVisitTicket"));
-        assertTrue(navigationUseCase.contains("coreApiClient.listPublicIslands"));
+        assertTrue(navigationUseCase.contains("PaperGuiViews.publicIslands(coreApiClient"), "public island list usecase must read through the typed view mapper");
+        assertFalse(navigationUseCase.contains("public CompletableFuture<String> listPublicIslands("), "public island list usecase must expose typed views instead of raw JSON");
+        assertFalse(navigationUseCase.contains("public CompletableFuture<String> listReviews("), "review list usecase must expose typed views instead of raw JSON");
         assertTrue(navigationUseCase.contains("coreApiClient.setIslandReview"));
     }
 

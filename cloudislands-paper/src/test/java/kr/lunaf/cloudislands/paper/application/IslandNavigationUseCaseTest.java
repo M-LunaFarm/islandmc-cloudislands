@@ -52,17 +52,13 @@ class IslandNavigationUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000020");
         UUID reviewerUuid = uuid("00000000-0000-0000-0000-000000000001");
 
-        assertEquals(publicIslandsJson(islandId), useCase.listPublicIslands(500).join());
         assertEquals("spawn", useCase.publicIslandViews(500).join().getFirst().name());
-        assertEquals(reviewsJson(islandId, reviewerUuid), useCase.listReviews(islandId, 0).join());
         assertEquals(1L, useCase.reviewViews(islandId, 0).join().count());
         assertEquals("{\"accepted\":true}", useCase.setReview(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join());
         assertEquals(true, useCase.setReviewAction(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join().accepted());
 
         assertEquals(List.of(
             "listPublicIslands:100",
-            "listPublicIslands:100",
-            "listIslandReviews:1",
             "listIslandReviews:1",
             "audit-idempotent:island.review.set",
             "setIslandReview:5:nice",
