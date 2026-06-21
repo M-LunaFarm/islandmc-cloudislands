@@ -7,14 +7,11 @@ import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.NodeSummaryView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 public final class AdminNodeMenu implements Listener {
     private static final String TITLE_KEY = "admin-node-menu-title";
@@ -71,7 +68,7 @@ public final class AdminNodeMenu implements Listener {
 
     public static void open(Player player, String nodeId, NodeSummaryView summary, MessageRenderer messages) {
         Inventory inventory = GuiMenuRenderer.render(MENU, messages, TITLE, item -> true);
-        inventory.setItem(4, nodeSummaryItem(summary == null ? PaperGuiViews.nodeSummary(nodeId, "") : summary, messages));
+        setNodeSummaryItem(inventory, summary == null ? PaperGuiViews.nodeSummary(nodeId, "") : summary, messages);
         for (int slot = 10; slot <= 19; slot++) {
             final int currentSlot = slot;
             MENU.itemAt(slot).ifPresent(item -> inventory.setItem(currentSlot, GuiMenuRenderer.item(MENU, item, messages, Map.of("nodeId", nodeId))));
@@ -79,16 +76,21 @@ public final class AdminNodeMenu implements Listener {
         player.openInventory(inventory);
     }
 
-    private static ItemStack nodeSummaryItem(NodeSummaryView summary, MessageRenderer messages) {
-        return item(Material.NETHER_STAR,
-            message(messages, "admin-node-menu-summary-name", "노드 요약: ") + summary.nodeId(),
+    private static void setNodeSummaryItem(Inventory inventory, NodeSummaryView summary, MessageRenderer messages) {
+        MENU.itemAt(4).ifPresent(item -> inventory.setItem(4, GuiMenuRenderer.item(MENU, item, messages, Map.of(), nodeSummaryLore(summary, messages), "")));
+    }
+
+    private static List<String> nodeSummaryLore(NodeSummaryView summary, MessageRenderer messages) {
+        return List.of(
+            message(messages, "admin-node-menu-summary-node", "node: ") + summary.nodeId(),
             message(messages, "admin-node-menu-summary-state", "state: ") + fallback(summary.state(), "unknown"),
             message(messages, "admin-node-menu-summary-pool", "pool: ") + fallback(summary.pool(), "island"),
             message(messages, "admin-node-menu-summary-players", "players: ") + summary.players() + "/" + summary.softPlayerCap() + "/" + summary.hardPlayerCap(),
             message(messages, "admin-node-menu-summary-mspt", "mspt: ") + fallback(summary.mspt(), "0"),
             message(messages, "admin-node-menu-summary-active-islands", "active islands: ") + summary.activeIslands() + "/" + summary.maxActiveIslands(),
             message(messages, "admin-node-menu-summary-queue", "queue: ") + summary.activationQueue() + "/" + summary.maxActivationQueue(),
-            message(messages, "admin-node-menu-summary-policy", "작업 순서: Drain -> View Islands -> Move Load -> Shutdown Safe"));
+            message(messages, "admin-node-menu-summary-policy", "작업 순서: Drain -> View Islands -> Move Load -> Shutdown Safe")
+        );
     }
 
     @EventHandler
@@ -150,17 +152,6 @@ public final class AdminNodeMenu implements Listener {
             value = value.substring(1).trim();
         }
         return value;
-    }
-
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
-            item.setItemMeta(meta);
-        }
-        return item;
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
