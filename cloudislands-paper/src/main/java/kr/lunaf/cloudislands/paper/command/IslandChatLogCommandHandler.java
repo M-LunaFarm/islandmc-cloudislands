@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.paper.command;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -75,32 +74,7 @@ final class IslandChatLogCommandHandler {
             showLogDetail(player, detail.logAction(), detail.createdAt(), detail.actorUuid(), detail.payload());
             return true;
         }
-        String actionId = action.actionId();
-        Map<String, String> data = action.data();
-        return switch (actionId) {
-            case "island.chat.open" -> {
-                openChatMenu(player);
-                yield true;
-            }
-            case "island.logs.open" -> {
-                openLogMenu(player);
-                yield true;
-            }
-            case "island.logs.list" -> {
-                listLogs(player, 10);
-                yield true;
-            }
-            case "island.log.detail" -> {
-                showLogDetail(
-                    player,
-                    data.getOrDefault("action", "unknown"),
-                    data.getOrDefault("createdAt", "unknown"),
-                    data.getOrDefault("actorUuid", "unknown"),
-                    data.getOrDefault("payload", runtime.routeMessage("log-menu-payload-empty", "없음")));
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private void showLogDetail(Player player, String action, String createdAt, String actorUuid, String payload) {

@@ -147,26 +147,7 @@ final class IslandEnvironmentCommandHandler {
                 default -> false;
             };
         }
-        String actionId = action.actionId();
-        return switch (actionId) {
-            case "island.biome.open" -> {
-                openBiomeMenu(player);
-                yield true;
-            }
-            case "island.biome.show" -> {
-                showBiome(player);
-                yield true;
-            }
-            case "island.limits.open" -> {
-                openLimitMenu(player);
-                yield true;
-            }
-            case "island.limits.list" -> {
-                listLimits(player);
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private void showBiome(Player player) {

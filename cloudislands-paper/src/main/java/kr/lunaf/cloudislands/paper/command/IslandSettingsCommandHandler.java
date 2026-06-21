@@ -127,30 +127,7 @@ final class IslandSettingsCommandHandler {
                 default -> false;
             };
         }
-        String actionId = action.actionId();
-        return switch (actionId) {
-            case "island.settings.open" -> {
-                openSettings(player);
-                yield true;
-            }
-            case "island.public.toggle" -> {
-                setPublicAccess(player, !rightClick);
-                yield true;
-            }
-            case "island.lock.toggle" -> {
-                setLocked(player, rightClick);
-                yield true;
-            }
-            case "island.flags.open" -> {
-                openFlagMenu(player);
-                yield true;
-            }
-            case "island.flags.list" -> {
-                listFlags(player);
-                yield true;
-            }
-            default -> false;
-        };
+        return false;
     }
 
     private void openSettings(Player player) {
