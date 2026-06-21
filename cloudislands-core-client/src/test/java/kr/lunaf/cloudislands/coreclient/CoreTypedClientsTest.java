@@ -1316,13 +1316,13 @@ class CoreTypedClientsTest {
         assertEquals(inviteId.toString(), client.createInvite(islandId, actorUuid, targetUuid).join().inviteId());
         assertEquals("ACCEPTED", client.acceptInvite(inviteId, targetUuid).join().code());
         assertEquals("INVITE_EXPIRED", client.declineInvite(inviteId, targetUuid).join().code());
-        assertEquals("MEMBER_ROLE_SET", client.setRole(islandId, actorUuid, targetUuid, "trusted").join().code());
+        assertEquals("MEMBER_ROLE_SET", client.setRole(islandId, actorUuid, targetUuid, "co-owner").join().code());
         assertEquals("later", client.trustTemporarily(islandId, actorUuid, targetUuid, 60L).join().expiresAt());
         assertEquals("OWNERSHIP_TRANSFERRED", client.transferOwnership(islandId, actorUuid, targetUuid).join().code());
         assertFalse(client.banVisitor(islandId, actorUuid, targetUuid, "reason").join().accepted());
         assertEquals("VISITOR_PARDONED", client.pardonVisitor(islandId, actorUuid, targetUuid).join().code());
         assertEquals("VISITOR_KICKED", client.kickVisitor(islandId, actorUuid, targetUuid).join().code());
-        assertEquals(List.of("remove", "invite", "accept", "decline", "role:trusted", "trust:60", "transfer", "ban:reason", "pardon", "kick"), calls);
+        assertEquals(List.of("remove", "invite", "accept", "decline", "role:CO_OWNER", "trust:60", "transfer", "ban:reason", "pardon", "kick"), calls);
     }
 
     @Test

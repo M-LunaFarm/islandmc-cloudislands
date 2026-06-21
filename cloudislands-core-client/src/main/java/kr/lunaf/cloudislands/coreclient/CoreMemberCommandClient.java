@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
+import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreMemberCommandClient implements MemberCommandClient {
@@ -44,10 +45,7 @@ public final class CoreMemberCommandClient implements MemberCommandClient {
     @Override
     public CompletableFuture<MemberActionView> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
         requireIds(islandId, actorUuid, targetUuid);
-        String normalizedRoleKey = roleKey == null ? "" : roleKey.trim();
-        if (normalizedRoleKey.isBlank()) {
-            throw new IllegalArgumentException("roleKey is required");
-        }
+        String normalizedRoleKey = RoleId.of(roleKey).value();
         return delegate.setIslandMemberResult(islandId, actorUuid, targetUuid, normalizedRoleKey)
             .thenApply(body -> memberAction(body, "MEMBER_ROLE_SET"));
     }
