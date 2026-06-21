@@ -2,11 +2,13 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -110,11 +112,18 @@ public final class IslandPlayerLifecycleRoutes implements RouteGroup {
     }
 
     static String lifecycleJson(IslandLifecycleWorkflow.Result result) {
-        return "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\"}";
+        return SimpleJson.stringify(Map.of(
+            "accepted", result.accepted(),
+            "code", result.code()
+        ));
     }
 
     static String deleteResultJson(DeleteIslandResult result) {
-        return "{\"accepted\":" + result.accepted() + ",\"code\":\"" + result.code() + "\",\"islandId\":\"" + result.islandId() + "\"}";
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", result.accepted());
+        values.put("code", result.code());
+        values.put("islandId", result.islandId());
+        return SimpleJson.stringify(values);
     }
 
     @FunctionalInterface

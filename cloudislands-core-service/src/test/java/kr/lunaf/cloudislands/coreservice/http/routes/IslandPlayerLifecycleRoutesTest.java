@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.workflow.IslandLifecycleWorkflow;
 import org.junit.jupiter.api.Test;
 
@@ -28,13 +30,17 @@ class IslandPlayerLifecycleRoutesTest {
     void rendersLifecycleContracts() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
-        assertEquals(
-            "{\"accepted\":true,\"code\":\"RESET_ACCEPTED\"}",
+        Map<?, ?> lifecycle = SimpleJson.object(SimpleJson.parse(
             IslandPlayerLifecycleRoutes.lifecycleJson(new IslandLifecycleWorkflow.Result(true, "RESET_ACCEPTED", null))
-        );
-        assertEquals(
-            "{\"accepted\":false,\"code\":\"NOT_OWNER_OR_MISSING\",\"islandId\":\"00000000-0000-0000-0000-000000000001\"}",
+        ));
+        Map<?, ?> deleted = SimpleJson.object(SimpleJson.parse(
             IslandPlayerLifecycleRoutes.deleteResultJson(new DeleteIslandResult(false, "NOT_OWNER_OR_MISSING", islandId))
-        );
+        ));
+
+        assertEquals(true, lifecycle.get("accepted"));
+        assertEquals("RESET_ACCEPTED", SimpleJson.text(lifecycle.get("code")));
+        assertEquals(false, deleted.get("accepted"));
+        assertEquals("NOT_OWNER_OR_MISSING", SimpleJson.text(deleted.get("code")));
+        assertEquals(islandId.toString(), SimpleJson.text(deleted.get("islandId")));
     }
 }
