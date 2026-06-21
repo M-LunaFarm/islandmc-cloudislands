@@ -330,13 +330,15 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
         String normalizedRoleKey = normalizeRoleKey(roleKey);
-        String versionField = expectedVersion == null || expectedVersion.isBlank() ? "" : ",\"expectedVersion\":\"" + escape(expectedVersion) + "\"";
-        return postWithResultBody("/v1/islands/permissions/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"" + escape(normalizedRoleKey) + "\",\"roleKey\":\"" + escape(normalizedRoleKey) + "\",\"permission\":\"" + permission.name() + "\",\"allowed\":" + allowed + versionField + "}");
+        String payload = expectedVersion == null || expectedVersion.isBlank()
+            ? jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed)
+            : jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed, "expectedVersion", expectedVersion);
+        return postWithResultBody("/v1/islands/permissions/set", payload);
     }
 
     @Override
     public CompletableFuture<String> setIslandPermissionOverride(UUID islandId, UUID actorUuid, UUID playerUuid, IslandPermission permission, boolean allowed) {
-        return postWithResultBody("/v1/islands/permissions/overrides/set", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"permission\":\"" + permission.name() + "\",\"allowed\":" + allowed + "}");
+        return postWithResultBody("/v1/islands/permissions/overrides/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid, "permission", permission.name(), "allowed", allowed));
     }
 
     @Override
@@ -352,7 +354,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> upsertIslandRole(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName) {
         String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return postWithResultBody("/v1/islands/roles/upsert", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"" + escape(normalizedRoleKey) + "\",\"roleKey\":\"" + escape(normalizedRoleKey) + "\",\"weight\":" + weight + ",\"displayName\":\"" + escape(displayName) + "\"}");
+        return postWithResultBody("/v1/islands/roles/upsert", jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "weight", weight, "displayName", displayName));
     }
 
     @Override
@@ -363,7 +365,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, String roleKey) {
         String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return postWithResultBody("/v1/islands/roles/reset", "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"" + escape(normalizedRoleKey) + "\",\"roleKey\":\"" + escape(normalizedRoleKey) + "\"}");
+        return postWithResultBody("/v1/islands/roles/reset", jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey));
     }
 
     @Override

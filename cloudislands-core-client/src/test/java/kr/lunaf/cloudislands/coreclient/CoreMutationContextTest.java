@@ -17,6 +17,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import org.junit.jupiter.api.Test;
 
 class CoreMutationContextTest {
@@ -265,6 +266,35 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":12}", requestBodies.get("reviews"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"rating\":5,\"comment\":\"nice \\\"base\\\"\"}", requestBodies.get("reviewSet"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\"}", requestBodies.get("reviewDelete"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void jdkClientBuildsPermissionAndRolePayloadsWithStructuredHelper() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        UUID playerUuid = UUID.randomUUID();
+        ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/permissions/set", exchange -> respond(exchange, requestBodies, "permissionSet", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/permissions/overrides/set", exchange -> respond(exchange, requestBodies, "permissionOverride", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/roles/upsert", exchange -> respond(exchange, requestBodies, "roleUpsert", "{\"accepted\":true}"));
+        server.createContext("/v1/islands/roles/reset", exchange -> respond(exchange, requestBodies, "roleReset", "{\"accepted\":true}"));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            client.setIslandPermissionResult(islandId, actorUuid, "builder-role", IslandPermission.BUILD, true, "v\"2").join();
+            client.setIslandPermissionOverride(islandId, actorUuid, playerUuid, IslandPermission.BREAK, false).join();
+            client.upsertIslandRole(islandId, actorUuid, "builder-role", 42, "Builder \"Role\"").join();
+            client.resetIslandRole(islandId, actorUuid, "builder-role").join();
+
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER_ROLE\",\"roleKey\":\"BUILDER_ROLE\",\"permission\":\"BUILD\",\"allowed\":true,\"expectedVersion\":\"v\\\"2\"}", requestBodies.get("permissionSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"permission\":\"BREAK\",\"allowed\":false}", requestBodies.get("permissionOverride"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER_ROLE\",\"roleKey\":\"BUILDER_ROLE\",\"weight\":42,\"displayName\":\"Builder \\\"Role\\\"\"}", requestBodies.get("roleUpsert"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER_ROLE\",\"roleKey\":\"BUILDER_ROLE\"}", requestBodies.get("roleReset"));
         } finally {
             server.stop(0);
         }
