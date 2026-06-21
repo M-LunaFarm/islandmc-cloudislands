@@ -14,6 +14,24 @@ class GuiMenuDefinitionTest {
             id: island.chat
             rows: 3
             title-key: menu.chat.title
+            layout:
+              - "........."
+              - ".I.T.LSM."
+              - "....C...."
+            items:
+              I:
+                material: WRITABLE_BOOK
+                name-key: chat-menu-island-name
+                fallback-name: 섬 채팅 보내기
+                lore-keys:
+                  - chat-menu-island-usage
+                fallback-lore:
+                  - "사용법: /섬 채팅 <메시지>"
+              L:
+                material: CLOCK
+                name-key: chat-menu-log-name
+                fallback-name: 최근 섬 로그
+                action: logs
             actions:
               logs: island.logs.open
               settings: island.settings.open
@@ -29,6 +47,9 @@ class GuiMenuDefinitionTest {
         assertEquals("menu.chat.title", definition.titleKey());
         assertEquals("island.logs.open", definition.action("logs", ""));
         assertEquals("island.main.open", definition.action("back", ""));
+        assertEquals("I", definition.itemAt(10).orElseThrow().symbol());
+        assertEquals("WRITABLE_BOOK", definition.itemAt(10).orElseThrow().materialKey());
+        assertEquals("logs", definition.itemAt(14).orElseThrow().actionKey());
     }
 
     @Test
@@ -43,5 +64,8 @@ class GuiMenuDefinitionTest {
         assertEquals("menu.chat.title", definition.titleKey());
         assertEquals("island.logs.open", definition.action("logs", ""));
         assertEquals("island.settings.open", definition.action("settings", ""));
+        assertEquals("I", definition.itemAt(10).orElseThrow().symbol());
+        assertEquals("T", definition.itemAt(12).orElseThrow().symbol());
+        assertEquals("logs", definition.itemAt(14).orElseThrow().actionKey());
     }
 }

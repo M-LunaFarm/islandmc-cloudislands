@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.List;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -45,12 +44,10 @@ public final class IslandChatMenu implements Listener {
 
     public static void open(Player player, MessageRenderer messages) {
         Inventory inventory = GuiInventories.create(MENU_ID, MENU.size(), message(messages, MENU.titleKey(), TITLE));
-        inventory.setItem(10, item(Material.WRITABLE_BOOK, message(messages, "chat-menu-island-name", "섬 채팅 보내기"), message(messages, "chat-menu-island-usage", "사용법: /섬 채팅 <메시지>"), message(messages, "chat-menu-island-description", "섬 전체 채널로 기록됩니다.")));
-        inventory.setItem(12, item(Material.BOOK, message(messages, "chat-menu-team-name", "팀 채팅 보내기"), message(messages, "chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>"), message(messages, "chat-menu-team-description", "섬 팀 채널로 기록됩니다.")));
-        inventory.setItem(14, item(Material.CLOCK, message(messages, "chat-menu-log-name", "최근 섬 로그"), message(messages, "chat-menu-log-command", "/섬 로그"), message(messages, "chat-menu-log-description", "채팅 기록도 섬 로그에서 확인합니다.")));
-        inventory.setItem(15, item(Material.COMPARATOR, message(messages, "chat-menu-settings-name", "섬 설정"), message(messages, "chat-menu-settings-command", "/섬 설정")));
-        inventory.setItem(16, item(Material.COMPASS, message(messages, "chat-menu-main-menu-name", "메인 메뉴"), message(messages, "chat-menu-main-menu-command", "/섬 메뉴")));
-        inventory.setItem(22, item(Material.OAK_DOOR, message(messages, "chat-menu-close-name", "닫기"), message(messages, "chat-menu-close", "메뉴를 닫습니다.")));
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            int currentSlot = slot;
+            MENU.itemAt(slot).ifPresent(item -> inventory.setItem(currentSlot, item(item, messages)));
+        }
         player.openInventory(inventory);
     }
 
@@ -67,17 +64,17 @@ public final class IslandChatMenu implements Listener {
         if (slot < 0 || slot >= 27) {
             return;
         }
+        GuiMenuDefinition.MenuItem menuItem = MENU.itemAt(slot).orElse(null);
+        if (menuItem == null) {
+            return;
+        }
         player.closeInventory();
-        if (slot == 10) {
+        if (menuItem.symbol().equals("I")) {
             player.sendMessage(message(messages, "chat-menu-island-usage", "사용법: /섬 채팅 <메시지>"));
-        } else if (slot == 12) {
+        } else if (menuItem.symbol().equals("T")) {
             player.sendMessage(message(messages, "chat-menu-team-usage", "사용법: /섬 팀채팅 <메시지>"));
-        } else if (slot == 14) {
-            actions.execute(player, MENU.action("logs", "island.logs.open"), GuiClick.from(event));
-        } else if (slot == 15) {
-            actions.execute(player, MENU.action("settings", "island.settings.open"), GuiClick.from(event));
-        } else if (slot == 16) {
-            actions.execute(player, MENU.action("back", "island.main.open"), GuiClick.from(event));
+        } else if (!menuItem.actionKey().isBlank()) {
+            actions.execute(player, MENU.action(menuItem.actionKey(), ""), GuiClick.from(event));
         }
     }
 
@@ -89,14 +86,33 @@ public final class IslandChatMenu implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private static ItemStack item(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
+    private static ItemStack item(GuiMenuDefinition.MenuItem definition, MessageRenderer messages) {
+        ItemStack item = new ItemStack(material(definition.materialKey()));
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
+            meta.setDisplayName(message(messages, definition.nameKey(), definition.fallbackName()));
+            meta.setLore(lore(definition, messages));
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private static List<String> lore(GuiMenuDefinition.MenuItem definition, MessageRenderer messages) {
+        java.util.ArrayList<String> lore = new java.util.ArrayList<>();
+        int count = Math.max(definition.loreKeys().size(), definition.fallbackLore().size());
+        for (int index = 0; index < count; index++) {
+            String key = index < definition.loreKeys().size() ? definition.loreKeys().get(index) : "";
+            String fallback = index < definition.fallbackLore().size() ? definition.fallbackLore().get(index) : "";
+            lore.add(message(messages, key, fallback));
+        }
+        return List.copyOf(lore);
+    }
+
+    private static Material material(String key) {
+        try {
+            return Material.valueOf(key == null ? "STONE" : key);
+        } catch (RuntimeException ignored) {
+            return Material.STONE;
+        }
     }
 }

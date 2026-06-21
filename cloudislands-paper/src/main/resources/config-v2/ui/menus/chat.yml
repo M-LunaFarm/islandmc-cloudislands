@@ -1,6 +1,68 @@
 id: island.chat
 rows: 3
 title-key: menu.chat.title
+layout:
+  - "........."
+  - ".I.T.LSM."
+  - "....C...."
+items:
+  I:
+    material: WRITABLE_BOOK
+    name-key: chat-menu-island-name
+    fallback-name: 섬 채팅 보내기
+    lore-keys:
+      - chat-menu-island-usage
+      - chat-menu-island-description
+    fallback-lore:
+      - "사용법: /섬 채팅 <메시지>"
+      - 섬 전체 채널로 기록됩니다.
+  T:
+    material: BOOK
+    name-key: chat-menu-team-name
+    fallback-name: 팀 채팅 보내기
+    lore-keys:
+      - chat-menu-team-usage
+      - chat-menu-team-description
+    fallback-lore:
+      - "사용법: /섬 팀채팅 <메시지>"
+      - 섬 팀 채널로 기록됩니다.
+  L:
+    material: CLOCK
+    name-key: chat-menu-log-name
+    fallback-name: 최근 섬 로그
+    action: logs
+    lore-keys:
+      - chat-menu-log-command
+      - chat-menu-log-description
+    fallback-lore:
+      - "/섬 로그"
+      - 채팅 기록도 섬 로그에서 확인합니다.
+  S:
+    material: COMPARATOR
+    name-key: chat-menu-settings-name
+    fallback-name: 섬 설정
+    action: settings
+    lore-keys:
+      - chat-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+  M:
+    material: COMPASS
+    name-key: chat-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    action: back
+    lore-keys:
+      - chat-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+  C:
+    material: OAK_DOOR
+    name-key: chat-menu-close-name
+    fallback-name: 닫기
+    lore-keys:
+      - chat-menu-close
+    fallback-lore:
+      - 메뉴를 닫습니다.
 actions:
   open: island.chat.open
   logs: island.logs.open
