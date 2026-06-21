@@ -19,8 +19,20 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandLogMenu implements Listener {
-    private static final String MENU_ID = "island.logs";
     private static final String TITLE = "섬 로그";
+    private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
+        "config-v2/ui/menus/logs.yml",
+        new GuiMenuDefinition("island.logs", 4, "menu.logs.title", Map.of(
+            "open", "island.logs.open",
+            "list", "island.logs.list",
+            "detail", "island.log.detail",
+            "main", "island.main.open",
+            "settings", "island.settings.open",
+            "back", "island.chat.open",
+            "close", "gui.close"
+        ))
+    );
+    private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -43,11 +55,11 @@ public final class IslandLogMenu implements Listener {
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, TITLE);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandLogs(client, islandId, 27)
             .thenAccept(entries -> openSync(plugin, player, session, entries, messages))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, TITLE, message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다."), "island.logs.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다."), "island.logs.open", "island.settings.open");
                 return null;
             });
     }
@@ -65,36 +77,21 @@ public final class IslandLogMenu implements Listener {
         if (slot < 0 || slot >= 36) {
             return;
         }
-        if (slot == 31) {
-            player.closeInventory();
-            actions.execute(player, "island.logs.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 30) {
-            player.closeInventory();
-            actions.execute(player, "island.main.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 32) {
-            player.closeInventory();
-            actions.execute(player, "island.settings.open", GuiClick.from(event));
-            return;
-        }
-        if (slot == 35) {
+        String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (actionId.equals("gui.close")) {
             player.closeInventory();
             return;
         }
-        Map<String, String> data = GuiItems.data(event.getCurrentItem());
-        if (data.isEmpty()) {
+        if (actionId.isBlank()) {
             return;
         }
         player.closeInventory();
-        actions.execute(player, "island.log.detail", data, GuiClick.from(event));
+        actions.execute(player, actionId, GuiItems.data(event.getCurrentItem()), GuiClick.from(event));
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<LogEntryView> entries, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiInventories.create(MENU_ID, session, 36, TITLE);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             if (entries.isEmpty()) {
                 inventory.setItem(13, item(Material.BARRIER, message(messages, "log-menu-empty-title", "로그 없음"), message(messages, "log-menu-empty", "아직 기록된 섬 로그가 없습니다.")));
             } else {
@@ -103,10 +100,6 @@ public final class IslandLogMenu implements Listener {
                     inventory.setItem(index, logItem(entry, index, messages));
                 }
             }
-            inventory.setItem(30, item(Material.COMPASS, message(messages, "log-menu-main-menu-name", "메인 메뉴"), message(messages, "log-menu-main-menu-command", "/섬 메뉴")));
-            inventory.setItem(31, item(Material.CLOCK, message(messages, "log-menu-refresh-name", "새로고침"), message(messages, "log-menu-refresh-command", "/섬 로그")));
-            inventory.setItem(32, item(Material.COMPARATOR, message(messages, "log-menu-settings-name", "설정"), message(messages, "log-menu-settings-command", "/섬 설정")));
-            inventory.setItem(35, item(Material.OAK_DOOR, message(messages, "log-menu-close-name", "닫기"), message(messages, "log-menu-close", "메뉴를 닫습니다.")));
             player.openInventory(inventory);
         });
     }
@@ -158,11 +151,7 @@ public final class IslandLogMenu implements Listener {
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
-        if (messages == null) {
-            return fallback;
-        }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     private static Material material(String action) {

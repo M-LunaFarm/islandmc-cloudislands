@@ -1,8 +1,53 @@
 id: island.logs
-rows: 6
+rows: 4
 title-key: menu.logs.title
+layout:
+  - "........."
+  - "........."
+  - "........."
+  - "...MRS..X"
+items:
+  M:
+    material: COMPASS
+    name-key: log-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - log-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: main
+  R:
+    material: CLOCK
+    name-key: log-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - log-menu-refresh-command
+    fallback-lore:
+      - "/섬 로그"
+    action: open
+  S:
+    material: COMPARATOR
+    name-key: log-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - log-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: settings
+  X:
+    material: OAK_DOOR
+    name-key: log-menu-close-name
+    fallback-name: 닫기
+    lore-keys:
+      - log-menu-close
+    fallback-lore:
+      - 메뉴를 닫습니다.
+    action: close
 actions:
   open: island.logs.open
   list: island.logs.list
   detail: island.log.detail
+  main: island.main.open
+  settings: island.settings.open
   back: island.chat.open
+  close: gui.close

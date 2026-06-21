@@ -262,6 +262,26 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void bundledLogMenuDefinitionCoversFooterControlsDeclaratively() {
+        GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/logs.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.logs", definition.id());
+        assertEquals(36, definition.size());
+        assertEquals("menu.logs.title", definition.titleKey());
+        assertEquals("M", definition.itemAt(30).orElseThrow().symbol());
+        assertEquals("island.main.open", definition.action(definition.itemAt(30).orElseThrow().actionKey(), ""));
+        assertEquals("R", definition.itemAt(31).orElseThrow().symbol());
+        assertEquals("island.logs.open", definition.action(definition.itemAt(31).orElseThrow().actionKey(), ""));
+        assertEquals("S", definition.itemAt(32).orElseThrow().symbol());
+        assertEquals("island.settings.open", definition.action(definition.itemAt(32).orElseThrow().actionKey(), ""));
+        assertEquals("X", definition.itemAt(35).orElseThrow().symbol());
+        assertEquals("gui.close", definition.action(definition.itemAt(35).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
     void bundledSettingsMenuDefinitionCoversSettingsNavigationDeclaratively() {
         GuiMenuDefinition definition = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/settings.yml",
