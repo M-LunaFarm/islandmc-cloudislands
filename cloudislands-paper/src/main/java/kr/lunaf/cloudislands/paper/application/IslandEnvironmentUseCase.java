@@ -22,17 +22,12 @@ public final class IslandEnvironmentUseCase {
         this.coreApiClient = coreApiClient;
     }
 
-    public CompletableFuture<String> islandBiome(UUID islandId) {
-        requireIsland(islandId);
-        return coreApiClient.islandBiome(islandId);
-    }
-
     public CompletableFuture<String> islandBiomeValue(UUID islandId) {
         requireIsland(islandId);
         return CoreGuiViews.islandBiome(coreApiClient, islandId);
     }
 
-    public CompletableFuture<String> setBiome(UUID islandId, UUID actorUuid, String biomeKey, MutationRunner runner) {
+    private CompletableFuture<String> setBiomeBody(UUID islandId, UUID actorUuid, String biomeKey, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
@@ -40,13 +35,8 @@ public final class IslandEnvironmentUseCase {
     }
 
     public CompletableFuture<EnvironmentActionResult> setBiomeAction(UUID islandId, UUID actorUuid, String biomeKey, MutationRunner runner) {
-        return setBiome(islandId, actorUuid, biomeKey, runner)
+        return setBiomeBody(islandId, actorUuid, biomeKey, runner)
             .thenApply(body -> actionResult(body, "BIOME_SET"));
-    }
-
-    public CompletableFuture<String> islandInfo(UUID islandId) {
-        requireIsland(islandId);
-        return coreApiClient.islandInfo(islandId);
     }
 
     public CompletableFuture<IslandInfoView> islandInfoView(UUID islandId) {
@@ -54,17 +44,12 @@ public final class IslandEnvironmentUseCase {
         return CoreGuiViews.islandInfo(coreApiClient, islandId);
     }
 
-    public CompletableFuture<String> listFlags(UUID islandId) {
-        requireIsland(islandId);
-        return coreApiClient.listIslandFlags(islandId);
-    }
-
     public CompletableFuture<Map<IslandFlag, String>> flagValues(UUID islandId) {
         requireIsland(islandId);
         return CoreGuiViews.islandFlags(coreApiClient, islandId);
     }
 
-    public CompletableFuture<String> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
+    private CompletableFuture<String> setFlagBody(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireFlag(flag);
@@ -73,13 +58,8 @@ public final class IslandEnvironmentUseCase {
     }
 
     public CompletableFuture<EnvironmentActionResult> setFlagAction(UUID islandId, UUID actorUuid, IslandFlag flag, String value, MutationRunner runner) {
-        return setFlag(islandId, actorUuid, flag, value, runner)
+        return setFlagBody(islandId, actorUuid, flag, value, runner)
             .thenApply(body -> actionResult(body, "FLAG_SET"));
-    }
-
-    public CompletableFuture<String> listLimits(UUID islandId) {
-        requireIsland(islandId);
-        return coreApiClient.listIslandLimits(islandId);
     }
 
     public CompletableFuture<List<LimitView>> limitViews(UUID islandId) {
@@ -87,7 +67,7 @@ public final class IslandEnvironmentUseCase {
         return CoreGuiViews.islandLimits(coreApiClient, islandId);
     }
 
-    public CompletableFuture<String> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value, MutationRunner runner) {
+    private CompletableFuture<String> setLimitBody(UUID islandId, UUID actorUuid, String limitKey, long value, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireRunner(runner);
@@ -95,7 +75,7 @@ public final class IslandEnvironmentUseCase {
     }
 
     public CompletableFuture<EnvironmentActionResult> setLimitAction(UUID islandId, UUID actorUuid, String limitKey, long value, MutationRunner runner) {
-        return setLimit(islandId, actorUuid, limitKey, value, runner)
+        return setLimitBody(islandId, actorUuid, limitKey, value, runner)
             .thenApply(body -> actionResult(body, "LIMIT_SET"));
     }
 

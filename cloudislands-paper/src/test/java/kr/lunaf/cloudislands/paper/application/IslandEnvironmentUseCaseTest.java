@@ -16,35 +16,6 @@ import org.junit.jupiter.api.Test;
 
 class IslandEnvironmentUseCaseTest {
     @Test
-    void environmentOperationsRunBehindApplicationBoundary() {
-        List<String> calls = new ArrayList<>();
-        IslandEnvironmentUseCase useCase = new IslandEnvironmentUseCase(client(calls));
-        UUID islandId = uuid("00000000-0000-0000-0000-000000000070");
-        UUID actorUuid = uuid("00000000-0000-0000-0000-000000000001");
-
-        assertEquals("{\"biomeKey\":\"PLAINS\"}", useCase.islandBiome(islandId).join());
-        assertEquals("{\"accepted\":true,\"code\":\"BIOME_SET\",\"biomeKey\":\"PLAINS\"}", useCase.setBiome(islandId, actorUuid, "PLAINS", mutationRunner(calls)).join());
-        assertEquals("{\"size\":300,\"border\":310}", useCase.islandInfo(islandId).join());
-        assertEquals("{\"flags\":{\"BORDER_VISIBLE\":\"true\",\"BORDER_COLOR\":\"blue\"}}", useCase.listFlags(islandId).join());
-        assertEquals("{\"accepted\":true,\"code\":\"FLAG_SET\",\"flag\":\"BORDER_VISIBLE\"}", useCase.setFlag(islandId, actorUuid, IslandFlag.BORDER_VISIBLE, "true", mutationRunner(calls)).join());
-        assertEquals("{\"limits\":[{\"limitKey\":\"HOPPER\",\"value\":64,\"updatedAt\":\"now\"}]}", useCase.listLimits(islandId).join());
-        assertEquals("{\"accepted\":true,\"code\":\"LIMIT_SET\",\"limitKey\":\"HOPPER\",\"value\":64}", useCase.setLimit(islandId, actorUuid, "HOPPER", 64L, mutationRunner(calls)).join());
-
-        assertEquals(List.of(
-            "islandBiome",
-            "audit:island.biome.set",
-            "setIslandBiomeResult:PLAINS",
-            "islandInfo",
-            "listIslandFlags",
-            "audit:island.flag.set",
-            "setIslandFlagResult:BORDER_VISIBLE:true",
-            "listIslandLimits",
-            "audit:island.limit.set",
-            "setIslandLimit:HOPPER:64"
-        ), calls);
-    }
-
-    @Test
     void environmentReadsAndMutationsExposeTypedViews() {
         List<String> calls = new ArrayList<>();
         IslandEnvironmentUseCase useCase = new IslandEnvironmentUseCase(client(calls));
@@ -71,6 +42,19 @@ class IslandEnvironmentUseCaseTest {
         assertTrue(limit.accepted());
         assertEquals("HOPPER", limit.key());
         assertEquals(64L, limit.value());
+
+        assertEquals(List.of(
+            "islandBiome",
+            "islandInfo",
+            "listIslandFlags",
+            "listIslandLimits",
+            "audit:island.biome.set",
+            "setIslandBiomeResult:PLAINS",
+            "audit:island.flag.set",
+            "setIslandFlagResult:BORDER_VISIBLE:true",
+            "audit:island.limit.set",
+            "setIslandLimit:HOPPER:64"
+        ), calls);
     }
 
     private static CoreApiClient client(List<String> calls) {
