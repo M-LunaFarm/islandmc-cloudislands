@@ -26,6 +26,13 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminNodeAction adminNode) {
+            return handleAdminNodeAction(player, adminNode, click);
+        }
+        if (action instanceof GuiAction.AdminIslandPrompt) {
+            runtime.message(player, runtime.routeMessage("admin-node-direct-required", "섬 UUID와 대상 노드 입력이 필요한 관리 작업입니다. 관리자 명령 도움말을 확인해주세요."));
+            return true;
+        }
         String actionId = action.actionId();
         Map<String, String> data = action.data();
         return switch (actionId) {
@@ -84,6 +91,59 @@ final class IslandAdminNodeCommandHandler {
                 yield true;
             }
             default -> false;
+        };
+    }
+
+    private boolean handleAdminNodeAction(Player player, GuiAction.AdminNodeAction action, GuiClick click) {
+        return switch (action.type()) {
+            case OPEN -> {
+                openAdminNodeMenu(player, adminNodeId(action.data()));
+                yield true;
+            }
+            case LIST -> {
+                listAdminNodes(player);
+                yield true;
+            }
+            case INFO -> {
+                refreshAdminNodeInfo(player, adminNodeId(action.data()));
+                yield true;
+            }
+            case ISLANDS -> {
+                listAdminNodeIslands(player, adminNodeId(action.data()));
+                yield true;
+            }
+            case DRAIN -> {
+                drainAdminNode(player, adminNodeId(action.data()));
+                yield true;
+            }
+            case UNDRAIN -> {
+                undrainAdminNode(player, adminNodeId(action.data()));
+                yield true;
+            }
+            case SWEEP -> {
+                sweepAdminNode(player, adminNodeId(action.data()));
+                yield true;
+            }
+            case KICKALL_PREPARE -> {
+                openAdminNodeKickAllConfirmation(player, adminNodeId(action.data()));
+                yield true;
+            }
+            case SHUTDOWN_SAFE_PREPARE -> {
+                openAdminNodeShutdownConfirmation(player, adminNodeId(action.data()));
+                yield true;
+            }
+            case KICKALL_CONFIRM -> {
+                if (runtime.confirmationAccepted(player, action, click)) {
+                    kickAllAdminNode(player, adminNodeId(action.data()), action.reason());
+                }
+                yield true;
+            }
+            case SHUTDOWN_SAFE_CONFIRM -> {
+                if (runtime.confirmationAccepted(player, action, click)) {
+                    shutdownAdminNodeSafely(player, adminNodeId(action.data()), action.reason());
+                }
+                yield true;
+            }
         };
     }
 

@@ -68,6 +68,25 @@ public final class GuiActionParser {
                 ));
             }
             return switch (safeAction) {
+                case "admin.node.open" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.OPEN, safeData));
+                case "admin.node.list" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.LIST, safeData));
+                case "admin.node.info" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.INFO, safeData));
+                case "admin.node.islands" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.ISLANDS, safeData));
+                case "admin.node.drain" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.DRAIN, safeData));
+                case "admin.node.undrain" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.UNDRAIN, safeData));
+                case "admin.node.sweep" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.SWEEP, safeData));
+                case "admin.node.kickall.prepare" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.KICKALL_PREPARE, safeData));
+                case "admin.node.shutdown-safe.prepare" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.SHUTDOWN_SAFE_PREPARE, safeData));
+                case "admin.node.kickall.confirm" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.KICKALL_CONFIRM, safeData));
+                case "admin.node.shutdown-safe.confirm" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.SHUTDOWN_SAFE_CONFIRM, safeData));
+                case "admin.island.where.prompt" -> Optional.of(new GuiAction.AdminIslandPrompt(
+                    GuiAction.AdminIslandPromptType.WHERE,
+                    safeData.getOrDefault("nodeId", "")
+                ));
+                case "admin.island.migrate.prompt" -> Optional.of(new GuiAction.AdminIslandPrompt(
+                    GuiAction.AdminIslandPromptType.MIGRATE,
+                    safeData.getOrDefault("nodeId", "")
+                ));
                 case "island.bank.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BANK_OPEN));
                 case "island.snapshots.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_OPEN));
                 case "island.snapshots.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_LIST));
@@ -234,6 +253,15 @@ public final class GuiActionParser {
 
     private static boolean warpDeleteConfirmation(String actionId) {
         return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".warp.delete.confirm");
+    }
+
+    private static GuiAction.AdminNodeAction adminNode(GuiAction.AdminNodeActionType type, Map<String, String> data) {
+        return new GuiAction.AdminNodeAction(
+            type,
+            data.getOrDefault("nodeId", ""),
+            data.getOrDefault("reason", "admin-gui"),
+            data.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
+        );
     }
 
     private static int integer(String value) {

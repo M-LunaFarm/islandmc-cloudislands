@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RankingList, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RankingList, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -20,6 +20,113 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.MainOpen, Gui
             if (actionId.isBlank()) {
                 throw new IllegalArgumentException("actionId is required");
             }
+        }
+    }
+
+    record AdminNodeAction(AdminNodeActionType type, String nodeId, String reason, String confirmationToken) implements GuiAction {
+        public AdminNodeAction {
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
+            }
+            nodeId = nodeId == null ? "" : nodeId.trim();
+            reason = reason == null || reason.isBlank() ? "admin-gui" : reason.trim();
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
+        }
+
+        @Override
+        public Map<String, String> data() {
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+            if (!nodeId.isBlank()) {
+                values.put("nodeId", nodeId);
+            }
+            if (type.confirmation()) {
+                values.put("reason", reason);
+                if (!confirmationToken.isBlank()) {
+                    values.put(ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken);
+                }
+            }
+            return Map.copyOf(values);
+        }
+
+        public boolean kickAll() {
+            return type == AdminNodeActionType.KICKALL_PREPARE || type == AdminNodeActionType.KICKALL_CONFIRM;
+        }
+
+        public boolean shutdownSafe() {
+            return type == AdminNodeActionType.SHUTDOWN_SAFE_PREPARE || type == AdminNodeActionType.SHUTDOWN_SAFE_CONFIRM;
+        }
+
+        public boolean confirmation() {
+            return type.confirmation();
+        }
+    }
+
+    enum AdminNodeActionType {
+        OPEN("admin.node.open", false),
+        LIST("admin.node.list", false),
+        INFO("admin.node.info", false),
+        ISLANDS("admin.node.islands", false),
+        DRAIN("admin.node.drain", false),
+        UNDRAIN("admin.node.undrain", false),
+        SWEEP("admin.node.sweep", false),
+        KICKALL_PREPARE("admin.node.kickall.prepare", false),
+        SHUTDOWN_SAFE_PREPARE("admin.node.shutdown-safe.prepare", false),
+        KICKALL_CONFIRM("admin.node.kickall.confirm", true),
+        SHUTDOWN_SAFE_CONFIRM("admin.node.shutdown-safe.confirm", true);
+
+        private final String actionId;
+        private final boolean confirmation;
+
+        AdminNodeActionType(String actionId, boolean confirmation) {
+            this.actionId = actionId;
+            this.confirmation = confirmation;
+        }
+
+        public String actionId() {
+            return actionId;
+        }
+
+        public boolean confirmation() {
+            return confirmation;
+        }
+    }
+
+    record AdminIslandPrompt(AdminIslandPromptType type, String nodeId) implements GuiAction {
+        public AdminIslandPrompt {
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
+            }
+            nodeId = nodeId == null ? "" : nodeId.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return nodeId.isBlank() ? Map.of() : Map.of("nodeId", nodeId);
+        }
+    }
+
+    enum AdminIslandPromptType {
+        WHERE("admin.island.where.prompt"),
+        MIGRATE("admin.island.migrate.prompt");
+
+        private final String actionId;
+
+        AdminIslandPromptType(String actionId) {
+            this.actionId = actionId;
+        }
+
+        public String actionId() {
+            return actionId;
         }
     }
 

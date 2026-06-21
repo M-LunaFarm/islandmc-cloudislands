@@ -139,11 +139,36 @@ class GuiActionParserTest {
 
     @Test
     void preservesRegisteredRawActions() {
-        GuiAction action = GuiActionParser.parse("admin.island.where.prompt", Map.of("islandId", "abc")).orElseThrow();
+        GuiAction action = GuiActionParser.parse("gui.close", Map.of()).orElseThrow();
 
         assertTrue(action instanceof GuiAction.Raw);
-        assertEquals("admin.island.where.prompt", action.actionId());
-        assertEquals(Map.of("islandId", "abc"), action.data());
+        assertEquals("gui.close", action.actionId());
+        assertEquals(Map.of(), action.data());
+    }
+
+    @Test
+    void parsesAdminNodeActionsIntoTypedActions() {
+        GuiAction open = GuiActionParser.parse("admin.node.open", Map.of("nodeId", " island-2 ")).orElseThrow();
+        GuiAction kickAll = GuiActionParser.parse("admin.node.kickall.confirm", Map.of(
+            "nodeId", " island-2 ",
+            "reason", " drain ",
+            ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("admin.node.kickall.confirm")
+        )).orElseThrow();
+        GuiAction prompt = GuiActionParser.parse("admin.island.migrate.prompt", Map.of("nodeId", " island-3 ")).orElseThrow();
+
+        assertTrue(open instanceof GuiAction.AdminNodeAction);
+        assertEquals(GuiAction.AdminNodeActionType.OPEN, ((GuiAction.AdminNodeAction) open).type());
+        assertEquals(Map.of("nodeId", "island-2"), open.data());
+        assertTrue(kickAll instanceof GuiAction.AdminNodeAction);
+        assertEquals(GuiAction.AdminNodeActionType.KICKALL_CONFIRM, ((GuiAction.AdminNodeAction) kickAll).type());
+        assertEquals(Map.of(
+            "nodeId", "island-2",
+            "reason", "drain",
+            ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("admin.node.kickall.confirm")
+        ), kickAll.data());
+        assertTrue(prompt instanceof GuiAction.AdminIslandPrompt);
+        assertEquals(GuiAction.AdminIslandPromptType.MIGRATE, ((GuiAction.AdminIslandPrompt) prompt).type());
+        assertEquals(Map.of("nodeId", "island-3"), prompt.data());
     }
 
     @Test
