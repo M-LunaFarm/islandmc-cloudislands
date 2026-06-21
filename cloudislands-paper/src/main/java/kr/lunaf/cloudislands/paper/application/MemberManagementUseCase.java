@@ -21,13 +21,13 @@ public final class MemberManagementUseCase {
         this.coreApiClient = coreApiClient;
     }
 
-    public CompletableFuture<String> removeMember(UUID islandId, UUID actorUuid, UUID targetUuid) {
+    private CompletableFuture<String> removeMemberBody(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.removeIslandMemberResult(islandId, actorUuid, targetUuid);
     }
 
     public CompletableFuture<MemberActionResult> removeMemberAction(UUID islandId, UUID actorUuid, UUID targetUuid) {
-        return removeMember(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "MEMBER_REMOVED"));
+        return removeMemberBody(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "MEMBER_REMOVED"));
     }
 
     private CompletableFuture<String> listMembersBody(UUID islandId) {
@@ -40,7 +40,7 @@ public final class MemberManagementUseCase {
         return listMembersBody(islandId).thenApply(CoreGuiViews::memberViews);
     }
 
-    public CompletableFuture<String> playerInfoByName(String playerName) {
+    private CompletableFuture<String> playerInfoByNameBody(String playerName) {
         String normalizedPlayerName = playerName == null ? "" : playerName.trim();
         if (normalizedPlayerName.isBlank()) {
             throw new IllegalArgumentException("playerName is required");
@@ -49,10 +49,10 @@ public final class MemberManagementUseCase {
     }
 
     public CompletableFuture<UUID> playerUuidByName(String playerName) {
-        return playerInfoByName(playerName).thenApply(body -> uuid(CoreGuiViews.playerProfile(body).playerUuid()));
+        return playerInfoByNameBody(playerName).thenApply(body -> uuid(CoreGuiViews.playerProfile(body).playerUuid()));
     }
 
-    public CompletableFuture<String> islandInfoByName(String islandName) {
+    private CompletableFuture<String> islandInfoByNameBody(String islandName) {
         String normalizedIslandName = islandName == null ? "" : islandName.trim();
         if (normalizedIslandName.isBlank()) {
             throw new IllegalArgumentException("islandName is required");
@@ -60,13 +60,13 @@ public final class MemberManagementUseCase {
         return coreApiClient.islandInfoByName(normalizedIslandName);
     }
 
-    public CompletableFuture<String> createInvite(UUID islandId, UUID actorUuid, UUID targetUuid) {
+    private CompletableFuture<String> createInviteBody(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.createIslandInvite(islandId, actorUuid, targetUuid);
     }
 
     public CompletableFuture<InviteView> createInviteView(UUID islandId, UUID actorUuid, UUID targetUuid) {
-        return createInvite(islandId, actorUuid, targetUuid).thenApply(CoreGuiViews::inviteView);
+        return createInviteBody(islandId, actorUuid, targetUuid).thenApply(CoreGuiViews::inviteView);
     }
 
     private CompletableFuture<String> listPendingInvitesBody(UUID playerUuid) {
@@ -118,32 +118,32 @@ public final class MemberManagementUseCase {
         if (normalizedIslandName.isBlank()) {
             throw new IllegalArgumentException("islandName is required");
         }
-        return islandInfoByName(normalizedIslandName)
+        return islandInfoByNameBody(normalizedIslandName)
             .thenCompose(body -> {
                 UUID islandId = uuid(text(body, "islandId"));
                 return islandId == null ? CompletableFuture.completedFuture(null) : resolveInviteByPlayerUuid(playerUuid, islandId);
             });
     }
 
-    public CompletableFuture<String> acceptInvite(UUID inviteId, UUID playerUuid) {
+    private CompletableFuture<String> acceptInviteBody(UUID inviteId, UUID playerUuid) {
         requireInviteAndPlayer(inviteId, playerUuid);
         return coreApiClient.acceptIslandInviteResult(inviteId, playerUuid);
     }
 
     public CompletableFuture<IslandInviteActionResult> acceptInviteAction(UUID inviteId, UUID playerUuid) {
-        return acceptInvite(inviteId, playerUuid).thenApply(body -> inviteAction(body, "ACCEPTED"));
+        return acceptInviteBody(inviteId, playerUuid).thenApply(body -> inviteAction(body, "ACCEPTED"));
     }
 
-    public CompletableFuture<String> declineInvite(UUID inviteId, UUID playerUuid) {
+    private CompletableFuture<String> declineInviteBody(UUID inviteId, UUID playerUuid) {
         requireInviteAndPlayer(inviteId, playerUuid);
         return coreApiClient.declineIslandInviteResult(inviteId, playerUuid);
     }
 
     public CompletableFuture<IslandInviteActionResult> declineInviteAction(UUID inviteId, UUID playerUuid) {
-        return declineInvite(inviteId, playerUuid).thenApply(body -> inviteAction(body, "DECLINED"));
+        return declineInviteBody(inviteId, playerUuid).thenApply(body -> inviteAction(body, "DECLINED"));
     }
 
-    public CompletableFuture<String> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
+    private CompletableFuture<String> setRoleBody(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
         requireIds(islandId, actorUuid, targetUuid);
         String normalizedRoleKey = roleKey == null ? "" : roleKey.trim();
         if (normalizedRoleKey.isBlank()) {
@@ -153,10 +153,10 @@ public final class MemberManagementUseCase {
     }
 
     public CompletableFuture<MemberActionResult> setRoleAction(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
-        return setRole(islandId, actorUuid, targetUuid, roleKey).thenApply(body -> memberAction(body, "MEMBER_ROLE_SET"));
+        return setRoleBody(islandId, actorUuid, targetUuid, roleKey).thenApply(body -> memberAction(body, "MEMBER_ROLE_SET"));
     }
 
-    public CompletableFuture<String> trustTemporarily(UUID islandId, UUID actorUuid, UUID targetUuid, long durationSeconds) {
+    private CompletableFuture<String> trustTemporarilyBody(UUID islandId, UUID actorUuid, UUID targetUuid, long durationSeconds) {
         requireIds(islandId, actorUuid, targetUuid);
         if (durationSeconds <= 0L) {
             throw new IllegalArgumentException("durationSeconds must be positive");
@@ -165,43 +165,43 @@ public final class MemberManagementUseCase {
     }
 
     public CompletableFuture<MemberActionResult> trustTemporarilyAction(UUID islandId, UUID actorUuid, UUID targetUuid, long durationSeconds) {
-        return trustTemporarily(islandId, actorUuid, targetUuid, durationSeconds).thenApply(body -> memberAction(body, "TEMP_TRUST_SET"));
+        return trustTemporarilyBody(islandId, actorUuid, targetUuid, durationSeconds).thenApply(body -> memberAction(body, "TEMP_TRUST_SET"));
     }
 
-    public CompletableFuture<String> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) {
+    private CompletableFuture<String> transferOwnershipBody(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.transferIslandOwnershipResult(islandId, actorUuid, targetUuid);
     }
 
     public CompletableFuture<MemberActionResult> transferOwnershipAction(UUID islandId, UUID actorUuid, UUID targetUuid) {
-        return transferOwnership(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "OWNERSHIP_TRANSFERRED"));
+        return transferOwnershipBody(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "OWNERSHIP_TRANSFERRED"));
     }
 
-    public CompletableFuture<String> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) {
+    private CompletableFuture<String> banVisitorBody(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.banIslandVisitorResult(islandId, actorUuid, targetUuid, reason == null ? "" : reason);
     }
 
     public CompletableFuture<MemberActionResult> banVisitorAction(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) {
-        return banVisitor(islandId, actorUuid, targetUuid, reason).thenApply(body -> memberAction(body, "VISITOR_BANNED"));
+        return banVisitorBody(islandId, actorUuid, targetUuid, reason).thenApply(body -> memberAction(body, "VISITOR_BANNED"));
     }
 
-    public CompletableFuture<String> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
+    private CompletableFuture<String> pardonVisitorBody(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.pardonIslandVisitorResult(islandId, actorUuid, targetUuid);
     }
 
     public CompletableFuture<MemberActionResult> pardonVisitorAction(UUID islandId, UUID actorUuid, UUID targetUuid) {
-        return pardonVisitor(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "VISITOR_PARDONED"));
+        return pardonVisitorBody(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "VISITOR_PARDONED"));
     }
 
-    public CompletableFuture<String> kickVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
+    private CompletableFuture<String> kickVisitorBody(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
         return coreApiClient.kickIslandVisitorResult(islandId, actorUuid, targetUuid);
     }
 
     public CompletableFuture<MemberActionResult> kickVisitorAction(UUID islandId, UUID actorUuid, UUID targetUuid) {
-        return kickVisitor(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "VISITOR_KICKED"));
+        return kickVisitorBody(islandId, actorUuid, targetUuid).thenApply(body -> memberAction(body, "VISITOR_KICKED"));
     }
 
     private CompletableFuture<String> listBansBody(UUID islandId) {

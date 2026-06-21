@@ -380,6 +380,7 @@ class IslandCommandControllerPolicyTest {
     void membershipCommandsRouteOutsideCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String membershipHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
+        String memberUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/MemberManagementUseCase.java"));
         String permissionHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandPermissionCommandHandler.java"));
         String permissionUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/PermissionManagementUseCase.java"));
 
@@ -393,6 +394,18 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(membershipHandler.contains("subcommand.equals(\"members\")"));
         assertTrue(membershipHandler.contains("case PERMISSIONS_OPEN"));
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> removeMember("), "member removal usecase must expose typed actions instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> playerInfoByName("), "player lookup usecase must expose typed UUID lookup instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> islandInfoByName("), "island lookup usecase must expose typed invite resolution instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> createInvite("), "invite create usecase must expose typed views instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> acceptInvite("), "invite accept usecase must expose typed actions instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> declineInvite("), "invite decline usecase must expose typed actions instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> setRole("), "member role usecase must expose typed actions instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> trustTemporarily("), "temporary trust usecase must expose typed actions instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> transferOwnership("), "ownership transfer usecase must expose typed actions instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> banVisitor("), "visitor ban usecase must expose typed actions instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> pardonVisitor("), "visitor pardon usecase must expose typed actions instead of raw JSON");
+        assertFalse(memberUseCase.contains("public CompletableFuture<String> kickVisitor("), "visitor kick usecase must expose typed actions instead of raw JSON");
         assertTrue(permissionHandler.contains("permissionUseCase.listPermissionViews"));
         assertTrue(permissionHandler.contains("permissionUseCase.listRoleViews"));
         assertTrue(permissionHandler.contains("permissionUseCase.saveSequentiallyTyped"));
