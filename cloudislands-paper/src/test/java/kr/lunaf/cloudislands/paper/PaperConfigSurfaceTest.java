@@ -1,9 +1,7 @@
 package kr.lunaf.cloudislands.paper;
 
-import kr.lunaf.cloudislands.common.config.ConfigSurfacePolicy;
 import org.junit.jupiter.api.Test;
 
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
@@ -13,29 +11,33 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PaperConfigSurfaceTest {
     @Test
-    void defaultConfigKeepsGoalPaperAgentSurface() throws Exception {
-        try (InputStream input = PaperConfigSurfaceTest.class.getClassLoader().getResourceAsStream("config.yml")) {
-            assertNotNull(input);
-            String config = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+    void configV2DefaultsKeepGoalPaperAgentSurface() throws Exception {
+        String runtime = Files.readString(Path.of("src/main/resources/config-v2/runtime.yml"), StandardCharsets.UTF_8);
+        String integrations = Files.readString(Path.of("src/main/resources/config-v2/integrations.yml"), StandardCharsets.UTF_8);
+        String security = Files.readString(Path.of("src/main/resources/config-v2/security.yml"), StandardCharsets.UTF_8);
+        String gameplay = Files.readString(Path.of("src/main/resources/config-v2/gameplay.yml"), StandardCharsets.UTF_8);
+        String features = Files.readString(Path.of("src/main/resources/config-v2/features.yml"), StandardCharsets.UTF_8);
 
-            for (String key : ConfigSurfacePolicy.paperRequiredKeys()) {
-                assertTrue(containsPath(config, key), key);
-            }
-            assertTrue(config.contains("id: \"island-1\""));
-            assertTrue(config.contains("role: \"ISLAND_NODE\""));
-            assertTrue(config.contains("pool: \"island\""));
-            assertTrue(config.contains("shard-world-prefix: \"ci_shard_\""));
-            assertTrue(config.contains("cell-size: 1024"));
-            assertTrue(config.contains("default-island-size: 300"));
-            assertFalse(config.contains("cloudislands-satis:"), "Paper default config must not duplicate Satis under addons.cloudislands-satis");
-            assertTrue(config.contains("satis:"), "Paper default config must keep one canonical Satis root");
-            assertTrue(config.contains("features:"), "Paper default config must keep canonical Satis feature gates");
-        }
+        assertTrue(runtime.contains("id: island-node-01"));
+        assertTrue(runtime.contains("role: ISLAND_NODE"));
+        assertTrue(runtime.contains("pool: island"));
+        assertTrue(runtime.contains("capacity:"), "Paper config-v2 runtime must define capacity values");
+        assertTrue(integrations.contains("core-api:"), "Paper config-v2 integrations must define Core API values");
+        assertTrue(integrations.contains("redis:"), "Paper config-v2 integrations must define Redis values");
+        assertTrue(gameplay.contains("shard-world-prefix: \"ci_shard_\""));
+        assertTrue(gameplay.contains("shard-count: 16"));
+        assertTrue(gameplay.contains("cell-size: 1024"));
+        assertTrue(gameplay.contains("default-island-size: 300"));
+        assertTrue(gameplay.contains("periodic-save: 10m"));
+        assertTrue(security.contains("forwarding:"), "Paper config-v2 security must define forwarding values");
+        assertFalse(features.contains("cloudislands-satis:"), "Paper config-v2 must not duplicate Satis under addons.cloudislands-satis");
+        assertTrue(features.contains("cloudislands:"), "Paper config-v2 must keep CloudIslands feature gates");
+        assertTrue(features.contains("satis:"), "Paper config-v2 must keep one canonical Satis root");
+        assertTrue(features.contains("route-events: true"), "Paper config-v2 must keep canonical Satis feature gates");
     }
 
     @Test
@@ -90,7 +92,11 @@ class PaperConfigSurfaceTest {
         assertTrue(loader.contains("health.enabled"), "Paper runtime config loader must own health paths");
         assertTrue(loader.contains("island-node.shard-count"), "Paper runtime config loader must own island worker paths");
         assertTrue(loader.contains("paperConfigV2Sources"), "Paper runtime config loader must discover Config v2 sources");
+        assertTrue(loader.contains("saveBundledConfigV2Defaults"), "Paper runtime config loader must save Config v2 defaults into the data folder");
+        assertTrue(loader.contains("configV2ResourceNames"), "Paper runtime config loader must discover Config v2 files dynamically");
         assertTrue(loader.contains("loadV2"), "Paper runtime config loader must expose a Config v2 runtime path");
+        assertFalse(loader.contains("PAPER_CONFIG_V2_FILES"), "Paper runtime config loader must not rely on a hardcoded Config v2 file list");
+        assertFalse(bootstrap.contains("saveDefaultConfig()"), "Paper bootstrap must not create legacy config.yml as a runtime input");
         assertEquals(0, countOccurrences(bootstrap, "plugin.getConfig()"), "Paper bootstrap must not read Bukkit config directly");
         assertFalse(bootstrap.contains("getString(\"node.id\""), "node identity path must live in PaperRuntimeConfigLoader");
         assertFalse(bootstrap.contains("getString(\"redis.uri\""), "Redis path must live in PaperRuntimeConfigLoader");
@@ -119,15 +125,11 @@ class PaperConfigSurfaceTest {
         assertTrue(addonFile.contains("addons.yml"), "Paper addon config adapter must persist addon settings under config-v2/addons.yml");
         assertFalse(agent.contains("getConfig()"), "Paper agent must not expose a Bukkit config accessor");
         assertTrue(plugin.contains("reloadRuntimeConfig()"), "Paper plugin must expose one runtime snapshot reload boundary");
+        assertFalse(plugin.contains("reloadConfig()"), "runtime reload must not reload legacy Bukkit config");
         assertTrue(plugin.contains("PaperRuntimeConfigLoader.load(this, this::resolveEnv)"), "runtime reload must use the same Config v2 loader as bootstrap");
         assertTrue(plugin.contains("ConfigSecretResolver.resolve"), "Paper runtime config resolver must handle Config v2 env/file secret references");
         assertTrue(plugin.contains("${env:"), "Paper runtime config resolver must recognize Config v2 env references");
         assertTrue(plugin.contains("${file:"), "Paper runtime config resolver must recognize Config v2 file secret references");
-    }
-
-    private boolean containsPath(String config, String path) {
-        String[] parts = path.split("\\.");
-        return config.contains(parts[parts.length - 1] + ":");
     }
 
     private int countOccurrences(String text, String pattern) {

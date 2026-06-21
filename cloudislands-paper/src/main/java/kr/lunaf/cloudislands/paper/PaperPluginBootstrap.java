@@ -68,7 +68,6 @@ final class PaperPluginBootstrap {
 
     void enable() {
         plugin.lifecycle = new LifecycleRegistry(plugin.getLogger());
-        plugin.saveDefaultConfig();
         PaperRuntimeConfig config = PaperRuntimeConfigLoader.load(plugin, plugin::resolveEnv);
         plugin.runtimeConfig = config;
         logSecurityPosture(config);

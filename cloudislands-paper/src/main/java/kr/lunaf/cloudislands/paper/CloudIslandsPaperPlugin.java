@@ -191,9 +191,12 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     }
 
     public PaperRuntimeConfig reloadRuntimeConfig() {
-        reloadConfig();
-        runtimeConfig = PaperRuntimeConfigLoader.load(this, this::resolveEnv);
+        runtimeConfig = loadRuntimeConfigSnapshot();
         return runtimeConfig();
+    }
+
+    public PaperRuntimeConfig loadRuntimeConfigSnapshot() {
+        return PaperRuntimeConfigLoader.load(this, this::resolveEnv);
     }
 
     boolean guiEnabledForRole(AgentRole role) {

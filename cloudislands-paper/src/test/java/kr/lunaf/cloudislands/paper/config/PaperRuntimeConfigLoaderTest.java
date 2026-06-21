@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class PaperRuntimeConfigLoaderTest {
@@ -22,6 +23,13 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("public static PaperRuntimeConfig load(JavaPlugin plugin"), "Paper runtime loader must accept the plugin as the config composition root");
         assertFalse(loader.contains("public static PaperRuntimeConfig load(FileConfiguration"), "Paper runtime loader must not expose a legacy Bukkit config entrypoint");
         assertTrue(loader.contains("paperConfigV2Sources"), "Paper runtime loader must discover bundled or data-folder config-v2 files");
+        assertTrue(loader.contains("saveBundledConfigV2Defaults"), "Paper runtime loader must copy bundled config-v2 defaults without legacy config.yml");
+        assertTrue(loader.contains("configV2ResourceNames"), "Paper runtime loader must compose config-v2 source names dynamically");
+        assertTrue(loader.contains("dataConfigV2ResourceNames"), "Paper runtime loader must scan data-folder config-v2 files dynamically");
+        assertTrue(loader.contains("bundledConfigV2ResourceNames"), "Paper runtime loader must scan bundled config-v2 resources dynamically");
+        assertTrue(loader.contains("JarFile"), "Paper runtime loader must scan packaged plugin jars for config-v2 resources");
+        assertTrue(loader.contains("Files.walk"), "Paper runtime loader must use directory discovery instead of hardcoded config-v2 file lists");
+        assertTrue(loader.contains("Files.copy(input, target)"), "Paper runtime loader must materialize missing bundled config-v2 defaults");
         assertFalse(loader.contains("plugin.getConfig()"), "Paper runtime loader must not read legacy Bukkit config");
         assertTrue(loader.contains("paper/config-v2/empty"), "Paper runtime loader must use an empty Config v2 source when no files are present");
         assertFalse(loader.contains("copyScalars(legacy"), "Config v2 runtime mapping must not merge legacy config values into the authoritative snapshot");
@@ -29,12 +37,7 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("ConfigV2Validator.validateYaml"), "Paper runtime loader must run schema and secret validation on config-v2 sources");
         assertTrue(loader.contains("ConfigV2Validator.validateMenuYaml"), "Paper runtime loader must validate config-v2 menu action schemas");
         assertTrue(loader.contains("GuiActionSchema.registeredActionIds()"), "Paper runtime menu validation must use the runtime GUI action registry");
-        assertTrue(loader.contains("\"ui/menus/main.yml\""), "Paper runtime loader must discover bundled config-v2 menu files");
-        assertTrue(loader.contains("\"ui/menus/bank.yml\""), "Paper runtime loader must discover expanded config-v2 menu files");
-        assertTrue(loader.contains("\"ui/menus/danger-reset-confirm.yml\""), "Paper runtime loader must discover dangerous action confirmation menu files");
-        assertTrue(loader.contains("\"ui/menus/danger-delete-confirm.yml\""), "Paper runtime loader must discover dangerous action confirmation menu files");
-        assertTrue(loader.contains("\"ui/menus/warps.yml\""), "Paper runtime loader must discover expanded config-v2 menu files");
-        assertTrue(loader.contains("\"ui/messages/en_us.yml\""), "Paper runtime loader must discover all bundled locale files");
+        assertFalse(loader.contains("PAPER_CONFIG_V2_FILES"), "Paper runtime loader must not keep a hardcoded config-v2 file list");
         assertTrue(loader.contains("mapMessagesV2"), "Paper runtime loader must map active locale messages into the runtime snapshot");
         assertTrue(loader.contains("localeFromMessageSource"), "Paper runtime loader must only apply the active locale message file");
         assertTrue(loader.contains("target.set(\"messages.translations.\" + key"), "Config v2 locale messages must feed runtime translations");
@@ -61,5 +64,8 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(security.contains("route-session:"), "Bundled security config-v2 must define route-session values");
         assertTrue(features.contains("cloudislands:"), "Bundled features config-v2 must define CloudIslands feature flags");
         assertTrue(gameplay.contains("generator:"), "Bundled gameplay config-v2 must define generator values");
+        try (Stream<Path> menuFiles = Files.walk(root.resolve("src/main/resources/config-v2/ui/menus"))) {
+            assertTrue(menuFiles.filter(path -> path.toString().endsWith(".yml")).count() >= 20, "Bundled config-v2 must expose the expanded GUI menu surface");
+        }
     }
 }

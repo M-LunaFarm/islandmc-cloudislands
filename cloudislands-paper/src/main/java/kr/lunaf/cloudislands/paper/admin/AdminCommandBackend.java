@@ -499,7 +499,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private String configDiffMessage() {
         try {
             String current = currentConfigYaml();
-            String candidate = effectiveConfigV2Yaml(false);
+            String candidate = candidateConfigYaml();
             ConfigDiff diff = ConfigDiff.between(current, candidate, List.of(
                 "node.id",
                 "node.role",
@@ -518,17 +518,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private String currentConfigYaml() {
-        Path dataConfig = agent.plugin().getDataFolder().toPath().resolve("config.yml");
-        if (Files.exists(dataConfig)) {
-            return readConfigFile(dataConfig);
+        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
+            return plugin.runtimeConfig().sourceConfig().effectiveYaml();
         }
-        Path moduleResource = Path.of("src/main/resources/config.yml");
-        if (Files.exists(moduleResource)) {
-            return readConfigFile(moduleResource);
-        }
-        Path repositoryResource = Path.of("cloudislands-paper/src/main/resources/config.yml");
-        if (Files.exists(repositoryResource)) {
-            return readConfigFile(repositoryResource);
+        return "";
+    }
+
+    private String candidateConfigYaml() {
+        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
+            return plugin.loadRuntimeConfigSnapshot().sourceConfig().effectiveYaml();
         }
         return "";
     }

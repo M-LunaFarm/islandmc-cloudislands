@@ -2,6 +2,17 @@ protection:
   outside-island-build: false
   explosion-policy: OWNER_ONLY
   void-rescue: true
+island-node:
+  shard-world-prefix: "ci_shard_"
+  shard-count: 16
+  cell-size: 1024
+  default-island-size: 300
+  activation:
+    preload-radius: 4
+    worker-interval: 1s
+    periodic-save: 10m
+    save-on-empty-after: 5m
+  level-scan-interval: 15m
 generator:
   default-profile: default
   async-generation: true

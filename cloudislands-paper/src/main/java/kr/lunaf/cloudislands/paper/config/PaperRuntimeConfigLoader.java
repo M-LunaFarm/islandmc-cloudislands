@@ -3,6 +3,9 @@ package kr.lunaf.cloudislands.paper.config;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.JarURLConnection;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,10 +13,14 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.jar.JarFile;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.common.config.ConfigIssue;
 import kr.lunaf.cloudislands.common.config.ConfigSnapshot;
@@ -34,48 +41,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class PaperRuntimeConfigLoader {
     private static final String PRIMARY_STORAGE_TYPE_PATH = "setup.storage.type";
     private static final String FALLBACK_STORAGE_TYPE_PATH = "setup.storage.fallback.type";
-    private static final List<String> PAPER_CONFIG_V2_FILES = List.of(
-        "config.yml",
-        "runtime.yml",
-        "integrations.yml",
-        "security.yml",
-        "features.yml",
-        "gameplay.yml",
-        "migration.yml",
-        "ui/scoreboard.yml",
-        "ui/menus/admin-node.yml",
-        "ui/menus/bank.yml",
-        "ui/menus/bans.yml",
-        "ui/menus/biome.yml",
-        "ui/menus/chat.yml",
-        "ui/menus/confirmation.yml",
-        "ui/menus/create.yml",
-        "ui/menus/main.yml",
-        "ui/menus/members.yml",
-        "ui/menus/permissions.yml",
-        "ui/menus/danger.yml",
-        "ui/menus/danger-reset-confirm.yml",
-        "ui/menus/danger-delete-confirm.yml",
-        "ui/menus/flags.yml",
-        "ui/menus/homes.yml",
-        "ui/menus/info.yml",
-        "ui/menus/invites.yml",
-        "ui/menus/limits.yml",
-        "ui/menus/logs.yml",
-        "ui/menus/missions.yml",
-        "ui/menus/my-islands.yml",
-        "ui/menus/ranking.yml",
-        "ui/menus/roles.yml",
-        "ui/menus/public-warps.yml",
-        "ui/menus/settings.yml",
-        "ui/menus/snapshots.yml",
-        "ui/menus/state.yml",
-        "ui/menus/upgrades.yml",
-        "ui/menus/visit.yml",
-        "ui/menus/warps.yml",
-        "ui/messages/ko_kr.yml",
-        "ui/messages/en_us.yml"
-    );
 
     private PaperRuntimeConfigLoader() {
     }
@@ -84,6 +49,7 @@ public final class PaperRuntimeConfigLoader {
         if (plugin == null) {
             return PaperRuntimeConfig.defaults();
         }
+        saveBundledConfigV2Defaults(plugin);
         List<ConfigSource> sources = paperConfigV2Sources(plugin);
         if (sources.isEmpty()) {
             return loadV2(List.of(new ConfigSource("paper/config-v2/empty", 10, "")), envResolver);
@@ -160,13 +126,134 @@ public final class PaperRuntimeConfigLoader {
     private static List<ConfigSource> paperConfigV2Sources(JavaPlugin plugin) {
         List<ConfigSource> sources = new ArrayList<>();
         Path dataRoot = plugin.getDataFolder().toPath().resolve("config-v2");
-        for (String file : PAPER_CONFIG_V2_FILES) {
+        for (String file : configV2ResourceNames(plugin, dataRoot)) {
             String yaml = configV2Yaml(plugin, dataRoot, file);
             if (!yaml.isBlank()) {
                 sources.add(new ConfigSource("paper/config-v2/" + file, 10 + sources.size(), yaml));
             }
         }
         return List.copyOf(sources);
+    }
+
+    private static void saveBundledConfigV2Defaults(JavaPlugin plugin) {
+        Path dataRoot = plugin.getDataFolder().toPath().resolve("config-v2");
+        for (String file : bundledConfigV2ResourceNames(plugin)) {
+            Path target = dataRoot.resolve(file);
+            if (Files.exists(target)) {
+                continue;
+            }
+            try (InputStream input = plugin.getResource("config-v2/" + file)) {
+                if (input == null) {
+                    continue;
+                }
+                Files.createDirectories(target.getParent());
+                Files.copy(input, target);
+            } catch (IOException exception) {
+                throw new UncheckedIOException("Failed to save bundled Paper config-v2 default " + file, exception);
+            }
+        }
+    }
+
+    private static Set<String> configV2ResourceNames(JavaPlugin plugin, Path dataRoot) {
+        TreeSet<String> files = new TreeSet<>();
+        files.addAll(dataConfigV2ResourceNames(dataRoot));
+        files.addAll(bundledConfigV2ResourceNames(plugin));
+        return files;
+    }
+
+    private static Set<String> dataConfigV2ResourceNames(Path dataRoot) {
+        if (dataRoot == null || Files.notExists(dataRoot)) {
+            return Set.of();
+        }
+        try (var paths = Files.walk(dataRoot)) {
+            Set<String> files = new HashSet<>();
+            paths
+                .filter(Files::isRegularFile)
+                .map(dataRoot::relativize)
+                .map(Path::toString)
+                .map(PaperRuntimeConfigLoader::normalizeConfigV2ResourceName)
+                .filter(PaperRuntimeConfigLoader::configV2YamlResource)
+                .forEach(files::add);
+            return files;
+        } catch (IOException exception) {
+            throw new UncheckedIOException("Failed to scan Paper data config-v2 directory " + dataRoot, exception);
+        }
+    }
+
+    private static Set<String> bundledConfigV2ResourceNames(JavaPlugin plugin) {
+        if (plugin == null) {
+            return Set.of();
+        }
+        Set<String> files = new HashSet<>();
+        URL root = plugin.getClass().getClassLoader().getResource("config-v2");
+        if (root != null) {
+            files.addAll(bundledConfigV2ResourceNames(root));
+        }
+        if (files.isEmpty()) {
+            files.addAll(codeSourceConfigV2ResourceNames(plugin));
+        }
+        return files;
+    }
+
+    private static Set<String> bundledConfigV2ResourceNames(URL root) {
+        String protocol = root.getProtocol();
+        if ("file".equals(protocol)) {
+            try {
+                return dataConfigV2ResourceNames(Path.of(root.toURI()));
+            } catch (URISyntaxException exception) {
+                throw new IllegalArgumentException("Invalid bundled config-v2 resource URL " + root, exception);
+            }
+        }
+        if ("jar".equals(protocol)) {
+            try {
+                JarURLConnection connection = (JarURLConnection) root.openConnection();
+                return jarConfigV2ResourceNames(connection.getJarFile());
+            } catch (IOException exception) {
+                throw new UncheckedIOException("Failed to scan bundled Paper config-v2 resources " + root, exception);
+            }
+        }
+        return Set.of();
+    }
+
+    private static Set<String> codeSourceConfigV2ResourceNames(JavaPlugin plugin) {
+        try {
+            URL location = plugin.getClass().getProtectionDomain().getCodeSource().getLocation();
+            Path path = Path.of(location.toURI());
+            if (Files.isDirectory(path)) {
+                return dataConfigV2ResourceNames(path.resolve("config-v2"));
+            }
+            if (Files.isRegularFile(path) && path.toString().endsWith(".jar")) {
+                try (JarFile jar = new JarFile(path.toFile())) {
+                    return jarConfigV2ResourceNames(jar);
+                }
+            }
+            return Set.of();
+        } catch (IOException exception) {
+            throw new UncheckedIOException("Failed to scan Paper plugin jar config-v2 resources", exception);
+        } catch (URISyntaxException exception) {
+            throw new IllegalArgumentException("Invalid Paper plugin code source", exception);
+        }
+    }
+
+    private static Set<String> jarConfigV2ResourceNames(JarFile jar) {
+        Set<String> files = new HashSet<>();
+        jar.stream()
+            .filter(entry -> !entry.isDirectory())
+            .map(entry -> entry.getName())
+            .filter(name -> name.startsWith("config-v2/"))
+            .map(name -> name.substring("config-v2/".length()))
+            .map(PaperRuntimeConfigLoader::normalizeConfigV2ResourceName)
+            .filter(PaperRuntimeConfigLoader::configV2YamlResource)
+            .forEach(files::add);
+        return files;
+    }
+
+    private static String normalizeConfigV2ResourceName(String value) {
+        return value == null ? "" : value.replace('\\', '/');
+    }
+
+    private static boolean configV2YamlResource(String name) {
+        return name != null && !name.isBlank() && (name.endsWith(".yml") || name.endsWith(".yaml"));
     }
 
     private static String configV2Yaml(JavaPlugin plugin, Path dataRoot, String file) {
@@ -274,6 +361,23 @@ public final class PaperRuntimeConfigLoader {
     }
 
     private static void mapGameplayV2(FileConfiguration source, FileConfiguration target) {
+        setIfPresent(source, target, "island-node.shard-world-prefix", "island-node.shard-world-prefix");
+        setIfPresent(source, target, "island-node.shard-count", "island-node.shard-count");
+        setIfPresent(source, target, "island-node.cell-size", "island-node.cell-size");
+        setIfPresent(source, target, "island-node.default-island-size", "island-node.default-island-size");
+        setIfPresent(source, target, "island-node.activation.preload-radius", "island-node.activation.preload-radius");
+        if (source.contains("island-node.activation.worker-interval")) {
+            target.set("island-node.activation.worker-interval-ticks", durationTicks(source.getString("island-node.activation.worker-interval", "1s")));
+        }
+        if (source.contains("island-node.activation.periodic-save")) {
+            target.set("island-node.activation.periodic-save-seconds", durationSeconds(source.getString("island-node.activation.periodic-save", "10m")));
+        }
+        if (source.contains("island-node.activation.save-on-empty-after")) {
+            target.set("island-node.activation.save-on-empty-after-seconds", durationSeconds(source.getString("island-node.activation.save-on-empty-after", "5m")));
+        }
+        if (source.contains("island-node.level-scan-interval")) {
+            target.set("island-node.level-scan-interval-seconds", durationSeconds(source.getString("island-node.level-scan-interval", "15m")));
+        }
         setIfPresent(source, target, "generator.default-profile", "generators.default-key");
         if (source.contains("snapshots.retention-count")) {
             target.set("snapshots.keep-manual", source.getInt("snapshots.retention-count", 50));
@@ -530,6 +634,11 @@ public final class PaperRuntimeConfigLoader {
     private static long durationTicks(String configured) {
         long millis = durationMillis(configured);
         return Math.max(1L, Math.round(millis / 50.0d));
+    }
+
+    private static long durationSeconds(String configured) {
+        long millis = durationMillis(configured);
+        return Math.max(1L, Math.round(millis / 1000.0d));
     }
 
     private static long durationMillis(String configured) {
