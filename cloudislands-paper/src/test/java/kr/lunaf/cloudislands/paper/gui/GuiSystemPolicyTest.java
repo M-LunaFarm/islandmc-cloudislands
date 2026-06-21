@@ -159,6 +159,9 @@ class GuiSystemPolicyTest {
         assertTrue(inventories.contains("create(String menuId, GuiSession session"), "async-rendered GUI inventories must carry the current session id");
         assertTrue(guard.contains("InventoryCloseEvent"), "all CloudIslands GUI closes must invalidate the current session");
         assertTrue(guard.contains("GuiSessions.invalidate(player, menuHolder.sessionId())"), "GUI close invalidation must target the holder session id");
+        assertTrue(guard.contains("PlayerQuitEvent"), "player disconnects must invalidate the current GUI session");
+        assertTrue(guard.contains("PlayerChangedWorldEvent"), "world changes must invalidate the current GUI session");
+        assertTrue(guard.contains("GuiSessions.invalidate(event.getPlayer())"), "player lifecycle invalidation must clear the current player session");
         assertTrue(plugin.contains("GuiSessions.clear()"), "plugin disable must clear stale GUI sessions");
     }
 }
