@@ -1148,6 +1148,44 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void blockValueClientsReturnTypedValuesAndActions() {
+        UUID actorUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "listBlockValues" -> CompletableFuture.completedFuture("""
+                    {"values":[
+                      {"materialKey":"minecraft:diamond_block","worth":"100.50","levelPoints":20,"limit":64},
+                      {"materialKey":"minecraft:emerald_block","worth":"80","levelPoints":10,"limit":32}
+                    ]}
+                    """);
+                case "setBlockValueResult" -> {
+                    calls.add("set:" + args[0] + ":" + args[1] + ":" + args[2] + ":" + args[3] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture("{\"ok\":true}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        BlockValueQueryClient queries = new CoreBlockValueQueryClient(raw);
+        BlockValueCommandClient commands = new CoreBlockValueCommandClient(raw);
+
+        List<BlockValueView> values = queries.list().join();
+        BlockValueActionView result = commands.set(actorUuid, " minecraft:diamond_block ", "100.50", 20L, 64L).join();
+
+        assertEquals(2, values.size());
+        assertEquals("minecraft:diamond_block", values.get(0).materialKey());
+        assertEquals("100.50", values.get(0).worth());
+        assertEquals(20L, values.get(0).levelPoints());
+        assertEquals(64L, values.get(0).limit());
+        assertTrue(result.accepted());
+        assertEquals("BLOCK_VALUE_SET", result.code());
+        assertEquals("minecraft:diamond_block", result.materialKey());
+        assertEquals(List.of("set:" + actorUuid + ":minecraft:diamond_block:100.50:20:64"), calls);
+    }
+
+    @Test
     void lifecycleCommandClientReturnsTypedResetResult() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

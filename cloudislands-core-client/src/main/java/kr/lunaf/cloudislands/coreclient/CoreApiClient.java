@@ -148,6 +148,14 @@ public interface CoreApiClient {
         return new CoreTemplateCommandClient(this);
     }
 
+    default BlockValueQueryClient blockValues() {
+        return new CoreBlockValueQueryClient(this);
+    }
+
+    default BlockValueCommandClient blockValueCommands() {
+        return new CoreBlockValueCommandClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);

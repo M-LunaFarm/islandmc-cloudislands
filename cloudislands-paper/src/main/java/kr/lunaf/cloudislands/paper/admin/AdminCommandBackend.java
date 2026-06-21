@@ -22,6 +22,8 @@ import kr.lunaf.cloudislands.common.config.ConfigDiff;
 import kr.lunaf.cloudislands.common.config.ConfigIssue;
 import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
 import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
+import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
+import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
@@ -1057,7 +1059,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private boolean handleBlockValues(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
-            run(sender, "Block values", coreApiClient.listBlockValues().thenApply(this::blockValueListMessage));
+            run(sender, "Block values", coreApiClient.blockValues().list().thenApply(this::blockValueListMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("set")) {
@@ -1066,7 +1068,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 return true;
             }
             UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
-            run(sender, "Block value set", coreApiClient.setBlockValueResult(actorUuid, args[2], args[3], number(args[4], 0L), number(args[5], 0L)).thenApply(body -> actionResultMessage("Block value set", args[2], body)));
+            run(sender, "Block value set", coreApiClient.blockValueCommands().set(actorUuid, args[2], args[3], number(args[4], 0L), number(args[5], 0L)).thenApply(result -> blockValueActionMessage("Block value set", args[2], result)));
             return true;
         }
         sendCommandUsage(sender, List.of(
@@ -1921,34 +1923,30 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return label + adminText("admin-command-ranking-total-prefix", ": total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
-    private String blockValueListMessage(String body) {
-        String values = arrayValue(body, "values");
-        if (values.isBlank()) {
+    private String blockValueListMessage(List<BlockValueView> values) {
+        if (values.isEmpty()) {
             return adminText("admin-command-block-values-empty", "Block values: empty");
         }
         List<String> entries = new ArrayList<>();
-        int total = 0;
-        int index = 0;
-        while (index < values.length()) {
-            int objectStart = values.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(values, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            total++;
+        for (BlockValueView value : values) {
             if (entries.size() < 10) {
-                String object = values.substring(objectStart, objectEnd + 1);
-                entries.add(textValue(object, "materialKey")
-                    + adminText("admin-command-block-values-worth-prefix", " worth=") + textValue(object, "worth")
-                    + adminText("admin-command-block-values-level-prefix", " level=") + longValue(object, "levelPoints")
-                    + adminText("admin-command-block-values-limit-prefix", " limit=") + longValue(object, "limit"));
+                entries.add(value.materialKey()
+                    + adminText("admin-command-block-values-worth-prefix", " worth=") + value.worth()
+                    + adminText("admin-command-block-values-level-prefix", " level=") + value.levelPoints()
+                    + adminText("admin-command-block-values-limit-prefix", " limit=") + value.limit());
             }
-            index = objectEnd + 1;
         }
-        return adminText("admin-command-block-values-total-prefix", "Block values: total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+        return adminText("admin-command-block-values-total-prefix", "Block values: total=") + values.size() + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String blockValueActionMessage(String label, String targetId, BlockValueActionView result) {
+        if (!result.accepted()) {
+            return label + ": " + adminText("admin-command-action-result-rejected", "rejected")
+                + adminText("admin-command-action-result-target-prefix", " target=") + compactTarget(targetId)
+                + (result.code().isBlank() ? "" : adminText("admin-command-action-result-code-prefix", " code=") + result.code());
+        }
+        String resolvedTarget = result.materialKey().isBlank() ? targetId : result.materialKey();
+        return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(resolvedTarget);
     }
 
     private String templateListMessage(List<TemplateView> templates) {
