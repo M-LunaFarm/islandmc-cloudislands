@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.cache.RedisCacheAdmin;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -88,11 +90,14 @@ public final class AdminRuntimeRoutes implements RouteGroup {
         }
 
         String json(boolean reloaded) {
-            return (reloaded ? "{\"reloaded\":true," : "{")
-                + "\"clearedSessions\":" + clearedSessions
-                + ",\"clearedTickets\":" + clearedTickets
-                + ",\"clearedRedisKeys\":" + clearedRedisKeys
-                + "}";
+            LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+            if (reloaded) {
+                values.put("reloaded", true);
+            }
+            values.put("clearedSessions", clearedSessions);
+            values.put("clearedTickets", clearedTickets);
+            values.put("clearedRedisKeys", clearedRedisKeys);
+            return SimpleJson.stringify(values);
         }
     }
 }
