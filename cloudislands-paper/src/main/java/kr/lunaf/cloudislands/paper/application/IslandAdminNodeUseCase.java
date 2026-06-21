@@ -6,6 +6,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.NodeSummaryView;
 
 public final class IslandAdminNodeUseCase {
     private final CoreApiClient coreApiClient;
@@ -17,24 +19,30 @@ public final class IslandAdminNodeUseCase {
         this.coreApiClient = coreApiClient;
     }
 
-    public CompletableFuture<String> listNodes() {
+    private CompletableFuture<String> listNodeBodies() {
         return coreApiClient.listNodes();
     }
 
     public CompletableFuture<AdminNodeSummary> listNodesSummary() {
-        return listNodes().thenApply(IslandAdminNodeUseCase::summary);
+        return listNodeBodies().thenApply(IslandAdminNodeUseCase::summary);
     }
 
-    public CompletableFuture<String> nodeInfo(String nodeId) {
-        return coreApiClient.nodeInfo(requireNode(nodeId));
+    private CompletableFuture<String> nodeInfoBody(String nodeId) {
+        String normalizedNodeId = requireNode(nodeId);
+        return coreApiClient.nodeInfo(normalizedNodeId);
     }
 
-    public CompletableFuture<String> nodeIslands(String nodeId, int limit) {
+    public CompletableFuture<NodeSummaryView> nodeInfoView(String nodeId) {
+        String normalizedNodeId = requireNode(nodeId);
+        return nodeInfoBody(normalizedNodeId).thenApply(body -> PaperGuiViews.nodeSummary(normalizedNodeId, body));
+    }
+
+    private CompletableFuture<String> nodeIslandBodies(String nodeId, int limit) {
         return coreApiClient.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 100)));
     }
 
     public CompletableFuture<AdminNodeSummary> nodeIslandsSummary(String nodeId, int limit) {
-        return nodeIslands(nodeId, limit).thenApply(IslandAdminNodeUseCase::summary);
+        return nodeIslandBodies(nodeId, limit).thenApply(IslandAdminNodeUseCase::summary);
     }
 
     public CompletableFuture<String> drain(String nodeId, MutationRunner runner) {

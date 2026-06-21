@@ -182,9 +182,11 @@ class PaperPlatformBoundaryTest {
         assertTrue(adminHandler.contains("case LIST ->"), "Admin node list GUI action must call the Core usecase path");
         assertTrue(adminHandler.contains("adminNodeUseCase.listNodesSummary()"), "Admin node list GUI action must call the typed Core usecase path");
         assertTrue(adminUseCase.contains("coreApiClient.listNodes()"), "Admin node list usecase must call Core");
+        assertTrue(!adminUseCase.contains("public CompletableFuture<String> listNodes("), "Admin node list usecase must expose typed summaries instead of raw JSON");
         assertTrue(adminHandler.contains("case INFO ->"), "Admin node info GUI action must refresh from Core");
-        assertTrue(adminHandler.contains("adminNodeUseCase.nodeInfo(nodeId)"), "Admin node info GUI action must refresh through the Core usecase");
+        assertTrue(adminHandler.contains("adminNodeUseCase.nodeInfoView(nodeId)"), "Admin node info GUI action must refresh through the typed Core usecase");
         assertTrue(adminUseCase.contains("coreApiClient.nodeInfo("), "Admin node info usecase must call Core");
+        assertTrue(!adminUseCase.contains("public CompletableFuture<String> nodeInfo("), "Admin node info usecase must expose typed views instead of raw JSON");
         assertTrue(adminHandler.contains("case DRAIN ->"), "Admin node drain GUI action must call Core");
         assertTrue(adminHandler.contains("adminNodeUseCase.drainAction(nodeId"), "Admin node drain GUI action must call the typed Core usecase");
         assertTrue(adminUseCase.contains("coreApiClient.drainNode("), "Admin node drain usecase must call Core");
@@ -194,6 +196,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(adminHandler.contains("case SWEEP ->"), "Admin node sweep GUI action must call Core");
         assertTrue(adminHandler.contains("adminNodeUseCase.sweepAction(nodeId"), "Admin node sweep GUI action must call the typed Core usecase");
         assertTrue(adminUseCase.contains("coreApiClient.sweepNode("), "Admin node sweep usecase must call Core");
+        assertTrue(!adminUseCase.contains("public CompletableFuture<String> nodeIslands("), "Admin node islands usecase must expose typed summaries instead of raw JSON");
         assertTrue(adminUseCase.contains("coreApiClient.kickAllNode("), "Admin node kickall confirmation must call Core");
         assertTrue(adminUseCase.contains("coreApiClient.shutdownNodeSafely("), "Admin node shutdown confirmation must call Core");
         assertTrue(adminHandler.contains("confirmationAccepted(player, action, click)"), "Admin node danger actions must verify a typed confirmation token");

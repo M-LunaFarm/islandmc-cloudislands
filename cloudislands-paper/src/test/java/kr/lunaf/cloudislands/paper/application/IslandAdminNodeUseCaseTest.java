@@ -15,10 +15,8 @@ class IslandAdminNodeUseCaseTest {
         List<String> calls = new ArrayList<>();
         IslandAdminNodeUseCase useCase = new IslandAdminNodeUseCase(client(calls));
 
-        assertEquals("[\"node-a\",\"node-b\"]", useCase.listNodes().join());
         assertEquals("nodes=2", useCase.listNodesSummary().join().text());
-        assertEquals("info", useCase.nodeInfo(" node-a ").join());
-        assertEquals(nodeIslandsJson(), useCase.nodeIslands("node-a", 500).join());
+        assertEquals("READY", useCase.nodeInfoView(" node-a ").join().state());
         assertEquals("node=node-a count=2", useCase.nodeIslandsSummary("node-a", 500).join().text());
         assertEquals(nodeLifecycleJson("DRAIN"), useCase.drain("node-a", mutationRunner(calls)).join());
         assertEquals("DRAIN", useCase.drainAction("node-a", mutationRunner(calls)).join().operation());
@@ -33,9 +31,7 @@ class IslandAdminNodeUseCaseTest {
 
         assertEquals(List.of(
             "listNodes",
-            "listNodes",
             "nodeInfo:node-a",
-            "nodeIslands:node-a:100",
             "nodeIslands:node-a:100",
             "audit:admin.node.drain",
             "drainNode:node-a",
@@ -71,7 +67,7 @@ class IslandAdminNodeUseCaseTest {
                 }
                 case "nodeInfo" -> {
                     calls.add("nodeInfo:" + args[0]);
-                    yield CompletableFuture.completedFuture("info");
+                    yield CompletableFuture.completedFuture("{\"state\":\"READY\",\"pool\":\"island\",\"players\":3,\"softPlayerCap\":80,\"hardPlayerCap\":100,\"activeIslands\":4,\"maxActiveIslands\":20,\"activationQueue\":1,\"maxActivationQueue\":10,\"mspt\":\"12.5\"}");
                 }
                 case "nodeIslands" -> {
                     calls.add("nodeIslands:" + args[0] + ":" + args[1]);

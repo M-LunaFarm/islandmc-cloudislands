@@ -108,8 +108,8 @@ final class IslandAdminNodeCommandHandler {
     }
 
     private void refreshAdminNodeInfo(Player player, String nodeId) {
-        adminNodeUseCase.nodeInfo(nodeId)
-            .thenAccept(nodeInfoBody -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> AdminNodeMenu.open(player, nodeId, nodeInfoBody, runtime.messagesFor(player))))
+        adminNodeUseCase.nodeInfoView(nodeId)
+            .thenAccept(summary -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> AdminNodeMenu.open(player, nodeId, summary, runtime.messagesFor(player))))
             .exceptionally(error -> adminNodeFailure(player, "admin-node-info-failed", "노드 정보를 불러오지 못했습니다.", error));
     }
 
