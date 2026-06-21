@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -35,8 +34,15 @@ final class IslandOverviewCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.InfoOpen) {
+            openInfoMenu(player);
+            return true;
+        }
+        if (action instanceof GuiAction.IslandListOpen) {
+            IslandMyIslandsMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
+            return true;
+        }
         String actionId = action.actionId();
-        Map<String, String> data = action.data();
         return switch (actionId) {
             case "island.info.open" -> {
                 openInfoMenu(player);

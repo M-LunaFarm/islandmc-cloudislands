@@ -39,6 +39,20 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesOverviewNavigationIntoTypedActions() {
+        GuiAction main = GuiActionParser.parse("island.main.open", Map.of()).orElseThrow();
+        GuiAction info = GuiActionParser.parse("island.info.open", Map.of()).orElseThrow();
+        GuiAction list = GuiActionParser.parse("island.list.open", Map.of()).orElseThrow();
+
+        assertTrue(main instanceof GuiAction.MainOpen);
+        assertEquals(Map.of(), main.data());
+        assertTrue(info instanceof GuiAction.InfoOpen);
+        assertEquals(Map.of(), info.data());
+        assertTrue(list instanceof GuiAction.IslandListOpen);
+        assertEquals(Map.of(), list.data());
+    }
+
+    @Test
     void parsesCreateAndDangerConfirmActionsIntoTypedActions() {
         GuiAction create = GuiActionParser.parse("island.create", Map.of("templateId", " starter ")).orElseThrow();
         GuiAction reset = GuiActionParser.parse(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION, DangerousGuiActionPolicy.resetConfirmationData()).orElseThrow();

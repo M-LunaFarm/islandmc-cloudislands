@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Raw, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Raw, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -20,6 +20,42 @@ public sealed interface GuiAction permits GuiAction.Raw, GuiAction.IslandCreate,
             if (actionId.isBlank()) {
                 throw new IllegalArgumentException("actionId is required");
             }
+        }
+    }
+
+    record MainOpen() implements GuiAction {
+        @Override
+        public String actionId() {
+            return "island.main.open";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of();
+        }
+    }
+
+    record InfoOpen() implements GuiAction {
+        @Override
+        public String actionId() {
+            return "island.info.open";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of();
+        }
+    }
+
+    record IslandListOpen() implements GuiAction {
+        @Override
+        public String actionId() {
+            return "island.list.open";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of();
         }
     }
 

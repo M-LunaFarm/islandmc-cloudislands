@@ -68,6 +68,9 @@ public final class GuiActionParser {
                 ));
             }
             return switch (safeAction) {
+                case "island.main.open" -> Optional.of(new GuiAction.MainOpen());
+                case "island.info.open" -> Optional.of(new GuiAction.InfoOpen());
+                case "island.list.open" -> Optional.of(new GuiAction.IslandListOpen());
                 case "island.create" -> Optional.of(new GuiAction.IslandCreate(
                     safeData.getOrDefault("templateId", "default")
                 ));
