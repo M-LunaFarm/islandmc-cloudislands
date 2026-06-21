@@ -54,10 +54,10 @@ class IslandRoutingUseCaseTest {
                     calls.add("routeTicketStatus:" + args[2]);
                     yield CompletableFuture.completedFuture(Optional.of(ticket));
                 }
-                case "publishRouteSession" -> {
+                case "publishRouteSessionResult" -> {
                     RouteTicket routeTicket = (RouteTicket) args[0];
                     calls.add("publishRouteSession:" + routeTicket.ticketId());
-                    yield CompletableFuture.completedFuture(null);
+                    yield CompletableFuture.completedFuture("{\"ok\":true}");
                 }
                 case "clearRoute" -> {
                     calls.add("clearRoute:" + args[2]);
