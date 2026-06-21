@@ -22,8 +22,9 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("handleDiagnostics"), "Diagnostics command must have a handler");
         assertTrue(source.contains("cloudislands.admin.\" + root"), "Diagnostics must be covered by admin permission mapping");
         assertTrue(source.contains("redactDiagnostic"), "Diagnostics export must redact secrets");
-        assertTrue(source.contains("coreApiClient.storageStatus()"), "Diagnostics export must include storage health");
-        assertTrue(source.contains("coreApiClient.metrics()"), "Diagnostics export must include metrics");
+        assertTrue(source.contains("coreApiClient.adminStorage().status()"), "Diagnostics export must include typed storage health");
+        assertTrue(source.contains("coreApiClient.adminMetrics().summary()"), "Diagnostics export must include typed metrics");
+        assertTrue(source.contains("coreApiClient.adminCoreConfig().config()"), "Diagnostics export must include typed core config");
         assertTrue(source.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Diagnostics export must include typed route ticket debug state");
         assertTrue(source.contains("diagnosticSection(\"route-debug\""), "Diagnostics bundle must have a route debug section");
         assertTrue(source.contains("diagnosticSection(\"heartbeat-lag\""), "Diagnostics bundle must have a heartbeat lag section");

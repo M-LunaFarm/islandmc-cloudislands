@@ -636,9 +636,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             sender.sendMessage(adminText("admin-command-diagnostics-usage", "사용법: /ciadmin diagnostics export"));
             return true;
         }
-        CompletableFuture<String> config = diagnosticSection("core-config", coreApiClient.coreConfig());
-        CompletableFuture<String> metrics = diagnosticSection("metrics", coreApiClient.metrics());
-        CompletableFuture<String> storage = diagnosticSection("storage", coreApiClient.storageStatus());
+        CompletableFuture<String> config = diagnosticSection("core-config", coreApiClient.adminCoreConfig().config().thenApply(this::coreConfigMessage));
+        CompletableFuture<String> metrics = diagnosticSection("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
+        CompletableFuture<String> storage = diagnosticSection("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
         CompletableFuture<String> nodeSnapshot = coreApiClient.listNodes().thenApply(Object::toString);
         CompletableFuture<String> nodes = diagnosticSection("nodes", nodeSnapshot);
         CompletableFuture<String> heartbeatLag = diagnosticSection("heartbeat-lag", nodeSnapshot.thenApply(this::heartbeatLagDiagnosticBody));
