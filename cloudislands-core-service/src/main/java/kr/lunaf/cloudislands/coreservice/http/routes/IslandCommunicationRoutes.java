@@ -2,12 +2,15 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
@@ -78,7 +81,7 @@ public final class IslandCommunicationRoutes implements RouteGroup {
             payload.put("recipients", String.join(",", metadataRepository.members(islandId).stream().map(member -> member.playerUuid().toString()).toList()));
         }
         events.publish(CloudIslandEventType.ISLAND_CHAT_SENT.name(), payload);
-        CoreHttpResponses.write(exchange, 202, "{\"accepted\":true,\"channel\":\"" + normalizedChannel + "\",\"message\":\"" + escape(message) + "\"}");
+        CoreHttpResponses.write(exchange, 202, chatAcceptedJson(normalizedChannel, message));
     }
 
     private boolean requireMember(HttpExchange exchange, UUID islandId, UUID actorUuid) throws IOException {
@@ -94,46 +97,44 @@ public final class IslandCommunicationRoutes implements RouteGroup {
         return false;
     }
 
-    static String islandLogsJson(java.util.List<IslandLogRecord> logs) {
-        StringBuilder builder = new StringBuilder("{\"logs\":[");
-        boolean first = true;
+    static String islandLogsJson(List<IslandLogRecord> logs) {
+        List<Object> renderedLogs = new ArrayList<>();
         for (IslandLogRecord log : logs) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('{')
-                .append("\"logId\":\"").append(log.logId()).append("\",")
-                .append("\"islandId\":\"").append(log.islandId()).append("\",")
-                .append("\"actorUuid\":\"").append(log.actorUuid()).append("\",")
-                .append("\"action\":\"").append(escape(log.action())).append("\",")
-                .append("\"payload\":").append(stringMapJson(log.payload())).append(',')
-                .append("\"createdAt\":\"").append(log.createdAt()).append("\"")
-                .append('}');
+            LinkedHashMap<String, Object> rendered = new LinkedHashMap<>();
+            rendered.put("logId", log.logId());
+            rendered.put("islandId", log.islandId());
+            rendered.put("actorUuid", log.actorUuid());
+            rendered.put("action", log.action());
+            rendered.put("payload", stringMap(log.payload()));
+            rendered.put("createdAt", log.createdAt());
+            renderedLogs.add(rendered);
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("logs", renderedLogs));
     }
 
     static String stringMapJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
+        return SimpleJson.stringify(stringMap(payload));
+    }
+
+    static String chatAcceptedJson(String channel, String message) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("channel", channel);
+        values.put("message", message);
+        return SimpleJson.stringify(values);
+    }
+
+    private static Map<String, Object> stringMap(Map<String, String> payload) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         if (payload == null || payload.isEmpty()) {
-            return builder.append("}").toString();
+            return values;
         }
         for (Map.Entry<String, String> entry : payload.entrySet()) {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append("\"").append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append("\"");
+            values.put(entry.getKey(), entry.getValue());
         }
-        return builder.append("}").toString();
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return values;
     }
 }
