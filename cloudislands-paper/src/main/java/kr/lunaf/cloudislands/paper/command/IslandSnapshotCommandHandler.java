@@ -198,7 +198,10 @@ final class IslandSnapshotCommandHandler {
         if (checksum == null || checksum.isBlank()) {
             return "";
         }
-        return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
+        if (checksum.length() <= 12) {
+            return checksum;
+        }
+        return new StringBuilder(12).append(checksum, 0, 12).toString();
     }
 
     interface Runtime {
@@ -211,8 +214,6 @@ final class IslandSnapshotCommandHandler {
         <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
 
         <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
-
-        String actionResultMessage(String action, UUID id, String body);
 
         MessageRenderer messagesFor(Player player);
 

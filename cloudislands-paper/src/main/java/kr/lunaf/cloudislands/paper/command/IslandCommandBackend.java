@@ -226,11 +226,6 @@ final class IslandCommandBackend {
             }
 
             @Override
-            public String actionResultMessage(String action, UUID id, String body) {
-                return IslandCommandBackend.this.actionResultMessage(action, id, body);
-            }
-
-            @Override
             public MessageRenderer messagesFor(Player player) {
                 return IslandCommandBackend.this.messagesFor(player);
             }
