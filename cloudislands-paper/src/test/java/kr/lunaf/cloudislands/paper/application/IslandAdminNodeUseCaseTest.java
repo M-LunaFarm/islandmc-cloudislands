@@ -15,27 +15,46 @@ class IslandAdminNodeUseCaseTest {
         List<String> calls = new ArrayList<>();
         IslandAdminNodeUseCase useCase = new IslandAdminNodeUseCase(client(calls));
 
-        assertEquals("nodes", useCase.listNodes().join());
+        assertEquals("[\"node-a\",\"node-b\"]", useCase.listNodes().join());
+        assertEquals("nodes=2", useCase.listNodesSummary().join().text());
         assertEquals("info", useCase.nodeInfo(" node-a ").join());
-        assertEquals("islands", useCase.nodeIslands("node-a", 500).join());
-        assertEquals("drained", useCase.drain("node-a", mutationRunner(calls)).join());
-        assertEquals("undrained", useCase.undrain("node-a", mutationRunner(calls)).join());
-        assertEquals("swept", useCase.sweep("node-a", mutationRunner(calls)).join());
-        assertEquals("kicked", useCase.kickAll("node-a", "admin", idempotentMutationRunner(calls)).join());
-        assertEquals("shutdown", useCase.shutdownSafely("node-a", "admin", idempotentMutationRunner(calls)).join());
+        assertEquals(nodeIslandsJson(), useCase.nodeIslands("node-a", 500).join());
+        assertEquals("node=node-a count=2", useCase.nodeIslandsSummary("node-a", 500).join().text());
+        assertEquals(nodeLifecycleJson("DRAIN"), useCase.drain("node-a", mutationRunner(calls)).join());
+        assertEquals("DRAIN", useCase.drainAction("node-a", mutationRunner(calls)).join().operation());
+        assertEquals(nodeLifecycleJson("UNDRAIN"), useCase.undrain("node-a", mutationRunner(calls)).join());
+        assertEquals("UNDRAIN", useCase.undrainAction("node-a", mutationRunner(calls)).join().operation());
+        assertEquals(nodeLifecycleJson("SWEEP"), useCase.sweep("node-a", mutationRunner(calls)).join());
+        assertEquals("SWEEP", useCase.sweepAction("node-a", mutationRunner(calls)).join().operation());
+        assertEquals(nodeLifecycleJson("KICKALL"), useCase.kickAll("node-a", "admin", idempotentMutationRunner(calls)).join());
+        assertEquals("KICKALL", useCase.kickAllAction("node-a", "admin", idempotentMutationRunner(calls)).join().operation());
+        assertEquals(nodeLifecycleJson("SHUTDOWN_SAFE"), useCase.shutdownSafely("node-a", "admin", idempotentMutationRunner(calls)).join());
+        assertEquals("SHUTDOWN_SAFE", useCase.shutdownSafelyAction("node-a", "admin", idempotentMutationRunner(calls)).join().operation());
 
         assertEquals(List.of(
             "listNodes",
+            "listNodes",
             "nodeInfo:node-a",
             "nodeIslands:node-a:100",
+            "nodeIslands:node-a:100",
+            "audit:admin.node.drain",
+            "drainNode:node-a",
             "audit:admin.node.drain",
             "drainNode:node-a",
             "audit:admin.node.undrain",
             "undrainNode:node-a",
+            "audit:admin.node.undrain",
+            "undrainNode:node-a",
+            "audit:admin.node.sweep",
+            "sweepNode:node-a",
             "audit:admin.node.sweep",
             "sweepNode:node-a",
             "audit:admin.node.kickall",
             "kickAllNode:node-a:admin",
+            "audit:admin.node.kickall",
+            "kickAllNode:node-a:admin",
+            "audit:admin.node.shutdown-safe",
+            "shutdownNodeSafely:node-a:admin",
             "audit:admin.node.shutdown-safe",
             "shutdownNodeSafely:node-a:admin"
         ), calls);
@@ -48,7 +67,7 @@ class IslandAdminNodeUseCaseTest {
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listNodes" -> {
                     calls.add("listNodes");
-                    yield CompletableFuture.completedFuture("nodes");
+                    yield CompletableFuture.completedFuture("[\"node-a\",\"node-b\"]");
                 }
                 case "nodeInfo" -> {
                     calls.add("nodeInfo:" + args[0]);
@@ -56,27 +75,27 @@ class IslandAdminNodeUseCaseTest {
                 }
                 case "nodeIslands" -> {
                     calls.add("nodeIslands:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("islands");
+                    yield CompletableFuture.completedFuture(nodeIslandsJson());
                 }
                 case "drainNode" -> {
                     calls.add("drainNode:" + args[0]);
-                    yield CompletableFuture.completedFuture("drained");
+                    yield CompletableFuture.completedFuture(nodeLifecycleJson("DRAIN"));
                 }
                 case "undrainNode" -> {
                     calls.add("undrainNode:" + args[0]);
-                    yield CompletableFuture.completedFuture("undrained");
+                    yield CompletableFuture.completedFuture(nodeLifecycleJson("UNDRAIN"));
                 }
                 case "sweepNode" -> {
                     calls.add("sweepNode:" + args[0]);
-                    yield CompletableFuture.completedFuture("swept");
+                    yield CompletableFuture.completedFuture(nodeLifecycleJson("SWEEP"));
                 }
                 case "kickAllNode" -> {
                     calls.add("kickAllNode:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("kicked");
+                    yield CompletableFuture.completedFuture(nodeLifecycleJson("KICKALL"));
                 }
                 case "shutdownNodeSafely" -> {
                     calls.add("shutdownNodeSafely:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("shutdown");
+                    yield CompletableFuture.completedFuture(nodeLifecycleJson("SHUTDOWN_SAFE"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });
@@ -94,5 +113,13 @@ class IslandAdminNodeUseCaseTest {
             calls.add("audit:" + auditAction);
             return operation.get();
         };
+    }
+
+    private static String nodeIslandsJson() {
+        return "{\"nodeId\":\"node-a\",\"count\":2,\"islands\":[]}";
+    }
+
+    private static String nodeLifecycleJson(String operation) {
+        return "{\"accepted\":true,\"nodeId\":\"node-a\",\"state\":\"DRAINING\",\"operation\":\"" + operation + "\"}";
     }
 }

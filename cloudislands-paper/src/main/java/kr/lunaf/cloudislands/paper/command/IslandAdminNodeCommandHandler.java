@@ -5,6 +5,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase;
+import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeActionResult;
+import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeSummary;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -100,50 +102,50 @@ final class IslandAdminNodeCommandHandler {
     }
 
     private void listAdminNodes(Player player) {
-        adminNodeUseCase.listNodes()
-            .thenAccept(body -> runtime.message(player, runtime.routeMessage("admin-node-list-result-prefix", "노드 목록: ") + adminNodeBodySummary(body)))
+        adminNodeUseCase.listNodesSummary()
+            .thenAccept(summary -> runtime.message(player, runtime.routeMessage("admin-node-list-result-prefix", "노드 목록: ") + adminNodeBodySummary(summary)))
             .exceptionally(error -> adminNodeFailure(player, "admin-node-list-failed", "노드 목록을 불러오지 못했습니다.", error));
     }
 
     private void refreshAdminNodeInfo(Player player, String nodeId) {
         adminNodeUseCase.nodeInfo(nodeId)
-            .thenAccept(body -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> AdminNodeMenu.open(player, nodeId, body, runtime.messagesFor(player))))
+            .thenAccept(nodeInfoBody -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> AdminNodeMenu.open(player, nodeId, nodeInfoBody, runtime.messagesFor(player))))
             .exceptionally(error -> adminNodeFailure(player, "admin-node-info-failed", "노드 정보를 불러오지 못했습니다.", error));
     }
 
     private void listAdminNodeIslands(Player player, String nodeId) {
-        adminNodeUseCase.nodeIslands(nodeId, 50)
-            .thenAccept(body -> runtime.message(player, runtime.routeMessage("admin-node-islands-result-prefix", "노드 섬 현황: ") + adminNodeBodySummary(body)))
+        adminNodeUseCase.nodeIslandsSummary(nodeId, 50)
+            .thenAccept(summary -> runtime.message(player, runtime.routeMessage("admin-node-islands-result-prefix", "노드 섬 현황: ") + adminNodeBodySummary(summary)))
             .exceptionally(error -> adminNodeFailure(player, "admin-node-islands-failed", "노드 섬 현황을 불러오지 못했습니다.", error));
     }
 
     private void drainAdminNode(Player player, String nodeId) {
-        adminNodeUseCase.drain(nodeId, runtime::mutate)
-            .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("Node drain", nodeId, body)))
+        adminNodeUseCase.drainAction(nodeId, runtime::mutate)
+            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node drain", nodeId, result)))
             .exceptionally(error -> adminNodeFailure(player, "admin-node-action-failed", "Node drain 실패", error));
     }
 
     private void undrainAdminNode(Player player, String nodeId) {
-        adminNodeUseCase.undrain(nodeId, runtime::mutate)
-            .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("Node undrain", nodeId, body)))
+        adminNodeUseCase.undrainAction(nodeId, runtime::mutate)
+            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node undrain", nodeId, result)))
             .exceptionally(error -> adminNodeFailure(player, "admin-node-action-failed", "Node undrain 실패", error));
     }
 
     private void sweepAdminNode(Player player, String nodeId) {
-        adminNodeUseCase.sweep(nodeId, runtime::mutate)
-            .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("Node sweep", nodeId, body)))
+        adminNodeUseCase.sweepAction(nodeId, runtime::mutate)
+            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node sweep", nodeId, result)))
             .exceptionally(error -> adminNodeFailure(player, "admin-node-action-failed", "Node sweep 실패", error));
     }
 
     private void kickAllAdminNode(Player player, String nodeId, String reason) {
-        adminNodeUseCase.kickAll(nodeId, reason, runtime::mutateIdempotent)
-            .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("Node kickall", nodeId, body)))
+        adminNodeUseCase.kickAllAction(nodeId, reason, runtime::mutateIdempotent)
+            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node kickall", nodeId, result)))
             .exceptionally(error -> adminNodeFailure(player, "admin-node-danger-action-failed", "Node kickall 실패", error));
     }
 
     private void shutdownAdminNodeSafely(Player player, String nodeId, String reason) {
-        adminNodeUseCase.shutdownSafely(nodeId, reason, runtime::mutateIdempotent)
-            .thenAccept(body -> runtime.message(player, runtime.actionResultMessage("Node shutdown-safe", nodeId, body)))
+        adminNodeUseCase.shutdownSafelyAction(nodeId, reason, runtime::mutateIdempotent)
+            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node shutdown-safe", nodeId, result)))
             .exceptionally(error -> adminNodeFailure(player, "admin-node-danger-action-failed", "Node shutdown-safe 실패", error));
     }
 
@@ -176,42 +178,33 @@ final class IslandAdminNodeCommandHandler {
         return null;
     }
 
-    private String adminNodeBodySummary(String body) {
-        if (body == null || body.isBlank()) {
+    private String adminNodeBodySummary(AdminNodeSummary summary) {
+        if (summary == null || summary.text().isBlank()) {
             return runtime.routeMessage("admin-node-empty-response", "응답 없음");
         }
-        String code = text(body, "code");
-        if (!code.isBlank()) {
-            return "code=" + code;
-        }
-        String nodeId = text(body, "nodeId");
-        if (!nodeId.isBlank()) {
-            return "node=" + compactId(nodeId);
-        }
-        return body.length() > 180 ? body.substring(0, 180) + "..." : body;
+        return summary.text();
     }
 
-    private static String text(String json, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return "";
+    private static String adminNodeActionMessage(String label, String nodeId, AdminNodeActionResult result) {
+        StringBuilder builder = new StringBuilder(label)
+            .append(result.accepted() ? " 완료" : " 실패");
+        String target = result.nodeId().isBlank() ? nodeId : result.nodeId();
+        if (target != null && !target.isBlank()) {
+            builder.append(": 대상=").append(target);
         }
-        int valueStart = start + needle.length();
-        int end = json.indexOf('"', valueStart);
-        return end < 0 ? "" : json.substring(valueStart, end);
-    }
-
-    private static String compactId(String value) {
-        return value != null && value.length() == 36 && value.indexOf('-') > 0 ? value.substring(0, 8) : value;
+        if (!result.operation().isBlank()) {
+            builder.append(" 작업=").append(result.operation());
+        }
+        if (!result.accepted() && !result.code().isBlank()) {
+            builder.append(" 사유=").append(result.code());
+        }
+        return builder.toString();
     }
 
     interface Runtime {
         void message(Player player, String message);
 
         String routeMessage(String key, String fallback);
-
-        String actionResultMessage(String label, String targetId, String body);
 
         <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
 
