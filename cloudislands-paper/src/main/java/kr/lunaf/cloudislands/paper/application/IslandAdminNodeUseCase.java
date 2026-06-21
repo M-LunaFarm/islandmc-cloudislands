@@ -45,54 +45,54 @@ public final class IslandAdminNodeUseCase {
         return nodeIslandBodies(nodeId, limit).thenApply(IslandAdminNodeUseCase::summary);
     }
 
-    public CompletableFuture<String> drain(String nodeId, MutationRunner runner) {
+    private CompletableFuture<String> drainBody(String nodeId, MutationRunner runner) {
         requireMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
         return runner.mutate("admin.node.drain", () -> coreApiClient.drainNode(normalizedNodeId));
     }
 
     public CompletableFuture<AdminNodeActionResult> drainAction(String nodeId, MutationRunner runner) {
-        return drain(nodeId, runner).thenApply(IslandAdminNodeUseCase::actionResult);
+        return drainBody(nodeId, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
-    public CompletableFuture<String> undrain(String nodeId, MutationRunner runner) {
+    private CompletableFuture<String> undrainBody(String nodeId, MutationRunner runner) {
         requireMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
         return runner.mutate("admin.node.undrain", () -> coreApiClient.undrainNode(normalizedNodeId));
     }
 
     public CompletableFuture<AdminNodeActionResult> undrainAction(String nodeId, MutationRunner runner) {
-        return undrain(nodeId, runner).thenApply(IslandAdminNodeUseCase::actionResult);
+        return undrainBody(nodeId, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
-    public CompletableFuture<String> sweep(String nodeId, MutationRunner runner) {
+    private CompletableFuture<String> sweepBody(String nodeId, MutationRunner runner) {
         requireMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
         return runner.mutate("admin.node.sweep", () -> coreApiClient.sweepNode(normalizedNodeId));
     }
 
     public CompletableFuture<AdminNodeActionResult> sweepAction(String nodeId, MutationRunner runner) {
-        return sweep(nodeId, runner).thenApply(IslandAdminNodeUseCase::actionResult);
+        return sweepBody(nodeId, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
-    public CompletableFuture<String> kickAll(String nodeId, String reason, IdempotentMutationRunner runner) {
+    private CompletableFuture<String> kickAllBody(String nodeId, String reason, IdempotentMutationRunner runner) {
         requireIdempotentMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
         return runner.mutateIdempotent("admin.node.kickall", () -> coreApiClient.kickAllNode(normalizedNodeId, normalizeReason(reason)));
     }
 
     public CompletableFuture<AdminNodeActionResult> kickAllAction(String nodeId, String reason, IdempotentMutationRunner runner) {
-        return kickAll(nodeId, reason, runner).thenApply(IslandAdminNodeUseCase::actionResult);
+        return kickAllBody(nodeId, reason, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
-    public CompletableFuture<String> shutdownSafely(String nodeId, String reason, IdempotentMutationRunner runner) {
+    private CompletableFuture<String> shutdownSafelyBody(String nodeId, String reason, IdempotentMutationRunner runner) {
         requireIdempotentMutationRunner(runner);
         String normalizedNodeId = requireNode(nodeId);
         return runner.mutateIdempotent("admin.node.shutdown-safe", () -> coreApiClient.shutdownNodeSafely(normalizedNodeId, normalizeReason(reason)));
     }
 
     public CompletableFuture<AdminNodeActionResult> shutdownSafelyAction(String nodeId, String reason, IdempotentMutationRunner runner) {
-        return shutdownSafely(nodeId, reason, runner).thenApply(IslandAdminNodeUseCase::actionResult);
+        return shutdownSafelyBody(nodeId, reason, runner).thenApply(IslandAdminNodeUseCase::actionResult);
     }
 
     private static AdminNodeSummary summary(String body) {

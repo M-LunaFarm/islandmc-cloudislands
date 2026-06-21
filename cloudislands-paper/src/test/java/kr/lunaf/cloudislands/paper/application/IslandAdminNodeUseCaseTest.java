@@ -18,15 +18,10 @@ class IslandAdminNodeUseCaseTest {
         assertEquals("nodes=2", useCase.listNodesSummary().join().text());
         assertEquals("READY", useCase.nodeInfoView(" node-a ").join().state());
         assertEquals("node=node-a count=2", useCase.nodeIslandsSummary("node-a", 500).join().text());
-        assertEquals(nodeLifecycleJson("DRAIN"), useCase.drain("node-a", mutationRunner(calls)).join());
         assertEquals("DRAIN", useCase.drainAction("node-a", mutationRunner(calls)).join().operation());
-        assertEquals(nodeLifecycleJson("UNDRAIN"), useCase.undrain("node-a", mutationRunner(calls)).join());
         assertEquals("UNDRAIN", useCase.undrainAction("node-a", mutationRunner(calls)).join().operation());
-        assertEquals(nodeLifecycleJson("SWEEP"), useCase.sweep("node-a", mutationRunner(calls)).join());
         assertEquals("SWEEP", useCase.sweepAction("node-a", mutationRunner(calls)).join().operation());
-        assertEquals(nodeLifecycleJson("KICKALL"), useCase.kickAll("node-a", "admin", idempotentMutationRunner(calls)).join());
         assertEquals("KICKALL", useCase.kickAllAction("node-a", "admin", idempotentMutationRunner(calls)).join().operation());
-        assertEquals(nodeLifecycleJson("SHUTDOWN_SAFE"), useCase.shutdownSafely("node-a", "admin", idempotentMutationRunner(calls)).join());
         assertEquals("SHUTDOWN_SAFE", useCase.shutdownSafelyAction("node-a", "admin", idempotentMutationRunner(calls)).join().operation());
 
         assertEquals(List.of(
@@ -35,22 +30,12 @@ class IslandAdminNodeUseCaseTest {
             "nodeIslands:node-a:100",
             "audit:admin.node.drain",
             "drainNode:node-a",
-            "audit:admin.node.drain",
-            "drainNode:node-a",
-            "audit:admin.node.undrain",
-            "undrainNode:node-a",
             "audit:admin.node.undrain",
             "undrainNode:node-a",
             "audit:admin.node.sweep",
             "sweepNode:node-a",
-            "audit:admin.node.sweep",
-            "sweepNode:node-a",
             "audit:admin.node.kickall",
             "kickAllNode:node-a:admin",
-            "audit:admin.node.kickall",
-            "kickAllNode:node-a:admin",
-            "audit:admin.node.shutdown-safe",
-            "shutdownNodeSafely:node-a:admin",
             "audit:admin.node.shutdown-safe",
             "shutdownNodeSafely:node-a:admin"
         ), calls);

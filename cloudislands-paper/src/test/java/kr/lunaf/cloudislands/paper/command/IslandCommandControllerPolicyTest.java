@@ -367,10 +367,15 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"));
         assertTrue(adminHandler.contains("case LIST ->"));
         assertTrue(adminHandler.contains("IslandAdminNodeUseCase"));
-        assertTrue(adminHandler.contains("adminNodeUseCase.drain"));
-        assertTrue(adminHandler.contains("adminNodeUseCase.shutdownSafely"));
+        assertTrue(adminHandler.contains("adminNodeUseCase.drainAction"));
+        assertTrue(adminHandler.contains("adminNodeUseCase.shutdownSafelyAction"));
         assertFalse(adminHandler.contains("coreApiClient.drainNode"));
         assertFalse(adminHandler.contains("coreApiClient.shutdownNodeSafely"));
+        assertFalse(adminUseCase.contains("public CompletableFuture<String> drain("), "admin drain usecase must expose typed actions instead of raw JSON");
+        assertFalse(adminUseCase.contains("public CompletableFuture<String> undrain("), "admin undrain usecase must expose typed actions instead of raw JSON");
+        assertFalse(adminUseCase.contains("public CompletableFuture<String> sweep("), "admin sweep usecase must expose typed actions instead of raw JSON");
+        assertFalse(adminUseCase.contains("public CompletableFuture<String> kickAll("), "admin kick-all usecase must expose typed actions instead of raw JSON");
+        assertFalse(adminUseCase.contains("public CompletableFuture<String> shutdownSafely("), "admin shutdown usecase must expose typed actions instead of raw JSON");
         assertTrue(adminUseCase.contains("coreApiClient.drainNode"));
         assertTrue(adminUseCase.contains("coreApiClient.shutdownNodeSafely"));
     }
