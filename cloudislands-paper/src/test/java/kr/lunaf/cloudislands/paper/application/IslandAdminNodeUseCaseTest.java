@@ -6,6 +6,8 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.coreclient.CoreAdminNodeCommandClient;
+import kr.lunaf.cloudislands.coreclient.CoreAdminNodeQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import org.junit.jupiter.api.Test;
 
@@ -46,6 +48,8 @@ class IslandAdminNodeUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
+                case "adminNodes" -> new CoreAdminNodeQueryClient((CoreApiClient) _proxy);
+                case "adminNodeCommands" -> new CoreAdminNodeCommandClient((CoreApiClient) _proxy);
                 case "listNodes" -> {
                     calls.add("listNodes");
                     yield CompletableFuture.completedFuture("[\"node-a\",\"node-b\"]");

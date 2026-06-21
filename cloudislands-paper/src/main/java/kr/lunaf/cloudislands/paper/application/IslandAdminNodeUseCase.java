@@ -7,8 +7,6 @@ import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
 import kr.lunaf.cloudislands.coreclient.AdminNodeCommandClient;
 import kr.lunaf.cloudislands.coreclient.AdminNodeQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreAdminNodeCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreAdminNodeQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.NodeSummaryView;
 
@@ -22,12 +20,12 @@ public final class IslandAdminNodeUseCase {
             throw new IllegalArgumentException("coreApiClient is required");
         }
         this.coreApiClient = coreApiClient;
-        this.adminNodeQueries = new CoreAdminNodeQueryClient(coreApiClient);
-        this.adminNodeCommands = new CoreAdminNodeCommandClient(coreApiClient);
+        this.adminNodeQueries = coreApiClient.adminNodes();
+        this.adminNodeCommands = coreApiClient.adminNodeCommands();
     }
 
     IslandAdminNodeUseCase(CoreApiClient coreApiClient, AdminNodeQueryClient adminNodeQueries) {
-        this(coreApiClient, adminNodeQueries, new CoreAdminNodeCommandClient(coreApiClient));
+        this(coreApiClient, adminNodeQueries, coreApiClient.adminNodeCommands());
     }
 
     IslandAdminNodeUseCase(CoreApiClient coreApiClient, AdminNodeQueryClient adminNodeQueries, AdminNodeCommandClient adminNodeCommands) {
