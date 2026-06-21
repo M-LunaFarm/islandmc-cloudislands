@@ -112,6 +112,7 @@ import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
+import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
@@ -1898,12 +1899,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandPermissionRuleSnapshot>> getPermissionRules(UUID islandId) {
-            return client.listIslandPermissions(islandId).thenApply(PaperCloudIslandsApi::permissionRules);
+            return client.permissionQueries().permissions(islandId).thenApply(views -> permissionRules(islandId, views));
         }
 
         @Override
         public CompletableFuture<List<IslandRoleSnapshot>> getRoles(UUID islandId) {
-            return client.listIslandRoles(islandId).thenApply(PaperCloudIslandsApi::roles);
+            return client.permissionQueries().roles(islandId).thenApply(views -> roles(islandId, views));
         }
 
         @Override
@@ -3000,12 +3001,35 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return rules;
     }
 
+    private static List<IslandPermissionRuleSnapshot> permissionRules(UUID islandId, List<PermissionAssignmentView> views) {
+        return views.stream()
+            .filter(view -> view.playerUuid().isBlank())
+            .map(view -> new IslandPermissionRuleSnapshot(
+                islandId,
+                normalizedRoleKey(view.role(), "VISITOR"),
+                enumValue(IslandPermission.class, view.permission().isBlank() ? "INTERACT" : view.permission(), IslandPermission.INTERACT),
+                view.allowed()
+            ))
+            .toList();
+    }
+
     private static List<IslandRoleSnapshot> roles(String json) {
         List<IslandRoleSnapshot> roles = new ArrayList<>();
         for (String object : objects(json, "roles")) {
             roles.add(role(object));
         }
         return roles;
+    }
+
+    private static List<IslandRoleSnapshot> roles(UUID islandId, List<CoreGuiViews.RoleView> views) {
+        return views.stream()
+            .map(view -> new IslandRoleSnapshot(
+                islandId,
+                normalizedRoleKey(view.role(), "MEMBER"),
+                view.weight(),
+                view.displayName()
+            ))
+            .toList();
     }
 
     private static IslandRoleSnapshot role(String json) {
@@ -3023,6 +3047,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             value = text(json, "role", fallback);
         }
         return value.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
+    }
+
+    private static String normalizedRoleKey(String value, String fallback) {
+        String roleKey = value == null || value.isBlank() ? fallback : value;
+        return roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 
     private static IslandBiomeSnapshot biome(String json) {
