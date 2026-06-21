@@ -24,6 +24,9 @@ import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
 import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.coreclient.JobActionView;
+import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
+import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
@@ -616,7 +619,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<String> nodeSnapshot = coreApiClient.listNodes().thenApply(Object::toString);
         CompletableFuture<String> nodes = diagnosticSection("nodes", nodeSnapshot);
         CompletableFuture<String> heartbeatLag = diagnosticSection("heartbeat-lag", nodeSnapshot.thenApply(this::heartbeatLagDiagnosticBody));
-        CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.listJobs().thenApply(Object::toString));
+        CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.jobs().list().thenApply(Object::toString));
         CompletableFuture<String> routes = diagnosticSection("route-debug", coreApiClient.debugRoutes(new UUID(0L, 0L)));
         CompletableFuture<String> audit = diagnosticSection("audit", coreApiClient.listAuditLogs(25));
         CompletableFuture<String> configValidation = CompletableFuture.completedFuture(configValidationDiagnosticSection());
@@ -932,14 +935,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private boolean handleJobs(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
-            run(sender, "Jobs list", coreApiClient.listJobs().thenApply(this::jobListMessage));
+            run(sender, "Jobs list", coreApiClient.jobs().list().thenApply(this::jobListMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("recover")) {
             String recoverNodeId = args.length > 2 ? args[2] : nodeId;
             long minIdleMillis = args.length > 3 ? number(args[3], 60000L) : 60000L;
             int maxJobs = args.length > 4 ? (int) number(args[4], 20L) : 20;
-            run(sender, "Jobs recover", coreApiClient.recoverJobs(recoverNodeId, minIdleMillis, maxJobs).thenApply(body -> jobActionMessage("recover", body)));
+            run(sender, "Jobs recover", coreApiClient.jobCommands().recover(recoverNodeId, minIdleMillis, maxJobs).thenApply(this::jobRecoveryMessage));
             return true;
         }
         if (args.length < 3) {
@@ -951,11 +954,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("retry")) {
-            run(sender, "Job retry", coreApiClient.retryJob(jobId).thenApply(body -> jobActionMessage("retry", body)));
+            run(sender, "Job retry", coreApiClient.jobCommands().retry(jobId).thenApply(action -> jobActionMessage("retry", action)));
             return true;
         }
         if (args[1].equalsIgnoreCase("cancel")) {
-            run(sender, "Job cancel", coreApiClient.cancelJob(jobId).thenApply(body -> jobActionMessage("cancel", body)));
+            run(sender, "Job cancel", coreApiClient.jobCommands().cancel(jobId).thenApply(action -> jobActionMessage("cancel", action)));
             return true;
         }
         sendCommandUsage(sender, List.of(
@@ -1685,9 +1688,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return adminText("admin-command-node-sweep-nodes-prefix", "Node sweep: nodes=") + (swept.isEmpty() ? adminText("admin-command-none", "none") : String.join(",", swept)) + adminText("admin-command-node-sweep-recovery-prefix", " recoveryRequired=") + recoveryRequired;
     }
 
-    private String jobListMessage(String body) {
-        String jobs = arrayValue(body, "jobs");
-        if (jobs.isBlank()) {
+    private String jobListMessage(List<JobView> jobs) {
+        if (jobs.isEmpty()) {
             return adminText("admin-command-jobs-empty", "Jobs: empty");
         }
         int pending = 0;
@@ -1695,21 +1697,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         int failed = 0;
         int done = 0;
         int other = 0;
-        int total = 0;
         List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < jobs.length()) {
-            int objectStart = jobs.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(jobs, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = jobs.substring(objectStart, objectEnd + 1);
-            String state = textValue(object, "state");
-            total++;
+        for (JobView job : jobs) {
+            String state = job.state();
             if (state.equalsIgnoreCase("PENDING")) {
                 pending++;
             } else if (state.equalsIgnoreCase("CLAIMED")) {
@@ -1722,11 +1712,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 other++;
             }
             if (entries.size() < 10) {
-                entries.add(jobSummary(object));
+                entries.add(jobSummary(job));
             }
-            index = objectEnd + 1;
         }
-        return adminText("admin-command-jobs-total-prefix", "Jobs: total=") + total
+        return adminText("admin-command-jobs-total-prefix", "Jobs: total=") + jobs.size()
             + adminText("admin-command-jobs-pending-prefix", " pending=") + pending
             + adminText("admin-command-jobs-claimed-prefix", " claimed=") + claimed
             + adminText("admin-command-jobs-failed-prefix", " failed=") + failed
@@ -1735,13 +1724,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
-    private String jobSummary(String object) {
-        String id = textValue(object, "id");
-        String type = textValue(object, "type");
-        String state = textValue(object, "state");
-        String targetNode = textValue(object, "targetNode");
-        long attempts = longValue(object, "attempts");
-        String error = textValue(object, "error");
+    private String jobSummary(JobView job) {
+        String id = job.id();
+        String type = job.type();
+        String state = job.state();
+        String targetNode = job.targetNode();
+        long attempts = job.attempts();
+        String error = job.error();
         String shortId = id.length() > 8 ? id.substring(0, 8) : id;
         StringBuilder builder = new StringBuilder(shortId.isBlank() ? adminText("admin-command-job-summary-default-id", "job") : shortId)
             .append(' ')
@@ -1759,20 +1748,18 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return builder.toString();
     }
 
-    private String jobActionMessage(String action, String body) {
-        if (body == null || body.isBlank()) {
-            return adminText("admin-command-job-prefix", "Job ") + action + adminText("admin-command-job-no-response", ": no response");
+    private String jobActionMessage(String action, JobActionView result) {
+        if (!result.accepted()) {
+            return adminText("admin-command-job-prefix", "Job ") + action + adminText("admin-command-job-failed-code-prefix", ": failed code=") + result.code();
         }
-        String code = textValue(body, "code");
-        if (!code.isBlank()) {
-            return adminText("admin-command-job-prefix", "Job ") + action + adminText("admin-command-job-failed-code-prefix", ": failed code=") + code;
+        return adminText("admin-command-job-prefix", "Job ") + action + ": " + adminText("admin-command-job-accepted", "accepted");
+    }
+
+    private String jobRecoveryMessage(JobRecoveryView result) {
+        if (!result.accepted()) {
+            return adminText("admin-command-job-prefix", "Job ") + "recover" + adminText("admin-command-job-failed-code-prefix", ": failed code=") + result.code();
         }
-        if (body.contains("\"recovered\"")) {
-            String recoveredText = textValue(body, "recovered");
-            long recoveredNumber = longValue(body, "recovered");
-            return adminText("admin-command-job-recover-prefix", "Job recover: recovered=") + (recoveredText.isBlank() ? Long.toString(recoveredNumber) : recoveredText);
-        }
-        return adminText("admin-command-job-prefix", "Job ") + action + ": " + (boolValue(body, "ok") ? adminText("admin-command-job-accepted", "accepted") : adminText("admin-command-job-not-applied", "not applied"));
+        return adminText("admin-command-job-recover-prefix", "Job recover: recovered=") + (result.recovered().isBlank() ? "0" : result.recovered());
     }
 
     private String actionResultMessage(String label, String targetId, String body) {

@@ -1034,6 +1034,61 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void jobClientsReturnTypedJobsAndActions() {
+        UUID jobId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> switch (method.getName()) {
+                case "listJobs" -> CompletableFuture.completedFuture("""
+                    {"jobs":[
+                      {"id":"%s","type":"SAVE_ISLAND","state":"PENDING","targetNode":"node-a","attempts":2,"errorMessage":"retry soon"},
+                      {"jobId":"fallback-id","type":"RESTORE_ISLAND","state":"DONE","attempts":1}
+                    ]}
+                    """.formatted(jobId));
+                case "retryJobResult" -> {
+                    calls.add("retry:" + args[0]);
+                    yield CompletableFuture.completedFuture("{\"ok\":true}");
+                }
+                case "cancelJobResult" -> {
+                    calls.add("cancel:" + args[0]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"JOB_LOCKED\"}");
+                }
+                case "recoverJobsResult" -> {
+                    calls.add("recover:" + args[0] + ":" + args[1] + ":" + args[2]);
+                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"recovered\":3}");
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        JobQueryClient queries = new CoreJobQueryClient(raw);
+        JobCommandClient commands = new CoreJobCommandClient(raw);
+
+        List<JobView> jobs = queries.list().join();
+        JobActionView retried = commands.retry(jobId).join();
+        JobActionView canceled = commands.cancel(jobId).join();
+        JobRecoveryView recovered = commands.recover(" node-a ", 50L, 2).join();
+
+        assertEquals(2, jobs.size());
+        assertEquals(jobId.toString(), jobs.get(0).id());
+        assertEquals("SAVE_ISLAND", jobs.get(0).type());
+        assertEquals("PENDING", jobs.get(0).state());
+        assertEquals("node-a", jobs.get(0).targetNode());
+        assertEquals(2L, jobs.get(0).attempts());
+        assertEquals("retry soon", jobs.get(0).error());
+        assertEquals("fallback-id", jobs.get(1).id());
+        assertTrue(retried.accepted());
+        assertEquals("JOB_RETRIED", retried.code());
+        assertFalse(canceled.accepted());
+        assertEquals("JOB_LOCKED", canceled.code());
+        assertTrue(recovered.accepted());
+        assertEquals("3", recovered.recovered());
+        assertEquals("RECOVERED", recovered.code());
+        assertEquals(List.of("retry:" + jobId, "cancel:" + jobId, "recover:node-a:50:2"), calls);
+    }
+
+    @Test
     void lifecycleCommandClientReturnsTypedResetResult() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

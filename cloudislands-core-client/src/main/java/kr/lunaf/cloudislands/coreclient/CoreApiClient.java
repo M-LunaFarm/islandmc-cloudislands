@@ -132,6 +132,14 @@ public interface CoreApiClient {
         return new CorePlayerProfileCommandClient(this);
     }
 
+    default JobQueryClient jobs() {
+        return new CoreJobQueryClient(this);
+    }
+
+    default JobCommandClient jobCommands() {
+        return new CoreJobCommandClient(this);
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);
