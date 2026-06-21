@@ -7,10 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import org.junit.jupiter.api.Test;
 
 class IslandWarpRoutesTest {
@@ -46,19 +48,41 @@ class IslandWarpRoutesTest {
         UUID actorUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
         IslandLocation location = new IslandLocation("world \"one\"", 1.0D, 65.5D, -3.25D, 90.0F, 15.0F);
 
-        assertEquals(
-            "{\"homes\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"main \\\"home\\\"\",\"worldName\":\"world \\\"one\\\"\",\"localX\":1.0,\"localY\":65.5,\"localZ\":-3.25,\"yaw\":90.0,\"pitch\":15.0,\"createdBy\":\"00000000-0000-0000-0000-000000000002\",\"createdAt\":\"2026-01-02T03:04:05Z\"}]}",
+        Map<?, ?> homes = SimpleJson.object(SimpleJson.parse(
             IslandWarpRoutes.homesJson(List.of(new IslandHomeSnapshot(islandId, "main \"home\"", location, actorUuid, Instant.parse("2026-01-02T03:04:05Z"))))
-        );
-        assertEquals(
-            "{\"warps\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"shop \\\"warp\\\"\",\"localX\":1.0,\"localY\":65.5,\"localZ\":-3.25,\"yaw\":90.0,\"pitch\":15.0,\"publicAccess\":true,\"category\":\"market\",\"createdBy\":\"00000000-0000-0000-0000-000000000002\",\"createdAt\":\"2026-01-02T03:04:05Z\"}]}",
+        ));
+        Map<?, ?> home = SimpleJson.object(SimpleJson.list(homes.get("homes")).get(0));
+        Map<?, ?> warps = SimpleJson.object(SimpleJson.parse(
             IslandWarpRoutes.warpsJson(List.of(new IslandWarpSnapshot(islandId, "shop \"warp\"", location, true, actorUuid, Instant.parse("2026-01-02T03:04:05Z"), "Market")))
-        );
+        ));
+        Map<?, ?> warp = SimpleJson.object(SimpleJson.list(warps.get("warps")).get(0));
+
+        assertEquals(islandId.toString(), SimpleJson.text(home.get("islandId")));
+        assertEquals("main \"home\"", SimpleJson.text(home.get("name")));
+        assertEquals("world \"one\"", SimpleJson.text(home.get("worldName")));
+        assertLocation(home);
+        assertEquals(actorUuid.toString(), SimpleJson.text(home.get("createdBy")));
+        assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(home.get("createdAt")));
+        assertEquals(islandId.toString(), SimpleJson.text(warp.get("islandId")));
+        assertEquals("shop \"warp\"", SimpleJson.text(warp.get("name")));
+        assertLocation(warp);
+        assertEquals(true, warp.get("publicAccess"));
+        assertEquals("market", SimpleJson.text(warp.get("category")));
+        assertEquals(actorUuid.toString(), SimpleJson.text(warp.get("createdBy")));
+        assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(warp.get("createdAt")));
     }
 
     @Test
     void normalizesWarpCategories() {
         assertEquals("default", IslandWarpSnapshot.normalizeCategory(""));
         assertEquals("public-market", IslandWarpSnapshot.normalizeCategory("Public Market"));
+    }
+
+    private static void assertLocation(Map<?, ?> value) {
+        assertEquals(1.0D, ((Number) value.get("localX")).doubleValue());
+        assertEquals(65.5D, ((Number) value.get("localY")).doubleValue());
+        assertEquals(-3.25D, ((Number) value.get("localZ")).doubleValue());
+        assertEquals(90.0F, ((Number) value.get("yaw")).floatValue());
+        assertEquals(15.0F, ((Number) value.get("pitch")).floatValue());
     }
 }

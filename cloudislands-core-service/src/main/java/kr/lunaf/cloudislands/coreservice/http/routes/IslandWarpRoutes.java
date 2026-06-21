@@ -4,6 +4,8 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +15,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
@@ -225,54 +228,52 @@ public final class IslandWarpRoutes implements RouteGroup {
     }
 
     static String homesJson(List<IslandHomeSnapshot> homes) {
-        StringBuilder builder = new StringBuilder("{\"homes\":[");
-        boolean first = true;
+        List<Object> renderedHomes = new ArrayList<>();
         for (IslandHomeSnapshot home : homes) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            IslandLocation location = home.location();
-            builder.append('{')
-                .append("\"islandId\":\"").append(home.islandId()).append("\",")
-                .append("\"name\":\"").append(escape(home.name())).append("\",")
-                .append("\"worldName\":\"").append(escape(location.worldName())).append("\",")
-                .append("\"localX\":").append(location.localX()).append(',')
-                .append("\"localY\":").append(location.localY()).append(',')
-                .append("\"localZ\":").append(location.localZ()).append(',')
-                .append("\"yaw\":").append(location.yaw()).append(',')
-                .append("\"pitch\":").append(location.pitch()).append(',')
-                .append("\"createdBy\":\"").append(home.createdBy()).append("\",")
-                .append("\"createdAt\":\"").append(home.createdAt()).append("\"")
-                .append('}');
+            renderedHomes.add(homeMap(home));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("homes", renderedHomes));
     }
 
     static String warpsJson(List<IslandWarpSnapshot> warps) {
-        StringBuilder builder = new StringBuilder("{\"warps\":[");
-        boolean first = true;
+        List<Object> renderedWarps = new ArrayList<>();
         for (IslandWarpSnapshot warp : warps) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            IslandLocation location = warp.location();
-            builder.append('{')
-                .append("\"islandId\":\"").append(warp.islandId()).append("\",")
-                .append("\"name\":\"").append(escape(warp.name())).append("\",")
-                .append("\"localX\":").append(location.localX()).append(',')
-                .append("\"localY\":").append(location.localY()).append(',')
-                .append("\"localZ\":").append(location.localZ()).append(',')
-                .append("\"yaw\":").append(location.yaw()).append(',')
-                .append("\"pitch\":").append(location.pitch()).append(',')
-                .append("\"publicAccess\":").append(warp.publicAccess()).append(',')
-                .append("\"category\":\"").append(escape(warp.category())).append("\",")
-                .append("\"createdBy\":\"").append(warp.createdBy()).append("\",")
-                .append("\"createdAt\":\"").append(warp.createdAt()).append("\"")
-                .append('}');
+            renderedWarps.add(warpMap(warp));
         }
-        return builder.append("]}").toString();
+        return SimpleJson.stringify(Map.of("warps", renderedWarps));
+    }
+
+    private static Map<String, Object> homeMap(IslandHomeSnapshot home) {
+        IslandLocation location = home.location();
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", home.islandId());
+        values.put("name", home.name());
+        values.put("worldName", location.worldName());
+        values.put("localX", location.localX());
+        values.put("localY", location.localY());
+        values.put("localZ", location.localZ());
+        values.put("yaw", location.yaw());
+        values.put("pitch", location.pitch());
+        values.put("createdBy", home.createdBy());
+        values.put("createdAt", home.createdAt());
+        return values;
+    }
+
+    private static Map<String, Object> warpMap(IslandWarpSnapshot warp) {
+        IslandLocation location = warp.location();
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", warp.islandId());
+        values.put("name", warp.name());
+        values.put("localX", location.localX());
+        values.put("localY", location.localY());
+        values.put("localZ", location.localZ());
+        values.put("yaw", location.yaw());
+        values.put("pitch", location.pitch());
+        values.put("publicAccess", warp.publicAccess());
+        values.put("category", warp.category());
+        values.put("createdBy", warp.createdBy());
+        values.put("createdAt", warp.createdAt());
+        return values;
     }
 
     static int queryInteger(HttpExchange exchange, String key, int fallback, int min, int max) {
@@ -307,9 +308,5 @@ public final class IslandWarpRoutes implements RouteGroup {
             return URLDecoder.decode(part.substring(separator + 1), StandardCharsets.UTF_8);
         }
         return fallback == null ? "" : fallback;
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
