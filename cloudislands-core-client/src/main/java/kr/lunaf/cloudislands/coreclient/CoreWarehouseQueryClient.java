@@ -20,14 +20,19 @@ public final class CoreWarehouseQueryClient implements WarehouseQueryClient {
     public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
         requireIsland(islandId);
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        return delegate.islandWarehouse(islandId, safeLimit).thenApply(CoreWarehouseQueryClient::itemViews);
+        return delegate.islandWarehouse(islandId, safeLimit).thenApply(body -> itemViews(islandId, body));
     }
 
-    private static List<WarehouseItemView> itemViews(String body) {
+    private static List<WarehouseItemView> itemViews(UUID islandId, String body) {
         return entries(body).stream()
-            .map(object -> new WarehouseItemView(text(object, "materialKey"), SimpleJson.number(object.get("amount"))))
+            .map(object -> new WarehouseItemView(itemIslandId(islandId, object), text(object, "materialKey"), SimpleJson.number(object.get("amount")), text(object, "updatedAt")))
             .filter(item -> !item.materialKey().isBlank() && item.amount() > 0L)
             .toList();
+    }
+
+    private static String itemIslandId(UUID fallbackIslandId, Map<?, ?> object) {
+        String itemIslandId = text(object, "islandId");
+        return itemIslandId.isBlank() ? fallbackIslandId.toString() : itemIslandId;
     }
 
     private static List<Map<?, ?>> entries(String body) {

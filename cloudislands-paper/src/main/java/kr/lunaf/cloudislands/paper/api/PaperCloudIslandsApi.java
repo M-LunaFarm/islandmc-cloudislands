@@ -112,6 +112,7 @@ import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
+import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.config.PaperAddonConfigFile;
@@ -1975,7 +1976,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         @Override
         public CompletableFuture<List<IslandWarehouseItemSnapshot>> getWarehouse(UUID islandId, int limit) {
-            return client.islandWarehouse(islandId, limit).thenApply(PaperCloudIslandsApi::warehouseItems);
+            return client.warehouse().listItems(islandId, limit).thenApply(PaperCloudIslandsApi::warehouseItems);
         }
 
         @Override
@@ -3144,6 +3145,17 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             ));
         }
         return items;
+    }
+
+    private static List<IslandWarehouseItemSnapshot> warehouseItems(List<WarehouseItemView> views) {
+        return views.stream()
+            .map(view -> new IslandWarehouseItemSnapshot(
+                uuidValueOrZero(view.islandId()),
+                view.materialKey(),
+                view.amount(),
+                view.updatedAt().isBlank() ? Instant.EPOCH : instant(view.updatedAt())
+            ))
+            .toList();
     }
 
     private static List<IslandUpgradeSnapshot> upgrades(String json) {

@@ -671,8 +671,8 @@ class CoreTypedClientsTest {
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "islandWarehouse" -> CompletableFuture.completedFuture("""
-                    {"items":[{"materialKey":"STONE","amount":12},{"materialKey":"","amount":9},{"materialKey":"DIRT","amount":0}]}
-                    """);
+                    {"items":[{"islandId":"%s","materialKey":"STONE","amount":12,"updatedAt":"2026-06-21T15:00:00Z"},{"materialKey":"","amount":9},{"materialKey":"DIRT","amount":0}]}
+                    """.formatted(islandId));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
@@ -681,8 +681,10 @@ class CoreTypedClientsTest {
         List<WarehouseItemView> items = client.listItems(islandId, 500).join();
 
         assertEquals(1, items.size());
+        assertEquals(islandId.toString(), items.get(0).islandId());
         assertEquals("STONE", items.get(0).materialKey());
         assertEquals(12L, items.get(0).amount());
+        assertEquals("2026-06-21T15:00:00Z", items.get(0).updatedAt());
     }
 
     @Test
