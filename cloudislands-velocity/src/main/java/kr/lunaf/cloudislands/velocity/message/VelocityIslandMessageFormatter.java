@@ -48,23 +48,6 @@ public final class VelocityIslandMessageFormatter {
         this.routePrivacy = routePrivacy == null ? new VelocityRoutePrivacyFormatter(true) : routePrivacy;
     }
 
-    public String playerIslands(String body) {
-        List<String> entries = new ArrayList<>();
-        for (String object : objectsFromArray(body)) {
-            String islandId = jsonValue(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = jsonValue(object, "name");
-                String role = jsonValue(object, "role");
-                long level = longValue(object, "level");
-                entries.add((name.isBlank() ? "이름 없는 섬" : name)
-                    + " (ID=" + shortId(islandId)
-                    + ", 역할=" + (role.isBlank() ? "MEMBER" : role)
-                    + ", 레벨=" + level + ")");
-            }
-        }
-        return entries.isEmpty() ? "속한 섬이 없습니다." : "내 섬 목록: " + String.join(" / ", entries);
-    }
-
     public String playerIslands(List<CoreGuiViews.PlayerIslandView> islands) {
         if (islands == null || islands.isEmpty()) {
             return "속한 섬이 없습니다.";
@@ -79,34 +62,6 @@ public final class VelocityIslandMessageFormatter {
             }
         }
         return entries.isEmpty() ? "속한 섬이 없습니다." : "내 섬 목록: " + String.join(" / ", entries);
-    }
-
-    public String publicIslands(String body) {
-        if (body == null || body.isBlank()) {
-            return "공개 섬이 없습니다.";
-        }
-        List<String> islands = objects(body, "islands");
-        if (islands.isEmpty()) {
-            return "공개 섬이 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        for (String object : islands) {
-            if (entries.size() >= 20) {
-                break;
-            }
-            String islandId = jsonValue(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = jsonValue(object, "name");
-                long level = longValue(object, "level");
-                String worth = jsonValue(object, "worth");
-                entries.add((entries.size() + 1) + ". "
-                    + (name.isBlank() ? "이름 없는 섬" : name)
-                    + " (ID=" + shortId(islandId)
-                    + ", 레벨=" + level
-                    + ", 가치=" + (worth.isBlank() ? "0" : worth) + ")");
-            }
-        }
-        return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
     }
 
     public String publicIslands(List<CoreGuiViews.PublicIslandView> islands) {
@@ -127,21 +82,6 @@ public final class VelocityIslandMessageFormatter {
             }
         }
         return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
-    }
-
-    public String invites(String body) {
-        List<String> entries = new ArrayList<>();
-        for (String object : objectsFromArray(body)) {
-            String inviteId = jsonValue(object, "inviteId");
-            if (!inviteId.isBlank()) {
-                String islandId = jsonValue(object, "islandId");
-                String inviterUuid = jsonValue(object, "inviterUuid");
-                entries.add(shortId(inviteId)
-                    + (islandId.isBlank() ? "" : " 섬=" + shortId(islandId))
-                    + (inviterUuid.isBlank() ? "" : " 초대한사람=" + shortId(inviterUuid)));
-            }
-        }
-        return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
     }
 
     public String invites(List<CoreGuiViews.InviteView> invites) {
