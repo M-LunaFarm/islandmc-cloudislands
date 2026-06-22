@@ -1,40 +1,40 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreJsonPayload {
     private CoreJsonPayload() {
     }
 
-    static String stringMap(Map<String, String> values) {
+    static Map<String, String> stringMap(Map<String, String> values) {
         if (values == null || values.isEmpty()) {
-            return "{}";
+            return Map.of();
         }
-        return values.entrySet().stream()
-            .filter(entry -> entry.getKey() != null && !entry.getKey().isBlank() && entry.getValue() != null)
-            .map(entry -> "\"" + escape(entry.getKey()) + "\":\"" + escape(entry.getValue()) + "\"")
-            .collect(Collectors.joining(",", "{", "}"));
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            if (entry.getKey() != null && !entry.getKey().isBlank() && entry.getValue() != null) {
+                result.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return result;
     }
 
-    static String tableMap(Map<String, Map<String, String>> tables) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
+    static Map<String, Map<String, String>> tableMap(Map<String, Map<String, String>> tables) {
+        Map<String, Map<String, String>> result = new LinkedHashMap<>();
         if (tables != null) {
             for (Map.Entry<String, Map<String, String>> entry : tables.entrySet()) {
                 if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null) {
                     continue;
                 }
-                if (!first) {
-                    builder.append(',');
-                }
-                first = false;
-                builder.append("\"").append(escape(entry.getKey())).append("\":").append(stringMap(entry.getValue()));
+                result.put(entry.getKey(), stringMap(entry.getValue()));
             }
         }
-        return builder.append("}").toString();
+        return result;
     }
 
     static String object(Object... fields) {
@@ -44,19 +44,11 @@ final class CoreJsonPayload {
         if (fields.length % 2 != 0) {
             throw new IllegalArgumentException("JSON object fields must be key-value pairs");
         }
-        StringBuilder builder = new StringBuilder("{");
+        Map<String, Object> values = new LinkedHashMap<>();
         for (int i = 0; i < fields.length; i += 2) {
-            if (i > 0) {
-                builder.append(',');
-            }
-            builder.append('"').append(escape(String.valueOf(fields[i]))).append("\":");
-            appendValue(builder, fields[i + 1]);
+            values.put(String.valueOf(fields[i]), normalizeValue(fields[i + 1]));
         }
-        return builder.append('}').toString();
-    }
-
-    static Object raw(String value) {
-        return new RawJson(value == null || value.isBlank() ? "{}" : value);
+        return SimpleJson.stringify(values);
     }
 
     static String warp(UUID islandId, UUID actorUuid, String name, String category, IslandLocation location, boolean publicAccess) {
@@ -103,45 +95,22 @@ final class CoreJsonPayload {
         );
     }
 
-    private static void appendValue(StringBuilder builder, Object value) {
-        if (value instanceof RawJson rawJson) {
-            builder.append(rawJson.value());
-            return;
-        }
-        if (value instanceof Number || value instanceof Boolean) {
-            builder.append(value);
-            return;
-        }
-        builder.append('"').append(escape(value == null ? "" : String.valueOf(value))).append('"');
-    }
-
-    private static String escape(String value) {
+    private static Object normalizeValue(Object value) {
         if (value == null) {
             return "";
         }
-        StringBuilder builder = new StringBuilder(value.length());
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            switch (c) {
-                case '\\' -> builder.append("\\\\");
-                case '"' -> builder.append("\\\"");
-                case '\b' -> builder.append("\\b");
-                case '\f' -> builder.append("\\f");
-                case '\n' -> builder.append("\\n");
-                case '\r' -> builder.append("\\r");
-                case '\t' -> builder.append("\\t");
-                default -> {
-                    if (c < 0x20) {
-                        builder.append(String.format("\\u%04x", (int) c));
-                    } else {
-                        builder.append(c);
-                    }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> normalized = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry.getKey() != null) {
+                    normalized.put(String.valueOf(entry.getKey()), normalizeValue(entry.getValue()));
                 }
             }
+            return normalized;
         }
-        return builder.toString();
-    }
-
-    private record RawJson(String value) {
+        if (value instanceof List<?> list) {
+            return list.stream().map(CoreJsonPayload::normalizeValue).toList();
+        }
+        return value;
     }
 }

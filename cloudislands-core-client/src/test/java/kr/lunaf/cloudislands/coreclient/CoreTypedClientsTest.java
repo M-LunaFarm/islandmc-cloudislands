@@ -337,6 +337,8 @@ class CoreTypedClientsTest {
         assertEquals("{\"nodeId\":\"paper\\\"east\",\"reportMissing\":true,\"retry\":2}", body);
         assertFalse(coreClient.contains("static String jsonObject("), "JDK core client must not own JSON payload builders");
         assertFalse(coreClient.contains("private static String escape("), "JDK core client must not own JSON escaping");
+        assertFalse(payload.contains("RawJson"), "Core payloads must not splice pre-rendered JSON strings into request bodies");
+        assertFalse(payload.contains("static Object raw("), "Core payloads must pass structured values into the serializer");
         assertTrue(payload.contains("static String object(Object... fields)"), "JSON payload builder must live in CoreJsonPayload");
     }
 

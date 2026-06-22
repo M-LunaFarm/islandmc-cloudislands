@@ -55,7 +55,7 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
     @Override
     public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) {
         String normalizedProviderId = providerId == null || providerId.isBlank() ? "cloudislands" : providerId.trim();
-        return core.postWithResultBody("/v1/addons/missions/register", CoreJsonPayload.object("providerId", normalizedProviderId, "missions", CoreJsonPayload.raw(missionDefinitionsJson(definitions))))
+        return core.postWithResultBody("/v1/addons/missions/register", CoreJsonPayload.object("providerId", normalizedProviderId, "missions", missionDefinitionsPayload(definitions)))
             .thenApply(JdkProgressionCommandClient::missionDefinitions);
     }
 
@@ -146,9 +146,13 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
     }
 
     static String missionDefinitionsJson(List<MissionProviderDefinitionSnapshot> definitions) {
-        return SimpleJson.stringify((definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions).stream()
+        return SimpleJson.stringify(missionDefinitionsPayload(definitions));
+    }
+
+    static List<Map<String, Object>> missionDefinitionsPayload(List<MissionProviderDefinitionSnapshot> definitions) {
+        return (definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions).stream()
             .map(JdkProgressionCommandClient::missionDefinitionJson)
-            .toList());
+            .toList();
     }
 
     private static Map<String, Object> missionDefinitionJson(MissionProviderDefinitionSnapshot definition) {

@@ -28,7 +28,7 @@ public final class JdkAddonStateClient implements AddonStateClient {
     public CompletableFuture<Map<String, String>> putState(String addonId, Map<String, String> values) {
         return core.postWithResultBody("/v1/addons/state/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
-                "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values)))
+                "values", CoreJsonPayload.stringMap(safeValues(values))
             ))
             .thenApply(CoreAddonStateJson::values);
     }
@@ -49,7 +49,7 @@ public final class JdkAddonStateClient implements AddonStateClient {
     public CompletableFuture<Map<String, String>> tableBulkState(String addonId, Map<String, Map<String, String>> tables) {
         return core.postWithResultBody("/v1/addons/state/table/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
-                "tables", CoreJsonPayload.raw(CoreJsonPayload.tableMap(safeTables(tables)))
+                "tables", CoreJsonPayload.tableMap(safeTables(tables))
             ))
             .thenApply(CoreAddonStateJson::values);
     }
@@ -101,7 +101,7 @@ public final class JdkAddonStateClient implements AddonStateClient {
         return core.postWithResultBody("/v1/addons/islands/state/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
-                "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values)))
+                "values", CoreJsonPayload.stringMap(safeValues(values))
             ))
             .thenApply(CoreAddonStateJson::values);
     }
@@ -123,7 +123,7 @@ public final class JdkAddonStateClient implements AddonStateClient {
         return core.postWithResultBody("/v1/addons/islands/state/table/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
-                "tables", CoreJsonPayload.raw(CoreJsonPayload.tableMap(safeTables(tables)))
+                "tables", CoreJsonPayload.tableMap(safeTables(tables))
             ))
             .thenApply(CoreAddonStateJson::values);
     }
@@ -179,8 +179,8 @@ public final class JdkAddonStateClient implements AddonStateClient {
     private String statePayload(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
         return CoreJsonPayload.object(
             "addonId", safeAddonId(addonId),
-            "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values))),
-            "tables", CoreJsonPayload.raw(CoreJsonPayload.tableMap(safeTables(tables)))
+            "values", CoreJsonPayload.stringMap(safeValues(values)),
+            "tables", CoreJsonPayload.tableMap(safeTables(tables))
         );
     }
 
@@ -188,8 +188,8 @@ public final class JdkAddonStateClient implements AddonStateClient {
         return CoreJsonPayload.object(
             "addonId", safeAddonId(addonId),
             "islandId", requireIslandId(islandId),
-            "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values))),
-            "tables", CoreJsonPayload.raw(CoreJsonPayload.tableMap(safeTables(tables)))
+            "values", CoreJsonPayload.stringMap(safeValues(values)),
+            "tables", CoreJsonPayload.tableMap(safeTables(tables))
         );
     }
 
@@ -197,7 +197,7 @@ public final class JdkAddonStateClient implements AddonStateClient {
         return CoreJsonPayload.object(
             "addonId", safeAddonId(addonId),
             "table", safeTable(table),
-            "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values)))
+            "values", CoreJsonPayload.stringMap(safeValues(values))
         );
     }
 
@@ -210,7 +210,7 @@ public final class JdkAddonStateClient implements AddonStateClient {
             "addonId", safeAddonId(addonId),
             "islandId", requireIslandId(islandId),
             "table", safeTable(table),
-            "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values)))
+            "values", CoreJsonPayload.stringMap(safeValues(values))
         );
     }
 

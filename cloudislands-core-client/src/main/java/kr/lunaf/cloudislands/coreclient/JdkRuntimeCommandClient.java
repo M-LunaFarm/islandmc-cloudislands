@@ -66,7 +66,7 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
 
     @Override
     public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
-        return core.postWithResultBody("/v1/jobs/complete", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "payload", CoreJsonPayload.raw(CoreJsonPayload.stringMap(payload == null ? Map.of() : payload))))
+        return core.postWithResultBody("/v1/jobs/complete", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "payload", CoreJsonPayload.stringMap(payload == null ? Map.of() : payload)))
             .thenApply(body -> runtimeAction(body, "JOB_COMPLETED"));
     }
 
