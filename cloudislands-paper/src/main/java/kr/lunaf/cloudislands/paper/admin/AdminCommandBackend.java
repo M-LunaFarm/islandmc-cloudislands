@@ -2395,22 +2395,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
     }
 
-    private String nodeIslandRuntimeSuffix(String object) {
-        List<String> parts = new ArrayList<>();
-        String state = textValue(object, "state");
-        if (!state.isBlank()) {
-            parts.add(state);
-        }
-        String world = textValue(object, "activeWorld");
-        if (!world.isBlank()) {
-            parts.add(adminText("admin-command-runtime-world-compact-prefix", "world=") + world);
-        }
-        if (!object.contains("\"cellX\":null") && !object.contains("\"cellZ\":null")) {
-            parts.add(adminText("admin-command-runtime-cell-compact-prefix", "cell=") + longValue(object, "cellX") + "," + longValue(object, "cellZ"));
-        }
-        return String.join(" ", parts);
-    }
-
     private int nodeIslandLimit(String[] args) {
         return args.length > 3 ? (int) Math.max(1L, Math.min(number(args[3], 50L), 200L)) : 50;
     }
@@ -2609,18 +2593,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 }
                 return playerUuid;
             });
-        }
-    }
-
-    private UUID uuidValue(String body, String field) {
-        String value = textValue(body, field);
-        if (value.isBlank()) {
-            return null;
-        }
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException ignored) {
-            return null;
         }
     }
 
