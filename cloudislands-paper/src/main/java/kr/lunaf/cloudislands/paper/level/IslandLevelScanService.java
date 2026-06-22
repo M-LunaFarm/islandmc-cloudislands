@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
@@ -18,7 +19,7 @@ import org.bukkit.plugin.Plugin;
 public final class IslandLevelScanService {
     private final Plugin plugin;
     private final Supplier<ActiveIslandRegistry> activeIslands;
-    private final CoreApiClient client;
+    private final RuntimeCommandClient runtimeCommands;
     private final PaperWorldGateway worlds;
 
     public IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client) {
@@ -28,7 +29,7 @@ public final class IslandLevelScanService {
     IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client, PaperWorldGateway worlds) {
         this.plugin = plugin;
         this.activeIslands = activeIslands;
-        this.client = client;
+        this.runtimeCommands = client.runtimeCommands();
         this.worlds = worlds;
     }
 
@@ -47,7 +48,7 @@ public final class IslandLevelScanService {
                     return;
                 }
                 Map<String, Long> counts = scan(world, active);
-                client.replaceBlockCounts(islandId, counts)
+                runtimeCommands.replaceBlockCounts(islandId, counts)
                     .thenRun(() -> future.complete(null))
                     .exceptionally(error -> {
                         future.completeExceptionally(error);

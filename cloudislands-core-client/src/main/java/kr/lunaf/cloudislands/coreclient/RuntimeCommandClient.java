@@ -10,6 +10,8 @@ public interface RuntimeCommandClient {
 
     CompletableFuture<RuntimeActionView> recordBlockDelta(UUID islandId, String materialKey, long delta);
 
+    CompletableFuture<RuntimeActionView> replaceBlockCounts(UUID islandId, Map<String, Long> counts);
+
     CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
 
     CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, String errorMessage);

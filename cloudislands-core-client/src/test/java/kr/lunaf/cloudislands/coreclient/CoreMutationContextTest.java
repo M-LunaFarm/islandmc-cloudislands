@@ -252,8 +252,8 @@ class CoreMutationContextTest {
                 1L,
                 ""
             ))).join();
-            client.listIslandLimits(islandId).join();
-            client.setIslandLimit(islandId, actorUuid, "HOPPER\"LIMIT", 64L).join();
+            client.environment().limits(islandId).join();
+            client.environmentCommands().setLimit(islandId, actorUuid, "HOPPER\"LIMIT", 64L).join();
             client.communicationCommands().sendChat(islandId, actorUuid, "team\"chat", "hello \"team\"").join();
             client.snapshots().records(islandId, 15).join();
             client.snapshotCommands().recordSnapshot(islandId, 7L, "snapshots/base\"one.tar", "manual \"save\"", "abc\"123", 4096L, "node\"a").join();
@@ -416,9 +416,9 @@ class CoreMutationContextTest {
             client.jobCommands().retry(jobId).join();
             client.jobCommands().cancel(jobId).join();
             client.jobCommands().recover("node\"a", 50L, 2).join();
-            client.completeJobResult("node\"a", jobId, jobPayload).join();
-            client.failJobResult("node\"a", jobId, "failed \"hard\"").join();
-            client.publishHeartbeatResult(new NodeHeartbeatRequest(
+            client.runtimeCommands().completeJob("node\"a", jobId, jobPayload).join();
+            client.runtimeCommands().failJob("node\"a", jobId, "failed \"hard\"").join();
+            client.runtimeCommands().publishHeartbeat(new NodeHeartbeatRequest(
                 NodeHeartbeatRequest.CURRENT_PROTOCOL_VERSION,
                 "node\"a",
                 "default\"pool",
@@ -671,8 +671,8 @@ class CoreMutationContextTest {
             counts.put("minecraft:stone\"block", 3L);
             counts.put("ignored", 0L);
 
-            client.recordBlockDeltaResult(islandId, "minecraft:diamond\"block", 3L).join();
-            client.replaceBlockCounts(islandId, counts).join();
+            client.runtimeCommands().recordBlockDelta(islandId, "minecraft:diamond\"block", 3L).join();
+            client.runtimeCommands().replaceBlockCounts(islandId, counts).join();
             client.progression().blockDetails(islandId, 25).join();
             client.progressionCommands().recalculateLevel(islandId, actorUuid).join();
             client.progression().topLevel(10).join();

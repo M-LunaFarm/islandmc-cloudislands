@@ -1,0 +1,164 @@
+package kr.lunaf.cloudislands.coreclient;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
+
+public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
+    private final JdkCoreApiClient core;
+
+    public JdkRuntimeCommandClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
+        }
+        this.core = core;
+    }
+
+    @Override
+    public CompletableFuture<RuntimeActionView> publishHeartbeat(NodeHeartbeatRequest request) {
+        if (request == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("request is required"));
+        }
+        return core.postWithResultBody("/v1/nodes/heartbeat", JdkCoreApiClient.jsonObject(
+                "protocolVersion", request.protocolVersion(),
+                "nodeId", request.nodeId(),
+                "pool", request.pool(),
+                "velocityServerName", request.velocityServerName(),
+                "nodeVersion", request.nodeVersion(),
+                "state", request.state().name(),
+                "players", request.players(),
+                "softPlayerCap", request.softPlayerCap(),
+                "hardPlayerCap", request.hardPlayerCap(),
+                "reservedSlots", request.reservedSlots(),
+                "activeIslands", request.activeIslands(),
+                "maxActiveIslands", request.maxActiveIslands(),
+                "mspt", request.mspt(),
+                "activationQueue", request.activationQueue(),
+                "maxActivationQueue", request.maxActivationQueue(),
+                "chunkLoadPressure", request.chunkLoadPressure(),
+                "heapUsedMb", request.heapUsedMb(),
+                "heapMaxMb", request.heapMaxMb(),
+                "recentFailurePenalty", request.recentFailurePenalty(),
+                "storageAvailable", request.storageAvailable(),
+                "supportedTemplates", request.supportedTemplates()
+            ))
+            .thenApply(body -> runtimeAction(body, "HEARTBEAT_ACCEPTED"));
+    }
+
+    @Override
+    public CompletableFuture<RuntimeActionView> recordBlockDelta(UUID islandId, String materialKey, long delta) {
+        requireId(islandId, "islandId");
+        String safeMaterialKey = materialKey == null ? "" : materialKey.trim();
+        if (safeMaterialKey.isBlank()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("materialKey is required"));
+        }
+        return core.postWithResultBody("/v1/islands/blocks/delta", JdkCoreApiClient.jsonObject("islandId", islandId, "materialKey", safeMaterialKey, "delta", delta))
+            .thenApply(body -> runtimeAction(body, "BLOCK_DELTA_RECORDED"));
+    }
+
+    @Override
+    public CompletableFuture<RuntimeActionView> replaceBlockCounts(UUID islandId, Map<String, Long> counts) {
+        requireId(islandId, "islandId");
+        return core.postWithResultBody("/v1/islands/blocks/replace", JdkCoreApiClient.jsonObject("islandId", islandId, "counts", countsPayload(counts == null ? Map.of() : counts)))
+            .thenApply(body -> runtimeAction(body, "BLOCK_COUNTS_REPLACED"));
+    }
+
+    @Override
+    public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
+        return core.postWithResultBody("/v1/jobs/complete", JdkCoreApiClient.jsonObject("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "payload", JdkCoreApiClient.rawJson(mapJson(payload == null ? Map.of() : payload))))
+            .thenApply(body -> runtimeAction(body, "JOB_COMPLETED"));
+    }
+
+    @Override
+    public CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, String errorMessage) {
+        return core.postWithResultBody("/v1/jobs/fail", JdkCoreApiClient.jsonObject("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "error", errorMessage == null ? "" : errorMessage))
+            .thenApply(body -> runtimeAction(body, "JOB_FAILED"));
+    }
+
+    public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId) {
+        return completeJob(nodeId, jobId, Map.of());
+    }
+
+    private static RuntimeActionView runtimeAction(String body, String fallbackCode) {
+        Map<?, ?> root = CoreJson.object(body);
+        return new RuntimeActionView(CoreJson.accepted(root), CoreJson.code(root, fallbackCode));
+    }
+
+    private static void requireId(UUID id, String name) {
+        if (id == null) {
+            throw new IllegalArgumentException(name + " is required");
+        }
+    }
+
+    private static String requireJobNode(String nodeId) {
+        String value = nodeId == null ? "" : nodeId.trim();
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("nodeId is required");
+        }
+        return value;
+    }
+
+    private static UUID requireJobId(UUID jobId) {
+        if (jobId == null) {
+            throw new IllegalArgumentException("jobId is required");
+        }
+        return jobId;
+    }
+
+    private static String mapJson(Map<String, String> payload) {
+        StringBuilder builder = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : payload.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
+        }
+        return builder.append('}').toString();
+    }
+
+    private static String escape(String value) {
+        StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            switch (character) {
+                case '"' -> builder.append("\\\"");
+                case '\\' -> builder.append("\\\\");
+                case '\b' -> builder.append("\\b");
+                case '\f' -> builder.append("\\f");
+                case '\n' -> builder.append("\\n");
+                case '\r' -> builder.append("\\r");
+                case '\t' -> builder.append("\\t");
+                default -> {
+                    if (character < 0x20) {
+                        builder.append(String.format("\\u%04x", (int) character));
+                    } else {
+                        builder.append(character);
+                    }
+                }
+            }
+        }
+        return builder.toString();
+    }
+
+    private static String countsPayload(Map<String, Long> counts) {
+        StringBuilder builder = new StringBuilder();
+        boolean first = true;
+        for (Map.Entry<String, Long> entry : counts.entrySet()) {
+            if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null || entry.getValue() <= 0L) {
+                continue;
+            }
+            if (!first) {
+                builder.append('|');
+            }
+            first = false;
+            builder.append(entry.getKey()).append('=').append(entry.getValue());
+        }
+        return builder.toString();
+    }
+}

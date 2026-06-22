@@ -41,10 +41,9 @@ import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
-import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, WarehouseQueryClient, WarehouseCommandClient, IslandLifecycleCommandClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient, RuntimeCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, WarehouseQueryClient, WarehouseCommandClient, IslandLifecycleCommandClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -61,6 +60,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     private final RoutingCommandClient routingClient;
     private final NavigationQueryClient navigationQueryClient;
     private final NavigationCommandClient navigationCommandClient;
+    private final RuntimeCommandClient runtimeCommandClient;
     private final IslandQueryClient islandClient;
     private final ProgressionQueryClient progressionQueryClient;
     private final ProgressionCommandClient progressionCommandClient;
@@ -105,6 +105,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.routingClient = new JdkRoutingClient(this);
         this.navigationQueryClient = new JdkNavigationQueryClient(this);
         this.navigationCommandClient = new CoreNavigationCommandClient(this);
+        this.runtimeCommandClient = new JdkRuntimeCommandClient(this);
         this.islandClient = new JdkIslandQueryClient(this);
         this.progressionQueryClient = new JdkProgressionQueryClient(this);
         this.progressionCommandClient = new JdkProgressionCommandClient(this);
@@ -211,7 +212,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
 
     @Override
     public RuntimeCommandClient runtimeCommands() {
-        return this;
+        return runtimeCommandClient;
     }
 
     @Override
@@ -501,33 +502,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<RuntimeActionView> recordBlockDelta(UUID islandId, String materialKey, long delta) {
-        String safeMaterialKey = materialKey == null ? "" : materialKey.trim();
-        if (islandId == null) {
-            throw new IllegalArgumentException("islandId is required");
-        }
-        if (safeMaterialKey.isBlank()) {
-            throw new IllegalArgumentException("materialKey is required");
-        }
-        return recordBlockDeltaResult(islandId, safeMaterialKey, delta).thenApply(body -> runtimeAction(body, "BLOCK_DELTA_RECORDED"));
-    }
-
-    @Override
-    public CompletableFuture<String> recordBlockDeltaResult(UUID islandId, String materialKey, long delta) {
-        return postWithResultBody("/v1/islands/blocks/delta", jsonObject("islandId", islandId, "materialKey", materialKey, "delta", delta));
-    }
-
-    @Override
-    public CompletableFuture<String> replaceBlockCounts(UUID islandId, Map<String, Long> counts) {
-        return postWithResultBody("/v1/islands/blocks/replace", jsonObject("islandId", islandId, "counts", countsPayload(counts)));
-    }
-
-    @Override
-    public CompletableFuture<String> islandBlockDetails(UUID islandId, int limit) {
-        return post("/v1/islands/blocks", jsonObject("islandId", islandId, "limit", limit));
-    }
-
-    @Override
     public CompletableFuture<BlockValueActionView> set(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
         UUID safeActor = actorUuid == null ? new UUID(0L, 0L) : actorUuid;
         String safeMaterial = requireMaterialKey(materialKey);
@@ -540,16 +514,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
             throw new IllegalArgumentException("materialKey is required");
         }
         return materialKey.trim();
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandLimits(UUID islandId) {
-        return post("/v1/islands/limits", jsonObject("islandId", islandId));
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandLimit(UUID islandId, UUID actorUuid, String limitKey, long value) {
-        return post("/v1/islands/limits/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "limitKey", limitKey, "value", value));
     }
 
     @Override
@@ -896,91 +860,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
             throw new IllegalArgumentException("jobId is required");
         }
         return jobId;
-    }
-
-    private static RuntimeActionView runtimeAction(String body, String fallbackCode) {
-        Map<?, ?> root = CoreJson.object(body);
-        return new RuntimeActionView(CoreJson.accepted(root), CoreJson.code(root, fallbackCode));
-    }
-
-    public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId) {
-        return completeJob(nodeId, jobId, Map.of());
-    }
-
-    @Override
-    public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
-        return completeJobResult(requireJobNode(nodeId), requireJobId(jobId), payload == null ? Map.of() : payload)
-            .thenApply(body -> runtimeAction(body, "JOB_COMPLETED"));
-    }
-
-    @Override
-    public CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload) {
-        return postWithResultBody("/v1/jobs/complete", jsonObject("nodeId", nodeId, "jobId", jobId, "payload", rawJson(mapJson(payload))));
-    }
-
-    @Override
-    public CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, String errorMessage) {
-        return failJobResult(requireJobNode(nodeId), requireJobId(jobId), errorMessage == null ? "" : errorMessage)
-            .thenApply(body -> runtimeAction(body, "JOB_FAILED"));
-    }
-
-    @Override
-    public CompletableFuture<String> failJobResult(String nodeId, UUID jobId, String errorMessage) {
-        return postWithResultBody("/v1/jobs/fail", jsonObject("nodeId", nodeId, "jobId", jobId, "error", errorMessage));
-    }
-
-    @Override
-    public CompletableFuture<RuntimeActionView> publishHeartbeat(NodeHeartbeatRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("request is required");
-        }
-        return publishHeartbeatResult(request).thenApply(body -> runtimeAction(body, "HEARTBEAT_ACCEPTED"));
-    }
-
-    @Override
-    public CompletableFuture<String> publishHeartbeatResult(NodeHeartbeatRequest request) {
-        return postWithResultBody("/v1/nodes/heartbeat", jsonObject(
-            "protocolVersion", request.protocolVersion(),
-            "nodeId", request.nodeId(),
-            "pool", request.pool(),
-            "velocityServerName", request.velocityServerName(),
-            "nodeVersion", request.nodeVersion(),
-            "state", request.state().name(),
-            "players", request.players(),
-            "softPlayerCap", request.softPlayerCap(),
-            "hardPlayerCap", request.hardPlayerCap(),
-            "reservedSlots", request.reservedSlots(),
-            "activeIslands", request.activeIslands(),
-            "maxActiveIslands", request.maxActiveIslands(),
-            "mspt", request.mspt(),
-            "activationQueue", request.activationQueue(),
-            "maxActivationQueue", request.maxActivationQueue(),
-            "chunkLoadPressure", request.chunkLoadPressure(),
-            "heapUsedMb", request.heapUsedMb(),
-            "heapMaxMb", request.heapMaxMb(),
-            "recentFailurePenalty", request.recentFailurePenalty(),
-            "storageAvailable", request.storageAvailable(),
-            "supportedTemplates", request.supportedTemplates()
-        ));
-    }
-
-    private String mapJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        if (payload == null || payload.isEmpty()) {
-            return builder.append("}").toString();
-        }
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append("\"").append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append("\"");
-        }
-        return builder.append("}").toString();
     }
 
     String tableMapJson(Map<String, Map<String, String>> tables) {
@@ -1367,22 +1246,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
             throw new IllegalArgumentException("nodeId must be a single path segment");
         }
         return value;
-    }
-
-    private static String countsPayload(Map<String, Long> counts) {
-        StringBuilder builder = new StringBuilder();
-        boolean first = true;
-        for (Map.Entry<String, Long> entry : counts.entrySet()) {
-            if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null || entry.getValue() <= 0L) {
-                continue;
-            }
-            if (!first) {
-                builder.append('|');
-            }
-            first = false;
-            builder.append(entry.getKey()).append('=').append(entry.getValue());
-        }
-        return builder.toString();
     }
 
     private static final class RouteSessionJson {

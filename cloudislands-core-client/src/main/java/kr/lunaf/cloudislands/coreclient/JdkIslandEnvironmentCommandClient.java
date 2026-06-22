@@ -36,7 +36,7 @@ public final class JdkIslandEnvironmentCommandClient implements IslandEnvironmen
     public CompletableFuture<EnvironmentActionView> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.setIslandLimit(islandId, actorUuid, limitKey == null ? "" : limitKey, value)
+        return core.post("/v1/islands/limits/set", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "limitKey", limitKey == null ? "" : limitKey, "value", value))
             .thenApply(body -> actionResult(body, "LIMIT_SET"));
     }
 

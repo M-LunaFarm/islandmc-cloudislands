@@ -342,11 +342,6 @@ public interface CoreApiClient {
     CompletableFuture<String> getIslandRuntime(UUID islandId);
     CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
     CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
-    CompletableFuture<String> recordBlockDeltaResult(UUID islandId, String materialKey, long delta);
-    CompletableFuture<String> replaceBlockCounts(UUID islandId, Map<String, Long> counts);
-    CompletableFuture<String> islandBlockDetails(UUID islandId, int limit);
-    CompletableFuture<String> listIslandLimits(UUID islandId);
-    CompletableFuture<String> setIslandLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
@@ -365,7 +360,4 @@ public interface CoreApiClient {
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
-    CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload);
-    CompletableFuture<String> failJobResult(String nodeId, UUID jobId, String errorMessage);
-    CompletableFuture<String> publishHeartbeatResult(NodeHeartbeatRequest request);
 }

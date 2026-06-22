@@ -666,10 +666,10 @@ class CoreTypedClientsTest {
     }
 
     @Test
-    void jdkRuntimeCommandsReturnDirectTypedClient() throws Exception {
+    void jdkRuntimeCommandsReturnStandaloneTypedClient() throws Exception {
         JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:1"), "token", Duration.ofSeconds(1));
 
-        assertSame(client, client.runtimeCommands());
+        assertTrue(client.runtimeCommands() instanceof JdkRuntimeCommandClient);
     }
 
     @Test
