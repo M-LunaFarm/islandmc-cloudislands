@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.net.URI;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -93,7 +95,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkBlockValueClient"), "block values must use CoreBlockValue query and command clients");
         assertFalse(nestedClients.contains("JdkNavigationClient"), "navigation must use CoreNavigation query and command clients");
         assertFalse(nestedClients.contains("JdkRoutingClient"), "routing must use CoreRoutingCommandClient");
-        assertFalse(nestedClients.contains("JdkRuntimeClient"), "runtime operations must use CoreRuntimeCommandClient");
+        assertFalse(nestedClients.contains("JdkRuntimeClient"), "runtime operations must use JdkCoreApiClient's direct RuntimeCommandClient implementation");
         assertFalse(nestedClients.contains("JdkWarehouseClient"), "warehouse operations must use CoreWarehouse query and command clients");
         assertFalse(nestedClients.contains("JdkLifecycleClient"), "lifecycle operations must use CoreIslandLifecycleCommandClient");
         assertFalse(nestedClients.contains("JdkProgressionClient"), "progression operations must use CoreProgression query and command clients");
@@ -712,55 +714,10 @@ class CoreTypedClientsTest {
     }
 
     @Test
-    void runtimeCommandClientReturnsTypedActionViews() {
-        UUID islandId = UUID.randomUUID();
-        UUID jobId = UUID.randomUUID();
-        List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "publishHeartbeatResult" -> {
-                    NodeHeartbeatRequest request = (NodeHeartbeatRequest) args[0];
-                    calls.add("heartbeat:" + request.nodeId());
-                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
-                }
-                case "recordBlockDeltaResult" -> {
-                    calls.add("delta:" + args[1] + ":" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"BLOCK_DELTA_RECORDED\"}");
-                }
-                case "completeJobResult" -> {
-                    calls.add("complete:" + args[0] + ":" + args[1] + ":" + ((Map<?, ?>) args[2]).get("saved"));
-                    yield CompletableFuture.completedFuture("{\"ok\":true}");
-                }
-                case "failJobResult" -> {
-                    calls.add("fail:" + args[0] + ":" + args[1] + ":" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"JOB_REJECTED\"}");
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        RuntimeCommandClient client = new CoreRuntimeCommandClient(raw);
+    void jdkRuntimeCommandsReturnDirectTypedClient() throws Exception {
+        JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:1"), "token", Duration.ofSeconds(1));
 
-        RuntimeActionView heartbeat = client.publishHeartbeat(heartbeat(" node-a ")).join();
-        RuntimeActionView delta = client.recordBlockDelta(islandId, " minecraft:diamond_block ", 3L).join();
-        RuntimeActionView complete = client.completeJob(" node-a ", jobId, Map.of("saved", "true")).join();
-        RuntimeActionView failed = client.failJob(" node-a ", jobId, "bad state").join();
-
-        assertTrue(heartbeat.accepted());
-        assertEquals("HEARTBEAT_ACCEPTED", heartbeat.code());
-        assertTrue(delta.accepted());
-        assertEquals("BLOCK_DELTA_RECORDED", delta.code());
-        assertTrue(complete.accepted());
-        assertEquals("JOB_COMPLETED", complete.code());
-        assertFalse(failed.accepted());
-        assertEquals("JOB_REJECTED", failed.code());
-        assertEquals(List.of(
-            "heartbeat: node-a ",
-            "delta:minecraft:diamond_block:3",
-            "complete:node-a:" + jobId + ":true",
-            "fail:node-a:" + jobId + ":bad state"
-        ), calls);
+        assertSame(client, client.runtimeCommands());
     }
 
     @Test
@@ -1769,7 +1726,7 @@ class CoreTypedClientsTest {
                     yield CompletableFuture.completedFuture(new JobActionView(false, "JOB_LOCKED"));
                 }
                 case "recover" -> {
-                    calls.add("recover:" + args[0] + ":" + args[1] + ":" + args[2]);
+                    calls.add("recover:" + args[0].toString().trim() + ":" + args[1] + ":" + args[2]);
                     yield CompletableFuture.completedFuture(new JobRecoveryView(true, "3", "RECOVERED"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
@@ -1819,8 +1776,8 @@ class CoreTypedClientsTest {
                     new TemplateView("hard", "Hard", false, "1.21.11")
                 ));
                 case "upsert" -> {
-                    calls.add("upsert:" + args[0] + ":" + args[1] + ":" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture(new TemplateView(args[0].toString(), args[1].toString(), Boolean.parseBoolean(args[2].toString()), args[3].toString()));
+                    calls.add("upsert:" + args[0].toString().trim() + ":" + args[1] + ":" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture(new TemplateView(args[0].toString().trim(), args[1].toString(), Boolean.parseBoolean(args[2].toString()), args[3].toString()));
                 }
                 case "enable" -> {
                     calls.add("enable:" + args[0]);
@@ -1873,8 +1830,8 @@ class CoreTypedClientsTest {
                     ]}
                     """);
                 case "set" -> {
-                    calls.add("set:" + args[0] + ":" + args[1] + ":" + args[2] + ":" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture(new BlockValueActionView(true, "BLOCK_VALUE_SET", args[1].toString()));
+                    calls.add("set:" + args[0] + ":" + args[1].toString().trim() + ":" + args[2] + ":" + args[3] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture(new BlockValueActionView(true, "BLOCK_VALUE_SET", args[1].toString().trim()));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }

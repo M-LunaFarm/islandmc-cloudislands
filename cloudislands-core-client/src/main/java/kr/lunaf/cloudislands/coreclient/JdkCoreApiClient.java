@@ -43,7 +43,7 @@ import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient, RuntimeCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -65,7 +65,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     private final RoutingCommandClient routingClient;
     private final NavigationQueryClient navigationQueryClient;
     private final NavigationCommandClient navigationCommandClient;
-    private final RuntimeCommandClient runtimeClient;
     private final IslandLifecycleCommandClient lifecycleClient;
     private final IslandQueryClient islandClient;
     private final ProgressionQueryClient progressionQueryClient;
@@ -118,7 +117,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
         this.routingClient = new CoreRoutingCommandClient(this);
         this.navigationQueryClient = new CoreNavigationQueryClient(this);
         this.navigationCommandClient = new CoreNavigationCommandClient(this);
-        this.runtimeClient = new CoreRuntimeCommandClient(this);
         this.lifecycleClient = new CoreIslandLifecycleCommandClient(this);
         this.islandClient = new CoreIslandQueryClient(this);
         this.progressionQueryClient = new CoreProgressionQueryClient(this);
@@ -228,7 +226,7 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
 
     @Override
     public RuntimeCommandClient runtimeCommands() {
-        return runtimeClient;
+        return this;
     }
 
     @Override
@@ -855,8 +853,15 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     }
 
     @Override
-    public CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta) {
-        return recordBlockDeltaResult(islandId, materialKey, delta).thenApply(_body -> null);
+    public CompletableFuture<RuntimeActionView> recordBlockDelta(UUID islandId, String materialKey, long delta) {
+        String safeMaterialKey = materialKey == null ? "" : materialKey.trim();
+        if (islandId == null) {
+            throw new IllegalArgumentException("islandId is required");
+        }
+        if (safeMaterialKey.isBlank()) {
+            throw new IllegalArgumentException("materialKey is required");
+        }
+        return recordBlockDeltaResult(islandId, safeMaterialKey, delta).thenApply(body -> runtimeAction(body, "BLOCK_DELTA_RECORDED"));
     }
 
     @Override
@@ -1961,14 +1966,26 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
         return nodeId.trim();
     }
 
-    @Override
-    public CompletableFuture<Void> completeJob(String nodeId, UUID jobId) {
+    private static UUID requireJobId(UUID jobId) {
+        if (jobId == null) {
+            throw new IllegalArgumentException("jobId is required");
+        }
+        return jobId;
+    }
+
+    private static RuntimeActionView runtimeAction(String body, String fallbackCode) {
+        Map<?, ?> root = CoreJson.object(body);
+        return new RuntimeActionView(CoreJson.accepted(root), CoreJson.code(root, fallbackCode));
+    }
+
+    public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId) {
         return completeJob(nodeId, jobId, Map.of());
     }
 
     @Override
-    public CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
-        return completeJobResult(nodeId, jobId, payload).thenApply(_body -> null);
+    public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
+        return completeJobResult(requireJobNode(nodeId), requireJobId(jobId), payload == null ? Map.of() : payload)
+            .thenApply(body -> runtimeAction(body, "JOB_COMPLETED"));
     }
 
     @Override
@@ -1977,8 +1994,9 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     }
 
     @Override
-    public CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage) {
-        return failJobResult(nodeId, jobId, errorMessage).thenApply(_body -> null);
+    public CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, String errorMessage) {
+        return failJobResult(requireJobNode(nodeId), requireJobId(jobId), errorMessage == null ? "" : errorMessage)
+            .thenApply(body -> runtimeAction(body, "JOB_FAILED"));
     }
 
     @Override
@@ -1987,8 +2005,11 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     }
 
     @Override
-    public CompletableFuture<Void> publishHeartbeat(NodeHeartbeatRequest request) {
-        return publishHeartbeatResult(request).thenApply(_body -> null);
+    public CompletableFuture<RuntimeActionView> publishHeartbeat(NodeHeartbeatRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("request is required");
+        }
+        return publishHeartbeatResult(request).thenApply(body -> runtimeAction(body, "HEARTBEAT_ACCEPTED"));
     }
 
     @Override

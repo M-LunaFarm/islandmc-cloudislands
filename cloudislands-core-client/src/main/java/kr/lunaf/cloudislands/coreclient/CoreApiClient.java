@@ -101,7 +101,10 @@ public interface CoreApiClient {
     }
 
     default RuntimeCommandClient runtimeCommands() {
-        return new CoreRuntimeCommandClient(this);
+        if (this instanceof RuntimeCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed runtime commands");
     }
 
     default ProgressionQueryClient progression() {
@@ -301,7 +304,6 @@ public interface CoreApiClient {
     CompletableFuture<String> setIslandPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<Void> setIslandLocked(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<String> setIslandLockedResult(UUID islandId, UUID actorUuid, boolean locked);
-    CompletableFuture<Void> recordBlockDelta(UUID islandId, String materialKey, long delta);
     CompletableFuture<String> recordBlockDeltaResult(UUID islandId, String materialKey, long delta);
     CompletableFuture<String> replaceBlockCounts(UUID islandId, Map<String, Long> counts);
     CompletableFuture<String> islandBlockDetails(UUID islandId, int limit);
@@ -642,11 +644,7 @@ public interface CoreApiClient {
     CompletableFuture<String> playerInfoByName(String lastName);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
     CompletableFuture<String> listJobs();
-    CompletableFuture<Void> completeJob(String nodeId, UUID jobId);
-    CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
     CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload);
-    CompletableFuture<Void> failJob(String nodeId, UUID jobId, String errorMessage);
     CompletableFuture<String> failJobResult(String nodeId, UUID jobId, String errorMessage);
-    CompletableFuture<Void> publishHeartbeat(NodeHeartbeatRequest request);
     CompletableFuture<String> publishHeartbeatResult(NodeHeartbeatRequest request);
 }
