@@ -4,6 +4,8 @@ import org.gradle.external.javadoc.StandardJavadocDocletOptions
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.testing.Test
@@ -441,8 +443,42 @@ tasks.register<Exec>("coreIntegrationSmoke") {
             "--port",
             "18443",
             "--timeout",
-            "90"
+            "90",
+            "--evidence-out",
+            layout.buildDirectory.file("smoke/core-integration/cluster-evidence.json").get().asFile.absolutePath
         )
+    }
+}
+
+val clusterSmokeEvidenceFile = layout.buildDirectory.file("smoke/core-integration/cluster-evidence.json")
+val clusterSmokePartialReportFile = layout.buildDirectory.file("smoke/core-integration/cluster-smoke-report.json")
+
+tasks.register<JavaExec>("clusterSmokePartialReport") {
+    group = "verification"
+    description = "Reports which production GA cluster-smoke evidence remains missing after the Core integration smoke."
+    dependsOn(tasks.named("coreIntegrationSmoke"))
+    dependsOn(project(":cloudislands-testkit").tasks.named("classes"))
+    val testkitSourceSets = project(":cloudislands-testkit").extensions.getByType<SourceSetContainer>()
+    classpath = testkitSourceSets.named("main").get().runtimeClasspath
+    mainClass.set("kr.lunaf.cloudislands.testkit.ClusterSmokeVerifierCli")
+    args(
+        "--evidence", clusterSmokeEvidenceFile.get().asFile.absolutePath,
+        "--report-out", clusterSmokePartialReportFile.get().asFile.absolutePath,
+        "--allow-partial"
+    )
+}
+
+tasks.register<JavaExec>("clusterSmokeVerify") {
+    group = "verification"
+    description = "Verifies a full production GA cluster-smoke evidence JSON file. Pass -PclusterSmokeEvidence=/path/to/evidence.json."
+    dependsOn(project(":cloudislands-testkit").tasks.named("classes"))
+    val testkitSourceSets = project(":cloudislands-testkit").extensions.getByType<SourceSetContainer>()
+    classpath = testkitSourceSets.named("main").get().runtimeClasspath
+    mainClass.set("kr.lunaf.cloudislands.testkit.ClusterSmokeVerifierCli")
+    doFirst {
+        val evidence = providers.gradleProperty("clusterSmokeEvidence").orElse(providers.environmentVariable("CI_CLUSTER_SMOKE_EVIDENCE")).orNull
+            ?: throw GradleException("clusterSmokeVerify requires -PclusterSmokeEvidence=/path/to/evidence.json or CI_CLUSTER_SMOKE_EVIDENCE")
+        args("--evidence", evidence)
     }
 }
 
@@ -450,4 +486,5 @@ tasks.register("ciIntegrationSmoke") {
     group = "verification"
     description = "Runs Core API real-infrastructure integration smoke tests."
     dependsOn(tasks.named("coreIntegrationSmoke"))
+    dependsOn(tasks.named("clusterSmokePartialReport"))
 }

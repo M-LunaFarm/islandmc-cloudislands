@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix;
 import org.junit.jupiter.api.Test;
 
@@ -77,6 +79,32 @@ class ClusterSmokeVerifierTest {
             report.missingEvidenceByGate().get("backup-restore-drill")
         );
         assertTrue(report.missingEvidenceSummary().contains("backup-restore-drill=manifest-checksum+restore-activation+route-recovery+post-restore-audit"));
+    }
+
+    @Test
+    void cliReadsEvidenceJsonAndReportsMissingClusterSmokeItems() throws Exception {
+        Path evidence = Files.createTempFile("cloudislands-cluster-evidence", ".json");
+        Files.writeString(evidence, """
+            {
+              "components": ["core-1", "island-paper-1", "island-paper-2", "postgres", "redis", "object-storage"],
+              "evidence": {
+                "multi-paper-failover": ["two-island-paper-nodes", "save-interruption"],
+                "backup-restore-drill": ["restore-activation", "route-recovery"]
+              },
+              "failureInjections": ["paper-save-kill", "snapshot-restore-node-failure"]
+            }
+            """);
+
+        ClusterSmokeEvidence parsed = ClusterSmokeVerifierCli.readEvidence(evidence);
+        ClusterSmokeReport report = ClusterSmokeVerifier.verify(parsed);
+        String json = ClusterSmokeVerifierCli.reportJson(report);
+
+        assertFalse(report.certified());
+        assertTrue(parsed.hasComponent("island-paper-2"));
+        assertTrue(report.missingComponents().contains("core-2"));
+        assertTrue(report.missingEvidenceByGate().get("multi-paper-failover").contains("node-drain"));
+        assertTrue(json.contains("\"certified\":false"));
+        assertTrue(json.contains("missingEvidenceByGate"));
     }
 
     @Test

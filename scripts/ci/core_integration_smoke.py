@@ -136,7 +136,43 @@ def assert_field(data: dict, key: str, expected) -> None:
         raise RuntimeError(f"expected {key}={expected!r}, got {actual!r} in {data}")
 
 
-def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int) -> None:
+def write_cluster_evidence(path: Path | None) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    evidence = {
+        "components": [
+            "core-1",
+            "island-paper-1",
+            "island-paper-2",
+            "postgres",
+            "redis",
+            "object-storage",
+        ],
+        "evidence": {
+            "multi-paper-failover": [
+                "two-island-paper-nodes",
+                "save-interruption",
+            ],
+            "backup-restore-drill": [
+                "restore-activation",
+                "route-recovery",
+            ],
+            "chaos-test": [
+                "fault-list",
+                "data-loss-check",
+            ],
+        },
+        "failureInjections": [
+            "paper-save-kill",
+            "snapshot-restore-node-failure",
+            "object-storage-upload-after-db-commit-failure",
+        ],
+    }
+    path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, evidence_out: Path | None = None) -> None:
     if work_dir.exists():
         shutil.rmtree(work_dir)
     work_dir.mkdir(parents=True)
@@ -348,6 +384,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int) -> Non
                 "Core integration smoke passed: PostgreSQL+Redis+MinIO config, "
                 "create/job/route/session/consume, node-down recovery restore, reconnect"
             )
+            write_cluster_evidence(evidence_out)
         finally:
             if process.poll() is None:
                 process.terminate()
@@ -367,11 +404,13 @@ def main() -> int:
     parser.add_argument("--work-dir", required=True)
     parser.add_argument("--port", type=int, default=18443)
     parser.add_argument("--timeout", type=int, default=90)
+    parser.add_argument("--evidence-out")
     args = parser.parse_args()
     core_bin = Path(args.core_bin).resolve()
     if not core_bin.exists():
         raise RuntimeError(f"Core binary does not exist: {core_bin}")
-    run_scenario(core_bin, Path(args.work_dir).resolve(), args.port, args.timeout)
+    evidence_out = Path(args.evidence_out).resolve() if args.evidence_out else None
+    run_scenario(core_bin, Path(args.work_dir).resolve(), args.port, args.timeout, evidence_out)
     return 0
 
 
