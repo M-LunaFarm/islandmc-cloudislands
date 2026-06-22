@@ -9,7 +9,6 @@ import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreGuiViews {
     private CoreGuiViews() {
@@ -161,20 +160,7 @@ public final class CoreGuiViews {
     }
 
     public static NodeSummaryView nodeSummary(String nodeId, String body) {
-        Map<?, ?> root = root(body);
-        return new NodeSummaryView(
-            nodeId,
-            text(root, "state"),
-            text(root, "pool"),
-            longValue(root, "players"),
-            longValue(root, "softPlayerCap"),
-            longValue(root, "hardPlayerCap"),
-            longValue(root, "activeIslands"),
-            longValue(root, "maxActiveIslands"),
-            longValue(root, "activationQueue"),
-            longValue(root, "maxActivationQueue"),
-            text(root, "mspt")
-        );
+        return CoreAdminNodeQueryClient.nodeSummary(nodeId, body);
     }
 
     private static List<MemberView> members(String body) {
@@ -197,31 +183,6 @@ public final class CoreGuiViews {
         return records.stream()
             .map(CoreCommunicationJson::view)
             .toList();
-    }
-
-    private static Map<?, ?> root(String body) {
-        return CoreJson.object(body);
-    }
-
-    private static List<Map<?, ?>> entries(String body) {
-        return CoreJson.entries(body);
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static long longValue(Map<?, ?> object, String key) {
-        return SimpleJson.number(object.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key) {
-        return bool(object, key, false);
-    }
-
-    private static boolean bool(Map<?, ?> object, String key, boolean fallback) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 
     public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String createdAt, String updatedAt) {

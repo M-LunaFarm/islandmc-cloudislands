@@ -40,7 +40,7 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
     @Override
     public CompletableFuture<CoreGuiViews.NodeSummaryView> nodeInfo(String nodeId) {
         String normalizedNodeId = requireNode(nodeId);
-        return delegate.nodeInfo(normalizedNodeId).thenApply(body -> CoreGuiViews.nodeSummary(normalizedNodeId, body));
+        return delegate.nodeInfo(normalizedNodeId).thenApply(body -> nodeSummary(normalizedNodeId, body));
     }
 
     @Override
@@ -170,6 +170,23 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
             return new AdminNodeSummaryView("");
         }
         return new AdminNodeSummaryView(clip(body, 180));
+    }
+
+    static CoreGuiViews.NodeSummaryView nodeSummary(String nodeId, String body) {
+        Map<?, ?> root = CoreJson.object(body);
+        return new CoreGuiViews.NodeSummaryView(
+            nodeId,
+            text(root, "state"),
+            text(root, "pool"),
+            number(root, "players"),
+            number(root, "softPlayerCap"),
+            number(root, "hardPlayerCap"),
+            number(root, "activeIslands"),
+            number(root, "maxActiveIslands"),
+            number(root, "activationQueue"),
+            number(root, "maxActivationQueue"),
+            text(root, "mspt")
+        );
     }
 
     private static String requireNode(String nodeId) {
