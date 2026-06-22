@@ -145,6 +145,7 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("shutdownNodeSafelyResult"));
         assertFalse(names.contains("adminIslandInfo"));
         assertFalse(names.contains("adminIslandWhere"));
+        assertFalse(names.contains("listBlockValues"));
     }
 
     @Test
@@ -1696,12 +1697,6 @@ class CoreTypedClientsTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class, BlockValueCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "listBlockValues" -> CompletableFuture.completedFuture("""
-                    {"values":[
-                      {"materialKey":"minecraft:diamond_block","worth":"100.50","levelPoints":20,"limit":64},
-                      {"materialKey":"minecraft:emerald_block","worth":"80","levelPoints":10,"limit":32}
-                    ]}
-                    """);
                 case "set" -> {
                     calls.add("set:" + args[0] + ":" + args[1].toString().trim() + ":" + args[2] + ":" + args[3] + ":" + args[4]);
                     yield CompletableFuture.completedFuture(new BlockValueActionView(true, "BLOCK_VALUE_SET", args[1].toString().trim()));
@@ -1709,10 +1704,14 @@ class CoreTypedClientsTest {
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        BlockValueQueryClient queries = new CoreBlockValueQueryClient(raw);
         BlockValueCommandClient commands = (BlockValueCommandClient) raw;
 
-        List<BlockValueView> values = queries.list().join();
+        List<BlockValueView> values = CoreBlockValueJson.values("""
+            {"values":[
+              {"materialKey":"minecraft:diamond_block","worth":"100.50","levelPoints":20,"limit":64},
+              {"materialKey":"minecraft:emerald_block","worth":"80","levelPoints":10,"limit":32}
+            ]}
+            """);
         BlockValueActionView result = commands.set(actorUuid, " minecraft:diamond_block ", "100.50", 20L, 64L).join();
 
         assertEquals(2, values.size());

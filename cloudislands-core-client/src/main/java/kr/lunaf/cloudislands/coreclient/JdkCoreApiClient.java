@@ -116,7 +116,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.playerProfileQueryClient = this;
         this.playerProfileCommandClient = this;
         this.jobQueryClient = new JdkJobClient(this);
-        this.blockValueQueryClient = new CoreBlockValueQueryClient(this);
+        this.blockValueQueryClient = new JdkBlockValueQueryClient(this);
         this.adminMetricsClient = new JdkAdminMetricsClient(this);
         this.adminCoreConfigClient = new JdkAdminCoreConfigClient(this);
         this.adminStorageClient = new JdkAdminStorageClient(this);
@@ -919,11 +919,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
             throw new IllegalArgumentException("materialKey is required");
         }
         return materialKey.trim();
-    }
-
-    @Override
-    public CompletableFuture<String> listBlockValues() {
-        return postWithResultBody("/v1/admin/block-values/list", "{}");
     }
 
     @Override

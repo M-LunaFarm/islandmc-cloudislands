@@ -221,7 +221,10 @@ public interface CoreApiClient {
     }
 
     default BlockValueQueryClient blockValues() {
-        return new CoreBlockValueQueryClient(this);
+        if (this instanceof BlockValueQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed block value queries");
     }
 
     default BlockValueCommandClient blockValueCommands() {
@@ -370,7 +373,6 @@ public interface CoreApiClient {
     CompletableFuture<String> topIslandsByWorth(int limit);
     CompletableFuture<String> topIslandsByReviews(int limit);
     CompletableFuture<String> listPublicIslands(int limit);
-    CompletableFuture<String> listBlockValues();
     CompletableFuture<String> listUpgradeRules();
     CompletableFuture<String> listIslandUpgrades(UUID islandId);
     CompletableFuture<String> purchaseIslandUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
