@@ -1484,6 +1484,7 @@ class CoreTypedClientsTest {
     @Test
     void progressionQueryClientReturnsTypedReadViews() {
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkProgressionQueryClient.java")));
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
@@ -1571,6 +1572,10 @@ class CoreTypedClientsTest {
         assertEquals("ore", upgrade.generatorKey());
         assertEquals("MAX_MEMBERS", client.upgradeRules().join().get(0).type());
         assertEquals("starter", client.missions(islandId, null).join().get(0).key());
+        assertFalse(source.contains("private static String text("), "progression query parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("SimpleJson.list(root.get(\"blocks\"))"), "progression block parser must use shared CoreJson object list helpers");
+        assertTrue(source.contains("CoreJson.firstText(object, \"key\", \"upgradeKey\")"), "upgrade keys must use shared alternate-field parsing");
+        assertTrue(source.contains("CoreJson.firstText(object, \"key\", \"missionKey\")"), "mission keys must use shared alternate-field parsing");
 
         assertEquals(List.of(
             "info",

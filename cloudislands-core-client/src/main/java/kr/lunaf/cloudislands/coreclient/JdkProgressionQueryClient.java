@@ -99,29 +99,28 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     static LevelView levelView(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new LevelView(
-            text(root, "islandId"),
-            SimpleJson.number(root.get("level")),
-            text(root, "worth"),
-            text(root, "calculatedAt")
+            CoreJson.text(root, "islandId"),
+            CoreJson.number(root, "level"),
+            CoreJson.text(root, "worth"),
+            CoreJson.text(root, "calculatedAt")
         );
     }
 
     static ProgressionBlockDetailsView blockDetailsView(String body) {
         Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> summary = SimpleJson.object(root.get("summary"));
-        List<ProgressionBlockDetailView> blocks = SimpleJson.list(root.get("blocks")).stream()
-            .map(SimpleJson::object)
+        List<ProgressionBlockDetailView> blocks = CoreJson.objects(root, "blocks").stream()
             .map(block -> new ProgressionBlockDetailView(
-                text(block, "materialKey"),
-                SimpleJson.number(block.get("count")),
-                text(block, "totalWorth"),
-                SimpleJson.number(block.get("levelPoints"))
+                CoreJson.text(block, "materialKey"),
+                CoreJson.number(block, "count"),
+                CoreJson.text(block, "totalWorth"),
+                CoreJson.number(block, "levelPoints")
             ))
             .filter(block -> !block.materialKey().isBlank())
             .toList();
         return new ProgressionBlockDetailsView(
-            text(summary, "totalWorth"),
-            SimpleJson.number(summary.get("totalLevelPoints")),
+            CoreJson.text(summary, "totalWorth"),
+            CoreJson.number(summary, "totalLevelPoints"),
             blocks
         );
     }
@@ -129,10 +128,10 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     static List<ProgressionRankingEntryView> rankingViews(String body, String valueKey) {
         return entries(body).stream()
             .map(object -> new ProgressionRankingEntryView(
-                text(object, "islandId"),
-                text(object, "name"),
-                SimpleJson.number(object.get("level")),
-                text(object, "worth"),
+                CoreJson.text(object, "islandId"),
+                CoreJson.text(object, "name"),
+                CoreJson.number(object, "level"),
+                CoreJson.text(object, "worth"),
                 valueKey
             ))
             .filter(entry -> !entry.islandId().isBlank())
@@ -142,9 +141,9 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     static List<ProgressionReviewRankingEntryView> reviewRankingViews(String body) {
         return entries(body).stream()
             .map(object -> new ProgressionReviewRankingEntryView(
-                text(object, "islandId"),
+                CoreJson.text(object, "islandId"),
                 doubleValue(object.get("averageRating")),
-                SimpleJson.number(object.get("reviewCount"))
+                CoreJson.number(object, "reviewCount")
             ))
             .filter(entry -> !entry.islandId().isBlank())
             .toList();
@@ -153,11 +152,11 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     static List<UpgradeRuleView> upgradeRuleViews(String body) {
         return entries(body).stream()
             .map(object -> new UpgradeRuleView(
-                text(object, "upgradeKey"),
-                text(object, "type"),
-                SimpleJson.number(object.get("maxLevel")),
-                text(object, "baseCost"),
-                text(object, "multiplier")
+                CoreJson.text(object, "upgradeKey"),
+                CoreJson.text(object, "type"),
+                CoreJson.number(object, "maxLevel"),
+                CoreJson.text(object, "baseCost"),
+                CoreJson.text(object, "multiplier")
             ))
             .filter(rule -> !rule.key().isBlank())
             .toList();
@@ -166,11 +165,8 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     static List<CoreGuiViews.UpgradeView> upgradeViews(String body) {
         return entries(body).stream()
             .map(object -> {
-                String key = text(object, "key");
-                if (key.isBlank()) {
-                    key = text(object, "upgradeKey");
-                }
-                return new CoreGuiViews.UpgradeView(key, text(object, "type"), intValue(object, "level"), text(object, "generatorKey"));
+                String key = CoreJson.firstText(object, "key", "upgradeKey");
+                return new CoreGuiViews.UpgradeView(key, CoreJson.text(object, "type"), intValue(object, "level"), CoreJson.text(object, "generatorKey"));
             })
             .filter(view -> !view.key().isBlank())
             .toList();
@@ -179,17 +175,14 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     static List<CoreGuiViews.MissionView> missionViews(String body) {
         return entries(body).stream()
             .map(object -> {
-                String key = text(object, "key");
-                if (key.isBlank()) {
-                    key = text(object, "missionKey");
-                }
+                String key = CoreJson.firstText(object, "key", "missionKey");
                 return new CoreGuiViews.MissionView(
                     key,
-                    text(object, "title"),
-                    SimpleJson.number(object.get("progress")),
-                    SimpleJson.number(object.get("goal")),
+                    CoreJson.text(object, "title"),
+                    CoreJson.number(object, "progress"),
+                    CoreJson.number(object, "goal"),
                     bool(object, "completed"),
-                    text(object, "reward")
+                    CoreJson.text(object, "reward")
                 );
             })
             .filter(view -> !view.key().isBlank())
@@ -238,12 +231,8 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
         }
     }
 
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
     private static int intValue(Map<?, ?> object, String key) {
-        return (int) SimpleJson.number(object.get(key));
+        return (int) CoreJson.number(object, key);
     }
 
     private static boolean bool(Map<?, ?> object, String key) {
