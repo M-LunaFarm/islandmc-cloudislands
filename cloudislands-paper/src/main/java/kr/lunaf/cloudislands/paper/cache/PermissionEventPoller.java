@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.common.event.CacheInvalidationPlan;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.event.AddonStateChangeEvent;
 import kr.lunaf.cloudislands.paper.event.CoreCacheClearEvent;
@@ -205,23 +206,23 @@ public final class PermissionEventPoller {
     private void poll() {
         try {
             for (int batch = 0; batch < MAX_BATCHES_PER_POLL; batch++) {
-                String json = client.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).join();
-                long oldestSequence = longField(json, "oldestSeq");
-                long latestSequence = longField(json, "latestSeq");
+                AdminEventStreamView stream = client.adminEvents().listSince(lastEventSequence, EVENT_BATCH_SIZE).join();
+                long oldestSequence = stream.oldestSeq();
+                long latestSequence = stream.latestSeq();
                 if (latestSequence > 0L && latestSequence < lastEventSequence) {
                     lastEventSequence = 0L;
                     clearSeen();
-                    json = client.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).join();
-                    oldestSequence = longField(json, "oldestSeq");
+                    stream = client.adminEvents().listSince(lastEventSequence, EVENT_BATCH_SIZE).join();
+                    oldestSequence = stream.oldestSeq();
                 }
                 if (lastEventSequence > 0L && oldestSequence > lastEventSequence + 1L) {
                     invalidateLocalCaches();
                     cacheGapInvalidations.incrementAndGet();
                     clearSeen();
                     lastEventSequence = oldestSequence - 1L;
-                    json = client.listEventsSince(lastEventSequence, EVENT_BATCH_SIZE).join();
+                    stream = client.adminEvents().listSince(lastEventSequence, EVENT_BATCH_SIZE).join();
                 }
-                java.util.List<ParsedEvent> batchEvents = events(json);
+                java.util.List<ParsedEvent> batchEvents = events(stream);
                 for (ParsedEvent event : batchEvents) {
                     handleEvent(event);
                 }
@@ -237,7 +238,7 @@ public final class PermissionEventPoller {
     private void handleEvent(ParsedEvent event) {
         lastEventSequence = Math.max(lastEventSequence, event.sequence());
         String type = event.type();
-        Map<String, String> fields = fields(event.fields());
+        Map<String, String> fields = event.fields();
         String key = eventKey(type, fields, event.occurredAt());
         if (!markSeen(key)) {
             return;
@@ -1164,176 +1165,15 @@ public final class PermissionEventPoller {
         return false;
     }
 
-    private Map<String, String> fields(String raw) {
-        Map<String, String> result = new java.util.HashMap<>();
-        String source = raw == null ? "" : raw;
-        int index = 0;
-        while (index < source.length()) {
-            int keyStart = source.indexOf('"', index);
-            if (keyStart < 0) {
-                break;
-            }
-            int keyEnd = jsonStringEnd(source, keyStart + 1);
-            if (keyEnd < 0) {
-                break;
-            }
-            int colon = source.indexOf(':', keyEnd + 1);
-            int valueStart = colon < 0 ? -1 : source.indexOf('"', colon + 1);
-            if (valueStart < 0) {
-                break;
-            }
-            int valueEnd = jsonStringEnd(source, valueStart + 1);
-            if (valueEnd < 0) {
-                break;
-            }
-            result.put(unescape(source.substring(keyStart + 1, keyEnd)), unescape(source.substring(valueStart + 1, valueEnd)));
-            index = valueEnd + 1;
+    private java.util.List<ParsedEvent> events(AdminEventStreamView stream) {
+        if (stream == null) {
+            return java.util.List.of();
         }
-        return result;
+        return stream.events().stream()
+            .filter(event -> event != null && !event.type().isBlank() && !event.occurredAt().isBlank())
+            .map(event -> new ParsedEvent(event.seq(), event.type(), event.fields(), event.occurredAt()))
+            .toList();
     }
 
-    private java.util.List<ParsedEvent> events(String json) {
-        java.util.List<ParsedEvent> result = new java.util.ArrayList<>();
-        String source = json == null ? "" : json;
-        int arrayStart = source.indexOf("\"events\":[");
-        if (arrayStart < 0) {
-            return result;
-        }
-        int index = source.indexOf('{', arrayStart);
-        while (index >= 0 && index < source.length()) {
-            int objectEnd = matchingObjectEnd(source, index);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = source.substring(index, objectEnd + 1);
-            String type = textField(object, "type");
-            String fields = objectField(object, "fields");
-            String occurredAt = textField(object, "occurredAt");
-            long sequence = longField(object, "seq");
-            if (!type.isBlank() && !occurredAt.isBlank()) {
-                result.add(new ParsedEvent(sequence, type, fields, occurredAt));
-            }
-            index = source.indexOf('{', objectEnd + 1);
-        }
-        return result;
-    }
-
-    private long longField(String object, String key) {
-        String needle = "\"" + key + "\":";
-        int start = object.indexOf(needle);
-        if (start < 0) {
-            return 0L;
-        }
-        int valueStart = start + needle.length();
-        int valueEnd = valueStart;
-        while (valueEnd < object.length() && Character.isDigit(object.charAt(valueEnd))) {
-            valueEnd++;
-        }
-        try {
-            return Long.parseLong(object.substring(valueStart, valueEnd));
-        } catch (RuntimeException ignored) {
-            return 0L;
-        }
-    }
-
-    private int matchingObjectEnd(String source, int objectStart) {
-        int depth = 0;
-        boolean inString = false;
-        boolean escaped = false;
-        for (int i = objectStart; i < source.length(); i++) {
-            char current = source.charAt(i);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaped = inString;
-                continue;
-            }
-            if (current == '"') {
-                inString = !inString;
-                continue;
-            }
-            if (inString) {
-                continue;
-            }
-            if (current == '{') {
-                depth++;
-            } else if (current == '}') {
-                depth--;
-                if (depth == 0) {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
-
-    private String textField(String object, String key) {
-        String needle = "\"" + key + "\":\"";
-        int start = object.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        int valueStart = start + needle.length();
-        int valueEnd = jsonStringEnd(object, valueStart);
-        return valueEnd < 0 ? "" : unescape(object.substring(valueStart, valueEnd));
-    }
-
-    private String objectField(String object, String key) {
-        String needle = "\"" + key + "\":";
-        int start = object.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        int objectStart = object.indexOf('{', start + needle.length());
-        if (objectStart < 0) {
-            return "";
-        }
-        int objectEnd = matchingObjectEnd(object, objectStart);
-        return objectEnd < 0 ? "" : object.substring(objectStart + 1, objectEnd);
-    }
-
-    private int jsonStringEnd(String source, int start) {
-        boolean escaped = false;
-        for (int i = start; i < source.length(); i++) {
-            char current = source.charAt(i);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (current == '"') {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private String unescape(String value) {
-        StringBuilder builder = new StringBuilder();
-        boolean escaped = false;
-        for (int i = 0; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (escaped) {
-                builder.append(current);
-                escaped = false;
-                continue;
-            }
-            if (current == '\\') {
-                escaped = true;
-                continue;
-            }
-            builder.append(current);
-        }
-        if (escaped) {
-            builder.append('\\');
-        }
-        return builder.toString();
-    }
-
-    private record ParsedEvent(long sequence, String type, String fields, String occurredAt) {}
+    private record ParsedEvent(long sequence, String type, Map<String, String> fields, String occurredAt) {}
 }

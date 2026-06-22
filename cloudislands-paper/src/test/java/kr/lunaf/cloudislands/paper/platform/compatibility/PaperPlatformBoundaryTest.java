@@ -589,6 +589,8 @@ class PaperPlatformBoundaryTest {
         Path root = repositoryRoot();
         Path api = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java");
         String source = Files.readString(api);
+        Path eventPoller = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java");
+        String pollerSource = Files.readString(eventPoller);
 
         assertTrue(source.contains("client.islands().getIsland(islandId).thenApply(PaperCloudIslandsApi::island)"), "Public API island lookup must use typed island query client");
         assertTrue(source.contains("client.islands().getIslandByOwner(ownerUuid).thenApply(PaperCloudIslandsApi::island)"), "Public API owner lookup must use typed island query client");
@@ -630,6 +632,10 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.visitorStats().stats(islandId, limit).thenApply(PaperCloudIslandsApi::visitorStats)"), "Public API visitor stats must use typed visitor stats query client");
         assertTrue(source.contains("client.adminEvents().list(limit).thenApply(PaperCloudIslandsApi::events)"), "Public API events must use typed admin event query client");
         assertTrue(source.contains("client.adminEvents().listSince(sinceSeq, limit).thenApply(PaperCloudIslandsApi::eventBatch)"), "Public API event batches must use typed admin event query client");
+        assertTrue(pollerSource.contains("client.adminEvents().listSince(lastEventSequence, EVENT_BATCH_SIZE)"), "Permission event polling must use typed admin event query client");
+        assertTrue(!pollerSource.contains("client.listEventsSince("), "Permission event polling must not use raw event JSON");
+        assertTrue(!pollerSource.contains("events(String json)"), "Permission event polling must not keep a raw event JSON parser");
+        assertTrue(!pollerSource.contains("matchingObjectEnd("), "Permission event polling must not parse event JSON by substring");
         assertTrue(source.contains("client.adminAudit().list(100).thenApply(PaperCloudIslandsApi::auditLogs)"), "Public API audit logs must use typed admin audit query client");
         assertTrue(source.contains("client.templates().list().thenApply(PaperCloudIslandsApi::templates)"), "Public API templates must use typed template query client");
         assertTrue(source.contains("client.adminRoutes().ticket(ticketId).thenApply(ticket -> ticket.map(PaperCloudIslandsApi::routeTicket))"), "Public API route ticket lookup must use typed admin route query client");
