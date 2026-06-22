@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -18,6 +19,7 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminCoreConfigView;
@@ -2393,24 +2395,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
     }
 
-    private int countObjects(String array) {
-        int count = 0;
-        int index = 0;
-        while (index < array.length()) {
-            int objectStart = array.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(array, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            count++;
-            index = objectEnd + 1;
-        }
-        return count;
-    }
-
     private String nodeIslandRuntimeSuffix(String object) {
         List<String> parts = new ArrayList<>();
         String state = textValue(object, "state");
@@ -2605,25 +2589,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private String arrayValue(String body, String field) {
-        String needle = "\"" + field + "\":[";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length() - 1;
-        int depth = 0;
-        for (int i = start; i < body.length(); i++) {
-            char current = body.charAt(i);
-            if (current == '[') {
-                depth++;
-            } else if (current == ']') {
-                depth--;
-                if (depth == 0) {
-                    return body.substring(start, i + 1);
-                }
-            }
-        }
-        return "";
+        List<?> array = SimpleJson.list(jsonObject(body).get(field));
+        return array.isEmpty() ? "" : SimpleJson.stringify(array);
     }
 
     private int matchingObjectEnd(String value, int objectStart) {
@@ -2643,38 +2610,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private String objectValue(String body, String field) {
-        String needle = "\"" + field + "\":{";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        start += needle.length() - 1;
-        int depth = 0;
-        for (int i = start; i < body.length(); i++) {
-            char current = body.charAt(i);
-            if (current == '{') {
-                depth++;
-            } else if (current == '}') {
-                depth--;
-                if (depth == 0) {
-                    return body.substring(start, i + 1);
-                }
-            }
-        }
-        return "";
+        Map<?, ?> object = SimpleJson.object(jsonObject(body).get(field));
+        return object.isEmpty() ? "" : SimpleJson.stringify(object);
     }
 
     private boolean boolValue(String body, String field) {
-        String needle = "\"" + field + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
+        Map<?, ?> object = jsonObject(body);
+        if (!object.containsKey(field)) {
             return false;
         }
-        start += needle.length();
-        while (start < body.length() && Character.isWhitespace(body.charAt(start))) {
-            start++;
-        }
-        return body.startsWith("true", start);
+        Object value = object.get(field);
+        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
     }
 
     private boolean boolValue(AdminCoreConfigView config, String field) {
@@ -2682,24 +2628,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private long longValue(String body, String field) {
-        String needle = "\"" + field + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return 0L;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && (body.charAt(end) == '-' || Character.isDigit(body.charAt(end)))) {
-            end++;
-        }
-        if (end == start) {
-            return 0L;
-        }
-        try {
-            return Long.parseLong(body.substring(start, end));
-        } catch (NumberFormatException exception) {
-            return 0L;
-        }
+        return SimpleJson.number(jsonObject(body).get(field));
     }
 
     private long longValue(AdminCoreConfigView config, String field) {
@@ -2707,18 +2636,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private double doubleValue(String body, String field) {
-        String needle = "\"" + field + "\":";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
-            return 0.0D;
-        }
-        start += needle.length();
-        int end = start;
-        while (end < body.length() && (body.charAt(end) == '-' || body.charAt(end) == '+' || body.charAt(end) == '.' || Character.isDigit(body.charAt(end)))) {
-            end++;
-        }
         try {
-            return Double.parseDouble(body.substring(start, end));
+            Object value = jsonObject(body).get(field);
+            return value instanceof Number number ? number.doubleValue() : Double.parseDouble(SimpleJson.text(value));
         } catch (RuntimeException ignored) {
             return 0.0D;
         }
@@ -2870,18 +2790,19 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private String textValue(String body, String field) {
-        String needle = "\"" + field + "\":\"";
-        int start = body == null ? -1 : body.indexOf(needle);
-        if (start < 0) {
+        Map<?, ?> object = jsonObject(body);
+        if (!object.containsKey(field) || object.get(field) == null) {
             return "";
         }
-        start += needle.length();
-        int end = body.indexOf('"', start);
-        return end < start ? "" : body.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
+        return SimpleJson.text(object.get(field));
     }
 
     private String textValue(AdminCoreConfigView config, String field) {
         return config == null ? "" : config.text(field);
+    }
+
+    private Map<?, ?> jsonObject(String body) {
+        return SimpleJson.object(SimpleJson.parse(body));
     }
 
     private long number(String value, long fallback) {
