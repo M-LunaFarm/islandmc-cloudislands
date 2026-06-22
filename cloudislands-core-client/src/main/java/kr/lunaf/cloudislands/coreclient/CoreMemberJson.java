@@ -36,10 +36,28 @@ final class CoreMemberJson {
             .toList();
     }
 
+    static List<CoreGuiViews.InviteView> inviteViews(String body) {
+        return CoreJson.entries(body).stream()
+            .map(CoreMemberJson::inviteView)
+            .filter(invite -> !invite.inviteId().isBlank())
+            .toList();
+    }
+
+    static CoreGuiViews.InviteView inviteView(String body) {
+        return inviteView(CoreJson.object(body));
+    }
+
     static List<IslandBanSnapshot> bans(UUID islandId, String body) {
         return CoreJson.entries(body).stream()
             .map(values -> ban(islandId, values))
             .filter(ban -> ban.bannedUuid() != null && !ban.bannedUuid().equals(EMPTY_UUID))
+            .toList();
+    }
+
+    static List<CoreGuiViews.BanView> banViews(String body) {
+        return CoreJson.entries(body).stream()
+            .map(values -> banView(ban(null, values)))
+            .filter(ban -> !ban.bannedUuid().isBlank())
             .toList();
     }
 
@@ -79,6 +97,10 @@ final class CoreMemberJson {
             invite == null || invite.createdAt() == null || invite.createdAt().equals(Instant.EPOCH) ? "" : invite.createdAt().toString(),
             invite == null || invite.expiresAt() == null || invite.expiresAt().equals(Instant.EPOCH) ? "" : invite.expiresAt().toString()
         );
+    }
+
+    private static CoreGuiViews.InviteView inviteView(Map<?, ?> values) {
+        return inviteView(invite(values));
     }
 
     static CoreGuiViews.BanView banView(IslandBanSnapshot ban) {

@@ -63,11 +63,11 @@ public final class CoreGuiViews {
     }
 
     public static List<InviteView> inviteViews(String body) {
-        return invites(body);
+        return CoreMemberJson.inviteViews(body);
     }
 
     public static InviteView inviteView(String body) {
-        return invite(root(body));
+        return CoreMemberJson.inviteView(body);
     }
 
     public static CompletableFuture<List<PlayerIslandView>> playerIslands(CoreApiClient client, UUID playerUuid) {
@@ -83,7 +83,7 @@ public final class CoreGuiViews {
     }
 
     public static List<BanView> banViews(String body) {
-        return bans(body);
+        return CoreMemberJson.banViews(body);
     }
 
     public static PlayerProfileView playerProfile(String body) {
@@ -200,46 +200,12 @@ public final class CoreGuiViews {
         return CoreMemberJson.memberViews(body);
     }
 
-    private static List<InviteView> invites(String body) {
-        List<InviteView> invites = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            InviteView invite = invite(object);
-            if (!invite.inviteId().isBlank()) {
-                invites.add(invite);
-            }
-        }
-        return invites;
-    }
-
-    private static InviteView invite(Map<?, ?> object) {
-        return new InviteView(
-            text(object, "inviteId"),
-            text(object, "islandId"),
-            text(object, "inviterUuid"),
-            text(object, "targetUuid"),
-            text(object, "state"),
-            text(object, "createdAt"),
-            text(object, "expiresAt")
-        );
-    }
-
     private static List<PlayerIslandView> playerIslands(String body) {
         return CoreNavigationQueryClient.playerIslandViews(body);
     }
 
     private static List<PublicIslandView> publicIslands(String body) {
         return CoreNavigationQueryClient.publicIslandViews(body);
-    }
-
-    private static List<BanView> bans(String body) {
-        List<BanView> bans = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String bannedUuid = text(object, "bannedUuid");
-            if (!bannedUuid.isBlank()) {
-                bans.add(new BanView(bannedUuid, text(object, "actorUuid"), text(object, "reason"), text(object, "createdAt"), text(object, "expiresAt")));
-            }
-        }
-        return bans;
     }
 
     public static PermissionRulesView permissionRulesView(String body) {
