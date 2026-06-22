@@ -18,6 +18,26 @@ layout:
   - "........."
   - "ONPQSRLGB"
 items:
+  _:
+    material: GRAY_DYE
+    name-key: permission-menu-default-name
+    fallback-name: 기본값
+    action: set
+  ALLOW:
+    material: LIME_DYE
+    name-key: permission-menu-allow-name
+    fallback-name: 허용
+    action: set
+  DENY:
+    material: RED_DYE
+    name-key: permission-menu-deny-name
+    fallback-name: 차단
+    action: set
+  ROLE:
+    material: NAME_TAG
+    name-key: permission-menu-role-row-name
+    fallback-name: 역할 권한 행
+    action: list
   O:
     material: ARROW
     name-key: permission-menu-prev-role-page-name

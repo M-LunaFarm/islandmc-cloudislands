@@ -7,6 +7,36 @@ layout:
   - "........."
   - "...MRS..X"
 items:
+  _:
+    material: BOOK
+    name-key: log-menu-entry-name
+    fallback-name: 섬 로그
+    action: detail
+  BANK:
+    material: GOLD_INGOT
+    name-key: log-menu-bank-entry-name
+    fallback-name: 은행 로그
+    action: detail
+  MEMBER:
+    material: PLAYER_HEAD
+    name-key: log-menu-member-entry-name
+    fallback-name: 멤버 로그
+    action: detail
+  PERMISSION:
+    material: REDSTONE_TORCH
+    name-key: log-menu-permission-entry-name
+    fallback-name: 권한 로그
+    action: detail
+  SNAPSHOT:
+    material: CHEST
+    name-key: log-menu-snapshot-entry-name
+    fallback-name: 스냅샷 로그
+    action: detail
+  CHAT:
+    material: WRITABLE_BOOK
+    name-key: log-menu-chat-entry-name
+    fallback-name: 채팅 로그
+    action: detail
   E:
     material: BARRIER
     name-key: log-menu-empty-title

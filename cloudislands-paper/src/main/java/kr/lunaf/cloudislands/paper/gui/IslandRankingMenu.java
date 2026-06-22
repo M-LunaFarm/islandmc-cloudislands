@@ -6,15 +6,12 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RankingView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandRankingMenu implements Listener {
@@ -88,21 +85,22 @@ public final class IslandRankingMenu implements Listener {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             int slot = 9;
             for (RankingView ranking : levels.stream().limit(9).toList()) {
-                inventory.setItem(slot++, rankingItem(Material.EXPERIENCE_BOTTLE, ranking, messages));
+                inventory.setItem(slot++, rankingItem("LEVEL", ranking, messages));
             }
             slot = 18;
             for (RankingView ranking : worths.stream().limit(9).toList()) {
-                inventory.setItem(slot++, rankingItem(Material.EMERALD, ranking, messages));
+                inventory.setItem(slot++, rankingItem("WORTH", ranking, messages));
             }
             slot = 27;
             for (RankingView ranking : reviews.stream().limit(9).toList()) {
-                inventory.setItem(slot++, rankingItem(Material.WRITABLE_BOOK, ranking, messages));
+                inventory.setItem(slot++, rankingItem("REVIEWS", ranking, messages));
             }
             player.openInventory(inventory);
         });
     }
 
-    private static ItemStack rankingItem(Material material, RankingView ranking, MessageRenderer messages) {
+    private static ItemStack rankingItem(String symbol, RankingView ranking, MessageRenderer messages) {
+        org.bukkit.Material material = GuiMenuRenderer.material(MENU, symbol, "_", "EXPERIENCE_BOTTLE");
         if ("reviews".equals(ranking.label())) {
             return GuiItems.action(material, rankingLabel(ranking.label(), messages) + " #" + ranking.rank(), "island.visit.target",
                 Map.of("target", ranking.islandId()),

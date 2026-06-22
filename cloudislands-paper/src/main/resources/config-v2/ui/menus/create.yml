@@ -6,6 +6,11 @@ layout:
   - "........."
   - "M...R...."
 items:
+  _:
+    material: OAK_SAPLING
+    name-key: create-menu-template-name
+    fallback-name: 섬 템플릿
+    action: create
   M:
     material: COMPASS
     name-key: create-menu-main-menu-name

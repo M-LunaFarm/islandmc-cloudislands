@@ -6,8 +6,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.TemplateView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -93,7 +91,7 @@ public final class IslandCreateMenu implements Listener {
     }
 
     private static ItemStack item(TemplateView template, MessageRenderer messages) {
-        ItemStack item = GuiItems.action(Material.OAK_SAPLING, template.displayName().isBlank() ? template.id() : template.displayName(), "island.create", java.util.Map.of("templateId", template.id()), message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
+        ItemStack item = GuiItems.action(GuiMenuRenderer.material(MENU, "_", "OAK_SAPLING"), template.displayName().isBlank() ? template.id() : template.displayName(), "island.create", java.util.Map.of("templateId", template.id()), message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();

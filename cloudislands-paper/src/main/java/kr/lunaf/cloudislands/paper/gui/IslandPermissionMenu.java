@@ -10,8 +10,6 @@ import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PermissionRuleView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RoleView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -124,7 +122,7 @@ public final class IslandPermissionMenu implements Listener {
             List<String> visibleRoles = roles.subList(roleStart, Math.min(roles.size(), roleStart + ROLES_PER_PAGE));
             for (int row = 0; row < visibleRoles.size(); row++) {
                 String role = visibleRoles.get(row);
-                inventory.setItem(row * 9, GuiItems.action(Material.NAME_TAG, role, "island.permissions.list", message(messages, "permission-menu-role-row", "역할 권한 행")));
+                inventory.setItem(row * 9, GuiItems.action(GuiMenuRenderer.material(MENU, "ROLE", "ROLE", "NAME_TAG"), role, "island.permissions.list", message(messages, "permission-menu-role-row", "역할 권한 행")));
                 for (int column = 0; column < visiblePermissions.size(); column++) {
                     String permission = visiblePermissions.get(column);
                     inventory.setItem(row * 9 + column + 1, ruleItem(role, permission, allowed(rules, role, permission), version, messages));
@@ -144,7 +142,7 @@ public final class IslandPermissionMenu implements Listener {
     }
 
     private static ItemStack ruleItem(String role, String permission, Boolean allowed, String version, MessageRenderer messages) {
-        Material material = allowed == null ? Material.GRAY_DYE : allowed ? Material.LIME_DYE : Material.RED_DYE;
+        org.bukkit.Material material = GuiMenuRenderer.material(MENU, allowed == null ? "_" : allowed ? "ALLOW" : "DENY", "_", "GRAY_DYE");
         String state = allowed == null ? message(messages, "permission-menu-default", "기본값") : allowed ? message(messages, "permission-menu-allow", "허용") : message(messages, "permission-menu-deny", "차단");
         return GuiItems.action(material, role + " " + permissionLabel(permission), "island.permissions.set",
             Map.of("role", role, "permission", permission, "expectedVersion", version == null ? "" : version),

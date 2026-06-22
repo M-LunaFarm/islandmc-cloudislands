@@ -329,6 +329,24 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void remainingDynamicItemMaterialsRenderFromMenuDefinitions() throws Exception {
+        for (String[] menuCase : List.of(
+                new String[] {"IslandPermissionMenu", "permissions.yml", "ALLOW", "LIME_DYE"},
+                new String[] {"IslandRankingMenu", "ranking.yml", "WORTH", "EMERALD"},
+                new String[] {"IslandCreateMenu", "create.yml", "_", "OAK_SAPLING"},
+                new String[] {"IslandLogMenu", "logs.yml", "BANK", "GOLD_INGOT"}
+        )) {
+            String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuCase[0] + ".java"));
+            String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + menuCase[1]));
+
+            assertTrue(definition.contains("  " + menuCase[2] + ":"), menuCase[1] + " must define dynamic material " + menuCase[2]);
+            assertTrue(definition.contains("material: " + menuCase[3]), menuCase[1] + " material must live in config-v2");
+            assertTrue(menu.contains("GuiMenuRenderer.material(MENU"), menuCase[0] + " must read materials from the menu definition");
+            assertFalse(menu.contains("Material." + menuCase[3]), menuCase[0] + " must not hard-code dynamic item material");
+        }
+    }
+
+    @Test
     void guiSessionsAreRevisionGuardedAndClearedOnPluginDisable() throws Exception {
         String sessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));

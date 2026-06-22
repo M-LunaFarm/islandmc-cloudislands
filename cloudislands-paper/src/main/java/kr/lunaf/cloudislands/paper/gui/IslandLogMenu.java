@@ -8,7 +8,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.LogEntryView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -153,24 +152,28 @@ public final class IslandLogMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static Material material(String action) {
+    private static org.bukkit.Material material(String action) {
+        return GuiMenuRenderer.material(MENU, materialKey(action), "_", "BOOK");
+    }
+
+    private static String materialKey(String action) {
         String normalized = action == null ? "" : action;
         if (normalized.contains("BANK")) {
-            return Material.GOLD_INGOT;
+            return "BANK";
         }
         if (normalized.contains("MEMBER") || normalized.contains("OWNERSHIP")) {
-            return Material.PLAYER_HEAD;
+            return "MEMBER";
         }
         if (normalized.contains("PERMISSION") || normalized.contains("FLAG") || normalized.contains("LOCK")) {
-            return Material.REDSTONE_TORCH;
+            return "PERMISSION";
         }
         if (normalized.contains("SNAPSHOT") || normalized.contains("RESET")) {
-            return Material.CHEST;
+            return "SNAPSHOT";
         }
         if (normalized.contains("CHAT")) {
-            return Material.WRITABLE_BOOK;
+            return "CHAT";
         }
-        return Material.BOOK;
+        return "_";
     }
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {

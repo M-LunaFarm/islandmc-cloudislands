@@ -9,6 +9,26 @@ layout:
   - "........."
   - "P...R...V"
 items:
+  _:
+    material: EXPERIENCE_BOTTLE
+    name-key: ranking-menu-entry-name
+    fallback-name: 섬 랭킹 항목
+    action: visit
+  LEVEL:
+    material: EXPERIENCE_BOTTLE
+    name-key: ranking-menu-level-entry-name
+    fallback-name: 레벨 랭킹
+    action: visit
+  WORTH:
+    material: EMERALD
+    name-key: ranking-menu-worth-entry-name
+    fallback-name: 가치 랭킹
+    action: visit
+  REVIEWS:
+    material: WRITABLE_BOOK
+    name-key: ranking-menu-review-entry-name
+    fallback-name: 후기 랭킹
+    action: visit
   T:
     material: GOLD_BLOCK
     name-key: ranking-menu-title
