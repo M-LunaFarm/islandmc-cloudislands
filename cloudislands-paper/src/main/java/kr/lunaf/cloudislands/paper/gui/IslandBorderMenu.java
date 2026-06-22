@@ -78,12 +78,19 @@ public final class IslandBorderMenu implements Listener {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             setItem(inventory, "S", messages, message(messages, "border-menu-size-current", "현재 크기: ") + view.info().border());
-            setItem(inventory, "L", messages, colorLore("green", view, messages));
-            setItem(inventory, "C", messages, colorLore("aqua", view, messages));
-            setItem(inventory, "B", messages, colorLore("blue", view, messages));
+            setColorItems(inventory, view, messages);
             setItem(inventory, "I", messages, message(messages, "border-menu-visible", "표시: ") + view.flags().getOrDefault(IslandFlag.BORDER_VISIBLE, "true"));
             player.openInventory(inventory);
         });
+    }
+
+    private static void setColorItems(Inventory inventory, BorderView view, MessageRenderer messages) {
+        for (int slot = 0; slot < MENU.size(); slot++) {
+            int currentSlot = slot;
+            MENU.itemAt(slot)
+                .filter(item -> item.actionKey().equals("color"))
+                .ifPresent(item -> inventory.setItem(currentSlot, GuiMenuRenderer.item(MENU, item, messages, item.data(), List.of(colorLore(item.data().getOrDefault("color", ""), view, messages)))));
+        }
     }
 
     private static void setItem(Inventory inventory, String symbol, MessageRenderer messages, String... lore) {
