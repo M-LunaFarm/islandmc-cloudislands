@@ -249,11 +249,16 @@ class CoreTypedClientsTest {
     @Test
     void jdkCoreApiClientDelegatesJobCommandsToStandaloneClient() throws Exception {
         String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+        String jobClaimClient = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreJobClaimClient.java"));
 
         assertTrue(source.contains("public CompletableFuture<List<IslandJob>> claimJobs("), "runtime job claims remain the CoreApiClient direct protocol contract");
+        assertTrue(source.contains("this.jobClaimClient = new JdkCoreJobClaimClient(this);"));
+        assertTrue(source.contains("return jobClaimClient.claimJobs(nodeId, supportedTypes, maxJobs);"));
         assertFalse(source.contains("public CompletableFuture<JobActionView> retry("), "job retry must not live on the core transport client");
         assertFalse(source.contains("public CompletableFuture<JobActionView> cancel("), "job cancel must not live on the core transport client");
         assertFalse(source.contains("public CompletableFuture<JobRecoveryView> recover("), "job recovery must not live on the core transport client");
+        assertFalse(source.contains("IslandJobJson::readArray"), "job claim response parsing must not live on the core transport client");
+        assertTrue(jobClaimClient.contains("thenApply(IslandJobJson::readArray)"));
         assertFalse(source.contains("requireJobNode("), "job command validation must live in the job command client");
         assertTrue(source.contains("this.jobCommandClient = new JdkJobCommandClient(this);"));
     }

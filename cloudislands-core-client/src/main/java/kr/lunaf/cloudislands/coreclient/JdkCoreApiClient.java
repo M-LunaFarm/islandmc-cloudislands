@@ -32,7 +32,6 @@ import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
-import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
 public final class JdkCoreApiClient implements CoreApiClient {
@@ -71,6 +70,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final PlayerProfileCommandClient playerProfileCommandClient;
     private final TemplateQueryClient templateQueryClient;
     private final TemplateCommandClient templateCommandClient;
+    private final JdkCoreJobClaimClient jobClaimClient;
     private final JdkJobClient jobQueryClient;
     private final JobCommandClient jobCommandClient;
     private final BlockValueQueryClient blockValueQueryClient;
@@ -129,6 +129,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.playerProfileCommandClient = new JdkPlayerProfileCommandClient(this);
         this.templateQueryClient = new JdkTemplateQueryClient(this);
         this.templateCommandClient = new JdkTemplateCommandClient(this);
+        this.jobClaimClient = new JdkCoreJobClaimClient(this);
         this.jobQueryClient = new JdkJobClient(this);
         this.jobCommandClient = new JdkJobCommandClient(this);
         this.blockValueQueryClient = new JdkBlockValueQueryClient(this);
@@ -491,8 +492,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
-        String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
-        return postWithResultBody("/v1/jobs/claim", jsonObject("nodeId", nodeId, "supportedTypes", types, "maxJobs", maxJobs)).thenApply(IslandJobJson::readArray);
+        return jobClaimClient.claimJobs(nodeId, supportedTypes, maxJobs);
     }
 
     String tableMapJson(Map<String, Map<String, String>> tables) {
