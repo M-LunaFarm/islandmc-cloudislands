@@ -996,6 +996,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(routes.contains("queryText(exchange, \"query\""), "Core public warp route must accept search filters");
         assertTrue(homeWarpQueryClient.contains("publicWarpSnapshots(int limit, String category, String query)"), "Core client must expose filtered public warp lookup behind the typed home/warp boundary");
         assertTrue(router.contains("homeWarpCommands.handleCommand(player, subcommand, args)"), "Paper public warp command must be routed to the home/warp handler");
+        assertTrue(homeWarpHandler.contains("setWarp(player, args[1], args.length > 2 ? args[2] : \"\")"), "Paper warp set command must expose a category argument");
         assertTrue(homeWarpHandler.contains("listPublicWarps(player, args[1]"), "Paper public warp command must expose category/search arguments");
     }
 

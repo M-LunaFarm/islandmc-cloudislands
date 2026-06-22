@@ -107,6 +107,9 @@ final class IslandCommandTabCompleter implements TabCompleter {
         if (args.length == 3 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정"))) {
             return literalMatches(roleCatalog(sender, false), args[2]);
         }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("setwarp") || args[0].equals("워프설정"))) {
+            return literalMatches(List.of("default", "shop", "farm", "event", "pvp"), args[2]);
+        }
         if (args.length == 3 && (args[0].equalsIgnoreCase("rate") || args[0].equalsIgnoreCase("review") || args[0].equals("평가"))) {
             return literalMatches(List.of("5", "4", "3", "2", "1"), args[2]);
         }

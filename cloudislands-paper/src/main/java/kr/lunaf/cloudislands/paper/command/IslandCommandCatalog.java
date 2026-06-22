@@ -63,7 +63,7 @@ final class IslandCommandCatalog {
         "섬 잠금해제",
         "섬 워프목록",
         "섬 워프 <name>",
-        "섬 워프설정 <name>",
+        "섬 워프설정 <name> [category]",
         "섬 워프삭제 <name>",
         "섬 워프공개 <name>",
         "섬 워프비공개 <name>",

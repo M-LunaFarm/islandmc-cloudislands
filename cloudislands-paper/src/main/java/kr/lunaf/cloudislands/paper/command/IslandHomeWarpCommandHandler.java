@@ -116,7 +116,7 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-warp-name-required", "워프 이름을 입력해주세요."));
                 return true;
             }
-            setWarp(player, args[1]);
+            setWarp(player, args[1], args.length > 2 ? args[2] : "");
             return true;
         }
         if (subcommand.equals("delwarp") || subcommand.equals("deletewarp") || subcommand.equals("워프삭제")) {
@@ -224,13 +224,13 @@ final class IslandHomeWarpCommandHandler {
         });
     }
 
-    private void setWarp(Player player, String name) {
+    private void setWarp(Player player, String name, String category) {
         runtime.currentIsland(player, "섬 안에서만 워프를 설정할 수 있습니다.").ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_WARPS)) {
                 runtime.message(player, runtime.routeMessage("warp-set-denied", "섬 워프를 설정할 권한이 없습니다."));
                 return;
             }
-            homeWarpUseCase.setWarpAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false, runtime::mutate)
+            homeWarpUseCase.setWarpAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false, category, runtime::mutate)
                 .thenAccept(result -> runtime.message(player, homeWarpActionMessage("섬 워프 설정 " + name, name, result)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 워프를 설정하지 못했습니다.");

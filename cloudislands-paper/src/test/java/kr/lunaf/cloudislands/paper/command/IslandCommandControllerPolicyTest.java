@@ -319,6 +319,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("IslandHomeWarpUseCase"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.setHomeAction"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.setWarpAction"));
+        assertTrue(homeWarpHandler.contains("setWarp(player, args[1], args.length > 2 ? args[2] : \"\")"));
+        assertTrue(homeWarpHandler.contains("homeWarpUseCase.setWarpAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false, category, runtime::mutate)"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.deleteWarpAction"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.homeViews"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.warpViews"));
