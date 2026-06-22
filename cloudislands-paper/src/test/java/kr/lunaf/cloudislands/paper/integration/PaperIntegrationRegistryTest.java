@@ -491,10 +491,10 @@ class PaperIntegrationRegistryTest {
     void registryPromotesPriorityHookPluginsToSpecificAdapters() {
         String registry = readRegistrySource();
 
-        assertTrue(registry.contains("new CustomItemIntegration(pluginName)"));
-        assertTrue(registry.contains("new StackerIntegration(pluginName)"));
-        assertTrue(registry.contains("new LuckPermsIntegration()"));
-        assertTrue(registry.contains("new PlanIntegration()"));
+        assertTrue(registry.contains("new CustomItemIntegration(pluginName, externalRuntime)"));
+        assertTrue(registry.contains("new StackerIntegration(pluginName, externalRuntime)"));
+        assertTrue(registry.contains("new LuckPermsIntegration(externalRuntime)"));
+        assertTrue(registry.contains("new PlanIntegration(externalRuntime)"));
         assertTrue(registry.contains("ItemsAdder\", \"Oraxen\", \"Nexo\", \"Slimefun"));
         assertTrue(registry.contains("RoseStacker\", \"WildStacker\", \"AdvancedSpawners"));
     }
@@ -515,6 +515,10 @@ class PaperIntegrationRegistryTest {
         assertTrue(registrySource.contains("runtimeMetadata.put(\"pluginClass\", plugin.getClass().getName())"));
         assertTrue(registrySource.contains("runtimeMetadata.put(\"pluginEnabled\", Boolean.toString(pluginEnabled(pluginName)))"));
         assertTrue(registrySource.contains("getPlugin(pluginName)"));
+        assertTrue(registrySource.contains("defaultIntegrations(bukkitExternalRuntime(server))"));
+        assertTrue(registrySource.contains("private static IntegrationExternalRuntime bukkitExternalRuntime(Server server)"));
+        assertTrue(registrySource.contains("details.put(\"runtime\", \"bukkit\")"));
+        assertTrue(registrySource.contains("details.put(\"externalApi\", plan.externalApi())"));
     }
 
     private String readRegistrySource() {

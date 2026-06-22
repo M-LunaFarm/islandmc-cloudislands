@@ -17,6 +17,8 @@ import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.CloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationOperationPlan;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.spi.PolicyBackedCloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
@@ -33,7 +35,7 @@ public final class PaperIntegrationRegistry {
     }
 
     public static PaperIntegrationRegistry discover(Server server) {
-        return new PaperIntegrationRegistry(server, defaultIntegrations());
+        return new PaperIntegrationRegistry(server, defaultIntegrations(bukkitExternalRuntime(server)));
     }
 
     public List<IntegrationStatus> snapshot() {
@@ -109,24 +111,52 @@ public final class PaperIntegrationRegistry {
         return builder.toString();
     }
 
-    private static List<CloudIntegration> defaultIntegrations() {
+    private static List<CloudIntegration> defaultIntegrations(IntegrationExternalRuntime externalRuntime) {
         List<CloudIntegration> integrations = new ArrayList<>();
         for (String pluginName : CloudIntegrationPolicy.knownPlugins()) {
-            integrations.add(specificIntegration(pluginName));
+            integrations.add(specificIntegration(pluginName, externalRuntime));
         }
         return List.copyOf(integrations);
     }
 
-    private static CloudIntegration specificIntegration(String pluginName) {
+    private static CloudIntegration specificIntegration(String pluginName, IntegrationExternalRuntime externalRuntime) {
         return switch (pluginName) {
-            case "CoreProtect" -> new CoreProtectIntegration();
-            case "WorldEdit", "FastAsyncWorldEdit" -> new WorldEditIntegration(pluginName);
-            case "ItemsAdder", "Oraxen", "Nexo", "Slimefun" -> new CustomItemIntegration(pluginName);
-            case "RoseStacker", "WildStacker", "AdvancedSpawners" -> new StackerIntegration(pluginName);
-            case "LuckPerms" -> new LuckPermsIntegration();
-            case "Plan" -> new PlanIntegration();
+            case "CoreProtect" -> new CoreProtectIntegration(externalRuntime);
+            case "WorldEdit", "FastAsyncWorldEdit" -> new WorldEditIntegration(pluginName, externalRuntime);
+            case "ItemsAdder", "Oraxen", "Nexo", "Slimefun" -> new CustomItemIntegration(pluginName, externalRuntime);
+            case "RoseStacker", "WildStacker", "AdvancedSpawners" -> new StackerIntegration(pluginName, externalRuntime);
+            case "LuckPerms" -> new LuckPermsIntegration(externalRuntime);
+            case "Plan" -> new PlanIntegration(externalRuntime);
             default -> genericIntegration(pluginName);
         };
+    }
+
+    private static IntegrationExternalRuntime bukkitExternalRuntime(Server server) {
+        return (pluginName, category, operation, context, plan) -> {
+            if (server == null) {
+                return IntegrationResult.skipped(pluginName + " external runtime has no Bukkit server");
+            }
+            Plugin plugin = server.getPluginManager().getPlugin(pluginName);
+            if (plugin == null || !server.getPluginManager().isPluginEnabled(pluginName)) {
+                return IntegrationResult.skipped(pluginName + " is not enabled in Bukkit");
+            }
+            return IntegrationResult.success(pluginName + " external runtime accepted " + operation, externalRuntimeDetails(plugin, category, operation, plan));
+        };
+    }
+
+    private static Map<String, String> externalRuntimeDetails(Plugin plugin, String category, String operation, IntegrationOperationPlan plan) {
+        LinkedHashMap<String, String> details = new LinkedHashMap<>();
+        details.put("runtime", "bukkit");
+        details.put("pluginClass", plugin.getClass().getName());
+        details.put("pluginVersion", pluginVersion(plugin));
+        details.put("category", category == null ? "" : category);
+        details.put("operation", operation == null ? "" : operation);
+        if (plan != null) {
+            details.put("externalApi", plan.externalApi());
+            details.put("stateChanging", Boolean.toString(plan.stateChanging()));
+            details.put("requiredMetadata", String.join(",", plan.requiredMetadata()));
+        }
+        return details;
     }
 
     private static CloudIntegration genericIntegration(String pluginName) {
