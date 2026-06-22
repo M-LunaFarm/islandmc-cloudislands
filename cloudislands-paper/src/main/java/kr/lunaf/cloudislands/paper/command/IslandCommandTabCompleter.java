@@ -84,7 +84,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("biome") || first.equals("바이옴")) {
                 return literalMatches(List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"), args[1]);
             }
-            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("setrole") || first.equals("role-set") || first.equals("역할설정") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
+            if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("setrole") || first.equals("role-set") || first.equals("역할설정") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("coop") || first.equals("co-op") || first.equals("협동") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
                 return onlinePlayerMatches(args[1]);
             }
         }
@@ -109,7 +109,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
         if (args.length == 3 && (args[0].equalsIgnoreCase("warehouse-deposit") || args[0].equalsIgnoreCase("warehouse-withdraw") || args[0].equals("창고입금") || args[0].equals("창고출금"))) {
             return literalMatches(List.of("1", "16", "32", "64", "128"), args[2]);
         }
-        if (args.length == 3 && (args[0].equalsIgnoreCase("trust") || args[0].equals("신뢰"))) {
+        if (args.length == 3 && (args[0].equalsIgnoreCase("trust") || args[0].equalsIgnoreCase("coop") || args[0].equalsIgnoreCase("co-op") || args[0].equals("신뢰") || args[0].equals("협동"))) {
             return literalMatches(List.of("10m", "30m", "1h", "6h", "1d", "7d"), args[2]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("border") || args[0].equalsIgnoreCase("border-ui") || args[0].equals("경계"))) {

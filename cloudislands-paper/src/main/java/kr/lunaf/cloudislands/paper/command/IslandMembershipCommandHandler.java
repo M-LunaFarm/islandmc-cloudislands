@@ -85,7 +85,7 @@ final class IslandMembershipCommandHandler {
             removeIslandMember(player, args[1]);
             return true;
         }
-        if (subcommand.equals("trust") || subcommand.equals("신뢰")) {
+        if (subcommand.equals("trust") || subcommand.equals("신뢰") || subcommand.equals("coop") || subcommand.equals("co-op") || subcommand.equals("협동")) {
             if (args.length < 2) {
                 runtime.message(player, runtime.routeMessage("input-trust-player-required", "신뢰할 플레이어를 입력해주세요."));
                 return true;
