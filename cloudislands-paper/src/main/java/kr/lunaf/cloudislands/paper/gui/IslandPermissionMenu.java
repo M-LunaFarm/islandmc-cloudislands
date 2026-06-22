@@ -130,17 +130,17 @@ public final class IslandPermissionMenu implements Listener {
                     inventory.setItem(row * 9 + column + 1, ruleItem(role, permission, allowed(rules, role, permission), version, messages));
                 }
             }
-            setFooterItem(inventory, 45, messages, Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.max(0, safeRolePage - 1))), rolePageLine(safeRolePage, roles));
-            setFooterItem(inventory, 46, messages, Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.min(maxRolePage(roles), safeRolePage + 1))), rolePageLine(safeRolePage, roles));
-            setFooterItem(inventory, 47, messages, Map.of("page", String.valueOf(Math.max(0, safePage - 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage));
-            setFooterItem(inventory, 48, messages, Map.of("page", String.valueOf(Math.min(maxPage(), safePage + 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage));
-            setFooterItem(inventory, 52, messages, Map.of(), pageLine(safePage), rolePageLine(safeRolePage, roles), permissionSummary(), overrideSummary(overrides));
+            setFooterItem(inventory, "O", messages, Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.max(0, safeRolePage - 1))), rolePageLine(safeRolePage, roles));
+            setFooterItem(inventory, "N", messages, Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.min(maxRolePage(roles), safeRolePage + 1))), rolePageLine(safeRolePage, roles));
+            setFooterItem(inventory, "P", messages, Map.of("page", String.valueOf(Math.max(0, safePage - 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage));
+            setFooterItem(inventory, "Q", messages, Map.of("page", String.valueOf(Math.min(maxPage(), safePage + 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage));
+            setFooterItem(inventory, "G", messages, Map.of(), pageLine(safePage), rolePageLine(safeRolePage, roles), permissionSummary(), overrideSummary(overrides));
             player.openInventory(inventory);
         });
     }
 
-    private static void setFooterItem(Inventory inventory, int slot, MessageRenderer messages, Map<String, String> data, String... extraLore) {
-        MENU.itemAt(slot).ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, data, List.of(extraLore))));
+    private static void setFooterItem(Inventory inventory, String symbol, MessageRenderer messages, Map<String, String> data, String... extraLore) {
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages, data, List.of(extraLore));
     }
 
     private static ItemStack ruleItem(String role, String permission, Boolean allowed, String version, MessageRenderer messages) {

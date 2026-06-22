@@ -131,9 +131,9 @@ public final class IslandMemberMenu implements Listener {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"_".equals(item.symbol()));
             int maxPage = maxPage(members.size());
             int safePage = Math.max(0, Math.min(maxPage, page));
-            setFooterItem(inventory, 46, messages, Map.of("page", String.valueOf(Math.max(0, safePage - 1))), pageLine(safePage, maxPage, members.size()));
-            setFooterItem(inventory, 48, messages, Map.of("page", String.valueOf(Math.min(maxPage, safePage + 1))), pageLine(safePage, maxPage, members.size()));
-            setFooterItem(inventory, 51, messages, Map.of(), pageLine(safePage, maxPage, members.size()));
+            setFooterItem(inventory, "P", messages, Map.of("page", String.valueOf(Math.max(0, safePage - 1))), pageLine(safePage, maxPage, members.size()));
+            setFooterItem(inventory, "N", messages, Map.of("page", String.valueOf(Math.min(maxPage, safePage + 1))), pageLine(safePage, maxPage, members.size()));
+            setFooterItem(inventory, "G", messages, Map.of(), pageLine(safePage, maxPage, members.size()));
             List<Integer> memberSlots = GuiMenuRenderer.slots(MENU, "_");
             List<MemberView> visibleMembers = members.stream().skip((long) safePage * MEMBERS_PER_PAGE).limit(memberSlots.size()).toList();
             for (int index = 0; index < visibleMembers.size(); index++) {
@@ -143,8 +143,8 @@ public final class IslandMemberMenu implements Listener {
         });
     }
 
-    private static void setFooterItem(Inventory inventory, int slot, MessageRenderer messages, Map<String, String> data, String extraLore) {
-        MENU.itemAt(slot).ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, data, List.of(extraLore))));
+    private static void setFooterItem(Inventory inventory, String symbol, MessageRenderer messages, Map<String, String> data, String extraLore) {
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages, data, List.of(extraLore));
     }
 
     private static int maxPage(int size) {
