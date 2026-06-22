@@ -490,21 +490,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<String> getPlayerProfile(UUID playerUuid) {
-        return get("/v1/players/" + playerUuid + "/profile");
-    }
-
-    @Override
-    public CompletableFuture<String> getPlayerIsland(UUID playerUuid) {
-        return get("/v1/players/" + playerUuid + "/island");
-    }
-
-    @Override
-    public CompletableFuture<String> getJoinedIslands(UUID playerUuid) {
-        return get("/v1/players/" + playerUuid + "/islands");
-    }
-
-    @Override
     public CompletableFuture<Void> setIslandName(UUID islandId, UUID actorUuid, String name) {
         return setIslandNameResult(islandId, actorUuid, name).thenApply(_body -> null);
     }
