@@ -21,7 +21,11 @@ public final class CorePlayerProfileQueryClient implements PlayerProfileQueryCli
 
     @Override
     public CompletableFuture<PlayerProfileView> findByName(String lastName) {
-        return delegate.playerInfoByName(lastName == null ? "" : lastName.trim()).thenApply(CorePlayerProfileJson::profile);
+        String normalized = lastName == null ? "" : lastName.trim();
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException("lastName is required");
+        }
+        return delegate.playerInfoByName(normalized).thenApply(CorePlayerProfileJson::profile);
     }
 
     private static void requireId(UUID id, String name) {

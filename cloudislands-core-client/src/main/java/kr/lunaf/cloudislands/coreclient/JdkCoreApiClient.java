@@ -69,9 +69,10 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkProgressionClient progressionClient;
     private final JdkMemberQueryClient memberQueryClient;
     private final JdkMemberCommandClient memberCommandClient;
-    private final JdkVisitorStatsClient visitorStatsClient;
+    private final IslandVisitorStatsQueryClient visitorStatsClient;
     private final JdkWarehouseClient warehouseClient;
-    private final JdkPlayerProfileClient playerProfileClient;
+    private final PlayerProfileQueryClient playerProfileQueryClient;
+    private final PlayerProfileCommandClient playerProfileCommandClient;
     private final JdkTemplateClient templateClient;
     private final JdkJobClient jobClient;
     private final JdkBlockValueClient blockValueClient;
@@ -117,9 +118,10 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.progressionClient = new JdkProgressionClient();
         this.memberQueryClient = new JdkMemberQueryClient();
         this.memberCommandClient = new JdkMemberCommandClient();
-        this.visitorStatsClient = new JdkVisitorStatsClient();
+        this.visitorStatsClient = new CoreIslandVisitorStatsQueryClient(this);
         this.warehouseClient = new JdkWarehouseClient();
-        this.playerProfileClient = new JdkPlayerProfileClient();
+        this.playerProfileQueryClient = new CorePlayerProfileQueryClient(this);
+        this.playerProfileCommandClient = new CorePlayerProfileCommandClient(this);
         this.templateClient = new JdkTemplateClient();
         this.jobClient = new JdkJobClient();
         this.blockValueClient = new JdkBlockValueClient();
@@ -268,12 +270,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public PlayerProfileQueryClient playerProfiles() {
-        return playerProfileClient;
+        return playerProfileQueryClient;
     }
 
     @Override
     public PlayerProfileCommandClient playerProfileCommands() {
-        return playerProfileClient;
+        return playerProfileCommandClient;
     }
 
     @Override
@@ -1222,80 +1224,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
         private void requireInviteAndPlayer(UUID inviteId, UUID playerUuid) {
             requireId(inviteId, "inviteId");
             requireId(playerUuid, "playerUuid");
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-    }
-
-    private final class JdkVisitorStatsClient implements IslandVisitorStatsQueryClient {
-        @Override
-        public CompletableFuture<IslandVisitorStatsView> stats(UUID islandId, int recentLimit) {
-            if (islandId == null) {
-                throw new IllegalArgumentException("islandId is required");
-            }
-            return postWithResultBody("/v1/islands/visitors/stats", jsonObject(
-                "islandId", islandId,
-                "limit", Math.max(1, Math.min(recentLimit, 100))
-            )).thenApply(CoreIslandVisitorStatsQueryClient::stats);
-        }
-    }
-
-    private final class JdkPlayerProfileClient implements PlayerProfileQueryClient, PlayerProfileCommandClient {
-        @Override
-        public CompletableFuture<PlayerProfileView> profile(UUID playerUuid) {
-            requireId(playerUuid, "playerUuid");
-            return postWithResultBody("/v1/admin/players/info", jsonObject("playerUuid", playerUuid))
-                .thenApply(CorePlayerProfileJson::profile);
-        }
-
-        @Override
-        public CompletableFuture<PlayerProfileView> findByName(String lastName) {
-            String normalized = lastName == null ? "" : lastName.trim();
-            if (normalized.isBlank()) {
-                throw new IllegalArgumentException("lastName is required");
-            }
-            return post("/v1/players/info", jsonObject("lastName", normalized))
-                .thenApply(CorePlayerProfileJson::profile);
-        }
-
-        @Override
-        public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName) {
-            requireId(playerUuid, "playerUuid");
-            return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName))
-                .thenApply(CorePlayerProfileJson::profile);
-        }
-
-        @Override
-        public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName, String locale) {
-            requireId(playerUuid, "playerUuid");
-            return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName, "locale", locale == null ? "" : locale))
-                .thenApply(CorePlayerProfileJson::profile);
-        }
-
-        @Override
-        public CompletableFuture<PlayerProfileView> setLocale(UUID playerUuid, String locale) {
-            requireId(playerUuid, "playerUuid");
-            return postWithResultBody("/v1/players/locale", jsonObject("playerUuid", playerUuid, "locale", locale == null ? "" : locale))
-                .thenApply(CorePlayerProfileJson::profile);
-        }
-
-        @Override
-        public CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId) {
-            requireId(playerUuid, "playerUuid");
-            requireId(islandId, "islandId");
-            return postWithResultBody("/v1/admin/players/setisland", jsonObject("playerUuid", playerUuid, "islandId", islandId))
-                .thenApply(CorePlayerProfileJson::profile);
-        }
-
-        @Override
-        public CompletableFuture<PlayerProfileView> clearPrimaryIsland(UUID playerUuid) {
-            requireId(playerUuid, "playerUuid");
-            return postWithResultBody("/v1/admin/players/clearisland", jsonObject("playerUuid", playerUuid))
-                .thenApply(CorePlayerProfileJson::profile);
         }
 
         private void requireId(UUID id, String name) {
