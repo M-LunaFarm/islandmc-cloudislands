@@ -128,11 +128,11 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<UpgradeView>> islandUpgrades(CoreApiClient client, UUID islandId) {
-        return client.listIslandUpgrades(islandId).thenApply(CoreGuiViews::upgrades);
+        return new CoreProgressionQueryClient(client).upgrades(islandId);
     }
 
     public static CompletableFuture<List<MissionView>> islandMissions(CoreApiClient client, UUID islandId, String kind) {
-        return client.listIslandMissions(islandId, kind).thenApply(CoreGuiViews::missions);
+        return new CoreProgressionQueryClient(client).missions(islandId, kind);
     }
 
     public static CompletableFuture<List<LimitView>> islandLimits(CoreApiClient client, UUID islandId) {
@@ -196,28 +196,6 @@ public final class CoreGuiViews {
             .toList();
     }
 
-    private static List<RankingView> rankings(String body, String label) {
-        List<RankingView> rankings = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                rankings.add(new RankingView(rankings.size() + 1, label, islandId, longValue(object, "level"), text(object, "worth")));
-            }
-        }
-        return rankings;
-    }
-
-    private static List<RankingView> reviewRankings(String body) {
-        List<RankingView> rankings = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                rankings.add(new RankingView(rankings.size() + 1, "reviews", islandId, longValue(object, "reviewCount"), String.format(java.util.Locale.ROOT, "%.2f", doubleValue(object, "averageRating"))));
-            }
-        }
-        return rankings;
-    }
-
     private static List<MemberView> members(String body) {
         return CoreMemberJson.memberViews(body);
     }
@@ -264,40 +242,8 @@ public final class CoreGuiViews {
         return bans;
     }
 
-    private static List<PermissionRuleView> permissionRules(String body) {
-        return permissionRulesView(body).rules();
-    }
-
     public static PermissionRulesView permissionRulesView(String body) {
         return CorePermissionJson.permissionRulesView(body);
-    }
-
-    private static List<UpgradeView> upgrades(String body) {
-        List<UpgradeView> upgrades = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String key = text(object, "key");
-            if (key.isBlank()) {
-                key = text(object, "upgradeKey");
-            }
-            if (!key.isBlank()) {
-                upgrades.add(new UpgradeView(key, text(object, "type"), intValue(object, "level"), text(object, "generatorKey")));
-            }
-        }
-        return upgrades;
-    }
-
-    private static List<MissionView> missions(String body) {
-        List<MissionView> missions = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String key = text(object, "key");
-            if (key.isBlank()) {
-                key = text(object, "missionKey");
-            }
-            if (!key.isBlank()) {
-                missions.add(new MissionView(key, text(object, "title"), longValue(object, "progress"), longValue(object, "goal"), bool(object, "completed"), text(object, "reward")));
-            }
-        }
-        return missions;
     }
 
     private static List<LogEntryView> logs(List<IslandLogRecord> records) {
@@ -320,26 +266,6 @@ public final class CoreGuiViews {
 
     private static long longValue(Map<?, ?> object, String key) {
         return SimpleJson.number(object.get(key));
-    }
-
-    private static int intValue(Map<?, ?> object, String key) {
-        return (int) SimpleJson.number(object.get(key));
-    }
-
-    private static double doubleValue(Map<?, ?> object, String key) {
-        Object value = object.get(key);
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        try {
-            return Double.parseDouble(SimpleJson.text(value));
-        } catch (NumberFormatException exception) {
-            return 0.0D;
-        }
-    }
-
-    private static double doubleValue(Map<?, ?> object, String key, String fallbackKey) {
-        return object.containsKey(key) ? doubleValue(object, key) : doubleValue(object, fallbackKey);
     }
 
     private static boolean bool(Map<?, ?> object, String key) {

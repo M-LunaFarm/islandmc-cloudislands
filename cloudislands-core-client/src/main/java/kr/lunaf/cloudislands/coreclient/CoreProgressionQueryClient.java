@@ -66,7 +66,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     @Override
     public CompletableFuture<List<CoreGuiViews.UpgradeView>> upgrades(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandUpgrades(delegate, islandId);
+        return delegate.listIslandUpgrades(islandId).thenApply(CoreProgressionQueryClient::upgradeViews);
     }
 
     @Override
@@ -77,7 +77,8 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     @Override
     public CompletableFuture<List<CoreGuiViews.MissionView>> missions(UUID islandId, String kind) {
         requireIsland(islandId);
-        return CoreGuiViews.islandMissions(delegate, islandId, kind == null || kind.isBlank() ? "MISSION" : kind);
+        return delegate.listIslandMissions(islandId, kind == null || kind.isBlank() ? "MISSION" : kind)
+            .thenApply(CoreProgressionQueryClient::missionViews);
     }
 
     static LevelView levelView(String body) {
@@ -147,6 +148,39 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
             .toList();
     }
 
+    static List<CoreGuiViews.UpgradeView> upgradeViews(String body) {
+        return entries(body).stream()
+            .map(object -> {
+                String key = text(object, "key");
+                if (key.isBlank()) {
+                    key = text(object, "upgradeKey");
+                }
+                return new CoreGuiViews.UpgradeView(key, text(object, "type"), intValue(object, "level"), text(object, "generatorKey"));
+            })
+            .filter(view -> !view.key().isBlank())
+            .toList();
+    }
+
+    static List<CoreGuiViews.MissionView> missionViews(String body) {
+        return entries(body).stream()
+            .map(object -> {
+                String key = text(object, "key");
+                if (key.isBlank()) {
+                    key = text(object, "missionKey");
+                }
+                return new CoreGuiViews.MissionView(
+                    key,
+                    text(object, "title"),
+                    SimpleJson.number(object.get("progress")),
+                    SimpleJson.number(object.get("goal")),
+                    bool(object, "completed"),
+                    text(object, "reward")
+                );
+            })
+            .filter(view -> !view.key().isBlank())
+            .toList();
+    }
+
     private static List<CoreGuiViews.RankingView> rankingViews(List<ProgressionRankingEntryView> entries, String label) {
         List<ProgressionRankingEntryView> safeEntries = entries == null ? List.of() : entries;
         List<CoreGuiViews.RankingView> rankings = new java.util.ArrayList<>();
@@ -191,6 +225,15 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
 
     private static String text(Map<?, ?> object, String key) {
         return SimpleJson.text(object.get(key));
+    }
+
+    private static int intValue(Map<?, ?> object, String key) {
+        return (int) SimpleJson.number(object.get(key));
+    }
+
+    private static boolean bool(Map<?, ?> object, String key) {
+        Object value = object.get(key);
+        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
     }
 
     private static double doubleValue(Object value) {
