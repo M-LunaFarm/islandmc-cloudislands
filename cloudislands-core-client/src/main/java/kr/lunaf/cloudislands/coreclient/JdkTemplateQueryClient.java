@@ -15,7 +15,8 @@ final class JdkTemplateQueryClient implements TemplateQueryClient {
 
     @Override
     public CompletableFuture<List<TemplateView>> list() {
-        return core.postWithResultBody("/v1/admin/templates/list", "{}")
+        return core.postResultBody("/v1/admin/templates/list", "{}")
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreTemplateJson::templates);
     }
 }

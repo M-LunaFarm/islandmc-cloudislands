@@ -171,10 +171,15 @@ class CoreTypedClientsTest {
                 "JdkIslandQueryClient",
                 "JdkIslandEnvironmentQueryClient",
                 "JdkIslandSettingsCommandClient",
+                "JdkIslandVisitorStatsQueryClient",
                 "JdkMemberQueryClient",
+                "JdkNavigationCommandClient",
+                "JdkNavigationQueryClient",
                 "JdkPermissionQueryClient",
                 "JdkPlayerProfileCommandClient",
                 "JdkPlayerProfileQueryClient",
+                "JdkTemplateCommandClient",
+                "JdkTemplateQueryClient",
                 "JdkWarehouseCommandClient",
                 "JdkWarehouseQueryClient"
         )) {

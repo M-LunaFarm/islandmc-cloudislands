@@ -14,22 +14,25 @@ final class JdkTemplateCommandClient implements TemplateCommandClient {
 
     @Override
     public CompletableFuture<TemplateView> upsert(String templateId, String displayName, boolean enabled, String minNodeVersion) {
-        return core.postWithResultBody(
+        return core.postResultBody(
                 "/v1/admin/templates/upsert",
                 CoreJsonPayload.object("templateId", requireTemplateId(templateId), "displayName", displayName == null ? "" : displayName, "enabled", enabled, "minNodeVersion", minNodeVersion == null ? "" : minNodeVersion)
             )
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreTemplateJson::template);
     }
 
     @Override
     public CompletableFuture<TemplateView> enable(String templateId) {
-        return core.postWithResultBody("/v1/admin/templates/enable", CoreJsonPayload.object("templateId", requireTemplateId(templateId)))
+        return core.postResultBody("/v1/admin/templates/enable", CoreJsonPayload.object("templateId", requireTemplateId(templateId)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreTemplateJson::template);
     }
 
     @Override
     public CompletableFuture<TemplateView> disable(String templateId) {
-        return core.postWithResultBody("/v1/admin/templates/disable", CoreJsonPayload.object("templateId", requireTemplateId(templateId)))
+        return core.postResultBody("/v1/admin/templates/disable", CoreJsonPayload.object("templateId", requireTemplateId(templateId)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreTemplateJson::template);
     }
 
