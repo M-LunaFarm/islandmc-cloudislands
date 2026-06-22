@@ -149,11 +149,13 @@ public final class IslandMemberMenu implements Listener {
                 "playerName", displayName(member),
                 "role", member.role(),
                 "lastSeenAt", member.lastSeenAt() == null ? "" : member.lastSeenAt(),
-                "presenceState", member.presenceState() == null ? "" : member.presenceState()
+                "presenceState", member.presenceState() == null ? "" : member.presenceState(),
+                "expiresAt", member.expiresAt() == null ? "" : member.expiresAt()
             ),
             roleLine(member, messages),
             statusLine(member, messages),
             lastSeenLine(member, messages),
+            expiryLine(member, messages),
             member.joinedAt().isBlank() ? message(messages, "member-menu-no-join-info", "가입 정보 없음") : message(messages, "member-menu-joined-at", "가입 시각: ") + member.joinedAt(),
             message(messages, "member-menu-left-click", "좌클릭: 상세 관리와 권한 예외 안내"),
             message(messages, "member-menu-right-click", "우클릭: 강등 확인"),
@@ -195,6 +197,13 @@ public final class IslandMemberMenu implements Listener {
             return message(messages, "member-menu-last-seen-never", "마지막 활동: 기록 없음");
         }
         return message(messages, "member-menu-last-seen-prefix", "마지막 활동: ") + member.lastSeenAt();
+    }
+
+    private static String expiryLine(MemberView member, MessageRenderer messages) {
+        String expiresAt = member.expiresAt() == null ? "" : member.expiresAt();
+        return expiresAt.isBlank()
+            ? message(messages, "member-menu-permanent-member", "만료: 없음")
+            : message(messages, "member-menu-temporary-trust-expires", "임시 신뢰 만료: ") + expiresAt;
     }
 
 }

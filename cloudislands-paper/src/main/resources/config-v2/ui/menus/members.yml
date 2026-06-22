@@ -41,8 +41,10 @@ items:
     fallback-name: 멤버 초대
     lore-keys:
       - member-menu-invite-usage
+      - member-menu-coop-usage
     fallback-lore:
       - "사용법: /섬 초대 <플레이어>"
+      - "임시 신뢰: /섬 협동 <플레이어> <30m|2h|1d>"
     action: invite-help
   P:
     material: ARROW

@@ -202,6 +202,18 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void memberMenuSurfacesTemporaryTrustExpiryAndHelp() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMemberMenu.java"));
+        String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/members.yml"));
+
+        assertTrue(config.contains("member-menu-coop-usage"), "temporary co-op trust help must live in config-v2");
+        assertTrue(config.contains("/섬 협동 <플레이어> <30m|2h|1d>"), "member menu must show temporary trust syntax");
+        assertTrue(menu.contains("\"expiresAt\", member.expiresAt()"), "member item action data must carry temporary trust expiry");
+        assertTrue(menu.contains("expiryLine(member, messages)"), "member item lore must include temporary trust expiry");
+        assertTrue(menu.contains("member-menu-temporary-trust-expires"), "temporary trust expiry copy must be localizable");
+    }
+
+    @Test
     void bankBalancePanelRendersFromMenuDefinition() throws Exception {
         String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBankMenu.java"));
         String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/bank.yml"));

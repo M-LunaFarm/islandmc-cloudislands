@@ -469,6 +469,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("IslandPermission.OPEN_CONTAINER.name()"), "member detail must show a concrete container permission exception example");
         assertTrue(membershipHandler.contains("static String permissionExceptionCommand"), "permission exception command formatting must be testable outside the GUI branch");
         assertTrue(membershipHandler.contains("private void trustIslandMemberTemporary(Player player, String target, String duration)"), "temporary trust execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("/섬 협동 <플레이어> <30m|2h|1d>"), "member help must surface temporary co-op trust syntax");
         assertTrue(membershipHandler.contains("private void transferIslandOwnership(Player player, String target)"), "ownership transfer execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void banIslandVisitor(Player player, String target, String reason)"), "visitor ban execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void pardonIslandVisitor(Player player, String target)"), "visitor pardon execution belongs in IslandMembershipCommandHandler");

@@ -130,7 +130,7 @@ public final class PaperGuiViews {
     }
 
     private static MemberView member(CoreGuiViews.MemberView view) {
-        return new MemberView(view.playerUuid(), view.role(), view.joinedAt(), view.playerName(), view.lastSeenAt(), view.presenceState(), view.presenceSource());
+        return new MemberView(view.playerUuid(), view.role(), view.joinedAt(), view.playerName(), view.lastSeenAt(), view.presenceState(), view.presenceSource(), view.expiresAt());
     }
 
     private static InviteView invite(CoreGuiViews.InviteView view) {
@@ -204,7 +204,7 @@ public final class PaperGuiViews {
     public record RankingView(int rank, String label, String islandId, long level, String worth) {
     }
 
-    public record MemberView(String playerUuid, String role, String joinedAt, String playerName, String lastSeenAt, String presenceState, String presenceSource) {
+    public record MemberView(String playerUuid, String role, String joinedAt, String playerName, String lastSeenAt, String presenceState, String presenceSource, String expiresAt) {
     }
 
     public record InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {

@@ -359,7 +359,7 @@ final class IslandMembershipCommandHandler {
                     yield true;
                 }
                 case MEMBER_INVITE, MEMBER_INVITE_HELP -> {
-                    runtime.message(player, runtime.routeMessage("member-invite-help", "멤버 초대는 /섬 초대 <플레이어> 로 요청합니다."));
+                    runtime.message(player, runtime.routeMessage("member-invite-help", "멤버 초대는 /섬 초대 <플레이어> 로 요청합니다. 임시 신뢰는 /섬 협동 <플레이어> <30m|2h|1d> 로 설정합니다."));
                     yield true;
                 }
                 case INVITES_OPEN -> {
