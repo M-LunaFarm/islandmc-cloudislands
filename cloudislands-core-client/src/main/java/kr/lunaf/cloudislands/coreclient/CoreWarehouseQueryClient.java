@@ -23,7 +23,7 @@ public final class CoreWarehouseQueryClient implements WarehouseQueryClient {
         return delegate.islandWarehouse(islandId, safeLimit).thenApply(body -> itemViews(islandId, body));
     }
 
-    private static List<WarehouseItemView> itemViews(UUID islandId, String body) {
+    static List<WarehouseItemView> itemViews(UUID islandId, String body) {
         return entries(body).stream()
             .map(object -> new WarehouseItemView(itemIslandId(islandId, object), text(object, "materialKey"), SimpleJson.number(object.get("amount")), text(object, "updatedAt")))
             .filter(item -> !item.materialKey().isBlank() && item.amount() > 0L)

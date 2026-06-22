@@ -30,7 +30,7 @@ public final class CoreWarehouseCommandClient implements WarehouseCommandClient 
             .thenApply(CoreWarehouseCommandClient::warehouseMutation);
     }
 
-    private static WarehouseMutationView warehouseMutation(String body) {
+    static WarehouseMutationView warehouseMutation(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new WarehouseMutationView(CoreJson.accepted(root), CoreJson.text(root, "code"), CoreJson.text(root, "materialKey"), CoreJson.number(root, "amount"));
     }

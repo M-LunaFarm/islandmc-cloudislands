@@ -57,6 +57,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkRuntimeClient runtimeClient;
     private final JdkIslandClient islandClient;
     private final JdkMemberQueryClient memberQueryClient;
+    private final JdkWarehouseClient warehouseClient;
     private final JdkPlayerProfileClient playerProfileClient;
     private final JdkTemplateClient templateClient;
     private final JdkJobClient jobClient;
@@ -92,6 +93,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.runtimeClient = new JdkRuntimeClient();
         this.islandClient = new JdkIslandClient();
         this.memberQueryClient = new JdkMemberQueryClient();
+        this.warehouseClient = new JdkWarehouseClient();
         this.playerProfileClient = new JdkPlayerProfileClient();
         this.templateClient = new JdkTemplateClient();
         this.jobClient = new JdkJobClient();
@@ -171,6 +173,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public RuntimeCommandClient runtimeCommands() {
         return runtimeClient;
+    }
+
+    @Override
+    public WarehouseQueryClient warehouse() {
+        return warehouseClient;
+    }
+
+    @Override
+    public WarehouseCommandClient warehouseCommands() {
+        return warehouseClient;
     }
 
     @Override
@@ -1837,6 +1849,45 @@ public final class JdkCoreApiClient implements CoreApiClient {
                 throw new IllegalArgumentException("nodeId is required");
             }
             return nodeId.trim();
+        }
+    }
+
+    private final class JdkWarehouseClient implements WarehouseQueryClient, WarehouseCommandClient {
+        @Override
+        public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
+            requireId(islandId, "islandId");
+            return post("/v1/islands/warehouse", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))))
+                .thenApply(body -> CoreWarehouseQueryClient.itemViews(islandId, body));
+        }
+
+        @Override
+        public CompletableFuture<WarehouseMutationView> deposit(UUID islandId, UUID actorUuid, String materialKey, long amount) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return postWithResultBody("/v1/islands/warehouse/deposit", jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "materialKey", materialKey == null ? "" : materialKey,
+                "amount", amount
+            )).thenApply(CoreWarehouseCommandClient::warehouseMutation);
+        }
+
+        @Override
+        public CompletableFuture<WarehouseMutationView> withdraw(UUID islandId, UUID actorUuid, String materialKey, long amount) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            return postWithResultBody("/v1/islands/warehouse/withdraw", jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "materialKey", materialKey == null ? "" : materialKey,
+                "amount", amount
+            )).thenApply(CoreWarehouseCommandClient::warehouseMutation);
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
         }
     }
 
