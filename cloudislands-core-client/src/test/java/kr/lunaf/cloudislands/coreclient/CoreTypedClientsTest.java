@@ -213,11 +213,9 @@ class CoreTypedClientsTest {
                 "JdkAdminRouteClient",
                 "JdkAdminStorageClient",
                 "JdkAddonStateClient",
-                "JdkBankQueryClient",
                 "JdkBlockValueCommandClient",
                 "JdkBlockValueQueryClient",
                 "JdkHomeWarpCommandClient",
-                "JdkBankCommandClient",
                 "JdkCoreJobClaimClient",
                 "JdkCoreRouteClient",
                 "JdkHomeWarpQueryClient",
@@ -1212,6 +1210,8 @@ class CoreTypedClientsTest {
         assertEquals("2026-01-02T03:04:05Z", bank.updatedAt());
         assertFalse(source.contains("SimpleJson.object(root.get("), "bank parser must use shared CoreJson nested object helpers");
         assertFalse(source.contains("SimpleJson.text(values.get("), "bank parser must use shared CoreJson text helpers");
+        assertTrue(source.contains("snapshot(CoreResponseBody body)"), "bank snapshot parser must accept typed response envelopes");
+        assertFalse(assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkBankQueryClient.java"))).contains("CoreResponseBody::value"), "bank query client must pass typed response envelopes to its parser");
     }
 
     @Test
@@ -1261,6 +1261,9 @@ class CoreTypedClientsTest {
         assertEquals("20", withdraw.balance());
         assertEquals("2026-01-02T04:04:05Z", withdraw.updatedAt());
         assertEquals(List.of("deposit:15", "deposit:15", "withdraw:4"), calls);
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreBankJson.java")));
+        assertTrue(source.contains("mutation(CoreResponseBody body)"), "bank mutation parser must accept typed response envelopes");
+        assertFalse(assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkBankCommandClient.java"))).contains("CoreResponseBody::value"), "bank command client must pass typed response envelopes to its parser");
     }
 
     @Test

@@ -19,7 +19,6 @@ final class JdkBankCommandClient implements BankCommandClient {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         return core.postResultBody("/v1/islands/bank/deposit", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
-            .thenApply(CoreResponseBody::value)
             .thenApply(CoreBankJson::mutation);
     }
 
@@ -28,7 +27,6 @@ final class JdkBankCommandClient implements BankCommandClient {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         return core.postResultBody("/v1/islands/bank/withdraw", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
-            .thenApply(CoreResponseBody::value)
             .thenApply(CoreBankJson::mutation);
     }
 

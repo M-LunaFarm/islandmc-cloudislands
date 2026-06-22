@@ -16,12 +16,20 @@ final class CoreBankJson {
         return snapshot(CoreJson.object(body));
     }
 
+    static IslandBankSnapshot snapshot(CoreResponseBody body) {
+        return snapshot(body.value());
+    }
+
     static IslandBankChangeSnapshot mutation(String body) {
         Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> bank = CoreJson.objectValue(root, "bank");
         boolean accepted = CoreJson.accepted(root);
         String code = CoreJson.code(root, "", accepted);
         return new IslandBankChangeSnapshot(accepted, code, bank.isEmpty() ? snapshot(root) : snapshot(bank));
+    }
+
+    static IslandBankChangeSnapshot mutation(CoreResponseBody body) {
+        return mutation(body.value());
     }
 
     static BankMutationView mutationView(String body) {

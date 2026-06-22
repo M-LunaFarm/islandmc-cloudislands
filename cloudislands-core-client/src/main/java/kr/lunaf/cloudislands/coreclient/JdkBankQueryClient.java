@@ -18,7 +18,6 @@ final class JdkBankQueryClient implements BankQueryClient {
     public CompletableFuture<IslandBankSnapshot> snapshot(UUID islandId) {
         requireId(islandId, "islandId");
         return core.postBody("/v1/islands/bank", CoreJsonPayload.object("islandId", islandId))
-            .thenApply(CoreResponseBody::value)
             .thenApply(CoreBankJson::snapshot);
     }
 
