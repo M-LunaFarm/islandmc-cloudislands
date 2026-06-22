@@ -1218,6 +1218,10 @@ class CoreTypedClientsTest {
                     calls.add("status:" + args[2]);
                     yield CompletableFuture.completedFuture(Optional.of(ticket));
                 }
+                case "consumeTicket" -> {
+                    calls.add("consume:" + args[2]);
+                    yield CompletableFuture.completedFuture(Optional.of(ticket));
+                }
                 case "publishRouteSessionResult" -> {
                     calls.add("publish:" + ((RouteTicket) args[0]).ticketId());
                     yield CompletableFuture.completedFuture("{\"ok\":true}");
@@ -1233,10 +1237,11 @@ class CoreTypedClientsTest {
 
         assertEquals(ticket, client.createWarpTicket(playerUuid, islandId, "spawn").join());
         assertEquals(Optional.of(ticket), client.routeTicketStatus(ticket).join());
+        assertEquals(Optional.of(ticket), client.consumeTicket(ticket.ticketId(), playerUuid, "paper-a", "nonce").join());
         assertEquals(null, client.publishRouteSession(ticket).join());
         assertEquals("ROUTE_SESSION_PUBLISHED", client.publishRouteSessionResult(ticket).join().code());
         assertEquals("cleared", client.clearRoute(ticket, "").join().code());
-        assertEquals(List.of("warp:spawn", "status:nonce", "publish:" + ticket.ticketId(), "publish:" + ticket.ticketId(), "clear:PLUGIN_MESSAGE_FAILED"), calls);
+        assertEquals(List.of("warp:spawn", "status:nonce", "consume:paper-a", "publish:" + ticket.ticketId(), "publish:" + ticket.ticketId(), "clear:PLUGIN_MESSAGE_FAILED"), calls);
     }
 
     @Test

@@ -90,6 +90,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final AdminAuditQueryClient adminAuditClient;
     private final AdminRouteClient adminRouteClient;
     private final AdminAddonStateQueryClient adminAddonStateClient;
+    private final AddonStateClient addonStateClient;
     private final AdminMaintenanceCommandClient adminMaintenanceClient;
     private final AdminNodeQueryClient adminNodeQueryClient;
     private final AdminNodeCommandClient adminNodeCommandClient;
@@ -146,6 +147,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.adminAuditClient = new CoreAdminAuditQueryClient(this);
         this.adminRouteClient = new CoreAdminRouteClient(this);
         this.adminAddonStateClient = new CoreAdminAddonStateQueryClient(this);
+        this.addonStateClient = new CoreAddonStateClient(this);
         this.adminMaintenanceClient = new CoreAdminMaintenanceCommandClient(this);
         this.adminNodeQueryClient = new CoreAdminNodeQueryClient(this);
         this.adminNodeCommandClient = new CoreAdminNodeCommandClient(this);
@@ -355,6 +357,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public AdminAddonStateQueryClient adminAddonState() {
         return adminAddonStateClient;
+    }
+
+    @Override
+    public AddonStateClient addonStates() {
+        return addonStateClient;
     }
 
     @Override

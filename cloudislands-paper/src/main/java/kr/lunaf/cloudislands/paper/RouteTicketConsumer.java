@@ -7,6 +7,7 @@ import java.util.Optional;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
@@ -28,7 +29,7 @@ import net.kyori.adventure.text.Component;
 
 public final class RouteTicketConsumer {
     private final Plugin plugin;
-    private final CoreApiClient coreApiClient;
+    private final RoutingCommandClient routingCommands;
     private final String nodeId;
     private final PaperPlayerGateway players;
     private final PaperWorldGateway worlds;
@@ -50,7 +51,7 @@ public final class RouteTicketConsumer {
 
     RouteTicketConsumer(Plugin plugin, CoreApiClient coreApiClient, String nodeId, PaperPlayerGateway players, PaperWorldGateway worlds) {
         this.plugin = plugin;
-        this.coreApiClient = coreApiClient;
+        this.routingCommands = coreApiClient.routingCommands();
         this.nodeId = nodeId;
         this.players = players;
         this.worlds = worlds;
@@ -81,7 +82,7 @@ public final class RouteTicketConsumer {
         if (attempt == 0 || attempt % 5 == 0) {
             kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> notifyPreparing(playerUuid, attempt));
         }
-        coreApiClient.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> {
+        routingCommands.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> {
             if (ticket.isPresent()) {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> teleport(playerUuid, ticket.get(), 0));
                 return;
@@ -334,7 +335,7 @@ public final class RouteTicketConsumer {
     }
 
     private void clearRoute(UUID playerUuid, UUID ticketId, String reason) {
-        coreApiClient.clearRoute(playerUuid, ticketId, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
+        routingCommands.clearRoute(playerUuid, ticketId, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
         loadingBars.remove(playerUuid);
     }
 

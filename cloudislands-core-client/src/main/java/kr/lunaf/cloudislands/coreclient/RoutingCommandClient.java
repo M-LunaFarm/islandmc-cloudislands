@@ -10,9 +10,13 @@ public interface RoutingCommandClient {
 
     CompletableFuture<Optional<RouteTicket>> routeTicketStatus(RouteTicket ticket);
 
+    CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
+
     CompletableFuture<Void> publishRouteSession(RouteTicket ticket);
 
     CompletableFuture<RoutePublishView> publishRouteSessionResult(RouteTicket ticket);
 
     CompletableFuture<RouteClearView> clearRoute(RouteTicket ticket, String reason);
+
+    CompletableFuture<RouteClearView> clearRoute(UUID playerUuid, UUID ticketId, String reason);
 }

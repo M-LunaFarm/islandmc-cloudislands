@@ -7,6 +7,7 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
 import kr.lunaf.cloudislands.paper.platform.scheduler.BukkitPlatformScheduler;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
 import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
@@ -16,7 +17,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class PaperHeartbeatService {
     private final Plugin plugin;
-    private final CoreApiClient coreApiClient;
+    private final RuntimeCommandClient runtimeCommands;
     private final String nodeId;
     private final String pool;
     private final String velocityServerName;
@@ -63,7 +64,7 @@ public final class PaperHeartbeatService {
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName, String nodeVersion, String supportedTemplates, Supplier<String> supportedTemplatesSupplier, BooleanSupplier storageAvailable, IntSupplier softPlayerCap, IntSupplier hardPlayerCap, IntSupplier reservedSlots, IntSupplier activeIslandCount, IntSupplier maxActiveIslands, IntSupplier activationQueue, IntSupplier maxActivationQueue, DoubleSupplier chunkLoadPressure, IntSupplier recentFailurePenalty, PlatformScheduler scheduler) {
         this.plugin = plugin;
-        this.coreApiClient = coreApiClient;
+        this.runtimeCommands = coreApiClient.runtimeCommands();
         this.nodeId = nodeId;
         this.pool = pool;
         this.velocityServerName = velocityServerName;
@@ -143,7 +144,7 @@ public final class PaperHeartbeatService {
             storageOk,
             supportedTemplatesSupplier.get()
         );
-        coreApiClient.publishHeartbeat(heartbeat);
+        runtimeCommands.publishHeartbeat(heartbeat);
     }
 
     private void logHeartbeatFailure(RuntimeException exception) {

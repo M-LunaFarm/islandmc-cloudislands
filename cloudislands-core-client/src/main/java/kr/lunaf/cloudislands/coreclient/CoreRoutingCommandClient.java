@@ -30,6 +30,16 @@ public final class CoreRoutingCommandClient implements RoutingCommandClient {
     }
 
     @Override
+    public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
+        requireId(ticketId, "ticketId");
+        requireId(playerUuid, "playerUuid");
+        if (nodeId == null || nodeId.isBlank()) {
+            throw new IllegalArgumentException("nodeId is required");
+        }
+        return delegate.consumeTicket(ticketId, playerUuid, nodeId.trim(), nonce == null ? "" : nonce);
+    }
+
+    @Override
     public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) {
         return publishRouteSessionResult(ticket).thenApply(_result -> null);
     }
@@ -43,8 +53,15 @@ public final class CoreRoutingCommandClient implements RoutingCommandClient {
     @Override
     public CompletableFuture<RouteClearView> clearRoute(RouteTicket ticket, String reason) {
         requireTicket(ticket);
+        return clearRoute(ticket.playerUuid(), ticket.ticketId(), reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason);
+    }
+
+    @Override
+    public CompletableFuture<RouteClearView> clearRoute(UUID playerUuid, UUID ticketId, String reason) {
+        requireId(playerUuid, "playerUuid");
+        requireId(ticketId, "ticketId");
         String normalizedReason = reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason;
-        return delegate.clearRoute(ticket.playerUuid(), ticket.ticketId(), normalizedReason)
+        return delegate.clearRoute(playerUuid, ticketId, normalizedReason)
             .thenApply(CoreRoutingCommandClient::routeClearResult);
     }
 
