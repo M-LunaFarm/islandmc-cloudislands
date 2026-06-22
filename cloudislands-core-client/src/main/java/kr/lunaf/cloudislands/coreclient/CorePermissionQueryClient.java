@@ -29,7 +29,7 @@ public final class CorePermissionQueryClient implements PermissionQueryClient {
         return CoreGuiViews.islandRoles(delegate, islandId);
     }
 
-    private static List<PermissionAssignmentView> permissionViews(String body) {
+    static List<PermissionAssignmentView> permissionViews(String body) {
         Map<?, ?> root = CoreJson.object(body);
         String version = text(root, "version");
         return entries(body).stream()

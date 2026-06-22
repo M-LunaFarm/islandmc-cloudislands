@@ -79,18 +79,18 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
             .thenApply(body -> permissionAction(body, "PERMISSION_OVERRIDE_SET"));
     }
 
-    private static MutationResult<PermissionMatrixView> mutationResult(String body) {
+    static MutationResult<PermissionMatrixView> mutationResult(String body) {
         CoreGuiViews.PermissionRulesView rules = CoreGuiViews.permissionRulesView(body);
         PermissionMatrixView view = new PermissionMatrixView(rules.version(), rules.rules());
         return new MutationResult<>(view, view.version(), true);
     }
 
-    private static MutationResult<CoreGuiViews.RoleView> roleMutationResult(String body) {
+    static MutationResult<CoreGuiViews.RoleView> roleMutationResult(String body) {
         CoreGuiViews.RoleView role = CoreGuiViews.roleView(body);
         return new MutationResult<>(role, "", true);
     }
 
-    private static PermissionActionView permissionAction(String body, String successCode) {
+    static PermissionActionView permissionAction(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
         return new PermissionActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
     }
