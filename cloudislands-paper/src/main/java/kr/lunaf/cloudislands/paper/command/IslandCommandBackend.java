@@ -67,8 +67,7 @@ final class IslandCommandBackend {
     private final IslandAdminNodeCommandHandler adminCommands;
     private final IslandRoutingCommandHandler routingCommands;
     private final IslandCommandRouter router;
-    private final MessageRenderer messages;
-    private final PlayerLocaleCache locales;
+    private final IslandCommandMessenger commandMessages;
     private final PaperPlayerGateway players;
     private final PaperWorldGateway worlds;
     private final MemberManagementUseCase memberManagement;
@@ -114,6 +113,7 @@ final class IslandCommandBackend {
         this.coreApiClient = coreApiClient;
         this.protection = protection;
         this.levelScanService = levelScanService;
+        this.commandMessages = new IslandCommandMessenger(plugin, messages, locales);
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
         this.routingCommands = new IslandRoutingCommandHandler(plugin, coreApiClient, routeWaitSeconds, fallbackServerName, new IslandRoutingCommandHandler.Runtime() {
             @Override
@@ -840,8 +840,6 @@ final class IslandCommandBackend {
                 return IslandCommandBackend.this.messagesFor(player);
             }
         });
-        this.messages = messages;
-        this.locales = locales;
         this.players = players;
         this.worlds = worlds;
         this.router = new IslandCommandRouter(
@@ -910,22 +908,19 @@ final class IslandCommandBackend {
     }
 
     private String playerCodeMessage(String code, String fallback) {
-        return IslandCommandMessages.playerCodeMessage(code, fallback);
+        return commandMessages.playerCodeMessage(code, fallback);
     }
 
     private MessageRenderer messagesFor(Player player) {
-        return messages == null || player == null ? messages : messages.forLocale(locales == null ? player.getLocale() : locales.locale(player));
+        return commandMessages.messagesFor(player);
     }
 
     private String routeMessage(String key, String fallback, String... variables) {
-        String rendered = messages == null ? "" : messages.plain(key, variables);
-        return rendered.isBlank() ? fallback : rendered;
+        return commandMessages.routeMessage(key, fallback, variables);
     }
 
     private String routeMessage(Player player, String key, String fallback, String... variables) {
-        MessageRenderer playerMessages = messagesFor(player);
-        String rendered = playerMessages == null ? "" : playerMessages.plain(key, variables);
-        return rendered.isBlank() ? fallback : rendered;
+        return commandMessages.routeMessage(player, key, fallback, variables);
     }
 
     public void onQuit(PlayerQuitEvent event) {
@@ -1101,11 +1096,11 @@ final class IslandCommandBackend {
     }
 
     private void message(Player player, String message) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendMessage(playerMessage(message)));
+        commandMessages.message(player, message);
     }
 
     private String playerMessage(String message) {
-        return IslandCommandRuntimeSupport.playerMessage(message);
+        return commandMessages.playerMessage(message);
     }
 
     private String coreWriteFailureMessage(Throwable error, String fallback) {
