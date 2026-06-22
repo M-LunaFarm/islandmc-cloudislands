@@ -83,16 +83,8 @@ abstract class VelocityActionSupport {
         return message == null || message.isBlank() ? emptyMessage : message;
     }
 
-    protected String routeDebugMessage(String body) {
-        return playerMessage(routeMessages.debug(body));
-    }
-
     protected String routeDebugMessage(AdminRouteDebugView view) {
         return playerMessage(routeMessages.debug(view));
-    }
-
-    protected String routeTicketMessage(String body) {
-        return playerMessage(routeMessages.ticket(body));
     }
 
     protected String routeTicketMessage(Optional<AdminRouteTicketView> ticket) {

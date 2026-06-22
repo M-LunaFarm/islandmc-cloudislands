@@ -16,11 +16,26 @@ class VelocityRouteMessageFormatterTest {
     @Test
     void summarizesRouteDebugWithoutLeakingHiddenNodeNames() {
         VelocityRouteMessageFormatter formatter = new VelocityRouteMessageFormatter(new VelocityRoutePrivacyFormatter(true));
-        String body = """
-            {"sessions":[{"playerUuid":"abcdef12-0000-0000-0000-000000000000","ticketId":"12345678-1234-1234-1234-123456789abc","targetNode":"island-1","targetServerName":"island-server-1","expiresAt":"2026-01-02T03:04:05Z"}],"tickets":[{"ticketId":"87654321-1234-1234-1234-123456789abc","action":"VISIT","state":"READY","islandId":"00000000-0000-0000-0000-000000000001","targetNode":"island-2"}]}
-            """;
+        AdminRouteDebugView debug = new AdminRouteDebugView(
+            List.of(new AdminRouteSessionView("abcdef12-0000-0000-0000-000000000000", "12345678-1234-1234-1234-123456789abc", "island-1", "island-server-1", "nonce", "2026-01-02T03:04:05Z")),
+            List.of(new AdminRouteTicketView(
+                "87654321-1234-1234-1234-123456789abc",
+                "abcdef12-0000-0000-0000-000000000000",
+                "00000000-0000-0000-0000-000000000001",
+                "VISIT",
+                "READY",
+                "island-2",
+                "world",
+                "island-server-2",
+                "visit",
+                "target",
+                "",
+                "2026-01-02T03:04:05Z",
+                "nonce"
+            ))
+        );
 
-        String message = formatter.debug(body);
+        String message = formatter.debug(debug);
 
         assertTrue(message.contains("Routes: sessions=1"));
         assertTrue(message.contains("abcdef12 ticket=12345678"));
@@ -33,29 +48,44 @@ class VelocityRouteMessageFormatterTest {
     @Test
     void summarizesRouteDebugWithVisibleNodeNames() {
         VelocityRouteMessageFormatter formatter = new VelocityRouteMessageFormatter(new VelocityRoutePrivacyFormatter(false));
-        String body = """
-            {"sessions":[{"playerUuid":"abcdef12-0000-0000-0000-000000000000","ticketId":"12345678-1234-1234-1234-123456789abc","targetNode":"island-1","targetServerName":"island-server-1"}],"tickets":[]}
-            """;
+        AdminRouteDebugView debug = new AdminRouteDebugView(
+            List.of(new AdminRouteSessionView("abcdef12-0000-0000-0000-000000000000", "12345678-1234-1234-1234-123456789abc", "island-1", "island-server-1", "nonce", "")),
+            List.of()
+        );
 
         assertEquals(
             "Routes: sessions=1 [abcdef12 ticket=12345678 node=island-1 server=island-server-1] tickets=0",
-            formatter.debug(body)
+            formatter.debug(debug)
         );
     }
 
     @Test
     void summarizesTicketAndClearResponses() {
         VelocityRouteMessageFormatter formatter = new VelocityRouteMessageFormatter(new VelocityRoutePrivacyFormatter(false));
+        AdminRouteTicketView ticket = new AdminRouteTicketView(
+            "12345678-1234-1234-1234-123456789abc",
+            "abcdef12-0000-0000-0000-000000000000",
+            "00000000-0000-0000-0000-000000000001",
+            "HOME",
+            "READY",
+            "island-1",
+            "world",
+            "island-server-1",
+            "home",
+            "base",
+            "",
+            "2026-01-02T03:04:05Z",
+            "nonce"
+        );
 
-        assertEquals("Route ticket: not found", formatter.ticket(""));
-        assertEquals("Route ticket: failed code=NOT_FOUND", formatter.ticket("{\"code\":\"NOT_FOUND\"}"));
+        assertEquals("Route ticket: not found", formatter.ticket(Optional.empty()));
         assertEquals(
             "Route ticket: 12345678 HOME READY 섬=00000000 node=island-1",
-            formatter.ticket("{\"ticketId\":\"12345678-1234-1234-1234-123456789abc\",\"action\":\"HOME\",\"state\":\"READY\",\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"targetNode\":\"island-1\"}")
+            formatter.ticket(Optional.of(ticket))
         );
         assertEquals(
             "Route clear: session=true ticket=false reason=manual",
-            formatter.clear("{\"clearedSession\":true,\"clearedTicket\":false,\"reason\":\"manual\"}")
+            formatter.clear(new AdminRouteClearView(true, false, "manual"))
         );
     }
 
