@@ -85,6 +85,31 @@ class ProductionReadinessPolicyTest {
     }
 
     @Test
+    void productionGaRunbookCoversEveryGateWithEvidenceAndRollbackCommands() {
+        Map<String, ProductionRunbookStep> runbook = ProductionGaRunbook.stepsByGate();
+
+        assertEquals(List.of(), ProductionGaRunbook.incompleteStepGates());
+        assertEquals(ProductionReadinessPolicy.requiredGates(), ProductionGaRunbook.steps().stream().map(ProductionRunbookStep::gate).toList());
+        assertTrue(ProductionGaRunbook.CONTRACT.contains("action-verification-rollback-and-evidence"));
+        assertTrue(ProductionGaRunbook.summary().contains("multi-core-e2e|action="));
+        assertTrue(ProductionGaRunbook.summary().contains("backup-restore-drill|action="));
+
+        for (ProductionGaDrill drill : ProductionGaDrillMatrix.drills()) {
+            ProductionRunbookStep step = runbook.get(drill.gate());
+            assertTrue(step.actionable(), drill.gate());
+            assertEquals(drill.requiredEvidence(), step.requiredEvidence(), drill.gate());
+            assertEquals(drill.failureInjections(), step.failureInjections(), drill.gate());
+            assertFalse(step.verificationCommand().isBlank(), drill.gate());
+            assertFalse(step.rollbackCommand().isBlank(), drill.gate());
+        }
+
+        assertTrue(runbook.get("multi-core-e2e").verificationCommand().contains("scripts/ci/core_integration_smoke.py"));
+        assertTrue(runbook.get("multi-paper-failover").verificationCommand().contains("scripts/ci/papermc_smoke.py"));
+        assertTrue(runbook.get("rolling-upgrade").actionCommand().contains("ciadmin node drain"));
+        assertTrue(runbook.get("operator-runbook").rollbackCommand().contains("block release"));
+    }
+
+    @Test
     void versionCompatibilityMatrixPinsPaperVelocityProtocolAndRollingUpgradeContracts() {
         assertEquals("1.21.11", VersionCompatibilityPolicy.SUPPORTED_PAPER_VERSION);
         assertEquals("21", VersionCompatibilityPolicy.SUPPORTED_JAVA_VERSION);
