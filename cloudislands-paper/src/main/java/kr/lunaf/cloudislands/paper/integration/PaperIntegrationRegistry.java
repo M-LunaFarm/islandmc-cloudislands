@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.integration;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
@@ -60,23 +62,23 @@ public final class PaperIntegrationRegistry {
     }
 
     public IntegrationResult validateVersion(String pluginName, IntegrationContext context) {
-        return execute(pluginName, integration -> integration.validateVersion(withPluginVersionMetadata(integration.pluginName(), context)));
+        return execute(pluginName, CloudIntegration::validateVersion, context);
     }
 
     public IntegrationResult onIslandActivate(String pluginName, IntegrationContext context) {
-        return execute(pluginName, integration -> integration.onIslandActivate(context));
+        return execute(pluginName, CloudIntegration::onIslandActivate, context);
     }
 
     public IntegrationResult onIslandDeactivate(String pluginName, IntegrationContext context) {
-        return execute(pluginName, integration -> integration.onIslandDeactivate(context));
+        return execute(pluginName, CloudIntegration::onIslandDeactivate, context);
     }
 
     public IntegrationResult exportState(String pluginName, IntegrationContext context) {
-        return execute(pluginName, integration -> integration.exportState(context));
+        return execute(pluginName, CloudIntegration::exportState, context);
     }
 
     public IntegrationResult restoreState(String pluginName, IntegrationContext context) {
-        return execute(pluginName, integration -> integration.restoreState(context));
+        return execute(pluginName, CloudIntegration::restoreState, context);
     }
 
     public CloudIntegrationPolicy.HookDecision validateHookContext(CloudIntegrationPolicy.HookContext context) {
@@ -134,27 +136,28 @@ public final class PaperIntegrationRegistry {
         return new PolicyBackedCloudIntegration(pluginName, capabilities);
     }
 
-    private IntegrationResult execute(String pluginName, Function<CloudIntegration, IntegrationResult> operation) {
+    private IntegrationResult execute(String pluginName, BiFunction<CloudIntegration, IntegrationContext, IntegrationResult> operation, IntegrationContext context) {
         CloudIntegration integration = integration(pluginName);
+        Plugin plugin = plugin(integration.pluginName());
         if (!pluginEnabled(integration.pluginName())) {
             return IntegrationResult.skipped(integration.pluginName() + " is not enabled");
         }
-        return operation.apply(integration);
+        return operation.apply(integration, withPluginRuntimeMetadata(integration.pluginName(), context, plugin));
     }
 
-    private IntegrationContext withPluginVersionMetadata(String pluginName, IntegrationContext context) {
-        if (context == null || !context.missingMetadata("pluginVersion").contains("pluginVersion")) {
+    private IntegrationContext withPluginRuntimeMetadata(String pluginName, IntegrationContext context, Plugin plugin) {
+        if (context == null || plugin == null) {
             return context;
         }
-        Plugin plugin = server == null ? null : server.getPluginManager().getPlugin(pluginName);
-        if (plugin == null) {
-            return context;
-        }
+        LinkedHashMap<String, String> runtimeMetadata = new LinkedHashMap<>();
+        runtimeMetadata.put("pluginName", pluginName == null || pluginName.isBlank() ? plugin.getName() : pluginName);
+        runtimeMetadata.put("pluginClass", plugin.getClass().getName());
+        runtimeMetadata.put("pluginEnabled", Boolean.toString(pluginEnabled(pluginName)));
         String version = pluginVersion(plugin);
-        if (version.isBlank()) {
-            return context;
+        if (!version.isBlank()) {
+            runtimeMetadata.put("pluginVersion", version);
         }
-        return context.withMetadata(Map.of("pluginVersion", version));
+        return context.withMetadata(runtimeMetadata);
     }
 
     @SuppressWarnings("deprecation")
@@ -166,6 +169,10 @@ public final class PaperIntegrationRegistry {
 
     private boolean pluginEnabled(String pluginName) {
         return server != null && server.getPluginManager().isPluginEnabled(pluginName);
+    }
+
+    private Plugin plugin(String pluginName) {
+        return server == null ? null : server.getPluginManager().getPlugin(pluginName);
     }
 
     public record IntegrationStatus(

@@ -377,7 +377,9 @@ class PaperIntegrationRegistryTest {
         assertTrue(registrySource.contains("private IntegrationResult execute"));
         assertTrue(registrySource.contains("pluginEnabled(integration.pluginName())"));
         assertTrue(registrySource.contains("IntegrationResult.skipped(integration.pluginName() + \" is not enabled\")"));
-        assertTrue(registrySource.contains("withPluginVersionMetadata(integration.pluginName(), context)"));
+        assertTrue(registrySource.contains("withPluginRuntimeMetadata(integration.pluginName(), context, plugin)"));
+        assertTrue(registrySource.contains("runtimeMetadata.put(\"pluginClass\", plugin.getClass().getName())"));
+        assertTrue(registrySource.contains("runtimeMetadata.put(\"pluginEnabled\", Boolean.toString(pluginEnabled(pluginName)))"));
         assertTrue(registrySource.contains("getPlugin(pluginName)"));
     }
 
