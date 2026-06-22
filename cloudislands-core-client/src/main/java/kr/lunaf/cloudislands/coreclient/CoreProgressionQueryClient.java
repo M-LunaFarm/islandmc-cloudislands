@@ -80,7 +80,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
         return CoreGuiViews.islandMissions(delegate, islandId, kind == null || kind.isBlank() ? "MISSION" : kind);
     }
 
-    private static LevelView levelView(String body) {
+    static LevelView levelView(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new LevelView(
             text(root, "islandId"),
@@ -90,7 +90,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
         );
     }
 
-    private static ProgressionBlockDetailsView blockDetailsView(String body) {
+    static ProgressionBlockDetailsView blockDetailsView(String body) {
         Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> summary = SimpleJson.object(root.get("summary"));
         List<ProgressionBlockDetailView> blocks = SimpleJson.list(root.get("blocks")).stream()
@@ -110,7 +110,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
         );
     }
 
-    private static List<ProgressionRankingEntryView> rankingViews(String body, String valueKey) {
+    static List<ProgressionRankingEntryView> rankingViews(String body, String valueKey) {
         return entries(body).stream()
             .map(object -> new ProgressionRankingEntryView(
                 text(object, "islandId"),
@@ -123,7 +123,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
             .toList();
     }
 
-    private static List<ProgressionReviewRankingEntryView> reviewRankingViews(String body) {
+    static List<ProgressionReviewRankingEntryView> reviewRankingViews(String body) {
         return entries(body).stream()
             .map(object -> new ProgressionReviewRankingEntryView(
                 text(object, "islandId"),
@@ -134,7 +134,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
             .toList();
     }
 
-    private static List<UpgradeRuleView> upgradeRuleViews(String body) {
+    static List<UpgradeRuleView> upgradeRuleViews(String body) {
         return entries(body).stream()
             .map(object -> new UpgradeRuleView(
                 text(object, "upgradeKey"),

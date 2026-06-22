@@ -59,7 +59,7 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
             .thenApply(CoreProgressionCommandClient::missionDefinitions);
     }
 
-    private static ProgressionUpgradePurchaseView upgradePurchaseResult(String body, String fallbackKey) {
+    static ProgressionUpgradePurchaseView upgradePurchaseResult(String body, String fallbackKey) {
         Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> upgrade = SimpleJson.object(root.get("upgrade"));
         boolean accepted = CoreJson.accepted(root);
@@ -83,7 +83,7 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         );
     }
 
-    private static LevelView levelView(String body) {
+    static LevelView levelView(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new LevelView(
             text(root, "islandId"),
@@ -93,7 +93,7 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         );
     }
 
-    private static ProgressionMissionCompletionView missionCompletionResult(String body, UUID fallbackIslandId, String fallbackKey, String fallbackKind) {
+    static ProgressionMissionCompletionView missionCompletionResult(String body, UUID fallbackIslandId, String fallbackKey, String fallbackKind) {
         Map<?, ?> root = CoreJson.object(body);
         boolean accepted = CoreJson.accepted(root);
         String code = text(root, "code");
@@ -124,7 +124,7 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         );
     }
 
-    private static List<MissionProviderDefinitionSnapshot> missionDefinitions(String body) {
+    static List<MissionProviderDefinitionSnapshot> missionDefinitions(String body) {
         Object parsed = CoreJson.value(body);
         List<?> entries = parsed instanceof List<?> ? SimpleJson.list(parsed) : SimpleJson.list(SimpleJson.object(parsed).get("missions"));
         return entries.stream()
@@ -145,7 +145,7 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         );
     }
 
-    private static String missionDefinitionsJson(List<MissionProviderDefinitionSnapshot> definitions) {
+    static String missionDefinitionsJson(List<MissionProviderDefinitionSnapshot> definitions) {
         return SimpleJson.stringify((definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions).stream()
             .map(CoreProgressionCommandClient::missionDefinitionJson)
             .toList());
