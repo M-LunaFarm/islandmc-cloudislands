@@ -1,8 +1,10 @@
 package kr.lunaf.cloudislands.api.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +18,18 @@ import kr.lunaf.cloudislands.api.model.RoleId;
 import org.junit.jupiter.api.Test;
 
 class IslandCommandServiceRoleKeyTest {
+    @Test
+    void legacyEnumRoleMethodsAreDeprecatedAdapters() throws Exception {
+        assertDeprecatedAdapter("setRole", UUID.class, UUID.class, UUID.class, IslandRole.class);
+        assertDeprecatedAdapter("setRoleResult", UUID.class, UUID.class, UUID.class, IslandRole.class);
+        assertDeprecatedAdapter("setPermission", UUID.class, UUID.class, IslandRole.class, IslandPermission.class, boolean.class);
+        assertDeprecatedAdapter("setPermissionResult", UUID.class, UUID.class, IslandRole.class, IslandPermission.class, boolean.class);
+        assertDeprecatedAdapter("upsertRole", UUID.class, UUID.class, IslandRole.class, int.class, String.class);
+        assertDeprecatedAdapter("upsertRoleResult", UUID.class, UUID.class, IslandRole.class, int.class, String.class);
+        assertDeprecatedAdapter("resetRole", UUID.class, UUID.class, IslandRole.class);
+        assertDeprecatedAdapter("resetRoleResult", UUID.class, UUID.class, IslandRole.class);
+    }
+
     @Test
     void roleKeyDefaultsDoNotRejectCustomRolesBeforeImplementationBoundary() {
         List<String> calls = new ArrayList<>();
@@ -89,5 +103,10 @@ class IslandCommandServiceRoleKeyTest {
             new Class<?>[] {IslandCommandService.class},
             handler
         );
+    }
+
+    private static void assertDeprecatedAdapter(String name, Class<?>... parameterTypes) throws Exception {
+        Method method = IslandCommandService.class.getMethod(name, parameterTypes);
+        assertTrue(method.isAnnotationPresent(Deprecated.class), method + " must remain a deprecated enum adapter");
     }
 }

@@ -62,9 +62,11 @@ public interface IslandCommandService {
         return setRoleResult(islandId, actorUuid, targetUuid, roleKey).thenApply(_result -> null);
     }
     CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey);
+    @Deprecated(since = "0.2", forRemoval = false)
     default CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) {
         return setRole(islandId, actorUuid, targetUuid, legacyRoleKey(role));
     }
+    @Deprecated(since = "0.2", forRemoval = false)
     default CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) {
         return setRoleResult(islandId, actorUuid, targetUuid, legacyRoleKey(role));
     }
@@ -82,9 +84,11 @@ public interface IslandCommandService {
         return setPermissionResult(islandId, actorUuid, roleKey, permission, allowed).thenApply(_result -> null);
     }
     CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed);
+    @Deprecated(since = "0.2", forRemoval = false)
     default CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) {
         return setPermission(islandId, actorUuid, legacyRoleKey(role), permission, allowed);
     }
+    @Deprecated(since = "0.2", forRemoval = false)
     default CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) {
         return setPermissionResult(islandId, actorUuid, legacyRoleKey(role), permission, allowed);
     }
@@ -98,9 +102,11 @@ public interface IslandCommandService {
         return upsertRoleResult(islandId, actorUuid, roleKey, weight, displayName).thenApply(_result -> null);
     }
     CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName);
+    @Deprecated(since = "0.2", forRemoval = false)
     default CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) {
         return upsertRole(islandId, actorUuid, legacyRoleKey(role), weight, displayName);
     }
+    @Deprecated(since = "0.2", forRemoval = false)
     default CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) {
         return upsertRoleResult(islandId, actorUuid, legacyRoleKey(role), weight, displayName);
     }
@@ -114,9 +120,11 @@ public interface IslandCommandService {
         return resetRoleResult(islandId, actorUuid, roleKey).thenApply(_result -> null);
     }
     CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, String roleKey);
+    @Deprecated(since = "0.2", forRemoval = false)
     default CompletableFuture<Void> resetRole(UUID islandId, UUID actorUuid, IslandRole role) {
         return resetRole(islandId, actorUuid, legacyRoleKey(role));
     }
+    @Deprecated(since = "0.2", forRemoval = false)
     default CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, IslandRole role) {
         return resetRoleResult(islandId, actorUuid, legacyRoleKey(role));
     }
