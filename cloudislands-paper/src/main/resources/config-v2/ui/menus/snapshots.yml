@@ -17,6 +17,11 @@ items:
       - snapshot-menu-empty
     fallback-lore:
       - 아직 생성된 섬 스냅샷이 없습니다.
+  _:
+    material: PAPER
+    name-key: snapshot-menu-entry-name
+    fallback-name: 스냅샷
+    action: restore-prepare
   C:
     material: CHEST
     name-key: snapshot-menu-create-name

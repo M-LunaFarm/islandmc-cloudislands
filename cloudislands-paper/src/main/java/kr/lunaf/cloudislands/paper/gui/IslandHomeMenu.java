@@ -120,7 +120,7 @@ public final class IslandHomeMenu implements Listener {
 
     private static ItemStack homeItem(HomeView home, MessageRenderer messages) {
         return GuiItems.action(
-            GuiMenuRenderer.material(MENU.item("H").map(GuiMenuDefinition.MenuItem::materialKey).orElse("GREEN_BED")),
+            GuiMenuRenderer.material(MENU, "_", "GREEN_BED"),
             home.name(),
             "island.home",
             Map.of("homeName", home.name()),

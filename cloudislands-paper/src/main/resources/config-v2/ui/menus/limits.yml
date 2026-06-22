@@ -17,6 +17,11 @@ items:
       - limit-menu-empty
     fallback-lore:
       - 현재 설정된 섬 제한이 없습니다.
+  _:
+    material: HOPPER
+    name-key: limit-menu-entry-name
+    fallback-name: 섬 제한
+    action: set
   M:
     material: COMPASS
     name-key: limit-menu-main-menu-name

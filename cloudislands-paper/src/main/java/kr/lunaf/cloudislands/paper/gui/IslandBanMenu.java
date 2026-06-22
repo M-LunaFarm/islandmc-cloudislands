@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.BanView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -116,7 +115,7 @@ public final class IslandBanMenu implements Listener {
     }
 
     private static ItemStack banItem(BanView ban, MessageRenderer messages) {
-        return GuiItems.action(Material.BARRIER, message(messages, "ban-menu-title-prefix", "밴 ") + shortUuid(ban.bannedUuid()), "island.ban.pardon.prepare",
+        return GuiItems.action(GuiMenuRenderer.material(MENU, "_", "BARRIER"), message(messages, "ban-menu-title-prefix", "밴 ") + shortUuid(ban.bannedUuid()), "island.ban.pardon.prepare",
             Map.of(
                 "playerUuid", ban.bannedUuid(),
                 "actorUuid", ban.actorUuid(),

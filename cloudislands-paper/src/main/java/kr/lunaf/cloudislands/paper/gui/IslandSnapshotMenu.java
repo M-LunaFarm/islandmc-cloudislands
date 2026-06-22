@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.SnapshotView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -122,7 +121,7 @@ public final class IslandSnapshotMenu implements Listener {
     }
 
     private static ItemStack snapshotItem(SnapshotView snapshot, MessageRenderer messages) {
-        return GuiItems.action(Material.PAPER, message(messages, "snapshot-menu-title-prefix", "스냅샷 #") + snapshot.snapshotNo(), "island.snapshot.restore.prepare",
+        return GuiItems.action(GuiMenuRenderer.material(MENU, "_", "PAPER"), message(messages, "snapshot-menu-title-prefix", "스냅샷 #") + snapshot.snapshotNo(), "island.snapshot.restore.prepare",
             Map.of(
                 "snapshotNo", String.valueOf(snapshot.snapshotNo()),
                 "reason", snapshot.reason(),

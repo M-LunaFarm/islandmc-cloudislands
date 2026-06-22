@@ -270,14 +270,23 @@ class GuiSystemPolicyTest {
     }
 
     @Test
-    void homeListItemMaterialRendersFromMenuDefinition() throws Exception {
-        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandHomeMenu.java"));
-        String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/homes.yml"));
+    void listItemMaterialsRenderFromMenuDefinitions() throws Exception {
+        for (String[] menuCase : List.of(
+                new String[] {"IslandHomeMenu", "homes.yml", "GREEN_BED"},
+                new String[] {"IslandBanMenu", "bans.yml", "BARRIER"},
+                new String[] {"IslandInviteMenu", "invites.yml", "WRITABLE_BOOK"},
+                new String[] {"IslandSnapshotMenu", "snapshots.yml", "PAPER"},
+                new String[] {"IslandLimitMenu", "limits.yml", "HOPPER"},
+                new String[] {"IslandVisitMenu", "visit.yml", "GRASS_BLOCK"}
+        )) {
+            String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuCase[0] + ".java"));
+            String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + menuCase[1]));
 
-        assertTrue(definition.contains("  H:"), "homes menu must define the dynamic home list item");
-        assertTrue(definition.contains("material: GREEN_BED"), "home list item material must live in config-v2");
-        assertTrue(menu.contains("MENU.item(\"H\")"), "home list item must read its material from the menu definition");
-        assertFalse(menu.contains("Material.GREEN_BED"), "home list item must not hard-code the bed material");
+            assertTrue(definition.contains("  _:"), menuCase[1] + " must define the dynamic list item");
+            assertTrue(definition.contains("material: " + menuCase[2]), menuCase[1] + " list item material must live in config-v2");
+            assertTrue(menu.contains("GuiMenuRenderer.material(MENU, \"_\", \"" + menuCase[2] + "\")"), menuCase[0] + " list item must read its material from the menu definition");
+            assertFalse(menu.contains("Material." + menuCase[2]), menuCase[0] + " list item must not hard-code the material");
+        }
     }
 
     @Test

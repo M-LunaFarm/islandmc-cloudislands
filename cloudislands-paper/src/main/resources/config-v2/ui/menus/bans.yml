@@ -17,6 +17,11 @@ items:
       - ban-menu-empty
     fallback-lore:
       - 현재 밴된 방문자가 없습니다.
+  _:
+    material: BARRIER
+    name-key: ban-menu-entry-name
+    fallback-name: 밴 기록
+    action: pardon-prepare
   R:
     material: CLOCK
     name-key: ban-menu-refresh-name

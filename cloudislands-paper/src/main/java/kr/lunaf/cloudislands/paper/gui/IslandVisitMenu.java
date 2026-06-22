@@ -6,7 +6,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PublicIslandView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -89,7 +88,7 @@ public final class IslandVisitMenu implements Listener {
             } else {
                 for (int index = 0; index < islands.size() && index < 36; index++) {
                     PublicIslandView island = islands.get(index);
-                    inventory.setItem(index + 9, GuiItems.action(Material.GRASS_BLOCK, island.name(), "island.visit.target",
+                    inventory.setItem(index + 9, GuiItems.action(GuiMenuRenderer.material(MENU, "_", "GRASS_BLOCK"), island.name(), "island.visit.target",
                         Map.of("target", island.islandId()),
                         message(messages, "visit-menu-owner", "소유자: ") + shortId(island.ownerUuid()),
                         message(messages, "visit-menu-level", "레벨: ") + island.level(),

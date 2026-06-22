@@ -6,7 +6,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.InviteView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -104,7 +103,7 @@ public final class IslandInviteMenu implements Listener {
     }
 
     private static ItemStack inviteItem(InviteView invite, MessageRenderer messages) {
-        return GuiItems.action(Material.WRITABLE_BOOK, message(messages, "invite-menu-title-prefix", "섬 초대 ") + shortUuid(invite.islandId()), "island.invite.accept",
+        return GuiItems.action(GuiMenuRenderer.material(MENU, "_", "WRITABLE_BOOK"), message(messages, "invite-menu-title-prefix", "섬 초대 ") + shortUuid(invite.islandId()), "island.invite.accept",
             Map.of("inviteId", invite.inviteId()),
             message(messages, "invite-menu-island-id", "섬 ID: ") + shortUuid(invite.islandId()),
             message(messages, "invite-menu-inviter", "초대한 사람: ") + shortUuid(invite.inviterUuid()),

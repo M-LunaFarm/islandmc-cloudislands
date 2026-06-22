@@ -17,6 +17,11 @@ items:
       - visit-menu-empty
     fallback-lore:
       - 방문 가능한 공개 섬이 없습니다.
+  _:
+    material: GRASS_BLOCK
+    name-key: visit-menu-entry-name
+    fallback-name: 공개 섬
+    action: target
   R:
     material: COMPASS
     name-key: visit-menu-random-name

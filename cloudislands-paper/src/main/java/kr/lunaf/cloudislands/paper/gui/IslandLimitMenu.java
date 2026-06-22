@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.LimitView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -107,7 +106,7 @@ public final class IslandLimitMenu implements Listener {
     }
 
     private static ItemStack limitItem(LimitView limit, MessageRenderer messages) {
-        return GuiItems.action(Material.HOPPER, limit.key(), "island.limit.set",
+        return GuiItems.action(GuiMenuRenderer.material(MENU, "_", "HOPPER"), limit.key(), "island.limit.set",
             Map.of("limitKey", limit.key(), "value", String.valueOf(limit.value())),
             message(messages, "limit-menu-current-value", "현재 값: ") + limit.value(),
             limit.updatedAt().isBlank() ? message(messages, "limit-menu-no-update", "업데이트 정보 없음") : message(messages, "limit-menu-updated-at", "갱신 시각: ") + limit.updatedAt(),

@@ -17,6 +17,11 @@ items:
       - invite-menu-empty
     fallback-lore:
       - 받은 섬 초대가 없습니다.
+  _:
+    material: WRITABLE_BOOK
+    name-key: invite-menu-entry-name
+    fallback-name: 섬 초대
+    action: accept
   M:
     material: NAME_TAG
     name-key: invite-menu-member-name
