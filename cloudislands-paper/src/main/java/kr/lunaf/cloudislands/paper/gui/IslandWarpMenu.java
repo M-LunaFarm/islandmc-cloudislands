@@ -60,6 +60,10 @@ public final class IslandWarpMenu implements Listener {
         this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
+    public static org.bukkit.Material deleteConfirmationMaterial() {
+        return GuiMenuRenderer.material(MENU, "_", "ENDER_PEARL");
+    }
+
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
         open(plugin, client, player, islandId, null);
     }

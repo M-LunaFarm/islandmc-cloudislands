@@ -47,6 +47,10 @@ public final class IslandSnapshotMenu implements Listener {
         this.actions = actions == null ? new GuiActionRegistry(GuiActionExecutor.noop()) : actions;
     }
 
+    public static org.bukkit.Material restoreConfirmationMaterial() {
+        return GuiMenuRenderer.material(MENU, "C", "CHEST");
+    }
+
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId) {
         open(plugin, client, player, islandId, null);
     }

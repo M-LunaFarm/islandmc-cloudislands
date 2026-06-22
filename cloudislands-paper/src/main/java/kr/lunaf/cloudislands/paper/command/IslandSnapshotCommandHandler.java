@@ -78,7 +78,7 @@ final class IslandSnapshotCommandHandler {
                     player,
                     runtime.routeMessage("snapshot-restore-confirm-title", "스냅샷 복원 확인"),
                     runtime.routeMessage("snapshot-restore-confirm-description", "현재 월드 상태를 선택한 스냅샷으로 복원합니다."),
-                    Material.CHEST,
+                    IslandSnapshotMenu.restoreConfirmationMaterial(),
                     runtime.routeMessage("snapshot-restore-confirm-name", "스냅샷 복원"),
                     "island.snapshot.restore.confirm",
                     Map.of("snapshotNo", Long.toString(snapshotRestore.snapshotNo())),

@@ -479,11 +479,17 @@ class GuiSystemPolicyTest {
     void confirmationMaterialsReuseMenuDefinitions() throws Exception {
         String adminHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
         String membershipHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
+        String snapshotHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSnapshotCommandHandler.java"));
+        String homeWarpHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
         String adminMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminNodeMenu.java"));
         String memberMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMemberMenu.java"));
         String banMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBanMenu.java"));
+        String snapshotMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandSnapshotMenu.java"));
+        String warpMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandWarpMenu.java"));
         String membersConfig = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/members.yml"));
         String bansConfig = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/bans.yml"));
+        String snapshotsConfig = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/snapshots.yml"));
+        String warpsConfig = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/warps.yml"));
 
         assertTrue(adminHandler.contains("AdminNodeMenu.kickAllConfirmationMaterial()"), "admin kickall confirmation material must come from admin-node.yml");
         assertTrue(adminHandler.contains("AdminNodeMenu.shutdownConfirmationMaterial()"), "admin shutdown confirmation material must come from admin-node.yml");
@@ -491,17 +497,25 @@ class GuiSystemPolicyTest {
         assertTrue(membershipHandler.contains("IslandMemberMenu.demoteConfirmationMaterial()"), "member demote confirmation material must come from members.yml");
         assertTrue(membershipHandler.contains("IslandMemberMenu.removeConfirmationMaterial()"), "member removal confirmation material must come from members.yml");
         assertTrue(membershipHandler.contains("IslandBanMenu.pardonConfirmationMaterial()"), "ban pardon confirmation material must come from bans.yml");
+        assertTrue(snapshotHandler.contains("IslandSnapshotMenu.restoreConfirmationMaterial()"), "snapshot restore confirmation material must come from snapshots.yml");
+        assertTrue(homeWarpHandler.contains("IslandWarpMenu.deleteConfirmationMaterial()"), "warp delete confirmation material must come from warps.yml");
         assertTrue(adminMenu.contains("GuiMenuRenderer.material(MENU, \"K\""), "admin-node menu must expose configured kickall material");
         assertTrue(memberMenu.contains("GuiMenuRenderer.material(MENU, \"MEMBER\""), "member menu must expose configured member material");
         assertTrue(banMenu.contains("GuiMenuRenderer.material(MENU, \"PARDON\""), "ban menu must expose configured pardon material");
+        assertTrue(snapshotMenu.contains("GuiMenuRenderer.material(MENU, \"C\""), "snapshot menu must expose configured restore confirmation material");
+        assertTrue(warpMenu.contains("GuiMenuRenderer.material(MENU, \"_\""), "warp menu must expose configured delete confirmation material");
         assertTrue(membersConfig.contains("  MEMBER:"), "members.yml must define the member role item for demotion confirmations");
         assertTrue(bansConfig.contains("  PARDON:"), "bans.yml must define the pardon confirmation item");
+        assertTrue(snapshotsConfig.contains("  C:"), "snapshots.yml must define the restore confirmation item");
+        assertTrue(warpsConfig.contains("  _:"), "warps.yml must define the delete confirmation item");
         assertFalse(adminHandler.contains("Material.IRON_DOOR"));
         assertFalse(adminHandler.contains("Material.BELL"));
         assertFalse(membershipHandler.contains("Material.EMERALD"));
         assertFalse(membershipHandler.contains("Material.IRON_INGOT"));
         assertFalse(membershipHandler.contains("Material.BARRIER"));
         assertFalse(membershipHandler.contains("Material.MILK_BUCKET"));
+        assertFalse(snapshotHandler.contains("Material.CHEST"));
+        assertFalse(homeWarpHandler.contains("Material.ENDER_PEARL"));
     }
 
     @Test

@@ -176,7 +176,7 @@ final class IslandHomeWarpCommandHandler {
                 runtime.openConfirmation(player,
                     runtime.routeMessage("warp-delete-confirm-title", "워프 삭제 확인"),
                     runtime.routeMessage("warp-delete-confirm-description", "워프를 삭제하면 해당 이름으로 이동할 수 없습니다."),
-                    Material.ENDER_PEARL,
+                    IslandWarpMenu.deleteConfirmationMaterial(),
                     runtime.routeMessage("warp-delete-confirm-name", "워프 삭제"),
                     "island.warp.delete.confirm",
                     Map.of("warpName", warpDelete.warpName()),
