@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.HomeView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -120,12 +119,16 @@ public final class IslandHomeMenu implements Listener {
     }
 
     private static ItemStack homeItem(HomeView home, MessageRenderer messages) {
-        return GuiItems.action(Material.GREEN_BED, home.name(), "island.home",
+        return GuiItems.action(
+            GuiMenuRenderer.material(MENU.item("H").map(GuiMenuDefinition.MenuItem::materialKey).orElse("GREEN_BED")),
+            home.name(),
+            "island.home",
             Map.of("homeName", home.name()),
             message(messages, "home-menu-location", "위치: ") + (long) home.x() + ", " + (long) home.y() + ", " + (long) home.z(),
             home.createdAt().isBlank() ? message(messages, "home-menu-no-created-info", "생성 정보 없음") : message(messages, "home-menu-created-at", "생성 시각: ") + home.createdAt(),
             message(messages, "home-menu-left-click", "좌클릭: 이 홈으로 이동"),
-            message(messages, "home-menu-right-click", "우클릭: 현재 위치로 갱신"));
+            message(messages, "home-menu-right-click", "우클릭: 현재 위치로 갱신")
+        );
     }
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {

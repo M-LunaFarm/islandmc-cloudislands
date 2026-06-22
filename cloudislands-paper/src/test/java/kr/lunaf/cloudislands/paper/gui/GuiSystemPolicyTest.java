@@ -270,6 +270,17 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void homeListItemMaterialRendersFromMenuDefinition() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandHomeMenu.java"));
+        String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/homes.yml"));
+
+        assertTrue(definition.contains("  H:"), "homes menu must define the dynamic home list item");
+        assertTrue(definition.contains("material: GREEN_BED"), "home list item material must live in config-v2");
+        assertTrue(menu.contains("MENU.item(\"H\")"), "home list item must read its material from the menu definition");
+        assertFalse(menu.contains("Material.GREEN_BED"), "home list item must not hard-code the bed material");
+    }
+
+    @Test
     void guiSessionsAreRevisionGuardedAndClearedOnPluginDisable() throws Exception {
         String sessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));

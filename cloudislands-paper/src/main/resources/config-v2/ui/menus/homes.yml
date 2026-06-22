@@ -17,6 +17,11 @@ items:
       - home-menu-empty
     fallback-lore:
       - 현재 등록된 섬 홈이 없습니다.
+  H:
+    material: GREEN_BED
+    name-key: home-menu-home-name
+    fallback-name: 섬 홈
+    action: home
   D:
     material: RED_BED
     name-key: home-menu-set-current-name

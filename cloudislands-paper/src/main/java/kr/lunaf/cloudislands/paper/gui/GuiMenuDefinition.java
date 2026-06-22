@@ -51,6 +51,13 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
         return Optional.ofNullable(items.get(symbol));
     }
 
+    public Optional<MenuItem> item(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(items.get(symbol));
+    }
+
     public static GuiMenuDefinition bundled(String resourcePath, GuiMenuDefinition fallback) {
         try (InputStream input = GuiMenuDefinition.class.getClassLoader().getResourceAsStream(resourcePath)) {
             if (input == null) {
