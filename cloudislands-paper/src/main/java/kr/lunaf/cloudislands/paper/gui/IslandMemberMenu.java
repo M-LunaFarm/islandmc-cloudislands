@@ -107,6 +107,7 @@ public final class IslandMemberMenu implements Listener {
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
         if (actionId.equals("island.member.invite.help")) {
             player.sendMessage(message(messages, "member-menu-invite-usage", "사용법: /섬 초대 <플레이어>"));
+            player.sendMessage(message(messages, "member-menu-coop-usage", "임시 신뢰: /섬 협동 <플레이어> <30m|2h|1d>"));
             return;
         }
         if (actionId.equals("island.member.role")) {

@@ -934,6 +934,7 @@ public final class TranslationManager {
         values.put("member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.");
         values.put("member-menu-invite-name", "멤버 초대");
         values.put("member-menu-invite-usage", "사용법: /섬 초대 <플레이어>");
+        values.put("member-menu-coop-usage", "임시 신뢰: /섬 협동 <플레이어> <30m|2h|1d>");
         values.put("member-menu-invite-list-name", "초대 목록");
         values.put("member-menu-invite-list-command", "/섬 초대목록");
         values.put("member-menu-permission-name", "권한 설정");

@@ -219,6 +219,7 @@ class GuiSystemPolicyTest {
 
         assertTrue(config.contains("member-menu-coop-usage"), "temporary co-op trust help must live in config-v2");
         assertTrue(config.contains("/섬 협동 <플레이어> <30m|2h|1d>"), "member menu must show temporary trust syntax");
+        assertTrue(menu.contains("player.sendMessage(message(messages, \"member-menu-coop-usage\""), "member invite help click must show temporary trust syntax");
         assertTrue(menu.contains("\"expiresAt\", member.expiresAt()"), "member item action data must carry temporary trust expiry");
         assertTrue(menu.contains("expiryLine(member, messages)"), "member item lore must include temporary trust expiry");
         assertTrue(menu.contains("member-menu-temporary-trust-expires"), "temporary trust expiry copy must be localizable");
