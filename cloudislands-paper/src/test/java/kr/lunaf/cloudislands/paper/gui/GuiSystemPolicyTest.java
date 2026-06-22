@@ -137,6 +137,8 @@ class GuiSystemPolicyTest {
 
         assertTrue(executor.contains("void execute(Player player, GuiAction action, GuiClick click)"), "executor boundary must not expose raw action id and payload map");
         assertFalse(executor.contains("String actionId, Map<String, String> data"), "executor boundary must receive parsed GuiAction objects");
+        assertFalse(actions.contains("record Raw"), "built-in GUI action model must not expose a Raw action variant");
+        assertFalse(actions.contains("permits GuiAction.Raw"), "Raw GUI actions must not be permitted in the built-in sealed hierarchy");
         assertFalse(actions.contains("record BankAmount(String actionId, BigDecimal amount)"), "bank amount GUI actions must not carry raw action ids internally");
         assertTrue(actions.contains("record BankAmount(BankAmountType type, BigDecimal amount)"), "bank amount GUI actions must use typed deposit/withdraw state");
         assertFalse(actions.contains("record WarpAccess(String actionId, String warpName, boolean publicAccess)"), "warp access GUI actions must not carry raw action ids internally");
