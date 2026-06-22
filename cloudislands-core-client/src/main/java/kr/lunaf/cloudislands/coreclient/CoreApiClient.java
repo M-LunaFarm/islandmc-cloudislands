@@ -102,7 +102,10 @@ public interface CoreApiClient {
     }
 
     default HomeWarpQueryClient homeWarps() {
-        return new CoreHomeWarpQueryClient(this);
+        if (this instanceof HomeWarpQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed home and warp queries");
     }
 
     default HomeWarpCommandClient homeWarpCommands() {
@@ -323,7 +326,6 @@ public interface CoreApiClient {
     CompletableFuture<String> islandBiome(UUID islandId);
     CompletableFuture<Void> setIslandBiome(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<String> setIslandBiomeResult(UUID islandId, UUID actorUuid, String biomeKey);
-    CompletableFuture<String> listIslandHomes(UUID islandId);
     CompletableFuture<Void> setIslandHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<String> setIslandHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<String> listIslandPermissions(UUID islandId);
@@ -337,9 +339,6 @@ public interface CoreApiClient {
     CompletableFuture<String> upsertIslandRole(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName);
     CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, IslandRole role);
     CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, String roleKey);
-    CompletableFuture<String> listIslandWarps(UUID islandId);
-    CompletableFuture<String> listPublicWarps(int limit);
-    CompletableFuture<String> listPublicWarps(int limit, String category, String query);
     CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
     CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
     CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);

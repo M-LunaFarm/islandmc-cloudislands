@@ -949,14 +949,14 @@ class PaperPlatformBoundaryTest {
         Path root = repositoryRoot();
         String model = Files.readString(root.resolve("cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/model/IslandWarpSnapshot.java"));
         String routes = Files.readString(root.resolve("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarpRoutes.java"));
-        String client = Files.readString(root.resolve("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/CoreApiClient.java"));
+        String homeWarpQueryClient = Files.readString(root.resolve("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/HomeWarpQueryClient.java"));
         String router = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouter.java"));
         String homeWarpHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
 
         assertTrue(model.contains("String category"), "Warp API model must include a category");
         assertTrue(routes.contains("queryText(exchange, \"category\""), "Core public warp route must accept category filters");
         assertTrue(routes.contains("queryText(exchange, \"query\""), "Core public warp route must accept search filters");
-        assertTrue(client.contains("listPublicWarps(int limit, String category, String query)"), "Core client must expose filtered public warp lookup");
+        assertTrue(homeWarpQueryClient.contains("publicWarpSnapshots(int limit, String category, String query)"), "Core client must expose filtered public warp lookup behind the typed home/warp boundary");
         assertTrue(router.contains("homeWarpCommands.handleCommand(player, subcommand, args)"), "Paper public warp command must be routed to the home/warp handler");
         assertTrue(homeWarpHandler.contains("listPublicWarps(player, args[1]"), "Paper public warp command must expose category/search arguments");
     }

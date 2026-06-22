@@ -913,48 +913,73 @@ class CoreTypedClientsTest {
     }
 
     @Test
-    void homeWarpQueryClientReturnsTypedHomesWarpsAndIslandInfo() {
+    void homeWarpQueryClientReturnsTypedHomesWarpsAndIslandInfo() throws Exception {
         UUID islandId = UUID.randomUUID();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "listIslandHomes" -> CompletableFuture.completedFuture("""
+        List<String> calls = new ArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/islands/" + islandId + "/homes", exchange -> {
+                calls.add("homes");
+                byte[] response = """
                     {"homes":[{"islandId":"%s","name":"home","location":{"x":1.0,"y":2.0,"z":3.0},"createdBy":"00000000-0000-0000-0000-000000000001","createdAt":"now"}]}
-                    """.formatted(islandId));
-                case "listIslandWarps" -> CompletableFuture.completedFuture("""
+                    """.formatted(islandId).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/islands/" + islandId + "/warps", exchange -> {
+                calls.add("warps");
+                byte[] response = """
                     {"warps":[{"islandId":"%s","name":"spawn","location":{"x":1.0,"y":2.0,"z":3.0},"publicAccess":true,"createdBy":"00000000-0000-0000-0000-000000000002","createdAt":"2026-01-02T03:04:05Z","category":"default"}]}
-                    """.formatted(islandId));
-                case "getIsland" -> CompletableFuture.completedFuture(CoreIslandJson.info("""
+                    """.formatted(islandId).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/islands/info", exchange -> {
+                calls.add("info:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] response = """
                     {"islandId":"%s","name":"Island","state":"ACTIVE"}
-                    """.formatted(islandId)));
-                case "listPublicWarps" -> CompletableFuture.completedFuture("""
+                    """.formatted(islandId).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/islands/public-warps", exchange -> {
+                calls.add("public:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] response = """
                     {"warps":[{"islandId":"%s","name":"market","location":{"x":4.0,"y":5.0,"z":6.0},"publicAccess":true,"category":"market"}]}
-                    """.formatted(islandId));
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        HomeWarpQueryClient client = new CoreHomeWarpQueryClient(raw);
+                    """.formatted(islandId).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.start();
+            HomeWarpQueryClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).homeWarps();
 
-        IslandHomeSnapshot homeSnapshot = client.homeSnapshots(islandId).join().get(0);
-        IslandWarpSnapshot warpSnapshot = client.warpSnapshots(islandId).join().get(0);
-        IslandWarpSnapshot publicWarpSnapshot = client.publicWarpSnapshots(200, null, null).join().get(0);
-        CoreGuiViews.HomeView home = client.homes(islandId).join().get(0);
-        CoreGuiViews.WarpView warp = client.warps(islandId).join().get(0);
-        assertEquals(islandId, homeSnapshot.islandId());
-        assertEquals("home", homeSnapshot.name());
-        assertEquals(1.0d, homeSnapshot.location().localX());
-        assertEquals("spawn", warpSnapshot.name());
-        assertEquals("default", warpSnapshot.category());
-        assertEquals("market", publicWarpSnapshot.name());
-        assertEquals(islandId.toString(), home.islandId());
-        assertEquals("home", home.name());
-        assertEquals("00000000-0000-0000-0000-000000000001", home.createdBy());
-        assertEquals("spawn", warp.name());
-        assertEquals("00000000-0000-0000-0000-000000000002", warp.createdBy());
-        assertEquals("2026-01-02T03:04:05Z", warp.createdAt());
-        assertEquals("Island", client.islandInfo(islandId).join().name());
-        assertEquals("market", client.publicWarps(200, null, null).join().get(0).name());
+            IslandHomeSnapshot homeSnapshot = client.homeSnapshots(islandId).join().get(0);
+            IslandWarpSnapshot warpSnapshot = client.warpSnapshots(islandId).join().get(0);
+            IslandWarpSnapshot publicWarpSnapshot = client.publicWarpSnapshots(200, null, null).join().get(0);
+            CoreGuiViews.HomeView home = client.homes(islandId).join().get(0);
+            CoreGuiViews.WarpView warp = client.warps(islandId).join().get(0);
+            assertEquals(islandId, homeSnapshot.islandId());
+            assertEquals("home", homeSnapshot.name());
+            assertEquals(1.0d, homeSnapshot.location().localX());
+            assertEquals("spawn", warpSnapshot.name());
+            assertEquals("default", warpSnapshot.category());
+            assertEquals("market", publicWarpSnapshot.name());
+            assertEquals(islandId.toString(), home.islandId());
+            assertEquals("home", home.name());
+            assertEquals("00000000-0000-0000-0000-000000000001", home.createdBy());
+            assertEquals("spawn", warp.name());
+            assertEquals("00000000-0000-0000-0000-000000000002", warp.createdBy());
+            assertEquals("2026-01-02T03:04:05Z", warp.createdAt());
+            assertEquals("Island", client.islandInfo(islandId).join().name());
+            assertEquals("market", client.publicWarps(200, null, null).join().get(0).name());
+            assertEquals(List.of("homes", "warps", "public:{\"limit\":100}", "homes", "warps", "info:{\"islandId\":\"" + islandId + "\"}", "public:{\"limit\":100}"), calls);
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test

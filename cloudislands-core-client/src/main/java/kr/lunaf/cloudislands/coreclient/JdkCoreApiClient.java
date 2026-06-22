@@ -100,7 +100,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.settingsClient = new CoreIslandSettingsCommandClient(this);
         this.permissionQueryClient = new CorePermissionQueryClient(this);
         this.permissionCommandClient = new CorePermissionCommandClient(this);
-        this.homeWarpQueryClient = new CoreHomeWarpQueryClient(this);
+        this.homeWarpQueryClient = new JdkHomeWarpQueryClient(this);
         this.homeWarpCommandClient = new CoreHomeWarpCommandClient(this);
         this.routingClient = new JdkRoutingClient(this);
         this.navigationQueryClient = new JdkNavigationQueryClient(this);
@@ -498,11 +498,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<String> listIslandHomes(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/homes");
-    }
-
-    @Override
     public CompletableFuture<Void> setIslandHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
         return setIslandHomeResult(islandId, actorUuid, name, location).thenApply(_body -> null);
     }
@@ -571,21 +566,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     public CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, String roleKey) {
         String normalizedRoleKey = normalizeRoleKey(roleKey);
         return postWithResultBody("/v1/islands/roles/reset", jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey));
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandWarps(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/warps");
-    }
-
-    @Override
-    public CompletableFuture<String> listPublicWarps(int limit) {
-        return post("/v1/islands/public-warps", jsonObject("limit", limit));
-    }
-
-    @Override
-    public CompletableFuture<String> listPublicWarps(int limit, String category, String query) {
-        return post("/v1/islands/public-warps", jsonObject("limit", limit, "category", category, "query", query));
     }
 
     @Override

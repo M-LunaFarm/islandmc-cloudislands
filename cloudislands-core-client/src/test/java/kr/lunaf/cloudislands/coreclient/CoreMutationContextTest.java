@@ -701,9 +701,9 @@ class CoreMutationContextTest {
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
-            client.listPublicWarps(10).join();
+            client.homeWarps().publicWarpSnapshots(10, "", "").join();
             assertEquals("{\"limit\":10}", requestBodies.get("publicWarps"));
-            client.listPublicWarps(11, "market\"zone", "spawn\"main").join();
+            client.homeWarps().publicWarpSnapshots(11, "market\"zone", "spawn\"main").join();
             client.navigation().listReviews(islandId, 12).join();
             client.setIslandReview(islandId, reviewerUuid, 5, "nice \"base\"").join();
             client.deleteIslandReview(islandId, reviewerUuid).join();
