@@ -36,9 +36,12 @@ public final class IslandConfirmationMenu implements Listener {
 
     public static void open(Player player, MessageRenderer messages, Confirmation confirmation) {
         Inventory inventory = GuiMenuRenderer.render(MENU, messages, TITLE, item -> true);
-        inventory.setItem(4, item(GuiMenuRenderer.material(MENU.itemAt(4).map(GuiMenuDefinition.MenuItem::materialKey).orElse("PAPER")), confirmation.title(), confirmation.description()));
-        MENU.itemAt(11).ifPresent(item -> inventory.setItem(11, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of(), confirmation.cancelAction())));
-        inventory.setItem(15, GuiItems.action(confirmation.material(), confirmation.confirmName(), confirmation.confirmAction(), confirmation.data(), confirmation.confirmLore()));
+        GuiMenuRenderer.slots(MENU, "T").forEach(slot -> MENU.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, item(GuiMenuRenderer.material(item.materialKey()), confirmation.title(), confirmation.description()))));
+        GuiMenuRenderer.slots(MENU, "C").forEach(slot -> MENU.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of(), confirmation.cancelAction()))));
+        GuiMenuRenderer.slots(MENU, "A").forEach(slot ->
+            inventory.setItem(slot, GuiItems.action(confirmation.material(), confirmation.confirmName(), confirmation.confirmAction(), confirmation.data(), confirmation.confirmLore())));
         player.openInventory(inventory);
     }
 
@@ -72,10 +75,6 @@ public final class IslandConfirmationMenu implements Listener {
             item.setItemMeta(meta);
         }
         return item;
-    }
-
-    private static String message(MessageRenderer messages, String key, String fallback) {
-        return GuiMenuRenderer.message(messages, key, fallback);
     }
 
     public record Confirmation(
