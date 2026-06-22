@@ -356,20 +356,36 @@ public final class JdkCoreApiClient implements CoreApiClient {
         return adminIslandClient;
     }
 
+    CompletableFuture<CoreResponseBody> postBody(String path, String body) {
+        return transport.post(path, body);
+    }
+
+    CompletableFuture<CoreResponseBody> getBody(String path) {
+        return transport.get(path);
+    }
+
+    CompletableFuture<CoreResponseBody> postResultBody(String path, String body) {
+        return transport.postWithResultBody(path, body);
+    }
+
+    CompletableFuture<CoreResponseBody> deleteResultBody(String path) {
+        return transport.deleteWithResultBody(path);
+    }
+
     CompletableFuture<String> post(String path, String body) {
-        return transport.post(path, body).thenApply(CoreResponseBody::value);
+        return postBody(path, body).thenApply(CoreResponseBody::value);
     }
 
     CompletableFuture<String> get(String path) {
-        return transport.get(path).thenApply(CoreResponseBody::value);
+        return getBody(path).thenApply(CoreResponseBody::value);
     }
 
     CompletableFuture<String> postWithResultBody(String path, String body) {
-        return transport.postWithResultBody(path, body).thenApply(CoreResponseBody::value);
+        return postResultBody(path, body).thenApply(CoreResponseBody::value);
     }
 
     CompletableFuture<String> deleteWithResultBody(String path) {
-        return transport.deleteWithResultBody(path).thenApply(CoreResponseBody::value);
+        return deleteResultBody(path).thenApply(CoreResponseBody::value);
     }
 
 }
