@@ -483,6 +483,18 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void rawMigrationAndAddonStateJsonAdaptersStayInsideCoreClientPackage() throws Exception {
+        String migration = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreMigrationJson.java"));
+        String addonState = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreAddonStateJson.java"));
+
+        assertFalse(migration.contains("public final class CoreMigrationJson"));
+        assertFalse(migration.contains("public static MigrationRunSnapshot run(String body)"));
+        assertFalse(migration.contains("public static String toJson(MigrationRunSnapshot snapshot)"));
+        assertFalse(addonState.contains("public final class CoreAddonStateJson"));
+        assertFalse(addonState.contains("public static Map<String, String> values(String body)"));
+    }
+
+    @Test
     void coreApiClientDoesNotExposeRawAddonStateMethods() {
         List<String> names = Arrays.stream(CoreApiClient.class.getMethods())
             .map(Method::getName)

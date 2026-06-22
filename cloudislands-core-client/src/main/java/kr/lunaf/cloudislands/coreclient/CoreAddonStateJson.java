@@ -4,11 +4,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreAddonStateJson {
+final class CoreAddonStateJson {
     private CoreAddonStateJson() {
     }
 
-    public static Map<String, String> values(String body) {
+    static Map<String, String> values(String body) {
         Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> source = SimpleJson.object(root.get("values"));
         if (source.isEmpty()) {

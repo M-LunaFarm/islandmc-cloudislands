@@ -7,11 +7,11 @@ import kr.lunaf.cloudislands.api.model.MigrationIssueSnapshot;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreMigrationJson {
+final class CoreMigrationJson {
     private CoreMigrationJson() {
     }
 
-    public static MigrationRunSnapshot run(String body) {
+    static MigrationRunSnapshot run(String body) {
         Map<?, ?> root = CoreJson.object(body);
         String code = CoreJson.text(root, "code");
         if (!code.isBlank()) {
@@ -60,7 +60,7 @@ public final class CoreMigrationJson {
         );
     }
 
-    public static String toJson(MigrationRunSnapshot snapshot) {
+    static String toJson(MigrationRunSnapshot snapshot) {
         if (snapshot == null) {
             return "{}";
         }
