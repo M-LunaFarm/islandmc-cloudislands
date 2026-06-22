@@ -374,6 +374,16 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void permissionCommandClientBatchHelperDoesNotExposeRawBodyFuture() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkPermissionCommandClient.java"));
+
+        assertFalse(source.contains("private CompletableFuture<String> setPermissionResult"), "permission batch helper must not expose raw response bodies");
+        assertTrue(source.contains("CompletableFuture<MutationResult<PermissionMatrixView>> setPermissionMutation"), "permission batch helper must return typed mutation results");
+        assertTrue(source.contains(".thenApply(JdkPermissionCommandClient::mutationResult)"), "permission response parsing must stay inside the typed mutation helper");
+        assertTrue(source.contains("private static String setPermissionPayload"), "request JSON construction must be isolated from response typing");
+    }
+
+    @Test
     void permissionCommandClientReturnsTypedActionViews() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

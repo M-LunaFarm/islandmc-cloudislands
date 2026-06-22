@@ -32,14 +32,14 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
         for (UpdatePermissionsRequest.Change change : changes) {
             chain = chain.thenCompose(previous -> {
                 String expectedVersion = previous.version().isBlank() ? change.expectedVersion() : previous.version();
-                return setPermissionResult(
+                return setPermissionMutation(
                     request.islandId(),
                     request.actorUuid(),
                     change.roleId().value(),
                     change.permission(),
                     change.allowed(),
                     expectedVersion
-                ).thenApply(JdkPermissionCommandClient::mutationResult);
+                );
             });
         }
         return chain;
@@ -73,7 +73,10 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
     @Override
     public CompletableFuture<PermissionActionView> setPermission(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed) {
         requirePermission(permission);
-        return setPermissionResult(islandId, actorUuid, normalizeRoleKey(roleKey), permission, allowed, "")
+        return core.postWithResultBody(
+                "/v1/islands/permissions/set",
+                setPermissionPayload(islandId, actorUuid, normalizeRoleKey(roleKey), permission, allowed, "")
+            )
             .thenApply(body -> permissionAction(body, "PERMISSION_SET"));
     }
 
@@ -114,15 +117,22 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
         }
     }
 
-    private CompletableFuture<String> setPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
+    private CompletableFuture<MutationResult<PermissionMatrixView>> setPermissionMutation(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
+        return core.postWithResultBody(
+                "/v1/islands/permissions/set",
+                setPermissionPayload(islandId, actorUuid, roleKey, permission, allowed, expectedVersion)
+            )
+            .thenApply(JdkPermissionCommandClient::mutationResult);
+    }
+
+    private static String setPermissionPayload(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         requirePermission(permission);
         String normalizedRoleKey = normalizeRoleKey(roleKey);
-        String payload = expectedVersion == null || expectedVersion.isBlank()
+        return expectedVersion == null || expectedVersion.isBlank()
             ? JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed)
             : JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed, "expectedVersion", expectedVersion);
-        return core.postWithResultBody("/v1/islands/permissions/set", payload);
     }
 
     private static String normalizeRoleKey(String roleKey) {
