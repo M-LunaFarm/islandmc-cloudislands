@@ -59,6 +59,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkIslandClient islandClient;
     private final JdkMemberQueryClient memberQueryClient;
     private final JdkMemberCommandClient memberCommandClient;
+    private final JdkVisitorStatsClient visitorStatsClient;
     private final JdkWarehouseClient warehouseClient;
     private final JdkPlayerProfileClient playerProfileClient;
     private final JdkTemplateClient templateClient;
@@ -96,6 +97,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.islandClient = new JdkIslandClient();
         this.memberQueryClient = new JdkMemberQueryClient();
         this.memberCommandClient = new JdkMemberCommandClient();
+        this.visitorStatsClient = new JdkVisitorStatsClient();
         this.warehouseClient = new JdkWarehouseClient();
         this.playerProfileClient = new JdkPlayerProfileClient();
         this.templateClient = new JdkTemplateClient();
@@ -201,6 +203,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public MemberCommandClient memberCommands() {
         return memberCommandClient;
+    }
+
+    @Override
+    public IslandVisitorStatsQueryClient visitorStats() {
+        return visitorStatsClient;
     }
 
     @Override
@@ -1433,6 +1440,19 @@ public final class JdkCoreApiClient implements CoreApiClient {
             if (id == null) {
                 throw new IllegalArgumentException(name + " is required");
             }
+        }
+    }
+
+    private final class JdkVisitorStatsClient implements IslandVisitorStatsQueryClient {
+        @Override
+        public CompletableFuture<IslandVisitorStatsView> stats(UUID islandId, int recentLimit) {
+            if (islandId == null) {
+                throw new IllegalArgumentException("islandId is required");
+            }
+            return postWithResultBody("/v1/islands/visitors/stats", jsonObject(
+                "islandId", islandId,
+                "limit", Math.max(1, Math.min(recentLimit, 100))
+            )).thenApply(CoreIslandVisitorStatsQueryClient::stats);
         }
     }
 

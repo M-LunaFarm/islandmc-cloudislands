@@ -24,7 +24,7 @@ public final class CoreIslandVisitorStatsQueryClient implements IslandVisitorSta
         return delegate.islandVisitorStats(islandId, Math.max(1, Math.min(recentLimit, 100))).thenApply(CoreIslandVisitorStatsQueryClient::stats);
     }
 
-    private static IslandVisitorStatsView stats(String body) {
+    static IslandVisitorStatsView stats(String body) {
         Map<?, ?> root = CoreJson.object(body);
         List<IslandVisitorStatsView.RecentVisitorView> recent = SimpleJson.list(root.get("recentVisitors")).stream()
             .map(SimpleJson::object)
