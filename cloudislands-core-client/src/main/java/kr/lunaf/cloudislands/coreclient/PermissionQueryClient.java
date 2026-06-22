@@ -7,5 +7,7 @@ import java.util.concurrent.CompletableFuture;
 public interface PermissionQueryClient {
     CompletableFuture<List<PermissionAssignmentView>> permissions(UUID islandId);
 
+    CompletableFuture<CoreGuiViews.PermissionRulesView> permissionRules(UUID islandId);
+
     CompletableFuture<List<CoreGuiViews.RoleView>> roles(UUID islandId);
 }

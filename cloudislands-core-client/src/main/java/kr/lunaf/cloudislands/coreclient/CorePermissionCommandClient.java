@@ -84,13 +84,13 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
     }
 
     static MutationResult<PermissionMatrixView> mutationResult(String body) {
-        CoreGuiViews.PermissionRulesView rules = CoreGuiViews.permissionRulesView(body);
+        CoreGuiViews.PermissionRulesView rules = CorePermissionJson.permissionRulesView(body);
         PermissionMatrixView view = new PermissionMatrixView(rules.version(), rules.rules());
         return new MutationResult<>(view, view.version(), true);
     }
 
     static MutationResult<CoreGuiViews.RoleView> roleMutationResult(String body) {
-        CoreGuiViews.RoleView role = CoreGuiViews.roleView(body);
+        CoreGuiViews.RoleView role = CorePermissionJson.roleView(body);
         return new MutationResult<>(role, "", true);
     }
 

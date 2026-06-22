@@ -24,9 +24,15 @@ public final class CorePermissionQueryClient implements PermissionQueryClient {
     }
 
     @Override
+    public CompletableFuture<CoreGuiViews.PermissionRulesView> permissionRules(UUID islandId) {
+        requireIsland(islandId);
+        return delegate.listIslandPermissions(islandId).thenApply(CorePermissionJson::permissionRulesView);
+    }
+
+    @Override
     public CompletableFuture<List<CoreGuiViews.RoleView>> roles(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandRoles(delegate, islandId);
+        return delegate.listIslandRoles(islandId).thenApply(CorePermissionJson::roleViews);
     }
 
     static List<PermissionAssignmentView> permissionViews(String body) {

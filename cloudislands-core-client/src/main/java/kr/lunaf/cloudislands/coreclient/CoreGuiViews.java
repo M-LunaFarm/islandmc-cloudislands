@@ -116,15 +116,15 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<PermissionRulesView> islandPermissionRules(CoreApiClient client, UUID islandId) {
-        return client.listIslandPermissions(islandId).thenApply(CoreGuiViews::permissionRulesView);
+        return new CorePermissionQueryClient(client).permissionRules(islandId);
     }
 
     public static CompletableFuture<List<RoleView>> islandRoles(CoreApiClient client, UUID islandId) {
-        return client.listIslandRoles(islandId).thenApply(CoreGuiViews::roles);
+        return new CorePermissionQueryClient(client).roles(islandId);
     }
 
     public static RoleView roleView(String body) {
-        return role(root(body));
+        return CorePermissionJson.roleView(body);
     }
 
     public static CompletableFuture<List<UpgradeView>> islandUpgrades(CoreApiClient client, UUID islandId) {
@@ -269,36 +269,7 @@ public final class CoreGuiViews {
     }
 
     public static PermissionRulesView permissionRulesView(String body) {
-        Map<?, ?> root = root(body);
-        String version = text(root, "version");
-        List<PermissionRuleView> rules = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String role = text(object, "role");
-            String permission = text(object, "permission");
-            if (!role.isBlank() && !permission.isBlank()) {
-                rules.add(new PermissionRuleView(role, permission, bool(object, "allowed"), version));
-            }
-        }
-        return new PermissionRulesView(version, List.copyOf(rules));
-    }
-
-    private static List<RoleView> roles(String body) {
-        List<RoleView> roles = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            RoleView role = role(object);
-            if (!role.role().isBlank()) {
-                roles.add(role);
-            }
-        }
-        return roles;
-    }
-
-    private static RoleView role(Map<?, ?> object) {
-        String role = text(object, "role");
-        if (role.isBlank()) {
-            role = text(object, "roleKey");
-        }
-        return new RoleView(role, intValue(object, "weight"), text(object, "displayName"));
+        return CorePermissionJson.permissionRulesView(body);
     }
 
     private static List<UpgradeView> upgrades(String body) {

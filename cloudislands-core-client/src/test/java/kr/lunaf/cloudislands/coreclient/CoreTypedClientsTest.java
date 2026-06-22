@@ -380,13 +380,16 @@ class CoreTypedClientsTest {
         PermissionQueryClient client = new CorePermissionQueryClient(raw);
 
         List<PermissionAssignmentView> permissions = client.permissions(islandId).join();
+        CoreGuiViews.PermissionRulesView rules = client.permissionRules(islandId).join();
         List<CoreGuiViews.RoleView> roles = client.roles(islandId).join();
 
-        assertEquals(List.of("permissions", "roles"), calls);
+        assertEquals(List.of("permissions", "permissions", "roles"), calls);
         assertEquals("BUILDER", permissions.get(0).role());
         assertEquals(playerUuid.toString(), permissions.get(1).playerUuid());
         assertFalse(permissions.get(1).allowed());
         assertEquals("v1", permissions.get(1).version());
+        assertEquals("v1", rules.version());
+        assertEquals("BUILD", rules.rules().get(0).permission());
         assertEquals("BUILDER", roles.get(0).role());
     }
 
