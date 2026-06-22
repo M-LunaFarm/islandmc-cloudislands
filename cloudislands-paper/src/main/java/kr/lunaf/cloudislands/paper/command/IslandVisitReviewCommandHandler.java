@@ -82,6 +82,14 @@ final class IslandVisitReviewCommandHandler {
             routeVisitTarget(player, visitTarget.target());
             return true;
         }
+        if (action instanceof GuiAction.ReviewSet reviewSet) {
+            submitIslandReview(player, reviewSet.islandId(), reviewSet.rating(), reviewSet.comment());
+            return true;
+        }
+        if (action instanceof GuiAction.ReviewDelete reviewDelete) {
+            submitReviewDelete(player, reviewDelete.islandId());
+            return true;
+        }
         if (action instanceof GuiAction.NoPayload noPayload) {
             return switch (noPayload.type()) {
                 case VISIT_OPEN -> {

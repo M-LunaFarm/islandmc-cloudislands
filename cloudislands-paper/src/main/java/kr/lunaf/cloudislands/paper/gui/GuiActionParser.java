@@ -90,6 +90,8 @@ public final class GuiActionParser {
         "island.public.toggle",
         "island.ranking.list",
         "island.ranking.open",
+        "island.review.delete",
+        "island.review.set",
         "island.reviews.open",
         "island.visitor-stats.open",
         "island.role.weight.adjust",
@@ -281,6 +283,14 @@ public final class GuiActionParser {
                 ));
                 case "island.visit.target" -> Optional.of(new GuiAction.VisitTarget(
                     required(safeData, "target")
+                ));
+                case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(
+                    UUID.fromString(required(safeData, "islandId")),
+                    integer(required(safeData, "rating")),
+                    safeData.getOrDefault("comment", "")
+                ));
+                case "island.review.delete" -> Optional.of(new GuiAction.ReviewDelete(
+                    UUID.fromString(required(safeData, "islandId"))
                 ));
                 case "island.visit.public.category" -> Optional.of(new GuiAction.PublicWarpCategory(
                     required(safeData, "category"),

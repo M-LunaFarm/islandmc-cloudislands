@@ -6,7 +6,7 @@ layout:
   - "_________"
   - "_________"
   - "_________"
-  - "....E...."
+  - "12345D..E"
   - "P...R...M"
 items:
   _:
@@ -29,6 +29,58 @@ items:
     fallback-lore:
       - "아직 등록된 후기가 없습니다."
     action: open
+  1:
+    material: RED_DYE
+    name-key: reviews-menu-rate-1-name
+    fallback-name: 1점 평가
+    fallback-lore:
+      - "현재 섬에 1점을 남깁니다."
+    action: rate
+    data:
+      rating: 1
+  2:
+    material: ORANGE_DYE
+    name-key: reviews-menu-rate-2-name
+    fallback-name: 2점 평가
+    fallback-lore:
+      - "현재 섬에 2점을 남깁니다."
+    action: rate
+    data:
+      rating: 2
+  3:
+    material: YELLOW_DYE
+    name-key: reviews-menu-rate-3-name
+    fallback-name: 3점 평가
+    fallback-lore:
+      - "현재 섬에 3점을 남깁니다."
+    action: rate
+    data:
+      rating: 3
+  4:
+    material: LIME_DYE
+    name-key: reviews-menu-rate-4-name
+    fallback-name: 4점 평가
+    fallback-lore:
+      - "현재 섬에 4점을 남깁니다."
+    action: rate
+    data:
+      rating: 4
+  5:
+    material: EMERALD
+    name-key: reviews-menu-rate-5-name
+    fallback-name: 5점 평가
+    fallback-lore:
+      - "현재 섬에 5점을 남깁니다."
+    action: rate
+    data:
+      rating: 5
+  D:
+    material: BARRIER
+    name-key: reviews-menu-delete-name
+    fallback-name: 내 후기 삭제
+    fallback-lore:
+      - "현재 섬에 남긴 내 후기를 삭제합니다."
+    action: delete
   P:
     material: GOLD_BLOCK
     name-key: reviews-menu-ranking-name
@@ -59,5 +111,7 @@ items:
 actions:
   open: island.reviews.open
   list: island.reviews.open
+  rate: island.review.set
+  delete: island.review.delete
   ranking: island.ranking.open
   back: island.main.open

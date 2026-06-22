@@ -241,6 +241,28 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void reviewMenuCanWriteRatingsAndDeleteOwnReviewFromGui() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandReviewMenu.java"));
+        String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/reviews.yml"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiAction.java"));
+        String parser = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionParser.java"));
+        String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandVisitReviewCommandHandler.java"));
+
+        assertTrue(config.contains("rate: island.review.set"), "review menu rating action must live in config-v2");
+        assertTrue(config.contains("delete: island.review.delete"), "review menu delete action must live in config-v2");
+        for (String rating : List.of("1", "2", "3", "4", "5")) {
+            assertTrue(config.contains("rating: " + rating), "review menu must expose rating " + rating + " as a GUI button");
+        }
+        assertTrue(menu.contains("renderReviewActions(inventory, islandId, messages)"), "review menu must bind current island id into write actions");
+        assertTrue(actions.contains("record ReviewSet(UUID islandId, int rating, String comment)"), "review rating must be a typed GUI action");
+        assertTrue(actions.contains("record ReviewDelete(UUID islandId)"), "review deletion must be a typed GUI action");
+        assertTrue(parser.contains("case \"island.review.set\""), "review rating action must parse through the typed action parser");
+        assertTrue(parser.contains("case \"island.review.delete\""), "review delete action must parse through the typed action parser");
+        assertTrue(handler.contains("action instanceof GuiAction.ReviewSet"), "review rating GUI actions must call the review use case");
+        assertTrue(handler.contains("action instanceof GuiAction.ReviewDelete"), "review delete GUI actions must call the review use case");
+    }
+
+    @Test
     void bankBalancePanelRendersFromMenuDefinition() throws Exception {
         String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBankMenu.java"));
         String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/bank.yml"));

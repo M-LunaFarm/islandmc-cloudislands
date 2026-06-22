@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.LinkedHashMap;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewListView;
@@ -47,7 +48,7 @@ public final class IslandReviewMenu implements Listener {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         new IslandNavigationUseCase(client).reviewViews(islandId, 36)
-            .thenAccept(reviews -> openSync(plugin, player, session, reviews, messages))
+            .thenAccept(reviews -> openSync(plugin, player, session, islandId, reviews, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "reviews-menu-load-failed", "섬 후기를 불러오지 못했습니다."), "island.reviews.open", "island.settings.open");
                 return null;
@@ -71,9 +72,10 @@ public final class IslandReviewMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, ReviewListView reviews, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, ReviewListView reviews, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
+            renderReviewActions(inventory, islandId, messages);
             List<Integer> slots = GuiMenuRenderer.slots(MENU, "_");
             List<ReviewView> entries = reviews == null ? List.of() : reviews.reviews();
             for (int index = 0; index < entries.size() && index < slots.size(); index++) {
@@ -86,6 +88,18 @@ public final class IslandReviewMenu implements Listener {
             }
             player.openInventory(inventory);
         });
+    }
+
+    private static void renderReviewActions(Inventory inventory, UUID islandId, MessageRenderer messages) {
+        for (String symbol : List.of("1", "2", "3", "4", "5", "D")) {
+            MENU.item(symbol).ifPresent(item -> {
+                LinkedHashMap<String, String> data = new LinkedHashMap<>(item.data());
+                data.put("islandId", islandId.toString());
+                for (int slot : GuiMenuRenderer.slots(MENU, symbol)) {
+                    inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, data));
+                }
+            });
+        }
     }
 
     private static List<String> reviewLore(ReviewView review, MessageRenderer messages) {

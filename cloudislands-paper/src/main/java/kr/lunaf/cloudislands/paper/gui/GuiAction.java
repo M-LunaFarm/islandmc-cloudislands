@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.PublicWarpCategory, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RankingList, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.ReviewSet, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.PublicWarpCategory, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RankingList, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -542,6 +542,49 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         @Override
         public Map<String, String> data() {
             return Map.of("target", target);
+        }
+    }
+
+    record ReviewSet(UUID islandId, int rating, String comment) implements GuiAction {
+        public ReviewSet {
+            if (islandId == null) {
+                throw new IllegalArgumentException("islandId is required");
+            }
+            if (rating < 1 || rating > 5) {
+                throw new IllegalArgumentException("rating must be between 1 and 5");
+            }
+            comment = comment == null ? "" : comment.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return "island.review.set";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            if (comment.isBlank()) {
+                return Map.of("islandId", islandId.toString(), "rating", Integer.toString(rating));
+            }
+            return Map.of("islandId", islandId.toString(), "rating", Integer.toString(rating), "comment", comment);
+        }
+    }
+
+    record ReviewDelete(UUID islandId) implements GuiAction {
+        public ReviewDelete {
+            if (islandId == null) {
+                throw new IllegalArgumentException("islandId is required");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return "island.review.delete";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("islandId", islandId.toString());
         }
     }
 
