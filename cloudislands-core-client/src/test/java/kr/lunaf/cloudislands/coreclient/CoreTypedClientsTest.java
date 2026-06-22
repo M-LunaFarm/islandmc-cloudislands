@@ -179,6 +179,8 @@ class CoreTypedClientsTest {
         assertTrue(response.contains("CoreResponseBody responseBody(boolean accepted)"), "HTTP status policy must create a typed response envelope");
         assertTrue(responseBody.contains("record CoreResponseBody(String value, int status, boolean accepted)"), "accepted response body must keep status before domain parsing");
         assertTrue(responseBody.contains("throw error();"), "rejected response bodies must become typed Core API failures before domain parsing");
+        assertFalse(responseBody.contains("SimpleJson.object(root.get(\"error\"))"), "response body parser must use shared CoreJson object helpers");
+        assertFalse(responseBody.contains("SimpleJson.text(root.get("), "response body parser must use shared CoreJson text helpers");
     }
 
     @Test
