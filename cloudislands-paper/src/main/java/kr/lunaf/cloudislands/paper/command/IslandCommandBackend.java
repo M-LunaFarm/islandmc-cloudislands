@@ -841,7 +841,7 @@ final class IslandCommandBackend {
                 return IslandCommandBackend.this.messagesFor(player);
             }
         });
-        this.router = new IslandCommandRouter(
+        this.router = IslandCommandRouterFactory.create(
             bankCommands,
             snapshotCommands,
             warehouseCommands,
@@ -855,17 +855,7 @@ final class IslandCommandBackend {
             overviewCommands,
             membershipCommands,
             adminCommands,
-            new IslandCommandRouter.Runtime() {
-                @Override
-                public void message(Player player, String message) {
-                    IslandCommandBackend.this.message(player, message);
-                }
-
-                @Override
-                public String routeMessage(String key, String fallback) {
-                    return IslandCommandBackend.this.routeMessage(key, fallback);
-                }
-            }
+            commandMessages
         );
     }
 
