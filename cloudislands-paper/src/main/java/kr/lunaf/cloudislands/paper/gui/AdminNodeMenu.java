@@ -79,7 +79,7 @@ public final class AdminNodeMenu implements Listener {
     }
 
     private static void setNodeSummaryItem(Inventory inventory, NodeSummaryView summary, MessageRenderer messages) {
-        MENU.itemAt(4).ifPresent(item -> inventory.setItem(4, GuiMenuRenderer.item(MENU, item, messages, Map.of(), nodeSummaryLore(summary, messages), "")));
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, "N", messages, Map.of(), nodeSummaryLore(summary, messages));
     }
 
     private static List<String> nodeSummaryLore(NodeSummaryView summary, MessageRenderer messages) {
