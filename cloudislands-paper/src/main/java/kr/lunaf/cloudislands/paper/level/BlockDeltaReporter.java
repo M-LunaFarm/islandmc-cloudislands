@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.level;
 
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
@@ -10,10 +11,12 @@ import org.bukkit.plugin.Plugin;
 public final class BlockDeltaReporter {
     private final Plugin plugin;
     private final CoreApiClient client;
+    private final RuntimeCommandClient runtimeCommands;
 
     public BlockDeltaReporter(Plugin plugin, CoreApiClient client) {
         this.plugin = plugin;
         this.client = client;
+        this.runtimeCommands = client.runtimeCommands();
     }
 
     public void placed(UUID islandId, Block block) {
@@ -60,7 +63,7 @@ public final class BlockDeltaReporter {
     }
 
     private void report(UUID islandId, String materialKey, long delta) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runAsync(plugin, () -> client.recordBlockDelta(islandId, materialKey, delta));
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runAsync(plugin, () -> runtimeCommands.recordBlockDelta(islandId, materialKey, delta));
     }
 
     private void progressPlaced(UUID islandId, UUID actorUuid, Material material) {
