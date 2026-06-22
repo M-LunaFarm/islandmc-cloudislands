@@ -1236,6 +1236,7 @@ class CoreTypedClientsTest {
     @Test
     void warehouseQueryClientReturnsTypedWarehouseItems() {
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkWarehouseQueryClient.java")));
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class, WarehouseQueryClient.class },
@@ -1253,6 +1254,8 @@ class CoreTypedClientsTest {
         assertEquals("STONE", items.get(0).materialKey());
         assertEquals(12L, items.get(0).amount());
         assertEquals("2026-06-21T15:00:00Z", items.get(0).updatedAt());
+        assertFalse(source.contains("SimpleJson.text(object.get("), "warehouse parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("SimpleJson.number(object.get("), "warehouse parser must use shared CoreJson numeric helpers");
     }
 
     @Test
@@ -1391,6 +1394,7 @@ class CoreTypedClientsTest {
     void navigationQueryClientReturnsTypedProfilesPublicIslandsAndReviews() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID reviewerUuid = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkNavigationQueryClient.java")));
         List<String> calls = new ArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         try {
@@ -1452,6 +1456,9 @@ class CoreTypedClientsTest {
             assertEquals(islandId.toString(), reviews.reviews().get(0).islandId());
             assertEquals("nice", reviews.reviews().get(0).comment());
             assertEquals("2026-06-21T00:01:00Z", reviews.reviews().get(0).updatedAt());
+            assertFalse(source.contains("private static String text("), "navigation parser must use shared CoreJson text helpers");
+            assertFalse(source.contains("SimpleJson.list(root.get(\"reviews\"))"), "navigation review parser must use shared CoreJson object list helpers");
+            assertFalse(source.contains("SimpleJson.number(review.get("), "navigation review parser must use shared CoreJson numeric helpers");
         } finally {
             server.stop(0);
         }

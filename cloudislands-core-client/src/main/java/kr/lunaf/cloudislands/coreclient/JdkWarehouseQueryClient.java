@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class JdkWarehouseQueryClient implements WarehouseQueryClient {
     private final JdkCoreApiClient core;
@@ -27,13 +26,18 @@ final class JdkWarehouseQueryClient implements WarehouseQueryClient {
 
     private static List<WarehouseItemView> warehouseItems(UUID islandId, String body) {
         return CoreJson.entries(body).stream()
-            .map(object -> new WarehouseItemView(warehouseItemIslandId(islandId, object), SimpleJson.text(object.get("materialKey")), SimpleJson.number(object.get("amount")), SimpleJson.text(object.get("updatedAt"))))
+            .map(object -> new WarehouseItemView(
+                warehouseItemIslandId(islandId, object),
+                CoreJson.text(object, "materialKey"),
+                CoreJson.number(object, "amount"),
+                CoreJson.text(object, "updatedAt")
+            ))
             .filter(item -> !item.materialKey().isBlank() && item.amount() > 0L)
             .toList();
     }
 
     private static String warehouseItemIslandId(UUID fallbackIslandId, Map<?, ?> object) {
-        String itemIslandId = SimpleJson.text(object.get("islandId"));
+        String itemIslandId = CoreJson.text(object, "islandId");
         return itemIslandId.isBlank() ? fallbackIslandId.toString() : itemIslandId;
     }
 

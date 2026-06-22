@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class JdkNavigationQueryClient implements NavigationQueryClient {
     private final JdkCoreApiClient core;
@@ -47,20 +46,19 @@ public final class JdkNavigationQueryClient implements NavigationQueryClient {
 
     static ReviewListView reviewViews(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        Map<?, ?> summary = SimpleJson.object(root.get("summary"));
-        List<ReviewView> reviews = SimpleJson.list(root.get("reviews")).stream()
-            .map(SimpleJson::object)
+        Map<?, ?> summary = CoreJson.objectValue(root, "summary");
+        List<ReviewView> reviews = CoreJson.objects(root, "reviews").stream()
             .map(review -> new ReviewView(
-                text(review, "islandId"),
-                text(review, "reviewerUuid"),
-                SimpleJson.number(review.get("rating")),
-                text(review, "comment"),
-                text(review, "createdAt"),
-                text(review, "updatedAt")
+                CoreJson.text(review, "islandId"),
+                CoreJson.text(review, "reviewerUuid"),
+                CoreJson.number(review, "rating"),
+                CoreJson.text(review, "comment"),
+                CoreJson.text(review, "createdAt"),
+                CoreJson.text(review, "updatedAt")
             ))
             .filter(review -> !review.reviewerUuid().isBlank())
             .toList();
-        return new ReviewListView(SimpleJson.number(summary.get("count")), doubleValue(summary.get("average")), reviews);
+        return new ReviewListView(CoreJson.number(summary, "count"), CoreJson.decimal(summary, "average"), reviews);
     }
 
     static List<CoreGuiViews.PlayerIslandView> playerIslandViews(String body) {
@@ -78,28 +76,28 @@ public final class JdkNavigationQueryClient implements NavigationQueryClient {
     }
 
     private static CoreGuiViews.PlayerIslandView playerIslandView(Map<?, ?> object) {
-        String islandId = text(object, "islandId");
-        String name = text(object, "name");
-        String role = text(object, "role");
+        String islandId = CoreJson.text(object, "islandId");
+        String name = CoreJson.text(object, "name");
+        String role = CoreJson.text(object, "role");
         return new CoreGuiViews.PlayerIslandView(
             islandId,
             name.isBlank() ? islandId : name,
-            text(object, "state"),
+            CoreJson.text(object, "state"),
             role.isBlank() ? "MEMBER" : role,
-            SimpleJson.number(object.get("level")),
-            text(object, "worth")
+            CoreJson.number(object, "level"),
+            CoreJson.text(object, "worth")
         );
     }
 
     private static CoreGuiViews.PublicIslandView publicIslandView(Map<?, ?> object) {
-        String islandId = text(object, "islandId");
-        String name = text(object, "name");
+        String islandId = CoreJson.text(object, "islandId");
+        String name = CoreJson.text(object, "name");
         return new CoreGuiViews.PublicIslandView(
             islandId,
-            text(object, "ownerUuid"),
+            CoreJson.text(object, "ownerUuid"),
             name.isBlank() ? islandId : name,
-            SimpleJson.number(object.get("level")),
-            text(object, "worth")
+            CoreJson.number(object, "level"),
+            CoreJson.text(object, "worth")
         );
     }
 
@@ -126,21 +124,4 @@ public final class JdkNavigationQueryClient implements NavigationQueryClient {
         return value.trim();
     }
 
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static double doubleValue(Object value) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        if (value instanceof String text) {
-            try {
-                return Double.parseDouble(text);
-            } catch (NumberFormatException ignored) {
-                return 0D;
-            }
-        }
-        return 0D;
-    }
 }
