@@ -205,7 +205,7 @@ public final class IntegrationLifecycleHooks {
         metadata.put("region", region(originX, originZ, islandSize));
         metadata.put("islandSize", Integer.toString(Math.max(1, islandSize)));
         metadata.put("snapshotNo", Long.toString(Math.max(0L, snapshotNo)));
-        metadata.put("bundleKey", bundlePath == null || bundlePath.getFileName() == null ? "" : bundlePath.getFileName().toString());
+        metadata.put("bundleKey", bundleKey(bundlePath, storagePath));
         metadata.put("bundlePath", bundlePath == null ? "" : bundlePath.toString());
         metadata.put("storagePath", storagePath == null ? "" : storagePath);
         metadata.put("namespace", "cloudislands");
@@ -217,10 +217,20 @@ public final class IntegrationLifecycleHooks {
         metadata.put("spawnerCountKey", "limits.spawners.effective");
         metadata.put("permissionNode", "cloudislands.island.runtime");
         metadata.put("bypassScope", "island-runtime");
-        metadata.put("contextKey", "cloudislands-island");
+        metadata.put("contextKey", "cloudislands:island");
         metadata.put("analyticsScope", "island-runtime");
         metadata.put("presenceKey", worldName + ":" + cellX + "," + cellZ);
         return metadata;
+    }
+
+    private String bundleKey(Path bundlePath, String storagePath) {
+        if (storagePath != null && !storagePath.isBlank()) {
+            return storagePath.replace('\\', '/');
+        }
+        if (bundlePath == null || bundlePath.getFileName() == null) {
+            return "";
+        }
+        return bundlePath.getFileName().toString().replace('\\', '/');
     }
 
     private String region(int originX, int originZ, int islandSize) {

@@ -69,6 +69,7 @@ class IntegrationLifecycleHooksTest {
         assertEquals("12,-4", exportBatch.context().metadata().get("cell"));
         assertEquals("192,0,-64..491,319,235", exportBatch.context().metadata().get("region"));
         assertEquals("1234-bundle.tar.zst", exportBatch.context().metadata().get("bundleKey"));
+        assertEquals("cloudislands:island", exportBatch.context().metadata().get("contextKey"));
         assertEquals("true", exportBatch.context().metadata().get("activeOperationsDrained"));
         assertEquals("true", exportBatch.context().metadata().get("editSessionFlushed"));
         assertEquals("77", exportBatch.results().getFirst().details().get("fencingToken"));
@@ -80,6 +81,8 @@ class IntegrationLifecycleHooksTest {
         assertEquals(6, restoreBatch.results().size());
         assertTrue(restoreBatch.results().stream().allMatch(result -> result.status() == IntegrationResult.Status.SUCCESS));
         assertEquals("0", restoreBatch.context().metadata().get("rollbackSeconds"));
+        assertEquals("snapshots/island.tar.zst", restoreBatch.context().metadata().get("bundleKey"));
+        assertEquals("bundle.tar.zst", restoreBatch.context().metadata().get("bundlePath"));
         assertEquals("snapshots/island.tar.zst", restoreBatch.context().metadata().get("storagePath"));
 
         IntegrationLifecycleHooks.LifecycleBatch deactivationBatch = hooks.onIslandDeactivated(islandId, activeIsland, Path.of("1234-bundle.tar.zst"));
