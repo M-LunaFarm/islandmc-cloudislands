@@ -97,11 +97,19 @@ public final class GuiMenuRenderer {
     }
 
     public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, Map<String, String> data, List<String> extraLore, String actionIdOverride) {
-        return item(definition, item, messages, item.materialKey(), data, extraLore, actionIdOverride);
+        return item(definition, item, messages, item.materialKey(), null, data, extraLore, actionIdOverride);
+    }
+
+    public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, String displayName, Map<String, String> data, List<String> extraLore) {
+        return item(definition, item, messages, item.materialKey(), displayName, data, extraLore, null);
     }
 
     public static org.bukkit.inventory.ItemStack stateItem(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, boolean active, Map<String, String> data, List<String> extraLore) {
-        return item(definition, item, messages, item.materialKey(active), data, extraLore, null);
+        return item(definition, item, messages, item.materialKey(active), null, data, extraLore, null);
+    }
+
+    public static org.bukkit.inventory.ItemStack stateItem(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, String displayName, boolean active, Map<String, String> data, List<String> extraLore) {
+        return item(definition, item, messages, item.materialKey(active), displayName, data, extraLore, null);
     }
 
     public static void setSymbolItem(Inventory inventory, GuiMenuDefinition definition, String symbol, MessageRenderer messages, Map<String, String> data, List<String> extraLore) {
@@ -109,7 +117,7 @@ public final class GuiMenuRenderer {
             .ifPresent(item -> inventory.setItem(slot, item(definition, item, messages, data, extraLore))));
     }
 
-    private static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, String materialKey, Map<String, String> data, List<String> extraLore, String actionIdOverride) {
+    private static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, String materialKey, String displayName, Map<String, String> data, List<String> extraLore, String actionIdOverride) {
         java.util.LinkedHashMap<String, String> mergedData = new java.util.LinkedHashMap<>(item.data());
         if (data != null) {
             mergedData.putAll(data);
@@ -124,7 +132,7 @@ public final class GuiMenuRenderer {
         }
         return GuiItems.action(
             material(materialKey),
-            message(messages, item.nameKey(), item.fallbackName()),
+            displayName == null || displayName.isBlank() ? message(messages, item.nameKey(), item.fallbackName()) : displayName,
             actionIdOverride == null ? definition.action(item.actionKey(), item.actionKey()) : actionIdOverride,
             mergedData,
             renderedLore.toArray(String[]::new)

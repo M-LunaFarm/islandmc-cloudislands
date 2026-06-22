@@ -355,7 +355,9 @@ class GuiSystemPolicyTest {
             assertTrue(definition.contains("  " + menuCase[2] + ":"), menuCase[1] + " must define the state fallback item");
             assertTrue(definition.contains("  " + menuCase[3] + ":"), menuCase[1] + " must define state material " + menuCase[3]);
             assertTrue(definition.contains("material: " + menuCase[4]), menuCase[1] + " state material must live in config-v2");
-            assertTrue(menu.contains("GuiMenuRenderer.material(MENU") || menu.contains("GuiMenuRenderer.material(menu"), menuCase[0] + " must read state materials from the menu definition");
+            assertTrue(menu.contains("GuiMenuRenderer.material(MENU")
+                || menu.contains("GuiMenuRenderer.material(menu")
+                || menu.contains("GuiMenuRenderer.item(MENU"), menuCase[0] + " must read state materials from the menu definition");
             assertFalse(menu.contains("Material." + menuCase[4]), menuCase[0] + " must not hard-code state item material");
         }
     }
@@ -465,7 +467,8 @@ class GuiSystemPolicyTest {
 
             assertTrue(definition.contains("  " + menuCase[2] + ":"), menuCase[1] + " must define dynamic material " + menuCase[2]);
             assertTrue(definition.contains("material: " + menuCase[3]), menuCase[1] + " material must live in config-v2");
-            assertTrue(menu.contains("GuiMenuRenderer.material(MENU"), menuCase[0] + " must read materials from the menu definition");
+            assertTrue(menu.contains("GuiMenuRenderer.material(MENU")
+                || menu.contains("GuiMenuRenderer.item(MENU"), menuCase[0] + " must read materials from the menu definition");
             assertFalse(menu.contains("Material." + menuCase[3]), menuCase[0] + " must not hard-code dynamic item material");
         }
     }

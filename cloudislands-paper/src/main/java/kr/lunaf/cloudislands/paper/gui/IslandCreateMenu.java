@@ -12,7 +12,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandCreateMenu implements Listener {
@@ -91,18 +90,15 @@ public final class IslandCreateMenu implements Listener {
     }
 
     private static ItemStack item(TemplateView template, MessageRenderer messages) {
-        ItemStack item = GuiItems.action(GuiMenuRenderer.material(MENU, "_", "OAK_SAPLING"), template.displayName().isBlank() ? template.id() : template.displayName(), "island.create", java.util.Map.of("templateId", template.id()), message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            List<String> lore = new ArrayList<>();
-            if (!template.minNodeVersion().isBlank()) {
-                lore.add(message(messages, "create-menu-required-version", "필요 플랫폼 버전: ") + template.minNodeVersion());
-            }
-            lore.add(message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
-            meta.setLore(lore);
-            item.setItemMeta(meta);
+        String displayName = template.displayName().isBlank() ? template.id() : template.displayName();
+        List<String> lore = new ArrayList<>();
+        if (!template.minNodeVersion().isBlank()) {
+            lore.add(message(messages, "create-menu-required-version", "필요 플랫폼 버전: ") + template.minNodeVersion());
         }
-        return item;
+        lore.add(message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
+        return MENU.item("_")
+            .map(item -> GuiMenuRenderer.item(MENU, item, messages, displayName, java.util.Map.of("templateId", template.id()), lore))
+            .orElseGet(() -> GuiItems.action(GuiMenuRenderer.material("OAK_SAPLING"), displayName, "island.create", java.util.Map.of("templateId", template.id()), lore.toArray(String[]::new)));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

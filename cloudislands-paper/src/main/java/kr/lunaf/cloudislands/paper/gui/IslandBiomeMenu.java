@@ -119,8 +119,11 @@ public final class IslandBiomeMenu implements Listener {
     }
 
     private static ItemStack biomeItem(String biome, boolean selected, MessageRenderer messages) {
-        org.bukkit.Material material = GuiMenuRenderer.material(MENU, selected ? "SELECTED" : "_", "_", "GRASS_BLOCK");
-        return GuiItems.action(material, biome, "island.biome.set", Map.of("biomeKey", biome), selected ? message(messages, "biome-menu-selected", "현재 적용됨") : message(messages, "biome-menu-click-to-change", "클릭하면 이 바이옴으로 변경합니다."));
+        String symbol = selected ? "SELECTED" : "_";
+        String lore = selected ? message(messages, "biome-menu-selected", "현재 적용됨") : message(messages, "biome-menu-click-to-change", "클릭하면 이 바이옴으로 변경합니다.");
+        return MENU.item(symbol)
+            .map(item -> GuiMenuRenderer.item(MENU, item, messages, biome, Map.of("biomeKey", biome), List.of(lore)))
+            .orElseGet(() -> GuiItems.action(GuiMenuRenderer.material("GRASS_BLOCK"), biome, "island.biome.set", Map.of("biomeKey", biome), lore));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
