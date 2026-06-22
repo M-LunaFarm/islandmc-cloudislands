@@ -55,9 +55,12 @@ public final class IntegrationLifecycleHooks {
                 .filter(status -> status.capabilities().contains(capability))
                 .map(PaperIntegrationRegistry.IntegrationStatus::pluginName)
                 .toList(),
-            (request, context) -> request.capability() == IntegrationCapability.STATE_RESTORE
-                ? registry.restoreState(request.pluginName(), context)
-                : registry.exportState(request.pluginName(), context)
+            (request, context) -> switch (request.capability()) {
+                case ISLAND_ACTIVATE -> registry.onIslandActivate(request.pluginName(), context);
+                case ISLAND_DEACTIVATE -> registry.onIslandDeactivate(request.pluginName(), context);
+                case STATE_RESTORE -> registry.restoreState(request.pluginName(), context);
+                default -> registry.exportState(request.pluginName(), context);
+            }
         );
     }
 
@@ -72,17 +75,48 @@ public final class IntegrationLifecycleHooks {
             (request, context) -> safeIntegrations.stream()
                 .filter(integration -> integration.pluginName().equals(request.pluginName()))
                 .findFirst()
-                .map(integration -> request.capability() == IntegrationCapability.STATE_RESTORE
-                    ? integration.restoreState(context)
-                    : integration.exportState(context))
+                .map(integration -> switch (request.capability()) {
+                    case ISLAND_ACTIVATE -> integration.onIslandActivate(context);
+                    case ISLAND_DEACTIVATE -> integration.onIslandDeactivate(context);
+                    case STATE_RESTORE -> integration.restoreState(context);
+                    default -> integration.exportState(context);
+                })
                 .orElseGet(() -> IntegrationResult.skipped(request.pluginName() + " integration is not registered"))
         );
+    }
+
+    public LifecycleBatch onIslandActivated(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) {
+        if (islandId == null || activeIsland == null) {
+            return LifecycleBatch.empty("activate");
+        }
+        IntegrationContext context = lifecycleContext("island-activate", islandId, activeIsland, 0L, null, "");
+        return invoke("activate", IntegrationCapability.ISLAND_ACTIVATE, context);
+    }
+
+    public LifecycleBatch onIslandDeactivated(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, Path bundlePath) {
+        if (islandId == null || activeIsland == null) {
+            return LifecycleBatch.empty("deactivate");
+        }
+        IntegrationContext context = lifecycleContext("island-deactivate", islandId, activeIsland, 0L, bundlePath, "");
+        return invoke("deactivate", IntegrationCapability.ISLAND_DEACTIVATE, context);
     }
 
     public LifecycleBatch exportState(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, long snapshotNo, Path bundlePath) {
         if (islandId == null || activeIsland == null) {
             return LifecycleBatch.empty("export");
         }
+        IntegrationContext context = lifecycleContext("bundle-export", islandId, activeIsland, snapshotNo, bundlePath, "");
+        return invoke("export", IntegrationCapability.STATE_EXPORT, context);
+    }
+
+    private IntegrationContext lifecycleContext(
+        String operation,
+        UUID islandId,
+        ActiveIslandRegistry.ActiveIsland activeIsland,
+        long snapshotNo,
+        Path bundlePath,
+        String storagePath
+    ) {
         Map<String, String> metadata = bundleMetadata(
             activeIsland.worldName(),
             activeIsland.cellX(),
@@ -92,17 +126,17 @@ public final class IntegrationLifecycleHooks {
             activeIsland.islandSize(),
             snapshotNo,
             bundlePath,
-            ""
+            storagePath
         );
-        IntegrationContext context = new IntegrationContext(
+        String safeOperation = operation == null || operation.isBlank() ? "integration" : operation;
+        return new IntegrationContext(
             islandId,
             nodeId,
             activeIsland.fencingToken(),
             true,
-            "bundle-export:" + islandId + ":" + snapshotNo,
+            safeOperation + ":" + islandId + ":" + Math.max(0L, snapshotNo),
             metadata
         );
-        return invoke("export", IntegrationCapability.STATE_EXPORT, context);
     }
 
     public LifecycleBatch restoreState(
@@ -185,6 +219,7 @@ public final class IntegrationLifecycleHooks {
         metadata.put("bypassScope", "island-runtime");
         metadata.put("contextKey", "cloudislands-island");
         metadata.put("analyticsScope", "island-runtime");
+        metadata.put("presenceKey", worldName + ":" + cellX + "," + cellZ);
         return metadata;
     }
 

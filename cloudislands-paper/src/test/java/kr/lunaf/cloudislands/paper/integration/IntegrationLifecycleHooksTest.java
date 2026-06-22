@@ -52,6 +52,15 @@ class IntegrationLifecycleHooksTest {
             Instant.now()
         );
 
+        IntegrationLifecycleHooks.LifecycleBatch activationBatch = hooks.onIslandActivated(islandId, activeIsland);
+        activationBatch.throwIfFailed();
+
+        assertEquals(6, activationBatch.results().size());
+        assertTrue(activationBatch.results().stream().allMatch(result -> result.status() == IntegrationResult.Status.SUCCESS));
+        assertEquals("activate", activationBatch.operation());
+        assertEquals("island-activate:" + islandId + ":0", activationBatch.context().idempotencyKey());
+        assertEquals("12,-4", activationBatch.context().metadata().get("cell"));
+
         IntegrationLifecycleHooks.LifecycleBatch exportBatch = hooks.exportState(islandId, activeIsland, 1234L, Path.of("1234-bundle.tar.zst"));
         exportBatch.throwIfFailed();
 
@@ -72,6 +81,15 @@ class IntegrationLifecycleHooksTest {
         assertTrue(restoreBatch.results().stream().allMatch(result -> result.status() == IntegrationResult.Status.SUCCESS));
         assertEquals("0", restoreBatch.context().metadata().get("rollbackSeconds"));
         assertEquals("snapshots/island.tar.zst", restoreBatch.context().metadata().get("storagePath"));
+
+        IntegrationLifecycleHooks.LifecycleBatch deactivationBatch = hooks.onIslandDeactivated(islandId, activeIsland, Path.of("1234-bundle.tar.zst"));
+        deactivationBatch.throwIfFailed();
+
+        assertEquals(6, deactivationBatch.results().size());
+        assertTrue(deactivationBatch.results().stream().allMatch(result -> result.status() == IntegrationResult.Status.SUCCESS));
+        assertEquals("deactivate", deactivationBatch.operation());
+        assertEquals("island-deactivate:" + islandId + ":0", deactivationBatch.context().idempotencyKey());
+        assertEquals("1234-bundle.tar.zst", deactivationBatch.context().metadata().get("bundleKey"));
     }
 
     @Test
