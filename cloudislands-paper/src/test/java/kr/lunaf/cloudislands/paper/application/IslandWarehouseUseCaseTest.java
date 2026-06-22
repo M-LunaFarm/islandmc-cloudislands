@@ -9,8 +9,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreWarehouseCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreWarehouseQueryClient;
+import kr.lunaf.cloudislands.coreclient.WarehouseCommandClient;
+import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
+import kr.lunaf.cloudislands.coreclient.WarehouseMutationView;
+import kr.lunaf.cloudislands.coreclient.WarehouseQueryClient;
 import org.junit.jupiter.api.Test;
 
 class IslandWarehouseUseCaseTest {
@@ -33,7 +35,7 @@ class IslandWarehouseUseCaseTest {
         assertEquals(false, withdraw.accepted());
         assertEquals("NO_STOCK", withdraw.code());
         assertEquals(List.of(
-            "islandWarehouse:100",
+            "islandWarehouse:500",
             "audit:island.warehouse.deposit",
             "depositIslandWarehouse:STONE:12",
             "audit:island.warehouse.withdraw",
@@ -56,21 +58,24 @@ class IslandWarehouseUseCaseTest {
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class},
+            new Class<?>[] {CoreApiClient.class, WarehouseQueryClient.class, WarehouseCommandClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
-                case "warehouse" -> new CoreWarehouseQueryClient((CoreApiClient) _proxy);
-                case "warehouseCommands" -> new CoreWarehouseCommandClient((CoreApiClient) _proxy);
-                case "islandWarehouse" -> {
+                case "warehouse" -> (WarehouseQueryClient) _proxy;
+                case "warehouseCommands" -> (WarehouseCommandClient) _proxy;
+                case "listItems" -> {
                     calls.add("islandWarehouse:" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"items\":[{\"materialKey\":\"STONE\",\"amount\":12},{\"materialKey\":\"DIRT\",\"amount\":7}]}");
+                    yield CompletableFuture.completedFuture(List.of(
+                        new WarehouseItemView("00000000-0000-0000-0000-000000000030", "STONE", 12L, ""),
+                        new WarehouseItemView("00000000-0000-0000-0000-000000000030", "DIRT", 7L, "")
+                    ));
                 }
-                case "depositIslandWarehouse" -> {
+                case "deposit" -> {
                     calls.add("depositIslandWarehouse:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"materialKey\":\"STONE\",\"amount\":12}");
+                    yield CompletableFuture.completedFuture(new WarehouseMutationView(true, "", "STONE", 12L));
                 }
-                case "withdrawIslandWarehouse" -> {
+                case "withdraw" -> {
                     calls.add("withdrawIslandWarehouse:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_STOCK\",\"materialKey\":\"DIRT\",\"amount\":7}");
+                    yield CompletableFuture.completedFuture(new WarehouseMutationView(false, "NO_STOCK", "DIRT", 7L));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });

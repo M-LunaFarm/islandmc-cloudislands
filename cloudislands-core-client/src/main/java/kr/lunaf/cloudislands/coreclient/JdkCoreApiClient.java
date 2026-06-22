@@ -7,6 +7,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,7 +46,7 @@ import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, BankCommandClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient, RuntimeCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, WarehouseQueryClient, WarehouseCommandClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient, RuntimeCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -53,8 +54,6 @@ public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, B
     private final HttpClient httpClient;
     private final SnapshotQueryClient snapshotQueryClient;
     private final SnapshotCommandClient snapshotCommandClient;
-    private final CommunicationQueryClient communicationQueryClient;
-    private final CommunicationCommandClient communicationCommandClient;
     private final IslandEnvironmentQueryClient environmentQueryClient;
     private final IslandEnvironmentCommandClient environmentCommandClient;
     private final IslandSettingsCommandClient settingsClient;
@@ -72,8 +71,6 @@ public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, B
     private final MemberQueryClient memberQueryClient;
     private final MemberCommandClient memberCommandClient;
     private final IslandVisitorStatsQueryClient visitorStatsClient;
-    private final WarehouseQueryClient warehouseQueryClient;
-    private final WarehouseCommandClient warehouseCommandClient;
     private final PlayerProfileQueryClient playerProfileQueryClient;
     private final PlayerProfileCommandClient playerProfileCommandClient;
     private final JobQueryClient jobQueryClient;
@@ -103,8 +100,6 @@ public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, B
         this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
         this.snapshotQueryClient = new CoreSnapshotQueryClient(this);
         this.snapshotCommandClient = new CoreSnapshotCommandClient(this);
-        this.communicationQueryClient = new CoreCommunicationQueryClient(this);
-        this.communicationCommandClient = new CoreCommunicationCommandClient(this);
         this.environmentQueryClient = new CoreIslandEnvironmentQueryClient(this);
         this.environmentCommandClient = new CoreIslandEnvironmentCommandClient(this);
         this.settingsClient = new CoreIslandSettingsCommandClient(this);
@@ -122,8 +117,6 @@ public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, B
         this.memberQueryClient = new CoreMemberQueryClient(this);
         this.memberCommandClient = new CoreMemberCommandClient(this);
         this.visitorStatsClient = new CoreIslandVisitorStatsQueryClient(this);
-        this.warehouseQueryClient = new CoreWarehouseQueryClient(this);
-        this.warehouseCommandClient = new CoreWarehouseCommandClient(this);
         this.playerProfileQueryClient = this;
         this.playerProfileCommandClient = this;
         this.jobQueryClient = new CoreJobQueryClient(this);
@@ -164,12 +157,12 @@ public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, B
 
     @Override
     public CommunicationQueryClient communication() {
-        return communicationQueryClient;
+        return this;
     }
 
     @Override
     public CommunicationCommandClient communicationCommands() {
-        return communicationCommandClient;
+        return this;
     }
 
     @Override
@@ -244,12 +237,12 @@ public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, B
 
     @Override
     public WarehouseQueryClient warehouse() {
-        return warehouseQueryClient;
+        return this;
     }
 
     @Override
     public WarehouseCommandClient warehouseCommands() {
-        return warehouseCommandClient;
+        return this;
     }
 
     @Override
@@ -781,18 +774,46 @@ public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, B
     }
 
     @Override
-    public CompletableFuture<String> islandWarehouse(UUID islandId, int limit) {
-        return post("/v1/islands/warehouse", jsonObject("islandId", islandId, "limit", limit));
+    public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
+        if (islandId == null) {
+            throw new IllegalArgumentException("islandId is required");
+        }
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        return post("/v1/islands/warehouse", jsonObject("islandId", islandId, "limit", safeLimit))
+            .thenApply(body -> warehouseItems(islandId, body));
     }
 
     @Override
-    public CompletableFuture<String> depositIslandWarehouse(UUID islandId, UUID actorUuid, String materialKey, long amount) {
-        return postWithResultBody("/v1/islands/warehouse/deposit", jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey, "amount", amount));
+    public CompletableFuture<WarehouseMutationView> deposit(UUID islandId, UUID actorUuid, String materialKey, long amount) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        return postWithResultBody("/v1/islands/warehouse/deposit", jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey == null ? "" : materialKey, "amount", amount))
+            .thenApply(JdkCoreApiClient::warehouseMutation);
     }
 
     @Override
-    public CompletableFuture<String> withdrawIslandWarehouse(UUID islandId, UUID actorUuid, String materialKey, long amount) {
-        return postWithResultBody("/v1/islands/warehouse/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey, "amount", amount));
+    public CompletableFuture<WarehouseMutationView> withdraw(UUID islandId, UUID actorUuid, String materialKey, long amount) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        return postWithResultBody("/v1/islands/warehouse/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey == null ? "" : materialKey, "amount", amount))
+            .thenApply(JdkCoreApiClient::warehouseMutation);
+    }
+
+    private static List<WarehouseItemView> warehouseItems(UUID islandId, String body) {
+        return CoreJson.entries(body).stream()
+            .map(object -> new WarehouseItemView(warehouseItemIslandId(islandId, object), SimpleJson.text(object.get("materialKey")), SimpleJson.number(object.get("amount")), SimpleJson.text(object.get("updatedAt"))))
+            .filter(item -> !item.materialKey().isBlank() && item.amount() > 0L)
+            .toList();
+    }
+
+    private static String warehouseItemIslandId(UUID fallbackIslandId, Map<?, ?> object) {
+        String itemIslandId = SimpleJson.text(object.get("islandId"));
+        return itemIslandId.isBlank() ? fallbackIslandId.toString() : itemIslandId;
+    }
+
+    private static WarehouseMutationView warehouseMutation(String body) {
+        Map<?, ?> root = CoreJson.object(body);
+        return new WarehouseMutationView(CoreJson.accepted(root), CoreJson.text(root, "code"), CoreJson.text(root, "materialKey"), CoreJson.number(root, "amount"));
     }
 
     @Override
@@ -974,8 +995,16 @@ public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, B
     }
 
     @Override
-    public CompletableFuture<String> sendIslandChat(UUID islandId, UUID actorUuid, String channel, String message) {
-        return post("/v1/islands/chat", jsonObject("islandId", islandId, "actorUuid", actorUuid, "channel", channel, "message", message));
+    public CompletableFuture<ChatActionView> sendChat(UUID islandId, UUID actorUuid, String channel, String message) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        String normalizedChannel = channel == null || channel.isBlank() ? "ISLAND" : channel.trim().toUpperCase(Locale.ROOT);
+        String normalizedMessage = message == null ? "" : message.trim();
+        if (normalizedMessage.isBlank()) {
+            throw new IllegalArgumentException("message is required");
+        }
+        return post("/v1/islands/chat", jsonObject("islandId", islandId, "actorUuid", actorUuid, "channel", normalizedChannel, "message", normalizedMessage))
+            .thenApply(body -> CoreCommunicationJson.chatAction(body, "CHAT_SENT"));
     }
 
     @Override
@@ -1024,8 +1053,13 @@ public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, B
     }
 
     @Override
-    public CompletableFuture<String> listIslandLogs(UUID islandId, int limit) {
-        return post("/v1/islands/logs", jsonObject("islandId", islandId, "limit", limit));
+    public CompletableFuture<List<IslandLogRecord>> records(UUID islandId, int limit) {
+        if (islandId == null) {
+            throw new IllegalArgumentException("islandId is required");
+        }
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        return post("/v1/islands/logs", jsonObject("islandId", islandId, "limit", safeLimit))
+            .thenApply(CoreCommunicationJson::records);
     }
 
     @Override

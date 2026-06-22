@@ -247,7 +247,7 @@ class CoreMutationContextTest {
             client.registerMissionProvider("provider\"one", "[{\"missionKey\":\"starter\"}]").join();
             client.listIslandLimits(islandId).join();
             client.setIslandLimit(islandId, actorUuid, "HOPPER\"LIMIT", 64L).join();
-            client.sendIslandChat(islandId, actorUuid, "team\"chat", "hello \"team\"").join();
+            client.communicationCommands().sendChat(islandId, actorUuid, "team\"chat", "hello \"team\"").join();
             client.listIslandSnapshots(islandId, 15).join();
             client.recordIslandSnapshot(islandId, 7L, "snapshots/base\"one.tar", "manual \"save\"", "abc\"123", 4096L, "node\"a").join();
             assertEquals("{\"islandId\":\"" + islandId + "\",\"snapshotNo\":7,\"storagePath\":\"snapshots/base\\\"one.tar\",\"reason\":\"manual \\\"save\\\"\",\"checksum\":\"abc\\\"123\",\"sizeBytes\":4096,\"nodeId\":\"node\\\"a\"}", requestBodies.get("snapshotRecord"));
@@ -256,7 +256,7 @@ class CoreMutationContextTest {
             client.requestIslandSnapshotResult(islandId, "snapshot \"now\"").join();
             client.restoreIslandSnapshotResult(islandId, 7L).join();
             client.rollbackIslandSnapshotResult(islandId, 6L).join();
-            client.listIslandLogs(islandId, 25).join();
+            client.communication().records(islandId, 25).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("upgrades"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"upgradeKey\":\"generator\\\"speed\"}", requestBodies.get("upgradePurchase"));
@@ -266,7 +266,7 @@ class CoreMutationContextTest {
             assertEquals("{\"providerId\":\"provider\\\"one\",\"missions\":[{\"missionKey\":\"starter\"}]}", requestBodies.get("missionRegister"));
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("limits"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"limitKey\":\"HOPPER\\\"LIMIT\",\"value\":64}", requestBodies.get("limitSet"));
-            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"channel\":\"team\\\"chat\",\"message\":\"hello \\\"team\\\"\"}", requestBodies.get("chat"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"channel\":\"TEAM\\\"CHAT\",\"message\":\"hello \\\"team\\\"\"}", requestBodies.get("chat"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":15}", requestBodies.get("snapshots"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"snapshotNo\":8,\"storagePath\":\"snapshots/base\\\"two.tar\",\"reason\":\"auto \\\"save\\\"\",\"checksum\":\"def\\\"456\",\"sizeBytes\":8192,\"nodeId\":\"node\\\"b\",\"fencingToken\":123}", requestBodies.get("snapshotRecord"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"reason\":\"save \\\"now\\\"\"}", requestBodies.get("save"));
@@ -630,9 +630,9 @@ class CoreMutationContextTest {
             client.bank().snapshot(islandId).join();
             client.bankCommands().depositSnapshot(islandId, actorUuid, "12.50").join();
             client.bankCommands().withdrawSnapshot(islandId, actorUuid, "4.25").join();
-            client.islandWarehouse(islandId, 50).join();
-            client.depositIslandWarehouse(islandId, actorUuid, "minecraft:stone", 12L).join();
-            client.withdrawIslandWarehouse(islandId, actorUuid, "minecraft:dirt", 7L).join();
+            client.warehouse().listItems(islandId, 50).join();
+            client.warehouseCommands().deposit(islandId, actorUuid, "minecraft:stone", 12L).join();
+            client.warehouseCommands().withdraw(islandId, actorUuid, "minecraft:dirt", 7L).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("bank"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"amount\":\"12.50\"}", requestBodies.get("bankDeposit"));

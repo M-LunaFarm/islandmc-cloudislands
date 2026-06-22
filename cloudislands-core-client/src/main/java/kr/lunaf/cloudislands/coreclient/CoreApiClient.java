@@ -53,11 +53,17 @@ public interface CoreApiClient {
     }
 
     default CommunicationQueryClient communication() {
-        return new CoreCommunicationQueryClient(this);
+        if (this instanceof CommunicationQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed communication queries");
     }
 
     default CommunicationCommandClient communicationCommands() {
-        return new CoreCommunicationCommandClient(this);
+        if (this instanceof CommunicationCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed communication commands");
     }
 
     default BankQueryClient bank() {
@@ -75,11 +81,17 @@ public interface CoreApiClient {
     }
 
     default WarehouseQueryClient warehouse() {
-        return new CoreWarehouseQueryClient(this);
+        if (this instanceof WarehouseQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed warehouse queries");
     }
 
     default WarehouseCommandClient warehouseCommands() {
-        return new CoreWarehouseCommandClient(this);
+        if (this instanceof WarehouseCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed warehouse commands");
     }
 
     default HomeWarpQueryClient homeWarps() {
@@ -296,9 +308,6 @@ public interface CoreApiClient {
     CompletableFuture<String> listIslandReviews(UUID islandId, int limit);
     CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
     CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
-    CompletableFuture<String> islandWarehouse(UUID islandId, int limit);
-    CompletableFuture<String> depositIslandWarehouse(UUID islandId, UUID actorUuid, String materialKey, long amount);
-    CompletableFuture<String> withdrawIslandWarehouse(UUID islandId, UUID actorUuid, String materialKey, long amount);
     CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category);
@@ -331,7 +340,6 @@ public interface CoreApiClient {
     CompletableFuture<String> registerMissionProvider(String providerId, String definitionsJson);
     CompletableFuture<String> listIslandLimits(UUID islandId);
     CompletableFuture<String> setIslandLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
-    CompletableFuture<String> sendIslandChat(UUID islandId, UUID actorUuid, String channel, String message);
     CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit);
     CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId);
     default CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
@@ -343,7 +351,6 @@ public interface CoreApiClient {
     CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo);
     CompletableFuture<String> restoreIslandSnapshotResult(UUID islandId, long snapshotNo);
     CompletableFuture<String> rollbackIslandSnapshotResult(UUID islandId, long snapshotNo);
-    CompletableFuture<String> listIslandLogs(UUID islandId, int limit);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);

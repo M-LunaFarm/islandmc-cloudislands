@@ -7,8 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.coreclient.CoreCommunicationCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreCommunicationQueryClient;
+import kr.lunaf.cloudislands.api.model.IslandLogRecord;
+import kr.lunaf.cloudislands.coreclient.ChatActionView;
+import kr.lunaf.cloudislands.coreclient.CommunicationCommandClient;
+import kr.lunaf.cloudislands.coreclient.CommunicationQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LogEntryView;
 import kr.lunaf.cloudislands.paper.application.IslandCommunicationUseCase.ChatActionResult;
@@ -39,18 +41,19 @@ class IslandCommunicationUseCaseTest {
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-	            new Class<?>[] {CoreApiClient.class},
+	            new Class<?>[] {CoreApiClient.class, CommunicationQueryClient.class, CommunicationCommandClient.class},
 	            (_proxy, method, args) -> switch (method.getName()) {
-	                case "communication" -> new CoreCommunicationQueryClient((CoreApiClient) _proxy);
-	                case "communicationCommands" -> new CoreCommunicationCommandClient((CoreApiClient) _proxy);
-	                case "sendIslandChat" -> {
+	                case "communication" -> (CommunicationQueryClient) _proxy;
+	                case "communicationCommands" -> (CommunicationCommandClient) _proxy;
+	                case "sendChat" -> {
                     calls.add("sendIslandChat:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                    yield CompletableFuture.completedFuture(new ChatActionView(true, "CHAT_SENT", args[2].toString(), args[3].toString()));
                 }
-                case "listIslandLogs" -> {
+                case "listLogs" -> {
                     calls.add("listIslandLogs:" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"logs\":[{\"actorUuid\":\"00000000-0000-0000-0000-000000000001\",\"action\":\"CREATE\",\"createdAt\":\"now\",\"payload\":{\"target\":\"island\"}}]}");
+                    yield CompletableFuture.completedFuture(List.of(new LogEntryView("00000000-0000-0000-0000-000000000001", "CREATE", java.util.Map.of("target", "island"), "now")));
                 }
+                case "records" -> CompletableFuture.completedFuture(List.of(new IslandLogRecord(UUID.randomUUID(), (UUID) args[0], uuid("00000000-0000-0000-0000-000000000001"), "CREATE", java.util.Map.of("target", "island"), java.time.Instant.parse("2026-01-02T03:04:05Z"))));
                 default -> throw new UnsupportedOperationException(method.getName());
             });
     }

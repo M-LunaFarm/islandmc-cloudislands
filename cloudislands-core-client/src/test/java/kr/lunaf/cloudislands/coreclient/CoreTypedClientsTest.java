@@ -822,15 +822,14 @@ class CoreTypedClientsTest {
         UUID actorUuid = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, CommunicationQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "listIslandLogs" -> CompletableFuture.completedFuture("""
-                    {"logs":[{"actorUuid":"%s","action":"CREATE","createdAt":"now","payload":{"target":"island","activeNode":"node-1"}}]}
-                    """.formatted(actorUuid));
+                case "records" -> CompletableFuture.completedFuture(List.of(new IslandLogRecord(UUID.randomUUID(), islandId, actorUuid, "CREATE", Map.of("target", "island"), Instant.parse("2026-01-02T03:04:05Z"))));
+                case "listLogs" -> CompletableFuture.completedFuture(List.of(new CoreGuiViews.LogEntryView(actorUuid.toString(), "CREATE", Map.of("target", "island"), "2026-01-02T03:04:05Z")));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        CommunicationQueryClient client = new CoreCommunicationQueryClient(raw);
+        CommunicationQueryClient client = (CommunicationQueryClient) raw;
 
         IslandLogRecord record = client.records(islandId, 500).join().get(0);
         CoreGuiViews.LogEntryView log = client.listLogs(islandId, 500).join().get(0);
@@ -852,18 +851,18 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, CommunicationCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "sendIslandChat" -> {
+                case "sendChat" -> {
                     calls.add("chat:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"CHAT_SENT\",\"channel\":\"TEAM\",\"message\":\"hello\"}");
+                    yield CompletableFuture.completedFuture(new ChatActionView(true, "CHAT_SENT", "TEAM", "hello"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        CommunicationCommandClient client = new CoreCommunicationCommandClient(raw);
+        CommunicationCommandClient client = (CommunicationCommandClient) raw;
 
-        ChatActionView chat = client.sendChat(islandId, actorUuid, "team", " hello ").join();
+        ChatActionView chat = client.sendChat(islandId, actorUuid, "TEAM", "hello").join();
 
         assertTrue(chat.accepted());
         assertEquals("CHAT_SENT", chat.code());
@@ -950,15 +949,13 @@ class CoreTypedClientsTest {
         UUID islandId = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, WarehouseQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "islandWarehouse" -> CompletableFuture.completedFuture("""
-                    {"items":[{"islandId":"%s","materialKey":"STONE","amount":12,"updatedAt":"2026-06-21T15:00:00Z"},{"materialKey":"","amount":9},{"materialKey":"DIRT","amount":0}]}
-                    """.formatted(islandId));
+                case "listItems" -> CompletableFuture.completedFuture(List.of(new WarehouseItemView(islandId.toString(), "STONE", 12L, "2026-06-21T15:00:00Z")));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        WarehouseQueryClient client = new CoreWarehouseQueryClient(raw);
+        WarehouseQueryClient client = (WarehouseQueryClient) raw;
 
         List<WarehouseItemView> items = client.listItems(islandId, 500).join();
 
@@ -976,20 +973,20 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, WarehouseCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "depositIslandWarehouse" -> {
+                case "deposit" -> {
                     calls.add("deposit:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"materialKey\":\"STONE\",\"amount\":12}");
+                    yield CompletableFuture.completedFuture(new WarehouseMutationView(true, "", "STONE", 12));
                 }
-                case "withdrawIslandWarehouse" -> {
+                case "withdraw" -> {
                     calls.add("withdraw:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_STOCK\",\"materialKey\":\"DIRT\",\"amount\":7}");
+                    yield CompletableFuture.completedFuture(new WarehouseMutationView(false, "NO_STOCK", "DIRT", 7));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        WarehouseCommandClient client = new CoreWarehouseCommandClient(raw);
+        WarehouseCommandClient client = (WarehouseCommandClient) raw;
 
         WarehouseMutationView deposit = client.deposit(islandId, actorUuid, "STONE", 12L).join();
         WarehouseMutationView withdraw = client.withdraw(islandId, actorUuid, "DIRT", 7L).join();
