@@ -72,6 +72,11 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use CoreAdminStorageQueryClient");
         assertFalse(nestedClients.contains("JdkAdminEventClient"), "admin events must use CoreAdminEventQueryClient");
         assertFalse(nestedClients.contains("JdkAdminAuditClient"), "admin audit must use CoreAdminAuditQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminRouteClient"), "admin routes must use CoreAdminRouteClient");
+        assertFalse(nestedClients.contains("JdkAdminAddonStateClient"), "admin addon state must use CoreAdminAddonStateQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminMaintenanceClient"), "admin maintenance must use CoreAdminMaintenanceCommandClient");
+        assertFalse(nestedClients.contains("JdkAdminNodeClient"), "admin node operations must use CoreAdminNode query and command clients");
+        assertFalse(nestedClients.contains("JdkAdminIslandClient"), "admin islands must use CoreAdminIslandQueryClient");
     }
 
     @Test
