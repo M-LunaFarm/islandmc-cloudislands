@@ -38,11 +38,10 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("ConfigV2Validator.validateMenuYaml"), "Paper runtime loader must validate config-v2 menu action schemas");
         assertTrue(loader.contains("GuiActionSchema.registeredActionIds()"), "Paper runtime menu validation must use the runtime GUI action registry");
         assertFalse(loader.contains("PAPER_CONFIG_V2_FILES"), "Paper runtime loader must not keep a hardcoded config-v2 file list");
-        assertTrue(loader.contains("knownPaperConfigV2Source"), "Paper runtime loader must maintain an explicit consumed-source policy");
         assertTrue(loader.contains("configV2RelativeName"), "Paper runtime loader must validate config-v2 sources by relative resource path");
-        assertTrue(loader.contains("UNSUPPORTED_CONFIG_V2_SOURCE"), "Paper runtime loader must reject unknown config-v2 yaml instead of silently ignoring it");
-        assertTrue(loader.contains("\"ui/theme.yml\""), "Paper runtime loader must allow the declared theme config boundary");
-        assertTrue(loader.contains("\"addons.yml\""), "Paper runtime loader must allow addon config-v2 as the extension boundary");
+        assertFalse(loader.contains("knownPaperConfigV2Source"), "Paper runtime loader must not keep a source-name allowlist");
+        assertFalse(loader.contains("UNSUPPORTED_CONFIG_V2_SOURCE"), "future Config v2 files must not fail validation only because the loader does not map them yet");
+        assertTrue(Files.isRegularFile(root.resolve("src/main/resources/config-v2/ui/theme.yml")), "Bundled config-v2 must expose the declared theme config boundary");
         assertTrue(loader.contains("mapMessagesV2"), "Paper runtime loader must map active locale messages into the runtime snapshot");
         assertTrue(loader.contains("localeFromMessageSource"), "Paper runtime loader must only apply the active locale message file");
         assertTrue(loader.contains("target.set(\"messages.translations.\" + key"), "Config v2 locale messages must feed runtime translations");
