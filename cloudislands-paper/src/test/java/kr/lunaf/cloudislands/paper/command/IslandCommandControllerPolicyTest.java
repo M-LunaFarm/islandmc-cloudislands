@@ -578,12 +578,16 @@ class IslandCommandControllerPolicyTest {
     @Test
     void routingCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String homeWarpRuntime = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpRuntimeAdapter.java"));
+        String visitReviewRuntime = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandVisitReviewRuntimeAdapter.java"));
         String routingHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandRoutingCommandHandler.java"));
         String routingUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandRoutingUseCase.java"));
 
         assertTrue(backend.contains("private final IslandRoutingCommandHandler routingCommands;"));
-        assertTrue(backend.contains("routingCommands.routeWarp(player, islandId, warpName)"));
-        assertTrue(backend.contains("routingCommands.routeTicket(player, ticketFuture, failureMessage)"));
+        assertTrue(backend.contains("new IslandHomeWarpRuntimeAdapter(runtimeServices, routingCommands)"));
+        assertTrue(backend.contains("new IslandVisitReviewRuntimeAdapter(runtimeServices, routingCommands)"));
+        assertTrue(homeWarpRuntime.contains("routingCommands.routeWarp(player, islandId, warpName)"));
+        assertTrue(visitReviewRuntime.contains("routingCommands.routeTicket(player, ticketFuture, failureMessage)"));
         assertTrue(backend.contains("routingCommands.clearRouteLoading(event.getPlayer())"));
         assertFalse(backend.contains("routeBossBars"), "route loading state belongs in IslandRoutingCommandHandler");
         assertFalse(backend.contains("sendPluginMessage(plugin, \"BungeeCord\""), "Bungee plugin messaging belongs in IslandRoutingCommandHandler");

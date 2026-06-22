@@ -1,24 +1,11 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.UUID;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
-import kr.lunaf.cloudislands.api.model.IslandFlag;
-import kr.lunaf.cloudislands.api.model.IslandLocation;
-import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
-import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
-import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -27,8 +14,6 @@ import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
-import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -115,312 +100,16 @@ final class IslandCommandBackend {
         this.progressionCommands = new IslandProgressionCommandHandler(plugin, coreApiClient, levelScanService, runtimeServices);
         this.environmentCommands = new IslandEnvironmentCommandHandler(plugin, coreApiClient, protection, runtimeServices);
         this.settingsCommands = new IslandSettingsCommandHandler(plugin, coreApiClient, runtimeServices);
-        this.homeWarpCommands = new IslandHomeWarpCommandHandler(plugin, coreApiClient, new IslandHomeWarpCommandHandler.Runtime() {
-            @Override
-            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return runtimeServices.currentIsland(player, missingMessage);
-            }
-
-            @Override
-            public boolean allowed(Player player, IslandPermission permission) {
-                return runtimeServices.allowed(player, permission);
-            }
-
-            @Override
-            public void message(Player player, String message) {
-                runtimeServices.message(player, message);
-            }
-
-            @Override
-            public String routeMessage(String key, String fallback) {
-                return runtimeServices.routeMessage(key, fallback);
-            }
-
-            @Override
-            public String coreWriteFailureMessage(Throwable error, String fallback) {
-                return runtimeServices.coreWriteFailureMessage(error, fallback);
-            }
-
-            @Override
-            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return runtimeServices.mutate(auditAction, operation);
-            }
-
-            @Override
-            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return runtimeServices.mutateIdempotent(auditAction, operation);
-            }
-
-            @Override
-            public MessageRenderer messagesFor(Player player) {
-                return runtimeServices.messagesFor(player);
-            }
-
-            @Override
-            public IslandLocation location(Location location) {
-                return runtimeServices.location(location);
-            }
-
-            @Override
-            public void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
-                runtimeServices.moveToPoint(player, point, missingMessage, successMessage);
-            }
-
-            @Override
-            public boolean teleportLocalDefaultHome(Player player) {
-                return runtimeServices.teleportLocalDefaultHome(player);
-            }
-
-            @Override
-            public boolean coreUnavailable(Throwable error) {
-                return runtimeServices.coreUnavailable(error);
-            }
-
-            @Override
-            public boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, boolean islandPublicAccess) {
-                return runtimeServices.publicWarpAllowed(player, point, islandPublicAccess);
-            }
-
-            @Override
-            public void routeWarp(Player player, UUID islandId, String warpName) {
-                routingCommands.routeWarp(player, islandId, warpName);
-            }
-
-            @Override
-            public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
-                runtimeServices.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
-            }
-
-            @Override
-            public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
-                return runtimeServices.confirmationAccepted(player, action, click);
-            }
-        });
-        this.visitReviewCommands = new IslandVisitReviewCommandHandler(plugin, coreApiClient, new IslandVisitReviewCommandHandler.Runtime() {
-            @Override
-            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return runtimeServices.currentIsland(player, missingMessage);
-            }
-
-            @Override
-            public void message(Player player, String message) {
-                runtimeServices.message(player, message);
-            }
-
-            @Override
-            public String routeMessage(String key, String fallback) {
-                return runtimeServices.routeMessage(key, fallback);
-            }
-
-            @Override
-            public String playerCodeMessage(String code, String fallback) {
-                return runtimeServices.playerCodeMessage(code, fallback);
-            }
-
-            @Override
-            public String coreWriteFailureMessage(Throwable error, String fallback) {
-                return runtimeServices.coreWriteFailureMessage(error, fallback);
-            }
-
-            @Override
-            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return runtimeServices.mutate(auditAction, operation);
-            }
-
-            @Override
-            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return runtimeServices.mutateIdempotent(auditAction, operation);
-            }
-
-            @Override
-            public MessageRenderer messagesFor(Player player) {
-                return runtimeServices.messagesFor(player);
-            }
-
-            @Override
-            public void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
-                routingCommands.routeTicket(player, ticketFuture, failureMessage);
-            }
-        });
+        this.homeWarpCommands = new IslandHomeWarpCommandHandler(plugin, coreApiClient, new IslandHomeWarpRuntimeAdapter(runtimeServices, routingCommands));
+        this.visitReviewCommands = new IslandVisitReviewCommandHandler(plugin, coreApiClient, new IslandVisitReviewRuntimeAdapter(runtimeServices, routingCommands));
         this.lifecycleCommands = new IslandLifecycleCommandHandler(plugin, coreApiClient, runtimeServices);
         this.overviewCommands = new IslandOverviewCommandHandler(plugin, coreApiClient, runtimeServices);
         this.permissionCommands = new IslandPermissionCommandHandler(plugin, coreApiClient, runtimeServices);
-        this.membershipCommands = new IslandMembershipCommandHandler(plugin, coreApiClient, new IslandMembershipCommandHandler.Runtime() {
-            @Override
-            public void message(Player player, String message) {
-                runtimeServices.message(player, message);
-            }
-
-            @Override
-            public String routeMessage(String key, String fallback) {
-                return runtimeServices.routeMessage(key, fallback);
-            }
-
-            @Override
-            public MessageRenderer messagesFor(Player player) {
-                return runtimeServices.messagesFor(player);
-            }
-
-            @Override
-            public String joined(String[] args, int start) {
-                return runtimeServices.joined(args, start);
-            }
-
-            @Override
-            public int integer(String value, int fallback) {
-                return runtimeServices.integer(value, fallback);
-            }
-
-            @Override
-            public long longValue(String value, long fallback) {
-                return runtimeServices.longValue(value, fallback);
-            }
-
-            @Override
-            public String roleKey(String value) {
-                return permissionCommands.roleKey(value);
-            }
-
-            @Override
-            public boolean editableRoleKey(String roleKey) {
-                return permissionCommands.editableRoleKey(roleKey);
-            }
-
-            @Override
-            public int defaultRoleWeight(String roleKey) {
-                return permissionCommands.defaultRoleWeight(roleKey);
-            }
-
-            @Override
-            public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return runtimeServices.currentIsland(player, missingMessage);
-            }
-
-            @Override
-            public boolean allowed(Player player, IslandPermission permission) {
-                return runtimeServices.allowed(player, permission);
-            }
-
-            @Override
-            public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return runtimeServices.mutate(auditAction, operation);
-            }
-
-            @Override
-            public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return runtimeServices.mutateIdempotent(auditAction, operation);
-            }
-
-            @Override
-            public CompletableFuture<UUID> resolvePlayerUuid(String value) {
-                return runtimeServices.resolvePlayerUuid(value);
-            }
-
-            @Override
-            public boolean moveVisitorToFallback(UUID islandId, UUID targetUuid, String successMessage, String failureMessage) {
-                return memberPresentation.moveVisitorToFallback(islandId, targetUuid, successMessage, failureMessage);
-            }
-
-            @Override
-            public String playerMessage(String message) {
-                return runtimeServices.playerMessage(message);
-            }
-
-            @Override
-            public void openIslandMemberMenu(Player player) {
-                memberPresentation.openMemberMenu(player);
-            }
-
-            @Override
-            public void openIslandMemberMenu(Player player, int page) {
-                memberPresentation.openMemberMenu(player, page);
-            }
-
-            @Override
-            public void openIslandBanMenu(Player player) {
-                memberPresentation.openBanMenu(player);
-            }
-
-            @Override
-            public void listIslandPermissions(Player player) {
-                permissionCommands.listIslandPermissions(player);
-            }
-
-            @Override
-            public void openIslandPermissionMenu(Player player) {
-                permissionCommands.openIslandPermissionMenu(player);
-            }
-
-            @Override
-            public void openIslandPermissionMenu(Player player, int page, int rolePage) {
-                permissionCommands.openIslandPermissionMenu(player, page, rolePage);
-            }
-
-            @Override
-            public void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
-                permissionCommands.stageIslandPermission(player, roleName, permissionName, allowedValue);
-            }
-
-            @Override
-            public void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue, String expectedVersion) {
-                permissionCommands.stageIslandPermission(player, roleName, permissionName, allowedValue, expectedVersion);
-            }
-
-            @Override
-            public void resetStagedIslandPermissions(Player player) {
-                permissionCommands.resetStagedIslandPermissions(player);
-            }
-
-            @Override
-            public void saveStagedIslandPermissions(Player player) {
-                permissionCommands.saveStagedIslandPermissions(player);
-            }
-
-            @Override
-            public void setIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
-                permissionCommands.setIslandPermission(player, roleName, permissionName, allowedValue);
-            }
-
-            @Override
-            public void setIslandPermissionOverride(Player player, String target, String permissionName, String allowedValue) {
-                permissionCommands.setIslandPermissionOverride(player, target, permissionName, allowedValue);
-            }
-
-            @Override
-            public void openIslandRoleMenu(Player player) {
-                permissionCommands.openIslandRoleMenu(player);
-            }
-
-            @Override
-            public void listIslandRoles(Player player) {
-                permissionCommands.listIslandRoles(player);
-            }
-
-            @Override
-            public void upsertIslandRole(Player player, String roleKey, int weight, String displayName) {
-                permissionCommands.upsertIslandRole(player, roleKey, weight, displayName);
-            }
-
-            @Override
-            public void resetIslandRole(Player player, String roleKey) {
-                permissionCommands.resetIslandRole(player, roleKey);
-            }
-
-            @Override
-            public void adjustIslandRoleWeight(Player player, String roleName, String weightValue, String displayName, GuiClick click) {
-                permissionCommands.adjustIslandRoleWeight(player, roleName, weightValue, displayName, click);
-            }
-
-            @Override
-            public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
-                runtimeServices.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
-            }
-
-            @Override
-            public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
-                return runtimeServices.confirmationAccepted(player, action, click);
-            }
-        });
+        this.membershipCommands = new IslandMembershipCommandHandler(
+            plugin,
+            coreApiClient,
+            new IslandMembershipRuntimeAdapter(runtimeServices, memberPresentation, permissionCommands)
+        );
         this.adminCommands = new IslandAdminNodeCommandHandler(plugin, coreApiClient, configuredNodeId, runtimeServices);
         this.router = IslandCommandRouterFactory.create(
             bankCommands,
