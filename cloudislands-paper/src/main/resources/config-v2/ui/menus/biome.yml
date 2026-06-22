@@ -6,6 +6,16 @@ layout:
   - "........."
   - "....R.S.M"
 items:
+  _:
+    material: GRASS_BLOCK
+    name-key: biome-menu-entry-name
+    fallback-name: 바이옴
+    action: set
+  SELECTED:
+    material: LIME_DYE
+    name-key: biome-menu-selected-name
+    fallback-name: 현재 바이옴
+    action: set
   C:
     material: GRASS_BLOCK
     name-key: biome-menu-current-name

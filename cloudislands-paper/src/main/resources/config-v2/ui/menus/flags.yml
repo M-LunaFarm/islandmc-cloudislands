@@ -9,6 +9,21 @@ layout:
   - "........."
   - "....R...S"
 items:
+  _:
+    material: GRAY_DYE
+    name-key: flag-menu-default-name
+    fallback-name: 기본값
+    action: set
+  TRUE:
+    material: LIME_DYE
+    name-key: flag-menu-allow-name
+    fallback-name: 허용
+    action: set
+  FALSE:
+    material: RED_DYE
+    name-key: flag-menu-deny-name
+    fallback-name: 거부
+    action: set
   R:
     material: CLOCK
     name-key: flag-menu-refresh-name

@@ -6,15 +6,12 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandFlagMenu implements Listener {
@@ -101,7 +98,7 @@ public final class IslandFlagMenu implements Listener {
 
     private static ItemStack flagItem(IslandFlag flag, String value, MessageRenderer messages) {
         String normalized = value == null ? "" : value;
-        Material material = normalized.equalsIgnoreCase("true") ? Material.LIME_DYE : normalized.equalsIgnoreCase("false") ? Material.RED_DYE : Material.GRAY_DYE;
+        org.bukkit.Material material = GuiMenuRenderer.material(MENU, normalized.toUpperCase(java.util.Locale.ROOT), "_", "GRAY_DYE");
         String state = normalized.isBlank() ? message(messages, "flag-menu-default", "기본값") : normalized.equalsIgnoreCase("true") ? message(messages, "flag-menu-allow", "허용") : normalized.equalsIgnoreCase("false") ? message(messages, "flag-menu-deny", "거부") : normalized;
         return GuiItems.action(material, flag.name(), "island.flag.set", java.util.Map.of("flag", flag.name()), message(messages, "flag-menu-current-value", "현재 값: ") + state, message(messages, "flag-menu-click-actions", "좌클릭: 허용, 우클릭: 거부"));
     }

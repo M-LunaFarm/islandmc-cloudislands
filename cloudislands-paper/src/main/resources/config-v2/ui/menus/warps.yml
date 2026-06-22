@@ -9,6 +9,16 @@ layout:
   - "........."
   - "W...S...M"
 items:
+  PRIVATE:
+    material: ENDER_PEARL
+    name-key: warp-menu-private-entry-name
+    fallback-name: 비공개 워프
+    action: teleport
+  PUBLIC:
+    material: ENDER_EYE
+    name-key: warp-menu-public-entry-name
+    fallback-name: 공개 워프
+    action: teleport
   W:
     material: ENDER_PEARL
     name-key: warp-menu-set-current-name

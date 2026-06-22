@@ -310,6 +310,25 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void statefulItemMaterialsRenderFromMenuDefinitions() throws Exception {
+        for (String[] menuCase : List.of(
+                new String[] {"IslandBiomeMenu", "biome.yml", "_", "SELECTED", "LIME_DYE"},
+                new String[] {"IslandFlagMenu", "flags.yml", "_", "TRUE", "LIME_DYE"},
+                new String[] {"IslandMissionMenu", "missions.yml", "_", "COMPLETED", "LIME_DYE"},
+                new String[] {"IslandWarpMenu", "warps.yml", "PRIVATE", "PUBLIC", "ENDER_EYE"}
+        )) {
+            String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuCase[0] + ".java"));
+            String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + menuCase[1]));
+
+            assertTrue(definition.contains("  " + menuCase[2] + ":"), menuCase[1] + " must define the state fallback item");
+            assertTrue(definition.contains("  " + menuCase[3] + ":"), menuCase[1] + " must define state material " + menuCase[3]);
+            assertTrue(definition.contains("material: " + menuCase[4]), menuCase[1] + " state material must live in config-v2");
+            assertTrue(menu.contains("GuiMenuRenderer.material(MENU") || menu.contains("GuiMenuRenderer.material(menu"), menuCase[0] + " must read state materials from the menu definition");
+            assertFalse(menu.contains("Material." + menuCase[4]), menuCase[0] + " must not hard-code state item material");
+        }
+    }
+
+    @Test
     void guiSessionsAreRevisionGuardedAndClearedOnPluginDisable() throws Exception {
         String sessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));

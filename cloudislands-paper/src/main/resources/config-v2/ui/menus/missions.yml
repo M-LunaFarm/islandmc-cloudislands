@@ -9,6 +9,16 @@ layout:
   - "........."
   - "M...R...C"
 items:
+  _:
+    material: BOOK
+    name-key: mission-menu-entry-name
+    fallback-name: 과제
+    action: complete
+  COMPLETED:
+    material: LIME_DYE
+    name-key: mission-menu-completed-name
+    fallback-name: 완료된 과제
+    action: complete
   E:
     material: BARRIER
     name-key: mission-menu-empty-title

@@ -7,15 +7,12 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.WarpView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandWarpMenu implements Listener {
@@ -157,7 +154,8 @@ public final class IslandWarpMenu implements Listener {
     }
 
     private static ItemStack warpItem(WarpView warp, boolean publicMenu, MessageRenderer messages) {
-        Material material = warp.publicAccess() ? Material.ENDER_EYE : Material.ENDER_PEARL;
+        GuiMenuDefinition menu = publicMenu ? PUBLIC_MENU : MENU;
+        org.bukkit.Material material = GuiMenuRenderer.material(menu, warp.publicAccess() ? "PUBLIC" : "PRIVATE", "PRIVATE", "ENDER_PEARL");
         if (publicMenu) {
             return GuiItems.action(material, warp.name(), "island.warp.teleport",
                 Map.of("islandId", warp.islandId(), "warpName", warp.name()),

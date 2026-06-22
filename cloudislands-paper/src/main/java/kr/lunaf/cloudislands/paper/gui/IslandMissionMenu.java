@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MissionView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -107,7 +106,7 @@ public final class IslandMissionMenu implements Listener {
     }
 
     private static ItemStack missionItem(MissionView mission, MessageRenderer messages) {
-        Material material = mission.completed() ? Material.LIME_DYE : Material.BOOK;
+        org.bukkit.Material material = GuiMenuRenderer.material(MENU, mission.completed() ? "COMPLETED" : "_", "_", "BOOK");
         String title = mission.title().isBlank() ? mission.key() : mission.title();
         return GuiItems.action(material, title, "island.mission.complete",
             Map.of("missionKey", mission.key()),
