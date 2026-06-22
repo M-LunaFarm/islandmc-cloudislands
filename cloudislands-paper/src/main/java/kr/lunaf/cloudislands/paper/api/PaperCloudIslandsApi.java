@@ -2724,21 +2724,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static IslandRuntimeSnapshot runtime(String json) {
-        return new IslandRuntimeSnapshot(
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            enumValue(IslandState.class, text(json, "state", "RECOVERY_REQUIRED"), IslandState.RECOVERY_REQUIRED),
-            nullableText(json, "activeNode"),
-            nullableText(json, "activeWorld"),
-            nullableInteger(json, "cellX"),
-            nullableInteger(json, "cellZ"),
-            nullableText(json, "leaseOwner"),
-            longValue(json, "fencingToken", 0L),
-            nullableInstant(json, "activatedAt"),
-            nullableInstant(json, "lastHeartbeat")
-        );
-    }
-
     private static IslandRuntimeSnapshot runtime(AdminIslandRuntimeView view) {
         if (view == null) {
             return new IslandRuntimeSnapshot(new UUID(0L, 0L), IslandState.RECOVERY_REQUIRED, null, null, null, null, null, 0L, null, null);
@@ -2757,13 +2742,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static Optional<IslandRuntimeSnapshot> runtimeOptional(String json) {
-        if (json == null || json.isBlank() || json.contains("\"error\"")) {
-            return Optional.empty();
-        }
-        return Optional.of(runtime(json));
-    }
-
     private static List<IslandRuntimeSnapshot> nodeIslands(List<AdminIslandRuntimeView> views) {
         return (views == null ? List.<AdminIslandRuntimeView>of() : views).stream()
             .map(PaperCloudIslandsApi::runtime)
@@ -2772,18 +2750,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static RoutePlan plan(RouteTicket ticket) {
         return new RoutePlan(ticket.islandId(), ticket.targetNode(), ticket.payload().getOrDefault("targetServerName", ticket.targetNode()), ticket.action(), ticket.state() == RouteTicketState.PREPARING);
-    }
-
-    private static IslandInviteSnapshot invite(String json) {
-        return new IslandInviteSnapshot(
-                uuid(json, "inviteId", new UUID(0L, 0L)),
-                uuid(json, "islandId", new UUID(0L, 0L)),
-                uuid(json, "inviterUuid", new UUID(0L, 0L)),
-                uuid(json, "targetUuid", new UUID(0L, 0L)),
-                text(json, "state", "PENDING"),
-                instant(text(json, "createdAt", Instant.EPOCH.toString())),
-                instant(text(json, "expiresAt", Instant.EPOCH.toString()))
-        );
     }
 
     private static IslandInviteSnapshot invite(CoreGuiViews.InviteView view) {
@@ -2796,11 +2762,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             instant(view == null ? "" : view.createdAt()),
             instant(view == null ? "" : view.expiresAt())
         );
-    }
-
-    private static IslandInviteActionResult inviteAction(String json, String successCode) {
-        boolean applied = json.contains("\"accepted\":true");
-        return new IslandInviteActionResult(applied, applied ? successCode : text(json, "code", "FAILED"));
     }
 
     private static IslandActionResult action(String json, String successCode) {
