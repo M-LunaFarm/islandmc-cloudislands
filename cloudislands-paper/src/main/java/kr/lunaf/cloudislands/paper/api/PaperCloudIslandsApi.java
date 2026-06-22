@@ -107,6 +107,7 @@ import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
@@ -3191,33 +3192,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new IslandLocation("", x, y, z, 0.0f, 0.0f);
     }
 
-    private static List<String> nodeIds(String json) {
-        List<String> ids = new ArrayList<>();
-        String needle = "\"nodeId\":\"";
-        int index = 0;
-        while ((index = json.indexOf(needle, index)) >= 0) {
-            int start = index + needle.length();
-            int end = json.indexOf('"', start);
-            if (end < 0) {
-                break;
-            }
-            ids.add(json.substring(start, end));
-            index = end + 1;
-        }
-        return ids;
-    }
-
-    private static List<String> nodeIds(List<IslandNodeSnapshot> nodes) {
-        return (nodes == null ? List.<IslandNodeSnapshot>of() : nodes).stream()
-            .map(IslandNodeSnapshot::nodeId)
-            .filter(nodeId -> nodeId != null && !nodeId.isBlank())
-            .toList();
-    }
-
-    private static NodeSweepResult nodeSweep(String json) {
-        return new NodeSweepResult(stringArray(json, "nodes"), integer(json, "recoveryRequired", 0));
-    }
-
     private static NodeSweepResult nodeSweep(AdminNodeActionView view) {
         if (view == null) {
             return new NodeSweepResult(List.of(), 0);
@@ -3225,31 +3199,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new NodeSweepResult(view.nodes(), view.recoveryRequired());
     }
 
-    private static List<String> stringArray(String json, String field) {
-        List<String> values = new ArrayList<>();
-        String needle = "\"" + field + "\":[";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return values;
-        }
-        int index = start + needle.length();
-        int end = json.indexOf(']', index);
-        if (end < 0) {
-            return values;
-        }
-        while (index < end) {
-            int quote = json.indexOf('"', index);
-            if (quote < 0 || quote >= end) {
-                break;
-            }
-            int close = json.indexOf('"', quote + 1);
-            if (close < 0 || close > end) {
-                break;
-            }
-            values.add(json.substring(quote + 1, close));
-            index = close + 1;
-        }
-        return values;
+    private static List<String> nodeIds(List<IslandNodeSnapshot> nodes) {
+        return (nodes == null ? List.<IslandNodeSnapshot>of() : nodes).stream()
+            .map(IslandNodeSnapshot::nodeId)
+            .filter(nodeId -> nodeId != null && !nodeId.isBlank())
+            .toList();
     }
 
     private static List<IslandNodeSnapshot> nodes(String json) {
@@ -3638,189 +3592,34 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static List<String> objects(String json, String arrayField) {
-        List<String> values = new ArrayList<>();
-        String needle = "\"" + arrayField + "\":[";
-        int arrayStart = json.indexOf(needle);
-        if (arrayStart < 0) {
-            return values;
-        }
-        int index = arrayStart + needle.length();
-        int depth = 0;
-        int objectStart = -1;
-        while (index < json.length()) {
-            char ch = json.charAt(index);
-            if (ch == '{') {
-                if (depth == 0) {
-                    objectStart = index;
-                }
-                depth++;
-            } else if (ch == '}') {
-                depth--;
-                if (depth == 0 && objectStart >= 0) {
-                    values.add(json.substring(objectStart, index + 1));
-                    objectStart = -1;
-                }
-            } else if (ch == ']' && depth == 0) {
-                break;
-            }
-            index++;
-        }
-        return values;
+        return jsonArray(json, arrayField).stream()
+            .map(SimpleJson::object)
+            .filter(object -> !object.isEmpty())
+            .map(SimpleJson::stringify)
+            .toList();
     }
 
     private static Map<String, String> stringMap(String json, String field) {
-        String needle = "\"" + field + "\":{";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return Map.of();
-        }
-        int index = start + needle.length();
-        int depth = 1;
-        while (index < json.length() && depth > 0) {
-            char ch = json.charAt(index);
-            if (ch == '{') {
-                depth++;
-            } else if (ch == '}') {
-                depth--;
-            }
-            index++;
-        }
-        if (depth != 0) {
-            return Map.of();
-        }
-        String object = json.substring(start + needle.length(), index - 1);
         java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
-        int cursor = 0;
-        while (cursor < object.length()) {
-            while (cursor < object.length() && (object.charAt(cursor) == ',' || Character.isWhitespace(object.charAt(cursor)))) {
-                cursor++;
-            }
-            if (cursor >= object.length() || object.charAt(cursor) != '"') {
-                break;
-            }
-            int keyEnd = nextQuote(object, cursor + 1);
-            if (keyEnd < 0) {
-                break;
-            }
-            String key = unescape(object.substring(cursor + 1, keyEnd));
-            int separator = object.indexOf(':', keyEnd + 1);
-            if (separator < 0) {
-                break;
-            }
-            int valueStart = separator + 1;
-            while (valueStart < object.length() && Character.isWhitespace(object.charAt(valueStart))) {
-                valueStart++;
-            }
-            if (valueStart >= object.length() || object.charAt(valueStart) != '"') {
-                break;
-            }
-            int valueEnd = nextQuote(object, valueStart + 1);
-            if (valueEnd < 0) {
-                break;
-            }
-            values.put(key, unescape(object.substring(valueStart + 1, valueEnd)));
-            cursor = valueEnd + 1;
-        }
+        SimpleJson.object(jsonObject(json).get(field)).forEach((key, value) -> values.put(SimpleJson.text(key), SimpleJson.text(value)));
         return Map.copyOf(values);
     }
 
     private static String objectValue(String json, String field) {
-        String needle = "\"" + field + "\":{";
-        int start = json == null ? -1 : json.indexOf(needle);
-        if (start < 0) {
-            return "";
-        }
-        int objectStart = start + needle.length() - 1;
-        int index = objectStart;
-        int depth = 0;
-        while (index < json.length()) {
-            char ch = json.charAt(index);
-            if (ch == '{') {
-                depth++;
-            } else if (ch == '}') {
-                depth--;
-                if (depth == 0) {
-                    return json.substring(objectStart, index + 1);
-                }
-            }
-            index++;
-        }
-        return "";
+        Map<?, ?> object = SimpleJson.object(jsonObject(json).get(field));
+        return object.isEmpty() ? "" : SimpleJson.stringify(object);
     }
 
     private static Map<String, Double> decimalMap(String json, String field) {
-        String needle = "\"" + field + "\":{";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return Map.of();
-        }
-        int index = start + needle.length();
-        int depth = 1;
-        while (index < json.length() && depth > 0) {
-            char ch = json.charAt(index);
-            if (ch == '{') {
-                depth++;
-            } else if (ch == '}') {
-                depth--;
-            }
-            index++;
-        }
-        if (depth != 0) {
-            return Map.of();
-        }
-        String object = json.substring(start + needle.length(), index - 1);
         java.util.LinkedHashMap<String, Double> values = new java.util.LinkedHashMap<>();
-        int cursor = 0;
-        while (cursor < object.length()) {
-            while (cursor < object.length() && (object.charAt(cursor) == ',' || Character.isWhitespace(object.charAt(cursor)))) {
-                cursor++;
-            }
-            if (cursor >= object.length() || object.charAt(cursor) != '"') {
-                break;
-            }
-            int keyEnd = nextQuote(object, cursor + 1);
-            if (keyEnd < 0) {
-                break;
-            }
-            String key = unescape(object.substring(cursor + 1, keyEnd));
-            int separator = object.indexOf(':', keyEnd + 1);
-            if (separator < 0) {
-                break;
-            }
-            int valueStart = separator + 1;
-            int valueEnd = valueStart;
-            while (valueEnd < object.length() && object.charAt(valueEnd) != ',') {
-                valueEnd++;
-            }
+        SimpleJson.object(jsonObject(json).get(field)).forEach((key, value) -> {
             try {
-                values.put(key, Double.parseDouble(object.substring(valueStart, valueEnd).replace("\"", "").trim()));
+                values.put(SimpleJson.text(key), Double.parseDouble(SimpleJson.text(value)));
             } catch (NumberFormatException ignored) {
-                values.put(key, 0.0D);
+                values.put(SimpleJson.text(key), 0.0D);
             }
-            cursor = valueEnd + 1;
-        }
+        });
         return Map.copyOf(values);
-    }
-
-    private static int nextQuote(String value, int start) {
-        int index = start;
-        boolean escaped = false;
-        while (index < value.length()) {
-            char ch = value.charAt(index);
-            if (escaped) {
-                escaped = false;
-            } else if (ch == '\\') {
-                escaped = true;
-            } else if (ch == '"') {
-                return index;
-            }
-            index++;
-        }
-        return -1;
-    }
-
-    private static String unescape(String value) {
-        return value.replace("\\\"", "\"").replace("\\\\", "\\");
     }
 
     private static String escape(String value) {
@@ -3828,23 +3627,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static String text(String json, String field, String fallback) {
-        String needle = "\"" + field + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        Map<?, ?> object = jsonObject(json);
+        if (!object.containsKey(field)) {
             return fallback;
         }
-        int valueStart = start + needle.length();
-        int end = json.indexOf('"', valueStart);
-        return end < 0 ? fallback : json.substring(valueStart, end);
+        Object value = object.get(field);
+        return value == null ? fallback : SimpleJson.text(value);
     }
 
     private static long number(String json, String field) {
-        return Long.parseLong(number(json, field, "0"));
+        return SimpleJson.number(jsonObject(json).get(field));
     }
 
     private static String nullableText(String json, String field) {
-        String nullNeedle = "\"" + field + "\":null";
-        return json.contains(nullNeedle) ? null : text(json, field, null);
+        Map<?, ?> object = jsonObject(json);
+        return object.containsKey(field) && object.get(field) == null ? null : text(json, field, null);
     }
 
     private static UUID uuid(String json, String field, UUID fallback) {
@@ -3906,7 +3703,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static Integer nullableInteger(String json, String field) {
-        return json.contains("\"" + field + "\":null") ? null : integer(json, field, 0);
+        Map<?, ?> object = jsonObject(json);
+        return object.containsKey(field) && object.get(field) == null ? null : integer(json, field, 0);
     }
 
     private static long longValue(String json, String field, long fallback) {
@@ -3926,36 +3724,37 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
     }
 
     private static boolean bool(String json, String field, boolean fallback) {
-        String value = number(json, field, Boolean.toString(fallback));
-        return Boolean.parseBoolean(value);
+        Map<?, ?> object = jsonObject(json);
+        if (!object.containsKey(field)) {
+            return fallback;
+        }
+        Object value = object.get(field);
+        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
     }
 
     private static String number(String json, String field, String fallback) {
-        String needle = "\"" + field + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        Map<?, ?> object = jsonObject(json);
+        if (!object.containsKey(field) || object.get(field) == null) {
             return fallback;
         }
-        int valueStart = start + needle.length();
-        int end = valueStart;
-        while (end < json.length() && ",}".indexOf(json.charAt(end)) < 0) {
-            end++;
-        }
-        return json.substring(valueStart, end).replace("\"", "").trim();
+        return SimpleJson.text(object.get(field));
     }
 
     private static String scalar(String json, String field) {
-        String needle = "\"" + field + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        Map<?, ?> object = jsonObject(json);
+        if (!object.containsKey(field) || object.get(field) == null) {
             return null;
         }
-        int valueStart = start + needle.length();
-        int end = valueStart;
-        while (end < json.length() && "0123456789.-".indexOf(json.charAt(end)) >= 0) {
-            end++;
-        }
-        return end == valueStart ? null : json.substring(valueStart, end);
+        Object value = object.get(field);
+        return value instanceof Number ? SimpleJson.text(value) : null;
+    }
+
+    private static Map<?, ?> jsonObject(String json) {
+        return SimpleJson.object(SimpleJson.parse(json));
+    }
+
+    private static List<?> jsonArray(String json, String field) {
+        return SimpleJson.list(jsonObject(json).get(field));
     }
 
     private static Instant instant(String value) {
