@@ -83,10 +83,11 @@ public final class IslandRoleMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<RoleView> roles, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
-            int slot = 0;
-            for (RoleView role : roles.stream().limit(18).toList()) {
-                inventory.setItem(slot++, roleItem(role, messages));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
+            List<Integer> roleSlots = GuiMenuRenderer.slots(MENU, "_");
+            List<RoleView> visibleRoles = roles.stream().limit(roleSlots.size()).toList();
+            for (int index = 0; index < visibleRoles.size(); index++) {
+                inventory.setItem(roleSlots.get(index), roleItem(visibleRoles.get(index), messages));
             }
             if (roles.isEmpty()) {
                 setEmptyItem(inventory, messages);

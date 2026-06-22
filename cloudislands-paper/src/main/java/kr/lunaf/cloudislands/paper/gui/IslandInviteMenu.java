@@ -89,13 +89,14 @@ public final class IslandInviteMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<InviteView> invites, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             if (invites.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                int slot = 0;
-                for (InviteView invite : invites.stream().limit(45).toList()) {
-                    inventory.setItem(slot++, inviteItem(invite, messages));
+                List<Integer> inviteSlots = GuiMenuRenderer.slots(MENU, "_");
+                List<InviteView> visibleInvites = invites.stream().limit(inviteSlots.size()).toList();
+                for (int index = 0; index < visibleInvites.size(); index++) {
+                    inventory.setItem(inviteSlots.get(index), inviteItem(visibleInvites.get(index), messages));
                 }
             }
             player.openInventory(inventory);

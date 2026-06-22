@@ -2,8 +2,8 @@ id: island.roles
 rows: 3
 title-key: menu.roles.title
 layout:
-  - "........."
-  - "....E...."
+  - "_________"
+  - "____E____"
   - "LPR.....S"
 items:
   _:
