@@ -52,7 +52,31 @@ class ClusterSmokeVerifierTest {
 
         assertFalse(report.certified());
         assertTrue(report.incompleteGates().contains("multi-core-e2e"));
+        assertEquals(
+            java.util.List.of("idempotency-key-check", "audit-log-check", "event-replay-check"),
+            report.missingEvidenceByGate().get("multi-core-e2e")
+        );
+        assertTrue(report.failures().stream().anyMatch(failure -> failure.contains("missing-evidence:")));
+        assertTrue(report.missingEvidenceSummary().contains("multi-core-e2e=idempotency-key-check+audit-log-check+event-replay-check"));
         assertTrue(report.missingFailureInjections().contains("db-commit-event-publish-gap"));
+    }
+
+    @Test
+    void reportNamesEveryMissingGaEvidenceItemByGate() {
+        ClusterSmokeReport report = ClusterSmokeVerifier.verify(
+            ClusterSmokeEvidence.builder()
+                .components(ClusterSmokeEvidence.REQUIRED_COMPONENTS)
+                .evidence("backup-restore-drill", "db-backup")
+                .evidence("backup-restore-drill", "object-storage-bundle")
+                .build()
+        );
+
+        assertFalse(report.certified());
+        assertEquals(
+            java.util.List.of("manifest-checksum", "restore-activation", "route-recovery", "post-restore-audit"),
+            report.missingEvidenceByGate().get("backup-restore-drill")
+        );
+        assertTrue(report.missingEvidenceSummary().contains("backup-restore-drill=manifest-checksum+restore-activation+route-recovery+post-restore-audit"));
     }
 
     @Test

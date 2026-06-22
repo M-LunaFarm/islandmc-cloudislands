@@ -1,7 +1,9 @@
 package kr.lunaf.cloudislands.testkit;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import kr.lunaf.cloudislands.common.observability.ProductionGaDrill;
 import kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix;
 
@@ -18,7 +20,8 @@ public final class ClusterSmokeVerifier {
             CERTIFICATION_LEVEL,
             missingComponents(safeEvidence),
             ProductionGaDrillMatrix.incompleteGates(safeEvidence.evidenceByGate()),
-            missingFailureInjections(safeEvidence)
+            missingFailureInjections(safeEvidence),
+            missingEvidenceByGate(safeEvidence)
         );
     }
 
@@ -60,5 +63,20 @@ public final class ClusterSmokeVerifier {
             }
         }
         return List.copyOf(missing);
+    }
+
+    public static Map<String, List<String>> missingEvidenceByGate(ClusterSmokeEvidence evidence) {
+        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null) : evidence;
+        LinkedHashMap<String, List<String>> missingByGate = new LinkedHashMap<>();
+        for (ProductionGaDrill drill : ProductionGaDrillMatrix.drills()) {
+            List<String> observed = safeEvidence.evidenceByGate().getOrDefault(drill.gate(), List.of());
+            List<String> missing = drill.requiredEvidence().stream()
+                .filter(required -> !observed.contains(required))
+                .toList();
+            if (!missing.isEmpty()) {
+                missingByGate.put(drill.gate(), missing);
+            }
+        }
+        return Map.copyOf(missingByGate);
     }
 }
