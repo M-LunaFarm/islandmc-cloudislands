@@ -89,6 +89,38 @@ class GuiMenuDefinitionTest {
     }
 
     @Test
+    void actionSlotsResolveFromMenuLayoutSymbols() throws Exception {
+        String yaml = """
+            id: island.border
+            rows: 3
+            title-key: menu.border.title
+            layout:
+              - "...BBB..."
+              - "....C...."
+              - "........."
+            items:
+              B:
+                material: BLUE_DYE
+                name-key: border-menu-color
+                fallback-name: 보더 색상
+                action: color
+              C:
+                material: COMPASS
+                name-key: border-menu-center
+                fallback-name: 현재 설정
+                action: info
+            """;
+
+        GuiMenuDefinition definition = GuiMenuDefinition.parse(
+            new ByteArrayInputStream(yaml.getBytes(StandardCharsets.UTF_8)),
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals(java.util.List.of(3, 4, 5), GuiMenuRenderer.actionSlots(definition, "color"));
+        assertEquals(java.util.List.of(13), GuiMenuRenderer.actionSlots(definition, "info"));
+    }
+
+    @Test
     void dataConfigV2MenuOverridesBundledMenuDefinition(@TempDir Path tempDir) throws Exception {
         Path configRoot = tempDir.resolve("config-v2");
         Path menuFile = configRoot.resolve("ui/menus/main.yml");

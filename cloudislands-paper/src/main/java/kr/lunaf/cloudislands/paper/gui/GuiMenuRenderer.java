@@ -51,6 +51,20 @@ public final class GuiMenuRenderer {
         return List.copyOf(slots);
     }
 
+    public static List<Integer> actionSlots(GuiMenuDefinition definition, String actionKey) {
+        if (definition == null || actionKey == null || actionKey.isBlank()) {
+            return List.of();
+        }
+        java.util.ArrayList<Integer> slots = new java.util.ArrayList<>();
+        for (int slot = 0; slot < definition.size(); slot++) {
+            int currentSlot = slot;
+            definition.itemAt(slot)
+                .filter(item -> item.actionKey().equals(actionKey))
+                .ifPresent(_item -> slots.add(currentSlot));
+        }
+        return List.copyOf(slots);
+    }
+
     public static String message(MessageRenderer messages, String key, String fallback) {
         if (messages == null) {
             return fallback;

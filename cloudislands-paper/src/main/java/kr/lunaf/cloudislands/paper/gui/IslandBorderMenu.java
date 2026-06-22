@@ -85,12 +85,8 @@ public final class IslandBorderMenu implements Listener {
     }
 
     private static void setColorItems(Inventory inventory, BorderView view, MessageRenderer messages) {
-        for (int slot = 0; slot < MENU.size(); slot++) {
-            int currentSlot = slot;
-            MENU.itemAt(slot)
-                .filter(item -> item.actionKey().equals("color"))
-                .ifPresent(item -> inventory.setItem(currentSlot, GuiMenuRenderer.item(MENU, item, messages, item.data(), List.of(colorLore(item.data().getOrDefault("color", ""), view, messages)))));
-        }
+        GuiMenuRenderer.actionSlots(MENU, "color").forEach(slot -> MENU.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, item.data(), List.of(colorLore(item.data().getOrDefault("color", ""), view, messages))))));
     }
 
     private static void setItem(Inventory inventory, String symbol, MessageRenderer messages, String... lore) {

@@ -103,20 +103,8 @@ public final class IslandDangerMenu implements Listener {
     }
 
     private static void attachConfirmData(Inventory inventory, GuiMenuDefinition menu, MessageRenderer messages, Map<String, String> data) {
-        int slot = slot(menu, "confirm");
-        if (slot < 0) {
-            return;
-        }
-        menu.itemAt(slot).ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(menu, item, messages, data)));
-    }
-
-    private static int slot(GuiMenuDefinition menu, String actionKey) {
-        for (int slot = 0; slot < menu.size(); slot++) {
-            GuiMenuDefinition.MenuItem item = menu.itemAt(slot).orElse(null);
-            if (item != null && item.actionKey().equals(actionKey)) {
-                return slot;
-            }
-        }
-        return -1;
+        GuiMenuRenderer.actionSlots(menu, "confirm").stream().findFirst()
+            .ifPresent(slot -> menu.itemAt(slot)
+                .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(menu, item, messages, data))));
     }
 }
