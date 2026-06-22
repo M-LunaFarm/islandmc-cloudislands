@@ -285,6 +285,10 @@ class GuiMenuDefinitionTest {
         assertEquals("island.permissions", definition.id());
         assertEquals(54, definition.size());
         assertEquals("menu.permissions.title", definition.titleKey());
+        assertEquals("V", definition.itemAt(0).orElseThrow().symbol());
+        assertEquals("island.permissions.list", definition.action(definition.itemAt(0).orElseThrow().actionKey(), ""));
+        assertEquals("_", definition.itemAt(1).orElseThrow().symbol());
+        assertEquals("island.permissions.set", definition.action(definition.itemAt(1).orElseThrow().actionKey(), ""));
         assertEquals("O", definition.itemAt(45).orElseThrow().symbol());
         assertEquals("island.permissions.page", definition.action(definition.itemAt(45).orElseThrow().actionKey(), ""));
         assertEquals("N", definition.itemAt(46).orElseThrow().symbol());

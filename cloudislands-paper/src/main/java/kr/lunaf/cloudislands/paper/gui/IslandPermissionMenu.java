@@ -38,9 +38,11 @@ public final class IslandPermissionMenu implements Listener {
         ))
     );
     private static final String MENU_ID = MENU.id();
+    private static final String ROLE_SYMBOL = "V";
+    private static final String RULE_SYMBOL = "_";
     private static final List<String> FALLBACK_ROLES = List.of("VISITOR");
-    private static final int ROLES_PER_PAGE = 5;
-    private static final int PERMISSIONS_PER_PAGE = 8;
+    private static final int ROLES_PER_PAGE = Math.max(1, GuiMenuRenderer.slots(MENU, ROLE_SYMBOL).size());
+    private static final int PERMISSIONS_PER_PAGE = Math.max(1, permissionSlotsPerRole().stream().mapToInt(List::size).min().orElse(1));
     private static final List<String> PERMISSIONS = Arrays.stream(IslandPermission.values()).map(Enum::name).toList();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
@@ -114,7 +116,7 @@ public final class IslandPermissionMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String version, List<PermissionRuleView> rules, List<RoleView> roleViews, List<PermissionOverrideView> overrides, MessageRenderer messages, int page, int rolePage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !isMatrixSymbol(item.symbol()));
             List<String> roles = roleNames(roleViews);
             int safePage = safePage(page);
             int safeRolePage = safeRolePage(rolePage, roles);
@@ -122,14 +124,7 @@ public final class IslandPermissionMenu implements Listener {
             int roleStart = safeRolePage * ROLES_PER_PAGE;
             List<String> visiblePermissions = PERMISSIONS.subList(start, Math.min(PERMISSIONS.size(), start + PERMISSIONS_PER_PAGE));
             List<String> visibleRoles = roles.subList(roleStart, Math.min(roles.size(), roleStart + ROLES_PER_PAGE));
-            for (int row = 0; row < visibleRoles.size(); row++) {
-                String role = visibleRoles.get(row);
-                inventory.setItem(row * 9, GuiItems.action(GuiMenuRenderer.material(MENU, "ROLE", "ROLE", "NAME_TAG"), role, "island.permissions.list", message(messages, "permission-menu-role-row", "역할 권한 행")));
-                for (int column = 0; column < visiblePermissions.size(); column++) {
-                    String permission = visiblePermissions.get(column);
-                    inventory.setItem(row * 9 + column + 1, ruleItem(role, permission, allowed(rules, role, permission), version, messages));
-                }
-            }
+            setMatrixItems(inventory, visibleRoles, visiblePermissions, rules, version, messages);
             setFooterItem(inventory, "O", messages, Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.max(0, safeRolePage - 1))), rolePageLine(safeRolePage, roles));
             setFooterItem(inventory, "N", messages, Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.min(maxRolePage(roles), safeRolePage + 1))), rolePageLine(safeRolePage, roles));
             setFooterItem(inventory, "P", messages, Map.of("page", String.valueOf(Math.max(0, safePage - 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage));
@@ -137,6 +132,39 @@ public final class IslandPermissionMenu implements Listener {
             setFooterItem(inventory, "G", messages, Map.of(), pageLine(safePage), rolePageLine(safeRolePage, roles), permissionSummary(), overrideSummary(overrides));
             player.openInventory(inventory);
         });
+    }
+
+    private static void setMatrixItems(Inventory inventory, List<String> visibleRoles, List<String> visiblePermissions, List<PermissionRuleView> rules, String version, MessageRenderer messages) {
+        List<Integer> roleSlots = GuiMenuRenderer.slots(MENU, ROLE_SYMBOL);
+        List<List<Integer>> ruleSlots = permissionSlotsPerRole();
+        for (int row = 0; row < visibleRoles.size() && row < roleSlots.size() && row < ruleSlots.size(); row++) {
+            String role = visibleRoles.get(row);
+            inventory.setItem(roleSlots.get(row), roleItem(role, messages));
+            List<Integer> slots = ruleSlots.get(row);
+            for (int column = 0; column < visiblePermissions.size() && column < slots.size(); column++) {
+                String permission = visiblePermissions.get(column);
+                inventory.setItem(slots.get(column), ruleItem(role, permission, allowed(rules, role, permission), version, messages));
+            }
+        }
+    }
+
+    private static ItemStack roleItem(String role, MessageRenderer messages) {
+        return GuiItems.action(GuiMenuRenderer.material(MENU, ROLE_SYMBOL, "NAME_TAG"), role, "island.permissions.list", message(messages, "permission-menu-role-row", "역할 권한 행"));
+    }
+
+    private static List<List<Integer>> permissionSlotsPerRole() {
+        List<Integer> roleSlots = GuiMenuRenderer.slots(MENU, ROLE_SYMBOL);
+        List<Integer> ruleSlots = GuiMenuRenderer.slots(MENU, RULE_SYMBOL);
+        java.util.ArrayList<List<Integer>> rows = new java.util.ArrayList<>();
+        for (int roleSlot : roleSlots) {
+            int roleRow = roleSlot / 9;
+            rows.add(ruleSlots.stream().filter(slot -> slot / 9 == roleRow).toList());
+        }
+        return List.copyOf(rows);
+    }
+
+    private static boolean isMatrixSymbol(String symbol) {
+        return ROLE_SYMBOL.equals(symbol) || RULE_SYMBOL.equals(symbol);
     }
 
     private static void setFooterItem(Inventory inventory, String symbol, MessageRenderer messages, Map<String, String> data, String... extraLore) {

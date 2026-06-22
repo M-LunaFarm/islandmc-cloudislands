@@ -947,6 +947,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(menu.contains("ROLES_PER_PAGE"), "Permission GUI must paginate dynamic role catalogs");
         assertTrue(menu.contains("rolePage"), "Permission GUI must preserve role pagination state");
         assertTrue(menu.contains("PERMISSIONS_PER_PAGE"), "Permission GUI must paginate the full permission matrix");
+        assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, ROLE_SYMBOL)"), "Permission GUI role pages must be driven by menu layout slots");
+        assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, RULE_SYMBOL)"), "Permission GUI rule pages must be driven by menu layout slots");
+        assertTrue(!menu.contains("row * 9"), "Permission GUI must not hard-code matrix rows in Java");
         assertTrue(!menu.contains("List.of(\"BUILD\", \"BREAK\", \"INTERACT\""), "Permission GUI must not hard-code the legacy 8-permission subset");
         assertTrue(!menu.contains("private static final List<String> ROLES"), "Permission GUI must not hard-code a fixed role matrix");
         assertTrue(membershipHandler.contains("action instanceof GuiAction.PermissionPage"), "Permission GUI page action must be registered as a typed GUI action");

@@ -11,11 +11,11 @@ permissions:
   - ATTACK_PLAYER
   - ATTACK_MOB
 layout:
-  - "........."
-  - "........."
-  - "........."
-  - "........."
-  - "........."
+  - "V________"
+  - "V________"
+  - "V________"
+  - "V________"
+  - "V________"
   - "ONPQSRLGB"
 items:
   _:
@@ -33,7 +33,7 @@ items:
     name-key: permission-menu-deny-name
     fallback-name: 차단
     action: set
-  ROLE:
+  V:
     material: NAME_TAG
     name-key: permission-menu-role-row-name
     fallback-name: 역할 권한 행
