@@ -59,6 +59,10 @@ class CoreTypedClientsTest {
         assertFalse(defaultAccessors.isEmpty());
         assertEquals(List.of(), missingOverrides);
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("progression").getDeclaringClass());
+        assertTrue(PlayerProfileQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed player profile queries directly");
+        assertTrue(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed player profile commands directly");
+        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("profile", UUID.class).getDeclaringClass());
+        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("setPrimaryIsland", UUID.class, UUID.class).getDeclaringClass());
     }
 
     @Test
