@@ -17,10 +17,8 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
-import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -66,6 +64,7 @@ final class IslandCommandBackend {
     private final IslandCommandIslandContext islandContext;
     private final IslandCommandLocalTeleports localTeleports;
     private final IslandCommandConfirmations confirmations;
+    private final IslandCommandMemberPresentation memberPresentation;
     private final MemberManagementUseCase memberManagement;
     private final IslandCommandPlayerResolver playerResolver;
 
@@ -152,6 +151,7 @@ final class IslandCommandBackend {
                 return IslandCommandBackend.this.mutate(auditAction, operation);
             }
         });
+        this.memberPresentation = new IslandCommandMemberPresentation(plugin, coreApiClient, protection, commandMessages, islandContext, routingCommands);
         this.bankCommands = new IslandBankCommandHandler(plugin, coreApiClient, economyBridge, new IslandBankCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
@@ -918,28 +918,19 @@ final class IslandCommandBackend {
     }
 
     private void openIslandMemberMenu(Player player) {
-        openIslandMemberMenu(player, 0);
+        memberPresentation.openMemberMenu(player);
     }
 
     private void openIslandMemberMenu(Player player, int page) {
-        currentIsland(player, "섬 안에서만 멤버 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMemberMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player), page));
+        memberPresentation.openMemberMenu(player, page);
     }
 
     private boolean moveVisitorToFallback(UUID islandId, UUID targetUuid, String successMessage, String failureMessage) {
-        Player targetPlayer = plugin.getServer().getPlayer(targetUuid);
-        if (targetPlayer == null) {
-            return false;
-        }
-        UUID targetIslandId = protection.islandAt(targetPlayer.getLocation().getBlock()).orElse(null);
-        if (!islandId.equals(targetIslandId)) {
-            return false;
-        }
-        routingCommands.connectPlayerToFallback(targetPlayer, successMessage, failureMessage);
-        return true;
+        return memberPresentation.moveVisitorToFallback(islandId, targetUuid, successMessage, failureMessage);
     }
 
     private void openIslandBanMenu(Player player) {
-        currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.").ifPresent(islandId -> IslandBanMenu.open(plugin, coreApiClient, player, islandId, messagesFor(player)));
+        memberPresentation.openBanMenu(player);
     }
 
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
