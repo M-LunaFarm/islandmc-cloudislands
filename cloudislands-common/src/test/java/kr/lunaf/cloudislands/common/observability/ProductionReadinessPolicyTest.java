@@ -54,11 +54,29 @@ class ProductionReadinessPolicyTest {
     }
 
     @Test
+    void productionGaDrillMatrixPinsEditPlanClusterScenarios() {
+        String scenarios = ProductionGaDrillMatrix.scenarioSummary();
+
+        assertTrue(scenarios.contains("multi-core-activation-race@multi-core-e2e"));
+        assertTrue(scenarios.contains("paper-bundle-save-crash@multi-paper-failover"));
+        assertTrue(scenarios.contains("ready-route-ticket-target-node-down@multi-paper-failover"));
+        assertTrue(scenarios.contains("db-commit-event-publish-failure@multi-core-e2e"));
+        assertTrue(scenarios.contains("object-upload-db-commit-failure@backup-restore-drill"));
+        assertTrue(scenarios.contains("redis-duplicate-out-of-order-events@chaos-test"));
+        assertTrue(scenarios.contains("fenced-node-save-rejected@rolling-upgrade"));
+        assertTrue(scenarios.contains("concurrent-permission-save@multi-core-e2e"));
+        assertTrue(scenarios.contains("snapshot-restore-node-replacement@backup-restore-drill"));
+        assertTrue(scenarios.contains("rolling-upgrade-n-minus-one-agent@rolling-upgrade"));
+        assertEquals(10, ProductionGaDrillMatrix.scenarioRequirements().size());
+    }
+
+    @Test
     void productionGaDrillMatrixPinsRequiredFailureInjectionScenarios() {
         String failures = ProductionGaDrillMatrix.failureInjectionSummary();
 
         assertTrue(failures.contains("simultaneous-activation"));
         assertTrue(failures.contains("paper-save-kill"));
+        assertTrue(failures.contains("ready-route-ticket-target-node-down"));
         assertTrue(failures.contains("velocity-kill-during-transfer"));
         assertTrue(failures.contains("redis-delay-duplicate-reorder"));
         assertTrue(failures.contains("route-ticket-expiry-edge"));

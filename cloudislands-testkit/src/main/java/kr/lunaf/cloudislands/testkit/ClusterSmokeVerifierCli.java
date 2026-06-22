@@ -57,6 +57,10 @@ public final class ClusterSmokeVerifierCli {
         root.put("missingFailureInjections", report.missingFailureInjections());
         root.put("missingEvidenceByGate", report.missingEvidenceByGate());
         root.put("missingEvidenceSummary", report.missingEvidenceSummary());
+        root.put("missingScenarioEvidence", report.missingScenarioEvidence());
+        root.put("missingScenarioEvidenceSummary", report.missingScenarioEvidenceSummary());
+        root.put("missingScenarioFailureInjections", report.missingScenarioFailureInjections());
+        root.put("missingScenarioFailureInjectionSummary", report.missingScenarioFailureInjectionSummary());
         root.put("failures", report.failures());
         return SimpleJson.stringify(root);
     }

@@ -17,7 +17,8 @@ class ClusterSmokeVerifierTest {
 
         assertTrue(report.certified(), report.failures().toString());
         assertEquals(ClusterSmokeVerifier.CERTIFICATION_LEVEL, report.certificationLevel());
-        assertEquals(ProductionGaDrillMatrix.drills().stream().flatMap(drill -> drill.failureInjections().stream()).count(), ClusterSmokeVerifier.requiredFailureInjections().size());
+        assertTrue(ClusterSmokeVerifier.requiredFailureInjections().contains("ready-route-ticket-target-node-down"));
+        assertEquals(10, ClusterSmokeVerifier.requiredProductionGaScenarios().size());
     }
 
     @Test
@@ -61,6 +62,32 @@ class ClusterSmokeVerifierTest {
         assertTrue(report.failures().stream().anyMatch(failure -> failure.contains("missing-evidence:")));
         assertTrue(report.missingEvidenceSummary().contains("multi-core-e2e=idempotency-key-check+audit-log-check+event-replay-check"));
         assertTrue(report.missingFailureInjections().contains("db-commit-event-publish-gap"));
+        assertTrue(report.missingScenarioEvidence().containsKey("multi-core-activation-race"));
+        assertTrue(report.missingScenarioFailureInjections().containsKey("ready-route-ticket-target-node-down"));
+    }
+
+    @Test
+    void requiresEveryEditPlanProductionGaScenarioEvidence() {
+        ClusterSmokeEvidence evidence = ClusterSmokeVerifier.completeEvidenceFixture();
+        ClusterSmokeEvidence withoutReadyTargetNodeDown = ClusterSmokeEvidence.builder()
+            .components(evidence.components())
+            .failureInjections(evidence.failureInjections())
+            .evidence("multi-core-e2e", evidence.evidenceByGate().get("multi-core-e2e"))
+            .evidence("rolling-upgrade", evidence.evidenceByGate().get("rolling-upgrade"))
+            .evidence("multi-paper-failover", java.util.List.of("two-island-paper-nodes", "save-interruption", "node-drain"))
+            .evidence("chaos-test", evidence.evidenceByGate().get("chaos-test"))
+            .evidence("backup-restore-drill", evidence.evidenceByGate().get("backup-restore-drill"))
+            .build();
+
+        ClusterSmokeReport report = ClusterSmokeVerifier.verify(withoutReadyTargetNodeDown);
+
+        assertFalse(report.certified());
+        assertEquals(
+            java.util.List.of("migration-return-ticket", "fallback-server-check"),
+            report.missingScenarioEvidence().get("ready-route-ticket-target-node-down")
+        );
+        assertTrue(report.failures().stream().anyMatch(failure -> failure.contains("missing-scenario-evidence:")));
+        assertTrue(report.missingScenarioEvidenceSummary().contains("ready-route-ticket-target-node-down=migration-return-ticket+fallback-server-check"));
     }
 
     @Test
@@ -103,6 +130,9 @@ class ClusterSmokeVerifierTest {
         assertTrue(parsed.hasComponent("island-paper-2"));
         assertTrue(report.missingComponents().contains("core-2"));
         assertTrue(report.missingEvidenceByGate().get("multi-paper-failover").contains("node-drain"));
+        assertTrue(report.missingScenarioEvidence().containsKey("paper-bundle-save-crash"));
+        assertTrue(json.contains("missingScenarioEvidence"));
+        assertTrue(json.contains("missingScenarioFailureInjections"));
         assertTrue(json.contains("\"certified\":false"));
         assertTrue(json.contains("missingEvidenceByGate"));
     }

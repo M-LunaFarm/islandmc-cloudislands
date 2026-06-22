@@ -9,7 +9,9 @@ public record ClusterSmokeReport(
     List<String> missingComponents,
     List<String> incompleteGates,
     List<String> missingFailureInjections,
-    Map<String, List<String>> missingEvidenceByGate
+    Map<String, List<String>> missingEvidenceByGate,
+    Map<String, List<String>> missingScenarioEvidence,
+    Map<String, List<String>> missingScenarioFailureInjections
 ) {
     public ClusterSmokeReport {
         certificationLevel = certificationLevel == null || certificationLevel.isBlank() ? ClusterSmokeVerifier.CERTIFICATION_LEVEL : certificationLevel;
@@ -17,10 +19,17 @@ public record ClusterSmokeReport(
         incompleteGates = incompleteGates == null ? List.of() : List.copyOf(incompleteGates);
         missingFailureInjections = missingFailureInjections == null ? List.of() : List.copyOf(missingFailureInjections);
         missingEvidenceByGate = missingEvidenceByGate == null ? Map.of() : Map.copyOf(missingEvidenceByGate);
+        missingScenarioEvidence = missingScenarioEvidence == null ? Map.of() : Map.copyOf(missingScenarioEvidence);
+        missingScenarioFailureInjections = missingScenarioFailureInjections == null ? Map.of() : Map.copyOf(missingScenarioFailureInjections);
     }
 
     public boolean certified() {
-        return missingComponents.isEmpty() && incompleteGates.isEmpty() && missingFailureInjections.isEmpty() && missingEvidenceByGate.isEmpty();
+        return missingComponents.isEmpty()
+            && incompleteGates.isEmpty()
+            && missingFailureInjections.isEmpty()
+            && missingEvidenceByGate.isEmpty()
+            && missingScenarioEvidence.isEmpty()
+            && missingScenarioFailureInjections.isEmpty();
     }
 
     public List<String> failures() {
@@ -37,12 +46,34 @@ public record ClusterSmokeReport(
         if (!missingEvidenceByGate.isEmpty()) {
             failures.add("missing-evidence:" + missingEvidenceSummary());
         }
+        if (!missingScenarioEvidence.isEmpty()) {
+            failures.add("missing-scenario-evidence:" + missingScenarioEvidenceSummary());
+        }
+        if (!missingScenarioFailureInjections.isEmpty()) {
+            failures.add("missing-scenario-failure-injections:" + missingScenarioFailureInjectionSummary());
+        }
         return List.copyOf(failures);
     }
 
     public String missingEvidenceSummary() {
         List<String> summaries = new ArrayList<>();
         missingEvidenceByGate.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(entry -> summaries.add(entry.getKey() + "=" + String.join("+", entry.getValue())));
+        return String.join(",", summaries);
+    }
+
+    public String missingScenarioEvidenceSummary() {
+        return summarize(missingScenarioEvidence);
+    }
+
+    public String missingScenarioFailureInjectionSummary() {
+        return summarize(missingScenarioFailureInjections);
+    }
+
+    private static String summarize(Map<String, List<String>> valuesByKey) {
+        List<String> summaries = new ArrayList<>();
+        valuesByKey.entrySet().stream()
             .sorted(Map.Entry.comparingByKey())
             .forEach(entry -> summaries.add(entry.getKey() + "=" + String.join("+", entry.getValue())));
         return String.join(",", summaries);

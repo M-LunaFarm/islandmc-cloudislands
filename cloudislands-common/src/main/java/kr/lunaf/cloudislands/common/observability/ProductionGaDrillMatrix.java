@@ -89,11 +89,78 @@ public final class ProductionGaDrillMatrix {
         )
     );
 
+    private static final List<ProductionGaScenarioRequirement> SCENARIO_REQUIREMENTS = List.of(
+        new ProductionGaScenarioRequirement(
+            "multi-core-activation-race",
+            "multi-core-e2e",
+            List.of("two-core-instances", "fencing-token-check", "idempotency-key-check", "audit-log-check"),
+            List.of("simultaneous-activation")
+        ),
+        new ProductionGaScenarioRequirement(
+            "paper-bundle-save-crash",
+            "multi-paper-failover",
+            List.of("two-island-paper-nodes", "save-interruption", "node-drain", "fallback-server-check"),
+            List.of("paper-save-kill")
+        ),
+        new ProductionGaScenarioRequirement(
+            "ready-route-ticket-target-node-down",
+            "multi-paper-failover",
+            List.of("migration-return-ticket", "fallback-server-check"),
+            List.of("ready-route-ticket-target-node-down")
+        ),
+        new ProductionGaScenarioRequirement(
+            "db-commit-event-publish-failure",
+            "multi-core-e2e",
+            List.of("audit-log-check", "event-replay-check"),
+            List.of("db-commit-event-publish-gap")
+        ),
+        new ProductionGaScenarioRequirement(
+            "object-upload-db-commit-failure",
+            "backup-restore-drill",
+            List.of("object-storage-bundle", "manifest-checksum", "post-restore-audit"),
+            List.of("object-storage-upload-after-db-commit-failure")
+        ),
+        new ProductionGaScenarioRequirement(
+            "redis-duplicate-out-of-order-events",
+            "chaos-test",
+            List.of("fault-list", "recovery-slo", "data-loss-check", "operator-alert"),
+            List.of("redis-delay-duplicate-reorder")
+        ),
+        new ProductionGaScenarioRequirement(
+            "fenced-node-save-rejected",
+            "rolling-upgrade",
+            List.of("protocol-n-minus-one", "post-upgrade-smoke"),
+            List.of("old-paper-save-attempt")
+        ),
+        new ProductionGaScenarioRequirement(
+            "concurrent-permission-save",
+            "multi-core-e2e",
+            List.of("two-core-instances", "idempotency-key-check", "audit-log-check"),
+            List.of("dual-admin-permission-edit")
+        ),
+        new ProductionGaScenarioRequirement(
+            "snapshot-restore-node-replacement",
+            "backup-restore-drill",
+            List.of("manifest-checksum", "restore-activation", "route-recovery", "post-restore-audit"),
+            List.of("snapshot-restore-node-failure")
+        ),
+        new ProductionGaScenarioRequirement(
+            "rolling-upgrade-n-minus-one-agent",
+            "rolling-upgrade",
+            List.of("compatibility-matrix", "drain-plan", "protocol-n-minus-one", "rollback-step", "post-upgrade-smoke"),
+            List.of("core-leader-change", "mid-upgrade-route-ticket")
+        )
+    );
+
     private ProductionGaDrillMatrix() {
     }
 
     public static List<ProductionGaDrill> drills() {
         return DRILLS;
+    }
+
+    public static List<ProductionGaScenarioRequirement> scenarioRequirements() {
+        return SCENARIO_REQUIREMENTS;
     }
 
     public static Optional<ProductionGaDrill> drill(String gate) {
@@ -137,6 +204,17 @@ public final class ProductionGaDrillMatrix {
         for (ProductionGaDrill drill : DRILLS) {
             failures.addAll(drill.failureInjections());
         }
+        for (ProductionGaScenarioRequirement scenario : SCENARIO_REQUIREMENTS) {
+            failures.addAll(scenario.failureInjections());
+        }
         return String.join(",", failures);
+    }
+
+    public static String scenarioSummary() {
+        List<String> scenarios = new ArrayList<>();
+        for (ProductionGaScenarioRequirement scenario : SCENARIO_REQUIREMENTS) {
+            scenarios.add(scenario.summary());
+        }
+        return String.join(",", scenarios);
     }
 }
