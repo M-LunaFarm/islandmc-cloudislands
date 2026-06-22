@@ -18,7 +18,6 @@ final class JdkBlockValueCommandClient implements BlockValueCommandClient {
         UUID safeActor = actorUuid == null ? new UUID(0L, 0L) : actorUuid;
         String safeMaterial = requireMaterialKey(materialKey);
         return core.postResultBody("/v1/admin/block-values", CoreJsonPayload.object("actorUuid", safeActor, "materialKey", safeMaterial, "worth", worth == null ? "0" : worth, "levelPoints", levelPoints, "limit", limit))
-            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreBlockValueJson.action(body, safeMaterial));
     }
 

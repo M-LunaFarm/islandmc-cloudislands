@@ -15,10 +15,18 @@ final class CoreBlockValueJson {
             .toList();
     }
 
+    static List<BlockValueView> values(CoreResponseBody body) {
+        return values(body.value());
+    }
+
     static BlockValueActionView action(String body, String materialKey) {
         Map<?, ?> root = CoreJson.object(body);
         boolean accepted = CoreJson.acceptedWithCode(root, "BLOCK_VALUE_SET");
         return new BlockValueActionView(accepted, CoreJson.code(root, "BLOCK_VALUE_SET", accepted), materialKey);
+    }
+
+    static BlockValueActionView action(CoreResponseBody body, String materialKey) {
+        return action(body.value(), materialKey);
     }
 
     private static BlockValueView value(Map<?, ?> object) {

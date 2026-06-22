@@ -213,8 +213,6 @@ class CoreTypedClientsTest {
                 "JdkAdminRouteClient",
                 "JdkAdminStorageClient",
                 "JdkAddonStateClient",
-                "JdkBlockValueCommandClient",
-                "JdkBlockValueQueryClient",
                 "JdkHomeWarpCommandClient",
                 "JdkCoreJobClaimClient",
                 "JdkCoreRouteClient",
@@ -2158,6 +2156,10 @@ class CoreTypedClientsTest {
         assertTrue(result.accepted());
         assertEquals("BLOCK_VALUE_SET", result.code());
         assertEquals("minecraft:diamond_block", result.materialKey());
+        assertTrue(source.contains("values(CoreResponseBody body)"), "block value list parser must accept typed response envelopes");
+        assertTrue(source.contains("action(CoreResponseBody body, String materialKey)"), "block value action parser must accept typed response envelopes");
+        assertFalse(assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkBlockValueQueryClient.java"))).contains("CoreResponseBody::value"), "block value query client must pass typed response envelopes to its parser");
+        assertFalse(assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkBlockValueCommandClient.java"))).contains("CoreResponseBody::value"), "block value command client must pass typed response envelopes to its parser");
         assertEquals(List.of("set:" + actorUuid + ":minecraft:diamond_block:100.50:20:64"), calls);
         assertTrue(source.contains("CoreJson.objects(root, \"values\")"), "block value parser must use shared CoreJson object list helpers");
         assertFalse(source.contains("SimpleJson.list(root.get(\"values\"))"), "block value parser must not traverse raw JSON arrays directly");
