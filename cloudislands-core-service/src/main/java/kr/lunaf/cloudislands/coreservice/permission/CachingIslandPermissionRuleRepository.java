@@ -26,12 +26,6 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
     }
 
     @Override
-    public void put(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
-        delegate.put(islandId, role, permission, allowed);
-        cache(islandId, delegate.list(islandId), delegate.listPlayerOverrides(islandId));
-    }
-
-    @Override
     public void putRoleKey(UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
         delegate.putRoleKey(islandId, roleKey, permission, allowed);
         cache(islandId, delegate.list(islandId), delegate.listPlayerOverrides(islandId));

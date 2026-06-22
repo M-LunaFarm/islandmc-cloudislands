@@ -9,16 +9,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionOverrideSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 
 public final class InMemoryIslandPermissionRuleRepository implements IslandPermissionRuleRepository {
     private final Map<UUID, Map<String, IslandPermissionRuleSnapshot>> rules = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, IslandPermissionOverrideSnapshot>> overrides = new ConcurrentHashMap<>();
-
-    @Override
-    public void put(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
-        putRoleKey(islandId, role.name(), permission, allowed);
-    }
 
     @Override
     public void putRoleKey(UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
@@ -45,10 +39,6 @@ public final class InMemoryIslandPermissionRuleRepository implements IslandPermi
         List<IslandPermissionOverrideSnapshot> snapshots = new ArrayList<>(overrides.getOrDefault(islandId, Map.of()).values());
         snapshots.sort(Comparator.comparing((IslandPermissionOverrideSnapshot rule) -> rule.playerUuid().toString()).thenComparing(rule -> rule.permission().name()));
         return List.copyOf(snapshots);
-    }
-
-    private String key(IslandRole role, IslandPermission permission) {
-        return key(role.name(), permission);
     }
 
     private String key(String roleKey, IslandPermission permission) {

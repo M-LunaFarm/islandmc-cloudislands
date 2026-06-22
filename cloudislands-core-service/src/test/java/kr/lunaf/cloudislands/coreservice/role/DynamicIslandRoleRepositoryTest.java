@@ -63,6 +63,24 @@ class DynamicIslandRoleRepositoryTest {
     }
 
     @Test
+    void permissionRuleRepositoriesUseRoleKeyAsCanonicalMutationIdentity() throws Exception {
+        String contract = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/permission/IslandPermissionRuleRepository.java"));
+        assertTrue(contract.contains("void putRoleKey(UUID islandId, String roleKey"), "permission rule repository must expose role-key mutation as the primary contract");
+        assertTrue(contract.contains("@Deprecated(forRemoval = false)\n    default void put(UUID islandId"), "enum role mutation must remain only as a deprecated adapter");
+        assertTrue(contract.contains("@Deprecated(forRemoval = false)\n    default boolean allowed(UUID islandId"), "enum role permission checks must remain only as a deprecated adapter");
+
+        for (String implementation : java.util.List.of(
+                "InMemoryIslandPermissionRuleRepository",
+                "JdbcIslandPermissionRuleRepository",
+                "CachingIslandPermissionRuleRepository"
+        )) {
+            String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/permission/" + implementation + ".java"));
+            assertTrue(source.contains("public void putRoleKey(UUID islandId, String roleKey"), implementation + " must implement role-key writes directly");
+            assertFalse(source.contains("public void put(UUID islandId, IslandRole role"), implementation + " must not reintroduce enum role writes as a canonical implementation");
+        }
+    }
+
+    @Test
     void memberAssignmentsKeepOperatorDefinedRoleKeys() {
         InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000112");

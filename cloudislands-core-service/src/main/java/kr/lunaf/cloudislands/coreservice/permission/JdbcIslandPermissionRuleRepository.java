@@ -11,18 +11,12 @@ import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionOverrideSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 
 public final class JdbcIslandPermissionRuleRepository implements IslandPermissionRuleRepository {
     private final DataSource dataSource;
 
     public JdbcIslandPermissionRuleRepository(DataSource dataSource) {
         this.dataSource = dataSource;
-    }
-
-    @Override
-    public void put(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
-        putRoleKey(islandId, role.name(), permission, allowed);
     }
 
     @Override
