@@ -21,6 +21,7 @@ public final class IslandBorderMenu implements Listener {
         "config-v2/ui/menus/border.yml",
         new GuiMenuDefinition("island.border", 3, "menu.border.title", Map.of(
             "open", "island.border.open",
+            "color", "island.border.color.set",
             "info", "island.info.open",
             "back", "island.main.open"
         ))
@@ -78,7 +79,7 @@ public final class IslandBorderMenu implements Listener {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             setItem(inventory, "S", messages, message(messages, "border-menu-size-current", "현재 크기: ") + view.info().border());
             setItem(inventory, "L", messages, colorLore("green", view, messages));
-            setItem(inventory, "C", messages, colorLore("cyan", view, messages));
+            setItem(inventory, "C", messages, colorLore("aqua", view, messages));
             setItem(inventory, "B", messages, colorLore("blue", view, messages));
             setItem(inventory, "I", messages, message(messages, "border-menu-visible", "표시: ") + view.flags().getOrDefault(IslandFlag.BORDER_VISIBLE, "true"));
             player.openInventory(inventory);

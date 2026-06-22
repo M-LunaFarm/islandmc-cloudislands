@@ -133,6 +133,10 @@ final class IslandEnvironmentCommandHandler {
             setLimit(player, limitSet.limitKey(), limitSet.value());
             return true;
         }
+        if (action instanceof GuiAction.BorderColorSet colorSet) {
+            setBorderFlag(player, IslandFlag.BORDER_COLOR, normalizeBorderColor(colorSet.color()), true);
+            return true;
+        }
         if (action instanceof GuiAction.NoPayload noPayload) {
             return switch (noPayload.type()) {
                 case BIOME_OPEN -> {

@@ -32,6 +32,7 @@ public final class GuiActionParser {
         "island.bank.withdraw",
         "island.bans.list",
         "island.bans.open",
+        "island.border.color.set",
         "island.border.open",
         "island.biome.open",
         "island.biome.set",
@@ -268,6 +269,9 @@ public final class GuiActionParser {
                 ));
                 case "island.flag.set" -> Optional.of(new GuiAction.FlagSet(
                     enumValue(IslandFlag.class, required(safeData, "flag"))
+                ));
+                case "island.border.color.set" -> Optional.of(new GuiAction.BorderColorSet(
+                    required(safeData, "color")
                 ));
                 case "island.limit.set" -> Optional.of(new GuiAction.LimitSet(
                     required(safeData, "limitKey"),

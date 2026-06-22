@@ -209,6 +209,15 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesBorderColorSetIntoTypedAction() {
+        GuiAction action = GuiActionParser.parse("island.border.color.set", Map.of("color", " Aqua ")).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.BorderColorSet);
+        assertEquals("island.border.color.set", action.actionId());
+        assertEquals(Map.of("color", "aqua"), action.data());
+    }
+
+    @Test
     void parsesRoleWeightAdjustIntoTypedAction() {
         GuiAction action = GuiActionParser.parse("island.role.weight.adjust", Map.of("role", "builder", "weight", "42", "displayName", " Builder ")).orElseThrow();
 
@@ -429,6 +438,7 @@ class GuiActionParserTest {
                 "admin.node.shutdown-safe.prepare", "admin.node.sweep", "admin.node.undrain",
                 "admin.island.migrate.prompt", "admin.island.where.prompt" -> Map.of("nodeId", "island-1");
             case "island.bank.deposit", "island.bank.withdraw" -> Map.of("amount", "1");
+            case "island.border.color.set" -> Map.of("color", "blue");
             case "island.biome.set" -> Map.of("biomeKey", "minecraft:plains");
             case "island.create" -> Map.of("templateId", "default");
             case "island.danger.delete.confirm" -> DangerousGuiActionPolicy.deleteConfirmationData();

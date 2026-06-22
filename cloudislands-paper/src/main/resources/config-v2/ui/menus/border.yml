@@ -22,8 +22,10 @@ items:
     lore-keys:
       - border-menu-color-lore
     fallback-lore:
-      - "운영자가 보더 색상 UX를 연결할 수 있는 메뉴 슬롯입니다."
-    action: info
+      - "클릭하면 보더 색상을 초록으로 변경합니다."
+    action: color
+    data:
+      color: green
   C:
     material: DIAMOND
     name-key: border-menu-cyan-name
@@ -31,8 +33,10 @@ items:
     lore-keys:
       - border-menu-color-lore
     fallback-lore:
-      - "운영자가 보더 색상 UX를 연결할 수 있는 메뉴 슬롯입니다."
-    action: info
+      - "클릭하면 보더 색상을 청록으로 변경합니다."
+    action: color
+    data:
+      color: aqua
   B:
     material: EMERALD
     name-key: border-menu-blue-name
@@ -40,8 +44,10 @@ items:
     lore-keys:
       - border-menu-color-lore
     fallback-lore:
-      - "운영자가 보더 색상 UX를 연결할 수 있는 메뉴 슬롯입니다."
-    action: info
+      - "클릭하면 보더 색상을 파랑으로 변경합니다."
+    action: color
+    data:
+      color: blue
   I:
     material: PLAYER_HEAD
     name-key: border-menu-info-name
@@ -71,5 +77,6 @@ items:
     action: back
 actions:
   open: island.border.open
+  color: island.border.color.set
   info: island.info.open
   back: island.main.open
