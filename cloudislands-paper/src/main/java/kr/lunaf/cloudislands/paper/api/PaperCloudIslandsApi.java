@@ -3344,19 +3344,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return issues;
     }
 
-    private static List<GlobalEventSnapshot> events(String json) {
-        List<GlobalEventSnapshot> events = new ArrayList<>();
-        for (String object : objects(json, "events")) {
-            events.add(new GlobalEventSnapshot(
-                number(object, "seq"),
-                text(object, "type", ""),
-                stringMap(object, "fields"),
-                instant(text(object, "occurredAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return events;
-    }
-
     private static List<GlobalEventSnapshot> events(AdminEventStreamView stream) {
         return (stream == null ? List.<AdminEventView>of() : stream.events()).stream()
             .map(PaperCloudIslandsApi::event)
@@ -3372,37 +3359,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static GlobalEventBatchSnapshot eventBatch(String json) {
-        return new GlobalEventBatchSnapshot(
-            longValue(json, "oldestSeq", 0L),
-            longValue(json, "latestSeq", 0L),
-            events(json)
-        );
-    }
-
     private static GlobalEventBatchSnapshot eventBatch(AdminEventStreamView stream) {
         return new GlobalEventBatchSnapshot(
             stream == null ? 0L : stream.oldestSeq(),
             stream == null ? 0L : stream.latestSeq(),
             events(stream)
         );
-    }
-
-    private static List<AuditLogSnapshot> auditLogs(String json) {
-        List<AuditLogSnapshot> audit = new ArrayList<>();
-        for (String object : objects(json, "audit")) {
-            audit.add(new AuditLogSnapshot(
-                uuid(object, "id", new UUID(0L, 0L)),
-                nullableUuid(object, "actorUuid"),
-                text(object, "actorType", ""),
-                text(object, "action", ""),
-                text(object, "targetType", ""),
-                text(object, "targetId", ""),
-                stringMap(object, "payload"),
-                instant(text(object, "createdAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return audit;
     }
 
     private static List<AuditLogSnapshot> auditLogs(List<AdminAuditEntryView> views) {

@@ -272,6 +272,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("private static List<IslandMissionSnapshot> missions(String json)"), "Mission lists must not keep raw JSON converters");
         assertTrue(!source.contains("private static List<IslandSnapshotRecord> snapshots(String json)"), "Snapshot lists must not keep raw JSON converters");
         assertTrue(!source.contains("private static List<IslandLogRecord> logs(String json)"), "Log lists must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<GlobalEventSnapshot> events(String json)"), "Global events must not keep raw JSON converters");
+        assertTrue(!source.contains("private static GlobalEventBatchSnapshot eventBatch(String json)"), "Global event batches must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<AuditLogSnapshot> auditLogs(String json)"), "Audit logs must not keep raw JSON converters");
         assertTrue(source.contains("client.routingCommands().publishRouteSessionResult(ticket)"), "Route session publish must use the typed routing command client");
         assertTrue(source.contains("client.lifecycle().repairIsland(islandId, reason)"), "Island repair must use the typed lifecycle command client");
         assertTrue(source.contains("client.progressionCommands().registerMissionProvider(providerId, definitions)"), "Mission provider registration must use the typed progression command client");
