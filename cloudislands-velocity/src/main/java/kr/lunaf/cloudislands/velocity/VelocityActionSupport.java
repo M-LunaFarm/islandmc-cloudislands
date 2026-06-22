@@ -95,10 +95,6 @@ abstract class VelocityActionSupport {
         return playerMessage(routeMessages.clear(view));
     }
 
-    protected String snapshotListMessage(String body) {
-        return snapshotMessages.snapshotList(body);
-    }
-
     protected String snapshotListMessage(List<CoreGuiViews.SnapshotView> snapshots) {
         return snapshotMessages.snapshotList(snapshots);
     }

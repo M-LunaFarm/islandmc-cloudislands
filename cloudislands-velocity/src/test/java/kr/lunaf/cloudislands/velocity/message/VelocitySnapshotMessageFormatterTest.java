@@ -19,18 +19,6 @@ class VelocitySnapshotMessageFormatterTest {
     }
 
     @Test
-    void formatsSnapshotListBodyThroughSharedObjectReader() {
-        String body = """
-            {"snapshots":[{"snapshotNo":3,"reason":"manual","sizeBytes":2048,"createdAt":"2026-06-22T00:00:00Z","checksum":"abcdef1234567890"}]}
-            """;
-
-        assertEquals(
-            "섬 스냅샷: #3 사유=manual 크기=2048 checksum=abcdef123456 생성=2026-06-22T00:00:00Z",
-            formatter.snapshotList(body)
-        );
-    }
-
-    @Test
     void formatsTypedSnapshotAction() {
         assertEquals(
             "섬 스냅샷 요청: 접수됨 code=SNAPSHOT_REQUESTED",

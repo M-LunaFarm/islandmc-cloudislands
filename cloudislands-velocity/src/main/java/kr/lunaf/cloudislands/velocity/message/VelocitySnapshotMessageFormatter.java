@@ -1,41 +1,11 @@
 package kr.lunaf.cloudislands.velocity.message;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objects;
-
 import java.util.ArrayList;
 import java.util.List;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.SnapshotActionView;
 
 public final class VelocitySnapshotMessageFormatter {
-    public String snapshotList(String body) {
-        List<String> snapshots = objects(body, "snapshots");
-        if (snapshots.isEmpty()) {
-            return "섬 스냅샷이 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        for (String object : snapshots) {
-            if (entries.size() >= 20) {
-                break;
-            }
-            long snapshotNo = longValue(object, "snapshotNo");
-            if (snapshotNo > 0L) {
-                String reason = jsonValue(object, "reason");
-                long sizeBytes = longValue(object, "sizeBytes");
-                String createdAt = jsonValue(object, "createdAt");
-                String checksum = jsonValue(object, "checksum");
-                entries.add("#" + snapshotNo
-                    + (reason.isBlank() ? "" : " 사유=" + reason)
-                    + " 크기=" + sizeBytes
-                    + (checksum.isBlank() ? "" : " checksum=" + shortChecksum(checksum))
-                    + (createdAt.isBlank() ? "" : " 생성=" + createdAt));
-            }
-        }
-        return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(" | ", entries);
-    }
-
     public String snapshotList(List<CoreGuiViews.SnapshotView> snapshots) {
         if (snapshots == null || snapshots.isEmpty()) {
             return "섬 스냅샷이 없습니다.";

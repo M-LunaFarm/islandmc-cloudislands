@@ -68,6 +68,8 @@ class VelocityPluginRolePolicyTest {
         assertFalse(routeFormatter.contains("ticket(String body)"), "Velocity route ticket formatter must not parse raw Core route JSON");
         assertFalse(routeFormatter.contains("clear(String body)"), "Velocity route clear formatter must not parse raw Core route JSON");
         assertFalse(routeFormatter.contains("ticketSummary(String object)"), "Velocity route ticket summaries must use typed ticket views");
+        assertFalse(source.contains("snapshotListMessage(String body)"), "Velocity snapshot actions must use typed snapshot views");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocitySnapshotMessageFormatter.java")).contains("snapshotList(String body)"), "Velocity snapshot formatter must not parse raw Core snapshot JSON");
 
         String formatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityIslandMessageFormatter.java"));
         assertFalse(formatter.contains("body.contains(\"\\\"accepted\\\""), "Velocity message formatter must inspect accepted through parsed JSON fields");
