@@ -66,10 +66,22 @@ public record IntegrationStateManifest(
         details.put("manifest.world", world);
         details.put("manifest.cell", cell);
         details.put("manifest.bundleKey", bundleKey);
+        details.put("manifest.runtimeScope", world + ":" + cell);
+        details.put("manifest.stateKey", stateKey());
+        details.put("manifest.bundleRelativePath", bundleRelativePath());
         metadata.entrySet().stream()
             .sorted(Map.Entry.comparingByKey())
             .forEach(entry -> details.put("manifest.metadata." + entry.getKey(), entry.getValue()));
         return Map.copyOf(details);
+    }
+
+    private String stateKey() {
+        String safeBundleKey = bundleKey.isBlank() ? "live" : bundleKey;
+        return category + "/" + pluginName + "/" + islandId + "/" + safeBundleKey + "/" + operation;
+    }
+
+    private String bundleRelativePath() {
+        return "integrations/" + category + "/" + pluginName + "/" + operation + ".json";
     }
 
     private static String requireText(String value, String fieldName) {

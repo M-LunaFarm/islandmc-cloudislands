@@ -98,6 +98,13 @@ class IntegrationLifecycleHooksTest {
         assertEquals("export", SimpleJson.text(root.get("operation")));
         assertEquals(islandId.toString(), SimpleJson.text(root.get("islandId")));
         assertFalse(SimpleJson.list(root.get("results")).isEmpty());
+        java.util.List<?> manifests = SimpleJson.list(root.get("stateManifests"));
+        assertFalse(manifests.isEmpty());
+        java.util.Map<?, ?> manifest = SimpleJson.object(manifests.getFirst());
+        assertEquals("CoreProtect", SimpleJson.text(manifest.get("plugin")));
+        assertEquals("audit-export", SimpleJson.text(manifest.get("operation")));
+        assertEquals("integrations/audit-rollback/CoreProtect/audit-export.json", SimpleJson.text(manifest.get("bundleRelativePath")));
+        assertEquals("ci_shard_001:1,2", SimpleJson.text(manifest.get("runtimeScope")));
     }
 
     private IslandBundleManifest manifest(UUID islandId, int size) {

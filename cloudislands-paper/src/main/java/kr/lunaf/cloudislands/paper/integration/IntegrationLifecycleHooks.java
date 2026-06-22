@@ -234,6 +234,10 @@ public final class IntegrationLifecycleHooks {
                 root.put("metadata", context.metadata());
             }
             root.put("results", results.stream().map(LifecycleResult::toJson).toList());
+            root.put("stateManifests", results.stream()
+                .map(LifecycleResult::stateManifestJson)
+                .filter(map -> !map.isEmpty())
+                .toList());
             return root;
         }
     }
@@ -252,6 +256,18 @@ public final class IntegrationLifecycleHooks {
             root.put("status", status.name());
             root.put("message", message);
             root.put("details", details);
+            return root;
+        }
+
+        private Map<String, Object> stateManifestJson() {
+            if (status != IntegrationResult.Status.SUCCESS || details.getOrDefault("manifest.plugin", "").isBlank()) {
+                return Map.of();
+            }
+            LinkedHashMap<String, Object> root = new LinkedHashMap<>();
+            details.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("manifest."))
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> root.put(entry.getKey().substring("manifest.".length()), entry.getValue()));
             return root;
         }
     }

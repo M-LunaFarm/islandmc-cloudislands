@@ -96,8 +96,11 @@ class PaperIntegrationRegistryTest {
         assertEquals("audit-export", exportResult.details().get("manifest.operation"));
         assertEquals("islands", exportResult.details().get("manifest.world"));
         assertEquals("12,-4", exportResult.details().get("manifest.cell"));
+        assertEquals("islands:12,-4", exportResult.details().get("manifest.runtimeScope"));
         assertEquals("192,64,-64..255,319,-1", exportResult.details().get("manifest.metadata.region"));
         assertEquals("bundles/island.tar.zst", exportResult.details().get("manifest.bundleKey"));
+        assertEquals("audit-rollback/CoreProtect/" + exportContext.islandId() + "/bundles/island.tar.zst/audit-export", exportResult.details().get("manifest.stateKey"));
+        assertEquals("integrations/audit-rollback/CoreProtect/audit-export.json", exportResult.details().get("manifest.bundleRelativePath"));
         assertEquals("coreprotect:export:2", exportResult.details().get("manifest.idempotencyKey"));
         assertEquals("CoreProtectAPI#performLookup", exportResult.details().get("external.api"));
 
