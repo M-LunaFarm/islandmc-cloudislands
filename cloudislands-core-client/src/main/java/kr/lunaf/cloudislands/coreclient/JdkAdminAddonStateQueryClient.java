@@ -5,19 +5,19 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreAdminAddonStateQueryClient implements AdminAddonStateQueryClient {
-    private final CoreApiClient delegate;
+public final class JdkAdminAddonStateQueryClient implements AdminAddonStateQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreAdminAddonStateQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkAdminAddonStateQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<AdminAddonStateSummaryView> summary() {
-        return delegate.addonStateSummary().thenApply(CoreAdminAddonStateQueryClient::summary);
+        return core.post("/v1/admin/addons/state/summary", "{}").thenApply(JdkAdminAddonStateQueryClient::summary);
     }
 
     static AdminAddonStateSummaryView summary(String body) {

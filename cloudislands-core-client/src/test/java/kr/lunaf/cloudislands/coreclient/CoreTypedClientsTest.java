@@ -108,7 +108,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkAdminEventClient"), "admin events must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminAuditClient"), "admin audit must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminRouteClient"), "admin routes must use a standalone typed client");
-        assertFalse(nestedClients.contains("JdkAdminAddonStateClient"), "admin addon state must use CoreAdminAddonStateQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminAddonStateClient"), "admin addon state must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminMaintenanceClient"), "admin maintenance must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminNodeClient"), "admin node operations must use CoreAdminNode query and command clients");
         assertFalse(nestedClients.contains("JdkAdminIslandClient"), "admin islands must use a standalone typed client");
@@ -147,6 +147,7 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("adminIslandWhere"));
         assertFalse(names.contains("listBlockValues"));
         assertFalse(names.contains("islandVisitorStats"));
+        assertFalse(names.contains("addonStateSummary"));
     }
 
     @Test
@@ -681,17 +682,9 @@ class CoreTypedClientsTest {
 
     @Test
     void adminAddonStateClientReturnsTypedSummary() {
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "addonStateSummary" -> CompletableFuture.completedFuture("""
-                    {"stateOwnership":"core-addon-state-store","registeredAddonRequired":false,"orphanStatePolicy":"preserve","missingAddonStatePolicy":"ignored","tableKeyPrefix":"table/<name>/","maxKeysPerAddon":128,"maxValueLength":4096,"addons":[{"addonId":"shop","globalKeys":2,"islandKeys":3,"totalKeys":5}]}
-                    """);
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminAddonStateSummaryView summary = new CoreAdminAddonStateQueryClient(raw).summary().join();
+        AdminAddonStateSummaryView summary = JdkAdminAddonStateQueryClient.summary("""
+            {"stateOwnership":"core-addon-state-store","registeredAddonRequired":false,"orphanStatePolicy":"preserve","missingAddonStatePolicy":"ignored","tableKeyPrefix":"table/<name>/","maxKeysPerAddon":128,"maxValueLength":4096,"addons":[{"addonId":"shop","globalKeys":2,"islandKeys":3,"totalKeys":5}]}
+            """);
 
         assertEquals("core-addon-state-store", summary.stateOwnership());
         assertFalse(summary.registeredAddonRequired());

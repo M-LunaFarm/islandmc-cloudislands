@@ -273,7 +273,10 @@ public interface CoreApiClient {
     }
 
     default AdminAddonStateQueryClient adminAddonState() {
-        return new CoreAdminAddonStateQueryClient(this);
+        if (this instanceof AdminAddonStateQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin addon state queries");
     }
 
     default AddonStateClient addonStates() {
@@ -403,7 +406,6 @@ public interface CoreApiClient {
     CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
-    CompletableFuture<String> addonStateSummary();
     CompletableFuture<String> addonState(String addonId);
     CompletableFuture<String> putAddonState(String addonId, String key, String value);
     CompletableFuture<String> putAddonState(String addonId, Map<String, String> values);
