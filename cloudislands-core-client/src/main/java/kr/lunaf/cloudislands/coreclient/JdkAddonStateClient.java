@@ -20,159 +20,181 @@ public final class JdkAddonStateClient implements AddonStateClient {
 
     @Override
     public CompletableFuture<Map<String, String>> state(String addonId) {
-        return core.post("/v1/addons/state", CoreJsonPayload.object("addonId", safeAddonId(addonId)))
+        return core.postBody("/v1/addons/state", CoreJsonPayload.object("addonId", safeAddonId(addonId)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> putState(String addonId, Map<String, String> values) {
-        return core.postWithResultBody("/v1/addons/state/bulk", CoreJsonPayload.object(
+        return core.postResultBody("/v1/addons/state/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "values", CoreJsonPayload.stringMap(safeValues(values))
             ))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> saveState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return core.postWithResultBody("/v1/addons/state/save", statePayload(addonId, values, tables))
+        return core.postResultBody("/v1/addons/state/save", statePayload(addonId, values, tables))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return core.postWithResultBody(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, statePayload(addonId, values, tables))
+        return core.postResultBody(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, statePayload(addonId, values, tables))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> tableBulkState(String addonId, Map<String, Map<String, String>> tables) {
-        return core.postWithResultBody("/v1/addons/state/table/bulk", CoreJsonPayload.object(
+        return core.postResultBody("/v1/addons/state/table/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "tables", CoreJsonPayload.tableMap(safeTables(tables))
             ))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadState(String addonId, String table) {
-        return core.post(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, CoreJsonPayload.object("addonId", safeAddonId(addonId), "table", safeTable(table)))
+        return core.postBody(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, CoreJsonPayload.object("addonId", safeAddonId(addonId), "table", safeTable(table)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> putTableState(String addonId, String table, Map<String, String> values) {
-        return core.postWithResultBody("/v1/addons/state/table/bulk", tablePayload(addonId, table, values))
+        return core.postResultBody("/v1/addons/state/table/bulk", tablePayload(addonId, table, values))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> replaceTableState(String addonId, String table, Map<String, String> values) {
-        return core.postWithResultBody("/v1/addons/state/table/replace", tablePayload(addonId, table, values))
+        return core.postResultBody("/v1/addons/state/table/replace", tablePayload(addonId, table, values))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> clearTableState(String addonId, String table) {
-        return core.postWithResultBody("/v1/addons/state/table/clear", CoreJsonPayload.object("addonId", safeAddonId(addonId), "table", safeTable(table)))
+        return core.postResultBody("/v1/addons/state/table/clear", CoreJsonPayload.object("addonId", safeAddonId(addonId), "table", safeTable(table)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> removeState(String addonId, String key) {
-        return core.postWithResultBody("/v1/addons/state/remove", CoreJsonPayload.object("addonId", safeAddonId(addonId), "key", safeKey(key)))
+        return core.postResultBody("/v1/addons/state/remove", CoreJsonPayload.object("addonId", safeAddonId(addonId), "key", safeKey(key)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Void> clearState(String addonId) {
-        return core.postWithResultBody("/v1/addons/state/clear", CoreJsonPayload.object("addonId", safeAddonId(addonId)))
+        return core.postResultBody("/v1/addons/state/clear", CoreJsonPayload.object("addonId", safeAddonId(addonId)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(_body -> (Void) null);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> islandState(String addonId, UUID islandId) {
-        return core.post("/v1/addons/islands/state", islandPayload(addonId, islandId))
+        return core.postBody("/v1/addons/islands/state", islandPayload(addonId, islandId))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> putIslandState(String addonId, UUID islandId, Map<String, String> values) {
-        return core.postWithResultBody("/v1/addons/islands/state/bulk", CoreJsonPayload.object(
+        return core.postResultBody("/v1/addons/islands/state/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
                 "values", CoreJsonPayload.stringMap(safeValues(values))
             ))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> saveIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return core.postWithResultBody("/v1/addons/islands/state/save", islandStatePayload(addonId, islandId, values, tables))
+        return core.postResultBody("/v1/addons/islands/state/save", islandStatePayload(addonId, islandId, values, tables))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> tableKeyValueBulkSaveIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return core.postWithResultBody(AddonStateBulkSaveRequest.ISLAND_ENDPOINT, islandStatePayload(addonId, islandId, values, tables))
+        return core.postResultBody(AddonStateBulkSaveRequest.ISLAND_ENDPOINT, islandStatePayload(addonId, islandId, values, tables))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> tableBulkIslandState(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
-        return core.postWithResultBody("/v1/addons/islands/state/table/bulk", CoreJsonPayload.object(
+        return core.postResultBody("/v1/addons/islands/state/table/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
                 "tables", CoreJsonPayload.tableMap(safeTables(tables))
             ))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadIslandState(String addonId, UUID islandId, String table) {
-        return core.post(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, CoreJsonPayload.object(
+        return core.postBody(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
                 "table", safeTable(table)
             ))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> putIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return core.postWithResultBody("/v1/addons/islands/state/table/bulk", islandTablePayload(addonId, islandId, table, values))
+        return core.postResultBody("/v1/addons/islands/state/table/bulk", islandTablePayload(addonId, islandId, table, values))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> replaceIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return core.postWithResultBody("/v1/addons/islands/state/table/replace", islandTablePayload(addonId, islandId, table, values))
+        return core.postResultBody("/v1/addons/islands/state/table/replace", islandTablePayload(addonId, islandId, table, values))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> clearIslandTableState(String addonId, UUID islandId, String table) {
-        return core.postWithResultBody("/v1/addons/islands/state/table/clear", CoreJsonPayload.object(
+        return core.postResultBody("/v1/addons/islands/state/table/clear", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
                 "table", safeTable(table)
             ))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> removeIslandState(String addonId, UUID islandId, String key) {
-        return core.postWithResultBody("/v1/addons/islands/state/remove", CoreJsonPayload.object(
+        return core.postResultBody("/v1/addons/islands/state/remove", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
                 "key", safeKey(key)
             ))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Void> clearIslandState(String addonId, UUID islandId) {
-        return core.postWithResultBody("/v1/addons/islands/state/clear", islandPayload(addonId, islandId))
+        return core.postResultBody("/v1/addons/islands/state/clear", islandPayload(addonId, islandId))
+            .thenApply(CoreResponseBody::value)
             .thenApply(_body -> (Void) null);
     }
 

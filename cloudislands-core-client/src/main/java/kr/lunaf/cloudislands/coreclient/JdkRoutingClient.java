@@ -48,7 +48,7 @@ final class JdkRoutingClient implements RoutingCommandClient {
     public CompletableFuture<RoutePublishView> publishRouteSessionResult(RouteTicket ticket) {
         requireTicket(ticket);
         String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
-        return core.postWithResultBody("/v1/routes/session", CoreJsonPayload.object(
+        return core.postResultBody("/v1/routes/session", CoreJsonPayload.object(
                 "playerUuid", ticket.playerUuid(),
                 "ticketId", ticket.ticketId(),
                 "targetNode", ticket.targetNode(),
@@ -56,6 +56,7 @@ final class JdkRoutingClient implements RoutingCommandClient {
                 "nonce", ticket.nonce(),
                 "expiresAt", ticket.expiresAt()
             ))
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkRoutingClient::routePublishResult);
     }
 
@@ -70,7 +71,8 @@ final class JdkRoutingClient implements RoutingCommandClient {
         requireId(playerUuid, "playerUuid");
         requireId(ticketId, "ticketId");
         String normalizedReason = reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason;
-        return core.postWithResultBody("/v1/admin/routes/clear", CoreJsonPayload.object("playerUuid", playerUuid, "ticketId", ticketId, "reason", normalizedReason))
+        return core.postResultBody("/v1/admin/routes/clear", CoreJsonPayload.object("playerUuid", playerUuid, "ticketId", ticketId, "reason", normalizedReason))
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkRoutingClient::routeClearResult);
     }
 
