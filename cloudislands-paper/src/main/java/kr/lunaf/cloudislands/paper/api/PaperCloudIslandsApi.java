@@ -106,7 +106,6 @@ import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.AddonStateClient;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
@@ -2759,11 +2758,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static IslandActionResult action(String json, String successCode) {
-        boolean accepted = json.contains("\"accepted\":true");
-        return new IslandActionResult(accepted, accepted ? successCode : text(json, "code", "FAILED"));
-    }
-
     private static IslandActionResult action(JobActionView view) {
         if (view == null) {
             return new IslandActionResult(false, "FAILED");
@@ -3191,14 +3185,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return new RouteClearResult(view.clearedSession(), view.clearedTicket());
     }
 
-    private static CoreMaintenanceResult maintenance(String json, boolean reloaded) {
-        return new CoreMaintenanceResult(
-            reloaded,
-            integer(json, "clearedSessions", 0),
-            integer(json, "clearedTickets", 0)
-        );
-    }
-
     private static CoreMaintenanceResult maintenance(AdminMaintenanceResultView view) {
         if (view == null) {
             return new CoreMaintenanceResult(false, 0, 0);
@@ -3242,75 +3228,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             .toList();
     }
 
-    private static List<String> objects(String json, String arrayField) {
-        return jsonArray(json, arrayField).stream()
-            .map(SimpleJson::object)
-            .filter(object -> !object.isEmpty())
-            .map(SimpleJson::stringify)
-            .toList();
-    }
-
-    private static Map<String, String> stringMap(String json, String field) {
-        java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
-        SimpleJson.object(jsonObject(json).get(field)).forEach((key, value) -> values.put(SimpleJson.text(key), SimpleJson.text(value)));
-        return Map.copyOf(values);
-    }
-
-    private static String objectValue(String json, String field) {
-        Map<?, ?> object = SimpleJson.object(jsonObject(json).get(field));
-        return object.isEmpty() ? "" : SimpleJson.stringify(object);
-    }
-
-    private static Map<String, Double> decimalMap(String json, String field) {
-        java.util.LinkedHashMap<String, Double> values = new java.util.LinkedHashMap<>();
-        SimpleJson.object(jsonObject(json).get(field)).forEach((key, value) -> {
-            try {
-                values.put(SimpleJson.text(key), Double.parseDouble(SimpleJson.text(value)));
-            } catch (NumberFormatException ignored) {
-                values.put(SimpleJson.text(key), 0.0D);
-            }
-        });
-        return Map.copyOf(values);
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
-    private static String text(String json, String field, String fallback) {
-        Map<?, ?> object = jsonObject(json);
-        if (!object.containsKey(field)) {
-            return fallback;
-        }
-        Object value = object.get(field);
-        return value == null ? fallback : SimpleJson.text(value);
-    }
-
-    private static long number(String json, String field) {
-        return SimpleJson.number(jsonObject(json).get(field));
-    }
-
-    private static String nullableText(String json, String field) {
-        Map<?, ?> object = jsonObject(json);
-        return object.containsKey(field) && object.get(field) == null ? null : text(json, field, null);
-    }
-
-    private static UUID uuid(String json, String field, UUID fallback) {
-        try {
-            return UUID.fromString(text(json, field, fallback.toString()));
-        } catch (RuntimeException ignored) {
-            return fallback;
-        }
-    }
-
-    private static UUID nullableUuid(String json, String field) {
-        String value = nullableText(json, field);
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        return uuidValue(value);
-    }
-
     private static UUID uuidValue(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -3345,69 +3262,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return (int) value;
     }
 
-    private static int integer(String json, String field, int fallback) {
-        try {
-            return Integer.parseInt(number(json, field, Integer.toString(fallback)));
-        } catch (RuntimeException ignored) {
-            return fallback;
-        }
-    }
-
-    private static Integer nullableInteger(String json, String field) {
-        Map<?, ?> object = jsonObject(json);
-        return object.containsKey(field) && object.get(field) == null ? null : integer(json, field, 0);
-    }
-
-    private static long longValue(String json, String field, long fallback) {
-        try {
-            return Long.parseLong(number(json, field, Long.toString(fallback)));
-        } catch (RuntimeException ignored) {
-            return fallback;
-        }
-    }
-
-    private static double decimal(String json, String field, double fallback) {
-        try {
-            return Double.parseDouble(number(json, field, Double.toString(fallback)));
-        } catch (RuntimeException ignored) {
-            return fallback;
-        }
-    }
-
-    private static boolean bool(String json, String field, boolean fallback) {
-        Map<?, ?> object = jsonObject(json);
-        if (!object.containsKey(field)) {
-            return fallback;
-        }
-        Object value = object.get(field);
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
-    }
-
-    private static String number(String json, String field, String fallback) {
-        Map<?, ?> object = jsonObject(json);
-        if (!object.containsKey(field) || object.get(field) == null) {
-            return fallback;
-        }
-        return SimpleJson.text(object.get(field));
-    }
-
-    private static String scalar(String json, String field) {
-        Map<?, ?> object = jsonObject(json);
-        if (!object.containsKey(field) || object.get(field) == null) {
-            return null;
-        }
-        Object value = object.get(field);
-        return value instanceof Number ? SimpleJson.text(value) : null;
-    }
-
-    private static Map<?, ?> jsonObject(String json) {
-        return SimpleJson.object(SimpleJson.parse(json));
-    }
-
-    private static List<?> jsonArray(String json, String field) {
-        return SimpleJson.list(jsonObject(json).get(field));
-    }
-
     private static Instant instant(String value) {
         try {
             return Instant.parse(value);
@@ -3418,11 +3272,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static Instant nullableInstantValue(String value) {
         return value == null || value.isBlank() ? null : instant(value);
-    }
-
-    private static Instant nullableInstant(String json, String field) {
-        String value = nullableText(json, field);
-        return value == null ? null : instant(value);
     }
 
     private static <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {
