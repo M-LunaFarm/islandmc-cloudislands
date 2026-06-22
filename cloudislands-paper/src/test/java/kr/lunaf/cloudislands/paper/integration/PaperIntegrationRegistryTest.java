@@ -396,6 +396,7 @@ class PaperIntegrationRegistryTest {
         assertTrue(registrySource.contains("public IntegrationResult exportState"));
         assertTrue(registrySource.contains("public IntegrationResult restoreState"));
         assertTrue(registrySource.contains("private IntegrationResult execute"));
+        assertTrue(registrySource.contains("integration.detect(pluginEnabled(integration.pluginName()))"));
         assertTrue(registrySource.contains("pluginEnabled(integration.pluginName())"));
         assertTrue(registrySource.contains("IntegrationResult.skipped(integration.pluginName() + \" is not enabled\")"));
         assertTrue(registrySource.contains("withPluginRuntimeMetadata(integration.pluginName(), context, plugin)"));

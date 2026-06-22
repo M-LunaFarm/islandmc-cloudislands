@@ -139,7 +139,7 @@ public final class PaperIntegrationRegistry {
     private IntegrationResult execute(String pluginName, BiFunction<CloudIntegration, IntegrationContext, IntegrationResult> operation, IntegrationContext context) {
         CloudIntegration integration = integration(pluginName);
         Plugin plugin = plugin(integration.pluginName());
-        if (!pluginEnabled(integration.pluginName())) {
+        if (!integration.detect(pluginEnabled(integration.pluginName()))) {
             return IntegrationResult.skipped(integration.pluginName() + " is not enabled");
         }
         return operation.apply(integration, withPluginRuntimeMetadata(integration.pluginName(), context, plugin));
