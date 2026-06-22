@@ -72,6 +72,8 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkCommunicationClient"), "communication operations must use CoreCommunication query and command clients");
         assertFalse(nestedClients.contains("JdkEnvironmentClient"), "environment operations must use CoreIslandEnvironment query and command clients");
         assertFalse(nestedClients.contains("JdkSettingsClient"), "settings operations must use CoreIslandSettingsCommandClient");
+        assertFalse(nestedClients.contains("JdkHomeWarpClient"), "home and warp operations must use CoreHomeWarp query and command clients");
+        assertFalse(nestedClients.contains("JdkIslandClient"), "island queries must use CoreIslandQueryClient");
         assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use CoreAdminMetricsQueryClient");
         assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use CoreAdminCoreConfigQueryClient");
         assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use CoreAdminStorageQueryClient");

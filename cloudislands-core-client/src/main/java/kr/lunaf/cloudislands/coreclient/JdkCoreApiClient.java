@@ -59,12 +59,13 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final IslandEnvironmentCommandClient environmentCommandClient;
     private final IslandSettingsCommandClient settingsClient;
     private final JdkPermissionClient permissionClient;
-    private final JdkHomeWarpClient homeWarpClient;
+    private final HomeWarpQueryClient homeWarpQueryClient;
+    private final HomeWarpCommandClient homeWarpCommandClient;
     private final JdkRoutingClient routingClient;
     private final JdkNavigationClient navigationClient;
     private final JdkRuntimeClient runtimeClient;
     private final JdkLifecycleClient lifecycleClient;
-    private final JdkIslandClient islandClient;
+    private final IslandQueryClient islandClient;
     private final JdkProgressionClient progressionClient;
     private final JdkMemberQueryClient memberQueryClient;
     private final JdkMemberCommandClient memberCommandClient;
@@ -106,12 +107,13 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.environmentCommandClient = new CoreIslandEnvironmentCommandClient(this);
         this.settingsClient = new CoreIslandSettingsCommandClient(this);
         this.permissionClient = new JdkPermissionClient();
-        this.homeWarpClient = new JdkHomeWarpClient();
+        this.homeWarpQueryClient = new CoreHomeWarpQueryClient(this);
+        this.homeWarpCommandClient = new CoreHomeWarpCommandClient(this);
         this.routingClient = new JdkRoutingClient();
         this.navigationClient = new JdkNavigationClient();
         this.runtimeClient = new JdkRuntimeClient();
         this.lifecycleClient = new JdkLifecycleClient();
-        this.islandClient = new JdkIslandClient();
+        this.islandClient = new CoreIslandQueryClient(this);
         this.progressionClient = new JdkProgressionClient();
         this.memberQueryClient = new JdkMemberQueryClient();
         this.memberCommandClient = new JdkMemberCommandClient();
@@ -191,12 +193,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public HomeWarpQueryClient homeWarps() {
-        return homeWarpClient;
+        return homeWarpQueryClient;
     }
 
     @Override
     public HomeWarpCommandClient homeWarpCommands() {
-        return homeWarpClient;
+        return homeWarpCommandClient;
     }
 
     @Override
@@ -1068,145 +1070,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
             if (permission == null) {
                 throw new IllegalArgumentException("permission is required");
             }
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-    }
-
-    private final class JdkHomeWarpClient implements HomeWarpQueryClient, HomeWarpCommandClient {
-        @Override
-        public CompletableFuture<List<IslandHomeSnapshot>> homeSnapshots(UUID islandId) {
-            requireId(islandId, "islandId");
-            return get("/v1/islands/" + islandId + "/homes")
-                .thenApply(body -> CoreHomeWarpJson.homes(islandId, body));
-        }
-
-        @Override
-        public CompletableFuture<List<IslandWarpSnapshot>> warpSnapshots(UUID islandId) {
-            requireId(islandId, "islandId");
-            return get("/v1/islands/" + islandId + "/warps")
-                .thenApply(body -> CoreHomeWarpJson.warps(islandId, body));
-        }
-
-        @Override
-        public CompletableFuture<CoreGuiViews.IslandInfoView> islandInfo(UUID islandId) {
-            requireId(islandId, "islandId");
-            return JdkCoreApiClient.this.islandInfo(islandId).thenApply(CoreGuiViews::islandInfoView);
-        }
-
-        @Override
-        public CompletableFuture<List<IslandWarpSnapshot>> publicWarpSnapshots(int limit, String category, String query) {
-            int safeLimit = Math.max(1, Math.min(limit, 100));
-            return post("/v1/islands/public-warps", jsonObject("limit", safeLimit, "category", category == null ? "" : category, "query", query == null ? "" : query))
-                .thenApply(body -> CoreHomeWarpJson.warps(null, body));
-        }
-
-        @Override
-        public CompletableFuture<HomeWarpActionView> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            requireLocation(location);
-            return JdkCoreApiClient.this.setIslandHomeResult(islandId, actorUuid, normalizeName(name), location)
-                .thenApply(body -> actionResult(body, "HOME_SET"));
-        }
-
-        @Override
-        public CompletableFuture<HomeWarpActionView> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            requireLocation(location);
-            return JdkCoreApiClient.this.setIslandWarpResult(islandId, actorUuid, normalizeName(name), location, publicAccess)
-                .thenApply(body -> actionResult(body, "WARP_SET"));
-        }
-
-        @Override
-        public CompletableFuture<HomeWarpActionView> deleteWarp(UUID islandId, UUID actorUuid, String name) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return JdkCoreApiClient.this.deleteIslandWarpResult(islandId, actorUuid, normalizeName(name))
-                .thenApply(body -> actionResult(body, "WARP_DELETED"));
-        }
-
-        @Override
-        public CompletableFuture<HomeWarpActionView> setWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return JdkCoreApiClient.this.setIslandWarpPublicAccessResult(islandId, actorUuid, normalizeName(name), publicAccess)
-                .thenApply(body -> actionResult(body, publicAccess ? "WARP_PUBLIC" : "WARP_PRIVATE"));
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-
-        private void requireLocation(IslandLocation location) {
-            if (location == null) {
-                throw new IllegalArgumentException("location is required");
-            }
-        }
-
-        private String normalizeName(String name) {
-            return name == null || name.isBlank() ? "default" : name;
-        }
-
-        private HomeWarpActionView actionResult(String body, String successCode) {
-            Map<?, ?> root = CoreJson.object(body);
-            return new HomeWarpActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
-        }
-    }
-
-    private final class JdkIslandClient implements IslandQueryClient {
-        @Override
-        public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
-            requireId(islandId, "islandId");
-            return JdkCoreApiClient.this.islandInfo(islandId).thenApply(CoreGuiViews::islandInfoView);
-        }
-
-        @Override
-        public CompletableFuture<CoreGuiViews.IslandInfoView> getIslandByOwner(UUID ownerUuid) {
-            requireId(ownerUuid, "ownerUuid");
-            return JdkCoreApiClient.this.islandInfoByOwner(ownerUuid).thenApply(CoreGuiViews::islandInfoView);
-        }
-
-        @Override
-        public CompletableFuture<CoreGuiViews.IslandInfoView> findIslandByName(String islandName) {
-            String normalized = islandName == null ? "" : islandName.trim();
-            if (normalized.isBlank()) {
-                throw new IllegalArgumentException("islandName is required");
-            }
-            return JdkCoreApiClient.this.islandInfoByName(normalized).thenApply(CoreGuiViews::islandInfoView);
-        }
-
-        @Override
-        public CompletableFuture<List<IslandMemberSnapshot>> memberSnapshots(UUID islandId) {
-            requireId(islandId, "islandId");
-            return get("/v1/islands/" + islandId + "/members")
-                .thenApply(body -> CoreMemberJson.members(islandId, body));
-        }
-
-        @Override
-        public CompletableFuture<List<CoreGuiViews.MemberView>> listMembers(UUID islandId) {
-            requireId(islandId, "islandId");
-            return JdkCoreApiClient.this.listIslandMembers(islandId).thenApply(CoreGuiViews::memberViews);
-        }
-
-        @Override
-        public CompletableFuture<MemberPage> listMembers(UUID islandId, MemberCursor cursor) {
-            MemberCursor safeCursor = cursor == null ? MemberCursor.firstPage(45) : cursor;
-            return listMembers(islandId).thenApply(members -> {
-                List<CoreGuiViews.MemberView> safeMembers = members == null ? List.of() : members;
-                int total = safeMembers.size();
-                int from = Math.min(safeCursor.offset(), total);
-                int to = Math.min(from + safeCursor.limit(), total);
-                MemberCursor next = to < total ? new MemberCursor(to, safeCursor.limit()) : null;
-                return new MemberPage(safeMembers.subList(from, to), safeCursor, next, total);
-            });
         }
 
         private void requireId(UUID id, String name) {
