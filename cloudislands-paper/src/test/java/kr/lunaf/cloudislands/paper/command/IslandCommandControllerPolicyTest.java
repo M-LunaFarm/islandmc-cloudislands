@@ -126,6 +126,13 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("IslandWarehouseUseCase"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.listItems"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.deposit"));
+        assertTrue(warehouseHandler.contains("countMaterial(player, material)"), "warehouse deposit must check real player inventory before Core mutation");
+        assertTrue(warehouseHandler.contains("removeMaterial(player, material, amount)"), "warehouse deposit must remove real player inventory items");
+        assertTrue(warehouseHandler.contains("giveMaterial(player, material, amount)"), "warehouse withdraw and failed deposits must grant/refund real items");
+        assertTrue(warehouseHandler.contains("inventorySpace(player, material)"), "warehouse withdraw must verify inventory capacity before Core mutation");
+        assertTrue(warehouseHandler.contains("Material.matchMaterial"), "warehouse commands must resolve Bukkit materials before mutating Core warehouse state");
+        assertTrue(warehouseHandler.contains("player.getInventory().addItem"), "warehouse withdraw must use the Bukkit inventory API");
+        assertTrue(warehouseHandler.contains("player.getInventory().setStorageContents"), "warehouse deposit must persist inventory removal through the Bukkit inventory API");
         assertFalse(warehouseHandler.contains("coreApiClient.islandWarehouse"));
         assertFalse(warehouseHandler.contains("coreApiClient.depositIslandWarehouse"));
         assertFalse(warehouseHandler.contains("coreApiClient.withdrawIslandWarehouse"));

@@ -11,7 +11,9 @@ import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase.WarehouseItemView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandWarehouseMenu;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 final class IslandWarehouseCommandHandler {
@@ -89,21 +91,50 @@ final class IslandWarehouseCommandHandler {
                 runtime.message(player, runtime.playerCodeMessage("INVALID_AMOUNT", runtime.routeMessage("input-amount-invalid", "올바른 수량을 입력해주세요.")));
                 return;
             }
+            Material material = material(materialKey);
+            if (material == null || material.isAir()) {
+                runtime.message(player, runtime.playerCodeMessage("INVALID_MATERIAL", runtime.routeMessage("input-material-invalid", "올바른 재료를 입력해주세요.")));
+                return;
+            }
+            if (deposit && countMaterial(player, material) < amount) {
+                runtime.message(player, runtime.playerCodeMessage("NOT_ENOUGH_ITEMS", "인벤토리에 넣을 아이템이 부족합니다."));
+                return;
+            }
+            if (!deposit && inventorySpace(player, material) < amount) {
+                runtime.message(player, runtime.playerCodeMessage("INVENTORY_FULL", "인벤토리 공간이 부족합니다."));
+                return;
+            }
+            if (deposit) {
+                removeMaterial(player, material, amount);
+            }
             CompletableFuture<IslandWarehouseUseCase.WarehouseOperationResult> request = deposit
-                ? warehouseUseCase.deposit(islandId, player.getUniqueId(), materialKey, amount, runtime::mutateIdempotent)
-                : warehouseUseCase.withdraw(islandId, player.getUniqueId(), materialKey, amount, runtime::mutateIdempotent);
-            request.thenAccept(result -> {
-                    if (!result.accepted()) {
-                        runtime.message(player, runtime.playerCodeMessage(result.code(), deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
-                        return;
-                    }
-                    runtime.message(player, (deposit ? "섬 창고 입금 완료: " : "섬 창고 출금 완료: ") + result.materialKey() + " x" + result.amount());
-                })
+                ? warehouseUseCase.deposit(islandId, player.getUniqueId(), material.name(), amount, runtime::mutateIdempotent)
+                : warehouseUseCase.withdraw(islandId, player.getUniqueId(), material.name(), amount, runtime::mutateIdempotent);
+            request.thenAccept(result -> plugin.getServer().getScheduler().runTask(plugin, () -> handleWarehouseResult(player, material, amount, deposit, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, runtime.coreWriteFailureMessage(error, deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        if (deposit) {
+                            giveMaterial(player, material, amount);
+                        }
+                        runtime.message(player, runtime.coreWriteFailureMessage(error, deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
+                    });
                     return null;
                 });
         });
+    }
+
+    private void handleWarehouseResult(Player player, Material material, long amount, boolean deposit, IslandWarehouseUseCase.WarehouseOperationResult result) {
+        if (!result.accepted()) {
+            if (deposit) {
+                giveMaterial(player, material, amount);
+            }
+            runtime.message(player, runtime.playerCodeMessage(result.code(), deposit ? "섬 창고에 넣지 못했습니다." : "섬 창고에서 빼지 못했습니다."));
+            return;
+        }
+        if (!deposit) {
+            giveMaterial(player, material, amount);
+        }
+        runtime.message(player, (deposit ? "섬 창고 입금 완료: " : "섬 창고 출금 완료: ") + result.materialKey() + " x" + result.amount());
     }
 
     private static String warehouseListMessage(List<WarehouseItemView> items) {
@@ -127,6 +158,63 @@ final class IslandWarehouseCommandHandler {
             return Long.parseLong(value);
         } catch (NumberFormatException exception) {
             return fallback;
+        }
+    }
+
+    private static Material material(String materialKey) {
+        String normalized = materialKey == null ? "" : materialKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_').replace(' ', '_');
+        return normalized.isBlank() ? null : Material.matchMaterial(normalized);
+    }
+
+    private static long countMaterial(Player player, Material material) {
+        long count = 0L;
+        for (ItemStack item : player.getInventory().getStorageContents()) {
+            if (item != null && item.getType() == material) {
+                count += item.getAmount();
+            }
+        }
+        return count;
+    }
+
+    private static long inventorySpace(Player player, Material material) {
+        long space = 0L;
+        int maxStack = material.getMaxStackSize();
+        for (ItemStack item : player.getInventory().getStorageContents()) {
+            if (item == null || item.getType().isAir()) {
+                space += maxStack;
+            } else if (item.getType() == material && item.getAmount() < maxStack) {
+                space += maxStack - item.getAmount();
+            }
+        }
+        return space;
+    }
+
+    private static void removeMaterial(Player player, Material material, long amount) {
+        long remaining = amount;
+        ItemStack[] contents = player.getInventory().getStorageContents();
+        for (int index = 0; index < contents.length && remaining > 0L; index++) {
+            ItemStack item = contents[index];
+            if (item == null || item.getType() != material) {
+                continue;
+            }
+            int taken = (int) Math.min(item.getAmount(), remaining);
+            item.setAmount(item.getAmount() - taken);
+            remaining -= taken;
+            if (item.getAmount() <= 0) {
+                contents[index] = null;
+            }
+        }
+        player.getInventory().setStorageContents(contents);
+    }
+
+    private static void giveMaterial(Player player, Material material, long amount) {
+        long remaining = amount;
+        int maxStack = material.getMaxStackSize();
+        while (remaining > 0L) {
+            int stackAmount = (int) Math.min(maxStack, remaining);
+            java.util.Map<Integer, ItemStack> leftovers = player.getInventory().addItem(new ItemStack(material, stackAmount));
+            leftovers.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
+            remaining -= stackAmount;
         }
     }
 
