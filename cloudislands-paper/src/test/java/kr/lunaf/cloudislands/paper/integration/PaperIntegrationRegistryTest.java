@@ -199,6 +199,7 @@ class PaperIntegrationRegistryTest {
         ));
 
         assertTrue(integration.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
+        assertTrue(integration.capabilities().contains(IntegrationCapability.ISLAND_DEACTIVATE));
         assertTrue(integration.validateRuntimeAuthority(context, true).allowed());
         IntegrationResult result = integration.restoreState(context);
         assertEquals(IntegrationResult.Status.SUCCESS, result.status());
@@ -206,6 +207,23 @@ class PaperIntegrationRegistryTest {
         assertEquals("schematic-restore", result.details().get("manifest.operation"));
         assertEquals("0,64,0..63,319,63", result.details().get("manifest.metadata.region"));
         assertEquals("ClipboardReader#read+EditSession#paste", result.details().get("external.api"));
+    }
+
+    @Test
+    void worldEditAdapterRequiresOperationDrainBeforeDeactivation() {
+        WorldEditIntegration integration = new WorldEditIntegration("WorldEdit");
+        IntegrationContext context = new IntegrationContext(UUID.randomUUID(), "island-node-01", 99L, true, "worldedit:deactivate:1", Map.of(
+            "world", "islands",
+            "cell", "0,0",
+            "region", "0,64,0..63,319,63",
+            "activeOperationsDrained", "true",
+            "editSessionFlushed", "true"
+        ));
+
+        IntegrationResult result = integration.onIslandDeactivate(context);
+        assertEquals(IntegrationResult.Status.SUCCESS, result.status());
+        assertEquals("edit-session-deactivate", result.details().get("manifest.operation"));
+        assertEquals("EditSession#flushQueue+Operations#complete", result.details().get("external.api"));
     }
 
     @Test

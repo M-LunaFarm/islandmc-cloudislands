@@ -60,6 +60,8 @@ class IntegrationLifecycleHooksTest {
         assertEquals("12,-4", exportBatch.context().metadata().get("cell"));
         assertEquals("192,0,-64..491,319,235", exportBatch.context().metadata().get("region"));
         assertEquals("1234-bundle.tar.zst", exportBatch.context().metadata().get("bundleKey"));
+        assertEquals("true", exportBatch.context().metadata().get("activeOperationsDrained"));
+        assertEquals("true", exportBatch.context().metadata().get("editSessionFlushed"));
         assertEquals("77", exportBatch.results().getFirst().details().get("fencingToken"));
 
         IslandBundleManifest manifest = manifest(islandId, 300);

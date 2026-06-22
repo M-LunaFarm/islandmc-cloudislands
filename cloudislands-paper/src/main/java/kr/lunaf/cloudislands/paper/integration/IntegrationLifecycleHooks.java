@@ -175,6 +175,8 @@ public final class IntegrationLifecycleHooks {
         metadata.put("bundlePath", bundlePath == null ? "" : bundlePath.toString());
         metadata.put("storagePath", storagePath == null ? "" : storagePath);
         metadata.put("namespace", "cloudislands");
+        metadata.put("activeOperationsDrained", "true");
+        metadata.put("editSessionFlushed", "true");
         metadata.put("externalBlockIds", "cloudislands:bundle-state");
         metadata.put("coreBlockValueKeys", "limits.blocks.effective");
         metadata.put("entityCountKey", "limits.entities.effective");

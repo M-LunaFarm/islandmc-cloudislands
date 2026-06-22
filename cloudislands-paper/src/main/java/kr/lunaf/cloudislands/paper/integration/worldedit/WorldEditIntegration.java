@@ -12,6 +12,7 @@ public final class WorldEditIntegration extends PolicyBackedCloudIntegration {
             IntegrationCapability.DETECT,
             IntegrationCapability.VALIDATE_VERSION,
             IntegrationCapability.ISLAND_ACTIVATE,
+            IntegrationCapability.ISLAND_DEACTIVATE,
             IntegrationCapability.STATE_EXPORT,
             IntegrationCapability.STATE_RESTORE,
             IntegrationCapability.RUNTIME_AUTHORITY
@@ -24,8 +25,13 @@ public final class WorldEditIntegration extends PolicyBackedCloudIntegration {
     }
 
     @Override
+    public IntegrationResult onIslandDeactivate(IntegrationContext context) {
+        return guardedStateHook("edit-session-deactivate", context, "world", "cell", "region", "activeOperationsDrained", "editSessionFlushed");
+    }
+
+    @Override
     public IntegrationResult exportState(IntegrationContext context) {
-        return guardedStateHook("schematic-export", context, "world", "cell", "region", "bundleKey");
+        return guardedStateHook("schematic-export", context, "world", "cell", "region", "activeOperationsDrained", "editSessionFlushed", "bundleKey");
     }
 
     @Override
@@ -37,6 +43,7 @@ public final class WorldEditIntegration extends PolicyBackedCloudIntegration {
     protected String externalApiCall(String operation) {
         return switch (operation == null ? "" : operation) {
             case "clipboard-activate" -> "WorldEdit#newEditSession";
+            case "edit-session-deactivate" -> "EditSession#flushQueue+Operations#complete";
             case "schematic-export" -> "ClipboardWriter#write";
             case "schematic-restore" -> "ClipboardReader#read+EditSession#paste";
             default -> "";
