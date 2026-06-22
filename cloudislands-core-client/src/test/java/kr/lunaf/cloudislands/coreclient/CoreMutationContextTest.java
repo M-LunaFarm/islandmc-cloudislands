@@ -46,7 +46,7 @@ class CoreMutationContextTest {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
             CoreMutationMetadata metadata = new CoreMutationMetadata("req-1", "idem-1", "island.reset");
 
-            CoreMutationContext.with(metadata, () -> client.resetIslandResult(UUID.randomUUID(), UUID.randomUUID(), "test")).join();
+            CoreMutationContext.with(metadata, () -> client.lifecycle().resetIsland(UUID.randomUUID(), UUID.randomUUID(), "test")).join();
 
             assertEquals(List.of("req-1"), headers.get(CoreMutationContext.REQUEST_ID_HEADER));
             assertEquals(List.of("idem-1"), headers.get(CoreMutationContext.IDEMPOTENCY_KEY_HEADER));
@@ -107,7 +107,7 @@ class CoreMutationContextTest {
             client.createIsland(playerUuid, "template\"one").join();
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"template\\\"one\"}", requestBodies.get("create"));
 
-            client.resetIslandResult(islandId, actorUuid, "reset \"reason\"").join();
+            client.lifecycle().resetIsland(islandId, actorUuid, "reset \"reason\"").join();
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"reason\":\"reset \\\"reason\\\"\"}", requestBodies.get("reset"));
 
             client.islandInfo(islandId).join();
@@ -248,14 +248,14 @@ class CoreMutationContextTest {
             client.listIslandLimits(islandId).join();
             client.setIslandLimit(islandId, actorUuid, "HOPPER\"LIMIT", 64L).join();
             client.communicationCommands().sendChat(islandId, actorUuid, "team\"chat", "hello \"team\"").join();
-            client.listIslandSnapshots(islandId, 15).join();
-            client.recordIslandSnapshot(islandId, 7L, "snapshots/base\"one.tar", "manual \"save\"", "abc\"123", 4096L, "node\"a").join();
-            assertEquals("{\"islandId\":\"" + islandId + "\",\"snapshotNo\":7,\"storagePath\":\"snapshots/base\\\"one.tar\",\"reason\":\"manual \\\"save\\\"\",\"checksum\":\"abc\\\"123\",\"sizeBytes\":4096,\"nodeId\":\"node\\\"a\"}", requestBodies.get("snapshotRecord"));
-            client.recordIslandSnapshot(islandId, 8L, "snapshots/base\"two.tar", "auto \"save\"", "def\"456", 8192L, "node\"b", 123L).join();
-            client.requestIslandSaveResult(islandId, "save \"now\"").join();
-            client.requestIslandSnapshotResult(islandId, "snapshot \"now\"").join();
-            client.restoreIslandSnapshotResult(islandId, 7L).join();
-            client.rollbackIslandSnapshotResult(islandId, 6L).join();
+            client.snapshots().records(islandId, 15).join();
+            client.snapshotCommands().recordSnapshot(islandId, 7L, "snapshots/base\"one.tar", "manual \"save\"", "abc\"123", 4096L, "node\"a").join();
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"snapshotNo\":7,\"storagePath\":\"snapshots/base\\\"one.tar\",\"reason\":\"manual \\\"save\\\"\",\"checksum\":\"abc\\\"123\",\"sizeBytes\":4096,\"nodeId\":\"node\\\"a\",\"fencingToken\":0}", requestBodies.get("snapshotRecord"));
+            client.snapshotCommands().recordSnapshot(islandId, 8L, "snapshots/base\"two.tar", "auto \"save\"", "def\"456", 8192L, "node\"b", 123L).join();
+            client.lifecycle().saveIsland(islandId, "save \"now\"").join();
+            client.lifecycle().snapshotIsland(islandId, "snapshot \"now\"").join();
+            client.lifecycle().restoreIslandSnapshot(islandId, 7L).join();
+            client.lifecycle().rollbackIslandSnapshot(islandId, 6L).join();
             client.communication().records(islandId, 25).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("upgrades"));
@@ -320,14 +320,14 @@ class CoreMutationContextTest {
             client.kickAllNodeResult("node\"a", "kick \"all\"").join();
             client.shutdownNodeSafelyResult("node\"a", "shutdown \"all\"").join();
             client.shutdownNodeSafelyPath("node-path", "path \"reason\"").join();
-            client.activateIslandResult(islandId).join();
-            client.deactivateIslandResult(islandId).join();
-            client.migrateIslandResult(islandId, "target\"node").join();
-            client.quarantineIslandResult(islandId, "bad \"state\"").join();
+            client.lifecycle().activateIsland(islandId).join();
+            client.lifecycle().deactivateIsland(islandId).join();
+            client.lifecycle().migrateIsland(islandId, "target\"node").join();
+            client.lifecycle().quarantineIsland(islandId, "bad \"state\"").join();
             client.adminIslandInfo(lookupUuid).join();
             client.adminIslandWhere(islandId).join();
             client.adminIslandTeleport(playerUuid, islandId).join();
-            client.repairIslandResult(islandId, "repair \"now\"").join();
+            client.lifecycle().repairIsland(islandId, "repair \"now\"").join();
             client.debugRoutes(playerUuid).join();
             client.routeTicket(ticketId).join();
             assertEquals("{\"ticketId\":\"" + ticketId + "\"}", requestBodies.get("routeTicket"));

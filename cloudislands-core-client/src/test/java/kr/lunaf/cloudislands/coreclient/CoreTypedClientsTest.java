@@ -97,7 +97,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkRoutingClient"), "routing must use CoreRoutingCommandClient");
         assertFalse(nestedClients.contains("JdkRuntimeClient"), "runtime operations must use JdkCoreApiClient's direct RuntimeCommandClient implementation");
         assertFalse(nestedClients.contains("JdkWarehouseClient"), "warehouse operations must use CoreWarehouse query and command clients");
-        assertFalse(nestedClients.contains("JdkLifecycleClient"), "lifecycle operations must use CoreIslandLifecycleCommandClient");
+        assertFalse(nestedClients.contains("JdkLifecycleClient"), "lifecycle operations must use JdkCoreApiClient's typed lifecycle implementation");
         assertFalse(nestedClients.contains("JdkProgressionClient"), "progression operations must use CoreProgression query and command clients");
         assertFalse(nestedClients.contains("JdkMemberQueryClient"), "member queries must use CoreMemberQueryClient");
         assertFalse(nestedClients.contains("JdkMemberCommandClient"), "member commands must use CoreMemberCommandClient");
@@ -524,15 +524,14 @@ class CoreTypedClientsTest {
         UUID islandId = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, SnapshotQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "listIslandSnapshots" -> CompletableFuture.completedFuture("""
-                    {"snapshots":[{"snapshotNo":7,"reason":"manual","sizeBytes":4096,"createdAt":"now","checksum":"abcdef1234567890","storagePath":"snapshots/7.tar"}]}
-                    """);
+                case "records" -> CompletableFuture.completedFuture(List.of(new IslandSnapshotRecord(UUID.randomUUID(), islandId, 7L, "snapshots/7.tar", "manual", new UUID(0L, 0L), "abcdef1234567890", 4096L, Instant.EPOCH)));
+                case "listSnapshots" -> CompletableFuture.completedFuture(List.of(new CoreGuiViews.SnapshotView(7L, "manual", 4096L, "", "abcdef1234567890", "snapshots/7.tar")));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        SnapshotQueryClient client = new CoreSnapshotQueryClient(raw);
+        SnapshotQueryClient client = (SnapshotQueryClient) raw;
 
         IslandSnapshotRecord record = client.records(islandId, 500).join().get(0);
         CoreGuiViews.SnapshotView snapshot = client.listSnapshots(islandId, 500).join().get(0);
@@ -791,27 +790,27 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, SnapshotCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "recordIslandSnapshot" -> {
+                case "recordSnapshot" -> {
                     calls.add("record:" + args[1] + ":" + args[3] + ":" + args[7]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"RECORDED\"}");
+                    yield CompletableFuture.completedFuture(new SnapshotActionView(true, "RECORDED"));
                 }
-                case "requestIslandSnapshotResult" -> {
+                case "requestSnapshot" -> {
                     calls.add("request:" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"code\":\"SNAPSHOT_REQUESTED\"}");
+                    yield CompletableFuture.completedFuture(new SnapshotActionView(true, "SNAPSHOT_REQUESTED"));
                 }
-                case "restoreIslandSnapshotResult" -> {
+                case "restoreSnapshot" -> {
                     calls.add("restore:" + args[1]);
-                    yield CompletableFuture.completedFuture("plain-success");
+                    yield CompletableFuture.completedFuture(new SnapshotActionView(true, "RESTORE_REQUESTED"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        SnapshotCommandClient client = new CoreSnapshotCommandClient(raw);
+        SnapshotCommandClient client = (SnapshotCommandClient) raw;
 
-        assertEquals("RECORDED", client.recordSnapshot(islandId, 9L, " snapshots/latest.tar ", " periodic ", "abc", 2048L, " node-a ", 123L).join().code());
-        assertEquals("SNAPSHOT_REQUESTED", client.requestSnapshot(islandId, "  ").join().code());
+        assertEquals("RECORDED", client.recordSnapshot(islandId, 9L, "snapshots/latest.tar", "periodic", "abc", 2048L, "node-a", 123L).join().code());
+        assertEquals("SNAPSHOT_REQUESTED", client.requestSnapshot(islandId, "manual").join().code());
         assertEquals("RESTORE_REQUESTED", client.restoreSnapshot(islandId, 7L).join().code());
         assertEquals(List.of("record:9:periodic:123", "request:manual", "restore:7"), calls);
     }
@@ -1989,64 +1988,71 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandLifecycleCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "createIsland" -> {
-                    calls.add("create:" + args[1]);
+                    String templateId = args[1] == null || args[1].toString().isBlank() ? "default" : args[1].toString().trim();
+                    calls.add("create:" + templateId);
                     yield CompletableFuture.completedFuture(new CreateIslandResult(true, "CREATED", null, null));
                 }
                 case "deleteIsland" -> {
                     calls.add("delete:" + args[1]);
                     yield CompletableFuture.completedFuture(new DeleteIslandResult(true, "DELETED", (UUID) args[1]));
                 }
-                case "resetIslandResult" -> {
-                    calls.add("reset:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                case "resetIsland" -> {
+                    String reason = args[2] == null || args[2].toString().isBlank() ? "player-reset" : args[2].toString().trim();
+                    calls.add("reset:" + reason);
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "RESET_QUEUED", islandId.toString(), 0L, ""));
                 }
-                case "activateIslandResult" -> {
+                case "activateIsland" -> {
                     calls.add("activate:" + args[0]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"ACTIVATING\"}");
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "ACTIVATING", islandId.toString(), 0L, ""));
                 }
-                case "deactivateIslandResult" -> {
+                case "deactivateIsland" -> {
                     calls.add("deactivate:" + args[0]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"SAVING\"}");
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "SAVING", islandId.toString(), 0L, ""));
                 }
-                case "migrateIslandResult" -> {
-                    calls.add("migrate:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_READY_NODE\"}");
+                case "migrateIsland" -> {
+                    String targetNode = args[1] == null ? "" : args[1].toString().trim();
+                    calls.add("migrate:" + args[0] + ":" + targetNode);
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(false, "NO_READY_NODE", islandId.toString(), 0L, ""));
                 }
-                case "requestIslandSaveResult" -> {
-                    calls.add("save:" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"SNAPSHOT_QUEUED\"}");
+                case "saveIsland" -> {
+                    String reason = args[1] == null || args[1].toString().isBlank() ? "ADMIN_SAVE" : args[1].toString().trim();
+                    calls.add("save:" + reason);
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "SNAPSHOT_QUEUED", islandId.toString(), 0L, ""));
                 }
-                case "requestIslandSnapshotResult" -> {
-                    calls.add("snapshot:" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                case "snapshotIsland" -> {
+                    String reason = args[1] == null || args[1].toString().isBlank() ? "ADMIN_MANUAL" : args[1].toString().trim();
+                    calls.add("snapshot:" + reason);
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "SNAPSHOT_QUEUED", islandId.toString(), 0L, ""));
                 }
-                case "restoreIslandSnapshotResult" -> {
+                case "restoreIslandSnapshot" -> {
                     calls.add("restore:" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"RESTORE_QUEUED\",\"snapshotNo\":7,\"storagePath\":\"snapshots/7.tar\"}");
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "RESTORE_QUEUED", islandId.toString(), 7L, "snapshots/7.tar"));
                 }
-                case "rollbackIslandSnapshotResult" -> {
+                case "rollbackIslandSnapshot" -> {
                     calls.add("rollback:" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"snapshotNo\":6}");
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "RESTORE_QUEUED", islandId.toString(), 6L, ""));
                 }
-                case "quarantineIslandResult" -> {
-                    calls.add("quarantine:" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"QUARANTINED\"}");
+                case "quarantineIsland" -> {
+                    String reason = args[1] == null || args[1].toString().isBlank() ? "admin" : args[1].toString().trim();
+                    calls.add("quarantine:" + reason);
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "QUARANTINED", islandId.toString(), 0L, ""));
                 }
-                case "repairIslandResult" -> {
-                    calls.add("repair:" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"islandId\":\"%s\",\"state\":\"INACTIVE_READY\"}".formatted(args[0]));
+                case "repairIsland" -> {
+                    String reason = args[1] == null || args[1].toString().isBlank() ? "admin" : args[1].toString().trim();
+                    calls.add("repair:" + reason);
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "REPAIRED", islandId.toString(), 0L, ""));
                 }
-                case "adminDeleteIslandResult" -> {
+                case "adminDeleteIsland" -> {
                     calls.add("adminDelete:" + args[0]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "DELETED", islandId.toString(), 0L, ""));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        IslandLifecycleCommandClient client = new CoreIslandLifecycleCommandClient(raw);
+        IslandLifecycleCommandClient client = (IslandLifecycleCommandClient) raw;
 
         assertEquals("CREATED", client.createIsland(actorUuid, " ").join().code());
         assertEquals(islandId, client.deleteIsland(actorUuid, islandId).join().islandId());

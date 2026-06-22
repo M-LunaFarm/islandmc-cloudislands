@@ -45,11 +45,17 @@ public interface CoreApiClient {
     }
 
     default SnapshotQueryClient snapshots() {
-        return new CoreSnapshotQueryClient(this);
+        if (this instanceof SnapshotQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed snapshot queries");
     }
 
     default SnapshotCommandClient snapshotCommands() {
-        return new CoreSnapshotCommandClient(this);
+        if (this instanceof SnapshotCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed snapshot commands");
     }
 
     default CommunicationQueryClient communication() {
@@ -154,7 +160,10 @@ public interface CoreApiClient {
     }
 
     default IslandLifecycleCommandClient lifecycle() {
-        return new CoreIslandLifecycleCommandClient(this);
+        if (this instanceof IslandLifecycleCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed lifecycle commands");
     }
 
     default PlayerProfileQueryClient playerProfiles() {
@@ -242,8 +251,6 @@ public interface CoreApiClient {
 
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
-    CompletableFuture<String> resetIsland(UUID islandId, UUID actorUuid, String reason);
-    CompletableFuture<String> resetIslandResult(UUID islandId, UUID actorUuid, String reason);
     CompletableFuture<String> islandInfo(UUID islandId);
     CompletableFuture<String> islandInfoByOwner(UUID ownerUuid);
     CompletableFuture<String> islandInfoByName(String name);
@@ -340,17 +347,6 @@ public interface CoreApiClient {
     CompletableFuture<String> registerMissionProvider(String providerId, String definitionsJson);
     CompletableFuture<String> listIslandLimits(UUID islandId);
     CompletableFuture<String> setIslandLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
-    CompletableFuture<String> listIslandSnapshots(UUID islandId, int limit);
-    CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId);
-    default CompletableFuture<String> recordIslandSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
-        return recordIslandSnapshot(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId);
-    }
-    CompletableFuture<String> requestIslandSaveResult(UUID islandId, String reason);
-    CompletableFuture<Void> requestIslandSnapshot(UUID islandId, String reason);
-    CompletableFuture<String> requestIslandSnapshotResult(UUID islandId, String reason);
-    CompletableFuture<Void> restoreIslandSnapshot(UUID islandId, long snapshotNo);
-    CompletableFuture<String> restoreIslandSnapshotResult(UUID islandId, long snapshotNo);
-    CompletableFuture<String> rollbackIslandSnapshotResult(UUID islandId, long snapshotNo);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
@@ -393,24 +389,9 @@ public interface CoreApiClient {
     default CompletableFuture<String> shutdownNodeSafelyPath(String nodeId, String reason) {
         return shutdownNodeSafelyResult(nodeId, reason);
     }
-    CompletableFuture<String> activateIsland(UUID islandId);
-    CompletableFuture<String> activateIslandResult(UUID islandId);
-    CompletableFuture<String> deactivateIsland(UUID islandId);
-    CompletableFuture<String> deactivateIslandResult(UUID islandId);
-    CompletableFuture<String> migrateIsland(UUID islandId, String targetNode);
-    CompletableFuture<String> migrateIslandResult(UUID islandId, String targetNode);
-    CompletableFuture<String> quarantineIsland(UUID islandId, String reason);
-    CompletableFuture<String> quarantineIslandResult(UUID islandId, String reason);
     CompletableFuture<String> adminIslandInfo(UUID lookupUuid);
     CompletableFuture<String> adminIslandWhere(UUID islandId);
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
-    CompletableFuture<String> adminDeleteIsland(UUID islandId);
-    CompletableFuture<String> adminDeleteIslandResult(UUID islandId);
-    default CompletableFuture<String> deleteIslandResult(UUID islandId) {
-        return adminDeleteIslandResult(islandId);
-    }
-    CompletableFuture<String> repairIsland(UUID islandId, String reason);
-    CompletableFuture<String> repairIslandResult(UUID islandId, String reason);
     CompletableFuture<String> debugRoutes(UUID playerUuid);
     CompletableFuture<String> routeTicket(UUID ticketId);
     CompletableFuture<String> routeTicketForPlayer(UUID playerUuid);

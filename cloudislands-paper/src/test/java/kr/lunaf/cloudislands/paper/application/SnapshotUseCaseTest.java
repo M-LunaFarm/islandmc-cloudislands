@@ -9,9 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.time.Instant;
+import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreSnapshotCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreSnapshotQueryClient;
+import kr.lunaf.cloudislands.coreclient.SnapshotActionView;
+import kr.lunaf.cloudislands.coreclient.SnapshotCommandClient;
+import kr.lunaf.cloudislands.coreclient.SnapshotQueryClient;
 import org.junit.jupiter.api.Test;
 
 class SnapshotUseCaseTest {
@@ -90,13 +93,14 @@ class SnapshotUseCaseTest {
     private CoreApiClient coreApiClient(ScriptedCoreSnapshots core) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-	            new Class<?>[] { CoreApiClient.class },
+	            new Class<?>[] { CoreApiClient.class, SnapshotQueryClient.class, SnapshotCommandClient.class },
 	            (_proxy, method, args) -> switch (method.getName()) {
-	                case "snapshots" -> new CoreSnapshotQueryClient((CoreApiClient) _proxy);
-	                case "snapshotCommands" -> new CoreSnapshotCommandClient((CoreApiClient) _proxy);
-	                case "listIslandSnapshots" -> core.list((int) args[1]);
-	                case "requestIslandSnapshotResult" -> core.request((String) args[1]);
-	                case "restoreIslandSnapshotResult" -> core.restore((long) args[1]);
+	                case "snapshots" -> (SnapshotQueryClient) _proxy;
+	                case "snapshotCommands" -> (SnapshotCommandClient) _proxy;
+	                case "records" -> core.list((int) args[1]);
+	                case "listSnapshots" -> core.views((int) args[1]);
+	                case "requestSnapshot" -> core.request((String) args[1]);
+	                case "restoreSnapshot" -> core.restore((long) args[1]);
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
@@ -105,19 +109,24 @@ class SnapshotUseCaseTest {
     private static final class ScriptedCoreSnapshots {
         final List<String> calls = new ArrayList<>();
 
-        CompletableFuture<String> list(int limit) {
+        CompletableFuture<List<IslandSnapshotRecord>> list(int limit) {
             calls.add("list:" + limit);
-            return CompletableFuture.completedFuture("{\"snapshots\":[{\"snapshotNo\":7,\"reason\":\"manual\",\"sizeBytes\":4096,\"checksum\":\"abcdef1234567890\"}]}");
+            return CompletableFuture.completedFuture(List.of(new IslandSnapshotRecord(UUID.randomUUID(), new UUID(0L, 0L), 7L, "", "manual", new UUID(0L, 0L), "abcdef1234567890", 4096L, Instant.EPOCH)));
         }
 
-        CompletableFuture<String> request(String reason) {
+        CompletableFuture<List<kr.lunaf.cloudislands.coreclient.CoreGuiViews.SnapshotView>> views(int limit) {
+            calls.add("list:" + limit);
+            return CompletableFuture.completedFuture(List.of(new kr.lunaf.cloudislands.coreclient.CoreGuiViews.SnapshotView(7L, "manual", 4096L, "", "abcdef1234567890", "")));
+        }
+
+        CompletableFuture<SnapshotActionView> request(String reason) {
             calls.add("request:" + reason);
-            return CompletableFuture.completedFuture("{\"code\":\"SNAPSHOT_REQUESTED\"}");
+            return CompletableFuture.completedFuture(new SnapshotActionView(true, "SNAPSHOT_REQUESTED"));
         }
 
-        CompletableFuture<String> restore(long snapshotNo) {
+        CompletableFuture<SnapshotActionView> restore(long snapshotNo) {
             calls.add("restore:" + snapshotNo);
-            return CompletableFuture.completedFuture("{\"code\":\"RESTORE_REQUESTED\"}");
+            return CompletableFuture.completedFuture(new SnapshotActionView(true, "RESTORE_REQUESTED"));
         }
     }
 }

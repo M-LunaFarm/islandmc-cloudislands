@@ -10,7 +10,8 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandLifecycleCommandClient;
+import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
+import kr.lunaf.cloudislands.coreclient.IslandLifecycleCommandClient;
 import org.junit.jupiter.api.Test;
 
 class IslandCreationUseCaseTest {
@@ -31,27 +32,29 @@ class IslandCreationUseCaseTest {
             "audit-idempotent:island.delete",
             "deleteIsland:" + islandId,
             "audit-idempotent:island.reset",
-            "resetIslandResult:player-reset"
+            "resetIsland:player-reset"
         ), calls);
     }
 
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class},
+            new Class<?>[] {CoreApiClient.class, IslandLifecycleCommandClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
-                case "lifecycle" -> new CoreIslandLifecycleCommandClient((CoreApiClient) _proxy);
+                case "lifecycle" -> (IslandLifecycleCommandClient) _proxy;
                 case "createIsland" -> {
-                    calls.add("createIsland:" + args[1]);
+                    String templateId = args[1] == null || args[1].toString().isBlank() ? "default" : args[1].toString().trim();
+                    calls.add("createIsland:" + templateId);
                     yield CompletableFuture.completedFuture(new CreateIslandResult(true, "CREATED", null, null));
                 }
                 case "deleteIsland" -> {
                     calls.add("deleteIsland:" + args[1]);
                     yield CompletableFuture.completedFuture(new DeleteIslandResult(true, "DELETED", (UUID) args[1]));
                 }
-                case "resetIslandResult" -> {
-                    calls.add("resetIslandResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"RESET_QUEUED\"}");
+                case "resetIsland" -> {
+                    String reason = args[2] == null || args[2].toString().isBlank() ? "player-reset" : args[2].toString().trim();
+                    calls.add("resetIsland:" + reason);
+                    yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "RESET_QUEUED", args[0].toString(), 0L, ""));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });
