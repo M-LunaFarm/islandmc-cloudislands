@@ -659,6 +659,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.templateCommands().upsert(templateId, displayName, enabled, minNodeVersion)"), "Public API template upsert must use typed template command client");
         assertTrue(source.contains("client.templateCommands().enable(templateId)"), "Public API template enable must use typed template command client");
         assertTrue(source.contains("client.templateCommands().disable(templateId)"), "Public API template disable must use typed template command client");
+        assertTrue(source.contains("client.migrations().migrateSuperiorSkyblock2(action, path)"), "Public API migration commands must use typed migration command client");
+        assertTrue(!source.contains("private static MigrationRunSnapshot migrationRun(String json)"), "Public API must not keep a raw migration JSON converter");
+        assertTrue(!source.contains("private static List<MigrationIssueSnapshot> migrationIssues(String json)"), "Public API must not keep raw migration issue JSON converters");
         assertTrue(source.contains("client.progressionCommands().recalculateLevel(islandId, actorUuid)"), "Public API level recalculation must use typed progression command client");
         assertTrue(source.contains("client.progressionCommands().purchaseUpgrade(islandId, actorUuid, upgradeKey)"), "Public API upgrade purchase must use typed progression command client");
         assertTrue(source.contains("client.progressionCommands().completeMission(islandId, actorUuid, missionKey, kind)"), "Public API mission completion must use typed progression command client");

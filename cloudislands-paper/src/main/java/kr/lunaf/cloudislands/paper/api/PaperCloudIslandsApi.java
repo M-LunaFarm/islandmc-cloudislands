@@ -76,7 +76,6 @@ import kr.lunaf.cloudislands.api.model.IslandWarehouseItemSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandWorthSnapshot;
 import kr.lunaf.cloudislands.api.model.JobRecoveryResult;
-import kr.lunaf.cloudislands.api.model.MigrationIssueSnapshot;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
@@ -3133,58 +3132,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return new IslandTemplateSnapshot("", "", false, "");
         }
         return new IslandTemplateSnapshot(view.id(), view.displayName(), view.enabled(), view.minNodeVersion());
-    }
-
-    private static MigrationRunSnapshot migrationRun(String json) {
-        return new MigrationRunSnapshot(
-            text(json, "state", ""),
-            text(json, "path", ""),
-            text(json, "manifestPath", ""),
-            text(json, "reportPath", ""),
-            text(json, "approvalToken", ""),
-            text(json, "sourceFingerprint", ""),
-            integer(json, "manifests", 0),
-            bool(json, "canImport", false),
-            bool(json, "imported", false),
-            integer(json, "importedIslands", 0),
-            bool(json, "passed", false),
-            integer(json, "expected", 0),
-            bool(json, "rolledBack", false),
-            integer(json, "removedIslands", 0),
-            bool(json, "rollbackPlanAvailable", false),
-            bool(json, "rollbackPlanConsumed", false),
-            integer(json, "extractedBundles", 0),
-            longValue(json, "extractedFiles", 0L),
-            longValue(json, "extractedBytes", 0L),
-            integer(json, "activationTested", 0),
-            integer(json, "activationTestPassed", 0),
-            integer(json, "members", 0),
-            integer(json, "bannedVisitors", 0),
-            integer(json, "homes", 0),
-            integer(json, "warps", 0),
-            integer(json, "flags", 0),
-            integer(json, "permissions", 0),
-            integer(json, "upgrades", 0),
-            integer(json, "limits", 0),
-            integer(json, "completedMissions", 0),
-            integer(json, "blockValues", 0),
-            integer(json, "blockCounts", 0),
-            integer(json, "blockingIssues", 0),
-            integer(json, "warningIssues", 0),
-            migrationIssues(json)
-        );
-    }
-
-    private static List<MigrationIssueSnapshot> migrationIssues(String json) {
-        List<MigrationIssueSnapshot> issues = new ArrayList<>();
-        for (String object : objects(json, "issues")) {
-            issues.add(new MigrationIssueSnapshot(
-                text(object, "code", ""),
-                text(object, "message", ""),
-                bool(object, "blocking", false)
-            ));
-        }
-        return issues;
     }
 
     private static List<GlobalEventSnapshot> events(AdminEventStreamView stream) {
