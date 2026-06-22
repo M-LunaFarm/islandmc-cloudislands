@@ -79,6 +79,10 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkTemplateClient"), "templates must use CoreTemplate query and command clients");
         assertFalse(nestedClients.contains("JdkJobClient"), "jobs must use CoreJob query and command clients");
         assertFalse(nestedClients.contains("JdkBlockValueClient"), "block values must use CoreBlockValue query and command clients");
+        assertFalse(nestedClients.contains("JdkNavigationClient"), "navigation must use CoreNavigation query and command clients");
+        assertFalse(nestedClients.contains("JdkRoutingClient"), "routing must use CoreRoutingCommandClient");
+        assertFalse(nestedClients.contains("JdkRuntimeClient"), "runtime operations must use CoreRuntimeCommandClient");
+        assertFalse(nestedClients.contains("JdkWarehouseClient"), "warehouse operations must use CoreWarehouse query and command clients");
         assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use CoreAdminMetricsQueryClient");
         assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use CoreAdminCoreConfigQueryClient");
         assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use CoreAdminStorageQueryClient");

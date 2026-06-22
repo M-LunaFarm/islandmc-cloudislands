@@ -61,16 +61,18 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkPermissionClient permissionClient;
     private final HomeWarpQueryClient homeWarpQueryClient;
     private final HomeWarpCommandClient homeWarpCommandClient;
-    private final JdkRoutingClient routingClient;
-    private final JdkNavigationClient navigationClient;
-    private final JdkRuntimeClient runtimeClient;
+    private final RoutingCommandClient routingClient;
+    private final NavigationQueryClient navigationQueryClient;
+    private final NavigationCommandClient navigationCommandClient;
+    private final RuntimeCommandClient runtimeClient;
     private final JdkLifecycleClient lifecycleClient;
     private final IslandQueryClient islandClient;
     private final JdkProgressionClient progressionClient;
     private final JdkMemberQueryClient memberQueryClient;
     private final JdkMemberCommandClient memberCommandClient;
     private final IslandVisitorStatsQueryClient visitorStatsClient;
-    private final JdkWarehouseClient warehouseClient;
+    private final WarehouseQueryClient warehouseQueryClient;
+    private final WarehouseCommandClient warehouseCommandClient;
     private final PlayerProfileQueryClient playerProfileQueryClient;
     private final PlayerProfileCommandClient playerProfileCommandClient;
     private final TemplateQueryClient templateQueryClient;
@@ -113,16 +115,18 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.permissionClient = new JdkPermissionClient();
         this.homeWarpQueryClient = new CoreHomeWarpQueryClient(this);
         this.homeWarpCommandClient = new CoreHomeWarpCommandClient(this);
-        this.routingClient = new JdkRoutingClient();
-        this.navigationClient = new JdkNavigationClient();
-        this.runtimeClient = new JdkRuntimeClient();
+        this.routingClient = new CoreRoutingCommandClient(this);
+        this.navigationQueryClient = new CoreNavigationQueryClient(this);
+        this.navigationCommandClient = new CoreNavigationCommandClient(this);
+        this.runtimeClient = new CoreRuntimeCommandClient(this);
         this.lifecycleClient = new JdkLifecycleClient();
         this.islandClient = new CoreIslandQueryClient(this);
         this.progressionClient = new JdkProgressionClient();
         this.memberQueryClient = new JdkMemberQueryClient();
         this.memberCommandClient = new JdkMemberCommandClient();
         this.visitorStatsClient = new CoreIslandVisitorStatsQueryClient(this);
-        this.warehouseClient = new JdkWarehouseClient();
+        this.warehouseQueryClient = new CoreWarehouseQueryClient(this);
+        this.warehouseCommandClient = new CoreWarehouseCommandClient(this);
         this.playerProfileQueryClient = new CorePlayerProfileQueryClient(this);
         this.playerProfileCommandClient = new CorePlayerProfileCommandClient(this);
         this.templateQueryClient = new CoreTemplateQueryClient(this);
@@ -216,12 +220,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public NavigationQueryClient navigation() {
-        return navigationClient;
+        return navigationQueryClient;
     }
 
     @Override
     public NavigationCommandClient navigationCommands() {
-        return navigationClient;
+        return navigationCommandClient;
     }
 
     @Override
@@ -246,12 +250,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public WarehouseQueryClient warehouse() {
-        return warehouseClient;
+        return warehouseQueryClient;
     }
 
     @Override
     public WarehouseCommandClient warehouseCommands() {
-        return warehouseClient;
+        return warehouseCommandClient;
     }
 
     @Override
@@ -1507,285 +1511,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
                 }
             }
             return rankings;
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-    }
-
-    private final class JdkNavigationClient implements NavigationQueryClient, NavigationCommandClient {
-        @Override
-        public CompletableFuture<CoreGuiViews.PlayerProfileView> playerProfileByName(String playerName) {
-            String normalized = requireText(playerName, "playerName");
-            return post("/v1/players/info", jsonObject("lastName", normalized))
-                .thenApply(CoreGuiViews::playerProfile);
-        }
-
-        @Override
-        public CompletableFuture<List<CoreGuiViews.PlayerIslandView>> playerIslands(UUID playerUuid) {
-            requireId(playerUuid, "playerUuid");
-            return CoreGuiViews.playerIslands(JdkCoreApiClient.this, playerUuid);
-        }
-
-        @Override
-        public CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int limit) {
-            return CoreGuiViews.publicIslands(JdkCoreApiClient.this, Math.max(1, Math.min(limit, 100)));
-        }
-
-        @Override
-        public CompletableFuture<ReviewListView> listReviews(UUID islandId, int limit) {
-            requireId(islandId, "islandId");
-            return post("/v1/islands/reviews", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))))
-                .thenApply(CoreNavigationQueryClient::reviewViews);
-        }
-
-        @Override
-        public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
-            requireId(playerUuid, "playerUuid");
-            return postWithResultBody("/v1/routes/home", jsonObject(
-                "playerUuid", playerUuid,
-                "homeName", homeName == null || homeName.isBlank() ? "default" : homeName.trim()
-            )).thenApply(JdkCoreApiClient::parseRouteTicketResult);
-        }
-
-        @Override
-        public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID islandId) {
-            requireId(visitorUuid, "visitorUuid");
-            requireId(islandId, "islandId");
-            return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "islandId", islandId))
-                .thenApply(JdkCoreApiClient::parseRouteTicketResult);
-        }
-
-        @Override
-        public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) {
-            requireId(visitorUuid, "visitorUuid");
-            String normalized = requireText(islandName, "islandName");
-            return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "islandName", normalized))
-                .thenApply(JdkCoreApiClient::parseRouteTicketResult);
-        }
-
-        @Override
-        public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
-            requireId(visitorUuid, "visitorUuid");
-            requireId(ownerUuid, "ownerUuid");
-            return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "ownerUuid", ownerUuid))
-                .thenApply(JdkCoreApiClient::parseRouteTicketResult);
-        }
-
-        @Override
-        public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
-            requireId(visitorUuid, "visitorUuid");
-            return postWithResultBody("/v1/routes/random", jsonObject("playerUuid", visitorUuid))
-                .thenApply(JdkCoreApiClient::parseRouteTicketResult);
-        }
-
-        @Override
-        public CompletableFuture<ReviewActionView> setReview(UUID islandId, UUID reviewerUuid, int rating, String comment) {
-            requireId(islandId, "islandId");
-            requireId(reviewerUuid, "reviewerUuid");
-            if (rating < 1 || rating > 5) {
-                throw new IllegalArgumentException("rating must be between 1 and 5");
-            }
-            return postWithResultBody("/v1/islands/reviews/set", jsonObject(
-                "islandId", islandId,
-                "reviewerUuid", reviewerUuid,
-                "rating", rating,
-                "comment", comment == null ? "" : comment
-            )).thenApply(CoreNavigationCommandClient::reviewActionResult);
-        }
-
-        private String requireText(String value, String fieldName) {
-            if (value == null || value.isBlank()) {
-                throw new IllegalArgumentException(fieldName + " is required");
-            }
-            return value.trim();
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-    }
-
-    private final class JdkRoutingClient implements RoutingCommandClient {
-        @Override
-        public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
-            requireId(playerUuid, "playerUuid");
-            requireId(islandId, "islandId");
-            return postWithResultBody("/v1/routes/warp", jsonObject(
-                "playerUuid", playerUuid,
-                "islandId", islandId,
-                "warpName", warpName == null ? "" : warpName
-            )).thenApply(JdkCoreApiClient::parseRouteTicketResult);
-        }
-
-        @Override
-        public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(RouteTicket ticket) {
-            requireTicket(ticket);
-            return post("/v1/routes/ticket-status", jsonObject(
-                "ticketId", ticket.ticketId(),
-                "playerUuid", ticket.playerUuid(),
-                "nonce", ticket.nonce()
-            )).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(RouteTicketJson.parse(body)));
-        }
-
-        @Override
-        public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) {
-            return publishRouteSessionResult(ticket).thenApply(_result -> null);
-        }
-
-        @Override
-        public CompletableFuture<RoutePublishView> publishRouteSessionResult(RouteTicket ticket) {
-            requireTicket(ticket);
-            String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
-            return postWithResultBody("/v1/routes/session", jsonObject(
-                "playerUuid", ticket.playerUuid(),
-                "ticketId", ticket.ticketId(),
-                "targetNode", ticket.targetNode(),
-                "targetServerName", targetServerName,
-                "nonce", ticket.nonce(),
-                "expiresAt", ticket.expiresAt()
-            )).thenApply(CoreRoutingCommandClient::routePublishResult);
-        }
-
-        @Override
-        public CompletableFuture<RouteClearView> clearRoute(RouteTicket ticket, String reason) {
-            requireTicket(ticket);
-            String normalizedReason = reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason;
-            return postWithResultBody("/v1/admin/routes/clear", jsonObject(
-                "playerUuid", ticket.playerUuid(),
-                "ticketId", ticket.ticketId(),
-                "reason", normalizedReason
-            )).thenApply(CoreRoutingCommandClient::routeClearResult);
-        }
-
-        private void requireTicket(RouteTicket ticket) {
-            if (ticket == null) {
-                throw new IllegalArgumentException("ticket is required");
-            }
-            requireId(ticket.ticketId(), "ticketId");
-            requireId(ticket.playerUuid(), "playerUuid");
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-    }
-
-    private final class JdkRuntimeClient implements RuntimeCommandClient {
-        @Override
-        public CompletableFuture<RuntimeActionView> publishHeartbeat(NodeHeartbeatRequest request) {
-            if (request == null) {
-                throw new IllegalArgumentException("request is required");
-            }
-            return postWithResultBody("/v1/nodes/heartbeat", jsonObject(
-                "protocolVersion", request.protocolVersion(),
-                "nodeId", request.nodeId(),
-                "pool", request.pool(),
-                "velocityServerName", request.velocityServerName(),
-                "nodeVersion", request.nodeVersion(),
-                "state", request.state().name(),
-                "players", request.players(),
-                "softPlayerCap", request.softPlayerCap(),
-                "hardPlayerCap", request.hardPlayerCap(),
-                "reservedSlots", request.reservedSlots(),
-                "activeIslands", request.activeIslands(),
-                "maxActiveIslands", request.maxActiveIslands(),
-                "mspt", request.mspt(),
-                "activationQueue", request.activationQueue(),
-                "maxActivationQueue", request.maxActivationQueue(),
-                "chunkLoadPressure", request.chunkLoadPressure(),
-                "heapUsedMb", request.heapUsedMb(),
-                "heapMaxMb", request.heapMaxMb(),
-                "recentFailurePenalty", request.recentFailurePenalty(),
-                "storageAvailable", request.storageAvailable(),
-                "supportedTemplates", request.supportedTemplates()
-            )).thenApply(body -> CoreRuntimeCommandClient.action(body, "HEARTBEAT_ACCEPTED"));
-        }
-
-        @Override
-        public CompletableFuture<RuntimeActionView> recordBlockDelta(UUID islandId, String materialKey, long delta) {
-            requireId(islandId, "islandId");
-            String safeMaterialKey = materialKey == null ? "" : materialKey.trim();
-            if (safeMaterialKey.isBlank()) {
-                throw new IllegalArgumentException("materialKey is required");
-            }
-            return postWithResultBody("/v1/islands/blocks/delta", jsonObject(
-                "islandId", islandId,
-                "materialKey", safeMaterialKey,
-                "delta", delta
-            )).thenApply(body -> CoreRuntimeCommandClient.action(body, "BLOCK_DELTA_RECORDED"));
-        }
-
-        @Override
-        public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
-            return postWithResultBody("/v1/jobs/complete", jsonObject(
-                "nodeId", requireNode(nodeId),
-                "jobId", requireId(jobId, "jobId"),
-                "payload", rawJson(mapJson(payload == null ? Map.of() : payload))
-            )).thenApply(body -> CoreRuntimeCommandClient.action(body, "JOB_COMPLETED"));
-        }
-
-        @Override
-        public CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, String errorMessage) {
-            return postWithResultBody("/v1/jobs/fail", jsonObject(
-                "nodeId", requireNode(nodeId),
-                "jobId", requireId(jobId, "jobId"),
-                "error", errorMessage == null ? "" : errorMessage
-            )).thenApply(body -> CoreRuntimeCommandClient.action(body, "JOB_FAILED"));
-        }
-
-        private UUID requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-            return id;
-        }
-
-        private String requireNode(String nodeId) {
-            if (nodeId == null || nodeId.isBlank()) {
-                throw new IllegalArgumentException("nodeId is required");
-            }
-            return nodeId.trim();
-        }
-    }
-
-    private final class JdkWarehouseClient implements WarehouseQueryClient, WarehouseCommandClient {
-        @Override
-        public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
-            requireId(islandId, "islandId");
-            return post("/v1/islands/warehouse", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))))
-                .thenApply(body -> CoreWarehouseQueryClient.itemViews(islandId, body));
-        }
-
-        @Override
-        public CompletableFuture<WarehouseMutationView> deposit(UUID islandId, UUID actorUuid, String materialKey, long amount) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return postWithResultBody("/v1/islands/warehouse/deposit", jsonObject(
-                "islandId", islandId,
-                "actorUuid", actorUuid,
-                "materialKey", materialKey == null ? "" : materialKey,
-                "amount", amount
-            )).thenApply(CoreWarehouseCommandClient::warehouseMutation);
-        }
-
-        @Override
-        public CompletableFuture<WarehouseMutationView> withdraw(UUID islandId, UUID actorUuid, String materialKey, long amount) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return postWithResultBody("/v1/islands/warehouse/withdraw", jsonObject(
-                "islandId", islandId,
-                "actorUuid", actorUuid,
-                "materialKey", materialKey == null ? "" : materialKey,
-                "amount", amount
-            )).thenApply(CoreWarehouseCommandClient::warehouseMutation);
         }
 
         private void requireId(UUID id, String name) {
