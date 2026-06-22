@@ -73,26 +73,30 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
         if (!missingMetadata.isEmpty()) {
             return IntegrationResult.failed(
                 pluginName + " " + operation + " missing metadata: " + String.join(",", missingMetadata),
-                failureDetails(operation, context, "missingMetadata", String.join(",", missingMetadata)));
+                failureDetails(operation, context, stateChanging, requiredMetadata, "missingMetadata", String.join(",", missingMetadata)));
         }
-        return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId(), successDetails(operation, context, stateChanging));
+        return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId(), successDetails(operation, context, stateChanging, requiredMetadata));
     }
 
     private Map<String, String> failureDetails(String operation, IntegrationContext context, String key, String value) {
-        Map<String, String> details = contextDetails(operation, context);
+        return failureDetails(operation, context, true, new String[0], key, value);
+    }
+
+    private Map<String, String> failureDetails(String operation, IntegrationContext context, boolean stateChanging, String[] requiredMetadata, String key, String value) {
+        Map<String, String> details = contextDetails(operation, context, stateChanging, requiredMetadata);
         details.put(key, value == null ? "" : value);
         return details;
     }
 
-    private Map<String, String> successDetails(String operation, IntegrationContext context, boolean stateChanging) {
-        LinkedHashMap<String, String> details = contextDetails(operation, context);
+    private Map<String, String> successDetails(String operation, IntegrationContext context, boolean stateChanging, String[] requiredMetadata) {
+        LinkedHashMap<String, String> details = contextDetails(operation, context, stateChanging, requiredMetadata);
         if (stateChanging) {
             details.putAll(IntegrationStateManifest.from(pluginName, category(), operation, context).details());
         }
         return Map.copyOf(details);
     }
 
-    private LinkedHashMap<String, String> contextDetails(String operation, IntegrationContext context) {
+    private LinkedHashMap<String, String> contextDetails(String operation, IntegrationContext context, boolean stateChanging, String[] requiredMetadata) {
         LinkedHashMap<String, String> details = new LinkedHashMap<>();
         details.put("plugin", pluginName);
         details.put("operation", operation == null ? "" : operation);
@@ -102,6 +106,7 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
         if (!externalApi.isBlank()) {
             details.put("external.api", externalApi);
         }
+        details.putAll(IntegrationOperationPlan.of(pluginName, category(), operation, externalApi, stateChanging, requiredMetadata).details());
         if (context == null) {
             return details;
         }

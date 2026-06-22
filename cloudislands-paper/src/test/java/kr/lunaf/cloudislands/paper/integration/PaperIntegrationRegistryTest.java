@@ -103,6 +103,9 @@ class PaperIntegrationRegistryTest {
         assertEquals("integrations/audit-rollback/CoreProtect/audit-export.json", exportResult.details().get("manifest.bundleRelativePath"));
         assertEquals("coreprotect:export:2", exportResult.details().get("manifest.idempotencyKey"));
         assertEquals("CoreProtectAPI#performLookup", exportResult.details().get("external.api"));
+        assertEquals("CoreProtectAPI#performLookup", exportResult.details().get("plan.externalApi"));
+        assertEquals("world,cell,region,bundleKey", exportResult.details().get("plan.requiredMetadata"));
+        assertEquals("true", exportResult.details().get("plan.stateChanging"));
 
         IntegrationContext restoreContext = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:restore:1", Map.of(
             "world", "islands",
@@ -118,6 +121,7 @@ class PaperIntegrationRegistryTest {
         assertEquals("3600", restoreResult.details().get("manifest.metadata.rollbackSeconds"));
         assertEquals("true", restoreResult.details().get("nodeOwnsIsland"));
         assertEquals("CoreProtectAPI#performRollback", restoreResult.details().get("external.api"));
+        assertEquals("world,cell,region,rollbackSeconds,bundleKey", restoreResult.details().get("plan.requiredMetadata"));
     }
 
     @Test
@@ -207,6 +211,8 @@ class PaperIntegrationRegistryTest {
         assertEquals("schematic-restore", result.details().get("manifest.operation"));
         assertEquals("0,64,0..63,319,63", result.details().get("manifest.metadata.region"));
         assertEquals("ClipboardReader#read+EditSession#paste", result.details().get("external.api"));
+        assertEquals("ClipboardReader#read+EditSession#paste", result.details().get("plan.externalApi"));
+        assertEquals("world,cell,region,bundleKey", result.details().get("plan.requiredMetadata"));
     }
 
     @Test
