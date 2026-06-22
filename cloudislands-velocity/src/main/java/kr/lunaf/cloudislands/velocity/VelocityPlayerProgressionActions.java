@@ -10,7 +10,6 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityPlayerProgressionActions extends VelocityActionSupport {

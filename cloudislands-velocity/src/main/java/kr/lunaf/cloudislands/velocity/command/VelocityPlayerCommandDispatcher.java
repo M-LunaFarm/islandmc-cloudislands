@@ -5,7 +5,6 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.velocity.VelocityRoutingController;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 import net.kyori.adventure.text.Component;
