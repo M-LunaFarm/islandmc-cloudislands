@@ -2,8 +2,8 @@ id: island.biome
 rows: 3
 title-key: menu.biome.title
 layout:
-  - "....C...."
-  - "........."
+  - "____C____"
+  - "_________"
   - "....R.S.M"
 items:
   _:

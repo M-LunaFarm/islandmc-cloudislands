@@ -37,6 +37,20 @@ public final class GuiMenuRenderer {
         }
     }
 
+    public static List<Integer> slots(GuiMenuDefinition definition, String symbol) {
+        if (definition == null || symbol == null || symbol.isBlank()) {
+            return List.of();
+        }
+        java.util.ArrayList<Integer> slots = new java.util.ArrayList<>();
+        for (int slot = 0; slot < definition.size(); slot++) {
+            int currentSlot = slot;
+            definition.itemAt(slot)
+                .filter(item -> item.symbol().equals(symbol))
+                .ifPresent(_item -> slots.add(currentSlot));
+        }
+        return List.copyOf(slots);
+    }
+
     public static String message(MessageRenderer messages, String key, String fallback) {
         if (messages == null) {
             return fallback;

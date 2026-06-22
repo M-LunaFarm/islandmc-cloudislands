@@ -329,6 +329,18 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void biomeListItemSlotsRenderFromMenuDefinitionLayout() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBiomeMenu.java"));
+        String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/biome.yml"));
+
+        assertTrue(definition.contains("\"____C____\""), "biome menu must expose dynamic item slots in config-v2 layout");
+        assertTrue(definition.contains("\"_________\""), "biome menu must expose enough YAML slots for biome entries");
+        assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, \"_\")"), "biome entries must use menu definition slots");
+        assertFalse(menu.contains("int slot = 9"), "biome entries must not start from a Java hard-coded slot");
+        assertFalse(menu.contains("slot++"), "biome entries must not advance through Java hard-coded slots");
+    }
+
+    @Test
     void remainingDynamicItemMaterialsRenderFromMenuDefinitions() throws Exception {
         for (String[] menuCase : List.of(
                 new String[] {"IslandPermissionMenu", "permissions.yml", "ALLOW", "LIME_DYE"},

@@ -99,10 +99,12 @@ public final class IslandBiomeMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, String currentBiome, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
-            int slot = 9;
-            for (String biome : BIOMES.stream().limit(13).toList()) {
-                inventory.setItem(slot++, biomeItem(biome, biome.equalsIgnoreCase(currentBiome), messages));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !item.symbol().equals("_"));
+            List<Integer> biomeSlots = GuiMenuRenderer.slots(MENU, "_");
+            List<String> biomes = BIOMES.stream().limit(biomeSlots.size()).toList();
+            for (int index = 0; index < biomes.size(); index++) {
+                String biome = biomes.get(index);
+                inventory.setItem(biomeSlots.get(index), biomeItem(biome, biome.equalsIgnoreCase(currentBiome), messages));
             }
             MENU.itemAt(4).ifPresent(item -> inventory.setItem(4, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of(currentBiome.isBlank() ? message(messages, "biome-menu-not-set", "설정 없음") : currentBiome))));
             player.openInventory(inventory);
