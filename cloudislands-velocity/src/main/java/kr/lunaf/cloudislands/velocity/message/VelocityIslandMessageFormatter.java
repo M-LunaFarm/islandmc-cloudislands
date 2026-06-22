@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.velocity.message;
 
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.boolValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.doubleValue;
+import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.hasField;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectValue;
@@ -163,7 +164,7 @@ public final class VelocityIslandMessageFormatter {
             return label + ": accepted target=" + compactTarget(targetId);
         }
         String code = jsonValue(body, "code");
-        boolean accepted = body.contains("\"accepted\"") ? boolValue(body, "accepted") : !body.contains("\"accepted\":false");
+        boolean accepted = !hasField(body, "accepted") || boolValue(body, "accepted");
         StringBuilder builder = new StringBuilder(label)
             .append(": ")
             .append(accepted ? "accepted" : "rejected")
@@ -188,21 +189,21 @@ public final class VelocityIslandMessageFormatter {
         if (!worth.isBlank()) {
             builder.append(" worth=").append(worth);
         }
-        if (body.contains("\"snapshotNo\"")) {
+        if (hasField(body, "snapshotNo")) {
             builder.append(" snapshot=").append(longValue(body, "snapshotNo"));
         }
         String storagePath = jsonValue(body, "storagePath");
         if (!storagePath.isBlank()) {
             builder.append(" storagePath=").append(storagePath);
         }
-        if (body.contains("\"restoreManifestRequired\"")) {
+        if (hasField(body, "restoreManifestRequired")) {
             builder.append(" restoreManifest=").append(boolValue(body, "restoreManifestRequired"));
         }
         String restoreChecksumPolicy = jsonValue(body, "restoreChecksumPolicy");
         if (!restoreChecksumPolicy.isBlank()) {
             builder.append(" restoreChecksum=").append(restoreChecksumPolicy);
         }
-        if (body.contains("\"restorePortableRequired\"")) {
+        if (hasField(body, "restorePortableRequired")) {
             builder.append(" restorePortable=").append(boolValue(body, "restorePortableRequired"));
         }
         String restoreSupportedFormats = jsonValue(body, "restoreSupportedFormats");

@@ -13,6 +13,10 @@ public final class VelocityJsonFields {
         return value instanceof Map<?, ?> || value instanceof List<?> ? "" : SimpleJson.text(value);
     }
 
+    public static boolean hasField(String json, String key) {
+        return key != null && root(json).containsKey(key);
+    }
+
     public static String arrayValue(String body, String field) {
         Object value = root(body).get(field);
         return value instanceof List<?> ? SimpleJson.stringify(value) : "";

@@ -88,6 +88,18 @@ class VelocityIslandMessageFormatterTest {
     }
 
     @Test
+    void formatsActionResultOptionalFlagsFromParsedJsonFields() {
+        assertEquals(
+            "Island restore: accepted target=11111111 snapshot=3 restoreManifest=true restorePortable=false",
+            formatter.actionResult(
+                "Island restore",
+                "11111111-1111-1111-1111-111111111111",
+                "{\"accepted\":true,\"snapshotNo\":3,\"restoreManifestRequired\":true,\"restorePortableRequired\":false}"
+            )
+        );
+    }
+
+    @Test
     void hidesRuntimeTopologyWhenConfigured() {
         VelocityIslandMessageFormatter hidden = new VelocityIslandMessageFormatter(new VelocityRoutePrivacyFormatter(true));
 

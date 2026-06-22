@@ -58,6 +58,11 @@ class VelocityPluginRolePolicyTest {
         assertFalse(source.contains("VelocityPlayerPayloadFormatter"), "Velocity actions must not parse raw player payloads");
         assertFalse(source.contains("sendInviteActionResult("), "Velocity actions must not infer invite success from raw JSON bodies");
         assertFalse(source.contains("body.contains(\"\\\"accepted\\\":false\")"), "Velocity actions must not inspect raw JSON success flags");
+
+        String formatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityIslandMessageFormatter.java"));
+        assertFalse(formatter.contains("body.contains(\"\\\"accepted\\\""), "Velocity message formatter must inspect accepted through parsed JSON fields");
+        assertFalse(formatter.contains("body.contains(\"\\\"snapshotNo\\\""), "Velocity message formatter must inspect snapshotNo through parsed JSON fields");
+        assertTrue(formatter.contains("hasField(body, \"accepted\")"), "Velocity message formatter must use parsed field presence for optional result flags");
     }
 
     @Test
