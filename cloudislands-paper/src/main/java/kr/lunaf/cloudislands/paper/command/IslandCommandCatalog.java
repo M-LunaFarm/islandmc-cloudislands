@@ -66,7 +66,7 @@ final class IslandCommandCatalog {
         "섬 워프삭제 <name>",
         "섬 워프공개 <name>",
         "섬 워프비공개 <name>",
-        "섬 공개워프목록",
+        "섬 공개워프목록 [category] [query]",
         "섬 비행 [true|false|on|off]",
         "섬 인벤보존 [true|false|on|off]",
         "섬 피빕 [true|false|on|off]",
