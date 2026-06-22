@@ -104,7 +104,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.permissionCommandClient = new CorePermissionCommandClient(this);
         this.homeWarpQueryClient = new CoreHomeWarpQueryClient(this);
         this.homeWarpCommandClient = new CoreHomeWarpCommandClient(this);
-        this.routingClient = new CoreRoutingCommandClient(this);
+        this.routingClient = new JdkRoutingClient(this);
         this.navigationQueryClient = new CoreNavigationQueryClient(this);
         this.navigationCommandClient = new CoreNavigationCommandClient(this);
         this.islandClient = new CoreIslandQueryClient(this);
@@ -1135,24 +1135,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) {
-        return publishRouteSessionResult(ticket).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> publishRouteSessionResult(RouteTicket ticket) {
-        String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
-        return postWithResultBody("/v1/routes/session", jsonObject(
-            "playerUuid", ticket.playerUuid(),
-            "ticketId", ticket.ticketId(),
-            "targetNode", ticket.targetNode(),
-            "targetServerName", targetServerName,
-            "nonce", ticket.nonce(),
-            "expiresAt", ticket.expiresAt()
-        ));
-    }
-
-    @Override
     public CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId) {
         return post("/v1/routes/session/find", jsonObject("playerUuid", playerUuid, "nodeId", nodeId)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
     }
@@ -1327,26 +1309,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         requireId(islandId, "islandId");
         return postWithResultBody("/v1/admin/islands/" + islandId + "/repair", jsonObject("reason", lifecycleReason(reason, "admin")))
             .thenApply(body -> lifecycleAction(body, "REPAIRED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId) {
-        return clearRouteResult(playerUuid, ticketId);
-    }
-
-    @Override
-    public CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId) {
-        return clearRouteResult(playerUuid, ticketId, "MANUAL_CLEAR");
-    }
-
-    @Override
-    public CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId, String reason) {
-        return clearRouteResult(playerUuid, ticketId, reason);
-    }
-
-    @Override
-    public CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId, String reason) {
-        return postWithResultBody("/v1/admin/routes/clear", jsonObject("playerUuid", playerUuid, "ticketId", ticketId, "reason", reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason));
     }
 
     @Override

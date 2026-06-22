@@ -535,7 +535,7 @@ public final class PermissionEventPoller {
     }
 
     private void publishMigrationReturnSession(UUID playerUuid, RouteTicket ticket) {
-        client.publishRouteSession(ticket).thenRun(() ->
+        client.routingCommands().publishRouteSession(ticket).thenRun(() ->
             kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> connectMigratingPlayer(playerUuid, ticket))
         ).exceptionally(error -> {
             kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerUuid));

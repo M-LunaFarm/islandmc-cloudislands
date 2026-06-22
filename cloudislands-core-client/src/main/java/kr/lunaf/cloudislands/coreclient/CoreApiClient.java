@@ -121,7 +121,10 @@ public interface CoreApiClient {
     }
 
     default RoutingCommandClient routingCommands() {
-        return new CoreRoutingCommandClient(this);
+        if (this instanceof RoutingCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed routing commands");
     }
 
     default RuntimeCommandClient runtimeCommands() {
@@ -379,8 +382,6 @@ public interface CoreApiClient {
     CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid);
     CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);
     CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch);
-    CompletableFuture<Void> publishRouteSession(RouteTicket ticket);
-    CompletableFuture<String> publishRouteSessionResult(RouteTicket ticket);
     CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId);
     CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid);
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId);
@@ -416,10 +417,6 @@ public interface CoreApiClient {
     CompletableFuture<String> adminIslandInfo(UUID lookupUuid);
     CompletableFuture<String> adminIslandWhere(UUID islandId);
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
-    CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId);
-    CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId);
-    CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId, String reason);
-    CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId, String reason);
     CompletableFuture<String> addonStateSummary();
     CompletableFuture<String> addonState(String addonId);
     CompletableFuture<String> putAddonState(String addonId, String key, String value);

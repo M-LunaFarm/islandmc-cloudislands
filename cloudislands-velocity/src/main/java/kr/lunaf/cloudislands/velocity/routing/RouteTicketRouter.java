@@ -11,7 +11,6 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
-import kr.lunaf.cloudislands.coreclient.CoreRoutingCommandClient;
 import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
@@ -33,7 +32,7 @@ public final class RouteTicketRouter {
             VelocityRoutingMetrics metrics,
             RouteFallbackService fallbackService,
             RouteProgressPresenter progressPresenter) {
-        this.routingCommands = coreApiClient == null ? null : new CoreRoutingCommandClient(coreApiClient);
+        this.routingCommands = coreApiClient == null ? null : coreApiClient.routingCommands();
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
         this.messages = messages;
         this.metrics = metrics;

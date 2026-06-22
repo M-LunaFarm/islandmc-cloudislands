@@ -6,27 +6,27 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 
-public final class CoreRoutingCommandClient implements RoutingCommandClient {
-    private final CoreApiClient delegate;
+final class JdkRoutingClient implements RoutingCommandClient {
+    private final JdkCoreApiClient core;
 
-    public CoreRoutingCommandClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkRoutingClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
         requireId(playerUuid, "playerUuid");
         requireId(islandId, "islandId");
-        return delegate.createWarpTicket(playerUuid, islandId, warpName == null ? "" : warpName);
+        return core.createWarpTicket(playerUuid, islandId, warpName == null ? "" : warpName);
     }
 
     @Override
     public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(RouteTicket ticket) {
         requireTicket(ticket);
-        return delegate.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce());
+        return core.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce());
     }
 
     @Override
@@ -36,7 +36,7 @@ public final class CoreRoutingCommandClient implements RoutingCommandClient {
         if (nodeId == null || nodeId.isBlank()) {
             throw new IllegalArgumentException("nodeId is required");
         }
-        return delegate.consumeTicket(ticketId, playerUuid, nodeId.trim(), nonce == null ? "" : nonce);
+        return core.consumeTicket(ticketId, playerUuid, nodeId.trim(), nonce == null ? "" : nonce);
     }
 
     @Override
@@ -47,7 +47,16 @@ public final class CoreRoutingCommandClient implements RoutingCommandClient {
     @Override
     public CompletableFuture<RoutePublishView> publishRouteSessionResult(RouteTicket ticket) {
         requireTicket(ticket);
-        return delegate.publishRouteSessionResult(ticket).thenApply(CoreRoutingCommandClient::routePublishResult);
+        String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
+        return core.postWithResultBody("/v1/routes/session", JdkCoreApiClient.jsonObject(
+                "playerUuid", ticket.playerUuid(),
+                "ticketId", ticket.ticketId(),
+                "targetNode", ticket.targetNode(),
+                "targetServerName", targetServerName,
+                "nonce", ticket.nonce(),
+                "expiresAt", ticket.expiresAt()
+            ))
+            .thenApply(JdkRoutingClient::routePublishResult);
     }
 
     @Override
@@ -61,8 +70,8 @@ public final class CoreRoutingCommandClient implements RoutingCommandClient {
         requireId(playerUuid, "playerUuid");
         requireId(ticketId, "ticketId");
         String normalizedReason = reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason;
-        return delegate.clearRoute(playerUuid, ticketId, normalizedReason)
-            .thenApply(CoreRoutingCommandClient::routeClearResult);
+        return core.postWithResultBody("/v1/admin/routes/clear", JdkCoreApiClient.jsonObject("playerUuid", playerUuid, "ticketId", ticketId, "reason", normalizedReason))
+            .thenApply(JdkRoutingClient::routeClearResult);
     }
 
     static RouteClearView routeClearResult(String body) {

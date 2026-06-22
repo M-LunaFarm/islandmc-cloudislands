@@ -14,7 +14,9 @@ import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreRoutingCommandClient;
+import kr.lunaf.cloudislands.coreclient.RouteClearView;
+import kr.lunaf.cloudislands.coreclient.RoutePublishView;
+import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
 import org.junit.jupiter.api.Test;
 
 class IslandRoutingUseCaseTest {
@@ -47,7 +49,7 @@ class IslandRoutingUseCaseTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
-                case "routingCommands" -> new CoreRoutingCommandClient((CoreApiClient) _proxy);
+                case "routingCommands" -> routingCommands(calls, ticket);
                 case "createWarpTicket" -> {
                     calls.add("createWarpTicket:" + args[2]);
                     yield CompletableFuture.completedFuture(ticket);
@@ -56,17 +58,53 @@ class IslandRoutingUseCaseTest {
                     calls.add("routeTicketStatus:" + args[2]);
                     yield CompletableFuture.completedFuture(Optional.of(ticket));
                 }
-                case "publishRouteSessionResult" -> {
-                    RouteTicket routeTicket = (RouteTicket) args[0];
-                    calls.add("publishRouteSession:" + routeTicket.ticketId());
-                    yield CompletableFuture.completedFuture("{\"ok\":true}");
-                }
-                case "clearRoute" -> {
-                    calls.add("clearRoute:" + args[2]);
-                    yield CompletableFuture.completedFuture("cleared");
-                }
                 default -> throw new UnsupportedOperationException(method.getName());
             });
+    }
+
+    private static RoutingCommandClient routingCommands(List<String> calls, RouteTicket ticket) {
+        return new RoutingCommandClient() {
+            @Override
+            public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
+                calls.add("createWarpTicket:" + warpName);
+                return CompletableFuture.completedFuture(ticket);
+            }
+
+            @Override
+            public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(RouteTicket routeTicket) {
+                calls.add("routeTicketStatus:" + routeTicket.nonce());
+                return CompletableFuture.completedFuture(Optional.of(ticket));
+            }
+
+            @Override
+            public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
+                return CompletableFuture.completedFuture(Optional.of(ticket));
+            }
+
+            @Override
+            public CompletableFuture<Void> publishRouteSession(RouteTicket routeTicket) {
+                calls.add("publishRouteSession:" + routeTicket.ticketId());
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletableFuture<RoutePublishView> publishRouteSessionResult(RouteTicket routeTicket) {
+                calls.add("publishRouteSession:" + routeTicket.ticketId());
+                return CompletableFuture.completedFuture(new RoutePublishView(true, "ROUTE_SESSION_PUBLISHED"));
+            }
+
+            @Override
+            public CompletableFuture<RouteClearView> clearRoute(RouteTicket routeTicket, String reason) {
+                calls.add("clearRoute:" + (reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason));
+                return CompletableFuture.completedFuture(new RouteClearView(true, "cleared"));
+            }
+
+            @Override
+            public CompletableFuture<RouteClearView> clearRoute(UUID playerUuid, UUID ticketId, String reason) {
+                calls.add("clearRoute:" + (reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason));
+                return CompletableFuture.completedFuture(new RouteClearView(true, "cleared"));
+            }
+        };
     }
 
     private static IslandRoutingUseCase.MutationRunner mutationRunner(List<String> calls) {

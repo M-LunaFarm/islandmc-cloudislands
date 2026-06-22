@@ -94,7 +94,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkJobClient"), "jobs must use CoreJob query and command clients");
         assertFalse(nestedClients.contains("JdkBlockValueClient"), "block values must use CoreBlockValue query and command clients");
         assertFalse(nestedClients.contains("JdkNavigationClient"), "navigation must use CoreNavigation query and command clients");
-        assertFalse(nestedClients.contains("JdkRoutingClient"), "routing must use CoreRoutingCommandClient");
+        assertFalse(nestedClients.contains("JdkRoutingClient"), "routing must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkRuntimeClient"), "runtime operations must use JdkCoreApiClient's direct RuntimeCommandClient implementation");
         assertFalse(nestedClients.contains("JdkWarehouseClient"), "warehouse operations must use CoreWarehouse query and command clients");
         assertFalse(nestedClients.contains("JdkLifecycleClient"), "lifecycle operations must use JdkCoreApiClient's typed lifecycle implementation");
@@ -131,6 +131,10 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("debugRoutes"));
         assertFalse(names.contains("routeTicket"));
         assertFalse(names.contains("routeTicketForPlayer"));
+        assertFalse(names.contains("publishRouteSession"));
+        assertFalse(names.contains("publishRouteSessionResult"));
+        assertFalse(names.contains("clearRoute"));
+        assertFalse(names.contains("clearRouteResult"));
     }
 
     @Test
@@ -1162,43 +1166,8 @@ class CoreTypedClientsTest {
         UUID playerUuid = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
         RouteTicket ticket = routeTicket(playerUuid, islandId);
-        List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "createWarpTicket" -> {
-                    calls.add("warp:" + args[2]);
-                    yield CompletableFuture.completedFuture(ticket);
-                }
-                case "routeTicketStatus" -> {
-                    calls.add("status:" + args[2]);
-                    yield CompletableFuture.completedFuture(Optional.of(ticket));
-                }
-                case "consumeTicket" -> {
-                    calls.add("consume:" + args[2]);
-                    yield CompletableFuture.completedFuture(Optional.of(ticket));
-                }
-                case "publishRouteSessionResult" -> {
-                    calls.add("publish:" + ((RouteTicket) args[0]).ticketId());
-                    yield CompletableFuture.completedFuture("{\"ok\":true}");
-                }
-                case "clearRoute" -> {
-                    calls.add("clear:" + args[2]);
-                    yield CompletableFuture.completedFuture("cleared");
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        RoutingCommandClient client = new CoreRoutingCommandClient(raw);
-
-        assertEquals(ticket, client.createWarpTicket(playerUuid, islandId, "spawn").join());
-        assertEquals(Optional.of(ticket), client.routeTicketStatus(ticket).join());
-        assertEquals(Optional.of(ticket), client.consumeTicket(ticket.ticketId(), playerUuid, "paper-a", "nonce").join());
-        assertEquals(null, client.publishRouteSession(ticket).join());
-        assertEquals("ROUTE_SESSION_PUBLISHED", client.publishRouteSessionResult(ticket).join().code());
-        assertEquals("cleared", client.clearRoute(ticket, "").join().code());
-        assertEquals(List.of("warp:spawn", "status:nonce", "consume:paper-a", "publish:" + ticket.ticketId(), "publish:" + ticket.ticketId(), "clear:PLUGIN_MESSAGE_FAILED"), calls);
+        assertEquals("ROUTE_SESSION_PUBLISHED", JdkRoutingClient.routePublishResult("{\"ok\":true}").code());
+        assertEquals("cleared", JdkRoutingClient.routeClearResult("cleared").code());
     }
 
     @Test
