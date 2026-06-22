@@ -121,6 +121,7 @@ import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreAddonStateJson;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
@@ -1456,83 +1457,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         private Map<String, String> stateFromJson(String json) {
-            if (json == null || json.isBlank()) {
-                return Map.of();
-            }
-            int valuesStart = json.indexOf("\"values\":{");
-            if (valuesStart < 0) {
-                return Map.of();
-            }
-            int index = valuesStart + "\"values\":{".length();
-            Map<String, String> values = new HashMap<>();
-            while (index < json.length()) {
-                index = skipWhitespaceAndComma(json, index);
-                if (index >= json.length() || json.charAt(index) == '}') {
-                    break;
-                }
-                if (json.charAt(index) != '"') {
-                    break;
-                }
-                int keyEnd = jsonStringEnd(json, index + 1);
-                if (keyEnd < 0) {
-                    break;
-                }
-                String key = unescapeJson(json.substring(index + 1, keyEnd));
-                index = skipWhitespace(json, keyEnd + 1);
-                if (index >= json.length() || json.charAt(index) != ':') {
-                    break;
-                }
-                index = skipWhitespace(json, index + 1);
-                if (index >= json.length() || json.charAt(index) != '"') {
-                    break;
-                }
-                int valueEnd = jsonStringEnd(json, index + 1);
-                if (valueEnd < 0) {
-                    break;
-                }
-                values.put(key, unescapeJson(json.substring(index + 1, valueEnd)));
-                index = valueEnd + 1;
-            }
-            return Map.copyOf(values);
-        }
-
-        private int skipWhitespaceAndComma(String value, int index) {
-            int next = index;
-            while (next < value.length() && (Character.isWhitespace(value.charAt(next)) || value.charAt(next) == ',')) {
-                next++;
-            }
-            return next;
-        }
-
-        private int skipWhitespace(String value, int index) {
-            int next = index;
-            while (next < value.length() && Character.isWhitespace(value.charAt(next))) {
-                next++;
-            }
-            return next;
-        }
-
-        private int jsonStringEnd(String value, int start) {
-            boolean escaped = false;
-            for (int index = start; index < value.length(); index++) {
-                char character = value.charAt(index);
-                if (escaped) {
-                    escaped = false;
-                    continue;
-                }
-                if (character == '\\') {
-                    escaped = true;
-                    continue;
-                }
-                if (character == '"') {
-                    return index;
-                }
-            }
-            return -1;
-        }
-
-        private String unescapeJson(String value) {
-            return value.replace("\\\"", "\"").replace("\\\\", "\\");
+            return CoreAddonStateJson.values(json);
         }
 
         private Map<String, String> readAddonState(String id) {

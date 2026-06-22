@@ -98,6 +98,22 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void coreAddonStateJsonReturnsTypedValuesWithoutManualStringScanning() {
+        Map<String, String> values = CoreAddonStateJson.values("""
+            {"addonId":"shop","values":{"plain":"one","quote":"a\\"b","slash":"a\\\\b","unicode":"\\uac12","number":12,"ignored":null}}
+            """);
+
+        assertEquals("one", values.get("plain"));
+        assertEquals("a\"b", values.get("quote"));
+        assertEquals("a\\b", values.get("slash"));
+        assertEquals("값", values.get("unicode"));
+        assertEquals("12", values.get("number"));
+        assertFalse(values.containsKey("ignored"));
+        assertEquals(Map.of(), CoreAddonStateJson.values(""));
+        assertEquals(Map.of(), CoreAddonStateJson.values("{\"addonId\":\"shop\"}"));
+    }
+
+    @Test
     void islandQueryClientReturnsTypedIslandAndMemberPages() {
         UUID islandId = UUID.randomUUID();
         UUID firstMemberUuid = UUID.randomUUID();
