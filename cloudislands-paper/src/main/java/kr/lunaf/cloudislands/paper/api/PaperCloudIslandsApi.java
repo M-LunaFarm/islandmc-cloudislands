@@ -85,6 +85,7 @@ import kr.lunaf.cloudislands.api.model.NodeSweepResult;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.api.model.PlayerRouteSessionSnapshot;
+import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteClearResult;
 import kr.lunaf.cloudislands.api.model.RouteDebugSnapshot;
@@ -2102,7 +2103,8 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<PermissionResult> check(UUID playerUuid, UUID islandId, IslandPermission permission) {
             boolean allowed = agent.permissionCache().allowed(islandId, playerUuid, permission, false);
-            return CompletableFuture.completedFuture(allowed ? PermissionResult.allow(IslandRole.MEMBER) : PermissionResult.deny("DEFAULT_DENY", IslandRole.VISITOR));
+            RoleId roleId = RoleId.of(agent.permissionCache().roleKey(islandId, playerUuid));
+            return CompletableFuture.completedFuture(allowed ? PermissionResult.allow(roleId) : PermissionResult.deny("DEFAULT_DENY", roleId));
         }
 
         @Override

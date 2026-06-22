@@ -52,6 +52,17 @@ class RoleIdSnapshotTest {
     }
 
     @Test
+    void permissionResultCarriesCanonicalRoleIdAndKeepsEnumAsAdapter() {
+        PermissionResult dynamic = PermissionResult.allow(RoleId.of("builder"));
+        assertEquals(RoleId.of("BUILDER"), dynamic.effectiveRoleId());
+        assertNull(dynamic.effectiveRole());
+
+        PermissionResult legacy = PermissionResult.deny("DEFAULT_DENY", IslandRole.TRUSTED);
+        assertEquals(RoleId.of("TRUSTED"), legacy.effectiveRoleId());
+        assertEquals(IslandRole.TRUSTED, legacy.effectiveRole());
+    }
+
+    @Test
     void allArgsSnapshotsRejectMissingCanonicalRoleId() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");

@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.common.protection.ProtectionDecisionPolicy;
 import kr.lunaf.cloudislands.common.protection.RegionIndex;
 import kr.lunaf.cloudislands.paper.cache.LocalIslandPermissionCache;
@@ -12,6 +13,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProtectionControllerTest {
@@ -57,7 +59,10 @@ class ProtectionControllerTest {
 
         assertTrue(protection.memberOrTrusted(ISLAND, builder));
         assertTrue(protection.checkBlock(builder, "ci_shard_001", 0, 100, 0, IslandPermission.BUILD).allowed());
-        assertFalse(protection.checkBlock(builder, "ci_shard_001", 0, 100, 0, IslandPermission.BREAK).allowed());
+        var denied = protection.checkBlock(builder, "ci_shard_001", 0, 100, 0, IslandPermission.BREAK);
+        assertFalse(denied.allowed());
+        assertEquals(RoleId.of("BUILDER"), denied.effectiveRoleId());
+        assertNull(denied.effectiveRole());
     }
 
     @Test

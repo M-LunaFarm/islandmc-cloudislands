@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
+import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.common.protection.ProtectionDecisionPolicy;
 import kr.lunaf.cloudislands.common.protection.RegionIndex;
@@ -107,41 +108,40 @@ public final class ProtectionController {
         return regionIndex.find(world, blockX, blockZ)
             .map(region -> {
                 if (migratingIslands.contains(region.islandId())) {
-                    return PermissionResult.deny("ISLAND_MIGRATING", IslandRole.VISITOR);
+                    return PermissionResult.deny("ISLAND_MIGRATING", RoleId.of(VISITOR_ROLE_KEY));
                 }
                 String roleKey = adminBypass ? OWNER_ROLE_KEY : permissionCache.roleKey(region.islandId(), playerUuid);
-                IslandRole resultRole = legacyRole(roleKey);
                 if (permissionCache.allowed(region.islandId(), playerUuid, permission, adminBypass)) {
-                    return PermissionResult.allow(resultRole);
+                    return PermissionResult.allow(RoleId.of(roleKey));
                 }
                 IslandFlag visitorFlag = visitorFlag(permission);
                 if (roleKey.equals(VISITOR_ROLE_KEY) && visitorFlag != null && permissionCache.flagAllowed(region.islandId(), visitorFlag)) {
-                    return PermissionResult.allow(IslandRole.VISITOR);
+                    return PermissionResult.allow(RoleId.of(VISITOR_ROLE_KEY));
                 }
-                return PermissionResult.deny("DEFAULT_DENY", resultRole);
+                return PermissionResult.deny("DEFAULT_DENY", RoleId.of(roleKey));
             })
-            .orElseGet(() -> PermissionResult.deny("OUTSIDE_ISLAND", IslandRole.VISITOR));
+            .orElseGet(() -> PermissionResult.deny("OUTSIDE_ISLAND", RoleId.of(VISITOR_ROLE_KEY)));
     }
 
     public PermissionResult checkSystem(Block block, IslandPermission permission) {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ())
             .map(region -> migratingIslands.contains(region.islandId())
-                ? PermissionResult.deny("ISLAND_MIGRATING", IslandRole.VISITOR)
-                : PermissionResult.deny("SYSTEM_PROTECTED", IslandRole.VISITOR))
-            .orElseGet(() -> PermissionResult.allow(IslandRole.OWNER));
+                ? PermissionResult.deny("ISLAND_MIGRATING", RoleId.of(VISITOR_ROLE_KEY))
+                : PermissionResult.deny("SYSTEM_PROTECTED", RoleId.of(VISITOR_ROLE_KEY)))
+            .orElseGet(() -> PermissionResult.allow(RoleId.of(OWNER_ROLE_KEY)));
     }
 
     public PermissionResult checkSystemFlag(Block block, IslandFlag flag) {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ())
             .map(region -> {
                 if (migratingIslands.contains(region.islandId())) {
-                    return PermissionResult.deny("ISLAND_MIGRATING", IslandRole.VISITOR);
+                    return PermissionResult.deny("ISLAND_MIGRATING", RoleId.of(VISITOR_ROLE_KEY));
                 }
                 return permissionCache.flagAllowed(region.islandId(), flag)
-                    ? PermissionResult.allow(IslandRole.OWNER)
-                    : PermissionResult.deny(flag.name() + "_DISABLED", IslandRole.VISITOR);
+                    ? PermissionResult.allow(RoleId.of(OWNER_ROLE_KEY))
+                    : PermissionResult.deny(flag.name() + "_DISABLED", RoleId.of(VISITOR_ROLE_KEY));
             })
-            .orElseGet(() -> PermissionResult.allow(IslandRole.OWNER));
+            .orElseGet(() -> PermissionResult.allow(RoleId.of(OWNER_ROLE_KEY)));
     }
 
     private IslandFlag visitorFlag(IslandPermission permission) {
