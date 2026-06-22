@@ -144,14 +144,16 @@ public interface IslandCommandService {
     CompletableFuture<IslandLimitSnapshot> setLimitResult(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<Void> createWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<IslandActionResult> createWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location);
-    CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
-    CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
+    default CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
+        return setWarp(islandId, actorUuid, name, location, publicAccess, "");
+    }
+    default CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
+        return setWarpResult(islandId, actorUuid, name, location, publicAccess, "");
+    }
     default CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category) {
         return setWarpResult(islandId, actorUuid, name, location, publicAccess, category).thenApply(_result -> null);
     }
-    default CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category) {
-        return setWarpResult(islandId, actorUuid, name, location, publicAccess);
-    }
+    CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category);
     CompletableFuture<Void> deleteWarp(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<IslandActionResult> deleteWarpResult(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<Void> setWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess);
