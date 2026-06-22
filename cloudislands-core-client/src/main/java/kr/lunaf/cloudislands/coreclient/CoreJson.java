@@ -66,6 +66,10 @@ final class CoreJson {
             .toList();
     }
 
+    static Map<?, ?> objectValue(Map<?, ?> root, String key) {
+        return SimpleJson.object(root == null ? null : root.get(key));
+    }
+
     static boolean accepted(Map<?, ?> root) {
         return root != null
             && !root.containsKey("error")
@@ -107,6 +111,21 @@ final class CoreJson {
 
     static long number(Map<?, ?> root, String key) {
         return root == null ? 0L : SimpleJson.number(root.get(key));
+    }
+
+    static double decimal(Map<?, ?> root, String key) {
+        if (root == null) {
+            return 0.0D;
+        }
+        Object value = root.get(key);
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        try {
+            return Double.parseDouble(SimpleJson.text(value));
+        } catch (NumberFormatException ignored) {
+            return 0.0D;
+        }
     }
 
     static boolean bool(Map<?, ?> root, String key) {

@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreAdminRouteJson {
     private CoreAdminRouteJson() {
@@ -11,19 +10,17 @@ final class CoreAdminRouteJson {
 
     static AdminRouteDebugView debug(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        List<AdminRouteSessionView> sessions = SimpleJson.list(root.get("sessions")).stream()
-            .map(SimpleJson::object)
+        List<AdminRouteSessionView> sessions = CoreJson.objects(root, "sessions").stream()
             .map(session -> new AdminRouteSessionView(
-                text(session, "playerUuid"),
-                text(session, "ticketId"),
-                text(session, "targetNode"),
-                text(session, "targetServerName"),
-                text(session, "nonce"),
-                text(session, "expiresAt")
+                CoreJson.text(session, "playerUuid"),
+                CoreJson.text(session, "ticketId"),
+                CoreJson.text(session, "targetNode"),
+                CoreJson.text(session, "targetServerName"),
+                CoreJson.text(session, "nonce"),
+                CoreJson.text(session, "expiresAt")
             ))
             .toList();
-        List<AdminRouteTicketView> tickets = SimpleJson.list(root.get("tickets")).stream()
-            .map(SimpleJson::object)
+        List<AdminRouteTicketView> tickets = CoreJson.objects(root, "tickets").stream()
             .map(CoreAdminRouteJson::ticket)
             .filter(Optional::isPresent)
             .map(Optional::get)
@@ -51,40 +48,31 @@ final class CoreAdminRouteJson {
             return Optional.empty();
         }
         return Optional.of(new AdminRouteTicketView(
-            text(ticket, "ticketId"),
-            text(ticket, "playerUuid"),
-            text(ticket, "islandId"),
-            text(ticket, "action"),
-            text(ticket, "state"),
-            text(ticket, "targetNode"),
-            text(ticket, "targetWorld"),
-            text(ticket, "targetServerName"),
-            text(ticket, "targetType"),
-            text(ticket, "homeName"),
-            text(ticket, "warpName"),
-            text(ticket, "expiresAt"),
-            text(ticket, "nonce")
+            CoreJson.text(ticket, "ticketId"),
+            CoreJson.text(ticket, "playerUuid"),
+            CoreJson.text(ticket, "islandId"),
+            CoreJson.text(ticket, "action"),
+            CoreJson.text(ticket, "state"),
+            CoreJson.text(ticket, "targetNode"),
+            CoreJson.text(ticket, "targetWorld"),
+            CoreJson.text(ticket, "targetServerName"),
+            CoreJson.text(ticket, "targetType"),
+            CoreJson.text(ticket, "homeName"),
+            CoreJson.text(ticket, "warpName"),
+            CoreJson.text(ticket, "expiresAt"),
+            CoreJson.text(ticket, "nonce")
         ));
     }
 
     static AdminRouteClearView clear(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        return new AdminRouteClearView(bool(root, "clearedSession"), bool(root, "clearedTicket"), text(root, "reason"));
+        return new AdminRouteClearView(CoreJson.bool(root, "clearedSession"), CoreJson.bool(root, "clearedTicket"), CoreJson.text(root, "reason"));
     }
 
     private static Map<?, ?> ticketObject(Map<?, ?> root) {
         if (root.containsKey("ticketId")) {
             return root;
         }
-        return SimpleJson.object(root.get("ticket"));
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
+        return CoreJson.objectValue(root, "ticket");
     }
 }

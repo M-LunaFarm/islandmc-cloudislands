@@ -970,6 +970,7 @@ class CoreTypedClientsTest {
 
     @Test
     void adminStorageClientReturnsTypedNodeStorageStatus() {
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminStorageClient.java")));
         AdminStorageStatusView status = JdkAdminStorageClient.status("""
             {"nodes":[
               {"id":"paper-east","storageAvailable":true,"storage":{"backend":"minio","primaryDegraded":false,"uploadSeconds":1.25,"downloadSeconds":0.75,"healthCheckFailures":1,"uploadFailures":2,"downloadFailures":3,"operationFailures":4}},
@@ -986,6 +987,10 @@ class CoreTypedClientsTest {
         assertEquals("paper-west", status.nodes().get(1).nodeId());
         assertFalse(status.nodes().get(1).storageAvailable());
         assertTrue(status.nodes().get(1).primaryDegraded());
+        assertFalse(source.contains("private static String text("), "admin storage parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("private static boolean bool("), "admin storage parser must use shared CoreJson boolean helpers");
+        assertFalse(source.contains("private static long number("), "admin storage parser must use shared CoreJson numeric helpers");
+        assertTrue(source.contains("CoreJson.objects(root, \"nodes\")"), "admin storage parser must use shared CoreJson object list helpers");
     }
 
     @Test
@@ -2042,6 +2047,7 @@ class CoreTypedClientsTest {
     @Test
     void blockValueClientsReturnTypedValuesAndActions() {
         UUID actorUuid = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreBlockValueJson.java")));
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
@@ -2073,6 +2079,8 @@ class CoreTypedClientsTest {
         assertEquals("BLOCK_VALUE_SET", result.code());
         assertEquals("minecraft:diamond_block", result.materialKey());
         assertEquals(List.of("set:" + actorUuid + ":minecraft:diamond_block:100.50:20:64"), calls);
+        assertTrue(source.contains("CoreJson.objects(root, \"values\")"), "block value parser must use shared CoreJson object list helpers");
+        assertFalse(source.contains("SimpleJson.list(root.get(\"values\"))"), "block value parser must not traverse raw JSON arrays directly");
     }
 
     @Test
@@ -2080,6 +2088,7 @@ class CoreTypedClientsTest {
         UUID ticketId = UUID.randomUUID();
         UUID playerUuid = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreAdminRouteJson.java")));
         AdminRouteDebugView debug = CoreAdminRouteJson.debug("""
             {"sessions":[{"playerUuid":"%s","ticketId":"%s","targetNode":"node-a","targetServerName":"island-a","nonce":"nonce-a","expiresAt":"soon"}],
              "tickets":[{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetWorld":"world-a","targetType":"home","homeName":"base","expiresAt":"soon","nonce":"nonce-a"}]}
@@ -2111,6 +2120,10 @@ class CoreTypedClientsTest {
         assertFalse(clear.clearedTicket());
         assertEquals("MANUAL_CLEAR", clear.reason());
         assertEquals("ROUTE_READY_TIMEOUT", timeoutClear.reason());
+        assertFalse(source.contains("private static String text("), "admin route parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("private static boolean bool("), "admin route parser must use shared CoreJson boolean helpers");
+        assertTrue(source.contains("CoreJson.objects(root, \"sessions\")"), "admin route parser must use shared CoreJson session list helpers");
+        assertTrue(source.contains("CoreJson.objects(root, \"tickets\")"), "admin route parser must use shared CoreJson ticket list helpers");
     }
 
     @Test
