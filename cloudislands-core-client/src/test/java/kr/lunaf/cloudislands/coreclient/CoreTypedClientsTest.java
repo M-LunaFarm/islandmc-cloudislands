@@ -178,6 +178,8 @@ class CoreTypedClientsTest {
                 "JdkPermissionQueryClient",
                 "JdkPlayerProfileCommandClient",
                 "JdkPlayerProfileQueryClient",
+                "JdkProgressionCommandClient",
+                "JdkProgressionQueryClient",
                 "JdkTemplateCommandClient",
                 "JdkTemplateQueryClient",
                 "JdkWarehouseCommandClient",

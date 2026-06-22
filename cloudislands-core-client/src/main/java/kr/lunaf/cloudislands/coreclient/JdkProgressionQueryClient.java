@@ -26,13 +26,17 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     @Override
     public CompletableFuture<LevelView> level(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/level").thenApply(JdkProgressionQueryClient::levelView);
+        return core.getBody("/v1/islands/" + islandId + "/level")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkProgressionQueryClient::levelView);
     }
 
     @Override
     public CompletableFuture<ProgressionBlockDetailsView> blockDetails(UUID islandId, int limit) {
         requireIsland(islandId);
-        return core.post("/v1/islands/blocks", CoreJsonPayload.object("islandId", islandId, "limit", boundedLimit(limit))).thenApply(JdkProgressionQueryClient::blockDetailsView);
+        return core.postBody("/v1/islands/blocks", CoreJsonPayload.object("islandId", islandId, "limit", boundedLimit(limit)))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkProgressionQueryClient::blockDetailsView);
     }
 
     @Override
@@ -50,34 +54,45 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
 
     @Override
     public CompletableFuture<List<ProgressionRankingEntryView>> topWorth(int limit) {
-        return core.post("/v1/rankings/worth", CoreJsonPayload.object("limit", boundedLimit(limit))).thenApply(body -> rankingViews(body, "worth"));
+        return core.postBody("/v1/rankings/worth", CoreJsonPayload.object("limit", boundedLimit(limit)))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> rankingViews(body, "worth"));
     }
 
     @Override
     public CompletableFuture<List<ProgressionRankingEntryView>> topLevel(int limit) {
-        return core.post("/v1/rankings/level", CoreJsonPayload.object("limit", boundedLimit(limit))).thenApply(body -> rankingViews(body, "level"));
+        return core.postBody("/v1/rankings/level", CoreJsonPayload.object("limit", boundedLimit(limit)))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> rankingViews(body, "level"));
     }
 
     @Override
     public CompletableFuture<List<ProgressionReviewRankingEntryView>> topReviews(int limit) {
-        return core.post("/v1/rankings/reviews", CoreJsonPayload.object("limit", boundedLimit(limit))).thenApply(JdkProgressionQueryClient::reviewRankingViews);
+        return core.postBody("/v1/rankings/reviews", CoreJsonPayload.object("limit", boundedLimit(limit)))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkProgressionQueryClient::reviewRankingViews);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.UpgradeView>> upgrades(UUID islandId) {
         requireIsland(islandId);
-        return core.post("/v1/islands/upgrades", CoreJsonPayload.object("islandId", islandId)).thenApply(JdkProgressionQueryClient::upgradeViews);
+        return core.postBody("/v1/islands/upgrades", CoreJsonPayload.object("islandId", islandId))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkProgressionQueryClient::upgradeViews);
     }
 
     @Override
     public CompletableFuture<List<UpgradeRuleView>> upgradeRules() {
-        return core.post("/v1/upgrades/rules", "{}").thenApply(JdkProgressionQueryClient::upgradeRuleViews);
+        return core.postBody("/v1/upgrades/rules", "{}")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkProgressionQueryClient::upgradeRuleViews);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.MissionView>> missions(UUID islandId, String kind) {
         requireIsland(islandId);
-        return core.post("/v1/islands/missions", CoreJsonPayload.object("islandId", islandId, "kind", kind == null || kind.isBlank() ? "MISSION" : kind))
+        return core.postBody("/v1/islands/missions", CoreJsonPayload.object("islandId", islandId, "kind", kind == null || kind.isBlank() ? "MISSION" : kind))
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkProgressionQueryClient::missionViews);
     }
 
