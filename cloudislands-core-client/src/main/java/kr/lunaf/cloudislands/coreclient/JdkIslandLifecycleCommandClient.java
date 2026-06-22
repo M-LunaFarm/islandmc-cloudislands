@@ -143,11 +143,12 @@ final class JdkIslandLifecycleCommandClient implements IslandLifecycleCommandCli
 
     private static CreateIslandResult createIslandResult(String body) {
         Map<?, ?> root = CoreJson.object(body);
+        boolean accepted = bool(root, "accepted") || bool(root, "created");
         return new CreateIslandResult(
-            bool(root, "created"),
+            accepted,
             code(root),
             null,
-            JdkCoreApiClient.RouteTicketJson.parseNested(body == null ? "" : body, "ticket")
+            CoreRouteJson.nestedRouteTicket(body == null ? "" : body, "ticket")
         );
     }
 

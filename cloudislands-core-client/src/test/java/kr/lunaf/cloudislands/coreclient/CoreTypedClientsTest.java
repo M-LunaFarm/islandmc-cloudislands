@@ -181,6 +181,24 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void jdkCoreApiClientDelegatesRouteCompatibilityMethodsToStandaloneClient() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+        String routeClient = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreRouteClient.java"));
+        String routeJson = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreRouteJson.java"));
+
+        assertTrue(source.contains("this.routeCoreClient = new JdkCoreRouteClient(this);"));
+        assertTrue(source.contains("return routeCoreClient.createHomeTicket(playerUuid, homeName);"));
+        assertTrue(source.contains("return routeCoreClient.consumeRouteSession(playerUuid, nodeId, ticketId, nonce, reportMissing);"));
+        assertTrue(source.contains("return routeCoreClient.adminIslandTeleport(playerUuid, islandId);"));
+        assertFalse(source.contains("parseRouteTicketResult("), "route result parsing must not live on the core transport client");
+        assertFalse(source.contains("private static final class RouteSessionJson"), "route session parsing must not live on the core transport client");
+        assertFalse(source.contains("static final class RouteTicketJson"), "route ticket parsing must not live on the core transport client");
+        assertTrue(routeClient.contains("thenApply(CoreRouteJson::routeTicketResult)"));
+        assertTrue(routeClient.contains("Optional.of(CoreRouteJson.routeSession(body))"));
+        assertTrue(routeJson.contains("static RouteTicket nestedRouteTicket("));
+    }
+
+    @Test
     void jdkCoreApiClientDelegatesWarehouseMethodsToStandaloneClients() throws Exception {
         String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
 

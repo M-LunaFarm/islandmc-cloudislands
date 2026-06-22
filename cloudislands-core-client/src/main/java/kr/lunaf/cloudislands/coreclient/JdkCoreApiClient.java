@@ -5,7 +5,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,10 +29,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
-import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
-import kr.lunaf.cloudislands.api.model.RouteTicketState;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
@@ -60,6 +56,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final HomeWarpCommandClient homeWarpCommandClient;
     private final WarehouseQueryClient warehouseQueryClient;
     private final WarehouseCommandClient warehouseCommandClient;
+    private final JdkCoreRouteClient routeCoreClient;
     private final RoutingCommandClient routingClient;
     private final NavigationQueryClient navigationQueryClient;
     private final NavigationCommandClient navigationCommandClient;
@@ -117,6 +114,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.homeWarpCommandClient = new JdkHomeWarpCommandClient(this);
         this.warehouseQueryClient = new JdkWarehouseQueryClient(this);
         this.warehouseCommandClient = new JdkWarehouseCommandClient(this);
+        this.routeCoreClient = new JdkCoreRouteClient(this);
         this.routingClient = new JdkRoutingClient(this);
         this.navigationQueryClient = new JdkNavigationQueryClient(this);
         this.navigationCommandClient = new JdkNavigationCommandClient(this);
@@ -403,91 +401,82 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
-        return createHomeTicket(playerUuid, "default");
+        return routeCoreClient.createHomeTicket(playerUuid);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
-        return postWithResultBody("/v1/routes/home", jsonObject("playerUuid", playerUuid, "homeName", homeName)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return routeCoreClient.createHomeTicket(playerUuid, homeName);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) {
-        return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "islandId", targetIslandId)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return routeCoreClient.createVisitTicket(visitorUuid, targetIslandId);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) {
-        return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "islandName", islandName)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return routeCoreClient.createVisitTicket(visitorUuid, islandName);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
-        return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "ownerUuid", ownerUuid)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return routeCoreClient.createVisitTicketForOwner(visitorUuid, ownerUuid);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
-        return postWithResultBody("/v1/routes/random", jsonObject("playerUuid", visitorUuid)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return routeCoreClient.createRandomVisitTicket(visitorUuid);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
-        return postWithResultBody("/v1/routes/warp", jsonObject("playerUuid", playerUuid, "islandId", islandId, "warpName", warpName)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return routeCoreClient.createWarpTicket(playerUuid, islandId, warpName);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch) {
-        return postWithResultBody("/v1/routes/migration-return", jsonObject(
-            "playerUuid", playerUuid,
-            "islandId", islandId,
-            "targetNode", targetNode,
-            "localX", localX,
-            "localY", localY,
-            "localZ", localZ,
-            "yaw", yaw,
-            "pitch", pitch
-        )).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return routeCoreClient.createMigrationReturnTicket(playerUuid, islandId, targetNode, localX, localY, localZ, yaw, pitch);
     }
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId) {
-        return post("/v1/routes/session/find", jsonObject("playerUuid", playerUuid, "nodeId", nodeId)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+        return routeCoreClient.findRouteSession(playerUuid, nodeId);
     }
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid) {
-        return post("/v1/routes/session/find-any", jsonObject("playerUuid", playerUuid)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+        return routeCoreClient.findAnyRouteSession(playerUuid);
     }
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId) {
-        return consumeRouteSession(playerUuid, nodeId, true);
+        return routeCoreClient.consumeRouteSession(playerUuid, nodeId);
     }
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, boolean reportMissing) {
-        return post("/v1/routes/session/consume", jsonObject("playerUuid", playerUuid, "nodeId", nodeId, "reportMissing", reportMissing)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+        return routeCoreClient.consumeRouteSession(playerUuid, nodeId, reportMissing);
     }
 
     @Override
     public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, UUID ticketId, String nonce, boolean reportMissing) {
-        return post("/v1/routes/session/consume", jsonObject("playerUuid", playerUuid, "nodeId", nodeId, "ticketId", ticketId, "nonce", nonce, "reportMissing", reportMissing)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.of(RouteSessionJson.parse(body)));
+        return routeCoreClient.consumeRouteSession(playerUuid, nodeId, ticketId, nonce, reportMissing);
     }
 
     @Override
     public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce) {
-        return post("/v1/routes/ticket-status", jsonObject("ticketId", ticketId, "playerUuid", playerUuid, "nonce", nonce)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(RouteTicketJson.parse(body)));
+        return routeCoreClient.routeTicketStatus(ticketId, playerUuid, nonce);
     }
 
     @Override
     public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
-        return post("/v1/routes/consume", jsonObject("ticketId", ticketId, "playerUuid", playerUuid, "nodeId", nodeId, "nonce", nonce)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(RouteTicketJson.parse(body)));
+        return routeCoreClient.consumeTicket(ticketId, playerUuid, nodeId, nonce);
     }
 
     @Override
     public CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId) {
-        return postWithResultBody("/v1/admin/islands/tp", jsonObject("playerUuid", playerUuid, "islandId", islandId)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        return routeCoreClient.adminIslandTeleport(playerUuid, islandId);
     }
 
     static String stringMapJson(Map<String, String> values) {
@@ -573,75 +562,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private CompletableFuture<CoreHttpResponse> send(HttpRequest request) {
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> new CoreHttpResponse(response.statusCode(), response.body()));
-    }
-
-    private static RouteTicket parseRouteTicketResult(String body) {
-        if (body == null || body.isBlank()) {
-            throw new CoreApiException("ROUTE_FAILED", "Route ticket could not be created");
-        }
-        Object parsed = SimpleJson.parse(body);
-        if (!containsField(parsed, "ticketId")) {
-            Map<?, ?> root = SimpleJson.object(parsed);
-            String code = SimpleJson.text(root.get("code"));
-            String message = SimpleJson.text(root.get("message"));
-            throw new CoreApiException(code.isBlank() ? "ROUTE_FAILED" : code, message.isBlank() ? "Route ticket could not be created" : message);
-        }
-        RouteTicket ticket = RouteTicketJson.parse(body);
-        if (ticket == null) {
-            throw new CoreApiException("ROUTE_FAILED", "Route ticket could not be parsed");
-        }
-        return ticket;
-    }
-
-    private static boolean containsField(Object value, String key) {
-        if (value instanceof Map<?, ?> map) {
-            if (map.containsKey(key)) {
-                return true;
-            }
-            for (Object nested : map.values()) {
-                if (containsField(nested, key)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        if (value instanceof List<?> list) {
-            for (Object nested : list) {
-                if (containsField(nested, key)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private static Map<?, ?> resultObject(String body) {
-        if (body == null || body.isBlank()) {
-            return Map.of();
-        }
-        return SimpleJson.object(SimpleJson.parse(body));
-    }
-
-    private static String resultCode(Map<?, ?> root) {
-        String code = SimpleJson.text(root.get("code"));
-        return code.isBlank() ? "FAILED" : code;
-    }
-
-    private static UUID uuid(Map<?, ?> root, String key, UUID fallback) {
-        String value = SimpleJson.text(root.get(key));
-        if (value.isBlank()) {
-            return fallback;
-        }
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException ignored) {
-            return fallback;
-        }
-    }
-
-    private static String text(Map<?, ?> root, String key, String fallback) {
-        String value = SimpleJson.text(root.get(key));
-        return value.isBlank() ? fallback : value;
     }
 
     private boolean adminProtected(String path) {
@@ -869,112 +789,4 @@ public final class JdkCoreApiClient implements CoreApiClient {
         return value;
     }
 
-    private static final class RouteSessionJson {
-        static PlayerRouteSession parse(String json) {
-            Map<?, ?> root = resultObject(json);
-            return new PlayerRouteSession(
-                uuid(root, "playerUuid", new UUID(0L, 0L)),
-                uuid(root, "ticketId", new UUID(0L, 0L)),
-                text(root, "targetNode", ""),
-                text(root, "targetServerName", ""),
-                text(root, "nonce", ""),
-                Instant.parse(text(root, "expiresAt", Instant.now().toString()))
-            );
-        }
-    }
-
-    static final class RouteTicketJson {
-        private RouteTicketJson() {}
-
-        static RouteTicket parseNested(String json, String field) {
-            if (json == null || json.isBlank()) {
-                return null;
-            }
-            Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
-            Map<?, ?> nested = SimpleJson.object(root.get(field));
-            if (nested.isEmpty()) {
-                return null;
-            }
-            return parseObject(nested);
-        }
-
-        static RouteTicket parse(String json) {
-            if (json == null || json.isBlank()) {
-                return null;
-            }
-            Map<?, ?> ticket = ticketObject(SimpleJson.parse(json));
-            return ticket.isEmpty() ? null : parseObject(ticket);
-        }
-
-        private static Map<?, ?> ticketObject(Object value) {
-            if (value instanceof Map<?, ?> map) {
-                if (map.containsKey("ticketId")) {
-                    return map;
-                }
-                Map<?, ?> nestedTicket = SimpleJson.object(map.get("ticket"));
-                if (!nestedTicket.isEmpty()) {
-                    return nestedTicket;
-                }
-                for (Object nested : map.values()) {
-                    Map<?, ?> found = ticketObject(nested);
-                    if (!found.isEmpty()) {
-                        return found;
-                    }
-                }
-            }
-            if (value instanceof List<?> list) {
-                for (Object nested : list) {
-                    Map<?, ?> found = ticketObject(nested);
-                    if (!found.isEmpty()) {
-                        return found;
-                    }
-                }
-            }
-            return Map.of();
-        }
-
-        private static RouteTicket parseObject(Map<?, ?> ticket) {
-            UUID ticketId = uuid(ticket, "ticketId", UUID.randomUUID());
-            UUID playerUuid = uuid(ticket, "playerUuid", new UUID(0L, 0L));
-            UUID islandId = uuid(ticket, "islandId", new UUID(0L, 0L));
-            RouteAction action = enumValue(RouteAction.class, text(ticket, "action", "HOME"), RouteAction.HOME);
-            RouteTicketState state = enumValue(RouteTicketState.class, text(ticket, "state", "READY"), RouteTicketState.READY);
-            String targetNode = text(ticket, "targetNode", "");
-            String targetWorld = text(ticket, "targetWorld", "ci_shard_001");
-            String nonce = text(ticket, "nonce", "");
-            String serverName = text(ticket, "targetServerName", targetNode);
-            java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
-            payload.put("targetServerName", serverName);
-            putIfPresent(payload, ticket, "targetType");
-            putIfPresent(payload, ticket, "homeName");
-            putIfPresent(payload, ticket, "warpName");
-            putIfPresent(payload, ticket, "localX");
-            putIfPresent(payload, ticket, "localY");
-            putIfPresent(payload, ticket, "localZ");
-            putIfPresent(payload, ticket, "yaw");
-            putIfPresent(payload, ticket, "pitch");
-            Instant expiresAt = Instant.parse(text(ticket, "expiresAt", Instant.now().plusSeconds(30).toString()));
-            return new RouteTicket(ticketId, playerUuid, action, islandId, targetNode, targetWorld, state, expiresAt, nonce, Map.copyOf(payload));
-        }
-
-        private static void putIfPresent(Map<String, String> payload, Map<?, ?> ticket, String field) {
-            if (ticket.containsKey(field)) {
-                String value = SimpleJson.text(ticket.get(field));
-                payload.put(field, value);
-            }
-        }
-
-        private static String text(Map<?, ?> ticket, String field, String fallback) {
-            String value = SimpleJson.text(ticket.get(field));
-            return value.isBlank() ? fallback : value;
-        }
-
-        private static <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {
-            try {
-                return Enum.valueOf(type, value);
-            } catch (IllegalArgumentException ignored) {
-                return fallback;
-            }
-        }
-    }
 }
