@@ -26,6 +26,7 @@ class IslandHomeWarpUseCaseTest {
 
         assertEquals("HOME_SET", useCase.setHomeAction(islandId, actorUuid, "home", location, mutationRunner(calls)).join().code());
         assertEquals("WARP_SET", useCase.setWarpAction(islandId, actorUuid, "spawn", location, false, mutationRunner(calls)).join().code());
+        assertEquals("WARP_SET", useCase.setWarpAction(islandId, actorUuid, "market-spawn", location, true, "Market", mutationRunner(calls)).join().code());
         assertEquals("home", useCase.homeViews(islandId).join().getFirst().name());
         assertEquals("spawn", useCase.warpViews(islandId).join().getFirst().name());
         assertEquals("Island", useCase.islandInfoView(islandId).join().name());
@@ -37,7 +38,9 @@ class IslandHomeWarpUseCaseTest {
             "audit:island.home.set",
             "setIslandHomeResult:home",
             "audit:island.warp.set",
-            "setIslandWarpResult:spawn:false",
+            "setIslandWarpResult:spawn:false:default",
+            "audit:island.warp.set",
+            "setIslandWarpResult:market-spawn:true:market",
             "listIslandHomes",
             "listIslandWarps",
             "islandInfo",
@@ -61,7 +64,8 @@ class IslandHomeWarpUseCaseTest {
                     yield CompletableFuture.completedFuture(new HomeWarpActionView(true, "HOME_SET"));
                 }
                 case "setWarp" -> {
-                    calls.add("setIslandWarpResult:" + args[2] + ":" + args[4]);
+                    String category = args.length > 5 ? String.valueOf(args[5]) : "";
+                    calls.add("setIslandWarpResult:" + args[2] + ":" + args[4] + ":" + category);
                     yield CompletableFuture.completedFuture(new HomeWarpActionView(true, "WARP_SET"));
                 }
                 case "homes" -> {

@@ -146,6 +146,9 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> createWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
     CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
+    default CompletableFuture<Void> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category) {
+        return setWarpResult(islandId, actorUuid, name, location, publicAccess, category).thenApply(_result -> null);
+    }
     default CompletableFuture<IslandActionResult> setWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category) {
         return setWarpResult(islandId, actorUuid, name, location, publicAccess);
     }

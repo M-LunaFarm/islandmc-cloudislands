@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
@@ -61,15 +62,24 @@ public final class IslandHomeWarpUseCase {
     }
 
     private CompletableFuture<HomeWarpActionView> setWarpBody(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, MutationRunner runner) {
+        return setWarpBody(islandId, actorUuid, name, location, publicAccess, "", runner);
+    }
+
+    private CompletableFuture<HomeWarpActionView> setWarpBody(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
         requireLocation(location);
         requireRunner(runner);
-        return runner.mutate("island.warp.set", () -> homeWarpCommands.setWarp(islandId, actorUuid, normalizeName(name), location, publicAccess));
+        return runner.mutate("island.warp.set", () -> homeWarpCommands.setWarp(islandId, actorUuid, normalizeName(name), location, publicAccess, IslandWarpSnapshot.normalizeCategory(category)));
     }
 
     public CompletableFuture<HomeWarpActionResult> setWarpAction(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, MutationRunner runner) {
         return setWarpBody(islandId, actorUuid, name, location, publicAccess, runner)
+            .thenApply(IslandHomeWarpUseCase::actionResult);
+    }
+
+    public CompletableFuture<HomeWarpActionResult> setWarpAction(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category, MutationRunner runner) {
+        return setWarpBody(islandId, actorUuid, name, location, publicAccess, category, runner)
             .thenApply(IslandHomeWarpUseCase::actionResult);
     }
 

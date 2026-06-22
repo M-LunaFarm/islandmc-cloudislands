@@ -257,6 +257,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.settingsCommands().setPublicAccess(islandId, actorUuid, publicAccess)"), "Public access mutation must use the typed settings command client");
         assertTrue(source.contains("client.homeWarpCommands().setHome(islandId, actorUuid, name, location)"), "Home mutation must use the typed home/warp command client");
         assertTrue(source.contains("client.homeWarpCommands().setWarp(islandId, actorUuid, name, location, publicAccess)"), "Warp mutation must use the typed home/warp command client");
+        assertTrue(source.contains("client.homeWarpCommands().setWarp(islandId, actorUuid, name, location, publicAccess, category)"), "Warp category mutation must use the typed home/warp command client");
         assertTrue(source.contains("client.homeWarpCommands().deleteWarp(islandId, actorUuid, name)"), "Warp deletion must use the typed home/warp command client");
         assertTrue(source.contains("client.homeWarpCommands().setWarpPublicAccess(islandId, actorUuid, name, publicAccess)"), "Warp visibility mutation must use the typed home/warp command client");
         assertTrue(source.contains("client.communicationCommands().sendChat(islandId, actorUuid, channel, message)"), "Chat mutation must use the typed communication command client");
