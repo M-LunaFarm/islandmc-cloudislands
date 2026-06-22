@@ -140,10 +140,11 @@ public final class IslandWarpMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, GuiSession session, String title, List<WarpView> warps, boolean publicMenu, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             GuiMenuDefinition menu = publicMenu ? PUBLIC_MENU : MENU;
-            Inventory inventory = GuiMenuRenderer.render(menu, session, messages, title, item -> true);
-            int slot = 0;
-            for (WarpView warp : warps.stream().limit(45).toList()) {
-                inventory.setItem(slot++, warpItem(warp, publicMenu, messages));
+            Inventory inventory = GuiMenuRenderer.render(menu, session, messages, title, item -> !"_".equals(item.symbol()));
+            List<Integer> warpSlots = GuiMenuRenderer.slots(menu, "_");
+            List<WarpView> visibleWarps = warps.stream().limit(warpSlots.size()).toList();
+            for (int index = 0; index < visibleWarps.size(); index++) {
+                inventory.setItem(warpSlots.get(index), warpItem(visibleWarps.get(index), publicMenu, messages));
             }
             player.openInventory(inventory);
         });

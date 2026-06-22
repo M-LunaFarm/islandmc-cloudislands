@@ -92,11 +92,12 @@ public final class IslandMissionMenu implements Listener {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
             Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, session, MENU.size(), message(messages, MENU.titleKey(), challenge ? CHALLENGE_TITLE : MISSION_TITLE));
-            GuiMenuRenderer.populate(inventory, MENU, messages, item -> !"E".equals(item.symbol()));
+            GuiMenuRenderer.populate(inventory, MENU, messages, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             MENU.itemAt(49).ifPresent(item -> inventory.setItem(49, GuiMenuRenderer.item(MENU, item, messages, Map.of("kind", challenge ? "CHALLENGE" : "MISSION"), List.of(challenge ? message(messages, "mission-menu-challenge-command", "/섬 챌린지") : message(messages, "mission-menu-mission-command", "/섬 미션")))));
-            int slot = 0;
-            for (MissionView mission : missions.stream().limit(45).toList()) {
-                inventory.setItem(slot++, missionItem(mission, messages));
+            List<Integer> missionSlots = GuiMenuRenderer.slots(MENU, "_");
+            List<MissionView> visibleMissions = missions.stream().limit(missionSlots.size()).toList();
+            for (int index = 0; index < visibleMissions.size(); index++) {
+                inventory.setItem(missionSlots.get(index), missionItem(visibleMissions.get(index), messages));
             }
             if (missions.isEmpty()) {
                 setEmptyItem(inventory, messages);

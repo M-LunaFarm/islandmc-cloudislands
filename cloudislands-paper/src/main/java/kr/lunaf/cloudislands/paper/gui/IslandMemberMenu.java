@@ -33,7 +33,7 @@ public final class IslandMemberMenu implements Listener {
         ))
     );
     private static final String MENU_ID = MENU.id();
-    private static final int MEMBERS_PER_PAGE = 45;
+    private static final int MEMBERS_PER_PAGE = GuiMenuRenderer.slots(MENU, "_").size();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -115,15 +115,16 @@ public final class IslandMemberMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<MemberView> members, MessageRenderer messages, int page) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"_".equals(item.symbol()));
             int maxPage = maxPage(members.size());
             int safePage = Math.max(0, Math.min(maxPage, page));
             setFooterItem(inventory, 46, messages, Map.of("page", String.valueOf(Math.max(0, safePage - 1))), pageLine(safePage, maxPage, members.size()));
             setFooterItem(inventory, 48, messages, Map.of("page", String.valueOf(Math.min(maxPage, safePage + 1))), pageLine(safePage, maxPage, members.size()));
             setFooterItem(inventory, 51, messages, Map.of(), pageLine(safePage, maxPage, members.size()));
-            int slot = 0;
-            for (MemberView member : members.stream().skip((long) safePage * MEMBERS_PER_PAGE).limit(MEMBERS_PER_PAGE).toList()) {
-                inventory.setItem(slot++, memberItem(member, messages));
+            List<Integer> memberSlots = GuiMenuRenderer.slots(MENU, "_");
+            List<MemberView> visibleMembers = members.stream().skip((long) safePage * MEMBERS_PER_PAGE).limit(memberSlots.size()).toList();
+            for (int index = 0; index < visibleMembers.size(); index++) {
+                inventory.setItem(memberSlots.get(index), memberItem(visibleMembers.get(index), messages));
             }
             player.openInventory(inventory);
         });

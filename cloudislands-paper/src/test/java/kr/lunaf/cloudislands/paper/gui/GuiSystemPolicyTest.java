@@ -373,6 +373,26 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void stateAndPagedListSlotsRenderFromMenuDefinitionLayout() throws Exception {
+        for (String[] menuCase : List.of(
+                new String[] {"IslandFlagMenu", "flags.yml", "GuiMenuRenderer.slots(MENU, \"_\")"},
+                new String[] {"IslandMissionMenu", "missions.yml", "GuiMenuRenderer.slots(MENU, \"_\")"},
+                new String[] {"IslandMemberMenu", "members.yml", "GuiMenuRenderer.slots(MENU, \"_\")"},
+                new String[] {"IslandWarpMenu", "warps.yml", "GuiMenuRenderer.slots(menu, \"_\")"}
+        )) {
+            String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuCase[0] + ".java"));
+            String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + menuCase[1]));
+
+            assertTrue(definition.contains("\"_________\""), menuCase[1] + " must expose dynamic item slots in config-v2 layout");
+            assertTrue(menu.contains(menuCase[2]), menuCase[0] + " entries must use menu definition slots");
+            assertFalse(menu.contains("int slot = 0"), menuCase[0] + " entries must not start from a Java hard-coded slot");
+            assertFalse(menu.contains("slot++"), menuCase[0] + " entries must not advance through Java hard-coded slots");
+        }
+        String publicWarps = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/public-warps.yml"));
+        assertTrue(publicWarps.contains("\"_________\""), "public-warps.yml must expose dynamic item slots in config-v2 layout");
+    }
+
+    @Test
     void remainingDynamicItemMaterialsRenderFromMenuDefinitions() throws Exception {
         for (String[] menuCase : List.of(
                 new String[] {"IslandPermissionMenu", "permissions.yml", "ALLOW", "LIME_DYE"},

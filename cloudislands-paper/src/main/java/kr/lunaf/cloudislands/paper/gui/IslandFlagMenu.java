@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -87,10 +88,12 @@ public final class IslandFlagMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, Map<IslandFlag, String> values, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
-            int slot = 0;
-            for (IslandFlag flag : java.util.Arrays.stream(IslandFlag.values()).limit(49).toList()) {
-                inventory.setItem(slot++, flagItem(flag, values.get(flag), messages));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"_".equals(item.symbol()));
+            List<Integer> flagSlots = GuiMenuRenderer.slots(MENU, "_");
+            List<IslandFlag> visibleFlags = java.util.Arrays.stream(IslandFlag.values()).limit(flagSlots.size()).toList();
+            for (int index = 0; index < visibleFlags.size(); index++) {
+                IslandFlag flag = visibleFlags.get(index);
+                inventory.setItem(flagSlots.get(index), flagItem(flag, values.get(flag), messages));
             }
             player.openInventory(inventory);
         });

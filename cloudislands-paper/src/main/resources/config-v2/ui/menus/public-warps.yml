@@ -2,13 +2,18 @@ id: island.public-warps
 rows: 6
 title-key: menu.public-warps.title
 layout:
-  - "........."
-  - "........."
-  - "........."
-  - "........."
-  - "........."
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
   - "R...S...M"
 items:
+  _:
+    material: ENDER_PEARL
+    name-key: warp-menu-entry-name
+    fallback-name: 섬 워프
+    action: teleport
   PRIVATE:
     material: ENDER_PEARL
     name-key: warp-menu-private-entry-name
