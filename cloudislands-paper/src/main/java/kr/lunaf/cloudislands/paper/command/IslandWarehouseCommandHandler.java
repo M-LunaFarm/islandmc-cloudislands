@@ -56,6 +56,10 @@ final class IslandWarehouseCommandHandler {
             openWarehouseMenu(player);
             return true;
         }
+        if (action instanceof GuiAction.NoPayload noPayload && noPayload.type() == GuiAction.NoPayloadType.WAREHOUSE_DEPOSIT_HELP) {
+            runtime.message(player, runtime.routeMessage("warehouse-deposit-help", "사용법: /섬 창고입금 <재료> <수량>"));
+            return true;
+        }
         return false;
     }
 

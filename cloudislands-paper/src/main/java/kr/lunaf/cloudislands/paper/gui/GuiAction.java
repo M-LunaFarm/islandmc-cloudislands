@@ -257,6 +257,7 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         HOMES_OPEN("island.homes.open"),
         WARPS_OPEN("island.warps.open"),
         WAREHOUSE_OPEN("island.warehouse.open"),
+        WAREHOUSE_DEPOSIT_HELP("island.warehouse.deposit.help"),
         VISIT_OPEN("island.visit.open"),
         VISIT_RANDOM("island.visit.random"),
         VISIT_PUBLIC_OPEN("island.visit.public.open"),

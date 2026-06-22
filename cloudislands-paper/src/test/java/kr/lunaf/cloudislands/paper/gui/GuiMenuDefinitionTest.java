@@ -678,7 +678,7 @@ class GuiMenuDefinitionTest {
         assertEquals("island.warehouse", warehouse.id());
         assertEquals("_", warehouse.itemAt(0).orElseThrow().symbol());
         assertEquals("D", warehouse.itemAt(45).orElseThrow().symbol());
-        assertEquals("island.warehouse.open", warehouse.action(warehouse.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("island.warehouse.deposit.help", warehouse.action(warehouse.itemAt(45).orElseThrow().actionKey(), ""));
         assertEquals("R", warehouse.itemAt(49).orElseThrow().symbol());
         assertEquals("island.warehouse.open", warehouse.action(warehouse.itemAt(49).orElseThrow().actionKey(), ""));
         assertEquals("M", warehouse.itemAt(53).orElseThrow().symbol());

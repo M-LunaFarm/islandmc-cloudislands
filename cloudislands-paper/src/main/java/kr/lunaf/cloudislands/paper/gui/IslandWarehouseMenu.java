@@ -21,6 +21,7 @@ public final class IslandWarehouseMenu implements Listener {
         new GuiMenuDefinition("island.warehouse", 6, "menu.warehouse.title", Map.of(
             "open", "island.warehouse.open",
             "list", "island.warehouse.open",
+            "deposit-help", "island.warehouse.deposit.help",
             "back", "island.main.open"
         ))
     );

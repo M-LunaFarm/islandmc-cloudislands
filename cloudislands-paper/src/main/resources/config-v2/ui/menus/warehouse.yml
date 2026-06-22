@@ -28,7 +28,7 @@ items:
       - warehouse-menu-deposit-command
     fallback-lore:
       - "명령으로 보유 아이템을 공동 창고에 넣습니다."
-    action: open
+    action: deposit-help
   R:
     material: CLOCK
     name-key: warehouse-menu-refresh-name
@@ -50,4 +50,5 @@ items:
 actions:
   open: island.warehouse.open
   list: island.warehouse.open
+  deposit-help: island.warehouse.deposit.help
   back: island.main.open

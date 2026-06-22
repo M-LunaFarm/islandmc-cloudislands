@@ -100,6 +100,7 @@ class GuiActionParserTest {
         assertNoPayloadType("island.homes.open", GuiAction.NoPayloadType.HOMES_OPEN);
         assertNoPayloadType("island.warps.open", GuiAction.NoPayloadType.WARPS_OPEN);
         assertNoPayloadType("island.warehouse.open", GuiAction.NoPayloadType.WAREHOUSE_OPEN);
+        assertNoPayloadType("island.warehouse.deposit.help", GuiAction.NoPayloadType.WAREHOUSE_DEPOSIT_HELP);
         assertNoPayloadType("island.visit.open", GuiAction.NoPayloadType.VISIT_OPEN);
         assertNoPayloadType("island.visit.random", GuiAction.NoPayloadType.VISIT_RANDOM);
         assertNoPayloadType("island.visit.public.open", GuiAction.NoPayloadType.VISIT_PUBLIC_OPEN);
