@@ -68,7 +68,7 @@ class CoreTypedClientsTest {
         assertFalse(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile commands to a standalone client");
         assertFalse(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template queries to a standalone client");
         assertFalse(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template commands to a standalone client");
-        assertTrue(JobCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed job commands directly");
+        assertFalse(JobCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate job commands to a standalone client");
         assertFalse(BlockValueCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate block value commands to a standalone client");
         assertFalse(WarehouseQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse queries to a standalone client");
         assertFalse(WarehouseCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse commands to a standalone client");
@@ -77,10 +77,10 @@ class CoreTypedClientsTest {
         assertSame(JdkPlayerProfileCommandClient.class, client.playerProfileCommands().getClass());
         assertSame(JdkTemplateQueryClient.class, client.templates().getClass());
         assertSame(JdkTemplateCommandClient.class, client.templateCommands().getClass());
+        assertSame(JdkJobCommandClient.class, client.jobCommands().getClass());
         assertSame(JdkBlockValueCommandClient.class, client.blockValueCommands().getClass());
         assertSame(JdkWarehouseQueryClient.class, client.warehouse().getClass());
         assertSame(JdkWarehouseCommandClient.class, client.warehouseCommands().getClass());
-        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("retry", UUID.class).getDeclaringClass());
     }
 
     @Test
@@ -181,6 +181,18 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("public CompletableFuture<BlockValueActionView> set("), "block value commands must not live on the core transport client");
         assertFalse(source.contains("requireMaterialKey("), "block value input validation must live in the block value command client");
         assertTrue(source.contains("this.blockValueCommandClient = new JdkBlockValueCommandClient(this);"));
+    }
+
+    @Test
+    void jdkCoreApiClientDelegatesJobCommandsToStandaloneClient() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+
+        assertTrue(source.contains("public CompletableFuture<List<IslandJob>> claimJobs("), "runtime job claims remain the CoreApiClient direct protocol contract");
+        assertFalse(source.contains("public CompletableFuture<JobActionView> retry("), "job retry must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<JobActionView> cancel("), "job cancel must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<JobRecoveryView> recover("), "job recovery must not live on the core transport client");
+        assertFalse(source.contains("requireJobNode("), "job command validation must live in the job command client");
+        assertTrue(source.contains("this.jobCommandClient = new JdkJobCommandClient(this);"));
     }
 
     @Test

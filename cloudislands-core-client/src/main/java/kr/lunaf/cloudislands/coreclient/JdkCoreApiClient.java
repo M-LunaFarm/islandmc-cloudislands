@@ -43,7 +43,7 @@ import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, IslandLifecycleCommandClient, JobCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, IslandLifecycleCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -74,6 +74,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     private final TemplateQueryClient templateQueryClient;
     private final TemplateCommandClient templateCommandClient;
     private final JdkJobClient jobQueryClient;
+    private final JobCommandClient jobCommandClient;
     private final BlockValueQueryClient blockValueQueryClient;
     private final BlockValueCommandClient blockValueCommandClient;
     private final AdminMetricsQueryClient adminMetricsClient;
@@ -125,6 +126,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.templateQueryClient = new JdkTemplateQueryClient(this);
         this.templateCommandClient = new JdkTemplateCommandClient(this);
         this.jobQueryClient = new JdkJobClient(this);
+        this.jobCommandClient = new JdkJobCommandClient(this);
         this.blockValueQueryClient = new JdkBlockValueQueryClient(this);
         this.blockValueCommandClient = new JdkBlockValueCommandClient(this);
         this.adminMetricsClient = new JdkAdminMetricsClient(this);
@@ -299,7 +301,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
 
     @Override
     public JobCommandClient jobCommands() {
-        return this;
+        return jobCommandClient;
     }
 
     @Override
@@ -660,40 +662,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
         return postWithResultBody("/v1/jobs/claim", jsonObject("nodeId", nodeId, "supportedTypes", types, "maxJobs", maxJobs)).thenApply(IslandJobJson::readArray);
-    }
-
-    @Override
-    public CompletableFuture<JobActionView> retry(UUID jobId) {
-        requireId(jobId, "jobId");
-        return postWithResultBody("/v1/admin/jobs/retry", jsonObject("jobId", jobId))
-            .thenApply(body -> CoreJobJson.action(body, "JOB_RETRIED"));
-    }
-
-    @Override
-    public CompletableFuture<JobActionView> cancel(UUID jobId) {
-        requireId(jobId, "jobId");
-        return postWithResultBody("/v1/admin/jobs/cancel", jsonObject("jobId", jobId))
-            .thenApply(body -> CoreJobJson.action(body, "JOB_CANCELED"));
-    }
-
-    @Override
-    public CompletableFuture<JobRecoveryView> recover(String nodeId, long minIdleMillis, int maxJobs) {
-        return postWithResultBody("/v1/admin/jobs/recover", jsonObject("nodeId", requireJobNode(nodeId), "minIdleMillis", Math.max(0L, minIdleMillis), "maxJobs", Math.max(1, maxJobs)))
-            .thenApply(CoreJobJson::recovery);
-    }
-
-    private static String requireJobNode(String nodeId) {
-        if (nodeId == null || nodeId.isBlank()) {
-            throw new IllegalArgumentException("nodeId is required");
-        }
-        return nodeId.trim();
-    }
-
-    private static UUID requireJobId(UUID jobId) {
-        if (jobId == null) {
-            throw new IllegalArgumentException("jobId is required");
-        }
-        return jobId;
     }
 
     String tableMapJson(Map<String, Map<String, String>> tables) {
