@@ -51,7 +51,7 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<MemberView>> islandMembers(CoreApiClient client, UUID islandId) {
-        return client.listIslandMembers(islandId).thenApply(CoreGuiViews::members);
+        return client.islands().listMembers(islandId);
     }
 
     public static List<MemberView> memberViews(String body) {
@@ -237,23 +237,7 @@ public final class CoreGuiViews {
     }
 
     private static List<MemberView> members(String body) {
-        List<MemberView> members = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String playerUuid = text(object, "playerUuid");
-            if (!playerUuid.isBlank()) {
-                members.add(new MemberView(
-                    playerUuid,
-                    text(object, "role"),
-                    text(object, "joinedAt"),
-                    text(object, "playerName"),
-                    text(object, "lastSeenAt"),
-                    text(object, "presenceState"),
-                    text(object, "presenceSource"),
-                    text(object, "expiresAt")
-                ));
-            }
-        }
-        return members;
+        return CoreMemberJson.memberViews(body);
     }
 
     private static List<InviteView> invites(String body) {

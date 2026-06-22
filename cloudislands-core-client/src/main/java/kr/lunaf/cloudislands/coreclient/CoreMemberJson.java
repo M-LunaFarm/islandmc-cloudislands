@@ -22,6 +22,13 @@ final class CoreMemberJson {
             .toList();
     }
 
+    static List<CoreGuiViews.MemberView> memberViews(String body) {
+        return CoreJson.entries(body).stream()
+            .map(CoreMemberJson::memberView)
+            .filter(member -> !member.playerUuid().isBlank())
+            .toList();
+    }
+
     static List<IslandInviteSnapshot> invites(String body) {
         return CoreJson.entries(body).stream()
             .map(CoreMemberJson::invite)
@@ -46,6 +53,19 @@ final class CoreMemberJson {
             "",
             "",
             member == null || member.expiresAt() == null || member.expiresAt().equals(Instant.EPOCH) ? "" : member.expiresAt().toString()
+        );
+    }
+
+    private static CoreGuiViews.MemberView memberView(Map<?, ?> values) {
+        return new CoreGuiViews.MemberView(
+            CoreJson.text(values, "playerUuid"),
+            CoreJson.firstText(values, "roleKey", "role"),
+            CoreJson.text(values, "joinedAt"),
+            CoreJson.text(values, "playerName"),
+            CoreJson.text(values, "lastSeenAt"),
+            CoreJson.text(values, "presenceState"),
+            CoreJson.text(values, "presenceSource"),
+            CoreJson.text(values, "expiresAt")
         );
     }
 

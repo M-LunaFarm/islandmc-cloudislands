@@ -43,7 +43,7 @@ public final class CoreIslandQueryClient implements IslandQueryClient {
     @Override
     public CompletableFuture<List<CoreGuiViews.MemberView>> listMembers(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandMembers(delegate, islandId);
+        return delegate.listIslandMembers(islandId).thenApply(CoreMemberJson::memberViews);
     }
 
     @Override
