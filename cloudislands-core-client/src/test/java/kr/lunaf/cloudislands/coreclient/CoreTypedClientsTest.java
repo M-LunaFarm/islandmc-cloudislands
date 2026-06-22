@@ -447,7 +447,31 @@ class CoreTypedClientsTest {
         assertFalse(coreClient.contains("private static String escape("), "JDK core client must not own JSON escaping");
         assertFalse(payload.contains("RawJson"), "Core payloads must not splice pre-rendered JSON strings into request bodies");
         assertFalse(payload.contains("static Object raw("), "Core payloads must pass structured values into the serializer");
+        assertFalse(payload.contains("new StringBuilder"), "Core payloads must not assemble JSON with ad hoc string builders");
+        assertFalse(payload.contains("append('\\\"')"), "Core payloads must not hand-write quoted JSON fields");
+        assertTrue(payload.contains("SimpleJson.stringify(values)"), "Core payloads must serialize structured objects through the shared JSON writer");
         assertTrue(payload.contains("static String object(Object... fields)"), "JSON payload builder must live in CoreJsonPayload");
+    }
+
+    @Test
+    void coreJsonPayloadRejectsInvalidFieldNamesAndSerializesStructuredValues() {
+        String body = CoreJsonPayload.object(
+            "nodeId", "paper\nwest",
+            "payload", Map.of("quote", "a\"b"),
+            "supportedTypes", List.of("SAVE_ISLAND", "RESTORE_ISLAND"),
+            "reportMissing", false,
+            "retry", 3
+        );
+        Map<?, ?> root = CoreJson.object(body);
+
+        assertEquals("paper\nwest", CoreJson.text(root, "nodeId"));
+        assertEquals("a\"b", CoreJson.text(kr.lunaf.cloudislands.common.json.SimpleJson.object(root.get("payload")), "quote"));
+        assertEquals(List.of("SAVE_ISLAND", "RESTORE_ISLAND"), CoreJson.strings(root, "supportedTypes"));
+        assertFalse((Boolean) root.get("reportMissing"));
+        assertEquals(3L, ((Number) root.get("retry")).longValue());
+        assertThrows(IllegalArgumentException.class, () -> CoreJsonPayload.object(null, "value"));
+        assertThrows(IllegalArgumentException.class, () -> CoreJsonPayload.object(" ", "value"));
+        assertThrows(IllegalArgumentException.class, () -> CoreJsonPayload.object("nodeId"));
     }
 
     @Test

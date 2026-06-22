@@ -59,7 +59,7 @@ final class CoreJsonPayload {
         }
         Map<String, Object> values = new LinkedHashMap<>();
         for (int i = 0; i < fields.length; i += 2) {
-            values.put(String.valueOf(fields[i]), normalizeValue(fields[i + 1]));
+            values.put(fieldName(fields[i]), normalizeValue(fields[i + 1]));
         }
         return SimpleJson.stringify(values);
     }
@@ -125,5 +125,16 @@ final class CoreJsonPayload {
             return list.stream().map(CoreJsonPayload::normalizeValue).toList();
         }
         return value;
+    }
+
+    private static String fieldName(Object value) {
+        if (value == null) {
+            throw new IllegalArgumentException("JSON object field name must not be null");
+        }
+        String name = String.valueOf(value);
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("JSON object field name must not be blank");
+        }
+        return name;
     }
 }
