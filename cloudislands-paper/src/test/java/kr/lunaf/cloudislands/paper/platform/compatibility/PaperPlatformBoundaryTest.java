@@ -920,6 +920,18 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
+    void paperAdminDiagnosticsDoNotParseRawCoreJson() throws Exception {
+        Path root = repositoryRoot();
+        String admin = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+
+        assertTrue(!admin.contains("SimpleJson"), "Paper admin diagnostics must use typed Core client views");
+        assertTrue(!admin.contains("boolValue(String body"), "Paper admin diagnostics must not parse raw boolean JSON fields");
+        assertTrue(!admin.contains("longValue(String body"), "Paper admin diagnostics must not parse raw numeric JSON fields");
+        assertTrue(!admin.contains("textValue(String body"), "Paper admin diagnostics must not parse raw text JSON fields");
+        assertTrue(!admin.contains("jsonObject(String body"), "Paper admin diagnostics must not keep raw JSON object helpers");
+    }
+
+    @Test
     void permissionMenuCoversFullApiPermissionEnum() throws Exception {
         Path root = repositoryRoot();
         String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
@@ -1862,12 +1874,14 @@ class PaperPlatformBoundaryTest {
             "GREEN_BED",
             "GRASS_BLOCK",
             "HOPPER",
+            "IRON_INGOT",
             "IRON_SWORD",
             "IRON_DOOR",
             "LAVA_BUCKET",
             "LEVER",
             "LIME_DYE",
             "MAP",
+            "MILK_BUCKET",
             "MINECART",
             "NAME_TAG",
             "NETHER_STAR",

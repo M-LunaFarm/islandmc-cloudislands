@@ -18,7 +18,6 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminCoreConfigView;
@@ -2001,21 +2000,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return label + ": " + status + adminText("admin-command-node-action-node-prefix", " node=") + effectiveNodeId + operation + code;
     }
 
-    private boolean boolValue(String body, String field) {
-        Map<?, ?> object = jsonObject(body);
-        if (!object.containsKey(field)) {
-            return false;
-        }
-        Object value = object.get(field);
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
-    }
-
     private boolean boolValue(AdminCoreConfigView config, String field) {
         return config != null && config.bool(field);
-    }
-
-    private long longValue(String body, String field) {
-        return SimpleJson.number(jsonObject(body).get(field));
     }
 
     private long longValue(AdminCoreConfigView config, String field) {
@@ -2155,20 +2141,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
     }
 
-    private String textValue(String body, String field) {
-        Map<?, ?> object = jsonObject(body);
-        if (!object.containsKey(field) || object.get(field) == null) {
-            return "";
-        }
-        return SimpleJson.text(object.get(field));
-    }
-
     private String textValue(AdminCoreConfigView config, String field) {
         return config == null ? "" : config.text(field);
-    }
-
-    private Map<?, ?> jsonObject(String body) {
-        return SimpleJson.object(SimpleJson.parse(body));
     }
 
     private long number(String value, long fallback) {
