@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class GuiMenuDefinitionTest {
     @Test
@@ -85,6 +86,42 @@ class GuiMenuDefinitionTest {
         assertEquals("WRITABLE_BOOK", definition.itemAt(10).orElseThrow().materialKey());
         assertEquals("logs", definition.itemAt(14).orElseThrow().actionKey());
         assertEquals("1000", definition.itemAt(14).orElseThrow().data().get("amount"));
+    }
+
+    @Test
+    void dataConfigV2MenuOverridesBundledMenuDefinition(@TempDir Path tempDir) throws Exception {
+        Path configRoot = tempDir.resolve("config-v2");
+        Path menuFile = configRoot.resolve("ui/menus/main.yml");
+        Files.createDirectories(menuFile.getParent());
+        Files.writeString(menuFile, """
+            id: operator.main
+            rows: 1
+            title-key: operator.title
+            layout:
+              - "X........"
+            items:
+              X:
+                material: EMERALD
+                name-key: operator.name
+                fallback-name: Operator Menu
+                action: island.bank.open
+            """, StandardCharsets.UTF_8);
+
+        GuiMenuDefinition.configureExternalRoot(configRoot);
+        try {
+            GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+                "config-v2/ui/menus/main.yml",
+                new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+            );
+
+            assertEquals("operator.main", definition.id());
+            assertEquals(9, definition.size());
+            assertEquals("operator.title", definition.titleKey());
+            assertEquals("X", definition.itemAt(0).orElseThrow().symbol());
+            assertEquals("EMERALD", definition.itemAt(0).orElseThrow().materialKey());
+        } finally {
+            GuiMenuDefinition.clearExternalRoot();
+        }
     }
 
     @Test

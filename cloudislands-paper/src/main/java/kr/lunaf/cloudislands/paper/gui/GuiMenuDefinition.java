@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,6 +15,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public record GuiMenuDefinition(String id, int rows, String titleKey, List<String> layout, Map<String, MenuItem> items, Map<String, String> actions) {
+    private static volatile Path externalConfigV2Root;
+
     public GuiMenuDefinition {
         id = id == null || id.isBlank() ? "cloudislands.menu" : id;
         rows = Math.max(1, Math.min(rows, 6));
@@ -58,7 +62,19 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
         return Optional.ofNullable(items.get(symbol));
     }
 
+    public static void configureExternalRoot(Path configV2Root) {
+        externalConfigV2Root = configV2Root;
+    }
+
     public static GuiMenuDefinition bundled(String resourcePath, GuiMenuDefinition fallback) {
+        Path external = externalMenuPath(resourcePath);
+        if (external != null && Files.isRegularFile(external)) {
+            try (InputStream input = Files.newInputStream(external)) {
+                return parse(input, fallback);
+            } catch (IOException exception) {
+                throw new UncheckedIOException("Failed to read menu definition " + external, exception);
+            }
+        }
         try (InputStream input = GuiMenuDefinition.class.getClassLoader().getResourceAsStream(resourcePath)) {
             if (input == null) {
                 return fallback;
@@ -67,6 +83,22 @@ public record GuiMenuDefinition(String id, int rows, String titleKey, List<Strin
         } catch (IOException exception) {
             throw new UncheckedIOException("Failed to read menu definition " + resourcePath, exception);
         }
+    }
+
+    static void clearExternalRoot() {
+        externalConfigV2Root = null;
+    }
+
+    private static Path externalMenuPath(String resourcePath) {
+        Path root = externalConfigV2Root;
+        if (root == null || resourcePath == null || resourcePath.isBlank()) {
+            return null;
+        }
+        String normalized = resourcePath.replace('\\', '/');
+        if (normalized.startsWith("config-v2/")) {
+            normalized = normalized.substring("config-v2/".length());
+        }
+        return root.resolve(normalized);
     }
 
     static GuiMenuDefinition parse(InputStream input, GuiMenuDefinition fallback) throws IOException {
