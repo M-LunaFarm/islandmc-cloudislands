@@ -863,11 +863,11 @@ class PaperPlatformBoundaryTest {
     @Test
     void guiRuntimePoliciesUseTypedActionsInsteadOfRawActionMaps() throws Exception {
         Path root = repositoryRoot();
-        String commandBackend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String confirmations = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandConfirmations.java"));
         String dedupePolicy = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionDedupePolicy.java"));
 
-        assertTrue(commandBackend.contains("ConfirmationTokenPolicy.confirmed(action, click)"), "GUI confirmation checks must use typed GuiAction tokens");
-        assertTrue(!commandBackend.contains("ConfirmationTokenPolicy.confirmed(action.actionId(), action.data(), click)"), "GUI confirmation checks must not re-read raw action maps");
+        assertTrue(confirmations.contains("ConfirmationTokenPolicy.confirmed(action, click)"), "GUI confirmation checks must use typed GuiAction tokens");
+        assertTrue(!confirmations.contains("ConfirmationTokenPolicy.confirmed(action.actionId(), action.data(), click)"), "GUI confirmation checks must not re-read raw action maps");
         assertTrue(dedupePolicy.contains("action.stableFingerprint(click)"), "GUI action dedupe must use GuiAction's typed fingerprint boundary");
         assertTrue(!dedupePolicy.contains("action.data().entrySet()"), "GUI action dedupe must not inspect raw action maps directly");
     }
@@ -1080,7 +1080,7 @@ class PaperPlatformBoundaryTest {
 
         assertTrue(violations.isBlank(), violations);
 
-        String commandBackend = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String confirmations = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandConfirmations.java"));
         String commandActions = actionSources.stream()
             .map(path -> {
                 try {
@@ -1093,7 +1093,7 @@ class PaperPlatformBoundaryTest {
             .orElse("");
         assertTrue(commandActions.contains("mutateIdempotent(\"island.delete\""), "Island delete must use an idempotency key");
         assertTrue(commandActions.contains("DangerousGuiActionPolicy.confirmed"), "Dangerous GUI mutations must verify a confirmation token");
-        assertTrue(commandBackend.contains("ConfirmationTokenPolicy.withToken"), "General confirmation menus must attach confirmation tokens");
+        assertTrue(confirmations.contains("ConfirmationTokenPolicy.withToken"), "General confirmation menus must attach confirmation tokens");
         assertTrue(commandActions.contains("confirmationAccepted(player, action, click)"), "Dangerous GUI actions must verify typed confirmation tokens");
         assertTrue(commandActions.contains("mutateIdempotent(\"island.bank.withdraw\""), "Bank withdraw must use an idempotency key");
         assertTrue(commandActions.contains("CoreMutationMetadata.request"), "Paper mutations must carry request IDs and audit actions");

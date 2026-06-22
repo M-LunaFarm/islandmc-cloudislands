@@ -16,10 +16,8 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
-import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
-import kr.lunaf.cloudislands.paper.gui.IslandConfirmationMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
@@ -67,6 +65,7 @@ final class IslandCommandBackend {
     private final IslandCommandMessenger commandMessages;
     private final IslandCommandIslandContext islandContext;
     private final IslandCommandLocalTeleports localTeleports;
+    private final IslandCommandConfirmations confirmations;
     private final MemberManagementUseCase memberManagement;
     private final IslandCommandPlayerResolver playerResolver;
 
@@ -116,6 +115,7 @@ final class IslandCommandBackend {
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
         this.playerResolver = new IslandCommandPlayerResolver(plugin, memberManagement);
         this.localTeleports = new IslandCommandLocalTeleports(plugin, protection, players, worlds, commandMessages);
+        this.confirmations = new IslandCommandConfirmations(commandMessages);
         this.routingCommands = new IslandRoutingCommandHandler(plugin, coreApiClient, routeWaitSeconds, fallbackServerName, new IslandRoutingCommandHandler.Runtime() {
             @Override
             public void message(Player player, String message) {
@@ -886,24 +886,11 @@ final class IslandCommandBackend {
     }
 
     private void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
-        IslandConfirmationMenu.open(player, messagesFor(player), IslandConfirmationMenu.Confirmation.of(
-            title,
-            description,
-            material,
-            confirmName,
-            confirmAction,
-            ConfirmationTokenPolicy.withToken(confirmAction, data),
-            confirmLore,
-            cancelAction
-        ));
+        confirmations.open(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
     }
 
     private boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
-        if (ConfirmationTokenPolicy.confirmed(action, click)) {
-            return true;
-        }
-        message(player, routeMessage("confirmation-token-invalid", "확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));
-        return false;
+        return confirmations.accepted(player, action, click);
     }
 
     private String playerCodeMessage(String code, String fallback) {
