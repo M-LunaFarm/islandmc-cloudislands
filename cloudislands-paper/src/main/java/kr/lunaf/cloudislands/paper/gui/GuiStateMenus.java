@@ -77,7 +77,7 @@ public final class GuiStateMenus implements Listener {
             Inventory inventory = stateInventory(null, messages, title, "Success", false, backAction != null && !backAction.isBlank());
             setStateItem(inventory, "U", messages, detail);
             if (backAction != null && !backAction.isBlank()) {
-                setStateAction(inventory, 15, messages, backAction);
+                setStateAction(inventory, "B", messages, backAction);
             }
             player.openInventory(inventory);
         });
@@ -88,10 +88,10 @@ public final class GuiStateMenus implements Listener {
             Inventory inventory = stateInventory(null, messages, title, "Conflict", retryAction != null && !retryAction.isBlank(), backAction != null && !backAction.isBlank());
             setStateItem(inventory, "C", messages, detail);
             if (retryAction != null && !retryAction.isBlank()) {
-                setStateAction(inventory, 11, messages, retryAction);
+                setStateAction(inventory, "R", messages, retryAction);
             }
             if (backAction != null && !backAction.isBlank()) {
-                setStateAction(inventory, 15, messages, backAction);
+                setStateAction(inventory, "B", messages, backAction);
             }
             player.openInventory(inventory);
         });
@@ -133,10 +133,10 @@ public final class GuiStateMenus implements Listener {
         Inventory inventory = stateInventory(sessionId, messages, title, "Error", retryAction != null && !retryAction.isBlank(), backAction != null && !backAction.isBlank());
         setStateItem(inventory, "F", messages, detail);
         if (retryAction != null && !retryAction.isBlank()) {
-            setStateAction(inventory, 11, messages, retryAction);
+            setStateAction(inventory, "R", messages, retryAction);
         }
         if (backAction != null && !backAction.isBlank()) {
-            setStateAction(inventory, 15, messages, backAction);
+            setStateAction(inventory, "B", messages, backAction);
         }
         player.openInventory(inventory);
     }
@@ -149,12 +149,13 @@ public final class GuiStateMenus implements Listener {
         return inventory;
     }
 
-    private static void setStateAction(Inventory inventory, int slot, MessageRenderer messages, String actionId) {
-        MENU.itemAt(slot).ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(), actionId)));
+    private static void setStateAction(Inventory inventory, String symbol, MessageRenderer messages, String actionId) {
+        GuiMenuRenderer.slots(MENU, symbol).forEach(slot -> MENU.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(), actionId))));
     }
 
     private static void setStateItem(Inventory inventory, String symbol, MessageRenderer messages, String detail) {
-        inventory.setItem(13, stateItem(symbol, messages, null, detail));
+        GuiMenuRenderer.slots(MENU, "I").forEach(slot -> inventory.setItem(slot, stateItem(symbol, messages, null, detail)));
     }
 
     private static ItemStack stateItem(String symbol, MessageRenderer messages, String title, String detail) {
