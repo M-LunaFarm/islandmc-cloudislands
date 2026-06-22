@@ -66,8 +66,8 @@ class CoreTypedClientsTest {
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("progression").getDeclaringClass());
         assertFalse(PlayerProfileQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile queries to a standalone client");
         assertFalse(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile commands to a standalone client");
-        assertTrue(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template queries directly");
-        assertTrue(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template commands directly");
+        assertFalse(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template queries to a standalone client");
+        assertFalse(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template commands to a standalone client");
         assertTrue(JobCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed job commands directly");
         assertTrue(BlockValueCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed block value commands directly");
         assertFalse(WarehouseQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse queries to a standalone client");
@@ -75,10 +75,10 @@ class CoreTypedClientsTest {
         JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:1"), "token", Duration.ofSeconds(1));
         assertSame(JdkPlayerProfileQueryClient.class, client.playerProfiles().getClass());
         assertSame(JdkPlayerProfileCommandClient.class, client.playerProfileCommands().getClass());
+        assertSame(JdkTemplateQueryClient.class, client.templates().getClass());
+        assertSame(JdkTemplateCommandClient.class, client.templateCommands().getClass());
         assertSame(JdkWarehouseQueryClient.class, client.warehouse().getClass());
         assertSame(JdkWarehouseCommandClient.class, client.warehouseCommands().getClass());
-        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("list").getDeclaringClass());
-        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("upsert", String.class, String.class, boolean.class, String.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("retry", UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("set", UUID.class, String.class, String.class, long.class, long.class).getDeclaringClass());
     }
@@ -159,6 +159,19 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("public CompletableFuture<PlayerProfileView> setPrimaryIsland("), "player profile primary-island mutation must not live on the core transport client");
         assertTrue(source.contains("this.playerProfileQueryClient = new JdkPlayerProfileQueryClient(this);"));
         assertTrue(source.contains("this.playerProfileCommandClient = new JdkPlayerProfileCommandClient(this);"));
+    }
+
+    @Test
+    void jdkCoreApiClientDelegatesTemplateMethodsToStandaloneClients() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+
+        assertFalse(source.contains("public CompletableFuture<List<TemplateView>> list("), "template queries must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<TemplateView> upsert("), "template upsert must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<TemplateView> enable("), "template enable must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<TemplateView> disable("), "template disable must not live on the core transport client");
+        assertFalse(source.contains("requireTemplateId("), "template validation must live in the template command client");
+        assertTrue(source.contains("this.templateQueryClient = new JdkTemplateQueryClient(this);"));
+        assertTrue(source.contains("this.templateCommandClient = new JdkTemplateCommandClient(this);"));
     }
 
     @Test
