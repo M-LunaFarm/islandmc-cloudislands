@@ -320,6 +320,8 @@ class CoreTypedClientsTest {
         assertTrue(routeClient.contains("thenApply(CoreRouteJson::routeTicketResult)"));
         assertTrue(routeClient.contains("Optional.of(CoreRouteJson.routeSession(body))"));
         assertTrue(routeJson.contains("static RouteTicket nestedRouteTicket("));
+        assertFalse(routeJson.contains("SimpleJson.object(root.get("), "route parser must use shared CoreJson object helpers");
+        assertFalse(routeJson.contains("SimpleJson.text(root.get("), "route parser must use shared CoreJson text helpers");
     }
 
     @Test
@@ -530,8 +532,10 @@ class CoreTypedClientsTest {
         assertFalse(migration.contains("public final class CoreMigrationJson"));
         assertFalse(migration.contains("public static MigrationRunSnapshot run(String body)"));
         assertFalse(migration.contains("public static String toJson(MigrationRunSnapshot snapshot)"));
+        assertFalse(migration.contains("private static boolean bool("), "migration parser must use shared CoreJson boolean helpers");
         assertFalse(addonState.contains("public final class CoreAddonStateJson"));
         assertFalse(addonState.contains("public static Map<String, String> values(String body)"));
+        assertFalse(addonState.contains("SimpleJson.object(root.get(\"values\"))"), "addon state parser must use shared CoreJson object helpers");
     }
 
     @Test
@@ -1056,6 +1060,7 @@ class CoreTypedClientsTest {
 
     @Test
     void adminCoreConfigClientReturnsTypedConfigView() {
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/AdminCoreConfigView.java")));
         AdminCoreConfigView config = AdminCoreConfigView.parse("""
             {"repositoryMode":"JDBC","jobQueueMode":"REDIS","eventBusMode":"REDIS","islandPortableBundle":true,"databasePoolSize":16,"addonStateBulkSaveGlobalEndpoint":"/v1/addons/state/bulk-save"}
             """);
@@ -1066,6 +1071,9 @@ class CoreTypedClientsTest {
         assertEquals(16L, config.number("databasePoolSize"));
         assertEquals("/v1/addons/state/bulk-save", config.text("addonStateBulkSaveGlobalEndpoint"));
         assertTrue(config.code().isBlank());
+        assertFalse(source.contains("SimpleJson.object(root.get(\"error\"))"), "admin core config parser must use shared CoreJson object helpers");
+        assertFalse(source.contains("SimpleJson.text(values.get("), "admin core config view must use shared CoreJson text helpers");
+        assertFalse(source.contains("SimpleJson.number(values.get("), "admin core config view must use shared CoreJson number helpers");
     }
 
     @Test

@@ -7,7 +7,6 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
 final class CoreRouteJson {
@@ -18,11 +17,11 @@ final class CoreRouteJson {
         if (body == null || body.isBlank()) {
             throw new CoreApiException("ROUTE_FAILED", "Route ticket could not be created");
         }
-        Object parsed = SimpleJson.parse(body);
+        Object parsed = CoreJson.value(body);
         if (!containsField(parsed, "ticketId")) {
-            Map<?, ?> root = SimpleJson.object(parsed);
-            String code = SimpleJson.text(root.get("code"));
-            String message = SimpleJson.text(root.get("message"));
+            Map<?, ?> root = parsed instanceof Map<?, ?> object ? object : Map.of();
+            String code = CoreJson.text(root, "code");
+            String message = CoreJson.text(root, "message");
             throw new CoreApiException(code.isBlank() ? "ROUTE_FAILED" : code, message.isBlank() ? "Route ticket could not be created" : message);
         }
         RouteTicket ticket = routeTicket(body);
@@ -48,8 +47,8 @@ final class CoreRouteJson {
         if (json == null || json.isBlank()) {
             return null;
         }
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
-        Map<?, ?> nested = SimpleJson.object(root.get(field));
+        Map<?, ?> root = CoreJson.object(json);
+        Map<?, ?> nested = CoreJson.objectValue(root, field);
         return nested.isEmpty() ? null : routeTicketObject(nested);
     }
 
@@ -57,7 +56,7 @@ final class CoreRouteJson {
         if (json == null || json.isBlank()) {
             return null;
         }
-        Map<?, ?> ticket = ticketObject(SimpleJson.parse(json));
+        Map<?, ?> ticket = ticketObject(CoreJson.value(json));
         return ticket.isEmpty() ? null : routeTicketObject(ticket);
     }
 
@@ -90,7 +89,7 @@ final class CoreRouteJson {
             if (map.containsKey("ticketId")) {
                 return map;
             }
-            Map<?, ?> nestedTicket = SimpleJson.object(map.get("ticket"));
+            Map<?, ?> nestedTicket = CoreJson.objectValue(map, "ticket");
             if (!nestedTicket.isEmpty()) {
                 return nestedTicket;
             }
@@ -135,14 +134,11 @@ final class CoreRouteJson {
     }
 
     private static Map<?, ?> object(String body) {
-        if (body == null || body.isBlank()) {
-            return Map.of();
-        }
-        return SimpleJson.object(SimpleJson.parse(body));
+        return CoreJson.object(body);
     }
 
     private static UUID uuid(Map<?, ?> root, String key, UUID fallback) {
-        String value = SimpleJson.text(root.get(key));
+        String value = CoreJson.text(root, key);
         if (value.isBlank()) {
             return fallback;
         }
@@ -154,13 +150,13 @@ final class CoreRouteJson {
     }
 
     private static String text(Map<?, ?> root, String key, String fallback) {
-        String value = SimpleJson.text(root.get(key));
+        String value = CoreJson.text(root, key);
         return value.isBlank() ? fallback : value;
     }
 
     private static void putIfPresent(Map<String, String> payload, Map<?, ?> ticket, String field) {
         if (ticket.containsKey(field)) {
-            payload.put(field, SimpleJson.text(ticket.get(field)));
+            payload.put(field, CoreJson.text(ticket, field));
         }
     }
 

@@ -29,15 +29,15 @@ final class CoreMigrationJson {
             CoreJson.text(root, "approvalToken"),
             CoreJson.text(root, "sourceFingerprint"),
             (int) manifests,
-            bool(root, "canImport"),
-            bool(root, "imported"),
+            CoreJson.bool(root, "canImport"),
+            CoreJson.bool(root, "imported"),
             (int) CoreJson.number(root, "importedIslands"),
-            bool(root, "passed"),
+            CoreJson.bool(root, "passed"),
             (int) CoreJson.number(root, "expected"),
-            bool(root, "rolledBack"),
+            CoreJson.bool(root, "rolledBack"),
             (int) CoreJson.number(root, "removedIslands"),
-            bool(root, "rollbackPlanAvailable"),
-            bool(root, "rollbackPlanConsumed"),
+            CoreJson.bool(root, "rollbackPlanAvailable"),
+            CoreJson.bool(root, "rollbackPlanConsumed"),
             (int) CoreJson.number(root, "extractedBundles"),
             CoreJson.number(root, "extractedFiles"),
             CoreJson.number(root, "extractedBytes"),
@@ -107,12 +107,7 @@ final class CoreMigrationJson {
 
     private static List<MigrationIssueSnapshot> issues(Map<?, ?> root) {
         return CoreJson.objects(root, "issues").stream()
-            .map(issue -> new MigrationIssueSnapshot(CoreJson.text(issue, "code"), CoreJson.text(issue, "message"), bool(issue, "blocking")))
+            .map(issue -> new MigrationIssueSnapshot(CoreJson.text(issue, "code"), CoreJson.text(issue, "message"), CoreJson.bool(issue, "blocking")))
             .toList();
-    }
-
-    private static boolean bool(Map<?, ?> root, String key) {
-        Object value = root == null ? null : root.get(key);
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
     }
 }

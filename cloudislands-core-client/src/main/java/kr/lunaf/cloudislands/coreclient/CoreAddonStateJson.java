@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.coreclient;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreAddonStateJson {
     private CoreAddonStateJson() {
@@ -10,15 +9,15 @@ final class CoreAddonStateJson {
 
     static Map<String, String> values(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        Map<?, ?> source = SimpleJson.object(root.get("values"));
+        Map<?, ?> source = CoreJson.objectValue(root, "values");
         if (source.isEmpty()) {
             return Map.of();
         }
         Map<String, String> values = new LinkedHashMap<>();
         source.forEach((key, value) -> {
-            String safeKey = SimpleJson.text(key).trim();
+            String safeKey = CoreJson.textValue(key).trim();
             if (!safeKey.isBlank() && value != null) {
-                values.put(safeKey, SimpleJson.text(value));
+                values.put(safeKey, CoreJson.textValue(value));
             }
         });
         return Map.copyOf(values);

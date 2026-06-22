@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.coreclient;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public record AdminCoreConfigView(Map<String, Object> values, String code) {
     public AdminCoreConfigView {
@@ -11,29 +10,25 @@ public record AdminCoreConfigView(Map<String, Object> values, String code) {
     }
 
     public String text(String key) {
-        return SimpleJson.text(values.get(key));
+        return CoreJson.text(values, key);
     }
 
     public boolean bool(String key) {
-        Object value = values.get(key);
-        if (value instanceof Boolean bool) {
-            return bool;
-        }
-        return Boolean.parseBoolean(SimpleJson.text(value));
+        return CoreJson.bool(values, key);
     }
 
     public long number(String key) {
-        return SimpleJson.number(values.get(key));
+        return CoreJson.number(values, key);
     }
 
     static AdminCoreConfigView parse(String body) {
         Map<?, ?> root = CoreJson.object(body);
         Map<String, Object> values = new LinkedHashMap<>();
-        root.forEach((key, value) -> values.put(SimpleJson.text(key), value));
-        Map<?, ?> error = SimpleJson.object(root.get("error"));
-        String code = SimpleJson.text(root.get("code"));
+        root.forEach((key, value) -> values.put(CoreJson.textValue(key), value));
+        Map<?, ?> error = CoreJson.objectValue(root, "error");
+        String code = CoreJson.text(root, "code");
         if (code.isBlank()) {
-            code = SimpleJson.text(error.get("code"));
+            code = CoreJson.text(error, "code");
         }
         return new AdminCoreConfigView(values, code);
     }
