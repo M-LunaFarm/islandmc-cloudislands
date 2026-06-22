@@ -107,6 +107,28 @@ class VelocityPluginRolePolicyTest {
         assertFalse(formatter.contains("actionResult(String label, String targetId, String body)"), "Velocity lifecycle and block actions must use typed action views");
         assertFalse(formatter.contains("body.contains(\"\\\"accepted\\\""), "Velocity message formatter must inspect accepted through parsed JSON fields");
         assertFalse(formatter.contains("body.contains(\"\\\"snapshotNo\\\""), "Velocity message formatter must inspect snapshotNo through parsed JSON fields");
+
+        String coreStatusFormatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityCoreStatusMessageFormatter.java"));
+        assertFalse(coreStatusFormatter.contains("maintenance(String label, String body)"), "Velocity maintenance formatter must use typed maintenance views");
+        assertFalse(coreStatusFormatter.contains("metrics(String body)"), "Velocity metrics formatter must use typed metrics views");
+        assertFalse(coreStatusFormatter.contains("addonEndpoints(String body)"), "Velocity addon endpoint formatter must use typed config views");
+
+        String eventFormatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityEventMessageFormatter.java"));
+        assertFalse(eventFormatter.contains("events(String body)"), "Velocity event formatter must use typed event stream views");
+        assertFalse(eventFormatter.contains("audit(String body)"), "Velocity audit formatter must use typed audit views");
+
+        String nodeJobFormatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityNodeJobMessageFormatter.java"));
+        assertFalse(nodeJobFormatter.contains("appendLevelScanSummary(String body)"), "Velocity node formatter must use typed node views");
+        assertFalse(nodeJobFormatter.contains("nodeIslandList(String body)"), "Velocity node island formatter must use typed runtime views");
+        assertFalse(nodeJobFormatter.contains("storageStatus(String body)"), "Velocity storage formatter must use typed storage views");
+        assertFalse(nodeJobFormatter.contains("nodeListSummary(String body)"), "Velocity node list formatter must use typed node snapshots");
+        assertFalse(nodeJobFormatter.contains("nodeActionSummary(String label, String nodeId, String body)"), "Velocity node action formatter must use typed action views");
+        assertFalse(nodeJobFormatter.contains("nodeSweep(String body)"), "Velocity node sweep formatter must use typed action views");
+        assertFalse(nodeJobFormatter.contains("jobList(String body)"), "Velocity job formatter must use typed job views");
+        assertFalse(nodeJobFormatter.contains("jobAction(String action, String body)"), "Velocity job action formatter must use typed job action views");
+
+        String coreConfigFormatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityCoreConfigMessageFormatter.java"));
+        assertFalse(coreConfigFormatter.contains("format(String body)"), "Velocity core config formatter must use typed config views");
     }
 
     @Test

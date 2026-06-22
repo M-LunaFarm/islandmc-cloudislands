@@ -1,9 +1,5 @@
 package kr.lunaf.cloudislands.velocity.message;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objects;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,21 +12,6 @@ public final class VelocityEventMessageFormatter {
 
     public VelocityEventMessageFormatter(VelocityRoutePrivacyFormatter routePrivacy) {
         this.routePrivacy = routePrivacy == null ? new VelocityRoutePrivacyFormatter(true) : routePrivacy;
-    }
-
-    public String events(String body) {
-        List<String> events = objects(body, "events");
-        if (events.isEmpty()) {
-            return "Events: empty";
-        }
-        List<String> entries = new ArrayList<>();
-        for (String event : events) {
-            if (entries.size() >= 10) {
-                break;
-            }
-            entries.add(eventEntry(event));
-        }
-        return entries.isEmpty() ? "Events: empty" : "Events: " + String.join(" | ", entries);
     }
 
     public String events(AdminEventStreamView view) {
@@ -47,21 +28,6 @@ public final class VelocityEventMessageFormatter {
         return entries.isEmpty() ? "Events: empty" : "Events: " + String.join(" | ", entries);
     }
 
-    public String audit(String body) {
-        List<String> audit = objects(body, "audit");
-        if (audit.isEmpty()) {
-            return "Audit: empty";
-        }
-        List<String> entries = new ArrayList<>();
-        for (String entry : audit) {
-            if (entries.size() >= 10) {
-                break;
-            }
-            entries.add(auditEntry(entry));
-        }
-        return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
-    }
-
     public String audit(List<AdminAuditEntryView> audit) {
         if (audit == null || audit.isEmpty()) {
             return "Audit: empty";
@@ -74,35 +40,6 @@ public final class VelocityEventMessageFormatter {
             entries.add(auditEntry(entry));
         }
         return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
-    }
-
-    private String eventEntry(String object) {
-        String type = jsonValue(object, "type");
-        String occurredAt = jsonValue(object, "occurredAt");
-        String fields = objectValue(object, "fields");
-        String islandId = jsonValue(fields, "islandId");
-        String ticketId = jsonValue(fields, "ticketId");
-        String playerUuid = jsonValue(fields, "playerUuid");
-        String action = jsonValue(fields, "action");
-        String reason = jsonValue(fields, "reason");
-        String requestedNode = jsonValue(fields, "requestedNode");
-        String clearedSession = jsonValue(fields, "clearedSession");
-        String clearedTicket = jsonValue(fields, "clearedTicket");
-        String nodeId = jsonValue(fields, "nodeId");
-        if (nodeId.isBlank()) {
-            nodeId = jsonValue(fields, "targetNode");
-        }
-        return (type.isBlank() ? "UNKNOWN_EVENT" : type)
-            + (islandId.isBlank() ? "" : " 섬=" + islandId)
-            + (ticketId.isBlank() ? "" : " ticket=" + shortId(ticketId))
-            + (playerUuid.isBlank() ? "" : " player=" + shortId(playerUuid))
-            + (action.isBlank() ? "" : " action=" + action)
-            + (reason.isBlank() ? "" : " reason=" + reason)
-            + routePrivacy.routeRequestedNodeSuffix(requestedNode)
-            + (clearedSession.isBlank() ? "" : " session=" + clearedSession)
-            + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
-            + routePrivacy.routeNodeSuffix(nodeId)
-            + (occurredAt.isBlank() ? "" : " at=" + occurredAt);
     }
 
     private String eventEntry(AdminEventView event) {
@@ -130,18 +67,6 @@ public final class VelocityEventMessageFormatter {
             + (clearedTicket.isBlank() ? "" : " ticketCleared=" + clearedTicket)
             + routePrivacy.routeNodeSuffix(nodeId)
             + (event.occurredAt().isBlank() ? "" : " at=" + event.occurredAt());
-    }
-
-    private String auditEntry(String object) {
-        String action = jsonValue(object, "action");
-        String actorType = jsonValue(object, "actorType");
-        String targetType = jsonValue(object, "targetType");
-        String targetId = jsonValue(object, "targetId");
-        String createdAt = jsonValue(object, "createdAt");
-        return (action.isBlank() ? "UNKNOWN_ACTION" : action)
-            + (targetType.isBlank() && targetId.isBlank() ? "" : " target=" + targetType + ":" + targetId)
-            + (actorType.isBlank() ? "" : " actor=" + actorType)
-            + (createdAt.isBlank() ? "" : " at=" + createdAt);
     }
 
     private String auditEntry(AdminAuditEntryView entry) {
