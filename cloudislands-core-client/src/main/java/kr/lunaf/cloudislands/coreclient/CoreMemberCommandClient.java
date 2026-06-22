@@ -88,14 +88,14 @@ public final class CoreMemberCommandClient implements MemberCommandClient {
             .thenApply(body -> memberAction(body, "VISITOR_KICKED"));
     }
 
-    private static IslandInviteActionResult inviteAction(String body, String successCode) {
+    static IslandInviteActionResult inviteAction(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
         boolean accepted = bool(root, "accepted");
         String code = CoreJson.text(root, "code");
         return new IslandInviteActionResult(accepted, accepted ? successCode : (code.isBlank() ? "FAILED" : code));
     }
 
-    private static MemberActionView memberAction(String body, String successCode) {
+    static MemberActionView memberAction(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
         boolean accepted = bool(root, "accepted") && !root.containsKey("error");
         String code = CoreJson.text(root, "code");

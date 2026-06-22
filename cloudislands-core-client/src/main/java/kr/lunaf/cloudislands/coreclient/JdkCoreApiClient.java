@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
@@ -57,6 +58,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkRuntimeClient runtimeClient;
     private final JdkIslandClient islandClient;
     private final JdkMemberQueryClient memberQueryClient;
+    private final JdkMemberCommandClient memberCommandClient;
     private final JdkWarehouseClient warehouseClient;
     private final JdkPlayerProfileClient playerProfileClient;
     private final JdkTemplateClient templateClient;
@@ -93,6 +95,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.runtimeClient = new JdkRuntimeClient();
         this.islandClient = new JdkIslandClient();
         this.memberQueryClient = new JdkMemberQueryClient();
+        this.memberCommandClient = new JdkMemberCommandClient();
         this.warehouseClient = new JdkWarehouseClient();
         this.playerProfileClient = new JdkPlayerProfileClient();
         this.templateClient = new JdkTemplateClient();
@@ -193,6 +196,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public MemberQueryClient members() {
         return memberQueryClient;
+    }
+
+    @Override
+    public MemberCommandClient memberCommands() {
+        return memberCommandClient;
     }
 
     @Override
@@ -1298,6 +1306,127 @@ public final class JdkCoreApiClient implements CoreApiClient {
             requireId(islandId, "islandId");
             return get("/v1/islands/" + islandId + "/bans")
                 .thenApply(body -> CoreMemberJson.bans(islandId, body));
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkMemberCommandClient implements MemberCommandClient {
+        @Override
+        public CompletableFuture<MemberActionView> removeMember(UUID islandId, UUID actorUuid, UUID targetUuid) {
+            requireIds(islandId, actorUuid, targetUuid);
+            return postWithResultBody("/v1/islands/members/remove", jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "playerUuid", targetUuid
+            )).thenApply(body -> CoreMemberCommandClient.memberAction(body, "MEMBER_REMOVED"));
+        }
+
+        @Override
+        public CompletableFuture<CoreGuiViews.InviteView> createInvite(UUID islandId, UUID actorUuid, UUID targetUuid) {
+            requireIds(islandId, actorUuid, targetUuid);
+            return postWithResultBody("/v1/islands/invites", jsonObject(
+                "islandId", islandId,
+                "inviterUuid", actorUuid,
+                "targetUuid", targetUuid
+            )).thenApply(CoreGuiViews::inviteView);
+        }
+
+        @Override
+        public CompletableFuture<IslandInviteActionResult> acceptInvite(UUID inviteId, UUID playerUuid) {
+            requireInviteAndPlayer(inviteId, playerUuid);
+            return postWithResultBody("/v1/islands/invites/accept", jsonObject("inviteId", inviteId, "playerUuid", playerUuid))
+                .thenApply(body -> CoreMemberCommandClient.inviteAction(body, "ACCEPTED"));
+        }
+
+        @Override
+        public CompletableFuture<IslandInviteActionResult> declineInvite(UUID inviteId, UUID playerUuid) {
+            requireInviteAndPlayer(inviteId, playerUuid);
+            return postWithResultBody("/v1/islands/invites/decline", jsonObject("inviteId", inviteId, "playerUuid", playerUuid))
+                .thenApply(body -> CoreMemberCommandClient.inviteAction(body, "DECLINED"));
+        }
+
+        @Override
+        public CompletableFuture<MemberActionView> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
+            requireIds(islandId, actorUuid, targetUuid);
+            String normalizedRoleKey = normalizeRoleKey(roleKey);
+            return postWithResultBody("/v1/islands/members/set", jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "playerUuid", targetUuid,
+                "role", normalizedRoleKey,
+                "roleKey", normalizedRoleKey
+            )).thenApply(body -> CoreMemberCommandClient.memberAction(body, "MEMBER_ROLE_SET"));
+        }
+
+        @Override
+        public CompletableFuture<MemberActionView> trustTemporarily(UUID islandId, UUID actorUuid, UUID targetUuid, long durationSeconds) {
+            requireIds(islandId, actorUuid, targetUuid);
+            if (durationSeconds <= 0L) {
+                throw new IllegalArgumentException("durationSeconds must be positive");
+            }
+            return postWithResultBody("/v1/islands/members/trust-temporary", jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "playerUuid", targetUuid,
+                "durationSeconds", durationSeconds
+            )).thenApply(body -> CoreMemberCommandClient.memberAction(body, "TEMP_TRUST_SET"));
+        }
+
+        @Override
+        public CompletableFuture<MemberActionView> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) {
+            requireIds(islandId, actorUuid, targetUuid);
+            return postWithResultBody("/v1/islands/transfer", jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "targetUuid", targetUuid
+            )).thenApply(body -> CoreMemberCommandClient.memberAction(body, "OWNERSHIP_TRANSFERRED"));
+        }
+
+        @Override
+        public CompletableFuture<MemberActionView> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) {
+            requireIds(islandId, actorUuid, targetUuid);
+            return postWithResultBody("/v1/islands/bans/set", jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "playerUuid", targetUuid,
+                "reason", reason == null ? "" : reason
+            )).thenApply(body -> CoreMemberCommandClient.memberAction(body, "VISITOR_BANNED"));
+        }
+
+        @Override
+        public CompletableFuture<MemberActionView> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
+            requireIds(islandId, actorUuid, targetUuid);
+            return postWithResultBody("/v1/islands/bans/remove", jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "playerUuid", targetUuid
+            )).thenApply(body -> CoreMemberCommandClient.memberAction(body, "VISITOR_PARDONED"));
+        }
+
+        @Override
+        public CompletableFuture<MemberActionView> kickVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
+            requireIds(islandId, actorUuid, targetUuid);
+            return postWithResultBody("/v1/islands/visitors/kick", jsonObject(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "playerUuid", targetUuid
+            )).thenApply(body -> CoreMemberCommandClient.memberAction(body, "VISITOR_KICKED"));
+        }
+
+        private void requireIds(UUID islandId, UUID actorUuid, UUID targetUuid) {
+            requireId(islandId, "islandId");
+            requireId(actorUuid, "actorUuid");
+            requireId(targetUuid, "targetUuid");
+        }
+
+        private void requireInviteAndPlayer(UUID inviteId, UUID playerUuid) {
+            requireId(inviteId, "inviteId");
+            requireId(playerUuid, "playerUuid");
         }
 
         private void requireId(UUID id, String name) {
