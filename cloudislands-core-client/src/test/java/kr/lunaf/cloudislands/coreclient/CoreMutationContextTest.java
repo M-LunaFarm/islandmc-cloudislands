@@ -670,7 +670,7 @@ class CoreMutationContextTest {
             client.topIslandsByLevel(10).join();
             client.topIslandsByWorth(11).join();
             client.topIslandsByReviews(12).join();
-            client.listPublicIslands(13).join();
+            client.navigation().publicIslands(13).join();
             client.blockValueCommands().set(actorUuid, "minecraft:emerald\"block", "100.50", 20L, 64L).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"materialKey\":\"minecraft:diamond\\\"block\",\"delta\":3}", requestBodies.get("blockDelta"));
@@ -704,7 +704,7 @@ class CoreMutationContextTest {
             client.listPublicWarps(10).join();
             assertEquals("{\"limit\":10}", requestBodies.get("publicWarps"));
             client.listPublicWarps(11, "market\"zone", "spawn\"main").join();
-            client.listIslandReviews(islandId, 12).join();
+            client.navigation().listReviews(islandId, 12).join();
             client.setIslandReview(islandId, reviewerUuid, 5, "nice \"base\"").join();
             client.deleteIslandReview(islandId, reviewerUuid).join();
 
@@ -783,7 +783,7 @@ class CoreMutationContextTest {
             client.memberCommands().removeMember(islandId, actorUuid, playerUuid).join();
             client.memberCommands().createInvite(islandId, actorUuid, playerUuid).join();
             client.members().inviteSnapshots(playerUuid).join();
-            client.listPlayerIslands(playerUuid).join();
+            client.navigation().playerIslands(playerUuid).join();
             client.memberCommands().acceptInvite(inviteId, playerUuid).join();
             client.memberCommands().declineInvite(inviteId, playerUuid).join();
             client.memberCommands().banVisitor(islandId, actorUuid, playerUuid, "bad \"visitor\"").join();

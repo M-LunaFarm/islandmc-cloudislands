@@ -11,8 +11,11 @@ import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreNavigationCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreNavigationQueryClient;
+import kr.lunaf.cloudislands.coreclient.NavigationQueryClient;
+import kr.lunaf.cloudislands.coreclient.ReviewListView;
+import kr.lunaf.cloudislands.coreclient.ReviewView;
 import org.junit.jupiter.api.Test;
 
 class IslandNavigationUseCaseTest {
@@ -69,17 +72,17 @@ class IslandNavigationUseCaseTest {
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class},
+            new Class<?>[] {CoreApiClient.class, NavigationQueryClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
-                case "navigation" -> new CoreNavigationQueryClient((CoreApiClient) _proxy);
+                case "navigation" -> (NavigationQueryClient) _proxy;
                 case "navigationCommands" -> new CoreNavigationCommandClient((CoreApiClient) _proxy);
-                case "playerInfoByName" -> {
+                case "playerProfileByName" -> {
                     String target = (String) args[0];
                     calls.add("playerInfoByName:" + target);
                     if ("spawn".equals(target)) {
                         yield CompletableFuture.failedFuture(new IllegalStateException("missing player"));
                     }
-                    yield CompletableFuture.completedFuture("{\"playerUuid\":\"00000000-0000-0000-0000-000000000030\",\"primaryIslandId\":\"00000000-0000-0000-0000-000000000020\"}");
+                    yield CompletableFuture.completedFuture(new CoreGuiViews.PlayerProfileView("00000000-0000-0000-0000-000000000030", "00000000-0000-0000-0000-000000000020"));
                 }
                 case "createVisitTicketForOwner" -> {
                     calls.add("createVisitTicketForOwner:" + args[1]);
@@ -97,13 +100,17 @@ class IslandNavigationUseCaseTest {
                     calls.add("createRandomVisitTicket");
                     yield CompletableFuture.completedFuture(ticket((UUID) args[0]));
                 }
-                case "listPublicIslands" -> {
-                    calls.add("listPublicIslands:" + args[0]);
-                    yield CompletableFuture.completedFuture(publicIslandsJson(UUID.fromString("00000000-0000-0000-0000-000000000020")));
+                case "publicIslands" -> {
+                    int limit = Math.max(1, Math.min((int) args[0], 100));
+                    calls.add("listPublicIslands:" + limit);
+                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.PublicIslandView("00000000-0000-0000-0000-000000000020", "00000000-0000-0000-0000-000000000030", "spawn", 7L, "1200")));
                 }
-                case "listIslandReviews" -> {
-                    calls.add("listIslandReviews:" + args[1]);
-                    yield CompletableFuture.completedFuture(reviewsJson((UUID) args[0], UUID.fromString("00000000-0000-0000-0000-000000000001")));
+                case "listReviews" -> {
+                    int limit = Math.max(1, Math.min((int) args[1], 100));
+                    calls.add("listIslandReviews:" + limit);
+                    UUID islandId = (UUID) args[0];
+                    UUID reviewerUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+                    yield CompletableFuture.completedFuture(new ReviewListView(1L, 5.0D, List.of(new ReviewView(islandId.toString(), reviewerUuid.toString(), 5L, "nice", "2026-01-02T03:04:05Z", "2026-01-03T04:05:06Z"))));
                 }
                 case "setIslandReview" -> {
                     calls.add("setIslandReview:" + args[2] + ":" + args[3]);

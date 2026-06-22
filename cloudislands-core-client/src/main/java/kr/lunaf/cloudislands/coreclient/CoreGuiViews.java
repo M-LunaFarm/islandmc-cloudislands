@@ -168,11 +168,11 @@ public final class CoreGuiViews {
     }
 
     private static List<PlayerIslandView> playerIslands(String body) {
-        return CoreNavigationQueryClient.playerIslandViews(body);
+        return JdkNavigationQueryClient.playerIslandViews(body);
     }
 
     private static List<PublicIslandView> publicIslands(String body) {
-        return CoreNavigationQueryClient.publicIslandViews(body);
+        return JdkNavigationQueryClient.publicIslandViews(body);
     }
 
     public static PermissionRulesView permissionRulesView(String body) {

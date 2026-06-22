@@ -996,63 +996,73 @@ class CoreTypedClientsTest {
     }
 
     @Test
-    void navigationQueryClientReturnsTypedProfilesPublicIslandsAndReviews() {
+    void navigationQueryClientReturnsTypedProfilesPublicIslandsAndReviews() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID reviewerUuid = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "playerProfiles" -> new PlayerProfileQueryClient() {
-                    @Override
-                    public CompletableFuture<PlayerProfileView> profile(UUID playerUuid) {
-                        throw new UnsupportedOperationException("profile");
-                    }
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/players/info", exchange -> {
+                calls.add("profile:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] response = """
+                    {"playerUuid":"%s","lastName":"Alice","primaryIslandId":"%s","lastSeenAt":"now","locale":"ko_kr"}
+                    """.formatted(reviewerUuid, islandId).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/players/islands", exchange -> {
+                calls.add("player-islands:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] response = """
+                    {"islands":[{"islandId":"%s","name":"Home","state":"ACTIVE","role":"OWNER","level":9,"worth":"3000"}]}
+                    """.formatted(islandId).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/islands/public", exchange -> {
+                calls.add("public:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] response = """
+                    {"islands":[{"islandId":"%s","ownerUuid":"%s","name":"Spawn","level":7,"worth":"1200"}]}
+                    """.formatted(islandId, reviewerUuid).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/islands/reviews", exchange -> {
+                calls.add("reviews:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] response = """
+                    {"reviews":[{"islandId":"%s","reviewerUuid":"%s","rating":5,"comment":"nice","createdAt":"2026-06-21T00:00:00Z","updatedAt":"2026-06-21T00:01:00Z"}],"summary":{"count":1,"average":5.0}}
+                    """.formatted(islandId, reviewerUuid).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.start();
+            NavigationQueryClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).navigation();
 
-                    @Override
-                    public CompletableFuture<PlayerProfileView> findByName(String playerName) {
-                        calls.add("profile:" + playerName);
-                        return CompletableFuture.completedFuture(new PlayerProfileView(reviewerUuid.toString(), playerName, islandId.toString(), "now", "ko_kr"));
-                    }
-                };
-                case "listPlayerIslands" -> {
-                    calls.add("player-islands:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"islands":[{"islandId":"%s","name":"Home","state":"ACTIVE","role":"OWNER","level":9,"worth":"3000"}]}
-                        """.formatted(islandId));
-                }
-                case "listPublicIslands" -> {
-                    calls.add("public:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"islands":[{"islandId":"%s","ownerUuid":"%s","name":"Spawn","level":7,"worth":"1200"}]}
-                        """.formatted(islandId, reviewerUuid));
-                }
-                case "listIslandReviews" -> {
-                    calls.add("reviews:" + args[1]);
-                    yield CompletableFuture.completedFuture("""
-                        {"reviews":[{"islandId":"%s","reviewerUuid":"%s","rating":5,"comment":"nice","createdAt":"2026-06-21T00:00:00Z","updatedAt":"2026-06-21T00:01:00Z"}],"summary":{"count":1,"average":5.0}}
-                        """.formatted(islandId, reviewerUuid));
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        NavigationQueryClient client = new CoreNavigationQueryClient(raw);
+            CoreGuiViews.PlayerProfileView profile = client.playerProfileByName(" Alice ").join();
+            CoreGuiViews.PlayerIslandView playerIsland = client.playerIslands(reviewerUuid).join().get(0);
+            CoreGuiViews.PublicIslandView island = client.publicIslands(500).join().get(0);
+            ReviewListView reviews = client.listReviews(islandId, 0).join();
 
-        CoreGuiViews.PlayerProfileView profile = client.playerProfileByName(" Alice ").join();
-        CoreGuiViews.PlayerIslandView playerIsland = client.playerIslands(reviewerUuid).join().get(0);
-        CoreGuiViews.PublicIslandView island = client.publicIslands(500).join().get(0);
-        ReviewListView reviews = client.listReviews(islandId, 0).join();
-
-        assertEquals(List.of("profile:Alice", "player-islands:" + reviewerUuid, "public:100", "reviews:1"), calls);
-        assertEquals(islandId.toString(), profile.primaryIslandId());
-        assertEquals("Home", playerIsland.name());
-        assertEquals("OWNER", playerIsland.role());
-        assertEquals("Spawn", island.name());
-        assertEquals(1L, reviews.count());
-        assertEquals(islandId.toString(), reviews.reviews().get(0).islandId());
-        assertEquals("nice", reviews.reviews().get(0).comment());
-        assertEquals("2026-06-21T00:01:00Z", reviews.reviews().get(0).updatedAt());
+            assertEquals(List.of(
+                "profile:{\"lastName\":\"Alice\"}",
+                "player-islands:{\"playerUuid\":\"" + reviewerUuid + "\"}",
+                "public:{\"limit\":100}",
+                "reviews:{\"islandId\":\"" + islandId + "\",\"limit\":1}"
+            ), calls);
+            assertEquals(islandId.toString(), profile.primaryIslandId());
+            assertEquals("Home", playerIsland.name());
+            assertEquals("OWNER", playerIsland.role());
+            assertEquals("Spawn", island.name());
+            assertEquals(1L, reviews.count());
+            assertEquals(islandId.toString(), reviews.reviews().get(0).islandId());
+            assertEquals("nice", reviews.reviews().get(0).comment());
+            assertEquals("2026-06-21T00:01:00Z", reviews.reviews().get(0).updatedAt());
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test

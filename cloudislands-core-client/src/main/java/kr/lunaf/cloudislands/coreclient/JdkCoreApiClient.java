@@ -103,7 +103,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.homeWarpQueryClient = new CoreHomeWarpQueryClient(this);
         this.homeWarpCommandClient = new CoreHomeWarpCommandClient(this);
         this.routingClient = new JdkRoutingClient(this);
-        this.navigationQueryClient = new CoreNavigationQueryClient(this);
+        this.navigationQueryClient = new JdkNavigationQueryClient(this);
         this.navigationCommandClient = new CoreNavigationCommandClient(this);
         this.islandClient = new JdkIslandQueryClient(this);
         this.progressionQueryClient = new CoreProgressionQueryClient(this);
@@ -468,11 +468,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<String> listPlayerIslands(UUID playerUuid) {
-        return post("/v1/players/islands", jsonObject("playerUuid", playerUuid));
-    }
-
-    @Override
     public CompletableFuture<String> listIslandFlags(UUID islandId) {
         return get("/v1/islands/" + islandId + "/flags");
     }
@@ -591,11 +586,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public CompletableFuture<String> listPublicWarps(int limit, String category, String query) {
         return post("/v1/islands/public-warps", jsonObject("limit", limit, "category", category, "query", query));
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandReviews(UUID islandId, int limit) {
-        return post("/v1/islands/reviews", jsonObject("islandId", islandId, "limit", limit));
     }
 
     @Override
@@ -751,11 +741,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public CompletableFuture<String> topIslandsByReviews(int limit) {
         return post("/v1/rankings/reviews", jsonObject("limit", limit));
-    }
-
-    @Override
-    public CompletableFuture<String> listPublicIslands(int limit) {
-        return post("/v1/islands/public", jsonObject("limit", limit));
     }
 
     @Override

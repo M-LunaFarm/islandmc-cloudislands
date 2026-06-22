@@ -110,7 +110,10 @@ public interface CoreApiClient {
     }
 
     default NavigationQueryClient navigation() {
-        return new CoreNavigationQueryClient(this);
+        if (this instanceof NavigationQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed navigation queries");
     }
 
     default NavigationCommandClient navigationCommands() {
@@ -314,7 +317,6 @@ public interface CoreApiClient {
     CompletableFuture<String> getIslandLevel(UUID islandId);
     CompletableFuture<Void> setIslandName(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<String> setIslandNameResult(UUID islandId, UUID actorUuid, String name);
-    CompletableFuture<String> listPlayerIslands(UUID playerUuid);
     CompletableFuture<String> listIslandFlags(UUID islandId);
     CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
     CompletableFuture<String> setIslandFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
@@ -338,7 +340,6 @@ public interface CoreApiClient {
     CompletableFuture<String> listIslandWarps(UUID islandId);
     CompletableFuture<String> listPublicWarps(int limit);
     CompletableFuture<String> listPublicWarps(int limit, String category, String query);
-    CompletableFuture<String> listIslandReviews(UUID islandId, int limit);
     CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
     CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
     CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
@@ -359,7 +360,6 @@ public interface CoreApiClient {
     CompletableFuture<String> topIslandsByLevel(int limit);
     CompletableFuture<String> topIslandsByWorth(int limit);
     CompletableFuture<String> topIslandsByReviews(int limit);
-    CompletableFuture<String> listPublicIslands(int limit);
     CompletableFuture<String> listUpgradeRules();
     CompletableFuture<String> listIslandUpgrades(UUID islandId);
     CompletableFuture<String> purchaseIslandUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);

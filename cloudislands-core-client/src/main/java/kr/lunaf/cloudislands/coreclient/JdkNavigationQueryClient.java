@@ -6,37 +6,37 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreNavigationQueryClient implements NavigationQueryClient {
-    private final CoreApiClient delegate;
+public final class JdkNavigationQueryClient implements NavigationQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreNavigationQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkNavigationQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.PlayerProfileView> playerProfileByName(String playerName) {
         String normalizedPlayerName = requireText(playerName, "playerName");
-        return delegate.playerProfiles().findByName(normalizedPlayerName).thenApply(CorePlayerProfileJson::guiProfile);
+        return core.playerProfiles().findByName(normalizedPlayerName).thenApply(CorePlayerProfileJson::guiProfile);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.PlayerIslandView>> playerIslands(UUID playerUuid) {
         requirePlayer(playerUuid);
-        return delegate.listPlayerIslands(playerUuid).thenApply(CoreNavigationQueryClient::playerIslandViews);
+        return core.post("/v1/players/islands", JdkCoreApiClient.jsonObject("playerUuid", playerUuid)).thenApply(JdkNavigationQueryClient::playerIslandViews);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int limit) {
-        return delegate.listPublicIslands(boundedLimit(limit)).thenApply(CoreNavigationQueryClient::publicIslandViews);
+        return core.post("/v1/islands/public", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit))).thenApply(JdkNavigationQueryClient::publicIslandViews);
     }
 
     @Override
     public CompletableFuture<ReviewListView> listReviews(UUID islandId, int limit) {
         requireIsland(islandId);
-        return delegate.listIslandReviews(islandId, boundedLimit(limit)).thenApply(CoreNavigationQueryClient::reviewViews);
+        return core.post("/v1/islands/reviews", JdkCoreApiClient.jsonObject("islandId", islandId, "limit", boundedLimit(limit))).thenApply(JdkNavigationQueryClient::reviewViews);
     }
 
     static ReviewListView reviewViews(String body) {
@@ -59,14 +59,14 @@ public final class CoreNavigationQueryClient implements NavigationQueryClient {
 
     static List<CoreGuiViews.PlayerIslandView> playerIslandViews(String body) {
         return CoreJson.entries(body).stream()
-            .map(CoreNavigationQueryClient::playerIslandView)
+            .map(JdkNavigationQueryClient::playerIslandView)
             .filter(view -> !view.islandId().isBlank())
             .toList();
     }
 
     static List<CoreGuiViews.PublicIslandView> publicIslandViews(String body) {
         return CoreJson.entries(body).stream()
-            .map(CoreNavigationQueryClient::publicIslandView)
+            .map(JdkNavigationQueryClient::publicIslandView)
             .filter(view -> !view.islandId().isBlank())
             .toList();
     }
