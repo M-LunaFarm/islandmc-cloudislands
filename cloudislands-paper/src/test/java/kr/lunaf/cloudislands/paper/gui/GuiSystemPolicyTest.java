@@ -290,6 +290,26 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void typedDynamicItemMaterialsRenderFromMenuDefinitions() throws Exception {
+        for (String[] menuCase : List.of(
+                new String[] {"IslandMemberMenu", "members.yml", "OWNER", "NETHER_STAR"},
+                new String[] {"IslandMyIslandsMenu", "my-islands.yml", "OWNER", "NETHER_STAR"},
+                new String[] {"IslandRoleMenu", "roles.yml", "CUSTOM", "NAME_TAG"},
+                new String[] {"IslandUpgradeMenu", "upgrades.yml", "MAX_WARPS", "ENDER_PEARL"}
+        )) {
+            String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuCase[0] + ".java"));
+            String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + menuCase[1]));
+
+            assertTrue(definition.contains("  _:"), menuCase[1] + " must define the dynamic fallback item");
+            assertTrue(definition.contains("  " + menuCase[2] + ":"), menuCase[1] + " must define typed dynamic item material " + menuCase[2]);
+            assertTrue(definition.contains("material: " + menuCase[3]), menuCase[1] + " material must live in config-v2");
+            assertTrue(menu.contains("GuiMenuRenderer.material(MENU"), menuCase[0] + " must read dynamic materials from the menu definition");
+            assertFalse(menu.contains("switch ("), menuCase[0] + " must not switch on roles or upgrade types for materials");
+            assertFalse(menu.contains("Material." + menuCase[3]), menuCase[0] + " must not hard-code typed item materials");
+        }
+    }
+
+    @Test
     void guiSessionsAreRevisionGuardedAndClearedOnPluginDisable() throws Exception {
         String sessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));

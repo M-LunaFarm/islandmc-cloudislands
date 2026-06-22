@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.UpgradeView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -104,21 +103,7 @@ public final class IslandUpgradeMenu implements Listener {
     }
 
     private static ItemStack upgradeItem(UpgradeView upgrade, MessageRenderer messages) {
-        Material material = switch (upgrade.type()) {
-            case "ISLAND_SIZE" -> Material.GRASS_BLOCK;
-            case "MAX_MEMBERS" -> Material.NAME_TAG;
-            case "MAX_WARPS" -> Material.ENDER_PEARL;
-            case "HOPPER_LIMIT" -> Material.HOPPER;
-            case "SPAWNER_LIMIT" -> Material.SPAWNER;
-            case "GENERATOR_LEVEL" -> Material.COBBLESTONE;
-            case "MOB_LIMIT" -> Material.ZOMBIE_HEAD;
-            case "CROP_GROWTH" -> Material.WHEAT;
-            case "FLY_ACCESS" -> Material.FEATHER;
-            case "REDSTONE_LIMIT" -> Material.REDSTONE;
-            case "BANK_LIMIT" -> Material.GOLD_INGOT;
-            default -> Material.BEACON;
-        };
-        return GuiItems.action(material, upgrade.key(), "island.upgrade.purchase",
+        return GuiItems.action(GuiMenuRenderer.material(MENU, upgrade.type(), "_", "BEACON"), upgrade.key(), "island.upgrade.purchase",
             Map.of("upgradeKey", upgrade.key()),
             message(messages, "upgrade-menu-type", "유형: ") + upgrade.type(),
             message(messages, "upgrade-menu-current-level", "현재 레벨: ") + upgrade.level(),

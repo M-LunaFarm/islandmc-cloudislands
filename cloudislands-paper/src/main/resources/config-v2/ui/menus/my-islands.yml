@@ -9,6 +9,31 @@ layout:
   - "........."
   - "M..CR...V"
 items:
+  _:
+    material: GRASS_BLOCK
+    name-key: my-islands-menu-entry-name
+    fallback-name: 내 섬
+    action: visit
+  OWNER:
+    material: NETHER_STAR
+    name-key: my-islands-menu-owner-name
+    fallback-name: 소유한 섬
+    action: visit
+  CO_OWNER:
+    material: DIAMOND
+    name-key: my-islands-menu-co-owner-name
+    fallback-name: 공동 소유 섬
+    action: visit
+  MODERATOR:
+    material: IRON_SWORD
+    name-key: my-islands-menu-moderator-name
+    fallback-name: 관리 중인 섬
+    action: visit
+  TRUSTED:
+    material: EMERALD
+    name-key: my-islands-menu-trusted-name
+    fallback-name: 신뢰된 섬
+    action: visit
   E:
     material: BARRIER
     name-key: my-islands-menu-empty-title

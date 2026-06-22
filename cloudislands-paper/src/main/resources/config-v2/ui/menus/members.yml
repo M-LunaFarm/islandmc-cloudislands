@@ -10,6 +10,31 @@ layout:
   - "........."
   - "IPXNRLGSB"
 items:
+  _:
+    material: PLAYER_HEAD
+    name-key: member-menu-entry-name
+    fallback-name: 섬 멤버
+    action: detail
+  OWNER:
+    material: NETHER_STAR
+    name-key: member-menu-owner-name
+    fallback-name: 섬 소유자
+    action: detail
+  CO_OWNER:
+    material: DIAMOND
+    name-key: member-menu-co-owner-name
+    fallback-name: 공동 소유자
+    action: detail
+  MODERATOR:
+    material: IRON_SWORD
+    name-key: member-menu-moderator-name
+    fallback-name: 관리자
+    action: detail
+  TRUSTED:
+    material: EMERALD
+    name-key: member-menu-trusted-name
+    fallback-name: 신뢰 멤버
+    action: detail
   I:
     material: WRITABLE_BOOK
     name-key: member-menu-invite-name

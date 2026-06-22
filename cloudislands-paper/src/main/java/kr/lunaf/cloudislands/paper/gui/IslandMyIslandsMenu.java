@@ -6,7 +6,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PlayerIslandView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -89,7 +88,7 @@ public final class IslandMyIslandsMenu implements Listener {
             } else {
                 for (int index = 0; index < islands.size() && index < 45; index++) {
                     PlayerIslandView island = islands.get(index);
-                    inventory.setItem(index, GuiItems.action(material(island.role()), island.name(), "island.visit.target",
+                    inventory.setItem(index, GuiItems.action(GuiMenuRenderer.material(MENU, island.role(), "_", "GRASS_BLOCK"), island.name(), "island.visit.target",
                         Map.of("target", island.islandId()),
                         message(messages, "my-islands-menu-role", "역할: ") + island.role(),
                         message(messages, "my-islands-menu-state", "상태: ") + island.state(),
@@ -104,16 +103,6 @@ public final class IslandMyIslandsMenu implements Listener {
 
     private static String message(MessageRenderer messages, String key, String fallback) {
         return GuiMenuRenderer.message(messages, key, fallback);
-    }
-
-    private static Material material(String role) {
-        return switch (role) {
-            case "OWNER" -> Material.NETHER_STAR;
-            case "CO_OWNER" -> Material.DIAMOND;
-            case "MODERATOR" -> Material.IRON_SWORD;
-            case "TRUSTED" -> Material.EMERALD;
-            default -> Material.GRASS_BLOCK;
-        };
     }
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {

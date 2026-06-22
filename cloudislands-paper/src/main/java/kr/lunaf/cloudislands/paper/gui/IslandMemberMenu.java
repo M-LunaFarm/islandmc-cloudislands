@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MemberView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -143,14 +142,7 @@ public final class IslandMemberMenu implements Listener {
     }
 
     private static ItemStack memberItem(MemberView member, MessageRenderer messages) {
-        Material material = switch (member.role()) {
-            case "OWNER" -> Material.NETHER_STAR;
-            case "CO_OWNER" -> Material.DIAMOND;
-            case "MODERATOR" -> Material.IRON_SWORD;
-            case "TRUSTED" -> Material.EMERALD;
-            default -> Material.PLAYER_HEAD;
-        };
-        return GuiItems.action(material, displayName(member), "island.member.role",
+        return GuiItems.action(GuiMenuRenderer.material(MENU, member.role(), "_", "PLAYER_HEAD"), displayName(member), "island.member.role",
             Map.of(
                 "playerUuid", member.playerUuid(),
                 "playerName", displayName(member),

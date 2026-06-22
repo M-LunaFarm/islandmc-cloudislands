@@ -7,7 +7,6 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RoleView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -112,17 +111,9 @@ public final class IslandRoleMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static Material material(String role) {
-        if (role.startsWith("CUSTOM_")) {
-            return Material.NAME_TAG;
-        }
-        return switch (role) {
-            case "CO_OWNER" -> Material.DIAMOND;
-            case "MODERATOR" -> Material.IRON_SWORD;
-            case "TRUSTED" -> Material.EMERALD;
-            case "MEMBER" -> Material.PLAYER_HEAD;
-            default -> Material.PAPER;
-        };
+    private static org.bukkit.Material material(String role) {
+        String symbol = role.startsWith("CUSTOM_") ? "CUSTOM" : role;
+        return GuiMenuRenderer.material(MENU, symbol, "_", "PAPER");
     }
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {

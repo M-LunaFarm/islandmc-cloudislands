@@ -9,6 +9,66 @@ layout:
   - "........."
   - "B...R...S"
 items:
+  _:
+    material: BEACON
+    name-key: upgrade-menu-entry-name
+    fallback-name: 섬 업그레이드
+    action: purchase
+  ISLAND_SIZE:
+    material: GRASS_BLOCK
+    name-key: upgrade-menu-island-size-name
+    fallback-name: 섬 크기
+    action: purchase
+  MAX_MEMBERS:
+    material: NAME_TAG
+    name-key: upgrade-menu-max-members-name
+    fallback-name: 최대 멤버
+    action: purchase
+  MAX_WARPS:
+    material: ENDER_PEARL
+    name-key: upgrade-menu-max-warps-name
+    fallback-name: 최대 워프
+    action: purchase
+  HOPPER_LIMIT:
+    material: HOPPER
+    name-key: upgrade-menu-hopper-limit-name
+    fallback-name: 호퍼 제한
+    action: purchase
+  SPAWNER_LIMIT:
+    material: SPAWNER
+    name-key: upgrade-menu-spawner-limit-name
+    fallback-name: 스포너 제한
+    action: purchase
+  GENERATOR_LEVEL:
+    material: COBBLESTONE
+    name-key: upgrade-menu-generator-level-name
+    fallback-name: 생성기 레벨
+    action: purchase
+  MOB_LIMIT:
+    material: ZOMBIE_HEAD
+    name-key: upgrade-menu-mob-limit-name
+    fallback-name: 몹 제한
+    action: purchase
+  CROP_GROWTH:
+    material: WHEAT
+    name-key: upgrade-menu-crop-growth-name
+    fallback-name: 작물 성장
+    action: purchase
+  FLY_ACCESS:
+    material: FEATHER
+    name-key: upgrade-menu-fly-access-name
+    fallback-name: 비행 권한
+    action: purchase
+  REDSTONE_LIMIT:
+    material: REDSTONE
+    name-key: upgrade-menu-redstone-limit-name
+    fallback-name: 레드스톤 제한
+    action: purchase
+  BANK_LIMIT:
+    material: GOLD_INGOT
+    name-key: upgrade-menu-bank-limit-name
+    fallback-name: 은행 한도
+    action: purchase
   E:
     material: BARRIER
     name-key: upgrade-menu-empty-title

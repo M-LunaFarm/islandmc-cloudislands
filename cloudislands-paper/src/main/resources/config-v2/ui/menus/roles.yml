@@ -6,6 +6,36 @@ layout:
   - "....E...."
   - "LPR.....S"
 items:
+  _:
+    material: PAPER
+    name-key: role-menu-entry-name
+    fallback-name: 섬 역할
+    action: adjust-weight
+  CUSTOM:
+    material: NAME_TAG
+    name-key: role-menu-custom-name
+    fallback-name: 커스텀 역할
+    action: adjust-weight
+  CO_OWNER:
+    material: DIAMOND
+    name-key: role-menu-co-owner-name
+    fallback-name: 공동 소유자
+    action: adjust-weight
+  MODERATOR:
+    material: IRON_SWORD
+    name-key: role-menu-moderator-name
+    fallback-name: 관리자
+    action: adjust-weight
+  TRUSTED:
+    material: EMERALD
+    name-key: role-menu-trusted-name
+    fallback-name: 신뢰 멤버
+    action: adjust-weight
+  MEMBER:
+    material: PLAYER_HEAD
+    name-key: role-menu-member-name
+    fallback-name: 멤버
+    action: adjust-weight
   E:
     material: GRAY_DYE
     name-key: role-menu-empty-title

@@ -60,6 +60,16 @@ public final class GuiMenuRenderer {
         return material(definition.item(symbol).map(GuiMenuDefinition.MenuItem::materialKey).orElse(fallback));
     }
 
+    public static Material material(GuiMenuDefinition definition, String symbol, String fallbackSymbol, String fallback) {
+        if (definition == null) {
+            return material(fallback);
+        }
+        return material(definition.item(symbol)
+            .or(() -> definition.item(fallbackSymbol))
+            .map(GuiMenuDefinition.MenuItem::materialKey)
+            .orElse(fallback));
+    }
+
     public static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages) {
         return item(definition, item, messages, item.data());
     }
