@@ -43,7 +43,7 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<TemplateView>> templates(CoreApiClient client) {
-        return client.listTemplates().thenApply(CoreGuiViews::templates);
+        return client.templates().list().thenApply(CoreGuiViews::templateViews);
     }
 
     public static CompletableFuture<RankingData> rankings(CoreApiClient client, int limit) {
@@ -205,6 +205,13 @@ public final class CoreGuiViews {
             }
         }
         return templates;
+    }
+
+    private static List<TemplateView> templateViews(List<kr.lunaf.cloudislands.coreclient.TemplateView> views) {
+        return views == null ? List.of() : views.stream()
+            .filter(view -> view != null && !view.id().isBlank())
+            .map(view -> new TemplateView(view.id(), view.displayName(), view.enabled(), view.minNodeVersion()))
+            .toList();
     }
 
     private static List<RankingView> rankings(String body, String label) {
