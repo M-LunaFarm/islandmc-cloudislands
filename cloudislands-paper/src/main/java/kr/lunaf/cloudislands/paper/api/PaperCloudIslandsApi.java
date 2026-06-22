@@ -3402,11 +3402,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         );
     }
 
-    private static JobRecoveryResult jobRecovery(String json) {
-        boolean accepted = json != null && !json.isBlank() && !json.contains("\"error\"");
-        return new JobRecoveryResult(accepted, accepted ? text(json, "recovered", scalar(json, "recovered")) : "", accepted ? "RECOVERED" : text(json, "code", "FAILED"));
-    }
-
     private static JobRecoveryResult jobRecovery(JobRecoveryView view) {
         if (view == null) {
             return new JobRecoveryResult(false, "", "FAILED");
@@ -3418,27 +3413,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         if (value != null && !value.isBlank()) {
             payload.put(field, value);
         }
-    }
-
-    private static List<IslandJobSnapshot> jobs(String json) {
-        List<IslandJobSnapshot> jobs = new ArrayList<>();
-        for (String object : objects(json, "jobs")) {
-            jobs.add(new IslandJobSnapshot(
-                uuid(object, "id", uuid(object, "jobId", new UUID(0L, 0L))),
-                text(object, "type", ""),
-                uuid(object, "islandId", new UUID(0L, 0L)),
-                text(object, "targetNode", ""),
-                text(object, "state", ""),
-                integer(object, "priority", 0),
-                integer(object, "attempts", 0),
-                text(object, "lockedBy", ""),
-                text(object, "errorMessage", ""),
-                stringMap(object, "payload"),
-                instant(text(object, "createdAt", Instant.EPOCH.toString())),
-                instant(text(object, "updatedAt", Instant.EPOCH.toString()))
-            ));
-        }
-        return jobs;
     }
 
     private static List<IslandJobSnapshot> jobs(List<JobView> views) {
