@@ -22,6 +22,7 @@ class PaperConfigSurfaceTest {
         String gameplay = Files.readString(Path.of("src/main/resources/config-v2/gameplay.yml"), StandardCharsets.UTF_8);
         String features = Files.readString(Path.of("src/main/resources/config-v2/features.yml"), StandardCharsets.UTF_8);
 
+        assertFalse(Files.exists(Path.of("src/main/resources/config.yml")), "Paper plugin must not bundle legacy config.yml alongside authoritative config-v2 files");
         assertTrue(runtime.contains("id: island-node-01"));
         assertTrue(runtime.contains("role: ISLAND_NODE"));
         assertTrue(runtime.contains("pool: island"));
