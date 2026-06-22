@@ -141,7 +141,10 @@ public interface CoreApiClient {
     }
 
     default PlayerProfileCommandClient playerProfileCommands() {
-        return new CorePlayerProfileCommandClient(this);
+        if (this instanceof PlayerProfileCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed player profile commands");
     }
 
     default JobQueryClient jobs() {
@@ -627,11 +630,6 @@ public interface CoreApiClient {
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<String> playerInfo(UUID playerUuid);
     CompletableFuture<String> playerInfoByName(String lastName);
-    CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName);
-    CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName, String locale);
-    CompletableFuture<String> setPlayerLocale(UUID playerUuid, String locale);
-    CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId);
-    CompletableFuture<String> clearPlayerIsland(UUID playerUuid);
     CompletableFuture<String> listTemplates();
     CompletableFuture<String> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion);
     CompletableFuture<String> enableTemplate(String templateId);

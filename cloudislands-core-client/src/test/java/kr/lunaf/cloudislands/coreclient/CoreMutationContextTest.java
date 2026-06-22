@@ -398,12 +398,12 @@ class CoreMutationContextTest {
 
             client.playerInfo(playerUuid).join();
             client.playerInfoByName("Player \"One\"").join();
-            client.touchPlayerProfile(playerUuid, "Player \"One\"").join();
+            client.playerProfileCommands().touch(playerUuid, "Player \"One\"").join();
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"Player \\\"One\\\"\"}", requestBodies.get("playerTouch"));
-            client.touchPlayerProfile(playerUuid, "Player \"One\"", "ko\"KR").join();
-            client.setPlayerLocale(playerUuid, "en\"US").join();
-            client.setPlayerIsland(playerUuid, islandId).join();
-            client.clearPlayerIsland(playerUuid).join();
+            client.playerProfileCommands().touch(playerUuid, "Player \"One\"", "ko\"KR").join();
+            client.playerProfileCommands().setLocale(playerUuid, "en\"US").join();
+            client.playerProfileCommands().setPrimaryIsland(playerUuid, islandId).join();
+            client.playerProfileCommands().clearPrimaryIsland(playerUuid).join();
             client.upsertTemplate("template\"one", "Template \"One\"", true, "1.21\"11").join();
             client.enableTemplate("template\"one").join();
             client.disableTemplate("template\"one").join();

@@ -1893,31 +1893,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     }
 
     @Override
-    public CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName) {
-        return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName));
-    }
-
-    @Override
-    public CompletableFuture<String> touchPlayerProfile(UUID playerUuid, String lastName, String locale) {
-        return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName, "locale", locale));
-    }
-
-    @Override
-    public CompletableFuture<String> setPlayerLocale(UUID playerUuid, String locale) {
-        return postWithResultBody("/v1/players/locale", jsonObject("playerUuid", playerUuid, "locale", locale));
-    }
-
-    @Override
-    public CompletableFuture<String> setPlayerIsland(UUID playerUuid, UUID islandId) {
-        return postWithResultBody("/v1/admin/players/setisland", jsonObject("playerUuid", playerUuid, "islandId", islandId));
-    }
-
-    @Override
-    public CompletableFuture<String> clearPlayerIsland(UUID playerUuid) {
-        return postWithResultBody("/v1/admin/players/clearisland", jsonObject("playerUuid", playerUuid));
-    }
-
-    @Override
     public CompletableFuture<String> listTemplates() {
         return postWithResultBody("/v1/admin/templates/list", "{}");
     }
