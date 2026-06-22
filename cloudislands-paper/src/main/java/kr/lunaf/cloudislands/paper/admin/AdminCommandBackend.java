@@ -2429,157 +2429,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + (node.mspt().isBlank() ? "" : adminText("admin-command-node-mspt-prefix", " mspt=") + node.mspt());
     }
 
-    private String nodeListSummaryMessage(String body) {
-        String nodes = arrayValue(body, "nodes");
-        if (nodes.isBlank()) {
-            return adminText("admin-command-nodes-empty", "Nodes: empty");
-        }
-        int total = 0;
-        int starting = 0;
-        int warming = 0;
-        int ready = 0;
-        int softFull = 0;
-        int hardFull = 0;
-        int draining = 0;
-        int shuttingDown = 0;
-        int down = 0;
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < nodes.length()) {
-            int objectStart = nodes.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(nodes, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = nodes.substring(objectStart, objectEnd + 1);
-            String state = textValue(object, "state");
-            total++;
-            if (state.equalsIgnoreCase("STARTING")) {
-                starting++;
-            } else if (state.equalsIgnoreCase("WARMING")) {
-                warming++;
-            } else if (state.equalsIgnoreCase("READY")) {
-                ready++;
-            } else if (state.equalsIgnoreCase("SOFT_FULL")) {
-                softFull++;
-            } else if (state.equalsIgnoreCase("HARD_FULL")) {
-                hardFull++;
-            } else if (state.equalsIgnoreCase("DRAINING")) {
-                draining++;
-            } else if (state.equalsIgnoreCase("SHUTTING_DOWN")) {
-                shuttingDown++;
-            } else if (state.equalsIgnoreCase("DOWN")) {
-                down++;
-            }
-            if (entries.size() < 10) {
-                entries.add(nodeSummary(object));
-            }
-            index = objectEnd + 1;
-        }
-        return adminText("admin-command-nodes-total-prefix", "Nodes: total=") + total
-            + adminText("admin-command-nodes-starting-prefix", " starting=") + starting
-            + adminText("admin-command-nodes-warming-prefix", " warming=") + warming
-            + adminText("admin-command-nodes-ready-prefix", " ready=") + ready
-            + adminText("admin-command-nodes-soft-full-prefix", " softFull=") + softFull
-            + adminText("admin-command-nodes-hard-full-prefix", " hardFull=") + hardFull
-            + adminText("admin-command-nodes-draining-prefix", " draining=") + draining
-            + adminText("admin-command-nodes-shutting-down-prefix", " shuttingDown=") + shuttingDown
-            + adminText("admin-command-nodes-down-prefix", " down=") + down
-            + poolSummarySuffix(body)
-            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    private String poolSummarySuffix(String body) {
-        String pools = arrayValue(body, "pools");
-        if (pools.isBlank()) {
-            return "";
-        }
-        List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < pools.length()) {
-            int objectStart = pools.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(pools, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = pools.substring(objectStart, objectEnd + 1);
-            String pool = textValue(object, "pool");
-            entries.add((pool.isBlank() ? "island" : pool)
-                + " nodes=" + longValue(object, "healthyNodeCount") + "/" + longValue(object, "nodeCount")
-                + " players=" + longValue(object, "players") + "/" + longValue(object, "softPlayerCap") + "/" + longValue(object, "hardPlayerCap")
-                + " reserved=" + longValue(object, "reservedSlots")
-                + " islands=" + longValue(object, "activeIslands") + "/" + longValue(object, "maxActiveIslands")
-                + " queue=" + longValue(object, "activationQueue") + "/" + longValue(object, "maxActivationQueue"));
-            index = objectEnd + 1;
-        }
-        return entries.isEmpty() ? "" : " / pools: " + String.join(" | ", entries);
-    }
-
-    private String nodeSummary(String object) {
-        String id = textValue(object, "id");
-        String state = textValue(object, "state");
-        long players = longValue(object, "players");
-        long softCap = longValue(object, "softPlayerCap");
-        long hardCap = longValue(object, "hardPlayerCap");
-        long reservedSlots = longValue(object, "reservedSlots");
-        long activeIslands = longValue(object, "activeIslands");
-        long maxActiveIslands = longValue(object, "maxActiveIslands");
-        long activationQueue = longValue(object, "activationQueue");
-        long maxActivationQueue = longValue(object, "maxActivationQueue");
-        boolean activationEligible = boolValue(object, "eligibleForNewActivation");
-        String allocationBlockReason = textValue(object, "allocationBlockReason");
-        return (id.isBlank() ? adminText("admin-command-node-default-id", "node") : id)
-            + " " + (state.isBlank() ? "UNKNOWN" : state)
-            + adminText("admin-command-node-players-prefix", " players=") + players + "/" + softCap + "/" + hardCap + adminText("admin-command-node-reserved-prefix", " reserved=") + reservedSlots
-            + adminText("admin-command-node-islands-prefix", " islands=") + activeIslands + "/" + maxActiveIslands
-            + adminText("admin-command-node-queue-prefix", " queue=") + activationQueue + "/" + maxActivationQueue
-            + adminText("admin-command-node-mspt-prefix", " mspt=") + seconds(doubleValue(object, "mspt"))
-            + adminText("admin-command-node-score-prefix", " score=") + seconds(doubleValue(object, "score"))
-            + scoreParts(object)
-            + adminText("admin-command-node-activation-prefix", " activation=") + (activationEligible ? adminText("admin-command-node-ok", "ok") : adminText("admin-command-node-blocked-prefix", "blocked:") + (allocationBlockReason.isBlank() ? "UNKNOWN" : allocationBlockReason))
-            + adminText("admin-command-node-storage-prefix", " storage=") + (boolValue(object, "storageAvailable") ? adminText("admin-command-node-ok", "ok") : adminText("admin-command-node-down", "down"));
-    }
-
-    private String scoreParts(String nodeObject) {
-        String breakdown = objectValue(nodeObject, "scoreBreakdown");
-        if (breakdown.isBlank()) {
-            return "";
-        }
-        return adminText("admin-command-score-parts-prefix", " parts=")
-            + "p:" + scoreTerm(breakdown, "player")
-            + adminText("admin-command-score-active-prefix", ",a:") + scoreTerm(breakdown, "activeIsland")
-            + adminText("admin-command-score-mspt-prefix", ",m:") + scoreTerm(breakdown, "mspt")
-            + adminText("admin-command-score-queue-prefix", ",q:") + scoreTerm(breakdown, "activationQueue")
-            + adminText("admin-command-score-chunk-prefix", ",chunk:") + scoreTerm(breakdown, "chunkLoad")
-            + adminText("admin-command-score-memory-prefix", ",mem:") + scoreTerm(breakdown, "memory")
-            + adminText("admin-command-score-failure-prefix", ",fail:") + scoreTerm(breakdown, "recentFailure");
-    }
-
-    private String scoreTerm(String breakdown, String keyPrefix) {
-        String pressureKey = keyPrefix + "Pressure";
-        if (keyPrefix.equals("recentFailure")) {
-            double pressure = scorePartValue(breakdown, pressureKey, "recentFailurePenalty");
-            return seconds(pressure) + "x" + seconds(doubleValue(breakdown, keyPrefix + "Weight")) + "=" + seconds(doubleValue(breakdown, keyPrefix + "Contribution"));
-        }
-        return seconds(doubleValue(breakdown, pressureKey))
-            + "x" + seconds(doubleValue(breakdown, keyPrefix + "Weight"))
-            + "=" + seconds(doubleValue(breakdown, keyPrefix + "Contribution"));
-    }
-
-    private double scorePartValue(String breakdown, String primaryKey, String fallbackKey) {
-        double primary = doubleValue(breakdown, primaryKey);
-        if (primary != 0.0D || breakdown.contains("\"" + primaryKey + "\"")) {
-            return primary;
-        }
-        return doubleValue(breakdown, fallbackKey);
-    }
-
     private String nodeActionSummaryMessage(String label, String requestedNodeId, AdminNodeActionView result) {
         String effectiveNodeId = result.nodeId().isBlank() ? requestedNodeId : result.nodeId();
         String status = result.accepted() ? adminText("admin-command-node-action-accepted", "accepted") : adminText("admin-command-node-action-rejected", "rejected");
@@ -2609,11 +2458,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return -1;
     }
 
-    private String objectValue(String body, String field) {
-        Map<?, ?> object = SimpleJson.object(jsonObject(body).get(field));
-        return object.isEmpty() ? "" : SimpleJson.stringify(object);
-    }
-
     private boolean boolValue(String body, String field) {
         Map<?, ?> object = jsonObject(body);
         if (!object.containsKey(field)) {
@@ -2633,15 +2477,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private long longValue(AdminCoreConfigView config, String field) {
         return config == null ? 0L : config.number(field);
-    }
-
-    private double doubleValue(String body, String field) {
-        try {
-            Object value = jsonObject(body).get(field);
-            return value instanceof Number number ? number.doubleValue() : Double.parseDouble(SimpleJson.text(value));
-        } catch (RuntimeException ignored) {
-            return 0.0D;
-        }
     }
 
     private String seconds(double value) {
