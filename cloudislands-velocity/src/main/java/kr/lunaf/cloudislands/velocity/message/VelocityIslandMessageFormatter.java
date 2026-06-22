@@ -1,11 +1,9 @@
 package kr.lunaf.cloudislands.velocity.message;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.boolValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.doubleValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objects;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -153,17 +151,6 @@ public final class VelocityIslandMessageFormatter {
             + (view.minNodeVersion().isBlank() ? "" : " 최소버전=" + view.minNodeVersion());
     }
 
-    public String inviteCreate(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "초대: 실패 사유=" + code;
-        }
-        return "초대: 생성됨 invite=" + shortId(jsonValue(body, "inviteId"))
-            + " 섬=" + shortId(jsonValue(body, "islandId"))
-            + " target=" + shortId(jsonValue(body, "targetUuid"))
-            + " state=" + jsonValue(body, "state");
-    }
-
     public String inviteCreate(CoreGuiViews.InviteView invite) {
         return "초대: 생성됨 invite=" + shortId(invite.inviteId())
             + " 섬=" + shortId(invite.islandId())
@@ -210,23 +197,6 @@ public final class VelocityIslandMessageFormatter {
             + (view.code().isBlank() ? "" : " code=" + view.code());
     }
 
-    public String runtimeInfo(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "Island runtime: failed code=" + code;
-        }
-        String islandId = jsonValue(body, "islandId");
-        String state = jsonValue(body, "state");
-        String activeNode = jsonValue(body, "activeNode");
-        String activeWorld = jsonValue(body, "activeWorld");
-        return "Island runtime: 섬=" + shortId(islandId)
-            + " state=" + (state.isBlank() ? "UNKNOWN" : state)
-            + routePrivacy.routeNodeSuffix(activeNode)
-            + routePrivacy.runtimeWorldSuffix(activeWorld)
-            + routePrivacy.runtimeCellSuffix(body)
-            + " fence=" + longValue(body, "fencingToken");
-    }
-
     public String runtimeInfo(AdminIslandRuntimeView view) {
         if (view == null) {
             return "Island runtime: failed code=NOT_FOUND";
@@ -240,19 +210,6 @@ public final class VelocityIslandMessageFormatter {
             + routePrivacy.runtimeWorldSuffix(view.activeWorld())
             + (view.hasCell() ? routePrivacy.runtimeCellSuffix("{\"cellX\":" + view.cellX() + ",\"cellZ\":" + view.cellZ() + "}") : "")
             + " fence=" + view.fencingToken();
-    }
-
-    public String playerInfo(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "플레이어 정보: 실패 사유=" + code;
-        }
-        String playerUuid = jsonValue(body, "playerUuid");
-        String lastName = jsonValue(body, "lastName");
-        String islandId = jsonValue(body, "primaryIslandId");
-        return "플레이어 정보: ID=" + shortId(playerUuid)
-            + (lastName.isBlank() ? "" : " 이름=" + lastName)
-            + (islandId.isBlank() ? " 섬=없음" : " 섬=" + shortId(islandId));
     }
 
     public String playerInfo(PlayerProfileView view) {
@@ -283,25 +240,6 @@ public final class VelocityIslandMessageFormatter {
         return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
-    public String blockValueList(String body) {
-        List<String> values = objects(body, "values");
-        if (values.isEmpty()) {
-            return "Block values: empty";
-        }
-        List<String> entries = new ArrayList<>();
-        int total = 0;
-        for (String object : values) {
-            total++;
-            if (entries.size() < 10) {
-                entries.add(jsonValue(object, "materialKey")
-                    + " worth=" + jsonValue(object, "worth")
-                    + " level=" + longValue(object, "levelPoints")
-                    + " limit=" + longValue(object, "limit"));
-            }
-        }
-        return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
     public String blockValueList(List<BlockValueView> values) {
         if (values == null || values.isEmpty()) {
             return "Block values: empty";
@@ -318,33 +256,6 @@ public final class VelocityIslandMessageFormatter {
             }
         }
         return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    public String addonStateSummary(String body) {
-        List<String> addons = objects(body, "addons");
-        if (addons.isEmpty()) {
-            return "Addon state: empty";
-        }
-        List<String> entries = new ArrayList<>();
-        int total = 0;
-        for (String object : addons) {
-            total++;
-            if (entries.size() < 10) {
-                entries.add(jsonValue(object, "addonId")
-                    + " global=" + longValue(object, "globalKeys")
-                    + " island=" + longValue(object, "islandKeys")
-                    + " totalKeys=" + longValue(object, "totalKeys"));
-            }
-        }
-        return "Addon state: total=" + total
-            + " owner=" + jsonValue(body, "stateOwnership")
-            + " registeredRequired=" + boolValue(body, "registeredAddonRequired")
-            + " orphanPolicy=" + jsonValue(body, "orphanStatePolicy")
-            + " missingPolicy=" + jsonValue(body, "missingAddonStatePolicy")
-            + " tableKeyPrefix=" + jsonValue(body, "tableKeyPrefix")
-            + " maxKeysPerAddon=" + longValue(body, "maxKeysPerAddon")
-            + " maxValueLength=" + longValue(body, "maxValueLength")
-            + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     public String addonStateSummary(AdminAddonStateSummaryView view) {
@@ -371,29 +282,6 @@ public final class VelocityIslandMessageFormatter {
             + " maxKeysPerAddon=" + view.maxKeysPerAddon()
             + " maxValueLength=" + view.maxValueLength()
             + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
-    }
-
-    public String templateList(String body) {
-        List<String> templates = objects(body, "templates");
-        if (templates.isEmpty()) {
-            return "섬 템플릿: 없음";
-        }
-        List<String> entries = new ArrayList<>();
-        int total = 0;
-        int enabled = 0;
-        for (String object : templates) {
-            total++;
-            if (boolValue(object, "enabled")) {
-                enabled++;
-            }
-            if (entries.size() < 10) {
-                String minNodeVersion = jsonValue(object, "minNodeVersion");
-                entries.add(jsonValue(object, "id")
-                    + " " + (boolValue(object, "enabled") ? "사용 가능" : "비활성")
-                    + (minNodeVersion.isBlank() ? "" : " 최소버전=" + minNodeVersion));
-            }
-        }
-        return "섬 템플릿: 전체 " + total + "개, 사용 가능 " + enabled + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     public String templateList(List<TemplateView> templates) {

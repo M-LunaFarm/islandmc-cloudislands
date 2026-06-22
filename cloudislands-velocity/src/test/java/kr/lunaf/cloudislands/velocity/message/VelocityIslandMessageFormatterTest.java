@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.List;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
@@ -103,7 +104,7 @@ class VelocityIslandMessageFormatterTest {
 
         assertEquals(
             "Island runtime: 섬=33333333 state=READY fence=7",
-            hidden.runtimeInfo("{\"islandId\":\"33333333-3333-3333-3333-333333333333\",\"state\":\"READY\",\"activeNode\":\"island-1\",\"activeWorld\":\"ci_shard_001\",\"cellX\":3,\"cellZ\":4,\"fencingToken\":7}")
+            hidden.runtimeInfo(runtimeView())
         );
     }
 
@@ -113,7 +114,7 @@ class VelocityIslandMessageFormatterTest {
 
         assertEquals(
             "Island runtime: 섬=33333333 state=READY node=island-1 world=ci_shard_001 cell=3,4 fence=7",
-            visible.runtimeInfo("{\"islandId\":\"33333333-3333-3333-3333-333333333333\",\"state\":\"READY\",\"activeNode\":\"island-1\",\"activeWorld\":\"ci_shard_001\",\"cellX\":3,\"cellZ\":4,\"fencingToken\":7}")
+            visible.runtimeInfo(runtimeView())
         );
     }
 
@@ -250,6 +251,22 @@ class VelocityIslandMessageFormatterTest {
         assertEquals(
             "섬 역할 저장 완료: MEMBER weight=10 name=Member version=v2",
             formatter.roleMutation("섬 역할 저장 완료", new MutationResult<>(new CoreGuiViews.RoleView("MEMBER", 10, "Member"), "v2", true))
+        );
+    }
+
+    private static AdminIslandRuntimeView runtimeView() {
+        return new AdminIslandRuntimeView(
+            "33333333-3333-3333-3333-333333333333",
+            "READY",
+            "island-1",
+            "ci_shard_001",
+            3L,
+            4L,
+            "",
+            7L,
+            "",
+            "",
+            ""
         );
     }
 }

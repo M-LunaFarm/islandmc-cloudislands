@@ -75,11 +75,17 @@ class VelocityPluginRolePolicyTest {
         assertFalse(formatter.contains("playerIslands(String body)"), "Velocity player island formatter must use typed island views");
         assertFalse(formatter.contains("publicIslands(String body)"), "Velocity public island formatter must use typed island views");
         assertFalse(formatter.contains("invites(String body)"), "Velocity invite formatter must use typed invite views");
+        assertFalse(formatter.contains("inviteCreate(String body)"), "Velocity invite creation formatter must use typed invite views");
         assertFalse(formatter.contains("chatResult(String label, String body)"), "Velocity chat formatter must use typed chat action views");
         assertFalse(formatter.contains("islandInfo(String body)"), "Velocity island info formatter must use typed island info views");
         assertFalse(formatter.contains("islandStat(String label, String field, String body)"), "Velocity island stat formatter must use typed island info views");
         assertFalse(formatter.contains("biomeInfo(String body)"), "Velocity biome formatter must use typed biome views");
+        assertFalse(formatter.contains("runtimeInfo(String body)"), "Velocity runtime formatter must use typed runtime views");
+        assertFalse(formatter.contains("playerInfo(String body)"), "Velocity player formatter must use typed player views");
         assertFalse(formatter.contains("rankingList(String label, String body)"), "Velocity ranking formatter must use typed ranking views");
+        assertFalse(formatter.contains("blockValueList(String body)"), "Velocity block value formatter must use typed block value views");
+        assertFalse(formatter.contains("addonStateSummary(String body)"), "Velocity addon state formatter must use typed addon state views");
+        assertFalse(formatter.contains("templateList(String body)"), "Velocity template formatter must use typed template views");
         assertFalse(formatter.contains("warpList(String label, String body)"), "Velocity warp formatter must use typed warp views");
         assertFalse(formatter.contains("homeList(String body)"), "Velocity home formatter must use typed home views");
         assertFalse(formatter.contains("memberList(String body)"), "Velocity member formatter must use typed member views");
