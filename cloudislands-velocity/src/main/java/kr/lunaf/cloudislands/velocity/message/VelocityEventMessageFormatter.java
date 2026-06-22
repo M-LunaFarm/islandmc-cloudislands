@@ -1,9 +1,8 @@
 package kr.lunaf.cloudislands.velocity.message;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.arrayValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.matchingObjectEnd;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectValue;
+import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objects;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,23 +19,16 @@ public final class VelocityEventMessageFormatter {
     }
 
     public String events(String body) {
-        String events = arrayValue(body, "events");
-        if (events.isBlank()) {
+        List<String> events = objects(body, "events");
+        if (events.isEmpty()) {
             return "Events: empty";
         }
         List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < events.length() && entries.size() < 10) {
-            int objectStart = events.indexOf('{', index);
-            if (objectStart < 0) {
+        for (String event : events) {
+            if (entries.size() >= 10) {
                 break;
             }
-            int objectEnd = matchingObjectEnd(events, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            entries.add(eventEntry(events.substring(objectStart, objectEnd + 1)));
-            index = objectEnd + 1;
+            entries.add(eventEntry(event));
         }
         return entries.isEmpty() ? "Events: empty" : "Events: " + String.join(" | ", entries);
     }
@@ -56,23 +48,16 @@ public final class VelocityEventMessageFormatter {
     }
 
     public String audit(String body) {
-        String audit = arrayValue(body, "audit");
-        if (audit.isBlank()) {
+        List<String> audit = objects(body, "audit");
+        if (audit.isEmpty()) {
             return "Audit: empty";
         }
         List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < audit.length() && entries.size() < 10) {
-            int objectStart = audit.indexOf('{', index);
-            if (objectStart < 0) {
+        for (String entry : audit) {
+            if (entries.size() >= 10) {
                 break;
             }
-            int objectEnd = matchingObjectEnd(audit, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            entries.add(auditEntry(audit.substring(objectStart, objectEnd + 1)));
-            index = objectEnd + 1;
+            entries.add(auditEntry(entry));
         }
         return entries.isEmpty() ? "Audit: empty" : "Audit: " + String.join(" | ", entries);
     }

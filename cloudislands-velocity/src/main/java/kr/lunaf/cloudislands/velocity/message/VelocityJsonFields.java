@@ -23,6 +23,39 @@ public final class VelocityJsonFields {
         return value instanceof Map<?, ?> ? SimpleJson.stringify(value) : "";
     }
 
+    public static List<String> objects(String body, String field) {
+        return objectsFromArray(arrayValue(body, field));
+    }
+
+    public static List<String> objectsFromArray(String array) {
+        if (array == null || array.isBlank()) {
+            return List.of();
+        }
+        Object parsed = value(array);
+        if (parsed instanceof List<?> list) {
+            return list.stream()
+                .map(SimpleJson::object)
+                .filter(object -> !object.isEmpty())
+                .map(SimpleJson::stringify)
+                .toList();
+        }
+        java.util.ArrayList<String> objects = new java.util.ArrayList<>();
+        int index = 0;
+        while (index < array.length()) {
+            int objectStart = array.indexOf('{', index);
+            if (objectStart < 0) {
+                break;
+            }
+            int objectEnd = matchingObjectEnd(array, objectStart);
+            if (objectEnd < 0) {
+                break;
+            }
+            objects.add(array.substring(objectStart, objectEnd + 1));
+            index = objectEnd + 1;
+        }
+        return List.copyOf(objects);
+    }
+
     public static boolean boolValue(String body, String field) {
         Object value = root(body).get(field);
         return value instanceof Boolean booleanValue ? booleanValue : Boolean.parseBoolean(SimpleJson.text(value));
@@ -53,31 +86,7 @@ public final class VelocityJsonFields {
     }
 
     public static int countObjects(String array) {
-        if (array == null || array.isBlank()) {
-            return 0;
-        }
-        Object parsed = value(array);
-        if (parsed instanceof List<?> list) {
-            return (int) list.stream()
-                .map(SimpleJson::object)
-                .filter(object -> !object.isEmpty())
-                .count();
-        }
-        int count = 0;
-        int index = 0;
-        while (index < array.length()) {
-            int objectStart = array.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(array, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            count++;
-            index = objectEnd + 1;
-        }
-        return count;
+        return objectsFromArray(array).size();
     }
 
     public static int matchingObjectEnd(String value, int objectStart) {
