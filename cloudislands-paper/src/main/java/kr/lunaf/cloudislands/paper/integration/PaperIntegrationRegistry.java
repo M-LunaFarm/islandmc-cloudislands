@@ -18,7 +18,6 @@ import kr.lunaf.cloudislands.paper.integration.spi.CloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime;
-import kr.lunaf.cloudislands.paper.integration.spi.IntegrationOperationPlan;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.spi.PolicyBackedCloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
@@ -132,31 +131,7 @@ public final class PaperIntegrationRegistry {
     }
 
     private static IntegrationExternalRuntime bukkitExternalRuntime(Server server) {
-        return (pluginName, category, operation, context, plan) -> {
-            if (server == null) {
-                return IntegrationResult.skipped(pluginName + " external runtime has no Bukkit server");
-            }
-            Plugin plugin = server.getPluginManager().getPlugin(pluginName);
-            if (plugin == null || !server.getPluginManager().isPluginEnabled(pluginName)) {
-                return IntegrationResult.skipped(pluginName + " is not enabled in Bukkit");
-            }
-            return IntegrationResult.success(pluginName + " external runtime accepted " + operation, externalRuntimeDetails(plugin, category, operation, plan));
-        };
-    }
-
-    private static Map<String, String> externalRuntimeDetails(Plugin plugin, String category, String operation, IntegrationOperationPlan plan) {
-        LinkedHashMap<String, String> details = new LinkedHashMap<>();
-        details.put("runtime", "bukkit");
-        details.put("pluginClass", plugin.getClass().getName());
-        details.put("pluginVersion", pluginVersion(plugin));
-        details.put("category", category == null ? "" : category);
-        details.put("operation", operation == null ? "" : operation);
-        if (plan != null) {
-            details.put("externalApi", plan.externalApi());
-            details.put("stateChanging", Boolean.toString(plan.stateChanging()));
-            details.put("requiredMetadata", String.join(",", plan.requiredMetadata()));
-        }
-        return details;
+        return BukkitIntegrationExternalRuntime.create(server);
     }
 
     private static CloudIntegration genericIntegration(String pluginName) {

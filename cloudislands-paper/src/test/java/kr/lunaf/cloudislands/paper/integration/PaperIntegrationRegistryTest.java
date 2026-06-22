@@ -502,6 +502,7 @@ class PaperIntegrationRegistryTest {
     @Test
     void registryExposesGuardedAdapterLifecycleSurface() {
         String registrySource = readRegistrySource();
+        String runtimeSource = readRuntimeSource();
 
         assertTrue(registrySource.contains("public IntegrationResult onIslandActivate"));
         assertTrue(registrySource.contains("public IntegrationResult onIslandDeactivate"));
@@ -517,13 +518,27 @@ class PaperIntegrationRegistryTest {
         assertTrue(registrySource.contains("getPlugin(pluginName)"));
         assertTrue(registrySource.contains("defaultIntegrations(bukkitExternalRuntime(server))"));
         assertTrue(registrySource.contains("private static IntegrationExternalRuntime bukkitExternalRuntime(Server server)"));
-        assertTrue(registrySource.contains("details.put(\"runtime\", \"bukkit\")"));
-        assertTrue(registrySource.contains("details.put(\"externalApi\", plan.externalApi())"));
+        assertTrue(registrySource.contains("return BukkitIntegrationExternalRuntime.create(server);"));
+        assertTrue(runtimeSource.contains("details.put(\"runtime\", \"bukkit\")"));
+        assertTrue(runtimeSource.contains("details.put(\"adapter\", \"reflective-plugin-api\")"));
+        assertTrue(runtimeSource.contains("details.put(\"externalApi\", plan.externalApi())"));
+        assertTrue(runtimeSource.contains("details.put(\"artifactMode\", plan.stateChanging() ? \"state-transfer-manifest\" : \"observation\")"));
+        assertTrue(runtimeSource.contains("apiProbe.method.getAPI"), "CoreProtect adapter must probe the Bukkit plugin API surface");
+        assertTrue(runtimeSource.contains("apiProbe.class.WorldEdit"), "WorldEdit adapter must probe WorldEdit API classes");
+        assertTrue(runtimeSource.contains("apiProbe.bukkitService.LuckPerms"), "LuckPerms adapter must probe Bukkit services");
     }
 
     private String readRegistrySource() {
         try {
             return java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java"));
+        } catch (java.io.IOException exception) {
+            throw new java.io.UncheckedIOException(exception);
+        }
+    }
+
+    private String readRuntimeSource() {
+        try {
+            return java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/BukkitIntegrationExternalRuntime.java"));
         } catch (java.io.IOException exception) {
             throw new java.io.UncheckedIOException(exception);
         }
