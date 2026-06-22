@@ -104,6 +104,11 @@ public final class GuiMenuRenderer {
         return item(definition, item, messages, item.materialKey(active), data, extraLore, null);
     }
 
+    public static void setSymbolItem(Inventory inventory, GuiMenuDefinition definition, String symbol, MessageRenderer messages, Map<String, String> data, List<String> extraLore) {
+        slots(definition, symbol).forEach(slot -> definition.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, item(definition, item, messages, data, extraLore))));
+    }
+
     private static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, String materialKey, Map<String, String> data, List<String> extraLore, String actionIdOverride) {
         java.util.LinkedHashMap<String, String> mergedData = new java.util.LinkedHashMap<>(item.data());
         if (data != null) {

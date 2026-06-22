@@ -177,8 +177,7 @@ public final class IslandLogMenu implements Listener {
     }
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
-        MENU.itemAt(13)
-            .ifPresent(item -> inventory.setItem(13, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of())));
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
     }
 
     private static String shorten(String value) {

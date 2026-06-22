@@ -137,8 +137,7 @@ public final class IslandSnapshotMenu implements Listener {
     }
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
-        MENU.itemAt(22)
-            .ifPresent(item -> inventory.setItem(22, GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of())));
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
     }
 
     private static String fallback(String value, String fallback) {
