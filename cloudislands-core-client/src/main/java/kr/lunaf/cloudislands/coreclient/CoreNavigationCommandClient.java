@@ -61,7 +61,7 @@ public final class CoreNavigationCommandClient implements NavigationCommandClien
             .thenApply(CoreNavigationCommandClient::reviewActionResult);
     }
 
-    private static ReviewActionView reviewActionResult(String body) {
+    static ReviewActionView reviewActionResult(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new ReviewActionView(CoreJson.accepted(root), CoreJson.text(root, "code"));
     }

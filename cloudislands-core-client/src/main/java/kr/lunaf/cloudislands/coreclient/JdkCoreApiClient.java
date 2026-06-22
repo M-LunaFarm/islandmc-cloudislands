@@ -56,6 +56,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkPermissionClient permissionClient;
     private final JdkHomeWarpClient homeWarpClient;
     private final JdkRoutingClient routingClient;
+    private final JdkNavigationClient navigationClient;
     private final JdkRuntimeClient runtimeClient;
     private final JdkIslandClient islandClient;
     private final JdkMemberQueryClient memberQueryClient;
@@ -95,6 +96,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.permissionClient = new JdkPermissionClient();
         this.homeWarpClient = new JdkHomeWarpClient();
         this.routingClient = new JdkRoutingClient();
+        this.navigationClient = new JdkNavigationClient();
         this.runtimeClient = new JdkRuntimeClient();
         this.islandClient = new JdkIslandClient();
         this.memberQueryClient = new JdkMemberQueryClient();
@@ -185,6 +187,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public RoutingCommandClient routingCommands() {
         return routingClient;
+    }
+
+    @Override
+    public NavigationQueryClient navigation() {
+        return navigationClient;
+    }
+
+    @Override
+    public NavigationCommandClient navigationCommands() {
+        return navigationClient;
     }
 
     @Override
@@ -1977,6 +1989,101 @@ public final class JdkCoreApiClient implements CoreApiClient {
             requireId(islandId, "islandId");
             return postWithResultBody("/v1/admin/islands/where", jsonObject("islandId", islandId))
                 .thenApply(CoreAdminIslandQueryClient::runtime);
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkNavigationClient implements NavigationQueryClient, NavigationCommandClient {
+        @Override
+        public CompletableFuture<CoreGuiViews.PlayerProfileView> playerProfileByName(String playerName) {
+            String normalized = requireText(playerName, "playerName");
+            return post("/v1/players/info", jsonObject("lastName", normalized))
+                .thenApply(CoreGuiViews::playerProfile);
+        }
+
+        @Override
+        public CompletableFuture<List<CoreGuiViews.PlayerIslandView>> playerIslands(UUID playerUuid) {
+            requireId(playerUuid, "playerUuid");
+            return CoreGuiViews.playerIslands(JdkCoreApiClient.this, playerUuid);
+        }
+
+        @Override
+        public CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int limit) {
+            return CoreGuiViews.publicIslands(JdkCoreApiClient.this, Math.max(1, Math.min(limit, 100)));
+        }
+
+        @Override
+        public CompletableFuture<ReviewListView> listReviews(UUID islandId, int limit) {
+            requireId(islandId, "islandId");
+            return post("/v1/islands/reviews", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))))
+                .thenApply(CoreNavigationQueryClient::reviewViews);
+        }
+
+        @Override
+        public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
+            requireId(playerUuid, "playerUuid");
+            return postWithResultBody("/v1/routes/home", jsonObject(
+                "playerUuid", playerUuid,
+                "homeName", homeName == null || homeName.isBlank() ? "default" : homeName.trim()
+            )).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        }
+
+        @Override
+        public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID islandId) {
+            requireId(visitorUuid, "visitorUuid");
+            requireId(islandId, "islandId");
+            return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "islandId", islandId))
+                .thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        }
+
+        @Override
+        public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) {
+            requireId(visitorUuid, "visitorUuid");
+            String normalized = requireText(islandName, "islandName");
+            return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "islandName", normalized))
+                .thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        }
+
+        @Override
+        public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
+            requireId(visitorUuid, "visitorUuid");
+            requireId(ownerUuid, "ownerUuid");
+            return postWithResultBody("/v1/routes/visit", jsonObject("playerUuid", visitorUuid, "ownerUuid", ownerUuid))
+                .thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        }
+
+        @Override
+        public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
+            requireId(visitorUuid, "visitorUuid");
+            return postWithResultBody("/v1/routes/random", jsonObject("playerUuid", visitorUuid))
+                .thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        }
+
+        @Override
+        public CompletableFuture<ReviewActionView> setReview(UUID islandId, UUID reviewerUuid, int rating, String comment) {
+            requireId(islandId, "islandId");
+            requireId(reviewerUuid, "reviewerUuid");
+            if (rating < 1 || rating > 5) {
+                throw new IllegalArgumentException("rating must be between 1 and 5");
+            }
+            return postWithResultBody("/v1/islands/reviews/set", jsonObject(
+                "islandId", islandId,
+                "reviewerUuid", reviewerUuid,
+                "rating", rating,
+                "comment", comment == null ? "" : comment
+            )).thenApply(CoreNavigationCommandClient::reviewActionResult);
+        }
+
+        private String requireText(String value, String fieldName) {
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException(fieldName + " is required");
+            }
+            return value.trim();
         }
 
         private void requireId(UUID id, String name) {
