@@ -43,7 +43,7 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<TemplateView>> templates(CoreApiClient client) {
-        return client.templates().list().thenApply(CoreGuiViews::templateViews);
+        return client.templates().list().thenApply(CoreTemplateJson::guiTemplates);
     }
 
     public static CompletableFuture<RankingData> rankings(CoreApiClient client, int limit) {
@@ -175,24 +175,6 @@ public final class CoreGuiViews {
             longValue(root, "maxActivationQueue"),
             text(root, "mspt")
         );
-    }
-
-    private static List<TemplateView> templates(String body) {
-        List<TemplateView> templates = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String id = text(object, "id");
-            if (!id.isBlank()) {
-                templates.add(new TemplateView(id, text(object, "displayName"), bool(object, "enabled", true), text(object, "minNodeVersion")));
-            }
-        }
-        return templates;
-    }
-
-    private static List<TemplateView> templateViews(List<kr.lunaf.cloudislands.coreclient.TemplateView> views) {
-        return views == null ? List.of() : views.stream()
-            .filter(view -> view != null && !view.id().isBlank())
-            .map(view -> new TemplateView(view.id(), view.displayName(), view.enabled(), view.minNodeVersion()))
-            .toList();
     }
 
     private static List<MemberView> members(String body) {

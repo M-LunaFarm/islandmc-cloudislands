@@ -22,6 +22,17 @@ final class CoreTemplateJson {
         return template(CoreJson.object(body));
     }
 
+    static List<CoreGuiViews.TemplateView> guiTemplates(String body) {
+        return guiTemplates(templates(body));
+    }
+
+    static List<CoreGuiViews.TemplateView> guiTemplates(List<TemplateView> views) {
+        return views == null ? List.of() : views.stream()
+            .filter(view -> view != null && !view.id().isBlank())
+            .map(view -> new CoreGuiViews.TemplateView(view.id(), view.displayName(), view.enabled(), view.minNodeVersion()))
+            .toList();
+    }
+
     private static TemplateView template(Map<?, ?> object) {
         return new TemplateView(
             SimpleJson.text(object.get("id")),
