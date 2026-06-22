@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -1783,6 +1784,7 @@ class CoreTypedClientsTest {
     @Test
     void adminNodeQueryClientReturnsTypedSummariesAndNodeInfo() {
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminNodeQueryClient.java")));
         String nodesBody = """
             {"nodes":[
               {"nodeId":"node-a","pool":"default","serverName":"server-a","nodeVersion":"1.0.0","state":"READY","players":5,"softPlayerCap":50,"hardPlayerCap":80,"reservedSlots":2,"activeIslands":2,"maxActiveIslands":10,"mspt":"12.5","activationQueue":1,"maxActivationQueue":5,"chunkLoadPressure":"0.25","heapUsedMb":512,"heapMaxMb":2048,"recentFailurePenalty":3,"storageAvailable":true,"supportedTemplates":"default,nether","lastHeartbeat":"2026-06-21T00:00:00Z","score":"88.5","scoreBreakdown":{"load":"1.5"},"eligibleForNewActivation":true,"allocationBlockReason":"","levelScan":{"running":true,"lastIsland":"island-a","startedAt":10},"storage":{"primaryDegraded":true,"uploadSeconds":"0.4","downloadSeconds":"0.5","healthCheckFailures":1}},
@@ -1813,6 +1815,10 @@ class CoreTypedClientsTest {
         assertEquals(1, runtimes.size());
         assertEquals(islandId.toString(), runtimes.get(0).islandId());
         assertEquals("world-a", runtimes.get(0).activeWorld());
+        assertFalse(source.contains("private static String text("), "admin node parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("private static long number("), "admin node parser must use shared CoreJson numeric helpers");
+        assertFalse(source.contains("firstPresent("), "admin node parser must use CoreJson.firstText for alternate fields");
+        assertTrue(source.contains("CoreJson.objects(root, \"nodes\")"), "admin node parser must parse node arrays through the shared CoreJson object list helper");
     }
 
     @Test

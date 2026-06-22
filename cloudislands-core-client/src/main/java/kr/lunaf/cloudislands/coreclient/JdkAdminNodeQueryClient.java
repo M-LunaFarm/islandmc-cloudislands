@@ -67,9 +67,8 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
 
     static List<IslandNodeSnapshot> nodes(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        return SimpleJson.list(root.get("nodes")).stream()
-            .map(SimpleJson::object)
-            .map(node -> node(text(firstPresent(node, "nodeId", "id")), node))
+        return CoreJson.objects(root, "nodes").stream()
+            .map(node -> node(CoreJson.firstText(node, "nodeId", "id"), node))
             .filter(Optional::isPresent)
             .map(Optional::get)
             .toList();
@@ -87,7 +86,7 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
     }
 
     private static Optional<IslandNodeSnapshot> node(String fallbackNodeId, Map<?, ?> root) {
-        String nodeId = text(firstPresent(root, "nodeId", "id"));
+        String nodeId = CoreJson.firstText(root, "nodeId", "id");
         if (nodeId.isBlank()) {
             nodeId = fallbackNodeId == null ? "" : fallbackNodeId;
         }
@@ -96,10 +95,10 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         }
         return Optional.of(new IslandNodeSnapshot(
             nodeId,
-            text(root, "pool"),
-            text(firstPresent(root, "serverName", "server")),
-            text(root, "nodeVersion"),
-            enumValue(text(root, "state")),
+            CoreJson.text(root, "pool"),
+            CoreJson.firstText(root, "serverName", "server"),
+            CoreJson.text(root, "nodeVersion"),
+            enumValue(CoreJson.text(root, "state")),
             intValue(root, "players"),
             intValue(root, "softPlayerCap"),
             intValue(root, "hardPlayerCap"),
@@ -110,16 +109,16 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
             intValue(root, "activationQueue"),
             intValue(root, "maxActivationQueue"),
             decimal(root, "chunkLoadPressure"),
-            number(root, "heapUsedMb"),
-            number(root, "heapMaxMb"),
+            CoreJson.number(root, "heapUsedMb"),
+            CoreJson.number(root, "heapMaxMb"),
             intValue(root, "recentFailurePenalty"),
             bool(root, "storageAvailable"),
-            text(root, "supportedTemplates"),
-            instant(text(root, "lastHeartbeat")),
+            CoreJson.text(root, "supportedTemplates"),
+            instant(CoreJson.text(root, "lastHeartbeat")),
             decimal(root, "score"),
             decimalMap(SimpleJson.object(root.get("scoreBreakdown"))),
             bool(root, "eligibleForNewActivation"),
-            text(root, "allocationBlockReason"),
+            CoreJson.text(root, "allocationBlockReason"),
             levelScan(SimpleJson.object(root.get("levelScan"))),
             storage(SimpleJson.object(root.get("storage")))
         ));
@@ -130,17 +129,17 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         return SimpleJson.list(root.get("islands")).stream()
             .map(SimpleJson::object)
             .map(runtime -> new AdminIslandRuntimeView(
-                text(runtime, "islandId"),
-                text(runtime, "state"),
+                CoreJson.text(runtime, "islandId"),
+                CoreJson.text(runtime, "state"),
                 nullableText(runtime, "activeNode"),
                 nullableText(runtime, "activeWorld"),
                 nullableNumber(runtime.get("cellX")),
                 nullableNumber(runtime.get("cellZ")),
                 nullableText(runtime, "leaseOwner"),
-                number(runtime, "fencingToken"),
+                CoreJson.number(runtime, "fencingToken"),
                 nullableText(runtime, "activatedAt"),
                 nullableText(runtime, "lastHeartbeat"),
-                text(runtime, "code")
+                CoreJson.text(runtime, "code")
             ))
             .toList();
     }
@@ -149,26 +148,26 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         Object parsed = CoreJson.value(body);
         Map<?, ?> root = SimpleJson.object(parsed);
         if (!root.isEmpty()) {
-            String code = text(root, "code");
+            String code = CoreJson.text(root, "code");
             if (!code.isBlank()) {
                 return new AdminNodeSummaryView("code=" + code);
             }
-            String nodeId = text(root, "nodeId");
+            String nodeId = CoreJson.text(root, "nodeId");
             if (!nodeId.isBlank()) {
                 long count = SimpleJson.number(root.get("count"));
                 return count > 0L
                     ? new AdminNodeSummaryView("node=" + compactId(nodeId) + " count=" + count)
                     : new AdminNodeSummaryView("node=" + compactId(nodeId));
             }
-            List<?> nodes = SimpleJson.list(root.get("nodes"));
+            List<Map<?, ?>> nodes = CoreJson.objects(root, "nodes");
             if (!nodes.isEmpty()) {
-                long nodeCount = number(root, "nodeCount");
+                long nodeCount = CoreJson.number(root, "nodeCount");
                 return new AdminNodeSummaryView(
                     "nodes=" + nodes.size(),
                     nodeCount > 0L ? nodeCount : nodes.size(),
-                    number(root, "routeCandidateCount"),
-                    number(root, "staleNodeCount"),
-                    number(root, "heartbeatTimeoutSeconds")
+                    CoreJson.number(root, "routeCandidateCount"),
+                    CoreJson.number(root, "staleNodeCount"),
+                    CoreJson.number(root, "heartbeatTimeoutSeconds")
                 );
             }
         }
@@ -186,16 +185,16 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         Map<?, ?> root = CoreJson.object(body);
         return new CoreGuiViews.NodeSummaryView(
             nodeId,
-            text(root, "state"),
-            text(root, "pool"),
-            number(root, "players"),
-            number(root, "softPlayerCap"),
-            number(root, "hardPlayerCap"),
-            number(root, "activeIslands"),
-            number(root, "maxActiveIslands"),
-            number(root, "activationQueue"),
-            number(root, "maxActivationQueue"),
-            text(root, "mspt")
+            CoreJson.text(root, "state"),
+            CoreJson.text(root, "pool"),
+            CoreJson.number(root, "players"),
+            CoreJson.number(root, "softPlayerCap"),
+            CoreJson.number(root, "hardPlayerCap"),
+            CoreJson.number(root, "activeIslands"),
+            CoreJson.number(root, "maxActiveIslands"),
+            CoreJson.number(root, "activationQueue"),
+            CoreJson.number(root, "maxActivationQueue"),
+            CoreJson.text(root, "mspt")
         );
     }
 
@@ -206,22 +205,6 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         return nodeId.trim();
     }
 
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static String text(Object value) {
-        return SimpleJson.text(value);
-    }
-
-    private static Object firstPresent(Map<?, ?> object, String first, String second) {
-        return object.containsKey(first) ? object.get(first) : object.get(second);
-    }
-
-    private static long number(Map<?, ?> object, String key) {
-        return SimpleJson.number(object.get(key));
-    }
-
     private static Long nullableNumber(Object value) {
         return value == null ? null : SimpleJson.number(value);
     }
@@ -230,11 +213,11 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         if (!object.containsKey(key) || object.get(key) == null) {
             return null;
         }
-        return SimpleJson.text(object.get(key));
+        return CoreJson.text(object, key);
     }
 
     private static int intValue(Map<?, ?> object, String key) {
-        long value = number(object, key);
+        long value = CoreJson.number(object, key);
         if (value > Integer.MAX_VALUE) {
             return Integer.MAX_VALUE;
         }
@@ -306,10 +289,10 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         }
         return new NodeLevelScanSnapshot(
             bool(object, "running"),
-            text(object, "lastIsland"),
-            number(object, "startedAt"),
-            number(object, "finishedAt"),
-            number(object, "failedAt")
+            CoreJson.text(object, "lastIsland"),
+            CoreJson.number(object, "startedAt"),
+            CoreJson.number(object, "finishedAt"),
+            CoreJson.number(object, "failedAt")
         );
     }
 
@@ -321,10 +304,10 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
             bool(object, "primaryDegraded"),
             decimal(object, "uploadSeconds"),
             decimal(object, "downloadSeconds"),
-            number(object, "healthCheckFailures"),
-            number(object, "uploadFailures"),
-            number(object, "downloadFailures"),
-            number(object, "operationFailures")
+            CoreJson.number(object, "healthCheckFailures"),
+            CoreJson.number(object, "uploadFailures"),
+            CoreJson.number(object, "downloadFailures"),
+            CoreJson.number(object, "operationFailures")
         );
     }
 
