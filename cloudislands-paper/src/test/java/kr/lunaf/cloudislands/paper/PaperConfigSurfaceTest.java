@@ -108,6 +108,9 @@ class PaperConfigSurfaceTest {
         assertTrue(loader.contains("configV2ResourceNames"), "Paper runtime config loader must discover Config v2 files dynamically");
         assertTrue(loader.contains("loadV2"), "Paper runtime config loader must expose a Config v2 runtime path");
         assertFalse(loader.contains("PAPER_CONFIG_V2_FILES"), "Paper runtime config loader must not rely on a hardcoded Config v2 file list");
+        assertFalse(loader.contains("knownPaperConfigV2Source"), "Paper runtime config loader must not keep a source-name allowlist");
+        assertFalse(loader.contains("UNSUPPORTED_CONFIG_V2_SOURCE"), "future Config v2 files must not fail validation only because the loader does not map them yet");
+        assertTrue(loader.contains("return ConfigV2Validator.validateYaml(source.name(), source.yaml())"), "non-menu Config v2 sources must use generic YAML validation");
         assertFalse(bootstrap.contains("saveDefaultConfig()"), "Paper bootstrap must not create legacy config.yml as a runtime input");
         assertEquals(0, countOccurrences(bootstrap, "plugin.getConfig()"), "Paper bootstrap must not read Bukkit config directly");
         assertFalse(bootstrap.contains("getString(\"node.id\""), "node identity path must live in PaperRuntimeConfigLoader");
