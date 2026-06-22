@@ -192,6 +192,10 @@ public interface CoreApiClient {
         return new CoreAdminAddonStateQueryClient(this);
     }
 
+    default AddonStateClient addonStates() {
+        return new CoreAddonStateClient(this);
+    }
+
     default AdminCoreConfigQueryClient adminCoreConfig() {
         return new CoreAdminCoreConfigQueryClient(this);
     }

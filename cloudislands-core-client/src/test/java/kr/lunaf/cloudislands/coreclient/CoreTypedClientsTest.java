@@ -114,6 +114,79 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void coreAddonStateClientReturnsTypedValuesForStateEndpoints() {
+        UUID islandId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
+            CoreApiClient.class.getClassLoader(),
+            new Class<?>[] { CoreApiClient.class },
+            (_proxy, method, args) -> {
+                String methodName = method.getName();
+                return switch (methodName) {
+                    case "addonState",
+                        "putAddonState",
+                        "saveAddonState",
+                        "tableKeyValueBulkSaveAddonState",
+                        "tableBulkAddonState",
+                        "tableKeyValueBulkLoadAddonState",
+                        "replaceAddonTableState",
+                        "removeAddonState",
+                        "addonIslandState",
+                        "putAddonIslandState",
+                        "saveAddonIslandState",
+                        "tableKeyValueBulkSaveAddonIslandState",
+                        "tableBulkAddonIslandState",
+                        "tableKeyValueBulkLoadAddonIslandState",
+                        "replaceAddonIslandTableState",
+                        "removeAddonIslandState" -> {
+                        calls.add(methodName + ":" + args[0]);
+                        yield CompletableFuture.completedFuture("""
+                            {"values":{"method":"%s","ok":true}}
+                            """.formatted(methodName));
+                    }
+                    case "clearAddonState", "clearAddonIslandState" -> {
+                        calls.add(methodName + ":" + args[0]);
+                        yield CompletableFuture.completedFuture("{\"ok\":true}");
+                    }
+                    case "clearAddonTableState", "clearAddonIslandTableState" -> {
+                        calls.add(methodName + ":" + args[0]);
+                        yield CompletableFuture.completedFuture("""
+                            {"values":{"method":"%s","ok":true}}
+                            """.formatted(methodName));
+                    }
+                    default -> throw new UnsupportedOperationException(methodName);
+                };
+            }
+        );
+        AddonStateClient client = new CoreAddonStateClient(raw);
+
+        assertEquals("addonState", client.state(" shop ").join().get("method"));
+        assertEquals("putAddonState", client.putState("shop", Map.of("enabled", "true")).join().get("method"));
+        assertEquals("saveAddonState", client.saveState("shop", Map.of("enabled", "true"), Map.of("items", Map.of("one", "1"))).join().get("method"));
+        assertEquals("tableKeyValueBulkSaveAddonState", client.tableKeyValueBulkSaveState("shop", Map.of(), Map.of("items", Map.of("two", "2"))).join().get("method"));
+        assertEquals("tableBulkAddonState", client.tableBulkState("shop", Map.of("items", Map.of("three", "3"))).join().get("method"));
+        assertEquals("tableKeyValueBulkLoadAddonState", client.tableKeyValueBulkLoadState("shop", " items ").join().get("method"));
+        assertEquals("replaceAddonTableState", client.replaceTableState("shop", "items", Map.of("four", "4")).join().get("method"));
+        assertEquals("removeAddonState", client.removeState("shop", "enabled").join().get("method"));
+        assertEquals("clearAddonTableState", client.clearTableState("shop", "items").join().get("method"));
+        client.clearState("shop").join();
+        assertEquals("addonIslandState", client.islandState("shop", islandId).join().get("method"));
+        assertEquals("putAddonIslandState", client.putIslandState("shop", islandId, Map.of("enabled", "true")).join().get("method"));
+        assertEquals("saveAddonIslandState", client.saveIslandState("shop", islandId, Map.of("enabled", "true"), Map.of("items", Map.of("one", "1"))).join().get("method"));
+        assertEquals("tableKeyValueBulkSaveAddonIslandState", client.tableKeyValueBulkSaveIslandState("shop", islandId, Map.of(), Map.of("items", Map.of("two", "2"))).join().get("method"));
+        assertEquals("tableBulkAddonIslandState", client.tableBulkIslandState("shop", islandId, Map.of("items", Map.of("three", "3"))).join().get("method"));
+        assertEquals("tableKeyValueBulkLoadAddonIslandState", client.tableKeyValueBulkLoadIslandState("shop", islandId, "items").join().get("method"));
+        assertEquals("replaceAddonIslandTableState", client.replaceIslandTableState("shop", islandId, "items", Map.of("four", "4")).join().get("method"));
+        assertEquals("removeAddonIslandState", client.removeIslandState("shop", islandId, "enabled").join().get("method"));
+        assertEquals("clearAddonIslandTableState", client.clearIslandTableState("shop", islandId, "items").join().get("method"));
+        client.clearIslandState("shop", islandId).join();
+
+        assertTrue(calls.contains("addonState:shop"));
+        assertTrue(calls.contains("clearAddonState:shop"));
+        assertTrue(calls.contains("clearAddonIslandState:shop"));
+    }
+
+    @Test
     void islandQueryClientReturnsTypedIslandAndMemberPages() {
         UUID islandId = UUID.randomUUID();
         UUID firstMemberUuid = UUID.randomUUID();

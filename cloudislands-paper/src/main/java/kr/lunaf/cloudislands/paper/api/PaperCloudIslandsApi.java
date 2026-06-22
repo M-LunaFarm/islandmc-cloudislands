@@ -108,6 +108,7 @@ import kr.lunaf.cloudislands.api.upgrade.UpgradePurchaseSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeRuleSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreclient.AddonStateClient;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
@@ -122,7 +123,6 @@ import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreAddonStateJson;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
@@ -254,6 +254,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static final class AddonService implements IslandAddonService {
         private final CoreApiClient coreClient;
+        private final AddonStateClient addonStateClient;
         private final Plugin plugin;
         private final PaperRuntimeConfig runtimeConfig;
         private final PaperAddonConfigStore addonConfig;
@@ -268,6 +269,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
         private AddonService(CoreApiClient coreClient, Plugin plugin, PaperRuntimeConfig runtimeConfig, IslandEventService events) {
             this.coreClient = coreClient;
+            this.addonStateClient = coreClient.addonStates();
             this.plugin = plugin;
             this.runtimeConfig = runtimeConfig == null ? PaperRuntimeConfig.defaults() : runtimeConfig;
             this.addonConfig = new PaperAddonConfigStore(PaperAddonConfigFile.fromPlugin(plugin));
@@ -674,8 +676,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Map<String, String>> state(String id) {
             String safeId = safeRegistrationId(id);
-            return coreClient.addonState(safeId)
-                .thenApply(this::stateFromJson)
+            return addonStateClient.state(safeId)
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
                     writeAddonState(safeId, state);
@@ -705,8 +706,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Map.copyOf(localState));
             }
             writeAddonState(safeId, localState);
-            return mutate("addon.state.put", () -> coreClient.putAddonState(safeId, changedState))
-                .thenApply(this::stateFromJson)
+            return mutate("addon.state.put", () -> addonStateClient.putState(safeId, changedState))
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
                     writeAddonState(safeId, state);
@@ -755,8 +755,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             localState.putAll(merged);
             writeAddonState(safeId, localState);
-            return mutate("addon.state.save", () -> coreClient.saveAddonState(safeId, Map.copyOf(safeValues), Map.copyOf(safeTables)))
-                .thenApply(this::stateFromJson)
+            return mutate("addon.state.save", () -> addonStateClient.saveState(safeId, safeValues, safeTables))
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
                     writeAddonState(safeId, state);
@@ -805,8 +804,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             localState.putAll(merged);
             writeAddonState(safeId, localState);
-            return mutate("addon.state.table-key-value.bulk-save", () -> coreClient.tableKeyValueBulkSaveAddonState(safeId, Map.copyOf(safeValues), Map.copyOf(safeTables)))
-                .thenApply(this::stateFromJson)
+            return mutate("addon.state.table-key-value.bulk-save", () -> addonStateClient.tableKeyValueBulkSaveState(safeId, safeValues, safeTables))
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
                     writeAddonState(safeId, state);
@@ -881,8 +879,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             localState.putAll(merged);
             writeAddonState(safeId, localState);
-            return mutate("addon.state.table.bulk", () -> coreClient.tableBulkAddonState(safeId, Map.copyOf(safeTables)))
-                .thenApply(this::stateFromJson)
+            return mutate("addon.state.table.bulk", () -> addonStateClient.tableBulkState(safeId, safeTables))
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
                     writeAddonState(safeId, state);
@@ -903,8 +900,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (safeTable.isBlank()) {
                 return CompletableFuture.completedFuture(Map.of());
             }
-            return coreClient.tableKeyValueBulkLoadAddonState(safeId, safeTable)
-                .thenApply(this::stateFromJson)
+            return addonStateClient.tableKeyValueBulkLoadState(safeId, safeTable)
                 .exceptionally(_error -> tableValuesFromState(readAddonState(safeId), safeTable));
         }
 
@@ -962,8 +958,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonState(safeId));
             localState.keySet().removeIf(key -> key.startsWith(prefix));
             writeAddonState(safeId, localState);
-            return mutateIdempotent("addon.state.table.clear", () -> coreClient.clearAddonTableState(safeId, table))
-                .thenApply(this::stateFromJson)
+            return mutateIdempotent("addon.state.table.clear", () -> addonStateClient.clearTableState(safeId, table))
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
                     writeAddonState(safeId, state);
@@ -987,8 +982,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             localState.keySet().removeIf(key -> key.startsWith(prefix));
             localState.putAll(tableValues);
             writeAddonState(safeId, localState);
-            return mutateIdempotent("addon.state.table.replace", () -> coreClient.replaceAddonTableState(safeId, table, values))
-                .thenApply(this::stateFromJson)
+            return mutateIdempotent("addon.state.table.replace", () -> addonStateClient.replaceTableState(safeId, table, values))
                 .thenApply(state -> {
                     addonStates.put(safeId, state);
                     writeAddonState(safeId, state);
@@ -1057,8 +1051,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             state.remove(key);
             writeAddonState(safeId, state);
-            return mutateIdempotent("addon.state.remove", () -> coreClient.removeAddonState(safeId, key))
-                .thenApply(this::stateFromJson)
+            return mutateIdempotent("addon.state.remove", () -> addonStateClient.removeState(safeId, key))
                 .thenApply(coreState -> {
                     addonStates.put(safeId, coreState);
                     writeAddonState(safeId, coreState);
@@ -1076,7 +1069,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon state clear failed for " + safeId + ": " + exception.getMessage());
             }
-            return mutateIdempotent("addon.state.clear", () -> coreClient.clearAddonState(safeId)).thenApply(_body -> (Void) null).exceptionally(_error -> null);
+            return mutateIdempotent("addon.state.clear", () -> addonStateClient.clearState(safeId)).exceptionally(_error -> null);
         }
 
         @Override
@@ -1085,8 +1078,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (islandId == null) {
                 return CompletableFuture.completedFuture(Map.of());
             }
-            return coreClient.addonIslandState(safeId, islandId)
-                .thenApply(this::stateFromJson)
+            return addonStateClient.islandState(safeId, islandId)
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
                     return state;
@@ -1118,8 +1110,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 return CompletableFuture.completedFuture(Map.copyOf(localState));
             }
             writeAddonIslandState(safeId, islandId, localState);
-            return mutate("addon.island-state.put", () -> coreClient.putAddonIslandState(safeId, islandId, changedState))
-                .thenApply(this::stateFromJson)
+            return mutate("addon.island-state.put", () -> addonStateClient.putIslandState(safeId, islandId, changedState))
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
                     return state;
@@ -1170,8 +1161,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
             localState.putAll(merged);
             writeAddonIslandState(safeId, islandId, localState);
-            return mutate("addon.island-state.save", () -> coreClient.saveAddonIslandState(safeId, islandId, Map.copyOf(safeValues), Map.copyOf(safeTables)))
-                .thenApply(this::stateFromJson)
+            return mutate("addon.island-state.save", () -> addonStateClient.saveIslandState(safeId, islandId, safeValues, safeTables))
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
                     return state;
@@ -1222,8 +1212,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
             localState.putAll(merged);
             writeAddonIslandState(safeId, islandId, localState);
-            return mutate("addon.island-state.table-key-value.bulk-save", () -> coreClient.tableKeyValueBulkSaveAddonIslandState(safeId, islandId, Map.copyOf(safeValues), Map.copyOf(safeTables)))
-                .thenApply(this::stateFromJson)
+            return mutate("addon.island-state.table-key-value.bulk-save", () -> addonStateClient.tableKeyValueBulkSaveIslandState(safeId, islandId, safeValues, safeTables))
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
                     return state;
@@ -1297,8 +1286,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
             localState.putAll(merged);
             writeAddonIslandState(safeId, islandId, localState);
-            return mutate("addon.island-state.table.bulk", () -> coreClient.tableBulkAddonIslandState(safeId, islandId, Map.copyOf(safeTables)))
-                .thenApply(this::stateFromJson)
+            return mutate("addon.island-state.table.bulk", () -> addonStateClient.tableBulkIslandState(safeId, islandId, safeTables))
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
                     return state;
@@ -1318,8 +1306,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (islandId == null || safeTable.isBlank()) {
                 return CompletableFuture.completedFuture(Map.of());
             }
-            return coreClient.tableKeyValueBulkLoadAddonIslandState(safeId, islandId, safeTable)
-                .thenApply(this::stateFromJson)
+            return addonStateClient.tableKeyValueBulkLoadIslandState(safeId, islandId, safeTable)
                 .exceptionally(_error -> tableValuesFromState(readAddonIslandState(safeId, islandId), safeTable));
         }
 
@@ -1374,8 +1361,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> localState = new HashMap<>(readAddonIslandState(safeId, islandId));
             localState.keySet().removeIf(key -> key.startsWith(prefix));
             writeAddonIslandState(safeId, islandId, localState);
-            return mutateIdempotent("addon.island-state.table.clear", () -> coreClient.clearAddonIslandTableState(safeId, islandId, table))
-                .thenApply(this::stateFromJson)
+            return mutateIdempotent("addon.island-state.table.clear", () -> addonStateClient.clearIslandTableState(safeId, islandId, table))
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
                     return state;
@@ -1398,8 +1384,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             localState.keySet().removeIf(key -> key.startsWith(prefix));
             localState.putAll(tableValues);
             writeAddonIslandState(safeId, islandId, localState);
-            return mutateIdempotent("addon.island-state.table.replace", () -> coreClient.replaceAddonIslandTableState(safeId, islandId, table, values))
-                .thenApply(this::stateFromJson)
+            return mutateIdempotent("addon.island-state.table.replace", () -> addonStateClient.replaceIslandTableState(safeId, islandId, table, values))
                 .thenApply(state -> {
                     writeAddonIslandState(safeId, islandId, state);
                     return state;
@@ -1422,8 +1407,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             Map<String, String> state = new HashMap<>(readAddonIslandState(safeId, islandId));
             state.remove(key);
             writeAddonIslandState(safeId, islandId, state);
-            return mutateIdempotent("addon.island-state.remove", () -> coreClient.removeAddonIslandState(safeId, islandId, key))
-                .thenApply(this::stateFromJson)
+            return mutateIdempotent("addon.island-state.remove", () -> addonStateClient.removeIslandState(safeId, islandId, key))
                 .thenApply(coreState -> {
                     writeAddonIslandState(safeId, islandId, coreState);
                     return coreState;
@@ -1449,16 +1433,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon island state clear failed for " + safeId + "/" + islandId + ": " + exception.getMessage());
             }
-            return mutateIdempotent("addon.island-state.clear", () -> coreClient.clearAddonIslandState(safeId, islandId)).thenApply(_body -> (Void) null).exceptionally(_error -> null);
+            return mutateIdempotent("addon.island-state.clear", () -> addonStateClient.clearIslandState(safeId, islandId)).exceptionally(_error -> null);
         }
 
         private boolean addonAcceptsIslandStateWrites(String id) {
             CloudIslandsAddonSnapshot snapshot = addons.get(safeRegistrationId(id));
             return snapshot != null && snapshot.addonStateWritesEnabled();
-        }
-
-        private Map<String, String> stateFromJson(String json) {
-            return CoreAddonStateJson.values(json);
         }
 
         private Map<String, String> readAddonState(String id) {
