@@ -228,38 +228,11 @@ public final class VelocityIslandMessageFormatter {
             + " state=" + invite.state();
     }
 
-    public String chatResult(String label, String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return label + ": 실패 사유=" + code;
-        }
-        return label + ": 전송 완료 채널=" + jsonValue(body, "channel");
-    }
-
     public String chatResult(String label, ChatActionView view) {
         if (!view.accepted()) {
             return label + ": 실패 사유=" + (view.code().isBlank() ? "FAILED" : view.code());
         }
         return label + ": 전송 완료 채널=" + view.channel();
-    }
-
-    public String islandInfo(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "섬 정보: 실패 사유=" + code;
-        }
-        String islandId = jsonValue(body, "islandId");
-        String ownerUuid = jsonValue(body, "ownerUuid");
-        String name = jsonValue(body, "name");
-        String state = jsonValue(body, "state");
-        return "섬 정보: ID=" + shortId(islandId)
-            + " 소유자=" + shortId(ownerUuid)
-            + (name.isBlank() ? "" : " 이름=" + name)
-            + " 상태=" + (state.isBlank() ? "UNKNOWN" : state)
-            + " 크기=" + longValue(body, "size")
-            + " 레벨=" + longValue(body, "level")
-            + " 가치=" + jsonValue(body, "worth")
-            + " 공개=" + boolValue(body, "publicAccess");
     }
 
     public String islandInfo(CoreGuiViews.IslandInfoView view) {
@@ -273,16 +246,6 @@ public final class VelocityIslandMessageFormatter {
             + " 공개=" + view.publicAccess();
     }
 
-    public String islandStat(String label, String field, String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return label + ": 실패 사유=" + code;
-        }
-        String islandId = jsonValue(body, "islandId");
-        String value = field.equals("worth") ? jsonValue(body, field) : Long.toString(longValue(body, field));
-        return label + ": 섬=" + shortId(islandId) + " 값=" + value;
-    }
-
     public String islandStat(String label, String field, CoreGuiViews.IslandInfoView view) {
         String value = switch (field) {
             case "worth" -> view.worth();
@@ -291,16 +254,6 @@ public final class VelocityIslandMessageFormatter {
             default -> Long.toString(view.level());
         };
         return label + ": 섬=" + shortId(view.islandId()) + " 값=" + value;
-    }
-
-    public String biomeInfo(String body) {
-        String code = jsonValue(body, "code");
-        if (!code.isBlank()) {
-            return "섬 바이옴: 실패 사유=" + code;
-        }
-        return "섬 바이옴: 섬=" + shortId(jsonValue(body, "islandId"))
-            + " 바이옴=" + jsonValue(body, "biomeKey")
-            + " 변경자=" + shortId(jsonValue(body, "updatedBy"));
     }
 
     public String biomeInfo(java.util.UUID islandId, CoreGuiViews.BiomeView view) {
@@ -366,28 +319,6 @@ public final class VelocityIslandMessageFormatter {
         return "플레이어 정보: ID=" + shortId(view.playerUuid())
             + (view.lastName().isBlank() ? "" : " 이름=" + view.lastName())
             + (view.primaryIslandId().isBlank() ? " 섬=없음" : " 섬=" + shortId(view.primaryIslandId()));
-    }
-
-    public String rankingList(String label, String body) {
-        List<String> rankings = objects(body, "rankings");
-        if (rankings.isEmpty()) {
-            return label + ": 기록이 없습니다.";
-        }
-        List<String> entries = new ArrayList<>();
-        int total = 0;
-        for (String object : rankings) {
-            total++;
-            if (entries.size() < 10) {
-                String islandId = jsonValue(object, "islandId");
-                String name = jsonValue(object, "name");
-                entries.add("#" + total
-                    + " " + (name.isBlank() ? "이름 없는 섬" : name)
-                    + " (ID=" + shortId(islandId)
-                    + ", 레벨=" + longValue(object, "level")
-                    + ", 가치=" + jsonValue(object, "worth") + ")");
-            }
-        }
-        return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
 
     public String rankingList(String label, List<ProgressionRankingEntryView> rankings) {
