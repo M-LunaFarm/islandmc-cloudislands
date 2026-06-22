@@ -222,6 +222,13 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void coreClientSurfaceDoesNotExposeLegacyEnumRoleIdentity() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreApiClient.java"));
+
+        assertFalse(source.contains("IslandRole"), "Core client facade must keep role identity on RoleId/String domain clients, not the legacy enum adapter");
+    }
+
+    @Test
     void jdkCoreApiClientDelegatesBankMethodsToStandaloneClients() throws Exception {
         String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
 
