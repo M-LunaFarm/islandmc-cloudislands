@@ -19,7 +19,8 @@ public final class JdkIslandEnvironmentCommandClient implements IslandEnvironmen
     public CompletableFuture<EnvironmentActionView> setBiome(UUID islandId, UUID actorUuid, String biomeKey) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/biome/set", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "biomeKey", biomeKey == null ? "" : biomeKey))
+        return core.postResultBody("/v1/islands/biome/set", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "biomeKey", biomeKey == null ? "" : biomeKey))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> actionResult(body, "BIOME_SET"));
     }
 
@@ -28,7 +29,8 @@ public final class JdkIslandEnvironmentCommandClient implements IslandEnvironmen
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         requireFlag(flag);
-        return core.postWithResultBody("/v1/islands/flags/set", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "flag", flag.name(), "value", value == null ? "" : value))
+        return core.postResultBody("/v1/islands/flags/set", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "flag", flag.name(), "value", value == null ? "" : value))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> actionResult(body, "FLAG_SET"));
     }
 
@@ -36,7 +38,8 @@ public final class JdkIslandEnvironmentCommandClient implements IslandEnvironmen
     public CompletableFuture<EnvironmentActionView> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.post("/v1/islands/limits/set", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "limitKey", limitKey == null ? "" : limitKey, "value", value))
+        return core.postBody("/v1/islands/limits/set", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "limitKey", limitKey == null ? "" : limitKey, "value", value))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> actionResult(body, "LIMIT_SET"));
     }
 

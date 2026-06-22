@@ -16,20 +16,23 @@ final class JdkJobCommandClient implements JobCommandClient {
     @Override
     public CompletableFuture<JobActionView> retry(UUID jobId) {
         requireId(jobId, "jobId");
-        return core.postWithResultBody("/v1/admin/jobs/retry", CoreJsonPayload.object("jobId", jobId))
+        return core.postResultBody("/v1/admin/jobs/retry", CoreJsonPayload.object("jobId", jobId))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreJobJson.action(body, "JOB_RETRIED"));
     }
 
     @Override
     public CompletableFuture<JobActionView> cancel(UUID jobId) {
         requireId(jobId, "jobId");
-        return core.postWithResultBody("/v1/admin/jobs/cancel", CoreJsonPayload.object("jobId", jobId))
+        return core.postResultBody("/v1/admin/jobs/cancel", CoreJsonPayload.object("jobId", jobId))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreJobJson.action(body, "JOB_CANCELED"));
     }
 
     @Override
     public CompletableFuture<JobRecoveryView> recover(String nodeId, long minIdleMillis, int maxJobs) {
-        return core.postWithResultBody("/v1/admin/jobs/recover", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "minIdleMillis", Math.max(0L, minIdleMillis), "maxJobs", Math.max(1, maxJobs)))
+        return core.postResultBody("/v1/admin/jobs/recover", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "minIdleMillis", Math.max(0L, minIdleMillis), "maxJobs", Math.max(1, maxJobs)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreJobJson::recovery);
     }
 

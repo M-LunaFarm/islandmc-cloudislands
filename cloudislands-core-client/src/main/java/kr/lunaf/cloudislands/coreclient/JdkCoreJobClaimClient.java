@@ -20,7 +20,8 @@ final class JdkCoreJobClaimClient implements JobClaimClient {
     @Override
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
-        return core.postWithResultBody("/v1/jobs/claim", CoreJsonPayload.object("nodeId", nodeId, "supportedTypes", types, "maxJobs", maxJobs))
+        return core.postResultBody("/v1/jobs/claim", CoreJsonPayload.object("nodeId", nodeId, "supportedTypes", types, "maxJobs", maxJobs))
+            .thenApply(CoreResponseBody::value)
             .thenApply(IslandJobJson::readArray);
     }
 }

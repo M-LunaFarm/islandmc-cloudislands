@@ -23,7 +23,8 @@ final class JdkCommunicationCommandClient implements CommunicationCommandClient 
         if (normalizedMessage.isBlank()) {
             throw new IllegalArgumentException("message is required");
         }
-        return core.post("/v1/islands/chat", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "channel", normalizedChannel, "message", normalizedMessage))
+        return core.postBody("/v1/islands/chat", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "channel", normalizedChannel, "message", normalizedMessage))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreCommunicationJson.chatAction(body, "CHAT_SENT"));
     }
 

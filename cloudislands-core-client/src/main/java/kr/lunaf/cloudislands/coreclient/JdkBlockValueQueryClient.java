@@ -15,6 +15,8 @@ final class JdkBlockValueQueryClient implements BlockValueQueryClient {
 
     @Override
     public CompletableFuture<List<BlockValueView>> list() {
-        return core.postWithResultBody("/v1/admin/block-values/list", "{}").thenApply(CoreBlockValueJson::values);
+        return core.postResultBody("/v1/admin/block-values/list", "{}")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreBlockValueJson::values);
     }
 }

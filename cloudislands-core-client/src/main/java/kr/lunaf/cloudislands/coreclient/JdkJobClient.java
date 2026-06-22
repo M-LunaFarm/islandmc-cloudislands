@@ -15,7 +15,8 @@ final class JdkJobClient implements JobQueryClient {
 
     @Override
     public CompletableFuture<List<JobView>> list() {
-        return core.postWithResultBody("/v1/admin/jobs/list", "{}")
+        return core.postResultBody("/v1/admin/jobs/list", "{}")
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreJobJson::jobs);
     }
 }
