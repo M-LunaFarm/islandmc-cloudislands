@@ -328,11 +328,11 @@ class CoreMutationContextTest {
             client.adminIslandWhere(islandId).join();
             client.adminIslandTeleport(playerUuid, islandId).join();
             client.lifecycle().repairIsland(islandId, "repair \"now\"").join();
-            client.debugRoutes(playerUuid).join();
-            client.routeTicket(ticketId).join();
+            client.adminRoutes().debug(playerUuid).join();
+            client.adminRoutes().ticket(ticketId).join();
             assertEquals("{\"ticketId\":\"" + ticketId + "\"}", requestBodies.get("routeTicket"));
-            client.routeTicketForPlayer(playerUuid).join();
-            client.clearRouteResult(playerUuid, ticketId, "").join();
+            client.adminRoutes().ticketForPlayer(playerUuid).join();
+            client.adminRoutes().clear(playerUuid, ticketId, "").join();
             client.adminEvents().list(100).join();
             assertEquals("{\"limit\":100}", requestBodies.get("events"));
             client.adminEvents().list(5000).join();

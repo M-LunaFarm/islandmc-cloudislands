@@ -122,7 +122,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.adminStorageClient = new JdkAdminStorageClient(this);
         this.adminEventClient = new JdkAdminEventClient(this);
         this.adminAuditClient = new JdkAdminAuditClient(this);
-        this.adminRouteClient = new CoreAdminRouteClient(this);
+        this.adminRouteClient = new JdkAdminRouteClient(this);
         this.adminAddonStateClient = new CoreAdminAddonStateQueryClient(this);
         this.addonStateClient = new CoreAddonStateClient(this);
         this.adminMaintenanceClient = new JdkAdminMaintenanceClient(this);
@@ -1327,21 +1327,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         requireId(islandId, "islandId");
         return postWithResultBody("/v1/admin/islands/" + islandId + "/repair", jsonObject("reason", lifecycleReason(reason, "admin")))
             .thenApply(body -> lifecycleAction(body, "REPAIRED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<String> debugRoutes(UUID playerUuid) {
-        return postWithResultBody("/v1/admin/routes/debug", jsonObject("playerUuid", playerUuid));
-    }
-
-    @Override
-    public CompletableFuture<String> routeTicket(UUID ticketId) {
-        return postWithResultBody("/v1/admin/routes/ticket", jsonObject("ticketId", ticketId));
-    }
-
-    @Override
-    public CompletableFuture<String> routeTicketForPlayer(UUID playerUuid) {
-        return postWithResultBody("/v1/admin/routes/ticket", jsonObject("playerUuid", playerUuid));
     }
 
     @Override

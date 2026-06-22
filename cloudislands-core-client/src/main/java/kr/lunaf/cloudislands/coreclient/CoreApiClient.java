@@ -220,7 +220,10 @@ public interface CoreApiClient {
     }
 
     default AdminRouteClient adminRoutes() {
-        return new CoreAdminRouteClient(this);
+        if (this instanceof AdminRouteClient client) {
+            return client;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin route queries");
     }
 
     default AdminEventQueryClient adminEvents() {
@@ -413,9 +416,6 @@ public interface CoreApiClient {
     CompletableFuture<String> adminIslandInfo(UUID lookupUuid);
     CompletableFuture<String> adminIslandWhere(UUID islandId);
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
-    CompletableFuture<String> debugRoutes(UUID playerUuid);
-    CompletableFuture<String> routeTicket(UUID ticketId);
-    CompletableFuture<String> routeTicketForPlayer(UUID playerUuid);
     CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId);
     CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId);
     CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId, String reason);

@@ -107,7 +107,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminEventClient"), "admin events must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminAuditClient"), "admin audit must use a standalone typed client");
-        assertFalse(nestedClients.contains("JdkAdminRouteClient"), "admin routes must use CoreAdminRouteClient");
+        assertFalse(nestedClients.contains("JdkAdminRouteClient"), "admin routes must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminAddonStateClient"), "admin addon state must use CoreAdminAddonStateQueryClient");
         assertFalse(nestedClients.contains("JdkAdminMaintenanceClient"), "admin maintenance must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminNodeClient"), "admin node operations must use CoreAdminNode query and command clients");
@@ -128,6 +128,9 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("listEvents"));
         assertFalse(names.contains("listEventsSince"));
         assertFalse(names.contains("listAuditLogs"));
+        assertFalse(names.contains("debugRoutes"));
+        assertFalse(names.contains("routeTicket"));
+        assertFalse(names.contains("routeTicketForPlayer"));
     }
 
     @Test
@@ -1828,44 +1831,18 @@ class CoreTypedClientsTest {
         UUID ticketId = UUID.randomUUID();
         UUID playerUuid = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
-        List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "debugRoutes" -> {
-                    calls.add("debug:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"sessions":[{"playerUuid":"%s","ticketId":"%s","targetNode":"node-a","targetServerName":"island-a","nonce":"nonce-a","expiresAt":"soon"}],
-                         "tickets":[{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetWorld":"world-a","targetType":"home","homeName":"base","expiresAt":"soon","nonce":"nonce-a"}]}
-                        """.formatted(playerUuid, ticketId, ticketId, playerUuid, islandId));
-                }
-                case "routeTicket" -> {
-                    calls.add("ticket:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"ticket":{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetWorld":"world-a","targetType":"home","homeName":"base","expiresAt":"soon","nonce":"nonce-a"}}
-                        """.formatted(args[0], playerUuid, islandId));
-                }
-                case "routeTicketForPlayer" -> {
-                    calls.add("player:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"VISIT","state":"PENDING","targetNode":"node-b"}
-                        """.formatted(ticketId, args[0], islandId));
-                }
-                case "clearRouteResult" -> {
-                    calls.add("clear:" + args[0] + ":" + args[1] + ":" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"clearedSession\":true,\"clearedTicket\":false,\"reason\":\"%s\"}".formatted(args[2]));
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminRouteClient client = new CoreAdminRouteClient(raw);
-
-        AdminRouteDebugView debug = client.debug(playerUuid).join();
-        AdminRouteTicketView ticket = client.ticket(ticketId).join().orElseThrow();
-        AdminRouteTicketView playerTicket = client.ticketForPlayer(playerUuid).join().orElseThrow();
-        AdminRouteClearView clear = client.clear(playerUuid, ticketId).join();
-        AdminRouteClearView timeoutClear = client.clear(playerUuid, ticketId, "ROUTE_READY_TIMEOUT").join();
+        AdminRouteDebugView debug = CoreAdminRouteJson.debug("""
+            {"sessions":[{"playerUuid":"%s","ticketId":"%s","targetNode":"node-a","targetServerName":"island-a","nonce":"nonce-a","expiresAt":"soon"}],
+             "tickets":[{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetWorld":"world-a","targetType":"home","homeName":"base","expiresAt":"soon","nonce":"nonce-a"}]}
+            """.formatted(playerUuid, ticketId, ticketId, playerUuid, islandId));
+        AdminRouteTicketView ticket = CoreAdminRouteJson.ticket("""
+            {"ticket":{"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"HOME","state":"READY","targetNode":"node-a","targetWorld":"world-a","targetType":"home","homeName":"base","expiresAt":"soon","nonce":"nonce-a"}}
+            """.formatted(ticketId, playerUuid, islandId)).orElseThrow();
+        AdminRouteTicketView playerTicket = CoreAdminRouteJson.ticket("""
+            {"ticketId":"%s","playerUuid":"%s","islandId":"%s","action":"VISIT","state":"PENDING","targetNode":"node-b"}
+            """.formatted(ticketId, playerUuid, islandId)).orElseThrow();
+        AdminRouteClearView clear = CoreAdminRouteJson.clear("{\"clearedSession\":true,\"clearedTicket\":false,\"reason\":\"MANUAL_CLEAR\"}");
+        AdminRouteClearView timeoutClear = CoreAdminRouteJson.clear("{\"clearedSession\":true,\"clearedTicket\":false,\"reason\":\"ROUTE_READY_TIMEOUT\"}");
 
         assertEquals(1, debug.sessions().size());
         assertEquals("island-a", debug.sessions().get(0).targetServerName());
@@ -1885,13 +1862,6 @@ class CoreTypedClientsTest {
         assertFalse(clear.clearedTicket());
         assertEquals("MANUAL_CLEAR", clear.reason());
         assertEquals("ROUTE_READY_TIMEOUT", timeoutClear.reason());
-        assertEquals(List.of(
-            "debug:" + playerUuid,
-            "ticket:" + ticketId,
-            "player:" + playerUuid,
-            "clear:" + playerUuid + ":" + ticketId + ":MANUAL_CLEAR",
-            "clear:" + playerUuid + ":" + ticketId + ":ROUTE_READY_TIMEOUT"
-        ), calls);
     }
 
     @Test

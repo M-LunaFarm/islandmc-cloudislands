@@ -4,32 +4,35 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public final class CoreAdminRouteClient implements AdminRouteClient {
-    private final CoreApiClient delegate;
+final class JdkAdminRouteClient implements AdminRouteClient {
+    private final JdkCoreApiClient core;
 
-    public CoreAdminRouteClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkAdminRouteClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<AdminRouteDebugView> debug(UUID playerUuid) {
         requireId(playerUuid, "playerUuid");
-        return delegate.debugRoutes(playerUuid).thenApply(CoreAdminRouteJson::debug);
+        return core.postWithResultBody("/v1/admin/routes/debug", JdkCoreApiClient.jsonObject("playerUuid", playerUuid))
+            .thenApply(CoreAdminRouteJson::debug);
     }
 
     @Override
     public CompletableFuture<Optional<AdminRouteTicketView>> ticket(UUID ticketId) {
         requireId(ticketId, "ticketId");
-        return delegate.routeTicket(ticketId).thenApply(CoreAdminRouteJson::ticket);
+        return core.postWithResultBody("/v1/admin/routes/ticket", JdkCoreApiClient.jsonObject("ticketId", ticketId))
+            .thenApply(CoreAdminRouteJson::ticket);
     }
 
     @Override
     public CompletableFuture<Optional<AdminRouteTicketView>> ticketForPlayer(UUID playerUuid) {
         requireId(playerUuid, "playerUuid");
-        return delegate.routeTicketForPlayer(playerUuid).thenApply(CoreAdminRouteJson::ticket);
+        return core.postWithResultBody("/v1/admin/routes/ticket", JdkCoreApiClient.jsonObject("playerUuid", playerUuid))
+            .thenApply(CoreAdminRouteJson::ticket);
     }
 
     @Override
@@ -42,7 +45,8 @@ public final class CoreAdminRouteClient implements AdminRouteClient {
         requireId(playerUuid, "playerUuid");
         requireId(ticketId, "ticketId");
         String normalizedReason = reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason;
-        return delegate.clearRouteResult(playerUuid, ticketId, normalizedReason).thenApply(CoreAdminRouteJson::clear);
+        return core.postWithResultBody("/v1/admin/routes/clear", JdkCoreApiClient.jsonObject("playerUuid", playerUuid, "ticketId", ticketId, "reason", normalizedReason))
+            .thenApply(CoreAdminRouteJson::clear);
     }
 
     private static void requireId(UUID id, String name) {

@@ -5,7 +5,6 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.function.Function;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreAdminRouteClient;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import net.kyori.adventure.text.Component;
@@ -23,7 +22,7 @@ public final class PendingRouteService {
             VelocityRoutingMetrics metrics,
             Function<String, Component> playerMessage) {
         this.coreApiClient = coreApiClient;
-        this.adminRoutes = coreApiClient == null ? null : new CoreAdminRouteClient(coreApiClient);
+        this.adminRoutes = coreApiClient == null ? null : coreApiClient.adminRoutes();
         this.fallbackService = fallbackService;
         this.metrics = metrics;
         this.playerMessage = playerMessage;
