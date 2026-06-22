@@ -24,7 +24,9 @@ class IslandPermissionSystemPolicyTest {
                 IslandRole.BANNED
         )) {
             assertTrue(IslandPermissionSystemPolicy.isBaseRole(role), role.name());
+            assertTrue(IslandPermissionSystemPolicy.isBaseRoleKey(role.name()), role.name());
         }
+        assertEquals(7, IslandPermissionSystemPolicy.baseRoleKeys().size());
     }
 
     @Test

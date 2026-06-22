@@ -108,9 +108,8 @@ public final class LocalIslandPermissionCache {
     public java.util.List<String> roleCatalog(UUID islandId, boolean includeVisitor) {
         CachedIslandPermissions cached = cached(islandId);
         Set<String> values = new java.util.TreeSet<>();
-        IslandPermissionSystemPolicy.baseRoles().stream()
-            .filter(role -> role.islandMemberRole() && role != IslandRole.OWNER)
-            .map(Enum::name)
+        IslandPermissionSystemPolicy.baseRoleKeys().stream()
+            .filter(roleKey -> !roleKey.equals(OWNER_ROLE_KEY) && !roleKey.equals(VISITOR_ROLE_KEY) && !roleKey.equals(BANNED_ROLE_KEY))
             .forEach(values::add);
         if (includeVisitor) {
             values.add(VISITOR_ROLE_KEY);

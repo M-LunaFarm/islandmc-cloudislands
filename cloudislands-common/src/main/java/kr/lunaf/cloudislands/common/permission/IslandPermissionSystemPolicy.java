@@ -33,6 +33,16 @@ public final class IslandPermissionSystemPolicy {
             IslandRole.BANNED
     );
 
+    private static final Set<String> BASE_ROLE_KEYS = Set.of(
+            "OWNER",
+            "CO_OWNER",
+            "MODERATOR",
+            "MEMBER",
+            "TRUSTED",
+            "VISITOR",
+            "BANNED"
+    );
+
     private static final Set<IslandPermission> BASE_PERMISSIONS = Set.of(
             IslandPermission.BUILD,
             IslandPermission.BREAK,
@@ -106,6 +116,10 @@ public final class IslandPermissionSystemPolicy {
         return BASE_ROLES;
     }
 
+    public static Set<String> baseRoleKeys() {
+        return BASE_ROLE_KEYS;
+    }
+
     public static Set<IslandPermission> basePermissions() {
         return BASE_PERMISSIONS;
     }
@@ -116,6 +130,10 @@ public final class IslandPermissionSystemPolicy {
 
     public static boolean isBaseRole(IslandRole role) {
         return BASE_ROLES.contains(role);
+    }
+
+    public static boolean isBaseRoleKey(String roleKey) {
+        return BASE_ROLE_KEYS.contains(roleKey);
     }
 
     public static boolean isBasePermission(IslandPermission permission) {

@@ -59,4 +59,15 @@ class ProtectionControllerTest {
         assertTrue(protection.checkBlock(builder, "ci_shard_001", 0, 100, 0, IslandPermission.BUILD).allowed());
         assertFalse(protection.checkBlock(builder, "ci_shard_001", 0, 100, 0, IslandPermission.BREAK).allowed());
     }
+
+    @Test
+    void roleCatalogUsesRoleKeysForDefaultSuggestions() {
+        LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
+        cache.putRoleDefinition(ISLAND, "builder");
+
+        assertEquals(java.util.List.of("BUILDER", "CO_OWNER", "MEMBER", "MODERATOR", "TRUSTED"), cache.roleCatalog(ISLAND, false));
+        assertTrue(cache.roleCatalog(ISLAND, true).contains("VISITOR"));
+        assertFalse(cache.roleCatalog(ISLAND, false).contains("OWNER"));
+        assertFalse(cache.roleCatalog(ISLAND, false).contains("BANNED"));
+    }
 }
