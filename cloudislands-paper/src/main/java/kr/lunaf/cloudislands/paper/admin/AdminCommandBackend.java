@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
-import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
@@ -44,7 +43,6 @@ import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
-import kr.lunaf.cloudislands.coreclient.CoreMigrationJson;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
@@ -86,7 +84,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> BLOCK_VALUE_MATERIALS = AdminCommandCatalog.BLOCK_VALUE_MATERIALS;
     private static final List<String> TEMPLATE_COMMANDS = AdminCommandCatalog.TEMPLATE_COMMANDS;
     private static final List<String> MIGRATION_COMMANDS = AdminCommandCatalog.MIGRATION_COMMANDS;
-    private static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = AdminCommandCatalog.FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS;
     private static final List<String> NODE_DANGER_REASONS = AdminCommandCatalog.NODE_DANGER_REASONS;
     private static final List<String> HELP_COMMANDS = AdminCommandCatalog.HELP_COMMANDS;
     private static final List<String> MIGRATION_HELP_COMMANDS = AdminCommandCatalog.MIGRATION_HELP_COMMANDS;
@@ -97,6 +94,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private final LocalCacheManager localCaches;
     private final MessageRenderer messages;
     private final boolean superiorSkyblock2MigrationEnabled;
+    private final AdminMigrationCommandHandler migrationHandler;
 
     AdminCommandBackend(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId) {
         this(agent, coreApiClient, nodeId, 20);
@@ -122,6 +120,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         this.localCaches = localCaches;
         this.messages = messages;
         this.superiorSkyblock2MigrationEnabled = superiorSkyblock2MigrationEnabled;
+        this.migrationHandler = new AdminMigrationCommandHandler(
+            agent,
+            coreApiClient,
+            superiorSkyblock2MigrationEnabled,
+            this::adminText,
+            this::run,
+            this::sendCommandUsage
+        );
     }
 
     @Override
@@ -210,7 +216,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return handleTemplate(sender, args);
         }
         if (args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
-            return handleSuperiorSkyblock2Migration(sender, args);
+            return migrationHandler.handle(sender, args);
         }
         usage(sender, label, 1);
         return true;
@@ -1140,57 +1146,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private boolean handleSuperiorSkyblock2Migration(CommandSender sender, String[] args) {
-        if (!superiorSkyblock2MigrationEnabled()) {
-            sender.sendMessage(adminText("admin-command-migration-disabled", "SuperiorSkyblock2 migration is disabled by config."));
-            return true;
-        }
-        String action = args.length > 1 ? args[1] : "scan";
-        if (!MIGRATION_COMMANDS.contains(action.toLowerCase(Locale.ROOT))) {
-            sendCommandUsage(sender, List.of(
-                "/ciadmin migrate-superiorskyblock2 scan [path]",
-                "/ciadmin migrate-superiorskyblock2 status",
-                "/ciadmin migrate-superiorskyblock2 dryrun [path]",
-                "/ciadmin migrate-superiorskyblock2 extract [path]",
-                "/ciadmin migrate-superiorskyblock2 import <approvalToken>",
-                "/ciadmin migrate-superiorskyblock2 verify [path]",
-                "/ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
-                "/ciadmin migrate-superiorskyblock2 rollback"
-            ));
-            return true;
-        }
-        if (action.equalsIgnoreCase("verify-no-legacy-provider")) {
-            sender.sendMessage(legacyProviderRuntimeMessage());
-            return true;
-        }
-        if (action.equalsIgnoreCase("import") && args.length < 3) {
-            sender.sendMessage(adminText("admin-command-migration-import-usage", "사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>"));
-            return true;
-        }
-        String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
-        run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrations().migrateSuperiorSkyblock2(action, path).thenApply(this::migrationMessage));
-        return true;
-    }
-
     private boolean superiorSkyblock2MigrationEnabled() {
         return superiorSkyblock2MigrationEnabled;
-    }
-
-    private String legacyProviderRuntimeMessage() {
-        List<String> loadedProviders = FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS.stream()
-            .map(provider -> {
-                org.bukkit.plugin.Plugin plugin = agent.plugin().getServer().getPluginManager().getPlugin(provider);
-                return plugin == null ? "" : provider + "(enabled=" + plugin.isEnabled() + ")";
-            })
-            .filter(value -> !value.isBlank())
-            .toList();
-        if (loadedProviders.isEmpty()) {
-            return adminText("admin-command-migration-no-legacy-provider", "Legacy skyblock providers: none. Migration input only policy is clean for ")
-                + String.join(",", FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS);
-        }
-        return adminText("admin-command-migration-legacy-provider-detected", "Legacy skyblock providers detected: ")
-            + String.join(",", loadedProviders)
-            + adminText("admin-command-migration-legacy-provider-policy", ". CloudIslands must not use them as runtime island providers.");
     }
 
     private void sendIslandCommandUsage(CommandSender sender) {
@@ -1257,186 +1214,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         List<String> commands = new ArrayList<>(HELP_COMMANDS);
         commands.addAll(MIGRATION_HELP_COMMANDS);
         return commands;
-    }
-
-    private String migrationMessage(String body) {
-        if (body == null || body.isBlank()) {
-            return adminText("admin-command-migration-no-response", "Migration: no response");
-        }
-        String code = textValue(body, "code");
-        if (!code.isBlank()) {
-            if (code.equals("MIGRATION_DISABLED")) {
-                return adminText("admin-command-migration-disabled", "SuperiorSkyblock2 migration is disabled by config.");
-            }
-            String message = textValue(body, "message");
-            return adminText("admin-command-migration-failed-prefix", "Migration: failed code=") + code
-                + (message.isBlank() ? "" : adminText("admin-command-migration-message-prefix", " message=") + message);
-        }
-        String state = textValue(body, "state");
-        String path = textValue(body, "path");
-        String manifestPath = textValue(body, "manifestPath");
-        String reportPath = textValue(body, "reportPath");
-        String approvalToken = textValue(body, "approvalToken");
-        String issues = arrayValue(body, "issues");
-        long manifests = longValue(body, "manifests");
-        if (manifests == 0L && body.contains("\"scanManifests\"")) {
-            manifests = longValue(body, "scanManifests");
-        }
-        long importedIslands = longValue(body, "importedIslands");
-        long removedIslands = longValue(body, "removedIslands");
-        StringBuilder builder = new StringBuilder(adminText("admin-command-migration-state-prefix", "Migration: state="))
-            .append(state.isBlank() ? "UNKNOWN" : state)
-            .append(adminText("admin-command-migration-manifests-prefix", " manifests="))
-            .append(manifests);
-        if (!path.isBlank()) {
-            builder.append(adminText("admin-command-migration-path-prefix", " path=")).append(path);
-        }
-        if (!manifestPath.isBlank()) {
-            builder.append(adminText("admin-command-migration-manifest-prefix", " manifest=")).append(manifestPath);
-        }
-        if (!reportPath.isBlank()) {
-            builder.append(adminText("admin-command-migration-report-prefix", " report=")).append(reportPath);
-        }
-        if (!approvalToken.isBlank()) {
-            builder.append(adminText("admin-command-migration-approval-prefix", " approval=")).append(approvalToken);
-        }
-        if (body.contains("\"sourcePlugin\"")) {
-            builder.append(adminText("admin-command-migration-source-prefix", " source=")).append(textValue(body, "sourcePlugin"));
-        }
-        if (body.contains("\"migrationInputOnly\"")) {
-            builder.append(adminText("admin-command-migration-input-only-prefix", " inputOnly=")).append(boolValue(body, "migrationInputOnly"));
-        }
-        if (body.contains("\"runtimeDependency\"")) {
-            builder.append(adminText("admin-command-migration-runtime-dependency-prefix", " runtimeDependency=")).append(boolValue(body, "runtimeDependency"));
-        }
-        String migrationPipeline = textValue(body, "migrationPipeline");
-        if (!migrationPipeline.isBlank()) {
-            builder.append(adminText("admin-command-migration-pipeline-prefix", " pipeline=")).append(migrationPipeline);
-        }
-        String checksumPolicy = textValue(body, "migrationChecksumPolicy");
-        if (!checksumPolicy.isBlank()) {
-            builder.append(adminText("admin-command-migration-checksum-policy-prefix", " checksumPolicy=")).append(checksumPolicy);
-        }
-        String activationTestPolicy = textValue(body, "migrationActivationTestPolicy");
-        if (!activationTestPolicy.isBlank()) {
-            builder.append(adminText("admin-command-migration-activation-policy-prefix", " activationPolicy=")).append(activationTestPolicy);
-        }
-        String targetRuntime = textValue(body, "targetRuntime");
-        if (!targetRuntime.isBlank()) {
-            builder.append(adminText("admin-command-migration-target-runtime-prefix", " targetRuntime=")).append(targetRuntime);
-        }
-        if (body.contains("\"canImport\"")) {
-            builder.append(adminText("admin-command-migration-can-import-prefix", " canImport=")).append(boolValue(body, "canImport"));
-        }
-        if (body.contains("\"planManifests\"")) {
-            builder.append(adminText("admin-command-migration-plan-manifests-prefix", " planManifests=")).append(longValue(body, "planManifests"));
-        }
-        if (body.contains("\"rollbackPlanAvailable\"")) {
-            builder.append(adminText("admin-command-migration-rollback-plan-prefix", " rollbackPlan=")).append(boolValue(body, "rollbackPlanAvailable"));
-        }
-        if (body.contains("\"manifestStatus\"")) {
-            builder.append(adminText("admin-command-migration-manifest-status-prefix", " manifestStatus=")).append(textValue(body, "manifestStatus"))
-                .append(adminText("admin-command-migration-conflict-status-prefix", " conflictStatus=")).append(textValue(body, "conflictStatus"))
-                .append(adminText("admin-command-migration-conflicts-prefix", " conflicts=")).append(longValue(body, "conflictIssues"));
-        }
-        if (body.contains("\"migrationTargetFields\"")) {
-            builder.append(adminText("admin-command-migration-target-fields-prefix", " targets=")).append(textValue(body, "migrationTargetFields"))
-                .append(adminText("admin-command-migration-pipeline-prefix", " pipeline=")).append(textValue(body, "migrationPipelineSteps"))
-                .append(adminText("admin-command-migration-commands-prefix", " commands=")).append(textValue(body, "migrationCommandSet"));
-        }
-        if (body.contains("\"imported\"")) {
-            builder.append(adminText("admin-command-migration-imported-prefix", " imported=")).append(boolValue(body, "imported"))
-                .append(adminText("admin-command-migration-islands-prefix", " islands="))
-                .append(importedIslands);
-        }
-        if (body.contains("\"passed\"")) {
-            builder.append(adminText("admin-command-migration-passed-prefix", " passed=")).append(boolValue(body, "passed"))
-                .append(adminText("admin-command-migration-expected-prefix", " expected="))
-                .append(longValue(body, "expected"));
-        }
-        if (body.contains("\"activationTested\"")) {
-            builder.append(adminText("admin-command-migration-activation-tested-prefix", " activationTested=")).append(longValue(body, "activationTested"))
-                .append(adminText("admin-command-migration-activation-passed-prefix", " activationPassed="))
-                .append(longValue(body, "activationTestPassed"));
-        }
-        if (body.contains("\"rolledBack\"")) {
-            builder.append(adminText("admin-command-migration-rolled-back-prefix", " rolledBack=")).append(boolValue(body, "rolledBack"))
-                .append(adminText("admin-command-migration-removed-prefix", " removed="))
-                .append(removedIslands);
-        }
-        if (body.contains("\"extractedBundles\"")) {
-            builder.append(adminText("admin-command-migration-extracted-prefix", " extracted="))
-                .append(longValue(body, "extractedBundles"))
-                .append(adminText("admin-command-migration-files-prefix", " files="))
-                .append(longValue(body, "extractedFiles"))
-                .append(adminText("admin-command-migration-bytes-prefix", " bytes="))
-                .append(longValue(body, "extractedBytes"));
-        }
-        if (body.contains("\"members\"")) {
-            builder.append(adminText("admin-command-migration-members-prefix", " members=")).append(longValue(body, "members"))
-                .append(adminText("admin-command-migration-member-roles-prefix", " roles=")).append(longValue(body, "memberRoles"))
-                .append(adminText("admin-command-migration-bans-prefix", " bans=")).append(longValue(body, "bannedVisitors"))
-                .append(adminText("admin-command-migration-homes-prefix", " homes=")).append(longValue(body, "homes"))
-                .append(adminText("admin-command-migration-warps-prefix", " warps=")).append(longValue(body, "warps"))
-                .append(adminText("admin-command-migration-locations-prefix", " locations=")).append(longValue(body, "islandLocations"))
-                .append(adminText("admin-command-migration-source-worlds-prefix", " sourceWorlds=")).append(longValue(body, "sourceWorlds"))
-                .append(adminText("admin-command-migration-sizes-prefix", " sizes=")).append(longValue(body, "islandSizes"))
-                .append(adminText("admin-command-migration-levels-prefix", " levels=")).append(longValue(body, "levels"))
-                .append(adminText("admin-command-migration-worth-prefix", " worth=")).append(longValue(body, "worthValues"))
-                .append(adminText("admin-command-migration-biomes-prefix", " biomes=")).append(longValue(body, "biomes"))
-                .append(adminText("admin-command-migration-bank-prefix", " bank=")).append(longValue(body, "bankBalances"))
-                .append(adminText("admin-command-migration-flags-prefix", " flags=")).append(longValue(body, "flags"))
-                .append(adminText("admin-command-migration-perms-prefix", " perms=")).append(longValue(body, "permissions"))
-                .append(adminText("admin-command-migration-upgrades-prefix", " upgrades=")).append(longValue(body, "upgrades"))
-                .append(adminText("admin-command-migration-limits-prefix", " limits=")).append(longValue(body, "limits"))
-                .append(adminText("admin-command-migration-missions-prefix", " missions=")).append(longValue(body, "completedMissions"))
-                .append(adminText("admin-command-migration-block-values-prefix", " blockValues=")).append(longValue(body, "blockValues"))
-                .append(adminText("admin-command-migration-block-counts-prefix", " blockCounts=")).append(longValue(body, "blockCounts"));
-        }
-        if (body.contains("\"blockingIssues\"")) {
-            builder.append(adminText("admin-command-migration-blocking-prefix", " blocking=")).append(longValue(body, "blockingIssues"))
-                .append(adminText("admin-command-migration-warnings-prefix", " warnings=")).append(longValue(body, "warningIssues"));
-        }
-        builder.append(migrationIssuesSuffix(issues));
-        return builder.toString();
-    }
-
-    private String migrationMessage(MigrationRunSnapshot snapshot) {
-        return migrationMessage(CoreMigrationJson.toJson(snapshot));
-    }
-
-    private String migrationIssuesSuffix(String issues) {
-        if (issues.isBlank()) {
-            return adminText("admin-command-issues-zero", " issues=0");
-        }
-        int total = 0;
-        int blocking = 0;
-        List<String> samples = new ArrayList<>();
-        int index = 0;
-        while (index < issues.length()) {
-            int objectStart = issues.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(issues, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = issues.substring(objectStart, objectEnd + 1);
-            total++;
-            boolean blocked = boolValue(object, "blocking");
-            if (blocked) {
-                blocking++;
-            }
-            if (samples.size() < 5) {
-                String issueCode = textValue(object, "code");
-                samples.add((issueCode.isBlank() ? "UNKNOWN" : issueCode) + (blocked ? "(blocking)" : ""));
-            }
-            index = objectEnd + 1;
-        }
-        return adminText("admin-command-issues-total-prefix", " issues=") + total
-            + adminText("admin-command-issues-blocking-prefix", " blocking=") + blocking
-            + (samples.isEmpty() ? "" : " [" + String.join(", ", samples) + "]");
     }
 
     private void routeAdminTeleport(Player player, UUID islandId) {
