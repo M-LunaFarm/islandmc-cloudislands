@@ -176,7 +176,7 @@ public final class IslandActivationJobHandler {
             return null;
         }
         if (worldRestorer != null) {
-            return worldRestorer.stage(islandId, cell.worldName(), cell.originX(), cell.originZ(), snapshotNo, storagePath);
+            return worldRestorer.stage(islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), longValue(job.payload().get("fencingToken")), snapshotNo, storagePath);
         }
         return null;
     }

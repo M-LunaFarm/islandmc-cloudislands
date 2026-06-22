@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.UUID;
+import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlan;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
 import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
@@ -20,11 +21,17 @@ public final class IslandWorldRestorer {
     private final IslandStorage storage;
     private final Path stagingRoot;
     private final BundleRestorePlanner restorePlanner;
+    private final IntegrationLifecycleHooks integrationHooks;
 
     public IslandWorldRestorer(IslandStorage storage, Path stagingRoot, BundleRestorePlanner restorePlanner) {
+        this(storage, stagingRoot, restorePlanner, IntegrationLifecycleHooks.noop());
+    }
+
+    public IslandWorldRestorer(IslandStorage storage, Path stagingRoot, BundleRestorePlanner restorePlanner, IntegrationLifecycleHooks integrationHooks) {
         this.storage = storage;
         this.stagingRoot = stagingRoot;
         this.restorePlanner = restorePlanner;
+        this.integrationHooks = integrationHooks == null ? IntegrationLifecycleHooks.noop() : integrationHooks;
     }
 
     public BundleRestorePlan stage(UUID islandId, String worldName, int originX, int originZ) throws IOException {
@@ -36,6 +43,10 @@ public final class IslandWorldRestorer {
     }
 
     public BundleRestorePlan stage(UUID islandId, String worldName, int originX, int originZ, long snapshotNo, String storagePath) throws IOException {
+        return stage(islandId, worldName, 0, 0, originX, originZ, 0L, snapshotNo, storagePath);
+    }
+
+    public BundleRestorePlan stage(UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, long fencingToken, long snapshotNo, String storagePath) throws IOException {
         Path islandStage = stagingRoot.resolve(islandId.toString());
         Files.createDirectories(islandStage);
         Path bundle = islandStage.resolve("bundle.tar.zst");
@@ -45,7 +56,10 @@ public final class IslandWorldRestorer {
         verifyStagedBundle(islandId, bundle, snapshotNo, storagePath);
         RestorePlan restorePlan = new RestorePlan(islandId, worldName, originX, originZ, bundle);
         BundleRestorePlan plan = restorePlanner.plan(restorePlan);
-        validateExtractedManifest(islandId, plan.extractedRoot().resolve("manifest.json"));
+        IslandBundleManifest manifest = validateExtractedManifest(islandId, plan.extractedRoot().resolve("manifest.json"));
+        IntegrationLifecycleHooks.LifecycleBatch integrations = integrationHooks.restoreState(islandId, worldName, cellX, cellZ, originX, originZ, fencingToken, snapshotNo, storagePath, bundle, manifest);
+        integrations.throwIfFailed();
+        integrations.writeIfPresent(plan.extractedRoot().resolve("integrations/restore.json"));
         return plan;
     }
 
@@ -69,7 +83,7 @@ public final class IslandWorldRestorer {
         }
     }
 
-    private void validateExtractedManifest(UUID islandId, Path manifestPath) throws IOException {
+    private IslandBundleManifest validateExtractedManifest(UUID islandId, Path manifestPath) throws IOException {
         if (!Files.isRegularFile(manifestPath)) {
             throw new IOException("extracted island bundle is missing manifest.json: " + islandId);
         }
@@ -78,6 +92,7 @@ public final class IslandWorldRestorer {
             throw new IOException("extracted island bundle manifest island mismatch: " + islandId);
         }
         validateRestoreManifest(islandId, embeddedManifest);
+        return embeddedManifest;
     }
 
     private void validateRestoreManifest(UUID islandId, IslandBundleManifest manifest) throws IOException {

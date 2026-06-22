@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
+import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
 import kr.lunaf.cloudislands.paper.world.cell.CellExtractionPlan;
 import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
 import kr.lunaf.cloudislands.paper.world.cell.ShardCellTransferPlanner;
@@ -22,9 +23,15 @@ import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 
 public final class ExternalTarIslandBundleExporter implements IslandBundleExporter {
     private final Path worldContainer;
+    private final IntegrationLifecycleHooks integrationHooks;
 
     public ExternalTarIslandBundleExporter(Path worldContainer) {
+        this(worldContainer, IntegrationLifecycleHooks.noop());
+    }
+
+    public ExternalTarIslandBundleExporter(Path worldContainer, IntegrationLifecycleHooks integrationHooks) {
         this.worldContainer = worldContainer;
+        this.integrationHooks = integrationHooks == null ? IntegrationLifecycleHooks.noop() : integrationHooks;
     }
 
     @Override
@@ -50,6 +57,9 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
         CellExtractionPlan extraction = new ShardCellTransferPlanner(activeIsland.islandSize())
             .extraction(islandId, activeIsland.worldName(), activeIsland.originX(), activeIsland.originZ(), staging.resolve("chunks"));
         new FileBackedCellTransfer(worldContainer).extract(extraction);
+        IntegrationLifecycleHooks.LifecycleBatch integrations = integrationHooks.exportState(islandId, activeIsland, snapshotNo, bundle);
+        integrations.throwIfFailed();
+        integrations.writeIfPresent(staging.resolve("integrations/export.json"));
         writeStagedManifest(islandId, activeIsland, staging.resolve("manifest.json"), manifest);
         writeStagedChecksums(staging);
         ProcessBuilder processBuilder = new ProcessBuilder("tar", "--zstd", "-cf", bundle.toAbsolutePath().toString(), "-C", staging.toAbsolutePath().toString(), ".");
