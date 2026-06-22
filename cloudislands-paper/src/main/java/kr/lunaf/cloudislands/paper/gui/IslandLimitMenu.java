@@ -93,10 +93,11 @@ public final class IslandLimitMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<LimitView> limits, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
-            int slot = 0;
-            for (LimitView limit : limits.stream().limit(45).toList()) {
-                inventory.setItem(slot++, limitItem(limit, messages));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
+            List<Integer> limitSlots = GuiMenuRenderer.slots(MENU, "_");
+            List<LimitView> visibleLimits = limits.stream().limit(limitSlots.size()).toList();
+            for (int index = 0; index < visibleLimits.size(); index++) {
+                inventory.setItem(limitSlots.get(index), limitItem(visibleLimits.get(index), messages));
             }
             if (limits.isEmpty()) {
                 setEmptyItem(inventory, messages);

@@ -107,13 +107,14 @@ public final class IslandSnapshotMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<SnapshotView> snapshots, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
-            int slot = 0;
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             if (snapshots.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                for (SnapshotView snapshot : snapshots.stream().limit(45).toList()) {
-                    inventory.setItem(slot++, snapshotItem(snapshot, messages));
+                List<Integer> snapshotSlots = GuiMenuRenderer.slots(MENU, "_");
+                List<SnapshotView> visibleSnapshots = snapshots.stream().limit(snapshotSlots.size()).toList();
+                for (int index = 0; index < visibleSnapshots.size(); index++) {
+                    inventory.setItem(snapshotSlots.get(index), snapshotItem(visibleSnapshots.get(index), messages));
                 }
             }
             player.openInventory(inventory);

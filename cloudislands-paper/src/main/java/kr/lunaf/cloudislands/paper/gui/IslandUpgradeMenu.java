@@ -90,10 +90,11 @@ public final class IslandUpgradeMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<UpgradeView> upgrades, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
-            int slot = 0;
-            for (UpgradeView upgrade : upgrades.stream().limit(45).toList()) {
-                inventory.setItem(slot++, upgradeItem(upgrade, messages));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
+            List<Integer> upgradeSlots = GuiMenuRenderer.slots(MENU, "_");
+            List<UpgradeView> visibleUpgrades = upgrades.stream().limit(upgradeSlots.size()).toList();
+            for (int index = 0; index < visibleUpgrades.size(); index++) {
+                inventory.setItem(upgradeSlots.get(index), upgradeItem(visibleUpgrades.get(index), messages));
             }
             if (upgrades.isEmpty()) {
                 setEmptyItem(inventory, messages);

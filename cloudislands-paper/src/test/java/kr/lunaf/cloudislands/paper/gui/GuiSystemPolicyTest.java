@@ -356,7 +356,10 @@ class GuiSystemPolicyTest {
     void inviteAndRoleListItemSlotsRenderFromMenuDefinitionLayout() throws Exception {
         for (String[] menuCase : List.of(
                 new String[] {"IslandInviteMenu", "invites.yml"},
-                new String[] {"IslandRoleMenu", "roles.yml"}
+                new String[] {"IslandRoleMenu", "roles.yml"},
+                new String[] {"IslandSnapshotMenu", "snapshots.yml"},
+                new String[] {"IslandLimitMenu", "limits.yml"},
+                new String[] {"IslandUpgradeMenu", "upgrades.yml"}
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuCase[0] + ".java"));
             String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + menuCase[1]));
