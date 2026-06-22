@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class JdkAdminEventClient implements AdminEventQueryClient {
     private final JdkCoreApiClient core;
@@ -35,7 +34,7 @@ final class JdkAdminEventClient implements AdminEventQueryClient {
             .map(event -> new AdminEventView(
                 CoreJson.number(event, "seq"),
                 CoreJson.text(event, "type"),
-                stringMap(SimpleJson.object(event.get("fields"))),
+                CoreJson.stringMap(CoreJson.objectValue(event, "fields")),
                 CoreJson.text(event, "occurredAt")
             ))
             .toList();
@@ -44,13 +43,6 @@ final class JdkAdminEventClient implements AdminEventQueryClient {
 
     private static int boundedLimit(int limit) {
         return Math.max(1, Math.min(limit, 4096));
-    }
-
-    private static Map<String, String> stringMap(Map<?, ?> object) {
-        return object.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
-            entry -> SimpleJson.text(entry.getKey()),
-            entry -> SimpleJson.text(entry.getValue())
-        ));
     }
 
 }

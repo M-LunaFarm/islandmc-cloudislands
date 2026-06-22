@@ -945,6 +945,7 @@ class CoreTypedClientsTest {
         UUID islandId = UUID.randomUUID();
         UUID ownerUuid = UUID.randomUUID();
         String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreIslandJson.java")));
+        String runtimeSource = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminIslandQueryClient.java")));
         CoreGuiViews.IslandInfoView info = CoreIslandJson.info("""
             {"islandId":"%s","ownerUuid":"%s","name":"Spawn","state":"ACTIVE","size":300,"level":42,"worth":"100.25","publicAccess":true}
             """.formatted(islandId, ownerUuid));
@@ -966,6 +967,9 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("private static String text("), "island info parser must use shared CoreJson text helpers");
         assertFalse(source.contains("private static long number("), "island info parser must use shared CoreJson numeric helpers");
         assertFalse(source.contains("private static boolean bool("), "island info parser must use shared CoreJson boolean helpers");
+        assertFalse(runtimeSource.contains("private static String text("), "admin island runtime parser must use shared CoreJson text helpers");
+        assertFalse(runtimeSource.contains("private static long number("), "admin island runtime parser must use shared CoreJson numeric helpers");
+        assertFalse(runtimeSource.contains("SimpleJson."), "admin island runtime parser must use shared CoreJson helpers");
     }
 
     @Test
@@ -1023,6 +1027,7 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("private static String text("), "admin maintenance parser must use shared CoreJson text helpers");
         assertFalse(source.contains("private static long number("), "admin maintenance parser must use shared CoreJson numeric helpers");
         assertFalse(source.contains("private static boolean bool("), "admin maintenance parser must use shared CoreJson boolean helpers");
+        assertFalse(source.contains("SimpleJson.object(root.get(\"error\"))"), "admin maintenance parser must use shared CoreJson object helpers");
     }
 
     @Test
@@ -2210,8 +2215,12 @@ class CoreTypedClientsTest {
         assertEquals("NODE_DRAIN", auditEntries.get(0).action());
         assertEquals("maintenance", auditEntries.get(0).payload().get("reason"));
         assertFalse(eventSource.contains("private static String text("), "admin event parser must use shared CoreJson text helpers");
+        assertFalse(eventSource.contains("SimpleJson.object(event.get(\"fields\"))"), "admin event parser must use shared CoreJson object helpers");
+        assertTrue(eventSource.contains("CoreJson.stringMap(CoreJson.objectValue(event, \"fields\"))"), "admin event parser must use shared CoreJson string map helpers");
         assertTrue(eventSource.contains("CoreJson.objects(root, \"events\")"), "admin event parser must use shared CoreJson object list helpers");
         assertFalse(auditSource.contains("private static String text("), "admin audit parser must use shared CoreJson text helpers");
+        assertFalse(auditSource.contains("SimpleJson.object(entry.get(\"payload\"))"), "admin audit parser must use shared CoreJson object helpers");
+        assertTrue(auditSource.contains("CoreJson.stringMap(CoreJson.objectValue(entry, \"payload\"))"), "admin audit parser must use shared CoreJson string map helpers");
         assertTrue(auditSource.contains("CoreJson.objects(root, \"audit\")"), "admin audit parser must use shared CoreJson object list helpers");
     }
 

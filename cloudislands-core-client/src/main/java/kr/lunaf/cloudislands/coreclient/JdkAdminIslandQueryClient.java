@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class JdkAdminIslandQueryClient implements AdminIslandQueryClient {
     private final JdkCoreApiClient core;
@@ -47,36 +46,28 @@ final class JdkAdminIslandQueryClient implements AdminIslandQueryClient {
     static AdminIslandRuntimeView runtime(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new AdminIslandRuntimeView(
-            text(root, "islandId"),
-            text(root, "state"),
+            CoreJson.text(root, "islandId"),
+            CoreJson.text(root, "state"),
             nullableText(root, "activeNode"),
             nullableText(root, "activeWorld"),
-            nullableNumber(root.get("cellX")),
-            nullableNumber(root.get("cellZ")),
+            nullableNumber(root, "cellX"),
+            nullableNumber(root, "cellZ"),
             nullableText(root, "leaseOwner"),
-            number(root, "fencingToken"),
+            CoreJson.number(root, "fencingToken"),
             nullableText(root, "activatedAt"),
             nullableText(root, "lastHeartbeat"),
-            text(root, "code")
+            CoreJson.text(root, "code")
         );
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
     }
 
     private static String nullableText(Map<?, ?> object, String key) {
         if (!object.containsKey(key) || object.get(key) == null) {
             return null;
         }
-        return SimpleJson.text(object.get(key));
+        return CoreJson.text(object, key);
     }
 
-    private static long number(Map<?, ?> object, String key) {
-        return SimpleJson.number(object.get(key));
-    }
-
-    private static Long nullableNumber(Object value) {
-        return value instanceof Number number ? number.longValue() : null;
+    private static Long nullableNumber(Map<?, ?> object, String key) {
+        return !object.containsKey(key) || object.get(key) == null ? null : CoreJson.number(object, key);
     }
 }

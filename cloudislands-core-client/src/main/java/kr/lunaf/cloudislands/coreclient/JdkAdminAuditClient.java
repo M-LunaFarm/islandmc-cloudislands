@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class JdkAdminAuditClient implements AdminAuditQueryClient {
     private final JdkCoreApiClient core;
@@ -32,17 +31,10 @@ final class JdkAdminAuditClient implements AdminAuditQueryClient {
                 CoreJson.text(entry, "action"),
                 CoreJson.text(entry, "targetType"),
                 CoreJson.text(entry, "targetId"),
-                stringMap(SimpleJson.object(entry.get("payload"))),
+                CoreJson.stringMap(CoreJson.objectValue(entry, "payload")),
                 CoreJson.text(entry, "createdAt")
             ))
             .toList();
-    }
-
-    private static Map<String, String> stringMap(Map<?, ?> object) {
-        return object.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
-            entry -> SimpleJson.text(entry.getKey()),
-            entry -> SimpleJson.text(entry.getValue())
-        ));
     }
 
 }

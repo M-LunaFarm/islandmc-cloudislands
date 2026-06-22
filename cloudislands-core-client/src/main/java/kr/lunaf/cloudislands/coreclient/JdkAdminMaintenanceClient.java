@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.coreclient;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class JdkAdminMaintenanceClient implements AdminMaintenanceCommandClient {
     private final JdkCoreApiClient core;
@@ -30,7 +29,7 @@ final class JdkAdminMaintenanceClient implements AdminMaintenanceCommandClient {
 
     static AdminMaintenanceResultView result(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        Map<?, ?> error = SimpleJson.object(root.get("error"));
+        Map<?, ?> error = CoreJson.objectValue(root, "error");
         String code = CoreJson.text(root, "code");
         if (code.isBlank()) {
             code = CoreJson.text(error, "code");
