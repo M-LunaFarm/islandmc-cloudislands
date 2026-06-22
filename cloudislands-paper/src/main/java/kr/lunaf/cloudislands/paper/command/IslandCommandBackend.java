@@ -40,10 +40,6 @@ import org.jetbrains.annotations.NotNull;
 final class IslandCommandBackend {
     static final List<String> SUBCOMMANDS = IslandCommandCatalog.SUBCOMMANDS;
     static final List<String> HELP_COMMANDS = IslandCommandCatalog.HELP_COMMANDS;
-    private final Plugin plugin;
-    private final CoreApiClient coreApiClient;
-    private final ProtectionController protection;
-    private final IslandLevelScanService levelScanService;
     private final IslandBankCommandHandler bankCommands;
     private final IslandSnapshotCommandHandler snapshotCommands;
     private final IslandWarehouseCommandHandler warehouseCommands;
@@ -103,10 +99,6 @@ final class IslandCommandBackend {
     }
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds, String configuredNodeId) {
-        this.plugin = plugin;
-        this.coreApiClient = coreApiClient;
-        this.protection = protection;
-        this.levelScanService = levelScanService;
         this.commandMessages = new IslandCommandMessenger(plugin, messages, locales);
         this.islandContext = new IslandCommandIslandContext(protection);
         this.memberManagement = new MemberManagementUseCase(coreApiClient);

@@ -469,6 +469,10 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("private void declineIslandInviteTarget(Player player, String target)"), "invite decline execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void listIslandMembers(Player player)"), "member list execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void listIslandBans(Player player)"), "ban list execution must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private final Plugin plugin;"), "IslandCommandBackend must not retain plugin once handlers are wired");
+        assertFalse(backend.contains("private final CoreApiClient coreApiClient;"), "IslandCommandBackend must not retain Core client once handlers are wired");
+        assertFalse(backend.contains("private final ProtectionController protection;"), "IslandCommandBackend must not retain protection once handlers are wired");
+        assertFalse(backend.contains("private final IslandLevelScanService levelScanService;"), "IslandCommandBackend must not retain level scanner once handlers are wired");
         assertFalse(backend.contains("private void openIslandMemberMenu(Player player)"), "member menu presentation wrapper must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void openIslandBanMenu(Player player)"), "ban menu presentation wrapper must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private boolean moveVisitorToFallback("), "visitor fallback presentation wrapper must not stay in IslandCommandBackend");
