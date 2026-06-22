@@ -67,7 +67,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final RuntimeCommandClient runtimeClient;
     private final IslandLifecycleCommandClient lifecycleClient;
     private final IslandQueryClient islandClient;
-    private final JdkProgressionClient progressionClient;
+    private final ProgressionQueryClient progressionQueryClient;
+    private final ProgressionCommandClient progressionCommandClient;
     private final JdkMemberQueryClient memberQueryClient;
     private final JdkMemberCommandClient memberCommandClient;
     private final IslandVisitorStatsQueryClient visitorStatsClient;
@@ -121,7 +122,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.runtimeClient = new CoreRuntimeCommandClient(this);
         this.lifecycleClient = new CoreIslandLifecycleCommandClient(this);
         this.islandClient = new CoreIslandQueryClient(this);
-        this.progressionClient = new JdkProgressionClient();
+        this.progressionQueryClient = new CoreProgressionQueryClient(this);
+        this.progressionCommandClient = new CoreProgressionCommandClient(this);
         this.memberQueryClient = new JdkMemberQueryClient();
         this.memberCommandClient = new JdkMemberCommandClient();
         this.visitorStatsClient = new CoreIslandVisitorStatsQueryClient(this);
@@ -240,12 +242,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public ProgressionQueryClient progression() {
-        return progressionClient;
+        return progressionQueryClient;
     }
 
     @Override
     public ProgressionCommandClient progressionCommands() {
-        return progressionClient;
+        return progressionCommandClient;
     }
 
     @Override
@@ -1234,174 +1236,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
         private void requireInviteAndPlayer(UUID inviteId, UUID playerUuid) {
             requireId(inviteId, "inviteId");
             requireId(playerUuid, "playerUuid");
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-    }
-
-    private final class JdkProgressionClient implements ProgressionQueryClient, ProgressionCommandClient {
-        @Override
-        public CompletableFuture<CoreGuiViews.IslandInfoView> islandInfo(UUID islandId) {
-            requireId(islandId, "islandId");
-            return CoreGuiViews.islandInfo(JdkCoreApiClient.this, islandId);
-        }
-
-        @Override
-        public CompletableFuture<LevelView> level(UUID islandId) {
-            requireId(islandId, "islandId");
-            return get("/v1/islands/" + islandId + "/level")
-                .thenApply(CoreProgressionQueryClient::levelView);
-        }
-
-        @Override
-        public CompletableFuture<ProgressionBlockDetailsView> blockDetails(UUID islandId, int limit) {
-            requireId(islandId, "islandId");
-            return post("/v1/islands/blocks", jsonObject("islandId", islandId, "limit", boundedLimit(limit)))
-                .thenApply(CoreProgressionQueryClient::blockDetailsView);
-        }
-
-        @Override
-        public CompletableFuture<CoreGuiViews.RankingData> rankings(int limit) {
-            CompletableFuture<List<ProgressionRankingEntryView>> levels = topLevel(limit);
-            CompletableFuture<List<ProgressionRankingEntryView>> worths = topWorth(limit);
-            CompletableFuture<List<ProgressionReviewRankingEntryView>> reviews = topReviews(limit);
-            return levels.thenCombine(worths, (levelViews, worthViews) -> new CoreGuiViews.RankingData(
-                    rankingViews(levelViews, "level"),
-                    rankingViews(worthViews, "worth"),
-                    List.of()
-                ))
-                .thenCombine(reviews, (data, reviewViews) -> new CoreGuiViews.RankingData(data.levels(), data.worths(), reviewRankingViews(reviewViews)));
-        }
-
-        @Override
-        public CompletableFuture<List<ProgressionRankingEntryView>> topWorth(int limit) {
-            return post("/v1/rankings/worth", jsonObject("limit", boundedLimit(limit)))
-                .thenApply(body -> CoreProgressionQueryClient.rankingViews(body, "worth"));
-        }
-
-        @Override
-        public CompletableFuture<List<ProgressionRankingEntryView>> topLevel(int limit) {
-            return post("/v1/rankings/level", jsonObject("limit", boundedLimit(limit)))
-                .thenApply(body -> CoreProgressionQueryClient.rankingViews(body, "level"));
-        }
-
-        @Override
-        public CompletableFuture<List<ProgressionReviewRankingEntryView>> topReviews(int limit) {
-            return post("/v1/rankings/reviews", jsonObject("limit", boundedLimit(limit)))
-                .thenApply(CoreProgressionQueryClient::reviewRankingViews);
-        }
-
-        @Override
-        public CompletableFuture<List<CoreGuiViews.UpgradeView>> upgrades(UUID islandId) {
-            requireId(islandId, "islandId");
-            return CoreGuiViews.islandUpgrades(JdkCoreApiClient.this, islandId);
-        }
-
-        @Override
-        public CompletableFuture<List<UpgradeRuleView>> upgradeRules() {
-            return post("/v1/upgrades/rules", "{}")
-                .thenApply(CoreProgressionQueryClient::upgradeRuleViews);
-        }
-
-        @Override
-        public CompletableFuture<List<CoreGuiViews.MissionView>> missions(UUID islandId, String kind) {
-            requireId(islandId, "islandId");
-            String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
-            return CoreGuiViews.islandMissions(JdkCoreApiClient.this, islandId, normalizedKind);
-        }
-
-        @Override
-        public CompletableFuture<LevelView> recalculateLevel(UUID islandId, UUID actorUuid) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return post("/v1/islands/level/recalculate", jsonObject("islandId", islandId, "actorUuid", actorUuid))
-                .thenApply(CoreProgressionCommandClient::levelView);
-        }
-
-        @Override
-        public CompletableFuture<ProgressionUpgradePurchaseView> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            String safeUpgradeKey = upgradeKey == null ? "" : upgradeKey;
-            return postWithResultBody("/v1/islands/upgrades/purchase", jsonObject(
-                "islandId", islandId,
-                "actorUuid", actorUuid,
-                "upgradeKey", safeUpgradeKey
-            )).thenApply(body -> CoreProgressionCommandClient.upgradePurchaseResult(body, safeUpgradeKey));
-        }
-
-        @Override
-        public CompletableFuture<ProgressionMissionCompletionView> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            String safeMissionKey = missionKey == null ? "" : missionKey;
-            String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
-            return postWithResultBody("/v1/islands/missions/complete", jsonObject(
-                "islandId", islandId,
-                "actorUuid", actorUuid,
-                "missionKey", safeMissionKey,
-                "kind", normalizedKind
-            )).thenApply(body -> CoreProgressionCommandClient.missionCompletionResult(body, islandId, safeMissionKey, normalizedKind));
-        }
-
-        @Override
-        public CompletableFuture<ProgressionMissionCompletionView> progressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            String safeMissionKey = missionKey == null ? "" : missionKey;
-            String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
-            return postWithResultBody("/v1/islands/missions/progress", jsonObject(
-                "islandId", islandId,
-                "actorUuid", actorUuid,
-                "missionKey", safeMissionKey,
-                "kind", normalizedKind,
-                "amount", Math.max(0L, amount)
-            )).thenApply(body -> CoreProgressionCommandClient.missionCompletionResult(body, islandId, safeMissionKey, normalizedKind));
-        }
-
-        @Override
-        public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) {
-            String normalizedProviderId = providerId == null || providerId.isBlank() ? "cloudislands" : providerId.trim();
-            return postWithResultBody("/v1/addons/missions/register", jsonObject(
-                "providerId", normalizedProviderId,
-                "missions", rawJson(CoreProgressionCommandClient.missionDefinitionsJson(definitions))
-            )).thenApply(CoreProgressionCommandClient::missionDefinitions);
-        }
-
-        private int boundedLimit(int limit) {
-            return Math.max(1, Math.min(limit, 100));
-        }
-
-        private List<CoreGuiViews.RankingView> rankingViews(List<ProgressionRankingEntryView> entries, String label) {
-            List<ProgressionRankingEntryView> safeEntries = entries == null ? List.of() : entries;
-            List<CoreGuiViews.RankingView> rankings = new java.util.ArrayList<>();
-            for (ProgressionRankingEntryView entry : safeEntries) {
-                if (!entry.islandId().isBlank()) {
-                    rankings.add(new CoreGuiViews.RankingView(rankings.size() + 1, label, entry.islandId(), entry.level(), entry.worth()));
-                }
-            }
-            return rankings;
-        }
-
-        private List<CoreGuiViews.RankingView> reviewRankingViews(List<ProgressionReviewRankingEntryView> entries) {
-            List<ProgressionReviewRankingEntryView> safeEntries = entries == null ? List.of() : entries;
-            List<CoreGuiViews.RankingView> rankings = new java.util.ArrayList<>();
-            for (ProgressionReviewRankingEntryView entry : safeEntries) {
-                if (!entry.islandId().isBlank()) {
-                    rankings.add(new CoreGuiViews.RankingView(
-                        rankings.size() + 1,
-                        "reviews",
-                        entry.islandId(),
-                        entry.reviewCount(),
-                        String.format(java.util.Locale.ROOT, "%.2f", entry.averageRating())
-                    ));
-                }
-            }
-            return rankings;
         }
 
         private void requireId(UUID id, String name) {
