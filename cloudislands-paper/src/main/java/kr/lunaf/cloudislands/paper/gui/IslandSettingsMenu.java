@@ -59,9 +59,9 @@ public final class IslandSettingsMenu implements Listener {
             boolean publicAccess = view.publicAccess();
             boolean locked = view.locked();
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
-            setStateItem(inventory, 10, messages, publicAccess,
+            setStateItem(inventory, "P", messages, publicAccess,
                 message(messages, "settings-menu-current", "현재: ") + (publicAccess ? message(messages, "settings-menu-public", "공개") : message(messages, "settings-menu-private", "비공개")));
-            setStateItem(inventory, 11, messages, locked,
+            setStateItem(inventory, "L", messages, locked,
                 message(messages, "settings-menu-current", "현재: ") + (locked ? message(messages, "settings-menu-locked", "잠김") : message(messages, "settings-menu-open", "열림")));
             player.openInventory(inventory);
         });
@@ -71,9 +71,9 @@ public final class IslandSettingsMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static void setStateItem(Inventory inventory, int slot, MessageRenderer messages, boolean active, String currentLore) {
-        MENU.itemAt(slot)
-            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.stateItem(MENU, item, messages, active, java.util.Map.of(), List.of(currentLore))));
+    private static void setStateItem(Inventory inventory, String symbol, MessageRenderer messages, boolean active, String currentLore) {
+        GuiMenuRenderer.slots(MENU, symbol).forEach(slot -> MENU.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.stateItem(MENU, item, messages, active, java.util.Map.of(), List.of(currentLore)))));
     }
 
     @EventHandler

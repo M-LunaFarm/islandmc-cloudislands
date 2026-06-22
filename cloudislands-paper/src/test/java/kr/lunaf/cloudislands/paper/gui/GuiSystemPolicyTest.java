@@ -203,6 +203,9 @@ class GuiSystemPolicyTest {
         assertTrue(config.contains("inactive-material: GRAY_DYE"), "public disabled material must live in config-v2");
         assertTrue(config.contains("active-material: IRON_DOOR"), "locked material must live in config-v2");
         assertTrue(menu.contains("GuiMenuRenderer.stateItem(MENU, item, messages"), "settings toggles must render stateful configured menu items");
+        assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, symbol)"), "settings toggle slots must come from the menu layout symbols");
+        assertFalse(menu.contains("setStateItem(inventory, 10"), "settings public toggle slot must not be hard-coded in Java");
+        assertFalse(menu.contains("setStateItem(inventory, 11"), "settings lock toggle slot must not be hard-coded in Java");
         assertFalse(menu.contains("Material.LIME_DYE"), "settings menu must not hard-code public enabled material");
         assertFalse(menu.contains("Material.GRAY_DYE"), "settings menu must not hard-code public disabled material");
         assertFalse(menu.contains("Material.IRON_DOOR"), "settings menu must not hard-code locked material");
