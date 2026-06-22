@@ -100,7 +100,7 @@ public final class CoreIslandLifecycleCommandClient implements IslandLifecycleCo
         return delegate.adminDeleteIslandResult(islandId).thenApply(body -> actionResult(body, "DELETED", islandId));
     }
 
-    private static IslandLifecycleActionView actionResult(String body, String successCode, UUID fallbackIslandId) {
+    static IslandLifecycleActionView actionResult(String body, String successCode, UUID fallbackIslandId) {
         Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> error = SimpleJson.object(root.get("error"));
         boolean accepted = error.isEmpty()
