@@ -181,7 +181,10 @@ public interface CoreApiClient {
     }
 
     default JobQueryClient jobs() {
-        return new CoreJobQueryClient(this);
+        if (this instanceof JobQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed job queries");
     }
 
     default JobCommandClient jobCommands() {
@@ -632,7 +635,6 @@ public interface CoreApiClient {
     CompletableFuture<String> clearAddonIslandState(String addonId, UUID islandId);
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
-    CompletableFuture<String> listJobs();
     CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload);
     CompletableFuture<String> failJobResult(String nodeId, UUID jobId, String errorMessage);
     CompletableFuture<String> publishHeartbeatResult(NodeHeartbeatRequest request);

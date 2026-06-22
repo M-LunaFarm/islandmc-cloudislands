@@ -71,7 +71,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     private final IslandVisitorStatsQueryClient visitorStatsClient;
     private final PlayerProfileQueryClient playerProfileQueryClient;
     private final PlayerProfileCommandClient playerProfileCommandClient;
-    private final JobQueryClient jobQueryClient;
+    private final JdkJobClient jobQueryClient;
     private final BlockValueQueryClient blockValueQueryClient;
     private final AdminMetricsQueryClient adminMetricsClient;
     private final AdminCoreConfigQueryClient adminCoreConfigClient;
@@ -115,7 +115,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.visitorStatsClient = new CoreIslandVisitorStatsQueryClient(this);
         this.playerProfileQueryClient = this;
         this.playerProfileCommandClient = this;
-        this.jobQueryClient = new CoreJobQueryClient(this);
+        this.jobQueryClient = new JdkJobClient(this);
         this.blockValueQueryClient = new CoreBlockValueQueryClient(this);
         this.adminMetricsClient = new CoreAdminMetricsQueryClient(this);
         this.adminCoreConfigClient = new CoreAdminCoreConfigQueryClient(this);
@@ -1944,11 +1944,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
         return postWithResultBody("/v1/jobs/claim", jsonObject("nodeId", nodeId, "supportedTypes", types, "maxJobs", maxJobs)).thenApply(IslandJobJson::readArray);
-    }
-
-    @Override
-    public CompletableFuture<String> listJobs() {
-        return postWithResultBody("/v1/admin/jobs/list", "{}");
     }
 
     @Override

@@ -1710,14 +1710,12 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, JobCommandClient.class },
+            new Class<?>[] { CoreApiClient.class, JobQueryClient.class, JobCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "listJobs" -> CompletableFuture.completedFuture("""
-                    {"jobs":[
-                      {"id":"%s","type":"SAVE_ISLAND","islandId":"%s","state":"PENDING","targetNode":"node-a","priority":7,"attempts":2,"lockedBy":"node-lock","errorMessage":"retry soon","payload":{"reason":"manual"},"createdAt":"2026-06-21T00:00:00Z","updatedAt":"2026-06-21T00:00:05Z"},
-                      {"jobId":"fallback-id","type":"RESTORE_ISLAND","state":"DONE","attempts":1}
-                    ]}
-                    """.formatted(jobId, islandId));
+                case "list" -> CompletableFuture.completedFuture(List.of(
+                    new JobView(jobId.toString(), "SAVE_ISLAND", islandId.toString(), "node-a", "PENDING", 7, 2L, "node-lock", "retry soon", Map.of("reason", "manual"), "2026-06-21T00:00:00Z", "2026-06-21T00:00:05Z"),
+                    new JobView("fallback-id", "RESTORE_ISLAND", "", "", "DONE", 0, 1L, "", "", Map.of(), "", "")
+                ));
                 case "retry" -> {
                     calls.add("retry:" + args[0]);
                     yield CompletableFuture.completedFuture(new JobActionView(true, "JOB_RETRIED"));
@@ -1733,7 +1731,7 @@ class CoreTypedClientsTest {
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        JobQueryClient queries = new CoreJobQueryClient(raw);
+        JobQueryClient queries = (JobQueryClient) raw;
         JobCommandClient commands = (JobCommandClient) raw;
 
         List<JobView> jobs = queries.list().join();
