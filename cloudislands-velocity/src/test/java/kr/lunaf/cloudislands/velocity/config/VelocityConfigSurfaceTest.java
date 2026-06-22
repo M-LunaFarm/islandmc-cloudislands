@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.velocity.config;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +17,18 @@ class VelocityConfigSurfaceTest {
         String configLoader = Files.readString(root.resolve("cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/config/VelocityConfigLoader.java"));
         String surface = resources + "\n" + statusReporter + "\n" + buildScript;
 
+        assertFalse(Files.exists(root.resolve("cloudislands-velocity/src/main/resources/config.yaml")),
+            "Velocity plugin must not bundle legacy config.yaml alongside authoritative config-v2 files");
+        assertFalse(configLoader.contains("resolve(\"config.yaml\")"),
+            "Velocity runtime config loader must not create or read the legacy config.yaml");
+        assertFalse(configLoader.contains("getResourceAsStream(\"config.yaml\")"),
+            "Velocity runtime config loader must materialize config-v2 defaults instead of legacy config.yaml");
+        assertFalse(configLoader.contains("List.of(\"config.yml\""),
+            "Velocity runtime config loader must discover config-v2 files dynamically");
+        assertTrue(configLoader.contains("configV2ResourceNames"),
+            "Velocity runtime config loader must discover bundled config-v2 resources dynamically");
+        assertTrue(configLoader.contains("Files.walk"),
+            "Velocity runtime config loader must scan data-folder config-v2 files dynamically");
         assertFalse(surface.matches("(?is).*\\b(database|jdbc|postgresql|mysql|mariadb)\\b.*"),
             "Velocity config, health, and manifest surface must not expose database settings");
         assertFalse((surface + "\n" + configLoader).matches("(?is).*setup[.-]core-api.*"),
