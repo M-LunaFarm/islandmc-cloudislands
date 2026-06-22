@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import java.math.BigDecimal;
-import java.util.Comparator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -22,10 +21,23 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         StringBuilder builder = new StringBuilder(actionId())
             .append('|')
             .append(click == null ? GuiClick.UNSUPPORTED.name() : click.name());
-        data().entrySet().stream()
-            .sorted(Comparator.comparing(Map.Entry::getKey))
-            .forEach(entry -> builder.append('|').append(entry.getKey()).append('=').append(entry.getValue()));
+        recordComponentFingerprint(builder);
         return builder.toString();
+    }
+
+    private void recordComponentFingerprint(StringBuilder builder) {
+        java.lang.reflect.RecordComponent[] components = getClass().getRecordComponents();
+        if (components == null || components.length == 0) {
+            return;
+        }
+        for (java.lang.reflect.RecordComponent component : components) {
+            try {
+                Object value = component.getAccessor().invoke(this);
+                builder.append('|').append(component.getName()).append('=').append(value == null ? "" : value);
+            } catch (ReflectiveOperationException exception) {
+                throw new IllegalStateException("Failed to fingerprint GUI action " + actionId(), exception);
+            }
+        }
     }
 
     record Close() implements GuiAction {
