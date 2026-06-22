@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PublicIslandVi
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandReviewMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandVisitorStatsMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -95,6 +96,10 @@ final class IslandVisitReviewCommandHandler {
                     openReviewMenu(player);
                     yield true;
                 }
+                case VISITOR_STATS_OPEN -> {
+                    openVisitorStatsMenu(player);
+                    yield true;
+                }
                 default -> false;
             };
         }
@@ -103,6 +108,10 @@ final class IslandVisitReviewCommandHandler {
 
     private void openReviewMenu(Player player) {
         runtime.currentIsland(player, "섬 안에서만 후기 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandReviewMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+    }
+
+    private void openVisitorStatsMenu(Player player) {
+        runtime.currentIsland(player, "섬 안에서만 방문 통계 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandVisitorStatsMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void routeVisitTarget(Player player, String target) {
@@ -135,7 +144,7 @@ final class IslandVisitReviewCommandHandler {
 
     private void listVisitorStats(Player player, int limit) {
         runtime.currentIsland(player, "섬 안에서만 방문 통계를 확인할 수 있습니다.").ifPresent(islandId -> {
-            coreApiClient.visitorStats().stats(islandId, Math.max(1, Math.min(limit, 100)))
+            navigationUseCase.visitorStats(islandId, limit)
                 .thenAccept(stats -> runtime.message(player, visitorStatsMessage(stats)))
                 .exceptionally(error -> {
                     runtime.message(player, "방문 통계를 불러오지 못했습니다.");

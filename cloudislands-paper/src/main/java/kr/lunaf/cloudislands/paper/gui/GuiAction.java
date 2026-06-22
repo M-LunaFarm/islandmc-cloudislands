@@ -248,6 +248,7 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         SNAPSHOTS_LIST("island.snapshots.list"),
         RANKING_OPEN("island.ranking.open"),
         REVIEWS_OPEN("island.reviews.open"),
+        VISITOR_STATS_OPEN("island.visitor-stats.open"),
         LEVEL_RECALCULATE("island.level.recalculate"),
         LEVEL_SHOW("island.level.show"),
         WORTH_SHOW("island.worth.show"),

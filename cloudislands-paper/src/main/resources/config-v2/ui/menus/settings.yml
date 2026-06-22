@@ -5,7 +5,7 @@ layout:
   - "........."
   - ".PLMXFWBR"
   - "KUGHSIZCD"
-  - "....Y...."
+  - "...VY...."
 items:
   P:
     material: LIME_DYE
@@ -177,6 +177,15 @@ items:
     fallback-lore:
       - "/섬 보더"
     action: border
+  V:
+    material: SPYGLASS
+    name-key: settings-menu-visitor-stats-name
+    fallback-name: 방문 통계
+    lore-keys:
+      - settings-menu-visitor-stats-command
+    fallback-lore:
+      - "/섬 방문통계"
+    action: visitor-stats
 actions:
   open: island.settings.open
   public-toggle: island.public.toggle
@@ -195,6 +204,7 @@ actions:
   info: island.info.open
   warehouse: island.warehouse.open
   reviews: island.reviews.open
+  visitor-stats: island.visitor-stats.open
   border: island.border.open
   danger: island.danger.open
   back: island.main.open

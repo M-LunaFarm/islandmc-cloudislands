@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.NavigationCommandClient;
 import kr.lunaf.cloudislands.coreclient.NavigationQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PublicIslandView;
@@ -106,6 +107,13 @@ public final class IslandNavigationUseCase {
             throw new IllegalArgumentException("islandId is required");
         }
         return navigationQueries.listReviews(islandId, limit).thenApply(IslandNavigationUseCase::reviewViews);
+    }
+
+    public CompletableFuture<IslandVisitorStatsView> visitorStats(UUID islandId, int recentLimit) {
+        if (islandId == null) {
+            throw new IllegalArgumentException("islandId is required");
+        }
+        return coreApiClient.visitorStats().stats(islandId, boundedLimit(recentLimit));
     }
 
     private CompletableFuture<ReviewActionResult> setReviewResult(UUID islandId, UUID reviewerUuid, int rating, String comment, IdempotentMutationRunner runner) {

@@ -1,0 +1,66 @@
+id: island.visitor-stats
+rows: 6
+title-key: menu.visitor-stats.title
+layout:
+  - "...T.U..."
+  - "_________"
+  - "_________"
+  - "_________"
+  - "........."
+  - "S...R...M"
+items:
+  T:
+    material: EMERALD
+    name-key: visitor-stats-menu-total-name
+    fallback-name: 전체 방문
+    lore-keys:
+      - visitor-stats-menu-total-lore
+    fallback-lore:
+      - "Core 방문 이벤트 기준 전체 방문 수입니다."
+  U:
+    material: AMETHYST_SHARD
+    name-key: visitor-stats-menu-unique-name
+    fallback-name: 고유 방문자
+    lore-keys:
+      - visitor-stats-menu-unique-lore
+    fallback-lore:
+      - "Core 방문 이벤트 기준 고유 방문자 수입니다."
+  _:
+    material: PLAYER_HEAD
+    name-key: visitor-stats-menu-recent-name
+    fallback-name: 최근 방문자
+    lore-keys:
+      - visitor-stats-menu-recent-lore
+    fallback-lore:
+      - "최근 방문자 UUID와 마지막 방문 시각을 표시합니다."
+  S:
+    material: COMPARATOR
+    name-key: visitor-stats-menu-settings-name
+    fallback-name: 설정
+    lore-keys:
+      - visitor-stats-menu-settings-command
+    fallback-lore:
+      - "/섬 설정"
+    action: settings
+  R:
+    material: CLOCK
+    name-key: visitor-stats-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - visitor-stats-menu-refresh-command
+    fallback-lore:
+      - "/섬 방문통계"
+    action: open
+  M:
+    material: COMPASS
+    name-key: visitor-stats-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - visitor-stats-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: back
+actions:
+  open: island.visitor-stats.open
+  settings: island.settings.open
+  back: island.main.open

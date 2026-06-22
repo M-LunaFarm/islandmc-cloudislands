@@ -90,6 +90,7 @@ public final class GuiActionParser {
         "island.ranking.list",
         "island.ranking.open",
         "island.reviews.open",
+        "island.visitor-stats.open",
         "island.role.weight.adjust",
         "island.roles.list",
         "island.roles.open",
@@ -205,6 +206,7 @@ public final class GuiActionParser {
                 case "island.snapshots.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_LIST));
                 case "island.ranking.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.RANKING_OPEN));
                 case "island.reviews.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.REVIEWS_OPEN));
+                case "island.visitor-stats.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.VISITOR_STATS_OPEN));
                 case "island.level.recalculate" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LEVEL_RECALCULATE));
                 case "island.level.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LEVEL_SHOW));
                 case "island.worth.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.WORTH_SHOW));

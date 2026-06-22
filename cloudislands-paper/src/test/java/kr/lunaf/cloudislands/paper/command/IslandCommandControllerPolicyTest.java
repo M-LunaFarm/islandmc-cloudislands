@@ -365,6 +365,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.contains("navigationUseCase.resolveVisitTarget"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.publicIslandViews"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.reviewViews"));
+        assertTrue(visitReviewHandler.contains("navigationUseCase.visitorStats"));
+        assertTrue(visitReviewHandler.contains("IslandVisitorStatsMenu.open"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.setReviewAction"));
         assertFalse(visitReviewHandler.contains("coreApiClient.createVisitTicket"));
         assertFalse(visitReviewHandler.contains("coreApiClient.createRandomVisitTicket"));

@@ -103,6 +103,7 @@ class GuiActionParserTest {
         assertNoPayloadType("island.visit.open", GuiAction.NoPayloadType.VISIT_OPEN);
         assertNoPayloadType("island.visit.random", GuiAction.NoPayloadType.VISIT_RANDOM);
         assertNoPayloadType("island.visit.public.open", GuiAction.NoPayloadType.VISIT_PUBLIC_OPEN);
+        assertNoPayloadType("island.visitor-stats.open", GuiAction.NoPayloadType.VISITOR_STATS_OPEN);
     }
 
     @Test

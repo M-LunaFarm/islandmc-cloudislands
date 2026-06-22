@@ -43,6 +43,7 @@ public final class IslandGuiMenuRegistrar {
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandSnapshotMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandUpgradeMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandVisitMenu(messages, registry));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandVisitorStatsMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandWarpMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandWarehouseMenu(messages, registry));
     }

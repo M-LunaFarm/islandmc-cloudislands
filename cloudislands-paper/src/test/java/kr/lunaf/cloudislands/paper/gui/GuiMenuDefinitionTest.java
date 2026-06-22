@@ -600,6 +600,8 @@ class GuiMenuDefinitionTest {
         assertEquals("island.warehouse.open", definition.action(definition.itemAt(25).orElseThrow().actionKey(), ""));
         assertEquals("D", definition.itemAt(26).orElseThrow().symbol());
         assertEquals("island.danger.open", definition.action(definition.itemAt(26).orElseThrow().actionKey(), ""));
+        assertEquals("V", definition.itemAt(30).orElseThrow().symbol());
+        assertEquals("island.visitor-stats.open", definition.action(definition.itemAt(30).orElseThrow().actionKey(), ""));
         assertEquals("Y", definition.itemAt(31).orElseThrow().symbol());
         assertEquals("island.border.open", definition.action(definition.itemAt(31).orElseThrow().actionKey(), ""));
     }
@@ -616,6 +618,10 @@ class GuiMenuDefinitionTest {
         );
         GuiMenuDefinition border = GuiMenuDefinition.bundled(
             "config-v2/ui/menus/border.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition visitorStats = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/visitor-stats.yml",
             new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
         );
 
@@ -645,6 +651,15 @@ class GuiMenuDefinitionTest {
         assertEquals("island.border.open", border.action(border.itemAt(15).orElseThrow().actionKey(), ""));
         assertEquals("M", border.itemAt(22).orElseThrow().symbol());
         assertEquals("island.main.open", border.action(border.itemAt(22).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.visitor-stats", visitorStats.id());
+        assertEquals("T", visitorStats.itemAt(3).orElseThrow().symbol());
+        assertEquals("U", visitorStats.itemAt(5).orElseThrow().symbol());
+        assertEquals("_", visitorStats.itemAt(9).orElseThrow().symbol());
+        assertEquals("R", visitorStats.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.visitor-stats.open", visitorStats.action(visitorStats.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("S", visitorStats.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.settings.open", visitorStats.action(visitorStats.itemAt(45).orElseThrow().actionKey(), ""));
     }
 
     @Test
