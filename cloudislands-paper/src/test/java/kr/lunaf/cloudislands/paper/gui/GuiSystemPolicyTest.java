@@ -449,6 +449,8 @@ class GuiSystemPolicyTest {
         assertTrue(definition.contains("\"WWWWWWWWW\""), "ranking worth slots must live in config-v2 layout");
         assertTrue(definition.contains("\"CCCCCCCCC\""), "ranking review slots must live in config-v2 layout");
         assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, symbol)"), "ranking entries must use menu definition slots");
+        assertTrue(menu.contains("GuiMenuRenderer.symbolItem(MENU, symbol"), "ranking dynamic items must use configured materials and actions");
+        assertFalse(menu.contains("GuiItems.action(material"), "ranking dynamic items must not rebuild configured actions in Java");
         assertFalse(menu.contains("int slot = 9"), "ranking entries must not start from a Java hard-coded slot");
         assertFalse(menu.contains("slot++"), "ranking entries must not advance through Java hard-coded slots");
     }
@@ -478,7 +480,8 @@ class GuiSystemPolicyTest {
             assertTrue(definition.contains("  " + menuCase[2] + ":"), menuCase[1] + " must define dynamic material " + menuCase[2]);
             assertTrue(definition.contains("material: " + menuCase[3]), menuCase[1] + " material must live in config-v2");
             assertTrue(menu.contains("GuiMenuRenderer.material(MENU")
-                || menu.contains("GuiMenuRenderer.item(MENU"), menuCase[0] + " must read materials from the menu definition");
+                || menu.contains("GuiMenuRenderer.item(MENU")
+                || menu.contains("GuiMenuRenderer.symbolItem(MENU"), menuCase[0] + " must read materials from the menu definition");
             assertFalse(menu.contains("Material." + menuCase[3]), menuCase[0] + " must not hard-code dynamic item material");
         }
     }

@@ -99,19 +99,17 @@ public final class IslandRankingMenu implements Listener {
     }
 
     private static ItemStack rankingItem(String symbol, RankingView ranking, MessageRenderer messages) {
-        org.bukkit.Material material = GuiMenuRenderer.material(MENU, symbol, "_", "EXPERIENCE_BOTTLE");
+        String displayName = rankingLabel(ranking.label(), messages) + " #" + ranking.rank();
         if ("reviews".equals(ranking.label())) {
-            return GuiItems.action(material, rankingLabel(ranking.label(), messages) + " #" + ranking.rank(), "island.visit.target",
-                Map.of("target", ranking.islandId()),
+            return GuiMenuRenderer.symbolItem(MENU, symbol, "_", messages, displayName, Map.of("target", ranking.islandId()), List.of(
                 message(messages, "ranking-menu-review-rating", "평점: ") + ranking.worth() + "/5",
                 message(messages, "ranking-menu-review-count", "후기: ") + ranking.level(),
-                message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다."));
+                message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다.")));
         }
-        return GuiItems.action(material, rankingLabel(ranking.label(), messages) + " #" + ranking.rank(), "island.visit.target",
-            Map.of("target", ranking.islandId()),
+        return GuiMenuRenderer.symbolItem(MENU, symbol, "_", messages, displayName, Map.of("target", ranking.islandId()), List.of(
             message(messages, "ranking-menu-level", "레벨: ") + ranking.level(),
             message(messages, "ranking-menu-worth", "가치: ") + ranking.worth(),
-            message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다."));
+            message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다.")));
     }
 
     private static String rankingLabel(String label, MessageRenderer messages) {

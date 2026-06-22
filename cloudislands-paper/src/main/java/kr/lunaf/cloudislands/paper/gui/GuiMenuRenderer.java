@@ -131,6 +131,13 @@ public final class GuiMenuRenderer {
             .ifPresent(item -> inventory.setItem(slot, item(definition, item, messages, data, extraLore))));
     }
 
+    public static org.bukkit.inventory.ItemStack symbolItem(GuiMenuDefinition definition, String symbol, String fallbackSymbol, MessageRenderer messages, String displayName, Map<String, String> data, List<String> extraLore) {
+        GuiMenuDefinition.MenuItem item = definition.item(symbol)
+            .or(() -> definition.item(fallbackSymbol))
+            .orElseGet(() -> new GuiMenuDefinition.MenuItem(symbol, "STONE", "", displayName, "", "", List.of(), List.of(), Map.of(), ""));
+        return item(definition, item, messages, displayName, data, extraLore);
+    }
+
     private static org.bukkit.inventory.ItemStack item(GuiMenuDefinition definition, GuiMenuDefinition.MenuItem item, MessageRenderer messages, String materialKey, String displayName, Map<String, String> data, List<String> extraLore, String actionIdOverride) {
         java.util.LinkedHashMap<String, String> mergedData = new java.util.LinkedHashMap<>(item.data());
         if (data != null) {
