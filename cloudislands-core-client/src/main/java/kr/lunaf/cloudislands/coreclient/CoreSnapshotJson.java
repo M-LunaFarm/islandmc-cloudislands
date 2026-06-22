@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreSnapshotJson {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -41,20 +40,16 @@ final class CoreSnapshotJson {
 
     private static IslandSnapshotRecord record(Map<?, ?> values) {
         return new IslandSnapshotRecord(
-            uuid(text(values, "snapshotId")),
-            uuid(text(values, "islandId")),
-            SimpleJson.number(values.get("snapshotNo")),
-            text(values, "storagePath"),
-            text(values, "reason"),
-            uuid(text(values, "createdBy")),
-            text(values, "checksum"),
-            SimpleJson.number(values.get("sizeBytes")),
-            instant(text(values, "createdAt"))
+            uuid(CoreJson.text(values, "snapshotId")),
+            uuid(CoreJson.text(values, "islandId")),
+            CoreJson.number(values, "snapshotNo"),
+            CoreJson.text(values, "storagePath"),
+            CoreJson.text(values, "reason"),
+            uuid(CoreJson.text(values, "createdBy")),
+            CoreJson.text(values, "checksum"),
+            CoreJson.number(values, "sizeBytes"),
+            instant(CoreJson.text(values, "createdAt"))
         );
-    }
-
-    private static String text(Map<?, ?> values, String key) {
-        return SimpleJson.text(values.get(key));
     }
 
     private static UUID uuid(String value) {

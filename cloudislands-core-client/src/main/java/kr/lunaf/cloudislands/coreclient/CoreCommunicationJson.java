@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreCommunicationJson {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -56,12 +55,12 @@ final class CoreCommunicationJson {
 
     private static IslandLogRecord record(Map<?, ?> values) {
         return new IslandLogRecord(
-            uuid(text(values, "logId")),
-            uuid(text(values, "islandId")),
-            uuid(text(values, "actorUuid")),
-            text(values, "action"),
-            logPayload(SimpleJson.object(values.get("payload"))),
-            instant(text(values, "createdAt"))
+            uuid(CoreJson.text(values, "logId")),
+            uuid(CoreJson.text(values, "islandId")),
+            uuid(CoreJson.text(values, "actorUuid")),
+            CoreJson.text(values, "action"),
+            logPayload(CoreJson.objectValue(values, "payload")),
+            instant(CoreJson.text(values, "createdAt"))
         );
     }
 
@@ -69,17 +68,13 @@ final class CoreCommunicationJson {
         Map<String, String> values = new LinkedHashMap<>();
         if (payload != null) {
             for (Map.Entry<?, ?> entry : payload.entrySet()) {
-                String key = SimpleJson.text(entry.getKey());
+                String key = CoreJson.textValue(entry.getKey());
                 if (!key.isBlank() && !INTERNAL_LOG_PAYLOAD_KEYS.contains(key.toLowerCase(Locale.ROOT))) {
-                    values.put(key, SimpleJson.text(entry.getValue()));
+                    values.put(key, CoreJson.textValue(entry.getValue()));
                 }
             }
         }
         return Map.copyOf(values);
-    }
-
-    private static String text(Map<?, ?> values, String key) {
-        return SimpleJson.text(values.get(key));
     }
 
     private static UUID uuid(String value) {

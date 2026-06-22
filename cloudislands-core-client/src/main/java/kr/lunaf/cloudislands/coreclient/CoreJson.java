@@ -75,8 +75,8 @@ final class CoreJson {
             return Map.of();
         }
         return root.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
-            entry -> SimpleJson.text(entry.getKey()),
-            entry -> SimpleJson.text(entry.getValue())
+            entry -> textValue(entry.getKey()),
+            entry -> textValue(entry.getValue())
         ));
     }
 
@@ -106,7 +106,11 @@ final class CoreJson {
     }
 
     static String text(Map<?, ?> root, String key) {
-        return root == null ? "" : SimpleJson.text(root.get(key));
+        return root == null ? "" : textValue(root.get(key));
+    }
+
+    static String textValue(Object value) {
+        return SimpleJson.text(value);
     }
 
     static String firstText(Map<?, ?> root, String... keys) {

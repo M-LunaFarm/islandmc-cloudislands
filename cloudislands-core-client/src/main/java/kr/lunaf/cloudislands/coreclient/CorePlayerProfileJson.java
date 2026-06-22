@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.Map;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CorePlayerProfileJson {
     private CorePlayerProfileJson() {
@@ -10,11 +9,11 @@ final class CorePlayerProfileJson {
     static PlayerProfileView profile(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new PlayerProfileView(
-            text(root, "playerUuid"),
-            text(root, "lastName"),
-            text(root, "primaryIslandId"),
-            text(root, "lastSeenAt"),
-            text(root, "locale")
+            CoreJson.text(root, "playerUuid"),
+            CoreJson.text(root, "lastName"),
+            CoreJson.text(root, "primaryIslandId"),
+            CoreJson.text(root, "lastSeenAt"),
+            CoreJson.text(root, "locale")
         );
     }
 
@@ -27,9 +26,5 @@ final class CorePlayerProfileJson {
             profile == null ? "" : profile.playerUuid(),
             profile == null ? "" : profile.primaryIslandId()
         );
-    }
-
-    private static String text(Map<?, ?> root, String key) {
-        return SimpleJson.text(root.get(key));
     }
 }

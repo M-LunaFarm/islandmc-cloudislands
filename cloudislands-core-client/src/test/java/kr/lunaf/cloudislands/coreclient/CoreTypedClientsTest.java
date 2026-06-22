@@ -885,6 +885,7 @@ class CoreTypedClientsTest {
     @Test
     void snapshotQueryClientReturnsTypedSnapshotsWithChecksums() {
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreSnapshotJson.java")));
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class, SnapshotQueryClient.class },
@@ -909,6 +910,8 @@ class CoreTypedClientsTest {
         assertEquals(4096L, snapshot.sizeBytes());
         assertEquals("abcdef1234567890", snapshot.checksum());
         assertEquals("snapshots/7.tar", snapshot.storagePath());
+        assertFalse(source.contains("private static String text("), "snapshot parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("SimpleJson.number(values.get("), "snapshot parser must use shared CoreJson numeric helpers");
     }
 
     @Test
@@ -935,6 +938,7 @@ class CoreTypedClientsTest {
     void adminIslandQueryClientReturnsTypedInfoAndRuntime() {
         UUID islandId = UUID.randomUUID();
         UUID ownerUuid = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreIslandJson.java")));
         CoreGuiViews.IslandInfoView info = CoreIslandJson.info("""
             {"islandId":"%s","ownerUuid":"%s","name":"Spawn","state":"ACTIVE","size":300,"level":42,"worth":"100.25","publicAccess":true}
             """.formatted(islandId, ownerUuid));
@@ -953,6 +957,9 @@ class CoreTypedClientsTest {
         assertEquals(12L, runtime.cellX());
         assertEquals(-3L, runtime.cellZ());
         assertEquals(9L, runtime.fencingToken());
+        assertFalse(source.contains("private static String text("), "island info parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("private static long number("), "island info parser must use shared CoreJson numeric helpers");
+        assertFalse(source.contains("private static boolean bool("), "island info parser must use shared CoreJson boolean helpers");
     }
 
     @Test
@@ -1099,6 +1106,7 @@ class CoreTypedClientsTest {
     void communicationQueryClientReturnsTypedLogEntries() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreCommunicationJson.java")));
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class, CommunicationQueryClient.class },
@@ -1121,6 +1129,8 @@ class CoreTypedClientsTest {
         assertEquals("CREATE", log.action());
         assertEquals("island", log.payload().get("target"));
         assertFalse(log.payload().containsKey("activeNode"));
+        assertFalse(source.contains("private static String text("), "communication parser must use shared CoreJson text helpers");
+        assertTrue(source.contains("CoreJson.objectValue(values, \"payload\")"), "communication parser must use shared CoreJson nested object helper");
     }
 
     @Test
@@ -1861,6 +1871,7 @@ class CoreTypedClientsTest {
     void playerProfileClientsReturnTypedProfiles() {
         UUID playerUuid = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CorePlayerProfileJson.java")));
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
@@ -1934,6 +1945,7 @@ class CoreTypedClientsTest {
             "setIsland:" + islandId,
             "clearIsland:" + playerUuid
         ), calls);
+        assertFalse(source.contains("private static String text("), "player profile parser must use shared CoreJson text helpers");
     }
 
     @Test
