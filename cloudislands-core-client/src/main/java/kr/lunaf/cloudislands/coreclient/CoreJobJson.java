@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.coreclient;
 
 import java.util.List;
 import java.util.Map;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreJobJson {
     private CoreJobJson() {
@@ -10,9 +9,7 @@ final class CoreJobJson {
 
     static List<JobView> jobs(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        return SimpleJson.list(root.get("jobs")).stream()
-            .map(SimpleJson::object)
-            .filter(object -> !object.isEmpty())
+        return CoreJson.objects(root, "jobs").stream()
             .map(CoreJobJson::job)
             .toList();
     }
@@ -26,46 +23,35 @@ final class CoreJobJson {
     static JobRecoveryView recovery(String body) {
         Map<?, ?> root = CoreJson.object(body);
         boolean accepted = CoreJson.acceptedWithCode(root, "RECOVERED");
-        String recovered = text(root, "recovered");
+        String recovered = CoreJson.text(root, "recovered");
         if (recovered.isBlank() && root.containsKey("recovered")) {
-            recovered = Long.toString(SimpleJson.number(root.get("recovered")));
+            recovered = Long.toString(CoreJson.number(root, "recovered"));
         }
         return new JobRecoveryView(accepted, accepted ? recovered : "", CoreJson.code(root, "RECOVERED", accepted));
     }
 
     private static JobView job(Map<?, ?> object) {
-        String id = text(object, "id");
+        String id = CoreJson.text(object, "id");
         if (id.isBlank()) {
-            id = text(object, "jobId");
+            id = CoreJson.text(object, "jobId");
         }
-        String error = text(object, "error");
+        String error = CoreJson.text(object, "error");
         if (error.isBlank()) {
-            error = text(object, "errorMessage");
+            error = CoreJson.text(object, "errorMessage");
         }
         return new JobView(
             id,
-            text(object, "type"),
-            text(object, "islandId"),
-            text(object, "targetNode"),
-            text(object, "state"),
-            (int) SimpleJson.number(object.get("priority")),
-            SimpleJson.number(object.get("attempts")),
-            text(object, "lockedBy"),
+            CoreJson.text(object, "type"),
+            CoreJson.text(object, "islandId"),
+            CoreJson.text(object, "targetNode"),
+            CoreJson.text(object, "state"),
+            (int) CoreJson.number(object, "priority"),
+            CoreJson.number(object, "attempts"),
+            CoreJson.text(object, "lockedBy"),
             error,
-            stringMap(SimpleJson.object(object.get("payload"))),
-            text(object, "createdAt"),
-            text(object, "updatedAt")
+            CoreJson.stringMap(CoreJson.objectValue(object, "payload")),
+            CoreJson.text(object, "createdAt"),
+            CoreJson.text(object, "updatedAt")
         );
-    }
-
-    private static Map<String, String> stringMap(Map<?, ?> object) {
-        return object.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
-            entry -> SimpleJson.text(entry.getKey()),
-            entry -> SimpleJson.text(entry.getValue())
-        ));
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
     }
 }

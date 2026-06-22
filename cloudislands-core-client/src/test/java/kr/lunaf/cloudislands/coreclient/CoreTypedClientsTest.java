@@ -719,6 +719,7 @@ class CoreTypedClientsTest {
     void permissionQueryClientReturnsTypedAssignmentsAndRoles() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID playerUuid = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkPermissionQueryClient.java")));
         List<String> calls = new ArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         try {
@@ -755,6 +756,8 @@ class CoreTypedClientsTest {
             assertEquals("v1", rules.version());
             assertEquals("BUILD", rules.rules().get(0).permission());
             assertEquals("BUILDER", roles.get(0).role());
+            assertFalse(source.contains("private static String text("), "permission query parser must use shared CoreJson text helpers");
+            assertFalse(source.contains("private static boolean bool("), "permission query parser must use shared CoreJson boolean helpers");
         } finally {
             server.stop(0);
         }
@@ -1937,6 +1940,7 @@ class CoreTypedClientsTest {
     void jobClientsReturnTypedJobsAndActions() {
         UUID jobId = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreJobJson.java")));
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
@@ -1991,10 +1995,13 @@ class CoreTypedClientsTest {
         assertEquals("3", recovered.recovered());
         assertEquals("RECOVERED", recovered.code());
         assertEquals(List.of("retry:" + jobId, "cancel:" + jobId, "recover:node-a:50:2"), calls);
+        assertFalse(source.contains("private static String text("), "job parser must use shared CoreJson text helpers");
+        assertTrue(source.contains("CoreJson.objects(root, \"jobs\")"), "job parser must use shared CoreJson object list helpers");
     }
 
     @Test
     void templateClientsReturnTypedTemplates() {
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreTemplateJson.java")));
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
@@ -2042,6 +2049,8 @@ class CoreTypedClientsTest {
             "enable:hard",
             "disable:hard"
         ), calls);
+        assertFalse(source.contains("private static boolean bool("), "template parser must use shared CoreJson boolean helpers");
+        assertTrue(source.contains("CoreJson.objects(root, \"templates\")"), "template parser must use shared CoreJson object list helpers");
     }
 
     @Test

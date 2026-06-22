@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class JdkPermissionQueryClient implements PermissionQueryClient {
     private final JdkCoreApiClient core;
@@ -43,16 +42,16 @@ public final class JdkPermissionQueryClient implements PermissionQueryClient {
 
     static List<PermissionAssignmentView> permissionViews(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        String version = text(root, "version");
+        String version = CoreJson.text(root, "version");
         return entries(body).stream()
             .map(object -> {
-                String permission = text(object, "permission");
-                String role = text(object, "role");
-                String playerUuid = text(object, "playerUuid");
+                String permission = CoreJson.text(object, "permission");
+                String role = CoreJson.text(object, "role");
+                String playerUuid = CoreJson.text(object, "playerUuid");
                 if (permission.isBlank() || (role.isBlank() && playerUuid.isBlank())) {
                     return null;
                 }
-                return new PermissionAssignmentView(role, playerUuid, permission, bool(object, "allowed"), version);
+                return new PermissionAssignmentView(role, playerUuid, permission, CoreJson.bool(object, "allowed"), version);
             })
             .filter(java.util.Objects::nonNull)
             .toList();
@@ -72,14 +71,5 @@ public final class JdkPermissionQueryClient implements PermissionQueryClient {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
     }
 }

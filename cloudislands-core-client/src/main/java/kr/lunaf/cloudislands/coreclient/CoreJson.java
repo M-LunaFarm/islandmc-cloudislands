@@ -70,6 +70,16 @@ final class CoreJson {
         return SimpleJson.object(root == null ? null : root.get(key));
     }
 
+    static Map<String, String> stringMap(Map<?, ?> root) {
+        if (root == null || root.isEmpty()) {
+            return Map.of();
+        }
+        return root.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
+            entry -> SimpleJson.text(entry.getKey()),
+            entry -> SimpleJson.text(entry.getValue())
+        ));
+    }
+
     static boolean accepted(Map<?, ?> root) {
         return root != null
             && !root.containsKey("error")
@@ -134,6 +144,14 @@ final class CoreJson {
         }
         Object value = root.get(key);
         return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
+    }
+
+    static boolean bool(Map<?, ?> root, String key, boolean fallback) {
+        if (root == null) {
+            return fallback;
+        }
+        Object value = root.get(key);
+        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 
     static List<String> strings(Map<?, ?> root, String key) {

@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.coreclient;
 
 import java.util.List;
 import java.util.Map;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreTemplateJson {
     private CoreTemplateJson() {
@@ -10,9 +9,7 @@ final class CoreTemplateJson {
 
     static List<TemplateView> templates(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        return SimpleJson.list(root.get("templates")).stream()
-            .map(SimpleJson::object)
-            .filter(object -> !object.isEmpty())
+        return CoreJson.objects(root, "templates").stream()
             .map(CoreTemplateJson::template)
             .filter(template -> !template.id().isBlank())
             .toList();
@@ -35,15 +32,10 @@ final class CoreTemplateJson {
 
     private static TemplateView template(Map<?, ?> object) {
         return new TemplateView(
-            SimpleJson.text(object.get("id")),
-            SimpleJson.text(object.get("displayName")),
-            bool(object, "enabled", false),
-            SimpleJson.text(object.get("minNodeVersion"))
+            CoreJson.text(object, "id"),
+            CoreJson.text(object, "displayName"),
+            CoreJson.bool(object, "enabled", false),
+            CoreJson.text(object, "minNodeVersion")
         );
-    }
-
-    private static boolean bool(Map<?, ?> object, String key, boolean fallback) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 }
