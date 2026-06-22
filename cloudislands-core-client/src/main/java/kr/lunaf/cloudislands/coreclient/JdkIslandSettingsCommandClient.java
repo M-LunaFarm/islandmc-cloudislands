@@ -19,7 +19,8 @@ public final class JdkIslandSettingsCommandClient implements IslandSettingsComma
     public CompletableFuture<SettingsActionView> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/access", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "publicAccess", publicAccess))
+        return core.postResultBody("/v1/islands/access", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "publicAccess", publicAccess))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> actionResult(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED"));
     }
 
@@ -27,7 +28,8 @@ public final class JdkIslandSettingsCommandClient implements IslandSettingsComma
     public CompletableFuture<SettingsActionView> setLocked(UUID islandId, UUID actorUuid, boolean locked) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/lock", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "locked", locked))
+        return core.postResultBody("/v1/islands/lock", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "locked", locked))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> actionResult(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED"));
     }
 
@@ -35,7 +37,8 @@ public final class JdkIslandSettingsCommandClient implements IslandSettingsComma
     public CompletableFuture<SettingsActionView> setName(UUID islandId, UUID actorUuid, String name) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/name", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "name", name == null ? "" : name))
+        return core.postResultBody("/v1/islands/name", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "name", name == null ? "" : name))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> actionResult(body, "ISLAND_RENAMED"));
     }
 
@@ -44,7 +47,8 @@ public final class JdkIslandSettingsCommandClient implements IslandSettingsComma
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         requireFlag(flag);
-        return core.postWithResultBody("/v1/islands/flags/set", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "flag", flag.name(), "value", value == null ? "" : value))
+        return core.postResultBody("/v1/islands/flags/set", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "flag", flag.name(), "value", value == null ? "" : value))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> actionResult(body, "FLAG_SET"));
     }
 

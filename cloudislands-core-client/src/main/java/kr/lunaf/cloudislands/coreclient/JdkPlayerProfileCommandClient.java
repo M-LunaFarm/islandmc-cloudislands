@@ -16,21 +16,24 @@ final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient 
     @Override
     public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName) {
         requireId(playerUuid, "playerUuid");
-        return core.postWithResultBody("/v1/players/touch", CoreJsonPayload.object("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName))
+        return core.postResultBody("/v1/players/touch", CoreJsonPayload.object("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CorePlayerProfileJson::profile);
     }
 
     @Override
     public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName, String locale) {
         requireId(playerUuid, "playerUuid");
-        return core.postWithResultBody("/v1/players/touch", CoreJsonPayload.object("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName, "locale", locale == null ? "" : locale))
+        return core.postResultBody("/v1/players/touch", CoreJsonPayload.object("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName, "locale", locale == null ? "" : locale))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CorePlayerProfileJson::profile);
     }
 
     @Override
     public CompletableFuture<PlayerProfileView> setLocale(UUID playerUuid, String locale) {
         requireId(playerUuid, "playerUuid");
-        return core.postWithResultBody("/v1/players/locale", CoreJsonPayload.object("playerUuid", playerUuid, "locale", locale == null ? "" : locale))
+        return core.postResultBody("/v1/players/locale", CoreJsonPayload.object("playerUuid", playerUuid, "locale", locale == null ? "" : locale))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CorePlayerProfileJson::profile);
     }
 
@@ -38,14 +41,16 @@ final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient 
     public CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId) {
         requireId(playerUuid, "playerUuid");
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/players/setisland", CoreJsonPayload.object("playerUuid", playerUuid, "islandId", islandId))
+        return core.postResultBody("/v1/admin/players/setisland", CoreJsonPayload.object("playerUuid", playerUuid, "islandId", islandId))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CorePlayerProfileJson::profile);
     }
 
     @Override
     public CompletableFuture<PlayerProfileView> clearPrimaryIsland(UUID playerUuid) {
         requireId(playerUuid, "playerUuid");
-        return core.postWithResultBody("/v1/admin/players/clearisland", CoreJsonPayload.object("playerUuid", playerUuid))
+        return core.postResultBody("/v1/admin/players/clearisland", CoreJsonPayload.object("playerUuid", playerUuid))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CorePlayerProfileJson::profile);
     }
 

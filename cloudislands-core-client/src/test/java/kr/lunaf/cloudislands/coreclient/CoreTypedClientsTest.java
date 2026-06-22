@@ -164,14 +164,18 @@ class CoreTypedClientsTest {
     void migratedDomainClientsUseTypedCoreResponseBodyHelpers() throws Exception {
         for (String clientName : List.of(
                 "JdkBankQueryClient",
+                "JdkHomeWarpCommandClient",
                 "JdkBankCommandClient",
                 "JdkCommunicationQueryClient",
                 "JdkHomeWarpQueryClient",
                 "JdkIslandQueryClient",
                 "JdkIslandEnvironmentQueryClient",
+                "JdkIslandSettingsCommandClient",
                 "JdkMemberQueryClient",
                 "JdkPermissionQueryClient",
+                "JdkPlayerProfileCommandClient",
                 "JdkPlayerProfileQueryClient",
+                "JdkWarehouseCommandClient",
                 "JdkWarehouseQueryClient"
         )) {
             String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/" + clientName + ".java"));
