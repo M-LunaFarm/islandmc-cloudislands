@@ -424,6 +424,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(creationUseCase.contains("lifecycleCommands.resetIsland"));
         assertFalse(creationUseCase.contains("coreApiClient.resetIslandResult"));
         assertTrue(lifecycleHandler.contains("DangerousGuiActionPolicy.confirmed"));
+        assertTrue(lifecycleHandler.contains("resetConfirm.operation()"), "danger reset confirmation must use typed action fields");
+        assertTrue(lifecycleHandler.contains("deleteConfirm.operation()"), "danger delete confirmation must use typed action fields");
+        assertFalse(lifecycleHandler.contains("resetConfirm.data()"), "danger reset confirmation must not re-read raw action maps");
+        assertFalse(lifecycleHandler.contains("deleteConfirm.data()"), "danger delete confirmation must not re-read raw action maps");
     }
 
     @Test

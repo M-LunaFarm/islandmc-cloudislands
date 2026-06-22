@@ -29,4 +29,11 @@ public final class DangerousGuiActionPolicy {
         }
         return expectedOperation.equals(data.get(OPERATION_KEY)) && expectedToken.equals(data.get(TOKEN_KEY));
     }
+
+    public static boolean confirmed(String operation, String token, GuiClick click, String expectedOperation, String expectedToken) {
+        if (click != GuiClick.LEFT) {
+            return false;
+        }
+        return expectedOperation.equals(operation) && expectedToken.equals(token);
+    }
 }

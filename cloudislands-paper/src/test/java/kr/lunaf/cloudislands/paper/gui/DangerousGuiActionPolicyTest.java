@@ -29,5 +29,8 @@ class DangerousGuiActionPolicyTest {
         assertFalse(DangerousGuiActionPolicy.confirmed(DangerousGuiActionPolicy.resetConfirmationData(), GuiClick.RIGHT, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN));
         assertFalse(DangerousGuiActionPolicy.confirmed(DangerousGuiActionPolicy.resetConfirmationData(), GuiClick.SHIFT_LEFT, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN));
         assertFalse(DangerousGuiActionPolicy.confirmed(DangerousGuiActionPolicy.deleteConfirmationData(), GuiClick.LEFT, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN));
+        assertTrue(DangerousGuiActionPolicy.confirmed(DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN, GuiClick.LEFT, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN));
+        assertFalse(DangerousGuiActionPolicy.confirmed(DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN, GuiClick.RIGHT, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN));
+        assertFalse(DangerousGuiActionPolicy.confirmed(DangerousGuiActionPolicy.DELETE_OPERATION, DangerousGuiActionPolicy.DELETE_TOKEN, GuiClick.LEFT, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN));
     }
 }

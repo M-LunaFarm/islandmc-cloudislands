@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -68,13 +67,13 @@ final class IslandLifecycleCommandHandler {
             return true;
         }
         if (action instanceof GuiAction.DangerResetConfirm resetConfirm) {
-            if (dangerConfirmed(player, resetConfirm.data(), click, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN)) {
+            if (dangerConfirmed(player, resetConfirm.operation(), resetConfirm.token(), click, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN)) {
                 resetIsland(player, resetConfirm.reason());
             }
             return true;
         }
         if (action instanceof GuiAction.DangerDeleteConfirm deleteConfirm) {
-            if (dangerConfirmed(player, deleteConfirm.data(), click, DangerousGuiActionPolicy.DELETE_OPERATION, DangerousGuiActionPolicy.DELETE_TOKEN)) {
+            if (dangerConfirmed(player, deleteConfirm.operation(), deleteConfirm.token(), click, DangerousGuiActionPolicy.DELETE_OPERATION, DangerousGuiActionPolicy.DELETE_TOKEN)) {
                 deleteIsland(player);
             }
             return true;
@@ -103,8 +102,8 @@ final class IslandLifecycleCommandHandler {
         return false;
     }
 
-    private boolean dangerConfirmed(Player player, Map<String, String> data, GuiClick click, String operation, String token) {
-        if (DangerousGuiActionPolicy.confirmed(data, click, operation, token)) {
+    private boolean dangerConfirmed(Player player, String actionOperation, String actionToken, GuiClick click, String operation, String token) {
+        if (DangerousGuiActionPolicy.confirmed(actionOperation, actionToken, click, operation, token)) {
             return true;
         }
         runtime.message(player, runtime.routeMessage("danger-confirm-token-invalid", "위험 작업 확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));
