@@ -70,6 +70,11 @@ class CoreTypedClientsTest {
         assertTrue(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template commands directly");
         assertTrue(JobCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed job commands directly");
         assertTrue(BlockValueCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed block value commands directly");
+        assertFalse(WarehouseQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse queries to a standalone client");
+        assertFalse(WarehouseCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse commands to a standalone client");
+        JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:1"), "token", Duration.ofSeconds(1));
+        assertSame(JdkWarehouseQueryClient.class, client.warehouse().getClass());
+        assertSame(JdkWarehouseCommandClient.class, client.warehouseCommands().getClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("profile", UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("setPrimaryIsland", UUID.class, UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("list").getDeclaringClass());
@@ -128,6 +133,19 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : \"\""), "transport code must not mix status policy and body fallback inline");
         assertFalse(source.contains("response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : \"\""), "result-body policy must not be duplicated inline");
         assertTrue(response.contains("record CoreHttpResponse(int statusCode, String body)"), "HTTP status and body must stay paired before domain parsing");
+    }
+
+    @Test
+    void jdkCoreApiClientDelegatesWarehouseMethodsToStandaloneClients() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+
+        assertFalse(source.contains("public CompletableFuture<List<WarehouseItemView>> listItems("), "warehouse queries must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<WarehouseMutationView> deposit("), "warehouse deposit must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<WarehouseMutationView> withdraw("), "warehouse withdraw must not live on the core transport client");
+        assertFalse(source.contains("warehouseItems("), "warehouse response parsing must live in the warehouse query client");
+        assertFalse(source.contains("warehouseMutation("), "warehouse mutation parsing must live in the warehouse command client");
+        assertTrue(source.contains("this.warehouseQueryClient = new JdkWarehouseQueryClient(this);"));
+        assertTrue(source.contains("this.warehouseCommandClient = new JdkWarehouseCommandClient(this);"));
     }
 
     @Test

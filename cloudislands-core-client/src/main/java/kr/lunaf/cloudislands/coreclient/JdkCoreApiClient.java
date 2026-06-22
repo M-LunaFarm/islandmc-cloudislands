@@ -43,7 +43,7 @@ import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, WarehouseQueryClient, WarehouseCommandClient, IslandLifecycleCommandClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, IslandLifecycleCommandClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -57,6 +57,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     private final PermissionCommandClient permissionCommandClient;
     private final HomeWarpQueryClient homeWarpQueryClient;
     private final HomeWarpCommandClient homeWarpCommandClient;
+    private final WarehouseQueryClient warehouseQueryClient;
+    private final WarehouseCommandClient warehouseCommandClient;
     private final RoutingCommandClient routingClient;
     private final NavigationQueryClient navigationQueryClient;
     private final NavigationCommandClient navigationCommandClient;
@@ -103,6 +105,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.permissionCommandClient = new JdkPermissionCommandClient(this);
         this.homeWarpQueryClient = new JdkHomeWarpQueryClient(this);
         this.homeWarpCommandClient = new JdkHomeWarpCommandClient(this);
+        this.warehouseQueryClient = new JdkWarehouseQueryClient(this);
+        this.warehouseCommandClient = new JdkWarehouseCommandClient(this);
         this.routingClient = new JdkRoutingClient(this);
         this.navigationQueryClient = new JdkNavigationQueryClient(this);
         this.navigationCommandClient = new JdkNavigationCommandClient(this);
@@ -234,12 +238,12 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
 
     @Override
     public WarehouseQueryClient warehouse() {
-        return this;
+        return warehouseQueryClient;
     }
 
     @Override
     public WarehouseCommandClient warehouseCommands() {
-        return this;
+        return warehouseCommandClient;
     }
 
     @Override
@@ -448,49 +452,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         requireId(actorUuid, "actorUuid");
         return postWithResultBody("/v1/islands/reset", jsonObject("islandId", islandId, "actorUuid", actorUuid, "reason", reason == null || reason.isBlank() ? "player-reset" : reason.trim()))
             .thenApply(body -> lifecycleAction(body, "RESET_QUEUED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
-        if (islandId == null) {
-            throw new IllegalArgumentException("islandId is required");
-        }
-        int safeLimit = Math.max(1, Math.min(limit, 100));
-        return post("/v1/islands/warehouse", jsonObject("islandId", islandId, "limit", safeLimit))
-            .thenApply(body -> warehouseItems(islandId, body));
-    }
-
-    @Override
-    public CompletableFuture<WarehouseMutationView> deposit(UUID islandId, UUID actorUuid, String materialKey, long amount) {
-        requireId(islandId, "islandId");
-        requireId(actorUuid, "actorUuid");
-        return postWithResultBody("/v1/islands/warehouse/deposit", jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey == null ? "" : materialKey, "amount", amount))
-            .thenApply(JdkCoreApiClient::warehouseMutation);
-    }
-
-    @Override
-    public CompletableFuture<WarehouseMutationView> withdraw(UUID islandId, UUID actorUuid, String materialKey, long amount) {
-        requireId(islandId, "islandId");
-        requireId(actorUuid, "actorUuid");
-        return postWithResultBody("/v1/islands/warehouse/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey == null ? "" : materialKey, "amount", amount))
-            .thenApply(JdkCoreApiClient::warehouseMutation);
-    }
-
-    private static List<WarehouseItemView> warehouseItems(UUID islandId, String body) {
-        return CoreJson.entries(body).stream()
-            .map(object -> new WarehouseItemView(warehouseItemIslandId(islandId, object), SimpleJson.text(object.get("materialKey")), SimpleJson.number(object.get("amount")), SimpleJson.text(object.get("updatedAt"))))
-            .filter(item -> !item.materialKey().isBlank() && item.amount() > 0L)
-            .toList();
-    }
-
-    private static String warehouseItemIslandId(UUID fallbackIslandId, Map<?, ?> object) {
-        String itemIslandId = SimpleJson.text(object.get("islandId"));
-        return itemIslandId.isBlank() ? fallbackIslandId.toString() : itemIslandId;
-    }
-
-    private static WarehouseMutationView warehouseMutation(String body) {
-        Map<?, ?> root = CoreJson.object(body);
-        return new WarehouseMutationView(CoreJson.accepted(root), CoreJson.text(root, "code"), CoreJson.text(root, "materialKey"), CoreJson.number(root, "amount"));
     }
 
     @Override
