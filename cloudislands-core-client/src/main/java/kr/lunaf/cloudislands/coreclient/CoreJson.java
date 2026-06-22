@@ -124,14 +124,21 @@ final class CoreJson {
     }
 
     static long number(Map<?, ?> root, String key) {
-        return root == null ? 0L : SimpleJson.number(root.get(key));
+        return root == null ? 0L : numberValue(root.get(key));
+    }
+
+    static long numberValue(Object value) {
+        return SimpleJson.number(value);
     }
 
     static double decimal(Map<?, ?> root, String key) {
         if (root == null) {
             return 0.0D;
         }
-        Object value = root.get(key);
+        return decimalValue(root.get(key));
+    }
+
+    static double decimalValue(Object value) {
         if (value instanceof Number number) {
             return number.doubleValue();
         }

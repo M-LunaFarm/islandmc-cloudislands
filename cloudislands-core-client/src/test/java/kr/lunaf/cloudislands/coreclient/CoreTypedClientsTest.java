@@ -1882,6 +1882,10 @@ class CoreTypedClientsTest {
         assertEquals("world-a", runtimes.get(0).activeWorld());
         assertFalse(source.contains("private static String text("), "admin node parser must use shared CoreJson text helpers");
         assertFalse(source.contains("private static long number("), "admin node parser must use shared CoreJson numeric helpers");
+        assertFalse(source.contains("private static double decimal("), "admin node parser must use shared CoreJson decimal helpers");
+        assertFalse(source.contains("private static boolean bool("), "admin node parser must use shared CoreJson bool helpers");
+        assertFalse(source.contains("SimpleJson.object(root.get("), "admin node parser must use shared CoreJson object helpers");
+        assertFalse(source.contains("SimpleJson.list(root.get("), "admin node parser must use shared CoreJson object list helpers");
         assertFalse(source.contains("firstPresent("), "admin node parser must use CoreJson.firstText for alternate fields");
         assertTrue(source.contains("CoreJson.objects(root, \"nodes\")"), "admin node parser must parse node arrays through the shared CoreJson object list helper");
     }
