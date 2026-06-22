@@ -139,6 +139,10 @@ class GuiSystemPolicyTest {
         assertFalse(executor.contains("String actionId, Map<String, String> data"), "executor boundary must receive parsed GuiAction objects");
         assertFalse(actions.contains("record BankAmount(String actionId, BigDecimal amount)"), "bank amount GUI actions must not carry raw action ids internally");
         assertTrue(actions.contains("record BankAmount(BankAmountType type, BigDecimal amount)"), "bank amount GUI actions must use typed deposit/withdraw state");
+        assertFalse(actions.contains("record WarpAccess(String actionId, String warpName, boolean publicAccess)"), "warp access GUI actions must not carry raw action ids internally");
+        assertTrue(actions.contains("record WarpAccess(WarpAccessType type, String warpName, boolean publicAccess)"), "warp access GUI actions must use typed public/private/toggle state");
+        assertFalse(actions.contains("record InviteAction(String actionId, UUID inviteId)"), "invite GUI actions must not carry raw action ids internally");
+        assertTrue(actions.contains("record InviteAction(InviteActionType type, UUID inviteId)"), "invite GUI actions must use typed accept/decline state");
         assertFalse(actions.contains("record SnapshotRestore(String actionId, long snapshotNo, Map<String, String> data)"), "snapshot restore GUI actions must not carry raw action id and payload maps internally");
         assertTrue(actions.contains("record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String confirmationToken)"), "snapshot restore GUI actions must use typed state plus an explicit confirmation token");
         assertFalse(actions.contains("record WarpDelete(String actionId, String warpName, Map<String, String> data)"), "warp delete GUI actions must not carry raw action id and payload maps internally");

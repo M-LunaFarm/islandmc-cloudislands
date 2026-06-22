@@ -136,7 +136,7 @@ public final class IslandWarpMenu implements Listener {
         }
         if (event.isRightClick()) {
             boolean publicAccess = Boolean.parseBoolean(data.getOrDefault("publicAccess", "false"));
-            actions.execute(player, new GuiAction.WarpAccess("island.warp.public.toggle", warpName, publicAccess), GuiClick.from(event));
+            actions.execute(player, new GuiAction.WarpAccess(GuiAction.WarpAccessType.TOGGLE, warpName, publicAccess), GuiClick.from(event));
             return;
         }
         actions.execute(player, new GuiAction.WarpTeleport(warpName, null), GuiClick.from(event));

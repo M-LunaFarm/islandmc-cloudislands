@@ -291,17 +291,17 @@ public final class GuiActionParser {
                     optionalUuid(safeData, "islandId")
                 ));
                 case "island.warp.public", "island.warp.private" -> Optional.of(new GuiAction.WarpAccess(
-                    safeAction,
+                    safeAction.equals("island.warp.public") ? GuiAction.WarpAccessType.PUBLIC : GuiAction.WarpAccessType.PRIVATE,
                     required(safeData, "warpName"),
                     false
                 ));
                 case "island.warp.public.toggle" -> Optional.of(new GuiAction.WarpAccess(
-                    safeAction,
+                    GuiAction.WarpAccessType.TOGGLE,
                     required(safeData, "warpName"),
                     bool(required(safeData, "publicAccess"))
                 ));
                 case "island.invite.accept", "island.invite.decline" -> Optional.of(new GuiAction.InviteAction(
-                    safeAction,
+                    safeAction.equals("island.invite.accept") ? GuiAction.InviteActionType.ACCEPT : GuiAction.InviteActionType.DECLINE,
                     UUID.fromString(required(safeData, "inviteId"))
                 ));
                 case "island.members.page" -> Optional.of(new GuiAction.MemberPage(

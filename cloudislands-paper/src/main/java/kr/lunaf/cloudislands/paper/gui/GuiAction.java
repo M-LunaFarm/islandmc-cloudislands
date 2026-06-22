@@ -637,43 +637,67 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
     }
 
-    record WarpAccess(String actionId, String warpName, boolean publicAccess) implements GuiAction {
+    record WarpAccess(WarpAccessType type, String warpName, boolean publicAccess) implements GuiAction {
         public WarpAccess {
-            actionId = actionId == null ? "" : actionId.trim();
-            warpName = requiredName(warpName, "warpName");
-            if (!actionId.equals("island.warp.public") && !actionId.equals("island.warp.private") && !actionId.equals("island.warp.public.toggle")) {
-                throw new IllegalArgumentException("unsupported warp access action");
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
             }
+            warpName = requiredName(warpName, "warpName");
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
         }
 
         @Override
         public Map<String, String> data() {
-            if (actionId.equals("island.warp.public.toggle")) {
+            if (type == WarpAccessType.TOGGLE) {
                 return Map.of("warpName", warpName, "publicAccess", Boolean.toString(publicAccess));
             }
             return Map.of("warpName", warpName);
         }
 
         public boolean targetPublicAccess() {
-            if (actionId.equals("island.warp.public")) {
+            if (type == WarpAccessType.PUBLIC) {
                 return true;
             }
-            if (actionId.equals("island.warp.private")) {
+            if (type == WarpAccessType.PRIVATE) {
                 return false;
             }
             return !publicAccess;
         }
     }
 
-    record InviteAction(String actionId, UUID inviteId) implements GuiAction {
+    enum WarpAccessType {
+        PUBLIC("island.warp.public"),
+        PRIVATE("island.warp.private"),
+        TOGGLE("island.warp.public.toggle");
+
+        private final String actionId;
+
+        WarpAccessType(String actionId) {
+            this.actionId = actionId;
+        }
+
+        public String actionId() {
+            return actionId;
+        }
+    }
+
+    record InviteAction(InviteActionType type, UUID inviteId) implements GuiAction {
         public InviteAction {
-            actionId = actionId == null ? "" : actionId.trim();
-            if (!actionId.equals("island.invite.accept") && !actionId.equals("island.invite.decline")) {
-                throw new IllegalArgumentException("unsupported invite action");
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
             }
             if (inviteId == null) {
                 throw new IllegalArgumentException("inviteId is required");
             }
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
         }
 
         @Override
@@ -682,7 +706,22 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
 
         public boolean accept() {
-            return actionId.equals("island.invite.accept");
+            return type == InviteActionType.ACCEPT;
+        }
+    }
+
+    enum InviteActionType {
+        ACCEPT("island.invite.accept"),
+        DECLINE("island.invite.decline");
+
+        private final String actionId;
+
+        InviteActionType(String actionId) {
+            this.actionId = actionId;
+        }
+
+        public String actionId() {
+            return actionId;
         }
     }
 
