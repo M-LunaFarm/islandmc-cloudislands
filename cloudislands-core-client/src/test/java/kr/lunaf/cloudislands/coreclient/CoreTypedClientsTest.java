@@ -109,7 +109,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkAdminAuditClient"), "admin audit must use CoreAdminAuditQueryClient");
         assertFalse(nestedClients.contains("JdkAdminRouteClient"), "admin routes must use CoreAdminRouteClient");
         assertFalse(nestedClients.contains("JdkAdminAddonStateClient"), "admin addon state must use CoreAdminAddonStateQueryClient");
-        assertFalse(nestedClients.contains("JdkAdminMaintenanceClient"), "admin maintenance must use CoreAdminMaintenanceCommandClient");
+        assertFalse(nestedClients.contains("JdkAdminMaintenanceClient"), "admin maintenance must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminNodeClient"), "admin node operations must use CoreAdminNode query and command clients");
         assertFalse(nestedClients.contains("JdkAdminIslandClient"), "admin islands must use CoreAdminIslandQueryClient");
     }
@@ -123,6 +123,8 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("metrics"));
         assertFalse(names.contains("coreConfig"));
         assertFalse(names.contains("storageStatus"));
+        assertFalse(names.contains("clearCacheResult"));
+        assertFalse(names.contains("reloadResult"));
     }
 
     @Test
@@ -684,33 +686,14 @@ class CoreTypedClientsTest {
 
     @Test
     void adminMaintenanceClientReturnsTypedCacheAndReloadResults() {
-        List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "clearCache" -> {
-                    calls.add("clear");
-                    yield CompletableFuture.completedFuture("{\"clearedSessions\":2,\"clearedTickets\":3,\"clearedRedisKeys\":4}");
-                }
-                case "reload" -> {
-                    calls.add("reload");
-                    yield CompletableFuture.completedFuture("{\"reloaded\":true,\"clearedSessions\":5,\"clearedTickets\":6,\"clearedRedisKeys\":7}");
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminMaintenanceCommandClient client = new CoreAdminMaintenanceCommandClient(raw);
-
-        AdminMaintenanceResultView clear = client.clearCache().join();
-        AdminMaintenanceResultView reload = client.reload().join();
+        AdminMaintenanceResultView clear = JdkAdminMaintenanceClient.result("{\"clearedSessions\":2,\"clearedTickets\":3,\"clearedRedisKeys\":4}");
+        AdminMaintenanceResultView reload = JdkAdminMaintenanceClient.result("{\"reloaded\":true,\"clearedSessions\":5,\"clearedTickets\":6,\"clearedRedisKeys\":7}");
 
         assertFalse(clear.reloaded());
         assertEquals(2L, clear.clearedSessions());
         assertEquals(3L, clear.clearedTickets());
         assertTrue(reload.reloaded());
         assertEquals(7L, reload.clearedRedisKeys());
-        assertEquals(List.of("clear", "reload"), calls);
     }
 
     @Test

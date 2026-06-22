@@ -125,7 +125,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.adminRouteClient = new CoreAdminRouteClient(this);
         this.adminAddonStateClient = new CoreAdminAddonStateQueryClient(this);
         this.addonStateClient = new CoreAddonStateClient(this);
-        this.adminMaintenanceClient = new CoreAdminMaintenanceCommandClient(this);
+        this.adminMaintenanceClient = new JdkAdminMaintenanceClient(this);
         this.adminNodeQueryClient = new CoreAdminNodeQueryClient(this);
         this.adminNodeCommandClient = new CoreAdminNodeCommandClient(this);
         this.adminIslandClient = new CoreAdminIslandQueryClient(this);
@@ -1387,26 +1387,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public CompletableFuture<String> listAuditLogs(int limit) {
         return postWithResultBody("/v1/admin/audit/list", jsonObject("limit", Math.max(1, Math.min(limit, 500))));
-    }
-
-    @Override
-    public CompletableFuture<String> clearCache() {
-        return clearCacheResult();
-    }
-
-    @Override
-    public CompletableFuture<String> clearCacheResult() {
-        return postWithResultBody("/v1/admin/cache/clear", "{}");
-    }
-
-    @Override
-    public CompletableFuture<String> reload() {
-        return reloadResult();
-    }
-
-    @Override
-    public CompletableFuture<String> reloadResult() {
-        return postWithResultBody("/v1/admin/reload", "{}");
     }
 
     @Override

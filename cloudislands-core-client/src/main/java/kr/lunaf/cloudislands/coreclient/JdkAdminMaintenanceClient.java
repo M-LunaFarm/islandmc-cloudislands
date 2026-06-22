@@ -4,24 +4,26 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreAdminMaintenanceCommandClient implements AdminMaintenanceCommandClient {
-    private final CoreApiClient delegate;
+final class JdkAdminMaintenanceClient implements AdminMaintenanceCommandClient {
+    private final JdkCoreApiClient core;
 
-    public CoreAdminMaintenanceCommandClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkAdminMaintenanceClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<AdminMaintenanceResultView> clearCache() {
-        return delegate.clearCache().thenApply(CoreAdminMaintenanceCommandClient::result);
+        return core.postWithResultBody("/v1/admin/cache/clear", "{}")
+            .thenApply(JdkAdminMaintenanceClient::result);
     }
 
     @Override
     public CompletableFuture<AdminMaintenanceResultView> reload() {
-        return delegate.reload().thenApply(CoreAdminMaintenanceCommandClient::result);
+        return core.postWithResultBody("/v1/admin/reload", "{}")
+            .thenApply(JdkAdminMaintenanceClient::result);
     }
 
     static AdminMaintenanceResultView result(String body) {

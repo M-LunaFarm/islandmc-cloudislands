@@ -239,7 +239,10 @@ public interface CoreApiClient {
     }
 
     default AdminMaintenanceCommandClient adminMaintenance() {
-        return new CoreAdminMaintenanceCommandClient(this);
+        if (this instanceof AdminMaintenanceCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin maintenance commands");
     }
 
     default AdminAddonStateQueryClient adminAddonState() {
@@ -416,10 +419,6 @@ public interface CoreApiClient {
     CompletableFuture<String> listEventsSince(long sinceSeq, int limit);
     CompletableFuture<String> listAuditLogs();
     CompletableFuture<String> listAuditLogs(int limit);
-    CompletableFuture<String> clearCache();
-    CompletableFuture<String> clearCacheResult();
-    CompletableFuture<String> reload();
-    CompletableFuture<String> reloadResult();
     CompletableFuture<String> addonStateSummary();
     CompletableFuture<String> addonState(String addonId);
     CompletableFuture<String> putAddonState(String addonId, String key, String value);
