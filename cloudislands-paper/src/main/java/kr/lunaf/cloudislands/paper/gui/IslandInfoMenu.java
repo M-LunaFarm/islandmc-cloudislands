@@ -82,20 +82,20 @@ public final class IslandInfoMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, GuiSession session, IslandInfoView view, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
-            setInfoItem(inventory, 10, messages,
+            setInfoItem(inventory, "A", messages,
                 message(messages, "info-menu-island-name", "섬 이름: ") + fallback(view.name(), message(messages, "info-menu-no-name", "이름 없음")),
                 message(messages, "info-menu-state", "상태: ") + fallback(view.state(), message(messages, "info-menu-unknown", "알 수 없음")),
                 message(messages, "info-menu-island-id", "섬 ID: ") + shortId(view.islandId(), messages));
-            setInfoItem(inventory, 11, messages,
+            setInfoItem(inventory, "B", messages,
                 message(messages, "info-menu-level", "레벨: ") + view.level(),
                 message(messages, "info-menu-worth", "가치: ") + fallback(view.worth(), "0"));
-            setInfoItem(inventory, 12, messages,
+            setInfoItem(inventory, "C", messages,
                 message(messages, "info-menu-public-access", "공개 여부: ") + yesNo(view.publicAccess(), messages),
                 message(messages, "info-menu-locked", "잠금 여부: ") + yesNo(view.locked(), messages));
-            setInfoItem(inventory, 13, messages,
+            setInfoItem(inventory, "D", messages,
                 message(messages, "info-menu-size", "섬 크기: ") + view.size(),
                 message(messages, "info-menu-border", "경계: ") + view.border());
-            setInfoItem(inventory, 14, messages,
+            setInfoItem(inventory, "E", messages,
                 message(messages, "info-menu-owner", "소유자: ") + shortId(view.ownerUuid(), messages));
             player.openInventory(inventory);
         });
@@ -105,9 +105,9 @@ public final class IslandInfoMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static void setInfoItem(Inventory inventory, int slot, MessageRenderer messages, String... lore) {
-        MENU.itemAt(slot)
-            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(lore))));
+    private static void setInfoItem(Inventory inventory, String symbol, MessageRenderer messages, String... lore) {
+        GuiMenuRenderer.slots(MENU, symbol).forEach(slot -> MENU.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(lore)))));
     }
 
     private static String fallback(String value, String fallback) {

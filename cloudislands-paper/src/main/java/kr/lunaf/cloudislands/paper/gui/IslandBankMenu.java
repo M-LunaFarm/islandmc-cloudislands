@@ -91,11 +91,11 @@ public final class IslandBankMenu implements Listener {
     }
 
     private static void setBalanceItem(Inventory inventory, MessageRenderer messages, BankView view) {
-        MENU.itemAt(4)
-            .ifPresent(item -> inventory.setItem(4, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(
+        GuiMenuRenderer.slots(MENU, "B").forEach(slot -> MENU.itemAt(slot)
+            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(
                 message(messages, "bank-menu-current-balance", "현재 잔액: ") + (view.balance().isBlank() ? "0" : view.balance()),
                 view.updatedAt().isBlank() ? message(messages, "bank-menu-no-update", "업데이트 정보 없음") : message(messages, "bank-menu-updated-at", "갱신 시각: ") + view.updatedAt()
-            ), "")));
+            ), ""))));
     }
 
 }
