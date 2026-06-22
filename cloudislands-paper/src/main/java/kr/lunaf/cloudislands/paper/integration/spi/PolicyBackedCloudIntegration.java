@@ -106,6 +106,14 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
         if (!externalApi.isBlank()) {
             details.put("external.api", externalApi);
         }
+        String externalArtifacts = externalStateArtifacts(operation);
+        if (!externalArtifacts.isBlank()) {
+            details.put("external.artifacts", externalArtifacts);
+        }
+        String safetyBarriers = externalSafetyBarriers(operation);
+        if (!safetyBarriers.isBlank()) {
+            details.put("external.safetyBarriers", safetyBarriers);
+        }
         details.putAll(IntegrationOperationPlan.of(pluginName, category(), operation, externalApi, stateChanging, requiredMetadata).details());
         if (context == null) {
             return details;
@@ -122,6 +130,14 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
     }
 
     protected String externalApiCall(String operation) {
+        return "";
+    }
+
+    protected String externalStateArtifacts(String operation) {
+        return "";
+    }
+
+    protected String externalSafetyBarriers(String operation) {
         return "";
     }
 

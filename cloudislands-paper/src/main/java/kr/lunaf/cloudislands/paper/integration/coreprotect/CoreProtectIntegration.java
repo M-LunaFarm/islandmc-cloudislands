@@ -47,4 +47,23 @@ public final class CoreProtectIntegration extends PolicyBackedCloudIntegration {
             default -> "";
         };
     }
+
+    @Override
+    protected String externalStateArtifacts(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "audit-activate" -> "region-audit-cursor";
+            case "audit-deactivate", "audit-export" -> "region-audit-cursor,coreprotect-lookup-events";
+            case "rollback-restore" -> "rollback-plan,affected-region-audit";
+            default -> "";
+        };
+    }
+
+    @Override
+    protected String externalSafetyBarriers(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "audit-activate", "audit-deactivate", "audit-export", "rollback-restore" ->
+                "runtime-authority,fencing-token,idempotency-key,region-boundary";
+            default -> "";
+        };
+    }
 }

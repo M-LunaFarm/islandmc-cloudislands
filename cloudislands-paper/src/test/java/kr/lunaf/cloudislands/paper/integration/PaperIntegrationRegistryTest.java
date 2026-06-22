@@ -103,6 +103,8 @@ class PaperIntegrationRegistryTest {
         assertEquals("integrations/audit-rollback/CoreProtect/audit-export.json", exportResult.details().get("manifest.bundleRelativePath"));
         assertEquals("coreprotect:export:2", exportResult.details().get("manifest.idempotencyKey"));
         assertEquals("CoreProtectAPI#performLookup", exportResult.details().get("external.api"));
+        assertEquals("region-audit-cursor,coreprotect-lookup-events", exportResult.details().get("external.artifacts"));
+        assertEquals("runtime-authority,fencing-token,idempotency-key,region-boundary", exportResult.details().get("external.safetyBarriers"));
         assertEquals("CoreProtectAPI#performLookup", exportResult.details().get("plan.externalApi"));
         assertEquals("world,cell,region,bundleKey", exportResult.details().get("plan.requiredMetadata"));
         assertEquals("true", exportResult.details().get("plan.stateChanging"));
@@ -121,6 +123,8 @@ class PaperIntegrationRegistryTest {
         assertEquals("3600", restoreResult.details().get("manifest.metadata.rollbackSeconds"));
         assertEquals("true", restoreResult.details().get("nodeOwnsIsland"));
         assertEquals("CoreProtectAPI#performRollback", restoreResult.details().get("external.api"));
+        assertEquals("rollback-plan,affected-region-audit", restoreResult.details().get("external.artifacts"));
+        assertEquals("runtime-authority,fencing-token,idempotency-key,region-boundary", restoreResult.details().get("external.safetyBarriers"));
         assertEquals("world,cell,region,rollbackSeconds,bundleKey", restoreResult.details().get("plan.requiredMetadata"));
     }
 
@@ -211,6 +215,8 @@ class PaperIntegrationRegistryTest {
         assertEquals("schematic-restore", result.details().get("manifest.operation"));
         assertEquals("0,64,0..63,319,63", result.details().get("manifest.metadata.region"));
         assertEquals("ClipboardReader#read+EditSession#paste", result.details().get("external.api"));
+        assertEquals("clipboard-schematic,paste-operation-plan", result.details().get("external.artifacts"));
+        assertEquals("runtime-authority,fencing-token,idempotency-key,region-boundary", result.details().get("external.safetyBarriers"));
         assertEquals("ClipboardReader#read+EditSession#paste", result.details().get("plan.externalApi"));
         assertEquals("world,cell,region,bundleKey", result.details().get("plan.requiredMetadata"));
     }
@@ -230,6 +236,11 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.SUCCESS, result.status());
         assertEquals("edit-session-deactivate", result.details().get("manifest.operation"));
         assertEquals("EditSession#flushQueue+Operations#complete", result.details().get("external.api"));
+        assertEquals("operation-drain-marker,edit-session-flush-marker", result.details().get("external.artifacts"));
+        assertEquals(
+            "runtime-authority,fencing-token,idempotency-key,active-operations-drained,edit-session-flushed,region-boundary",
+            result.details().get("external.safetyBarriers")
+        );
     }
 
     @Test

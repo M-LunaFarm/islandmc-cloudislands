@@ -49,4 +49,26 @@ public final class WorldEditIntegration extends PolicyBackedCloudIntegration {
             default -> "";
         };
     }
+
+    @Override
+    protected String externalStateArtifacts(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "clipboard-activate" -> "region-edit-session";
+            case "edit-session-deactivate" -> "operation-drain-marker,edit-session-flush-marker";
+            case "schematic-export" -> "clipboard-schematic,operation-drain-marker,edit-session-flush-marker";
+            case "schematic-restore" -> "clipboard-schematic,paste-operation-plan";
+            default -> "";
+        };
+    }
+
+    @Override
+    protected String externalSafetyBarriers(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "clipboard-activate", "schematic-restore" ->
+                "runtime-authority,fencing-token,idempotency-key,region-boundary";
+            case "edit-session-deactivate", "schematic-export" ->
+                "runtime-authority,fencing-token,idempotency-key,active-operations-drained,edit-session-flushed,region-boundary";
+            default -> "";
+        };
+    }
 }
