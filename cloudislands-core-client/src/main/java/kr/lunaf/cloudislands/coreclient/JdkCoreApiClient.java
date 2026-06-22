@@ -55,8 +55,9 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final SnapshotCommandClient snapshotCommandClient;
     private final CommunicationQueryClient communicationQueryClient;
     private final CommunicationCommandClient communicationCommandClient;
-    private final JdkEnvironmentClient environmentClient;
-    private final JdkSettingsClient settingsClient;
+    private final IslandEnvironmentQueryClient environmentQueryClient;
+    private final IslandEnvironmentCommandClient environmentCommandClient;
+    private final IslandSettingsCommandClient settingsClient;
     private final JdkPermissionClient permissionClient;
     private final JdkHomeWarpClient homeWarpClient;
     private final JdkRoutingClient routingClient;
@@ -101,8 +102,9 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.snapshotCommandClient = new CoreSnapshotCommandClient(this);
         this.communicationQueryClient = new CoreCommunicationQueryClient(this);
         this.communicationCommandClient = new CoreCommunicationCommandClient(this);
-        this.environmentClient = new JdkEnvironmentClient();
-        this.settingsClient = new JdkSettingsClient();
+        this.environmentQueryClient = new CoreIslandEnvironmentQueryClient(this);
+        this.environmentCommandClient = new CoreIslandEnvironmentCommandClient(this);
+        this.settingsClient = new CoreIslandSettingsCommandClient(this);
         this.permissionClient = new JdkPermissionClient();
         this.homeWarpClient = new JdkHomeWarpClient();
         this.routingClient = new JdkRoutingClient();
@@ -164,12 +166,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public IslandEnvironmentQueryClient environment() {
-        return environmentClient;
+        return environmentQueryClient;
     }
 
     @Override
     public IslandEnvironmentCommandClient environmentCommands() {
-        return environmentClient;
+        return environmentCommandClient;
     }
 
     @Override
@@ -955,129 +957,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount) {
         return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount));
-    }
-
-    private final class JdkEnvironmentClient implements IslandEnvironmentQueryClient, IslandEnvironmentCommandClient {
-        @Override
-        public CompletableFuture<IslandBiomeSnapshot> biome(UUID islandId) {
-            requireId(islandId, "islandId");
-            return post("/v1/islands/biome", jsonObject("islandId", islandId))
-                .thenApply(body -> CoreEnvironmentJson.biome(islandId, body));
-        }
-
-        @Override
-        public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
-            requireId(islandId, "islandId");
-            return islandInfo(islandId).thenApply(CoreGuiViews::islandInfoView);
-        }
-
-        @Override
-        public CompletableFuture<IslandFlagsSnapshot> flags(UUID islandId) {
-            requireId(islandId, "islandId");
-            return get("/v1/islands/" + islandId + "/flags")
-                .thenApply(body -> CoreEnvironmentJson.flags(islandId, body));
-        }
-
-        @Override
-        public CompletableFuture<List<IslandLimitSnapshot>> limits(UUID islandId) {
-            requireId(islandId, "islandId");
-            return post("/v1/islands/limits", jsonObject("islandId", islandId))
-                .thenApply(body -> CoreEnvironmentJson.limits(islandId, body));
-        }
-
-        @Override
-        public CompletableFuture<EnvironmentActionView> setBiome(UUID islandId, UUID actorUuid, String biomeKey) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return JdkCoreApiClient.this.setIslandBiomeResult(islandId, actorUuid, biomeKey == null ? "" : biomeKey)
-                .thenApply(body -> actionResult(body, "BIOME_SET"));
-        }
-
-        @Override
-        public CompletableFuture<EnvironmentActionView> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            if (flag == null) {
-                throw new IllegalArgumentException("flag is required");
-            }
-            return JdkCoreApiClient.this.setIslandFlagResult(islandId, actorUuid, flag, value == null ? "" : value)
-                .thenApply(body -> actionResult(body, "FLAG_SET"));
-        }
-
-        @Override
-        public CompletableFuture<EnvironmentActionView> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return JdkCoreApiClient.this.setIslandLimit(islandId, actorUuid, limitKey == null ? "" : limitKey, value)
-                .thenApply(body -> actionResult(body, "LIMIT_SET"));
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-
-        private EnvironmentActionView actionResult(String body, String successCode) {
-            Map<?, ?> root = CoreJson.object(body);
-            return new EnvironmentActionView(
-                CoreJson.accepted(root),
-                CoreJson.code(root, successCode),
-                CoreJson.firstText(root, "limitKey", "biomeKey", "flag", "key"),
-                CoreJson.number(root, "value"),
-                CoreJson.text(root, "islandId"),
-                CoreJson.text(root, "updatedBy"),
-                CoreJson.text(root, "updatedAt")
-            );
-        }
-    }
-
-    private final class JdkSettingsClient implements IslandSettingsCommandClient {
-        @Override
-        public CompletableFuture<SettingsActionView> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return JdkCoreApiClient.this.setIslandPublicAccessResult(islandId, actorUuid, publicAccess)
-                .thenApply(body -> actionResult(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED"));
-        }
-
-        @Override
-        public CompletableFuture<SettingsActionView> setLocked(UUID islandId, UUID actorUuid, boolean locked) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return JdkCoreApiClient.this.setIslandLockedResult(islandId, actorUuid, locked)
-                .thenApply(body -> actionResult(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED"));
-        }
-
-        @Override
-        public CompletableFuture<SettingsActionView> setName(UUID islandId, UUID actorUuid, String name) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return JdkCoreApiClient.this.setIslandNameResult(islandId, actorUuid, name == null ? "" : name)
-                .thenApply(body -> actionResult(body, "ISLAND_RENAMED"));
-        }
-
-        @Override
-        public CompletableFuture<SettingsActionView> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            if (flag == null) {
-                throw new IllegalArgumentException("flag is required");
-            }
-            return JdkCoreApiClient.this.setIslandFlagResult(islandId, actorUuid, flag, value == null ? "" : value)
-                .thenApply(body -> actionResult(body, "FLAG_SET"));
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-
-        private SettingsActionView actionResult(String body, String successCode) {
-            Map<?, ?> root = CoreJson.object(body);
-            return new SettingsActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
-        }
     }
 
     private final class JdkPermissionClient implements PermissionQueryClient, PermissionCommandClient {
