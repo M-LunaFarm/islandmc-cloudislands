@@ -134,14 +134,17 @@ class CoreTypedClientsTest {
     @Test
     void jdkCoreApiClientKeepsHttpStatusSeparateFromBodyAtTransportBoundary() throws Exception {
         String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+        String transport = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreHttpTransport.java"));
         String response = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreHttpResponse.java"));
 
-        assertTrue(source.contains("CompletableFuture<CoreHttpResponse> send(HttpRequest request)"), "transport boundary must return a typed HTTP response");
-        assertTrue(source.contains("new CoreHttpResponse(response.statusCode(), response.body())"), "raw Java HTTP responses must be converted once");
-        assertTrue(source.contains("response.bodyOrEmpty(response.successBody())"), "2xx body policy must be expressed on CoreHttpResponse");
-        assertTrue(source.contains("response.bodyOrEmpty(response.resultBody())"), "mutation result body policy must be expressed on CoreHttpResponse");
-        assertFalse(source.contains("response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : \"\""), "transport code must not mix status policy and body fallback inline");
-        assertFalse(source.contains("response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : \"\""), "result-body policy must not be duplicated inline");
+        assertTrue(source.contains("private final CoreHttpTransport transport"), "JDK core client must delegate HTTP transport details");
+        assertTrue(source.contains("return transport.post(path, body);"), "JDK core client must not build POST requests inline");
+        assertTrue(transport.contains("CompletableFuture<CoreHttpResponse> send(HttpRequest request)"), "transport boundary must return a typed HTTP response");
+        assertTrue(transport.contains("new CoreHttpResponse(response.statusCode(), response.body())"), "raw Java HTTP responses must be converted once");
+        assertTrue(transport.contains("response.bodyOrEmpty(response.successBody())"), "2xx body policy must be expressed on CoreHttpResponse");
+        assertTrue(transport.contains("response.bodyOrEmpty(response.resultBody())"), "mutation result body policy must be expressed on CoreHttpResponse");
+        assertFalse(transport.contains("response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : \"\""), "transport code must not mix status policy and body fallback inline");
+        assertFalse(transport.contains("response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : \"\""), "result-body policy must not be duplicated inline");
         assertTrue(response.contains("record CoreHttpResponse(int statusCode, String body)"), "HTTP status and body must stay paired before domain parsing");
     }
 
