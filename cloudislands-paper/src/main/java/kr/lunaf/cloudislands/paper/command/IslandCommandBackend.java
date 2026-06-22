@@ -99,7 +99,7 @@ final class IslandCommandBackend {
         this.chatLogCommands = new IslandChatLogCommandHandler(plugin, coreApiClient, runtimeServices);
         this.progressionCommands = new IslandProgressionCommandHandler(plugin, coreApiClient, levelScanService, runtimeServices);
         this.environmentCommands = new IslandEnvironmentCommandHandler(plugin, coreApiClient, protection, runtimeServices);
-        this.settingsCommands = new IslandSettingsCommandHandler(plugin, coreApiClient, runtimeServices);
+        this.settingsCommands = new IslandSettingsCommandHandler(plugin, coreApiClient, runtimeServices, locales);
         this.homeWarpCommands = new IslandHomeWarpCommandHandler(plugin, coreApiClient, new IslandHomeWarpRuntimeAdapter(runtimeServices, routingCommands));
         this.visitReviewCommands = new IslandVisitReviewCommandHandler(plugin, coreApiClient, new IslandVisitReviewRuntimeAdapter(runtimeServices, routingCommands));
         this.lifecycleCommands = new IslandLifecycleCommandHandler(plugin, coreApiClient, runtimeServices);

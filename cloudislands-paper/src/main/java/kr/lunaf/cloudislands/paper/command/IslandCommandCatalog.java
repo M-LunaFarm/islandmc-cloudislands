@@ -32,7 +32,7 @@ final class IslandCommandCatalog {
         "kick", "remove-member", "추방", "trust", "coop", "co-op", "신뢰", "협동", "untrust", "신뢰해제",
         "promote", "승급", "demote", "강등", "setrole", "role-set", "역할설정", "roles", "role-menu", "role-list", "role-upsert", "role-edit", "role-reset", "역할", "역할목록", "역할편집", "역할초기화", "transfer", "양도",
         "ban", "밴", "unban", "pardon", "밴해제", "kickvisitor", "방문자추방", "bans", "ban-menu", "ban-list", "banlist", "밴목록",
-        "settings", "setting", "설정", "name", "setname", "rename", "이름", "이름설정",
+        "settings", "setting", "설정", "language", "locale", "언어", "name", "setname", "rename", "이름", "이름설정",
         "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "플래그", "플래그설정", "플래그목록",
         "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "permission-exception", "permission-exception-list", "권한", "권한설정", "권한목록", "권한예외", "권한예외목록"
     );
@@ -96,6 +96,7 @@ final class IslandCommandCatalog {
         "섬 채팅 <message>",
         "섬 팀채팅 <message>",
         "섬 설정",
+        "섬 언어 <ko_kr|en_us>",
         "섬 이름 <name>",
         "섬 권한",
         "섬 권한설정 <role> <permission> <true|false|허용|거부>",

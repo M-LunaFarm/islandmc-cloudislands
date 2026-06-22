@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase.SettingsActionResult;
@@ -17,6 +18,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -25,12 +27,14 @@ final class IslandSettingsCommandHandler {
     private final CoreApiClient coreApiClient;
     private final IslandSettingsUseCase settingsUseCase;
     private final Runtime runtime;
+    private final PlayerLocaleCache locales;
 
-    IslandSettingsCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
+    IslandSettingsCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime, PlayerLocaleCache locales) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.settingsUseCase = new IslandSettingsUseCase(coreApiClient);
         this.runtime = runtime;
+        this.locales = locales;
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
@@ -52,6 +56,14 @@ final class IslandSettingsCommandHandler {
         }
         if (subcommand.equals("settings") || subcommand.equals("setting") || subcommand.equals("설정")) {
             openSettings(player);
+            return true;
+        }
+        if (subcommand.equals("language") || subcommand.equals("locale") || subcommand.equals("언어")) {
+            if (args.length < 2) {
+                runtime.message(player, runtime.routeMessage("input-locale-required", "언어 코드를 입력해주세요. 예: /섬 언어 ko_kr"));
+                return true;
+            }
+            setPlayerLocale(player, args[1]);
             return true;
         }
         if (subcommand.equals("name") || subcommand.equals("setname") || subcommand.equals("rename") || subcommand.equals("이름") || subcommand.equals("이름설정")) {
@@ -235,6 +247,22 @@ final class IslandSettingsCommandHandler {
                     return null;
                 });
         });
+    }
+
+    private void setPlayerLocale(Player player, String value) {
+        String locale = PlayerIslandProfile.normalizeLocale(value);
+        coreApiClient.playerProfileCommands().setLocale(player.getUniqueId(), locale)
+            .thenAccept(profile -> {
+                String applied = profile.locale().isBlank() ? locale : PlayerIslandProfile.normalizeLocale(profile.locale());
+                if (locales != null) {
+                    locales.remember(player.getUniqueId(), applied);
+                }
+                runtime.message(player, runtime.routeMessage("player-locale-updated", "언어 설정을 변경했습니다.") + " locale=" + applied);
+            })
+            .exceptionally(error -> {
+                runtime.message(player, runtime.coreWriteFailureMessage(error, "언어 설정을 변경하지 못했습니다."));
+                return null;
+            });
     }
 
     private static String flagListMessage(Map<IslandFlag, String> flags) {
