@@ -36,9 +36,17 @@ final class CoreCommunicationJson {
             .toList();
     }
 
+    static List<IslandLogRecord> records(CoreResponseBody body) {
+        return records(body.value());
+    }
+
     static ChatActionView chatAction(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
         return new ChatActionView(CoreJson.accepted(root), CoreJson.code(root, successCode), CoreJson.text(root, "channel"), CoreJson.text(root, "message"));
+    }
+
+    static ChatActionView chatAction(CoreResponseBody body, String successCode) {
+        return chatAction(body.value(), successCode);
     }
 
     static CoreGuiViews.LogEntryView view(IslandLogRecord log) {

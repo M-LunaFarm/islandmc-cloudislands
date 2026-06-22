@@ -20,7 +20,6 @@ final class JdkCommunicationQueryClient implements CommunicationQueryClient {
         requireId(islandId, "islandId");
         int safeLimit = Math.max(1, Math.min(limit, 100));
         return core.postBody("/v1/islands/logs", CoreJsonPayload.object("islandId", islandId, "limit", safeLimit))
-            .thenApply(CoreResponseBody::value)
             .thenApply(CoreCommunicationJson::records);
     }
 

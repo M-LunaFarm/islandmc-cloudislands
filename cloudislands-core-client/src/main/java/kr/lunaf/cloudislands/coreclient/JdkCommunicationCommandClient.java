@@ -24,7 +24,6 @@ final class JdkCommunicationCommandClient implements CommunicationCommandClient 
             throw new IllegalArgumentException("message is required");
         }
         return core.postBody("/v1/islands/chat", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "channel", normalizedChannel, "message", normalizedMessage))
-            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreCommunicationJson.chatAction(body, "CHAT_SENT"));
     }
 

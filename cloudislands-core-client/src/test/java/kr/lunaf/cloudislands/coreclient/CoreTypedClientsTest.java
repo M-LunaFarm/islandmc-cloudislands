@@ -216,10 +216,8 @@ class CoreTypedClientsTest {
                 "JdkBankQueryClient",
                 "JdkBlockValueCommandClient",
                 "JdkBlockValueQueryClient",
-                "JdkCommunicationCommandClient",
                 "JdkHomeWarpCommandClient",
                 "JdkBankCommandClient",
-                "JdkCommunicationQueryClient",
                 "JdkCoreJobClaimClient",
                 "JdkCoreRouteClient",
                 "JdkHomeWarpQueryClient",
@@ -1157,6 +1155,8 @@ class CoreTypedClientsTest {
         assertFalse(log.payload().containsKey("activeNode"));
         assertFalse(source.contains("private static String text("), "communication parser must use shared CoreJson text helpers");
         assertTrue(source.contains("CoreJson.objectValue(values, \"payload\")"), "communication parser must use shared CoreJson nested object helper");
+        assertFalse(assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCommunicationQueryClient.java"))).contains("CoreResponseBody::value"), "communication query client must pass typed response envelopes to its parser");
+        assertTrue(source.contains("records(CoreResponseBody body)"), "communication log parser must accept typed response envelopes");
     }
 
     @Test
@@ -1184,6 +1184,7 @@ class CoreTypedClientsTest {
         assertEquals("TEAM", chat.channel());
         assertEquals("hello", chat.message());
         assertEquals(List.of("chat:TEAM:hello"), calls);
+        assertFalse(assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCommunicationCommandClient.java"))).contains("CoreResponseBody::value"), "communication command client must pass typed response envelopes to its parser");
     }
 
     @Test
