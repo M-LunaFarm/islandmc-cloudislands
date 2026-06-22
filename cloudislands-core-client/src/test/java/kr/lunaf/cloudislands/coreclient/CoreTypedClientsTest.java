@@ -161,6 +161,25 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void migratedDomainClientsUseTypedCoreResponseBodyHelpers() throws Exception {
+        for (String clientName : List.of(
+                "JdkBankQueryClient",
+                "JdkBankCommandClient",
+                "JdkCommunicationQueryClient",
+                "JdkHomeWarpQueryClient",
+                "JdkIslandQueryClient",
+                "JdkPlayerProfileQueryClient"
+        )) {
+            String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/" + clientName + ".java"));
+            assertTrue(source.contains("CoreResponseBody::value"), clientName + " must unwrap typed response bodies locally");
+            assertFalse(source.contains("core.post("), clientName + " must not call the raw String POST helper");
+            assertFalse(source.contains("core.get("), clientName + " must not call the raw String GET helper");
+            assertFalse(source.contains("core.postWithResultBody("), clientName + " must not call the raw String result-body helper");
+            assertFalse(source.contains("core.deleteWithResultBody("), clientName + " must not call the raw String delete helper");
+        }
+    }
+
+    @Test
     void jdkCoreApiClientDelegatesBankMethodsToStandaloneClients() throws Exception {
         String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
 

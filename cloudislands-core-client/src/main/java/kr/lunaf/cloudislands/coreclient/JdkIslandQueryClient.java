@@ -18,32 +18,41 @@ public final class JdkIslandQueryClient implements IslandQueryClient {
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
         requireIsland(islandId);
-        return core.post("/v1/islands/info", CoreJsonPayload.object("islandId", islandId)).thenApply(CoreIslandJson::info);
+        return core.postBody("/v1/islands/info", CoreJsonPayload.object("islandId", islandId))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIslandByOwner(UUID ownerUuid) {
         requireIsland(ownerUuid);
-        return core.post("/v1/islands/info", CoreJsonPayload.object("ownerUuid", ownerUuid)).thenApply(CoreIslandJson::info);
+        return core.postBody("/v1/islands/info", CoreJsonPayload.object("ownerUuid", ownerUuid))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> findIslandByName(String islandName) {
         String normalizedIslandName = requireName(islandName);
-        return core.post("/v1/islands/info", CoreJsonPayload.object("name", normalizedIslandName)).thenApply(CoreIslandJson::info);
+        return core.postBody("/v1/islands/info", CoreJsonPayload.object("name", normalizedIslandName))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<List<IslandMemberSnapshot>> memberSnapshots(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/members")
+        return core.getBody("/v1/islands/" + islandId + "/members")
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreMemberJson.members(islandId, body));
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.MemberView>> listMembers(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/members").thenApply(CoreMemberJson::memberViews);
+        return core.getBody("/v1/islands/" + islandId + "/members")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreMemberJson::memberViews);
     }
 
     @Override

@@ -16,7 +16,8 @@ final class JdkPlayerProfileQueryClient implements PlayerProfileQueryClient {
     @Override
     public CompletableFuture<PlayerProfileView> profile(UUID playerUuid) {
         requireId(playerUuid, "playerUuid");
-        return core.postWithResultBody("/v1/admin/players/info", CoreJsonPayload.object("playerUuid", playerUuid))
+        return core.postResultBody("/v1/admin/players/info", CoreJsonPayload.object("playerUuid", playerUuid))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CorePlayerProfileJson::profile);
     }
 
@@ -26,7 +27,8 @@ final class JdkPlayerProfileQueryClient implements PlayerProfileQueryClient {
         if (normalized.isBlank()) {
             throw new IllegalArgumentException("lastName is required");
         }
-        return core.post("/v1/players/info", CoreJsonPayload.object("lastName", normalized))
+        return core.postBody("/v1/players/info", CoreJsonPayload.object("lastName", normalized))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CorePlayerProfileJson::profile);
     }
 

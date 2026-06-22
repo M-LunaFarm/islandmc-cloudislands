@@ -19,13 +19,17 @@ public final class JdkHomeWarpQueryClient implements HomeWarpQueryClient {
     @Override
     public CompletableFuture<List<IslandHomeSnapshot>> homeSnapshots(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/homes").thenApply(body -> CoreHomeWarpJson.homes(islandId, body));
+        return core.getBody("/v1/islands/" + islandId + "/homes")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> CoreHomeWarpJson.homes(islandId, body));
     }
 
     @Override
     public CompletableFuture<List<IslandWarpSnapshot>> warpSnapshots(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/warps").thenApply(body -> CoreHomeWarpJson.warps(islandId, body));
+        return core.getBody("/v1/islands/" + islandId + "/warps")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> CoreHomeWarpJson.warps(islandId, body));
     }
 
     @Override
@@ -42,7 +46,8 @@ public final class JdkHomeWarpQueryClient implements HomeWarpQueryClient {
         String payload = safeCategory.isBlank() && safeQuery.isBlank()
             ? CoreJsonPayload.object("limit", safeLimit)
             : CoreJsonPayload.object("limit", safeLimit, "category", safeCategory, "query", safeQuery);
-        return core.post("/v1/islands/public-warps", payload)
+        return core.postBody("/v1/islands/public-warps", payload)
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreHomeWarpJson.warps(null, body));
     }
 
