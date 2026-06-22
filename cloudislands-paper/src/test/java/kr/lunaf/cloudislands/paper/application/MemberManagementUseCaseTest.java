@@ -148,7 +148,7 @@ class MemberManagementUseCaseTest {
                     if (_args != null && _args.length == 2 && _args[1] instanceof MemberCursor) {
                         return CompletableFuture.completedFuture(new MemberPage(List.of(), (MemberCursor) _args[1], null, 0));
                     }
-                    return CompletableFuture.completedFuture(CoreGuiViews.memberViews(bodies.getOrDefault("listIslandMembers", "{\"members\":[]}")));
+                    return CompletableFuture.completedFuture(memberViews(bodies.getOrDefault("listIslandMembers", "{\"members\":[]}")));
                 }
                 if (method.getName().equals("playerProfileByName")) {
                     String profile = bodies.get(method.getName());
@@ -158,16 +158,16 @@ class MemberManagementUseCaseTest {
                     if ("ERROR".equals(profile)) {
                         return CompletableFuture.failedFuture(new IllegalStateException(method.getName() + " failed"));
                     }
-                    return CompletableFuture.completedFuture(CoreGuiViews.playerProfile(profile == null ? "{}" : profile));
+                    return CompletableFuture.completedFuture(playerProfile(profile == null ? "{}" : profile));
                 }
                 if (method.getName().equals("pendingInvites")) {
-                    return CompletableFuture.completedFuture(CoreGuiViews.inviteViews(bodies.getOrDefault("listPendingInvites", "{\"invites\":[]}")));
+                    return CompletableFuture.completedFuture(inviteViews(bodies.getOrDefault("listPendingInvites", "{\"invites\":[]}")));
                 }
                 if (method.getName().equals("bans")) {
-                    return CompletableFuture.completedFuture(CoreGuiViews.banViews(bodies.getOrDefault("listIslandBans", "{\"bans\":[]}")));
+                    return CompletableFuture.completedFuture(banViews(bodies.getOrDefault("listIslandBans", "{\"bans\":[]}")));
                 }
                 if (method.getName().equals("createInvite")) {
-                    return CompletableFuture.completedFuture(CoreGuiViews.inviteView(bodies.getOrDefault("createIslandInvite", "{}")));
+                    return CompletableFuture.completedFuture(inviteView(bodies.getOrDefault("createIslandInvite", "{}")));
                 }
                 if (method.getName().equals("acceptInvite")) {
                     return inviteAction(bodies.getOrDefault("acceptIslandInviteResult", "{}"), "ACCEPTED");
@@ -208,7 +208,76 @@ class MemberManagementUseCaseTest {
         if ("ERROR".equals(value)) {
             return CompletableFuture.failedFuture(new IllegalStateException(key + " failed"));
         }
-        return CompletableFuture.completedFuture(CoreGuiViews.islandInfoView(value == null ? "{}" : value));
+        return CompletableFuture.completedFuture(islandInfoView(value == null ? "{}" : value));
+    }
+
+    private static List<CoreGuiViews.MemberView> memberViews(String value) {
+        if (value == null || value.contains("\"members\":[]")) {
+            return List.of();
+        }
+        return List.of(new CoreGuiViews.MemberView(
+            text(value, "playerUuid"),
+            firstText(value, "roleKey", "role"),
+            text(value, "joinedAt"),
+            text(value, "playerName"),
+            text(value, "lastSeenAt"),
+            text(value, "presenceState"),
+            text(value, "presenceSource"),
+            text(value, "expiresAt")
+        ));
+    }
+
+    private static List<CoreGuiViews.InviteView> inviteViews(String value) {
+        if (value == null || value.contains("\"invites\":[]")) {
+            return List.of();
+        }
+        return List.of(inviteView(value));
+    }
+
+    private static CoreGuiViews.InviteView inviteView(String value) {
+        return new CoreGuiViews.InviteView(
+            text(value, "inviteId"),
+            text(value, "islandId"),
+            text(value, "inviterUuid"),
+            text(value, "targetUuid"),
+            text(value, "state"),
+            text(value, "createdAt"),
+            text(value, "expiresAt")
+        );
+    }
+
+    private static List<CoreGuiViews.BanView> banViews(String value) {
+        if (value == null || value.contains("\"bans\":[]")) {
+            return List.of();
+        }
+        return List.of(new CoreGuiViews.BanView(
+            text(value, "bannedUuid"),
+            text(value, "actorUuid"),
+            text(value, "reason"),
+            text(value, "createdAt"),
+            text(value, "expiresAt")
+        ));
+    }
+
+    private static CoreGuiViews.PlayerProfileView playerProfile(String value) {
+        return new CoreGuiViews.PlayerProfileView(text(value, "playerUuid"), text(value, "primaryIslandId"));
+    }
+
+    private static CoreGuiViews.IslandInfoView islandInfoView(String value) {
+        return new CoreGuiViews.IslandInfoView(
+            text(value, "name"),
+            text(value, "state"),
+            text(value, "islandId"),
+            number(value, "level"),
+            text(value, "worth"),
+            bool(value, "publicAccess"),
+            bool(value, "locked"),
+            number(value, "size"),
+            number(value, "border"),
+            text(value, "ownerUuid"),
+            text(value, "createdAt"),
+            text(value, "updatedAt")
+        );
     }
 
     private static CompletableFuture<IslandInviteActionResult> inviteAction(String value, String successCode) {
@@ -237,6 +306,44 @@ class MemberManagementUseCaseTest {
         int valueStart = start + marker.length();
         int valueEnd = value.indexOf('"', valueStart);
         return valueEnd < 0 ? "" : value.substring(valueStart, valueEnd);
+    }
+
+    private static String firstText(String value, String... keys) {
+        for (String key : keys) {
+            String text = text(value, key);
+            if (!text.isBlank()) {
+                return text;
+            }
+        }
+        return "";
+    }
+
+    private static long number(String value, String key) {
+        String marker = "\"" + key + "\":";
+        int start = value == null ? -1 : value.indexOf(marker);
+        if (start < 0) {
+            return 0L;
+        }
+        int valueStart = start + marker.length();
+        int valueEnd = valueStart;
+        while (valueEnd < value.length()) {
+            char ch = value.charAt(valueEnd);
+            if (!Character.isDigit(ch) && ch != '-') {
+                break;
+            }
+            valueEnd++;
+        }
+        return valueEnd == valueStart ? 0L : Long.parseLong(value.substring(valueStart, valueEnd));
+    }
+
+    private static boolean bool(String value, String key) {
+        String marker = "\"" + key + "\":";
+        int start = value == null ? -1 : value.indexOf(marker);
+        if (start < 0) {
+            return false;
+        }
+        int valueStart = start + marker.length();
+        return value.startsWith("true", valueStart);
     }
 
     private static UUID uuid(String value) {

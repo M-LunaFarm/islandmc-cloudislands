@@ -18,7 +18,7 @@ public final class CoreGuiViews {
         return client instanceof IslandQueryClient queries ? queries.getIsland(islandId) : client.islands().getIsland(islandId);
     }
 
-    public static IslandInfoView islandInfoView(String body) {
+    static IslandInfoView islandInfoView(String body) {
         return CoreIslandJson.info(body);
     }
 
@@ -53,7 +53,7 @@ public final class CoreGuiViews {
         return client.islands().listMembers(islandId);
     }
 
-    public static List<MemberView> memberViews(String body) {
+    static List<MemberView> memberViews(String body) {
         return members(body);
     }
 
@@ -61,11 +61,11 @@ public final class CoreGuiViews {
         return client.members().pendingInvites(playerUuid);
     }
 
-    public static List<InviteView> inviteViews(String body) {
+    static List<InviteView> inviteViews(String body) {
         return CoreMemberJson.inviteViews(body);
     }
 
-    public static InviteView inviteView(String body) {
+    static InviteView inviteView(String body) {
         return CoreMemberJson.inviteView(body);
     }
 
@@ -81,11 +81,11 @@ public final class CoreGuiViews {
         return client.members().bans(islandId);
     }
 
-    public static List<BanView> banViews(String body) {
+    static List<BanView> banViews(String body) {
         return CoreMemberJson.banViews(body);
     }
 
-    public static PlayerProfileView playerProfile(String body) {
+    static PlayerProfileView playerProfile(String body) {
         return CorePlayerProfileJson.guiProfile(body);
     }
 
@@ -121,7 +121,7 @@ public final class CoreGuiViews {
         return client.permissionQueries().roles(islandId);
     }
 
-    public static RoleView roleView(String body) {
+    static RoleView roleView(String body) {
         return CorePermissionJson.roleView(body);
     }
 
@@ -153,13 +153,13 @@ public final class CoreGuiViews {
         return client.communication().records(islandId, limit).thenApply(CoreGuiViews::logs);
     }
 
-    public static List<LogEntryView> logViews(String body) {
+    static List<LogEntryView> logViews(String body) {
         return CoreCommunicationJson.records(body).stream()
             .map(CoreCommunicationJson::view)
             .toList();
     }
 
-    public static NodeSummaryView nodeSummary(String nodeId, String body) {
+    static NodeSummaryView nodeSummary(String nodeId, String body) {
         return JdkAdminNodeQueryClient.nodeSummary(nodeId, body);
     }
 
@@ -175,7 +175,7 @@ public final class CoreGuiViews {
         return JdkNavigationQueryClient.publicIslandViews(body);
     }
 
-    public static PermissionRulesView permissionRulesView(String body) {
+    static PermissionRulesView permissionRulesView(String body) {
         return CorePermissionJson.permissionRulesView(body);
     }
 

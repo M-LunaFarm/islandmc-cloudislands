@@ -13,6 +13,8 @@ import java.lang.reflect.Proxy;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -48,6 +50,22 @@ import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import org.junit.jupiter.api.Test;
 
 class CoreTypedClientsTest {
+    @Test
+    void coreGuiViewsDoesNotExposeRawJsonBodyParsersPublicly() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreGuiViews.java"));
+
+        assertFalse(source.contains("public static IslandInfoView islandInfoView(String body)"));
+        assertFalse(source.contains("public static List<MemberView> memberViews(String body)"));
+        assertFalse(source.contains("public static List<InviteView> inviteViews(String body)"));
+        assertFalse(source.contains("public static InviteView inviteView(String body)"));
+        assertFalse(source.contains("public static List<BanView> banViews(String body)"));
+        assertFalse(source.contains("public static PlayerProfileView playerProfile(String body)"));
+        assertFalse(source.contains("public static RoleView roleView(String body)"));
+        assertFalse(source.contains("public static List<LogEntryView> logViews(String body)"));
+        assertFalse(source.contains("public static NodeSummaryView nodeSummary(String nodeId, String body)"));
+        assertFalse(source.contains("public static PermissionRulesView permissionRulesView(String body)"));
+    }
+
     @Test
     void jdkCoreApiClientOverridesAllTypedDomainAccessors() throws Exception {
         List<String> defaultAccessors = new ArrayList<>();
@@ -859,10 +877,10 @@ class CoreTypedClientsTest {
     void adminIslandQueryClientReturnsTypedInfoAndRuntime() {
         UUID islandId = UUID.randomUUID();
         UUID ownerUuid = UUID.randomUUID();
-        CoreGuiViews.IslandInfoView info = CoreGuiViews.islandInfoView("""
+        CoreGuiViews.IslandInfoView info = CoreIslandJson.info("""
             {"islandId":"%s","ownerUuid":"%s","name":"Spawn","state":"ACTIVE","size":300,"level":42,"worth":"100.25","publicAccess":true}
             """.formatted(islandId, ownerUuid));
-        CoreGuiViews.IslandInfoView named = CoreGuiViews.islandInfoView("""
+        CoreGuiViews.IslandInfoView named = CoreIslandJson.info("""
             {"islandId":"%s","ownerUuid":"%s","name":"Named","state":"ACTIVE"}
             """.formatted(islandId, ownerUuid));
         AdminIslandRuntimeView runtime = JdkAdminIslandQueryClient.runtime("""
