@@ -1,12 +1,12 @@
 package kr.lunaf.cloudislands.velocity.message;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.arrayValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.boolValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.doubleValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.matchingObjectEnd;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectValue;
+import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objects;
+import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectsFromArray;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,17 +49,7 @@ public final class VelocityIslandMessageFormatter {
 
     public String playerIslands(String body) {
         List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(body, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
+        for (String object : objectsFromArray(body)) {
             String islandId = jsonValue(object, "islandId");
             if (!islandId.isBlank()) {
                 String name = jsonValue(object, "name");
@@ -70,7 +60,6 @@ public final class VelocityIslandMessageFormatter {
                     + ", 역할=" + (role.isBlank() ? "MEMBER" : role)
                     + ", 레벨=" + level + ")");
             }
-            index = objectEnd + 1;
         }
         return entries.isEmpty() ? "속한 섬이 없습니다." : "내 섬 목록: " + String.join(" / ", entries);
     }
@@ -95,22 +84,15 @@ public final class VelocityIslandMessageFormatter {
         if (body == null || body.isBlank()) {
             return "공개 섬이 없습니다.";
         }
-        String islands = arrayValue(body, "islands");
-        if (islands.isBlank()) {
+        List<String> islands = objects(body, "islands");
+        if (islands.isEmpty()) {
             return "공개 섬이 없습니다.";
         }
         List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (index < islands.length() && entries.size() < 20) {
-            int objectStart = islands.indexOf('{', index);
-            if (objectStart < 0) {
+        for (String object : islands) {
+            if (entries.size() >= 20) {
                 break;
             }
-            int objectEnd = matchingObjectEnd(islands, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = islands.substring(objectStart, objectEnd + 1);
             String islandId = jsonValue(object, "islandId");
             if (!islandId.isBlank()) {
                 String name = jsonValue(object, "name");
@@ -122,7 +104,6 @@ public final class VelocityIslandMessageFormatter {
                     + ", 레벨=" + level
                     + ", 가치=" + (worth.isBlank() ? "0" : worth) + ")");
             }
-            index = objectEnd + 1;
         }
         return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
     }
@@ -149,17 +130,7 @@ public final class VelocityIslandMessageFormatter {
 
     public String invites(String body) {
         List<String> entries = new ArrayList<>();
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(body, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
+        for (String object : objectsFromArray(body)) {
             String inviteId = jsonValue(object, "inviteId");
             if (!inviteId.isBlank()) {
                 String islandId = jsonValue(object, "islandId");
@@ -168,7 +139,6 @@ public final class VelocityIslandMessageFormatter {
                     + (islandId.isBlank() ? "" : " 섬=" + shortId(islandId))
                     + (inviterUuid.isBlank() ? "" : " 초대한사람=" + shortId(inviterUuid)));
             }
-            index = objectEnd + 1;
         }
         return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
     }
@@ -458,25 +428,15 @@ public final class VelocityIslandMessageFormatter {
     }
 
     public String rankingList(String label, String body) {
-        String rankings = arrayValue(body, "rankings");
-        if (rankings.isBlank()) {
+        List<String> rankings = objects(body, "rankings");
+        if (rankings.isEmpty()) {
             return label + ": 기록이 없습니다.";
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
-        int index = 0;
-        while (index < rankings.length()) {
-            int objectStart = rankings.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(rankings, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
+        for (String object : rankings) {
             total++;
             if (entries.size() < 10) {
-                String object = rankings.substring(objectStart, objectEnd + 1);
                 String islandId = jsonValue(object, "islandId");
                 String name = jsonValue(object, "name");
                 entries.add("#" + total
@@ -485,7 +445,6 @@ public final class VelocityIslandMessageFormatter {
                     + ", 레벨=" + longValue(object, "level")
                     + ", 가치=" + jsonValue(object, "worth") + ")");
             }
-            index = objectEnd + 1;
         }
         return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
@@ -510,31 +469,20 @@ public final class VelocityIslandMessageFormatter {
     }
 
     public String blockValueList(String body) {
-        String values = arrayValue(body, "values");
-        if (values.isBlank()) {
+        List<String> values = objects(body, "values");
+        if (values.isEmpty()) {
             return "Block values: empty";
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
-        int index = 0;
-        while (index < values.length()) {
-            int objectStart = values.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(values, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
+        for (String object : values) {
             total++;
             if (entries.size() < 10) {
-                String object = values.substring(objectStart, objectEnd + 1);
                 entries.add(jsonValue(object, "materialKey")
                     + " worth=" + jsonValue(object, "worth")
                     + " level=" + longValue(object, "levelPoints")
                     + " limit=" + longValue(object, "limit"));
             }
-            index = objectEnd + 1;
         }
         return "Block values: total=" + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
@@ -558,31 +506,20 @@ public final class VelocityIslandMessageFormatter {
     }
 
     public String addonStateSummary(String body) {
-        String addons = arrayValue(body, "addons");
-        if (addons.isBlank()) {
+        List<String> addons = objects(body, "addons");
+        if (addons.isEmpty()) {
             return "Addon state: empty";
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
-        int index = 0;
-        while (index < addons.length()) {
-            int objectStart = addons.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(addons, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
+        for (String object : addons) {
             total++;
             if (entries.size() < 10) {
-                String object = addons.substring(objectStart, objectEnd + 1);
                 entries.add(jsonValue(object, "addonId")
                     + " global=" + longValue(object, "globalKeys")
                     + " island=" + longValue(object, "islandKeys")
                     + " totalKeys=" + longValue(object, "totalKeys"));
             }
-            index = objectEnd + 1;
         }
         return "Addon state: total=" + total
             + " owner=" + jsonValue(body, "stateOwnership")
@@ -622,24 +559,14 @@ public final class VelocityIslandMessageFormatter {
     }
 
     public String templateList(String body) {
-        String templates = arrayValue(body, "templates");
-        if (templates.isBlank()) {
+        List<String> templates = objects(body, "templates");
+        if (templates.isEmpty()) {
             return "섬 템플릿: 없음";
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
         int enabled = 0;
-        int index = 0;
-        while (index < templates.length()) {
-            int objectStart = templates.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(templates, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = templates.substring(objectStart, objectEnd + 1);
+        for (String object : templates) {
             total++;
             if (boolValue(object, "enabled")) {
                 enabled++;
@@ -650,7 +577,6 @@ public final class VelocityIslandMessageFormatter {
                     + " " + (boolValue(object, "enabled") ? "사용 가능" : "비활성")
                     + (minNodeVersion.isBlank() ? "" : " 최소버전=" + minNodeVersion));
             }
-            index = objectEnd + 1;
         }
         return "섬 템플릿: 전체 " + total + "개, 사용 가능 " + enabled + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
@@ -879,17 +805,7 @@ public final class VelocityIslandMessageFormatter {
     public String generatorInfo(String body) {
         String generatorKey = "default";
         long level = 1L;
-        int index = 0;
-        while (body != null && index < body.length()) {
-            int objectStart = body.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(body, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
-            String object = body.substring(objectStart, objectEnd + 1);
+        for (String object : objectsFromArray(body)) {
             String upgradeKey = jsonValue(object, "upgradeKey");
             String normalized = upgradeKey.toLowerCase(Locale.ROOT);
             if (normalized.equals("generator") || normalized.startsWith("generator:")) {
@@ -904,7 +820,6 @@ public final class VelocityIslandMessageFormatter {
                     generatorKey = currentKey.isBlank() ? "default" : currentKey;
                 }
             }
-            index = objectEnd + 1;
         }
         return "섬 생성기: key=" + generatorKey + " level=" + level + " / 업그레이드: /섬 업그레이드구매 generator";
     }
@@ -1089,31 +1004,20 @@ public final class VelocityIslandMessageFormatter {
     }
 
     public String upgradeRules(String body) {
-        String rules = arrayValue(body, "rules");
-        if (rules.isBlank()) {
+        List<String> rules = objects(body, "rules");
+        if (rules.isEmpty()) {
             return "업그레이드 규칙: 없음";
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
-        int index = 0;
-        while (index < rules.length()) {
-            int objectStart = rules.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(rules, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
+        for (String object : rules) {
             total++;
             if (entries.size() < 12) {
-                String object = rules.substring(objectStart, objectEnd + 1);
                 entries.add(jsonValue(object, "upgradeKey")
                     + " 유형=" + jsonValue(object, "type")
                     + " 최대=" + longValue(object, "maxLevel")
                     + " 기본비용=" + jsonValue(object, "baseCost"));
             }
-            index = objectEnd + 1;
         }
         return "업그레이드 규칙: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
@@ -1136,27 +1040,17 @@ public final class VelocityIslandMessageFormatter {
     }
 
     private String namedObjectList(String label, String body, String arrayField, Function<String, String> formatter) {
-        String array = arrayValue(body, arrayField);
-        if (array.isBlank()) {
+        List<String> objects = objects(body, arrayField);
+        if (objects.isEmpty()) {
             return label + ": empty";
         }
         List<String> entries = new ArrayList<>();
         int total = 0;
-        int index = 0;
-        while (index < array.length()) {
-            int objectStart = array.indexOf('{', index);
-            if (objectStart < 0) {
-                break;
-            }
-            int objectEnd = matchingObjectEnd(array, objectStart);
-            if (objectEnd < 0) {
-                break;
-            }
+        for (String object : objects) {
             total++;
             if (entries.size() < 10) {
-                entries.add(formatter.apply(array.substring(objectStart, objectEnd + 1)));
+                entries.add(formatter.apply(object));
             }
-            index = objectEnd + 1;
         }
         return label + ": 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
     }
