@@ -129,7 +129,7 @@ public final class IslandPermissionMenu implements Listener {
             setFooterItem(inventory, "N", messages, Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.min(maxRolePage(roles), safeRolePage + 1))), rolePageLine(safeRolePage, roles));
             setFooterItem(inventory, "P", messages, Map.of("page", String.valueOf(Math.max(0, safePage - 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage));
             setFooterItem(inventory, "Q", messages, Map.of("page", String.valueOf(Math.min(maxPage(), safePage + 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage));
-            setFooterItem(inventory, "G", messages, Map.of(), pageLine(safePage), rolePageLine(safeRolePage, roles), permissionSummary(), overrideSummary(overrides));
+            setFooterItem(inventory, "G", messages, Map.of(), pageLine(safePage), rolePageLine(safeRolePage, roles), permissionSummary(), overrideUsage(messages), overrideSummary(overrides));
             player.openInventory(inventory);
         });
     }
@@ -219,6 +219,10 @@ public final class IslandPermissionMenu implements Listener {
         PermissionOverrideView sample = safeOverrides.getFirst();
         return "Player Overrides: " + safeOverrides.size() + " / "
             + shortId(sample.playerUuid()) + ":" + sample.permission() + "=" + (sample.allowed() ? "ALLOW" : "DENY");
+    }
+
+    private static String overrideUsage(MessageRenderer messages) {
+        return message(messages, "permission-menu-override-command", "권한 예외: /섬 권한예외 <플레이어> <권한> <허용|거부>");
     }
 
     private static String shortId(String value) {

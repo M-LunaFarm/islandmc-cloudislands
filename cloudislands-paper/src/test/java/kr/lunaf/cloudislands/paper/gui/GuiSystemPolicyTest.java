@@ -226,6 +226,19 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void permissionMenuSurfacesPlayerPermissionOverrideUx() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
+        String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/permissions.yml"));
+        String translations = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/message/TranslationManager.java"));
+
+        assertTrue(config.contains("permission-menu-override-command"), "player override command hint must live in config-v2");
+        assertTrue(config.contains("/섬 권한예외 <플레이어> <권한> <허용|거부>"), "permission menu must show the player override syntax");
+        assertTrue(translations.contains("permission-menu-override-command"), "player override hint must be localizable");
+        assertTrue(menu.contains("overrideUsage(messages)"), "permission menu footer must render the player override command hint");
+        assertTrue(menu.contains("overrideSummary(overrides)"), "permission menu must still show the current override count and sample");
+    }
+
+    @Test
     void bankBalancePanelRendersFromMenuDefinition() throws Exception {
         String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBankMenu.java"));
         String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/bank.yml"));

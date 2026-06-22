@@ -85,6 +85,10 @@ items:
     material: MAP
     name-key: permission-menu-page-name
     fallback-name: 페이지
+    lore-keys:
+      - permission-menu-override-command
+    fallback-lore:
+      - "권한 예외: /섬 권한예외 <플레이어> <권한> <허용|거부>"
     action: list
   B:
     material: OAK_DOOR

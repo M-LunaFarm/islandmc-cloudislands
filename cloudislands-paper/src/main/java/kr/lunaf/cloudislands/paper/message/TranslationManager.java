@@ -931,6 +931,7 @@ public final class TranslationManager {
         values.put("permission-menu-role-command", "/섬 역할");
         values.put("permission-menu-current-state", "현재 상태: ");
         values.put("permission-menu-click-actions", "좌클릭: 허용, 우클릭: 차단");
+        values.put("permission-menu-override-command", "권한 예외: /섬 권한예외 <플레이어> <권한> <허용|거부>");
         values.put("member-menu-load-failed", "섬 멤버를 불러오지 못했습니다.");
         values.put("member-menu-invite-name", "멤버 초대");
         values.put("member-menu-invite-usage", "사용법: /섬 초대 <플레이어>");
