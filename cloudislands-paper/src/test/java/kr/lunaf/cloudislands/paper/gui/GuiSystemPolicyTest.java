@@ -321,7 +321,8 @@ class GuiSystemPolicyTest {
 
             assertTrue(definition.contains("  _:"), menuCase[1] + " must define the dynamic list item");
             assertTrue(definition.contains("material: " + menuCase[2]), menuCase[1] + " list item material must live in config-v2");
-            assertTrue(menu.contains("GuiMenuRenderer.material(MENU, \"_\", \"" + menuCase[2] + "\")"), menuCase[0] + " list item must read its material from the menu definition");
+            assertTrue(menu.contains("MENU.item(\"_\").ifPresent")
+                || menu.contains("GuiMenuRenderer.material(MENU, \"_\", \"" + menuCase[2] + "\")"), menuCase[0] + " list item must read its material from the menu definition");
             assertFalse(menu.contains("Material." + menuCase[2]), menuCase[0] + " list item must not hard-code the material");
         }
     }
@@ -340,10 +341,14 @@ class GuiSystemPolicyTest {
             assertTrue(definition.contains("  _:"), menuCase[1] + " must define the dynamic fallback item");
             assertTrue(definition.contains("  " + menuCase[2] + ":"), menuCase[1] + " must define typed dynamic item material " + menuCase[2]);
             assertTrue(definition.contains("material: " + menuCase[3]), menuCase[1] + " material must live in config-v2");
-            assertTrue(menu.contains("GuiMenuRenderer.material(MENU"), menuCase[0] + " must read dynamic materials from the menu definition");
+            assertTrue(menu.contains("GuiMenuRenderer.material(MENU")
+                || menu.contains("GuiMenuRenderer.item(MENU, item"), menuCase[0] + " must read dynamic materials from the menu definition");
             assertFalse(menu.contains("switch ("), menuCase[0] + " must not switch on roles or upgrade types for materials");
             assertFalse(menu.contains("Material." + menuCase[3]), menuCase[0] + " must not hard-code typed item materials");
         }
+        String myIslands = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMyIslandsMenu.java"));
+        assertTrue(myIslands.contains("MENU.item(island.role()).or(() -> MENU.item(\"_\"))"), "my-islands entries must pick configured role materials with a configured fallback item");
+        assertFalse(myIslands.contains("\"GRASS_BLOCK\""), "my-islands entries must not keep a Java fallback material");
     }
 
     @Test

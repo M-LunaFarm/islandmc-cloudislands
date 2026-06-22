@@ -11,7 +11,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 public final class IslandVisitMenu implements Listener {
@@ -89,12 +88,15 @@ public final class IslandVisitMenu implements Listener {
                 List<Integer> islandSlots = GuiMenuRenderer.slots(MENU, "_");
                 for (int index = 0; index < islands.size() && index < islandSlots.size(); index++) {
                     PublicIslandView island = islands.get(index);
-                    inventory.setItem(islandSlots.get(index), GuiItems.action(GuiMenuRenderer.material(MENU, "_", "GRASS_BLOCK"), island.name(), "island.visit.target",
+                    int slot = islandSlots.get(index);
+                    MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, island.name(),
                         Map.of("target", island.islandId()),
-                        message(messages, "visit-menu-owner", "소유자: ") + shortId(island.ownerUuid()),
-                        message(messages, "visit-menu-level", "레벨: ") + island.level(),
-                        message(messages, "visit-menu-worth", "가치: ") + island.worth(),
-                        message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다.")));
+                        List.of(
+                            message(messages, "visit-menu-owner", "소유자: ") + shortId(island.ownerUuid()),
+                            message(messages, "visit-menu-level", "레벨: ") + island.level(),
+                            message(messages, "visit-menu-worth", "가치: ") + island.worth(),
+                            message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다.")
+                        ))));
                 }
             }
             player.openInventory(inventory);
