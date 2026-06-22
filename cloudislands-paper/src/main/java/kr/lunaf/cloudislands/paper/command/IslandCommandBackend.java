@@ -71,6 +71,7 @@ final class IslandCommandBackend {
     private final PaperPlayerGateway players;
     private final PaperWorldGateway worlds;
     private final MemberManagementUseCase memberManagement;
+    private final IslandCommandPlayerResolver playerResolver;
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
@@ -115,6 +116,7 @@ final class IslandCommandBackend {
         this.levelScanService = levelScanService;
         this.commandMessages = new IslandCommandMessenger(plugin, messages, locales);
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
+        this.playerResolver = new IslandCommandPlayerResolver(plugin, memberManagement);
         this.routingCommands = new IslandRoutingCommandHandler(plugin, coreApiClient, routeWaitSeconds, fallbackServerName, new IslandRoutingCommandHandler.Runtime() {
             @Override
             public void message(Player player, String message) {
@@ -1026,38 +1028,8 @@ final class IslandCommandBackend {
         return longValue(value, fallback);
     }
 
-    private UUID uuid(String value) {
-        try {
-            return UUID.fromString(value);
-        } catch (RuntimeException ignored) {
-            return null;
-        }
-    }
-
-    private UUID playerUuid(String value) {
-        Player online = plugin.getServer().getPlayerExact(value);
-        if (online != null) {
-            return online.getUniqueId();
-        }
-        UUID parsed = uuid(value);
-        if (parsed != null) {
-            return parsed;
-        }
-        return plugin.getServer().getOfflinePlayer(value).getUniqueId();
-    }
-
     private CompletableFuture<UUID> resolvePlayerUuid(String value) {
-        Player online = plugin.getServer().getPlayerExact(value);
-        if (online != null) {
-            return CompletableFuture.completedFuture(online.getUniqueId());
-        }
-        UUID parsed = uuid(value);
-        if (parsed != null) {
-            return CompletableFuture.completedFuture(parsed);
-        }
-        return memberManagement.playerUuidByName(value)
-            .thenApply(profileUuid -> profileUuid == null ? plugin.getServer().getOfflinePlayer(value).getUniqueId() : profileUuid)
-            .exceptionally(error -> plugin.getServer().getOfflinePlayer(value).getUniqueId());
+        return playerResolver.resolvePlayerUuid(value);
     }
 
     private void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
