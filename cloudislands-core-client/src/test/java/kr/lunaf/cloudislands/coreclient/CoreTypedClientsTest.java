@@ -64,6 +64,8 @@ class CoreTypedClientsTest {
         assertFalse(defaultAccessors.isEmpty());
         assertEquals(List.of(), missingOverrides);
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("progression").getDeclaringClass());
+        assertFalse(BankQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate bank queries to a standalone client");
+        assertFalse(BankCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate bank commands to a standalone client");
         assertFalse(PlayerProfileQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile queries to a standalone client");
         assertFalse(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile commands to a standalone client");
         assertFalse(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template queries to a standalone client");
@@ -73,6 +75,8 @@ class CoreTypedClientsTest {
         assertFalse(WarehouseQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse queries to a standalone client");
         assertFalse(WarehouseCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse commands to a standalone client");
         JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:1"), "token", Duration.ofSeconds(1));
+        assertSame(JdkBankQueryClient.class, client.bank().getClass());
+        assertSame(JdkBankCommandClient.class, client.bankCommands().getClass());
         assertSame(JdkPlayerProfileQueryClient.class, client.playerProfiles().getClass());
         assertSame(JdkPlayerProfileCommandClient.class, client.playerProfileCommands().getClass());
         assertSame(JdkTemplateQueryClient.class, client.templates().getClass());
@@ -133,6 +137,17 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : \"\""), "transport code must not mix status policy and body fallback inline");
         assertFalse(source.contains("response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : \"\""), "result-body policy must not be duplicated inline");
         assertTrue(response.contains("record CoreHttpResponse(int statusCode, String body)"), "HTTP status and body must stay paired before domain parsing");
+    }
+
+    @Test
+    void jdkCoreApiClientDelegatesBankMethodsToStandaloneClients() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+
+        assertFalse(source.contains("public CompletableFuture<IslandBankSnapshot> snapshot("), "bank queries must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<IslandBankChangeSnapshot> depositSnapshot("), "bank deposit must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<IslandBankChangeSnapshot> withdrawSnapshot("), "bank withdraw must not live on the core transport client");
+        assertTrue(source.contains("this.bankQueryClient = new JdkBankQueryClient(this);"));
+        assertTrue(source.contains("this.bankCommandClient = new JdkBankCommandClient(this);"));
     }
 
     @Test
