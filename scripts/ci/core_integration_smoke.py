@@ -136,6 +136,39 @@ def assert_field(data: dict, key: str, expected) -> None:
         raise RuntimeError(f"expected {key}={expected!r}, got {actual!r} in {data}")
 
 
+def assert_contains_event(data: dict, expected_type: str) -> None:
+    events = data.get("events", [])
+    if not isinstance(events, list):
+        raise RuntimeError(f"expected event list, got {data}")
+    for event in events:
+        if event.get("type") == expected_type:
+            return
+    raise RuntimeError(f"expected event type {expected_type}, got {data}")
+
+
+def assert_audit_entries(data: dict) -> None:
+    entries = data.get("entries", data.get("audit", []))
+    if not isinstance(entries, list) or not entries:
+        raise RuntimeError(f"expected audit entries, got {data}")
+
+
+def start_core(core_bin: Path, instance_dir: Path, port: int, base_env: dict):
+    instance_dir.mkdir(parents=True, exist_ok=True)
+    log_path = instance_dir / "core.log"
+    core_env = base_env.copy()
+    core_env["CI_PORT"] = str(port)
+    log = log_path.open("w", encoding="utf-8")
+    process = subprocess.Popen(
+        [str(core_bin), str(port)],
+        cwd=instance_dir,
+        env=core_env,
+        stdout=log,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    return process, log, log_path
+
+
 def write_cluster_evidence(path: Path | None) -> None:
     if path is None:
         return
@@ -143,6 +176,7 @@ def write_cluster_evidence(path: Path | None) -> None:
     evidence = {
         "components": [
             "core-1",
+            "core-2",
             "island-paper-1",
             "island-paper-2",
             "postgres",
@@ -150,6 +184,12 @@ def write_cluster_evidence(path: Path | None) -> None:
             "object-storage",
         ],
         "evidence": {
+            "multi-core-e2e": [
+                "two-core-instances",
+                "fencing-token-check",
+                "audit-log-check",
+                "event-replay-check",
+            ],
             "multi-paper-failover": [
                 "two-island-paper-nodes",
                 "save-interruption",
@@ -172,17 +212,19 @@ def write_cluster_evidence(path: Path | None) -> None:
     path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, evidence_out: Path | None = None) -> None:
+def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, evidence_out: Path | None = None, secondary_port: int | None = None) -> None:
     if work_dir.exists():
         shutil.rmtree(work_dir)
     work_dir.mkdir(parents=True)
-    log_path = work_dir / "core.log"
-    base_url = f"http://127.0.0.1:{port}"
+    secondary_port = secondary_port or port + 1
+    if secondary_port == port:
+        raise RuntimeError("secondary Core port must differ from primary port")
+    primary_url = f"http://127.0.0.1:{port}"
+    secondary_url = f"http://127.0.0.1:{secondary_port}"
     env = os.environ.copy()
     env.update(
         {
             "CI_BIND": "127.0.0.1",
-            "CI_PORT": str(port),
             "CI_REPOSITORY_MODE": "JDBC",
             "CI_JOB_QUEUE_MODE": "REDIS",
             "CI_EVENT_BUS_MODE": "REDIS",
@@ -214,17 +256,15 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             "CI_SNAPSHOT_KEEP_LATEST": "5",
         }
     )
-    with log_path.open("w", encoding="utf-8") as log:
-        process = subprocess.Popen(
-            [str(core_bin), str(port)],
-            cwd=work_dir,
-            env=env,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-        try:
-            wait_for_ready(base_url, time.monotonic() + timeout)
+    processes = [
+        start_core(core_bin, work_dir / "core-1", port, env),
+        start_core(core_bin, work_dir / "core-2", secondary_port, env),
+    ]
+    try:
+        deadline = time.monotonic() + timeout
+        wait_for_ready(primary_url, deadline)
+        wait_for_ready(secondary_url, deadline)
+        for base_url in (primary_url, secondary_url):
             config = request(base_url, "POST", "/v1/admin/config", {}, admin=True, expect=(200,))
             assert_field(config, "effectiveRepositoryMode", "JDBC")
             assert_field(config, "effectiveJobQueueMode", "REDIS")
@@ -234,158 +274,171 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             if not config.get("storageMultiNodeSafe"):
                 raise RuntimeError(f"expected S3 storage to be multi-node safe: {config}")
 
-            node_a = "island-a-" + uuid.uuid4().hex[:8]
-            node_b = "island-b-" + uuid.uuid4().hex[:8]
-            heartbeat(base_url, node_a, "Island-A")
-            heartbeat(base_url, node_b, "Island-B")
-            nodes = request(base_url, "POST", "/v1/nodes", {}, expect=(200,))
-            if nodes.get("routeCandidateCount", 0) < 2:
-                raise RuntimeError(f"expected two route candidates, got {nodes}")
+        node_a = "island-a-" + uuid.uuid4().hex[:8]
+        node_b = "island-b-" + uuid.uuid4().hex[:8]
+        heartbeat(primary_url, node_a, "Island-A")
+        heartbeat(primary_url, node_b, "Island-B")
+        nodes = request(secondary_url, "POST", "/v1/nodes", {}, expect=(200,))
+        if nodes.get("routeCandidateCount", 0) < 2:
+            raise RuntimeError(f"expected two route candidates from secondary core, got {nodes}")
 
-            player_uuid = str(uuid.uuid4())
-            create = request(
-                base_url,
-                "POST",
-                "/v1/islands",
-                {"playerUuid": player_uuid, "templateId": "default"},
-                expect=(202,),
-            )
-            assert_field(create, "accepted", True)
-            island_id = create["islandId"]
-            ticket = create["ticket"]
-            active_node = ticket["targetNode"]
-            if active_node not in (node_a, node_b):
-                raise RuntimeError(f"unexpected create target node {active_node}")
-            standby_node = node_b if active_node == node_a else node_a
+        player_uuid = str(uuid.uuid4())
+        create = request(
+            primary_url,
+            "POST",
+            "/v1/islands",
+            {"playerUuid": player_uuid, "templateId": "default"},
+            expect=(202,),
+        )
+        assert_field(create, "accepted", True)
+        island_id = create["islandId"]
+        ticket = create["ticket"]
+        active_node = ticket["targetNode"]
+        if active_node not in (node_a, node_b):
+            raise RuntimeError(f"unexpected create target node {active_node}")
+        standby_node = node_b if active_node == node_a else node_a
 
-            create_job = claim_one(base_url, active_node, "CREATE_ISLAND")
-            complete_job(
-                base_url,
-                active_node,
-                create_job,
-                {
-                    "worldName": "ci_smoke_world",
-                    "cellX": "1",
-                    "cellZ": "2",
-                    "snapshotNo": "1",
-                    "reason": "CREATED",
-                    "checksum": "sha256:integration-smoke-create",
-                    "sizeBytes": "2048",
-                    "placementSource": "integration-smoke",
-                },
-            )
+        create_job = claim_one(secondary_url, active_node, "CREATE_ISLAND")
+        if int(create_job.get("payload", {}).get("fencingToken", "0")) <= 0:
+            raise RuntimeError(f"expected create job fencing token, got {create_job}")
+        complete_job(
+            secondary_url,
+            active_node,
+            create_job,
+            {
+                "worldName": "ci_smoke_world",
+                "cellX": "1",
+                "cellZ": "2",
+                "snapshotNo": "1",
+                "reason": "CREATED",
+                "checksum": "sha256:integration-smoke-create",
+                "sizeBytes": "2048",
+                "placementSource": "integration-smoke",
+            },
+        )
 
-            ready_ticket = request(
-                base_url,
-                "POST",
-                "/v1/routes/ticket-status",
-                {"ticketId": ticket["ticketId"], "playerUuid": player_uuid, "nonce": ticket["nonce"]},
-                expect=(200,),
-            )
-            assert_field(ready_ticket, "state", "READY")
-            request(
-                base_url,
-                "POST",
-                "/v1/routes/session",
-                {
-                    "ticketId": ticket["ticketId"],
-                    "playerUuid": player_uuid,
-                    "targetNode": active_node,
-                    "nonce": ticket["nonce"],
-                },
-                expect=(202,),
-            )
-            found_session = request(
-                base_url,
-                "POST",
-                "/v1/routes/session/find",
-                {"playerUuid": player_uuid, "nodeId": active_node},
-                expect=(200,),
-            )
-            assert_field(found_session, "targetNode", active_node)
-            consumed_session = request(
-                base_url,
-                "POST",
-                "/v1/routes/session/consume",
-                {
-                    "playerUuid": player_uuid,
-                    "nodeId": active_node,
-                    "ticketId": ticket["ticketId"],
-                    "nonce": ticket["nonce"],
-                },
-                expect=(200,),
-            )
-            assert_field(consumed_session, "ticketId", ticket["ticketId"])
-            consumed_ticket = request(
-                base_url,
-                "POST",
-                "/v1/routes/consume",
-                {
-                    "ticketId": ticket["ticketId"],
-                    "playerUuid": player_uuid,
-                    "nodeId": active_node,
-                    "nonce": ticket["nonce"],
-                },
-                expect=(200,),
-            )
-            assert_field(consumed_ticket, "state", "CONSUMED")
+        ready_ticket = request(
+            secondary_url,
+            "POST",
+            "/v1/routes/ticket-status",
+            {"ticketId": ticket["ticketId"], "playerUuid": player_uuid, "nonce": ticket["nonce"]},
+            expect=(200,),
+        )
+        assert_field(ready_ticket, "state", "READY")
+        request(
+            primary_url,
+            "POST",
+            "/v1/routes/session",
+            {
+                "ticketId": ticket["ticketId"],
+                "playerUuid": player_uuid,
+                "targetNode": active_node,
+                "nonce": ticket["nonce"],
+            },
+            expect=(202,),
+        )
+        found_session = request(
+            secondary_url,
+            "POST",
+            "/v1/routes/session/find",
+            {"playerUuid": player_uuid, "nodeId": active_node},
+            expect=(200,),
+        )
+        assert_field(found_session, "targetNode", active_node)
+        consumed_session = request(
+            secondary_url,
+            "POST",
+            "/v1/routes/session/consume",
+            {
+                "playerUuid": player_uuid,
+                "nodeId": active_node,
+                "ticketId": ticket["ticketId"],
+                "nonce": ticket["nonce"],
+            },
+            expect=(200,),
+        )
+        assert_field(consumed_session, "ticketId", ticket["ticketId"])
+        consumed_ticket = request(
+            secondary_url,
+            "POST",
+            "/v1/routes/consume",
+            {
+                "ticketId": ticket["ticketId"],
+                "playerUuid": player_uuid,
+                "nodeId": active_node,
+                "nonce": ticket["nonce"],
+            },
+            expect=(200,),
+        )
+        assert_field(consumed_ticket, "state", "CONSUMED")
 
-            where = request(base_url, "POST", "/v1/admin/islands/where", {"islandId": island_id}, admin=True, expect=(200,))
-            assert_field(where, "state", "ACTIVE")
-            assert_field(where, "activeNode", active_node)
+        where = request(secondary_url, "POST", "/v1/admin/islands/where", {"islandId": island_id}, admin=True, expect=(200,))
+        assert_field(where, "state", "ACTIVE")
+        assert_field(where, "activeNode", active_node)
+        if int(where.get("fencingToken", 0)) <= 0:
+            raise RuntimeError(f"expected active runtime fencing token from secondary core, got {where}")
 
-            heartbeat(base_url, active_node, "Island-A" if active_node == node_a else "Island-B", state="DOWN", active_islands=1)
-            heartbeat(base_url, standby_node, "Island-B" if standby_node == node_b else "Island-A")
-            sweep = request(
-                base_url,
-                "POST",
-                "/v1/admin/nodes/sweep",
-                {"nodeId": active_node},
-                admin=True,
-                expect=(202,),
-            )
-            if sweep.get("recoveryRequired") < 1 or sweep.get("recoveryQueued") < 1:
-                raise RuntimeError(f"expected node sweep to queue recovery, got {sweep}")
+        heartbeat(secondary_url, active_node, "Island-A" if active_node == node_a else "Island-B", state="DOWN", active_islands=1)
+        heartbeat(primary_url, standby_node, "Island-B" if standby_node == node_b else "Island-A")
+        sweep = request(
+            secondary_url,
+            "POST",
+            "/v1/admin/nodes/sweep",
+            {"nodeId": active_node},
+            admin=True,
+            expect=(202,),
+        )
+        if sweep.get("recoveryRequired") < 1 or sweep.get("recoveryQueued") < 1:
+            raise RuntimeError(f"expected node sweep to queue recovery, got {sweep}")
 
-            restore_job = claim_one(base_url, standby_node, "RESTORE_ISLAND")
-            complete_job(
-                base_url,
-                standby_node,
-                restore_job,
-                {
-                    "worldName": "ci_smoke_world_recovered",
-                    "cellX": "3",
-                    "cellZ": "4",
-                    "preMutationSnapshotNo": "2",
-                    "preMutationReason": "BEFORE_RESTORE",
-                    "preMutationChecksum": "sha256:integration-smoke-before-restore",
-                    "preMutationSizeBytes": "1024",
-                    "placementSource": "integration-smoke-recovery",
-                },
-            )
-            recovered = request(base_url, "POST", "/v1/admin/islands/where", {"islandId": island_id}, admin=True, expect=(200,))
-            assert_field(recovered, "state", "ACTIVE")
-            assert_field(recovered, "activeNode", standby_node)
+        restore_job = claim_one(primary_url, standby_node, "RESTORE_ISLAND")
+        if int(restore_job.get("payload", {}).get("fencingToken", "0")) <= 0:
+            raise RuntimeError(f"expected restore job fencing token, got {restore_job}")
+        complete_job(
+            primary_url,
+            standby_node,
+            restore_job,
+            {
+                "worldName": "ci_smoke_world_recovered",
+                "cellX": "3",
+                "cellZ": "4",
+                "preMutationSnapshotNo": "2",
+                "preMutationReason": "BEFORE_RESTORE",
+                "preMutationChecksum": "sha256:integration-smoke-before-restore",
+                "preMutationSizeBytes": "1024",
+                "placementSource": "integration-smoke-recovery",
+            },
+        )
+        recovered = request(secondary_url, "POST", "/v1/admin/islands/where", {"islandId": island_id}, admin=True, expect=(200,))
+        assert_field(recovered, "state", "ACTIVE")
+        assert_field(recovered, "activeNode", standby_node)
 
-            reconnect = request(
-                base_url,
-                "POST",
-                "/v1/routes/home",
-                {"playerUuid": player_uuid},
-                expect=(202,),
-            )
-            reconnect_ticket = latest_ticket(base_url, player_uuid)
-            assert_field(reconnect_ticket, "state", "READY")
-            assert_field(reconnect_ticket, "targetNode", standby_node)
-            assert_field(reconnect, "state", "READY")
-            assert_field(reconnect, "targetNode", standby_node)
+        reconnect = request(
+            secondary_url,
+            "POST",
+            "/v1/routes/home",
+            {"playerUuid": player_uuid},
+            expect=(202,),
+        )
+        reconnect_ticket = latest_ticket(primary_url, player_uuid)
+        assert_field(reconnect_ticket, "state", "READY")
+        assert_field(reconnect_ticket, "targetNode", standby_node)
+        assert_field(reconnect, "state", "READY")
+        assert_field(reconnect, "targetNode", standby_node)
 
-            print(
-                "Core integration smoke passed: PostgreSQL+Redis+MinIO config, "
-                "create/job/route/session/consume, node-down recovery restore, reconnect"
-            )
-            write_cluster_evidence(evidence_out)
-        finally:
+        events = request(secondary_url, "POST", "/v1/events", {"limit": 100}, admin=True, expect=(200,))
+        assert_contains_event(events, "ROUTE_TICKET_CREATED")
+        audit = request(secondary_url, "POST", "/v1/audit", {"limit": 100}, admin=True, expect=(200,))
+        assert_audit_entries(audit)
+
+        print(
+            "Core integration smoke passed: two Core services, PostgreSQL+Redis+MinIO config, "
+            "cross-core create/job/route/session/consume, node-down recovery restore, reconnect"
+        )
+        write_cluster_evidence(evidence_out)
+    finally:
+        failures = []
+        for process, log, log_path in processes:
             if process.poll() is None:
                 process.terminate()
                 try:
@@ -393,9 +446,12 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait(timeout=10)
+            log.close()
             if process.returncode not in (0, 143, -15):
                 tail = log_path.read_text(encoding="utf-8", errors="replace").splitlines()[-120:]
-                raise RuntimeError("Core service exited unexpectedly:\n" + "\n".join(tail))
+                failures.append(f"{log_path} exited with {process.returncode}:\n" + "\n".join(tail))
+        if failures:
+            raise RuntimeError("Core service exited unexpectedly:\n" + "\n\n".join(failures))
 
 
 def main() -> int:
@@ -403,6 +459,7 @@ def main() -> int:
     parser.add_argument("--core-bin", required=True)
     parser.add_argument("--work-dir", required=True)
     parser.add_argument("--port", type=int, default=18443)
+    parser.add_argument("--secondary-port", type=int)
     parser.add_argument("--timeout", type=int, default=90)
     parser.add_argument("--evidence-out")
     args = parser.parse_args()
@@ -410,7 +467,7 @@ def main() -> int:
     if not core_bin.exists():
         raise RuntimeError(f"Core binary does not exist: {core_bin}")
     evidence_out = Path(args.evidence_out).resolve() if args.evidence_out else None
-    run_scenario(core_bin, Path(args.work_dir).resolve(), args.port, args.timeout, evidence_out)
+    run_scenario(core_bin, Path(args.work_dir).resolve(), args.port, args.timeout, evidence_out, args.secondary_port)
     return 0
 
 
