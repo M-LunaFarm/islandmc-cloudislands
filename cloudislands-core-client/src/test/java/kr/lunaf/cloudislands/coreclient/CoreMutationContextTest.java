@@ -713,8 +713,8 @@ class CoreMutationContextTest {
             assertEquals("{\"limit\":10}", requestBodies.get("publicWarps"));
             client.homeWarps().publicWarpSnapshots(11, "market\"zone", "spawn\"main").join();
             client.navigation().listReviews(islandId, 12).join();
-            client.setIslandReview(islandId, reviewerUuid, 5, "nice \"base\"").join();
-            client.deleteIslandReview(islandId, reviewerUuid).join();
+            client.navigationCommands().setReview(islandId, reviewerUuid, 5, "nice \"base\"").join();
+            client.navigationCommands().deleteReview(islandId, reviewerUuid).join();
 
             assertEquals("{\"limit\":11,\"category\":\"market\\\"zone\",\"query\":\"spawn\\\"main\"}", requestBodies.get("publicWarps"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":12}", requestBodies.get("reviews"));

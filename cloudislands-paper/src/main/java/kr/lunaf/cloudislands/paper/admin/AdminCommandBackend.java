@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
+import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
@@ -43,6 +44,7 @@ import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.coreclient.CoreMigrationJson;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
@@ -1166,7 +1168,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
-        run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrateSuperiorSkyblock2(action, path).thenApply(this::migrationMessage));
+        run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrations().migrateSuperiorSkyblock2(action, path).thenApply(this::migrationMessage));
         return true;
     }
 
@@ -1397,6 +1399,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         builder.append(migrationIssuesSuffix(issues));
         return builder.toString();
+    }
+
+    private String migrationMessage(MigrationRunSnapshot snapshot) {
+        return migrationMessage(CoreMigrationJson.toJson(snapshot));
     }
 
     private String migrationIssuesSuffix(String issues) {

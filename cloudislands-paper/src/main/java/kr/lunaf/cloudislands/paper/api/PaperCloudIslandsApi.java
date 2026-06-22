@@ -2396,7 +2396,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (!superiorSkyblock2MigrationEnabled()) {
                 return CompletableFuture.completedFuture(disabledMigration(path));
             }
-            return mutateIdempotent("admin.migration.superiorskyblock2." + action, () -> client.migrateSuperiorSkyblock2(action, path)).thenApply(PaperCloudIslandsApi::migrationRun);
+            return mutateIdempotent("admin.migration.superiorskyblock2." + action, () -> client.migrations().migrateSuperiorSkyblock2(action, path));
         }
 
         private boolean superiorSkyblock2MigrationEnabled() {

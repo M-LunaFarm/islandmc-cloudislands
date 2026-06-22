@@ -291,7 +291,7 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     }
 
     public void migrateSuperiorSkyblock2(Player player, String action, String path) {
-        sendBodyResult(player, coreApiClient.migrateSuperiorSkyblock2(action, path).thenApply(migrationMessages::format), "마이그레이션 명령을 실행하지 못했습니다.");
+        sendBodyResult(player, coreApiClient.migrations().migrateSuperiorSkyblock2(action, path).thenApply(migrationMessages::format), "마이그레이션 명령을 실행하지 못했습니다.");
     }
 
     public void playerInfo(Player player, UUID playerUuid) {

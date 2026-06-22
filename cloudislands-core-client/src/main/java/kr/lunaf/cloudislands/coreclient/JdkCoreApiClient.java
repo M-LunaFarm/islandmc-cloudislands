@@ -83,6 +83,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     private final AdminNodeQueryClient adminNodeQueryClient;
     private final AdminNodeCommandClient adminNodeCommandClient;
     private final AdminIslandQueryClient adminIslandClient;
+    private final MigrationCommandClient migrationCommandClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -104,7 +105,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.homeWarpCommandClient = new JdkHomeWarpCommandClient(this);
         this.routingClient = new JdkRoutingClient(this);
         this.navigationQueryClient = new JdkNavigationQueryClient(this);
-        this.navigationCommandClient = new CoreNavigationCommandClient(this);
+        this.navigationCommandClient = new JdkNavigationCommandClient(this);
         this.runtimeCommandClient = new JdkRuntimeCommandClient(this);
         this.islandClient = new JdkIslandQueryClient(this);
         this.progressionQueryClient = new JdkProgressionQueryClient(this);
@@ -128,6 +129,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.adminNodeQueryClient = new JdkAdminNodeQueryClient(this);
         this.adminNodeCommandClient = new JdkAdminNodeCommandClient(this);
         this.adminIslandClient = new JdkAdminIslandQueryClient(this);
+        this.migrationCommandClient = new JdkMigrationCommandClient(this);
     }
 
     @Override
@@ -306,6 +308,11 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
+    public MigrationCommandClient migrations() {
+        return migrationCommandClient;
+    }
+
+    @Override
     public AdminCoreConfigQueryClient adminCoreConfig() {
         return adminCoreConfigClient;
     }
@@ -441,21 +448,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         requireId(actorUuid, "actorUuid");
         return postWithResultBody("/v1/islands/reset", jsonObject("islandId", islandId, "actorUuid", actorUuid, "reason", reason == null || reason.isBlank() ? "player-reset" : reason.trim()))
             .thenApply(body -> lifecycleAction(body, "RESET_QUEUED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<String> getIslandRuntime(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/runtime");
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment) {
-        return postWithResultBody("/v1/islands/reviews/set", jsonObject("islandId", islandId, "reviewerUuid", reviewerUuid, "rating", rating, "comment", comment));
-    }
-
-    @Override
-    public CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid) {
-        return postWithResultBody("/v1/islands/reviews/delete", jsonObject("islandId", islandId, "reviewerUuid", reviewerUuid));
     }
 
     @Override
@@ -763,29 +755,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
                 .filter(entry -> entry.getKey() != null && !entry.getKey().isBlank() && entry.getValue() != null)
                 .map(entry -> "\"" + escape(entry.getKey()) + "\":\"" + escape(entry.getValue()) + "\"")
                 .collect(Collectors.joining(",", "{", "}"));
-    }
-
-    @Override
-    public CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path) {
-        String normalizedAction = action == null || action.isBlank() ? "scan" : action.toLowerCase();
-        String endpoint = switch (normalizedAction) {
-            case "scan" -> "scan";
-            case "status" -> "status";
-            case "dryrun", "dry-run" -> "dryrun";
-            case "extract", "extract-worlds", "world-extract" -> "extract";
-            case "import" -> "import";
-            case "verify" -> "verify";
-            case "rollback" -> "rollback";
-            default -> "";
-        };
-        if (endpoint.isBlank()) {
-            return CompletableFuture.completedFuture(jsonObject("code", "INVALID_MIGRATION_ACTION", "message", "Unknown SuperiorSkyblock2 migration action: " + normalizedAction));
-        }
-        String value = path == null ? "" : path;
-        String payload = endpoint.equals("import")
-            ? jsonObject("approval", value)
-            : (endpoint.equals("rollback") || endpoint.equals("status")) ? "{}" : jsonObject("path", value);
-        return postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, payload);
     }
 
     @Override

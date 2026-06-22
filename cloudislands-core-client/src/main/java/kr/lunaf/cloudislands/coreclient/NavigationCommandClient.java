@@ -16,4 +16,6 @@ public interface NavigationCommandClient {
     CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid);
 
     CompletableFuture<ReviewActionView> setReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
+
+    CompletableFuture<ReviewActionView> deleteReview(UUID islandId, UUID reviewerUuid);
 }

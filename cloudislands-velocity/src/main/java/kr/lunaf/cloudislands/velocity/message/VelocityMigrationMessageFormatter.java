@@ -6,7 +6,14 @@ import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValu
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.matchingObjectEnd;
 
+import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
+import kr.lunaf.cloudislands.coreclient.CoreMigrationJson;
+
 public final class VelocityMigrationMessageFormatter {
+    public String format(MigrationRunSnapshot snapshot) {
+        return format(CoreMigrationJson.toJson(snapshot));
+    }
+
     public String format(String body) {
         if (body == null || body.isBlank()) {
             return "Migration: no response";

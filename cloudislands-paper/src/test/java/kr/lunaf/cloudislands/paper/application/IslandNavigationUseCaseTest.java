@@ -12,8 +12,9 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
-import kr.lunaf.cloudislands.coreclient.CoreNavigationCommandClient;
+import kr.lunaf.cloudislands.coreclient.NavigationCommandClient;
 import kr.lunaf.cloudislands.coreclient.NavigationQueryClient;
+import kr.lunaf.cloudislands.coreclient.ReviewActionView;
 import kr.lunaf.cloudislands.coreclient.ReviewListView;
 import kr.lunaf.cloudislands.coreclient.ReviewView;
 import org.junit.jupiter.api.Test;
@@ -72,10 +73,10 @@ class IslandNavigationUseCaseTest {
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class, NavigationQueryClient.class},
+            new Class<?>[] {CoreApiClient.class, NavigationQueryClient.class, NavigationCommandClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
                 case "navigation" -> (NavigationQueryClient) _proxy;
-                case "navigationCommands" -> new CoreNavigationCommandClient((CoreApiClient) _proxy);
+                case "navigationCommands" -> (NavigationCommandClient) _proxy;
                 case "playerProfileByName" -> {
                     String target = (String) args[0];
                     calls.add("playerInfoByName:" + target);
@@ -112,9 +113,9 @@ class IslandNavigationUseCaseTest {
                     UUID reviewerUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
                     yield CompletableFuture.completedFuture(new ReviewListView(1L, 5.0D, List.of(new ReviewView(islandId.toString(), reviewerUuid.toString(), 5L, "nice", "2026-01-02T03:04:05Z", "2026-01-03T04:05:06Z"))));
                 }
-                case "setIslandReview" -> {
+                case "setReview" -> {
                     calls.add("setIslandReview:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true}");
+                    yield CompletableFuture.completedFuture(new ReviewActionView(true, "REVIEW_SET"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });

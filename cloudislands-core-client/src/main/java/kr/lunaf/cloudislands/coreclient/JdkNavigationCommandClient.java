@@ -5,27 +5,27 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 
-public final class CoreNavigationCommandClient implements NavigationCommandClient {
-    private final CoreApiClient delegate;
+public final class JdkNavigationCommandClient implements NavigationCommandClient {
+    private final JdkCoreApiClient core;
 
-    public CoreNavigationCommandClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkNavigationCommandClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
         requireId(playerUuid, "playerUuid");
-        return delegate.createHomeTicket(playerUuid, homeName == null || homeName.isBlank() ? "default" : homeName.trim());
+        return core.createHomeTicket(playerUuid, homeName == null || homeName.isBlank() ? "default" : homeName.trim());
     }
 
     @Override
     public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID islandId) {
         requireId(visitorUuid, "visitorUuid");
         requireId(islandId, "islandId");
-        return delegate.createVisitTicket(visitorUuid, islandId);
+        return core.createVisitTicket(visitorUuid, islandId);
     }
 
     @Override
@@ -34,20 +34,20 @@ public final class CoreNavigationCommandClient implements NavigationCommandClien
         if (islandName == null || islandName.isBlank()) {
             throw new IllegalArgumentException("islandName is required");
         }
-        return delegate.createVisitTicket(visitorUuid, islandName.trim());
+        return core.createVisitTicket(visitorUuid, islandName.trim());
     }
 
     @Override
     public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
         requireId(visitorUuid, "visitorUuid");
         requireId(ownerUuid, "ownerUuid");
-        return delegate.createVisitTicketForOwner(visitorUuid, ownerUuid);
+        return core.createVisitTicketForOwner(visitorUuid, ownerUuid);
     }
 
     @Override
     public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
         requireId(visitorUuid, "visitorUuid");
-        return delegate.createRandomVisitTicket(visitorUuid);
+        return core.createRandomVisitTicket(visitorUuid);
     }
 
     @Override
@@ -57,8 +57,16 @@ public final class CoreNavigationCommandClient implements NavigationCommandClien
         if (rating < 1 || rating > 5) {
             throw new IllegalArgumentException("rating must be between 1 and 5");
         }
-        return delegate.setIslandReview(islandId, reviewerUuid, rating, comment == null ? "" : comment)
-            .thenApply(CoreNavigationCommandClient::reviewActionResult);
+        return core.postWithResultBody("/v1/islands/reviews/set", JdkCoreApiClient.jsonObject("islandId", islandId, "reviewerUuid", reviewerUuid, "rating", rating, "comment", comment == null ? "" : comment))
+            .thenApply(JdkNavigationCommandClient::reviewActionResult);
+    }
+
+    @Override
+    public CompletableFuture<ReviewActionView> deleteReview(UUID islandId, UUID reviewerUuid) {
+        requireId(islandId, "islandId");
+        requireId(reviewerUuid, "reviewerUuid");
+        return core.postWithResultBody("/v1/islands/reviews/delete", JdkCoreApiClient.jsonObject("islandId", islandId, "reviewerUuid", reviewerUuid))
+            .thenApply(JdkNavigationCommandClient::reviewActionResult);
     }
 
     static ReviewActionView reviewActionResult(String body) {

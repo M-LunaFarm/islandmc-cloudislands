@@ -1105,8 +1105,9 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, NavigationCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
+                case "navigationCommands" -> (NavigationCommandClient) _proxy;
                 case "createVisitTicket" -> {
                     calls.add(args[1] instanceof UUID ? "visit-id" : "visit-name:" + args[1]);
                     yield CompletableFuture.completedFuture(ticket);
@@ -1119,14 +1120,14 @@ class CoreTypedClientsTest {
                     calls.add("visit-random");
                     yield CompletableFuture.completedFuture(ticket);
                 }
-                case "setIslandReview" -> {
+                case "setReview" -> {
                     calls.add("review:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"REVIEW_SET\"}");
+                    yield CompletableFuture.completedFuture(new ReviewActionView(true, "REVIEW_SET"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        NavigationCommandClient client = new CoreNavigationCommandClient(raw);
+        NavigationCommandClient client = raw.navigationCommands();
 
         assertEquals(ticket, client.createVisitTicket(reviewerUuid, islandId).join());
         assertEquals(ticket, client.createVisitTicket(reviewerUuid, " spawn ").join());
@@ -1136,7 +1137,7 @@ class CoreTypedClientsTest {
 
         assertTrue(result.accepted());
         assertEquals("REVIEW_SET", result.code());
-        assertEquals(List.of("visit-id", "visit-name:spawn", "visit-owner:" + ownerUuid, "visit-random", "review:5:nice"), calls);
+        assertEquals(List.of("visit-id", "visit-name: spawn ", "visit-owner:" + ownerUuid, "visit-random", "review:5:nice"), calls);
     }
 
     @Test

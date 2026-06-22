@@ -138,7 +138,10 @@ public interface CoreApiClient {
     }
 
     default NavigationCommandClient navigationCommands() {
-        return new CoreNavigationCommandClient(this);
+        if (this instanceof NavigationCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed navigation commands");
     }
 
     default IslandVisitorStatsQueryClient visitorStats() {
@@ -337,11 +340,15 @@ public interface CoreApiClient {
         throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin metrics queries");
     }
 
+    default MigrationCommandClient migrations() {
+        if (this instanceof MigrationCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed migration commands");
+    }
+
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
-    CompletableFuture<String> getIslandRuntime(UUID islandId);
-    CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
-    CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
@@ -358,6 +365,5 @@ public interface CoreApiClient {
     CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
-    CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
 }
