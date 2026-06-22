@@ -71,11 +71,11 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<PlayerIslandView>> playerIslands(CoreApiClient client, UUID playerUuid) {
-        return client.listPlayerIslands(playerUuid).thenApply(CoreGuiViews::playerIslands);
+        return client.navigation().playerIslands(playerUuid);
     }
 
     public static CompletableFuture<List<PublicIslandView>> publicIslands(CoreApiClient client, int limit) {
-        return client.listPublicIslands(limit).thenApply(CoreGuiViews::publicIslands);
+        return client.navigation().publicIslands(limit);
     }
 
     public static CompletableFuture<List<BanView>> islandBans(CoreApiClient client, UUID islandId) {
@@ -264,28 +264,11 @@ public final class CoreGuiViews {
     }
 
     private static List<PlayerIslandView> playerIslands(String body) {
-        List<PlayerIslandView> islands = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = text(object, "name");
-                String role = text(object, "role");
-                islands.add(new PlayerIslandView(islandId, name.isBlank() ? islandId : name, text(object, "state"), role.isBlank() ? "MEMBER" : role, longValue(object, "level"), text(object, "worth")));
-            }
-        }
-        return islands;
+        return CoreNavigationQueryClient.playerIslandViews(body);
     }
 
     private static List<PublicIslandView> publicIslands(String body) {
-        List<PublicIslandView> islands = new ArrayList<>();
-        for (Map<?, ?> object : entries(body)) {
-            String islandId = text(object, "islandId");
-            if (!islandId.isBlank()) {
-                String name = text(object, "name");
-                islands.add(new PublicIslandView(islandId, text(object, "ownerUuid"), name.isBlank() ? islandId : name, longValue(object, "level"), text(object, "worth")));
-            }
-        }
-        return islands;
+        return CoreNavigationQueryClient.publicIslandViews(body);
     }
 
     private static List<BanView> bans(String body) {
