@@ -48,4 +48,24 @@ public final class StackerIntegration extends PolicyBackedCloudIntegration {
             default -> "";
         };
     }
+
+    @Override
+    protected String externalStateArtifacts(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "effective-stack-activate" -> "effective-entity-limit,effective-spawner-limit";
+            case "effective-stack-deactivate", "effective-stack-export" ->
+                "stacked-entity-state,stacked-spawner-state,effective-limit-keys";
+            case "effective-stack-restore" -> "stacked-entity-state,stacked-spawner-state,restore-count-plan";
+            default -> "";
+        };
+    }
+
+    @Override
+    protected String externalSafetyBarriers(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "effective-stack-activate", "effective-stack-deactivate", "effective-stack-export", "effective-stack-restore" ->
+                "runtime-authority,fencing-token,idempotency-key,effective-count-key,bundle-key";
+            default -> "";
+        };
+    }
 }

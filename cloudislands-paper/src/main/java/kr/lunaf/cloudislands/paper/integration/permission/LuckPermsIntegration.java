@@ -48,4 +48,26 @@ public final class LuckPermsIntegration extends PolicyBackedCloudIntegration {
             default -> "";
         };
     }
+
+    @Override
+    protected String externalStateArtifacts(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "permission-bypass-scope-activate", "permission-bypass-scope-deactivate" ->
+                "context-calculator-scope,bypass-permission-node";
+            case "permission-context-export" -> "user-context-nodes,track-context-state,bypass-scope";
+            case "permission-context-restore" -> "user-context-nodes,track-context-state,context-restore-plan";
+            default -> "";
+        };
+    }
+
+    @Override
+    protected String externalSafetyBarriers(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "permission-bypass-scope-activate", "permission-bypass-scope-deactivate" ->
+                "permission-node-scope,bypass-scope";
+            case "permission-context-export", "permission-context-restore" ->
+                "runtime-authority,fencing-token,idempotency-key,permission-node-scope,context-key,bundle-key";
+            default -> "";
+        };
+    }
 }

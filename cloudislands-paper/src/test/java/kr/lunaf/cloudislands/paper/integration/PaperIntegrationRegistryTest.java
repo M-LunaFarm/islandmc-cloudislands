@@ -285,6 +285,8 @@ class PaperIntegrationRegistryTest {
         assertEquals("custom-items", allowed.details().get("manifest.category"));
         assertEquals("itemsadder:ruby_ore,itemsadder:ruby_block", allowed.details().get("manifest.metadata.externalBlockIds"));
         assertEquals("ItemsAdder registry#restoreCustomBlockState", allowed.details().get("external.api"));
+        assertEquals("custom-block-state,core-block-value-mapping,restore-remap-plan", allowed.details().get("external.artifacts"));
+        assertEquals("runtime-authority,fencing-token,idempotency-key,custom-id-mapping,bundle-key", allowed.details().get("external.safetyBarriers"));
     }
 
     @Test
@@ -313,6 +315,8 @@ class PaperIntegrationRegistryTest {
             "bundleKey", "bundles/island.tar.zst"
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, allowed.status());
+        assertEquals("stacked-entity-state,stacked-spawner-state,effective-limit-keys", allowed.details().get("external.artifacts"));
+        assertEquals("runtime-authority,fencing-token,idempotency-key,effective-count-key,bundle-key", allowed.details().get("external.safetyBarriers"));
 
         IntegrationResult restored = integration.restoreState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 31L, true, "stacker:restore:1", Map.of(
             "world", "islands",
@@ -325,6 +329,7 @@ class PaperIntegrationRegistryTest {
         assertEquals("stacker", restored.details().get("manifest.category"));
         assertEquals("limits.spawners.effective", restored.details().get("manifest.metadata.spawnerCountKey"));
         assertEquals("RoseStacker API#restoreStackedEntitiesAndSpawners", restored.details().get("external.api"));
+        assertEquals("stacked-entity-state,stacked-spawner-state,restore-count-plan", restored.details().get("external.artifacts"));
     }
 
     @Test
@@ -343,6 +348,8 @@ class PaperIntegrationRegistryTest {
         IntegrationResult luckPermsResult = luckPerms.onIslandActivate(luckPermsContext);
         assertEquals(IntegrationResult.Status.SUCCESS, luckPermsResult.status());
         assertEquals("LuckPerms#contextManager+cachedData", luckPermsResult.details().get("external.api"));
+        assertEquals("context-calculator-scope,bypass-permission-node", luckPermsResult.details().get("external.artifacts"));
+        assertEquals("permission-node-scope,bypass-scope", luckPermsResult.details().get("external.safetyBarriers"));
 
         IntegrationResult deniedLuckPermsExport = luckPerms.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 42L, true, "luckperms:export:1", Map.of(
             "world", "islands",
@@ -368,6 +375,8 @@ class PaperIntegrationRegistryTest {
         assertEquals("permission-context-restore", restoredLuckPerms.details().get("manifest.operation"));
         assertEquals("cloudislands:island", restoredLuckPerms.details().get("manifest.metadata.contextKey"));
         assertEquals("LuckPerms#userManager+trackManager#restoreContextState", restoredLuckPerms.details().get("external.api"));
+        assertEquals("user-context-nodes,track-context-state,context-restore-plan", restoredLuckPerms.details().get("external.artifacts"));
+        assertEquals("runtime-authority,fencing-token,idempotency-key,permission-node-scope,context-key,bundle-key", restoredLuckPerms.details().get("external.safetyBarriers"));
 
         assertFalse(plan.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
         assertTrue(plan.capabilities().contains(IntegrationCapability.STATE_EXPORT));
@@ -382,6 +391,8 @@ class PaperIntegrationRegistryTest {
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, exportedPlan.status());
         assertEquals("PlanAPI#queryService", exportedPlan.details().get("external.api"));
+        assertEquals("island-presence-series,visitor-session-summary", exportedPlan.details().get("external.artifacts"));
+        assertEquals("analytics-scope,bundle-key-for-state-transfer,no-core-authority", exportedPlan.details().get("external.safetyBarriers"));
 
         IntegrationResult restoredPlan = plan.restoreState(new IntegrationContext(null, "", 0L, false, "", Map.of(
             "analyticsScope", "island-presence",
@@ -389,6 +400,7 @@ class PaperIntegrationRegistryTest {
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, restoredPlan.status());
         assertEquals("PlanAPI#importService", restoredPlan.details().get("external.api"));
+        assertEquals("island-presence-series,visitor-session-summary,analytics-import-plan", restoredPlan.details().get("external.artifacts"));
         assertEquals("analytics-restore", restoredPlan.details().get("operation"));
     }
 

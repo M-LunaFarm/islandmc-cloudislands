@@ -47,4 +47,23 @@ public final class PlanIntegration extends PolicyBackedCloudIntegration {
             default -> "";
         };
     }
+
+    @Override
+    protected String externalStateArtifacts(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "presence-activate", "presence-deactivate" -> "presence-scope-marker";
+            case "analytics-export" -> "island-presence-series,visitor-session-summary";
+            case "analytics-restore" -> "island-presence-series,visitor-session-summary,analytics-import-plan";
+            default -> "";
+        };
+    }
+
+    @Override
+    protected String externalSafetyBarriers(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "presence-activate", "presence-deactivate", "analytics-export", "analytics-restore" ->
+                "analytics-scope,bundle-key-for-state-transfer,no-core-authority";
+            default -> "";
+        };
+    }
 }

@@ -48,4 +48,24 @@ public final class CustomItemIntegration extends PolicyBackedCloudIntegration {
             default -> "";
         };
     }
+
+    @Override
+    protected String externalStateArtifacts(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "custom-item-index-activate" -> "custom-block-id-index";
+            case "custom-item-index-deactivate", "custom-item-export" ->
+                "custom-block-id-index,custom-block-state,core-block-value-mapping";
+            case "custom-item-restore" -> "custom-block-state,core-block-value-mapping,restore-remap-plan";
+            default -> "";
+        };
+    }
+
+    @Override
+    protected String externalSafetyBarriers(String operation) {
+        return switch (operation == null ? "" : operation) {
+            case "custom-item-index-activate", "custom-item-index-deactivate", "custom-item-export", "custom-item-restore" ->
+                "runtime-authority,fencing-token,idempotency-key,custom-id-mapping,bundle-key";
+            default -> "";
+        };
+    }
 }
