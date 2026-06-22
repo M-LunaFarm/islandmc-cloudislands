@@ -109,7 +109,10 @@ public interface CoreApiClient {
     }
 
     default HomeWarpCommandClient homeWarpCommands() {
-        return new CoreHomeWarpCommandClient(this);
+        if (this instanceof HomeWarpCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed home and warp commands");
     }
 
     default NavigationQueryClient navigation() {
@@ -326,8 +329,6 @@ public interface CoreApiClient {
     CompletableFuture<String> islandBiome(UUID islandId);
     CompletableFuture<Void> setIslandBiome(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<String> setIslandBiomeResult(UUID islandId, UUID actorUuid, String biomeKey);
-    CompletableFuture<Void> setIslandHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
-    CompletableFuture<String> setIslandHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<String> listIslandPermissions(UUID islandId);
     CompletableFuture<Void> setIslandPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
     CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
@@ -341,13 +342,6 @@ public interface CoreApiClient {
     CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, String roleKey);
     CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
     CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
-    CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
-    CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess);
-    CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category);
-    CompletableFuture<Void> deleteIslandWarp(UUID islandId, UUID actorUuid, String name);
-    CompletableFuture<String> deleteIslandWarpResult(UUID islandId, UUID actorUuid, String name);
-    CompletableFuture<Void> setIslandWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess);
-    CompletableFuture<String> setIslandWarpPublicAccessResult(UUID islandId, UUID actorUuid, String name, boolean publicAccess);
     CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<String> setIslandPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess);
     CompletableFuture<Void> setIslandLocked(UUID islandId, UUID actorUuid, boolean locked);

@@ -625,9 +625,9 @@ class CoreMutationContextTest {
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
-            client.setIslandWarpResult(islandId, actorUuid, "spawn\"main", location, true, "market").join();
-            client.deleteIslandWarpResult(islandId, actorUuid, "spawn\"main").join();
-            client.setIslandWarpPublicAccessResult(islandId, actorUuid, "spawn\"main", false).join();
+            client.homeWarpCommands().setWarp(islandId, actorUuid, "spawn\"main", location, true, "market").join();
+            client.homeWarpCommands().deleteWarp(islandId, actorUuid, "spawn\"main").join();
+            client.homeWarpCommands().setWarpPublicAccess(islandId, actorUuid, "spawn\"main", false).join();
             client.setIslandPublicAccessResult(islandId, actorUuid, true).join();
             client.setIslandLockedResult(islandId, actorUuid, false).join();
 
@@ -792,7 +792,7 @@ class CoreMutationContextTest {
             client.visitorStats().stats(islandId, 500).join();
             client.setIslandFlagResult(islandId, actorUuid, IslandFlag.PVP, "deny \"all\"").join();
             client.setIslandBiomeResult(islandId, actorUuid, "minecraft:plains\"warm").join();
-            client.setIslandHomeResult(islandId, actorUuid, "home\"main", location).join();
+            client.homeWarpCommands().setHome(islandId, actorUuid, "home\"main", location).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"Base \\\"One\\\"\"}", requestBodies.get("name"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"role\":\"TRUSTED_MEMBER\",\"roleKey\":\"TRUSTED_MEMBER\"}", requestBodies.get("memberSet"));

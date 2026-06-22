@@ -10,7 +10,8 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
-import kr.lunaf.cloudislands.coreclient.CoreHomeWarpCommandClient;
+import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
+import kr.lunaf.cloudislands.coreclient.HomeWarpCommandClient;
 import kr.lunaf.cloudislands.coreclient.HomeWarpQueryClient;
 import org.junit.jupiter.api.Test;
 
@@ -51,17 +52,17 @@ class IslandHomeWarpUseCaseTest {
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-	            new Class<?>[] {CoreApiClient.class, HomeWarpQueryClient.class},
+	            new Class<?>[] {CoreApiClient.class, HomeWarpQueryClient.class, HomeWarpCommandClient.class},
 	            (_proxy, method, args) -> switch (method.getName()) {
 	                case "homeWarps" -> (HomeWarpQueryClient) _proxy;
-	                case "homeWarpCommands" -> new CoreHomeWarpCommandClient((CoreApiClient) _proxy);
-	                case "setIslandHomeResult" -> {
+	                case "homeWarpCommands" -> (HomeWarpCommandClient) _proxy;
+	                case "setHome" -> {
                     calls.add("setIslandHomeResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("home-set");
+                    yield CompletableFuture.completedFuture(new HomeWarpActionView(true, "HOME_SET"));
                 }
-                case "setIslandWarpResult" -> {
+                case "setWarp" -> {
                     calls.add("setIslandWarpResult:" + args[2] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("warp-set");
+                    yield CompletableFuture.completedFuture(new HomeWarpActionView(true, "WARP_SET"));
                 }
                 case "homes" -> {
                     calls.add("listIslandHomes");
@@ -75,13 +76,13 @@ class IslandHomeWarpUseCaseTest {
                     calls.add("islandInfo");
                     yield CompletableFuture.completedFuture(new CoreGuiViews.IslandInfoView("Island", "ACTIVE", "00000000-0000-0000-0000-000000000060", 3L, "12.5", true, false, 100L, 100L, "00000000-0000-0000-0000-000000000001"));
                 }
-                case "deleteIslandWarpResult" -> {
+                case "deleteWarp" -> {
                     calls.add("deleteIslandWarpResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("deleted");
+                    yield CompletableFuture.completedFuture(new HomeWarpActionView(true, "WARP_DELETED"));
                 }
-                case "setIslandWarpPublicAccessResult" -> {
+                case "setWarpPublicAccess" -> {
                     calls.add("setIslandWarpPublicAccessResult:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("access");
+                    yield CompletableFuture.completedFuture(new HomeWarpActionView(true, args[3] instanceof Boolean value && value ? "WARP_PUBLIC" : "WARP_PRIVATE"));
                 }
                 case "publicWarps" -> {
                     int limit = Math.max(1, Math.min((int) args[0], 100));

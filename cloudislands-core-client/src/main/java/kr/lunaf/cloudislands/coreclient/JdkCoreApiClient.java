@@ -101,7 +101,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.permissionQueryClient = new CorePermissionQueryClient(this);
         this.permissionCommandClient = new CorePermissionCommandClient(this);
         this.homeWarpQueryClient = new JdkHomeWarpQueryClient(this);
-        this.homeWarpCommandClient = new CoreHomeWarpCommandClient(this);
+        this.homeWarpCommandClient = new JdkHomeWarpCommandClient(this);
         this.routingClient = new JdkRoutingClient(this);
         this.navigationQueryClient = new JdkNavigationQueryClient(this);
         this.navigationCommandClient = new CoreNavigationCommandClient(this);
@@ -498,16 +498,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<Void> setIslandHome(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
-        return setIslandHomeResult(islandId, actorUuid, name, location).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
-        return postWithResultBody("/v1/islands/homes/set", locationPayload(islandId, actorUuid, name, location));
-    }
-
-    @Override
     public CompletableFuture<String> listIslandPermissions(UUID islandId) {
         return get("/v1/islands/" + islandId + "/permissions");
     }
@@ -619,41 +609,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     private static WarehouseMutationView warehouseMutation(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new WarehouseMutationView(CoreJson.accepted(root), CoreJson.text(root, "code"), CoreJson.text(root, "materialKey"), CoreJson.number(root, "amount"));
-    }
-
-    @Override
-    public CompletableFuture<Void> setIslandWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
-        return setIslandWarpResult(islandId, actorUuid, name, location, publicAccess).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
-        return postWithResultBody("/v1/islands/warps/set", warpPayload(islandId, actorUuid, name, "", location, publicAccess));
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandWarpResult(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category) {
-        return postWithResultBody("/v1/islands/warps/set", warpPayload(islandId, actorUuid, name, category, location, publicAccess));
-    }
-
-    @Override
-    public CompletableFuture<Void> deleteIslandWarp(UUID islandId, UUID actorUuid, String name) {
-        return deleteIslandWarpResult(islandId, actorUuid, name).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> deleteIslandWarpResult(UUID islandId, UUID actorUuid, String name) {
-        return postWithResultBody("/v1/islands/warps/delete", jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", name));
-    }
-
-    @Override
-    public CompletableFuture<Void> setIslandWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess) {
-        return setIslandWarpPublicAccessResult(islandId, actorUuid, name, publicAccess).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandWarpPublicAccessResult(UUID islandId, UUID actorUuid, String name, boolean publicAccess) {
-        return postWithResultBody("/v1/islands/warps/access", jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", name, "publicAccess", publicAccess));
     }
 
     @Override
@@ -1547,7 +1502,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     private record RawJson(String value) {
     }
 
-    private static String warpPayload(UUID islandId, UUID actorUuid, String name, String category, IslandLocation location, boolean publicAccess) {
+    static String warpPayload(UUID islandId, UUID actorUuid, String name, String category, IslandLocation location, boolean publicAccess) {
         if (category == null || category.isBlank()) {
             return jsonObject(
                 "islandId", islandId,
@@ -1577,7 +1532,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         );
     }
 
-    private static String locationPayload(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
+    static String locationPayload(UUID islandId, UUID actorUuid, String name, IslandLocation location) {
         return jsonObject(
             "islandId", islandId,
             "actorUuid", actorUuid,
