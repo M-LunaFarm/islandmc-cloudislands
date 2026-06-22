@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
 
 public final class PaperGuiViews {
     private PaperGuiViews() {
@@ -79,6 +80,14 @@ public final class PaperGuiViews {
     public static CompletableFuture<PermissionRulesView> islandPermissionRules(CoreApiClient client, UUID islandId) {
         return CoreGuiViews.islandPermissionRules(client, islandId)
             .thenApply(view -> new PermissionRulesView(view.version(), view.rules().stream().map(PaperGuiViews::permissionRule).toList()));
+    }
+
+    public static CompletableFuture<List<PermissionOverrideView>> islandPermissionOverrides(CoreApiClient client, UUID islandId) {
+        return client.permissionQueries().permissions(islandId)
+            .thenApply(views -> views.stream()
+                .filter(view -> !view.playerUuid().isBlank())
+                .map(PaperGuiViews::permissionOverride)
+                .toList());
     }
 
     public static CompletableFuture<List<RoleView>> islandRoles(CoreApiClient client, UUID islandId) {
@@ -161,6 +170,10 @@ public final class PaperGuiViews {
         return new PermissionRuleView(view.role(), view.permission(), view.allowed(), view.version());
     }
 
+    private static PermissionOverrideView permissionOverride(PermissionAssignmentView view) {
+        return new PermissionOverrideView(view.playerUuid(), view.permission(), view.allowed());
+    }
+
     private static RoleView role(CoreGuiViews.RoleView view) {
         return new RoleView(view.role(), view.weight(), view.displayName());
     }
@@ -232,6 +245,9 @@ public final class PaperGuiViews {
     }
 
     public record PermissionRuleView(String role, String permission, boolean allowed, String version) {
+    }
+
+    public record PermissionOverrideView(String playerUuid, String permission, boolean allowed) {
     }
 
     public record RoleView(String role, int weight, String displayName) {

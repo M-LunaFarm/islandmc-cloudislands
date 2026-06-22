@@ -7,6 +7,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PermissionOverrideView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PermissionRuleView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RoleView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -79,8 +80,9 @@ public final class IslandPermissionMenu implements Listener {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandPermissionRules(client, islandId)
-            .thenCombine(PaperGuiViews.islandRoles(client, islandId), (rules, roles) -> new PermissionMenuData(rules.version(), rules.rules(), roles))
-            .thenAccept(data -> openSync(plugin, player, session, data.version(), data.rules(), data.roles(), messages, safePage, safeRolePage))
+            .thenCombine(PaperGuiViews.islandRoles(client, islandId), (rules, roles) -> new PermissionMenuData(rules.version(), rules.rules(), roles, List.of()))
+            .thenCombine(PaperGuiViews.islandPermissionOverrides(client, islandId), (data, overrides) -> new PermissionMenuData(data.version(), data.rules(), data.roles(), overrides))
+            .thenAccept(data -> openSync(plugin, player, session, data.version(), data.rules(), data.roles(), data.overrides(), messages, safePage, safeRolePage))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "permission-menu-load-failed", "섬 권한을 불러오지 못했습니다."), "island.permissions.open", "island.settings.open");
                 return null;
@@ -110,7 +112,7 @@ public final class IslandPermissionMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, String version, List<PermissionRuleView> rules, List<RoleView> roleViews, MessageRenderer messages, int page, int rolePage) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, String version, List<PermissionRuleView> rules, List<RoleView> roleViews, List<PermissionOverrideView> overrides, MessageRenderer messages, int page, int rolePage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             List<String> roles = roleNames(roleViews);
@@ -132,7 +134,7 @@ public final class IslandPermissionMenu implements Listener {
             setFooterItem(inventory, 46, messages, Map.of("page", String.valueOf(safePage), "rolePage", String.valueOf(Math.min(maxRolePage(roles), safeRolePage + 1))), rolePageLine(safeRolePage, roles));
             setFooterItem(inventory, 47, messages, Map.of("page", String.valueOf(Math.max(0, safePage - 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage));
             setFooterItem(inventory, 48, messages, Map.of("page", String.valueOf(Math.min(maxPage(), safePage + 1)), "rolePage", String.valueOf(safeRolePage)), pageLine(safePage));
-            setFooterItem(inventory, 52, messages, Map.of(), pageLine(safePage), rolePageLine(safeRolePage, roles), permissionSummary());
+            setFooterItem(inventory, 52, messages, Map.of(), pageLine(safePage), rolePageLine(safeRolePage, roles), permissionSummary(), overrideSummary(overrides));
             player.openInventory(inventory);
         });
     }
@@ -179,6 +181,23 @@ public final class IslandPermissionMenu implements Listener {
             }
         }
         return builder.toString();
+    }
+
+    private static String overrideSummary(List<PermissionOverrideView> overrides) {
+        List<PermissionOverrideView> safeOverrides = overrides == null ? List.of() : overrides;
+        if (safeOverrides.isEmpty()) {
+            return "Player Overrides: 0";
+        }
+        PermissionOverrideView sample = safeOverrides.getFirst();
+        return "Player Overrides: " + safeOverrides.size() + " / "
+            + shortId(sample.playerUuid()) + ":" + sample.permission() + "=" + (sample.allowed() ? "ALLOW" : "DENY");
+    }
+
+    private static String shortId(String value) {
+        if (value == null || value.length() <= 8) {
+            return value == null ? "" : value;
+        }
+        return value.substring(0, 8);
     }
 
     private static String pageLine(int page) {
@@ -229,5 +248,5 @@ public final class IslandPermissionMenu implements Listener {
         return null;
     }
 
-    private record PermissionMenuData(String version, List<PermissionRuleView> rules, List<RoleView> roles) {}
+    private record PermissionMenuData(String version, List<PermissionRuleView> rules, List<RoleView> roles, List<PermissionOverrideView> overrides) {}
 }

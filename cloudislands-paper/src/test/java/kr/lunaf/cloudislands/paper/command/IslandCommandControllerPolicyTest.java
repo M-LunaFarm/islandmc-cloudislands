@@ -444,6 +444,8 @@ class IslandCommandControllerPolicyTest {
         String memberUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/MemberManagementUseCase.java"));
         String permissionHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandPermissionCommandHandler.java"));
         String permissionUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/PermissionManagementUseCase.java"));
+        String permissionMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
+        String paperGuiViews = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/view/PaperGuiViews.java"));
 
         assertTrue(backend.contains("private final IslandMembershipCommandHandler membershipCommands;"));
         assertTrue(routerSource().contains("membershipCommands.handleCommand(player, subcommand, args)"));
@@ -544,6 +546,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(permissionUseCase.contains("permissionQueries.roles"));
         assertTrue(permissionUseCase.contains("permissionCommands.setPermission"));
         assertTrue(permissionUseCase.contains("permissionCommands.setPermissionOverride"));
+        assertTrue(paperGuiViews.contains("islandPermissionOverrides"), "permission GUI view model must expose player-specific permission exceptions");
+        assertTrue(permissionMenu.contains("PaperGuiViews.islandPermissionOverrides"), "permission menu must load player-specific permission exceptions");
+        assertTrue(permissionMenu.contains("overrideSummary(overrides)"), "permission menu must surface exception UX instead of hiding overrides behind commands only");
         assertFalse(permissionUseCase.contains("coreApiClient.listIslandPermissions"));
         assertFalse(permissionUseCase.contains("coreApiClient.setIslandPermissionResult"));
         assertFalse(permissionUseCase.contains("coreApiClient.setIslandPermissionOverride"));
