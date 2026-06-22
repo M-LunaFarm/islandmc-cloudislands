@@ -19,7 +19,7 @@ public final class CoreNavigationQueryClient implements NavigationQueryClient {
     @Override
     public CompletableFuture<CoreGuiViews.PlayerProfileView> playerProfileByName(String playerName) {
         String normalizedPlayerName = requireText(playerName, "playerName");
-        return delegate.playerInfoByName(normalizedPlayerName).thenApply(CoreGuiViews::playerProfile);
+        return delegate.playerProfiles().findByName(normalizedPlayerName).thenApply(CoreGuiViews::playerProfile);
     }
 
     @Override

@@ -1116,12 +1116,18 @@ class CoreTypedClientsTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "playerInfoByName" -> {
-                    calls.add("profile:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"playerUuid":"%s","primaryIslandId":"%s"}
-                        """.formatted(reviewerUuid, islandId));
-                }
+                case "playerProfiles" -> new PlayerProfileQueryClient() {
+                    @Override
+                    public CompletableFuture<PlayerProfileView> profile(UUID playerUuid) {
+                        throw new UnsupportedOperationException("profile");
+                    }
+
+                    @Override
+                    public CompletableFuture<PlayerProfileView> findByName(String playerName) {
+                        calls.add("profile:" + playerName);
+                        return CompletableFuture.completedFuture(new PlayerProfileView(reviewerUuid.toString(), playerName, islandId.toString(), "now", "ko_kr"));
+                    }
+                };
                 case "listPlayerIslands" -> {
                     calls.add("player-islands:" + args[0]);
                     yield CompletableFuture.completedFuture("""
@@ -1438,12 +1444,18 @@ class CoreTypedClientsTest {
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "playerInfoByName" -> {
-                    calls.add("profile:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"playerUuid":"%s","primaryIslandId":"%s"}
-                        """.formatted(playerUuid, islandId));
-                }
+                case "playerProfiles" -> new PlayerProfileQueryClient() {
+                    @Override
+                    public CompletableFuture<PlayerProfileView> profile(UUID playerUuid) {
+                        throw new UnsupportedOperationException("profile");
+                    }
+
+                    @Override
+                    public CompletableFuture<PlayerProfileView> findByName(String playerName) {
+                        calls.add("profile:" + playerName);
+                        return CompletableFuture.completedFuture(new PlayerProfileView(playerUuid.toString(), playerName, islandId.toString(), "now", "ko_kr"));
+                    }
+                };
                 case "listPendingInvites" -> {
                     calls.add("invites");
                     yield CompletableFuture.completedFuture("""

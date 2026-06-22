@@ -91,6 +91,10 @@ public final class CoreGuiViews {
         return new PlayerProfileView(text(root, "playerUuid"), text(root, "primaryIslandId"));
     }
 
+    public static PlayerProfileView playerProfile(kr.lunaf.cloudislands.coreclient.PlayerProfileView profile) {
+        return new PlayerProfileView(profile == null ? "" : profile.playerUuid(), profile == null ? "" : profile.primaryIslandId());
+    }
+
     public static CompletableFuture<List<HomeView>> islandHomes(CoreApiClient client, UUID islandId) {
         return client.homeWarps().homes(islandId);
     }
