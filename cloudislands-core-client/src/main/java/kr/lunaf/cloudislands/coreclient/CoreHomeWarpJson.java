@@ -7,7 +7,6 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreHomeWarpJson {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -84,7 +83,7 @@ final class CoreHomeWarpJson {
     }
 
     private static IslandLocation location(Map<?, ?> values) {
-        Map<?, ?> location = SimpleJson.object(values.get("location"));
+        Map<?, ?> location = CoreJson.objectValue(values, "location");
         return new IslandLocation(
             firstText(location, values, "worldName"),
             firstNumber(location, values, "localX", "x"),
@@ -117,15 +116,7 @@ final class CoreHomeWarpJson {
     }
 
     private static double number(Map<?, ?> values, String key) {
-        Object value = values == null ? null : values.get(key);
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        try {
-            return value == null ? 0.0d : Double.parseDouble(value.toString());
-        } catch (NumberFormatException exception) {
-            return 0.0d;
-        }
+        return CoreJson.decimal(values, key);
     }
 
     private static UUID uuid(String value) {

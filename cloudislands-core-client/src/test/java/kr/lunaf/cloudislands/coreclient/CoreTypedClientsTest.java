@@ -720,6 +720,7 @@ class CoreTypedClientsTest {
         UUID islandId = UUID.randomUUID();
         UUID playerUuid = UUID.randomUUID();
         String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkPermissionQueryClient.java")));
+        String rulesSource = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CorePermissionJson.java")));
         List<String> calls = new ArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         try {
@@ -758,6 +759,8 @@ class CoreTypedClientsTest {
             assertEquals("BUILDER", roles.get(0).role());
             assertFalse(source.contains("private static String text("), "permission query parser must use shared CoreJson text helpers");
             assertFalse(source.contains("private static boolean bool("), "permission query parser must use shared CoreJson boolean helpers");
+            assertFalse(rulesSource.contains("private static String text("), "permission rules parser must use shared CoreJson text helpers");
+            assertFalse(rulesSource.contains("private static boolean bool("), "permission rules parser must use shared CoreJson boolean helpers");
         } finally {
             server.stop(0);
         }
@@ -767,6 +770,7 @@ class CoreTypedClientsTest {
     void environmentQueryClientReturnsTypedEnvironmentViews() {
         UUID islandId = UUID.randomUUID();
         UUID playerUuid = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreEnvironmentJson.java")));
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class, IslandQueryClient.class, IslandEnvironmentQueryClient.class },
@@ -803,6 +807,8 @@ class CoreTypedClientsTest {
         assertEquals(300L, client.getIsland(islandId).join().size());
         assertEquals("blue", client.flagValues(islandId).join().get(IslandFlag.BORDER_COLOR));
         assertEquals("HOPPER", client.limitViews(islandId).join().get(0).key());
+        assertFalse(source.contains("SimpleJson.object(root.get("), "environment parser must use shared CoreJson nested object helpers");
+        assertFalse(source.contains("SimpleJson.text(entry.get("), "environment parser must use shared CoreJson text helpers");
     }
 
     @Test
@@ -1163,6 +1169,7 @@ class CoreTypedClientsTest {
     @Test
     void bankQueryClientReturnsTypedBankView() {
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreBankJson.java")));
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] { CoreApiClient.class, BankQueryClient.class },
@@ -1182,6 +1189,8 @@ class CoreTypedClientsTest {
         assertEquals(Instant.parse("2026-01-02T03:04:05Z"), snapshot.updatedAt());
         assertEquals("55", bank.balance());
         assertEquals("2026-01-02T03:04:05Z", bank.updatedAt());
+        assertFalse(source.contains("SimpleJson.object(root.get("), "bank parser must use shared CoreJson nested object helpers");
+        assertFalse(source.contains("SimpleJson.text(values.get("), "bank parser must use shared CoreJson text helpers");
     }
 
     @Test
@@ -1293,6 +1302,7 @@ class CoreTypedClientsTest {
     @Test
     void homeWarpQueryClientReturnsTypedHomesWarpsAndIslandInfo() throws Exception {
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreHomeWarpJson.java")));
         List<String> calls = new ArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         try {
@@ -1355,6 +1365,8 @@ class CoreTypedClientsTest {
             assertEquals("Island", client.islandInfo(islandId).join().name());
             assertEquals("market", client.publicWarps(200, null, null).join().get(0).name());
             assertEquals(List.of("homes", "warps", "public:{\"limit\":100}", "homes", "warps", "info:{\"islandId\":\"" + islandId + "\"}", "public:{\"limit\":100}"), calls);
+            assertFalse(source.contains("SimpleJson.object(values.get("), "home/warp parser must use shared CoreJson nested object helpers");
+            assertTrue(source.contains("CoreJson.decimal(values, key)"), "home/warp location parser must use shared CoreJson decimal helpers");
         } finally {
             server.stop(0);
         }

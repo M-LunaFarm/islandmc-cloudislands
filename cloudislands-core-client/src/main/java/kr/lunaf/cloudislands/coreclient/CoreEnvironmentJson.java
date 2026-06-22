@@ -9,7 +9,6 @@ import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreEnvironmentJson {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -29,14 +28,14 @@ final class CoreEnvironmentJson {
 
     static IslandFlagsSnapshot flags(UUID islandId, String body) {
         Map<?, ?> root = CoreJson.object(body);
-        Map<?, ?> source = SimpleJson.object(root.get("flags"));
+        Map<?, ?> source = CoreJson.objectValue(root, "flags");
         if (source.isEmpty()) {
-            source = SimpleJson.object(root.get("values"));
+            source = CoreJson.objectValue(root, "values");
         }
         Map<IslandFlag, String> values = new EnumMap<>(IslandFlag.class);
         for (Map.Entry<?, ?> entry : source.entrySet()) {
             try {
-                values.put(IslandFlag.valueOf(SimpleJson.text(entry.getKey())), SimpleJson.text(entry.getValue()));
+                values.put(IslandFlag.valueOf(CoreJson.textValue(entry.getKey())), CoreJson.textValue(entry.getValue()));
             } catch (IllegalArgumentException ignored) {
             }
         }

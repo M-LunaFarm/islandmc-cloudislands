@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 final class CoreBankJson {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -19,7 +18,7 @@ final class CoreBankJson {
 
     static IslandBankChangeSnapshot mutation(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        Map<?, ?> bank = SimpleJson.object(root.get("bank"));
+        Map<?, ?> bank = CoreJson.objectValue(root, "bank");
         boolean accepted = CoreJson.accepted(root);
         String code = CoreJson.code(root, "", accepted);
         return new IslandBankChangeSnapshot(accepted, code, bank.isEmpty() ? snapshot(root) : snapshot(bank));
@@ -39,9 +38,9 @@ final class CoreBankJson {
 
     private static IslandBankSnapshot snapshot(Map<?, ?> values) {
         return new IslandBankSnapshot(
-            uuid(SimpleJson.text(values.get("islandId"))),
-            balance(SimpleJson.text(values.get("balance"))),
-            instant(SimpleJson.text(values.get("updatedAt")))
+            uuid(CoreJson.text(values, "islandId")),
+            balance(CoreJson.text(values, "balance")),
+            instant(CoreJson.text(values, "updatedAt"))
         );
     }
 
