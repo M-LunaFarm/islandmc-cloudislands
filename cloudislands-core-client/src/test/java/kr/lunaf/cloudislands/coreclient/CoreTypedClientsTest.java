@@ -66,6 +66,8 @@ class CoreTypedClientsTest {
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("progression").getDeclaringClass());
         assertFalse(BankQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate bank queries to a standalone client");
         assertFalse(BankCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate bank commands to a standalone client");
+        assertFalse(CommunicationQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate communication queries to a standalone client");
+        assertFalse(CommunicationCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate communication commands to a standalone client");
         assertFalse(PlayerProfileQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile queries to a standalone client");
         assertFalse(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile commands to a standalone client");
         assertFalse(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template queries to a standalone client");
@@ -77,6 +79,8 @@ class CoreTypedClientsTest {
         JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:1"), "token", Duration.ofSeconds(1));
         assertSame(JdkBankQueryClient.class, client.bank().getClass());
         assertSame(JdkBankCommandClient.class, client.bankCommands().getClass());
+        assertSame(JdkCommunicationQueryClient.class, client.communication().getClass());
+        assertSame(JdkCommunicationCommandClient.class, client.communicationCommands().getClass());
         assertSame(JdkPlayerProfileQueryClient.class, client.playerProfiles().getClass());
         assertSame(JdkPlayerProfileCommandClient.class, client.playerProfileCommands().getClass());
         assertSame(JdkTemplateQueryClient.class, client.templates().getClass());
@@ -148,6 +152,16 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("public CompletableFuture<IslandBankChangeSnapshot> withdrawSnapshot("), "bank withdraw must not live on the core transport client");
         assertTrue(source.contains("this.bankQueryClient = new JdkBankQueryClient(this);"));
         assertTrue(source.contains("this.bankCommandClient = new JdkBankCommandClient(this);"));
+    }
+
+    @Test
+    void jdkCoreApiClientDelegatesCommunicationMethodsToStandaloneClients() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+
+        assertFalse(source.contains("public CompletableFuture<ChatActionView> sendChat("), "chat commands must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<List<IslandLogRecord>> records("), "log queries must not live on the core transport client");
+        assertTrue(source.contains("this.communicationQueryClient = new JdkCommunicationQueryClient(this);"));
+        assertTrue(source.contains("this.communicationCommandClient = new JdkCommunicationCommandClient(this);"));
     }
 
     @Test
