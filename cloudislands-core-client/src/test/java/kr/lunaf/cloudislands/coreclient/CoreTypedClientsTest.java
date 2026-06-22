@@ -170,12 +170,27 @@ class CoreTypedClientsTest {
         assertTrue(transport.contains("CompletableFuture<CoreResponseBody> post(String path, String body)"), "transport public package boundary must not expose raw String futures");
         assertFalse(transport.contains("CompletableFuture<String>"), "transport must keep raw response bodies inside a value object");
         assertTrue(transport.contains("new CoreHttpResponse(response.statusCode(), response.body())"), "raw Java HTTP responses must be converted once");
-        assertTrue(transport.contains("new CoreResponseBody(response.bodyOrEmpty(response.successBody()))"), "2xx body policy must be expressed on CoreHttpResponse then wrapped");
-        assertTrue(transport.contains("new CoreResponseBody(response.bodyOrEmpty(response.resultBody()))"), "mutation result body policy must be expressed on CoreHttpResponse then wrapped");
+        assertTrue(transport.contains("response.responseBody(response.successBody())"), "2xx body policy must be expressed on CoreHttpResponse then wrapped");
+        assertTrue(transport.contains("response.responseBody(response.resultBody())"), "mutation result body policy must be expressed on CoreHttpResponse then wrapped");
         assertFalse(transport.contains("response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : \"\""), "transport code must not mix status policy and body fallback inline");
         assertFalse(transport.contains("response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : \"\""), "result-body policy must not be duplicated inline");
         assertTrue(response.contains("record CoreHttpResponse(int statusCode, String body)"), "HTTP status and body must stay paired before domain parsing");
-        assertTrue(responseBody.contains("record CoreResponseBody(String value)"), "accepted response body must be a typed value before domain parsing");
+        assertTrue(response.contains("CoreResponseBody responseBody(boolean accepted)"), "HTTP status policy must create a typed response envelope");
+        assertTrue(responseBody.contains("record CoreResponseBody(String value, int status, boolean accepted)"), "accepted response body must keep status before domain parsing");
+        assertTrue(responseBody.contains("throw error();"), "rejected response bodies must become typed Core API failures before domain parsing");
+    }
+
+    @Test
+    void coreResponseBodyPreservesHttpStatusAndTypedErrorPayload() {
+        CoreResponseBody body = new CoreResponseBody("""
+            {"error":{"code":"UPSTREAM_DOWN","message":"core unavailable"}}
+            """, 503, false);
+
+        CoreApiException exception = assertThrows(CoreApiException.class, body::value);
+
+        assertEquals("UPSTREAM_DOWN", exception.code());
+        assertEquals("core unavailable", exception.getMessage());
+        assertEquals(503, exception.status());
     }
 
     @Test

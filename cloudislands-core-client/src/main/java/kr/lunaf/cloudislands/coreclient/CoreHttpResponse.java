@@ -13,7 +13,7 @@ record CoreHttpResponse(int statusCode, String body) {
         return statusCode >= 200 && statusCode < 500;
     }
 
-    String bodyOrEmpty(boolean accepted) {
-        return accepted ? body : "";
+    CoreResponseBody responseBody(boolean accepted) {
+        return new CoreResponseBody(body, statusCode, accepted);
     }
 }

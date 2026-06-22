@@ -30,7 +30,7 @@ final class CoreHttpTransport {
             .POST(HttpRequest.BodyPublishers.ofString(body));
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
-        return send(builder.build()).thenApply(response -> new CoreResponseBody(response.bodyOrEmpty(response.successBody())));
+        return send(builder.build()).thenApply(response -> response.responseBody(response.successBody()));
     }
 
     CompletableFuture<CoreResponseBody> get(String path) {
@@ -40,7 +40,7 @@ final class CoreHttpTransport {
             .GET();
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
-        return send(builder.build()).thenApply(response -> new CoreResponseBody(response.bodyOrEmpty(response.successBody())));
+        return send(builder.build()).thenApply(response -> response.responseBody(response.successBody()));
     }
 
     CompletableFuture<CoreResponseBody> postWithResultBody(String path, String body) {
@@ -51,7 +51,7 @@ final class CoreHttpTransport {
             .POST(HttpRequest.BodyPublishers.ofString(body));
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
-        return send(builder.build()).thenApply(response -> new CoreResponseBody(response.bodyOrEmpty(response.resultBody())));
+        return send(builder.build()).thenApply(response -> response.responseBody(response.resultBody()));
     }
 
     CompletableFuture<CoreResponseBody> deleteWithResultBody(String path) {
@@ -61,7 +61,7 @@ final class CoreHttpTransport {
             .DELETE();
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
-        return send(builder.build()).thenApply(response -> new CoreResponseBody(response.bodyOrEmpty(response.resultBody())));
+        return send(builder.build()).thenApply(response -> response.responseBody(response.resultBody()));
     }
 
     private CompletableFuture<CoreHttpResponse> send(HttpRequest request) {
