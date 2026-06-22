@@ -102,8 +102,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkWarehouseClient"), "warehouse operations must use CoreWarehouse query and command clients");
         assertFalse(nestedClients.contains("JdkLifecycleClient"), "lifecycle operations must use JdkCoreApiClient's typed lifecycle implementation");
         assertFalse(nestedClients.contains("JdkProgressionClient"), "progression operations must use CoreProgression query and command clients");
-        assertFalse(nestedClients.contains("JdkMemberQueryClient"), "member queries must use CoreMemberQueryClient");
-        assertFalse(nestedClients.contains("JdkMemberCommandClient"), "member commands must use CoreMemberCommandClient");
+        assertFalse(nestedClients.contains("JdkMemberClient"), "member operations must use standalone query and command clients");
         assertFalse(nestedClients.contains("JdkPermissionClient"), "permissions must use CorePermission query and command clients");
         assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use a standalone typed client");
@@ -1289,125 +1288,113 @@ class CoreTypedClientsTest {
     }
 
     @Test
-    void memberQueryClientReturnsTypedProfileInvitesAndBans() {
+    void memberQueryClientReturnsTypedProfileInvitesAndBans() throws Exception {
         UUID playerUuid = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
         UUID inviteId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "playerProfiles" -> new PlayerProfileQueryClient() {
-                    @Override
-                    public CompletableFuture<PlayerProfileView> profile(UUID playerUuid) {
-                        throw new UnsupportedOperationException("profile");
-                    }
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/players/info", exchange -> {
+                calls.add("profile:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] response = """
+                    {"playerUuid":"%s","lastName":"Alice","primaryIslandId":"%s","lastSeenAt":"now","locale":"ko_kr"}
+                    """.formatted(playerUuid, islandId).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/players/invites", exchange -> {
+                calls.add("invites:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] response = """
+                    {"invites":[{"inviteId":"%s","islandId":"%s","inviterUuid":"%s","targetUuid":"%s","state":"PENDING"}]}
+                    """.formatted(inviteId, islandId, playerUuid, playerUuid).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/islands/" + islandId + "/bans", exchange -> {
+                calls.add("bans");
+                byte[] response = """
+                    {"bans":[{"bannedUuid":"%s","actorUuid":"%s","reason":"test"}]}
+                    """.formatted(playerUuid, islandId).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.start();
+            MemberQueryClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).members();
 
-                    @Override
-                    public CompletableFuture<PlayerProfileView> findByName(String playerName) {
-                        calls.add("profile:" + playerName);
-                        return CompletableFuture.completedFuture(new PlayerProfileView(playerUuid.toString(), playerName, islandId.toString(), "now", "ko_kr"));
-                    }
-                };
-                case "listPendingInvites" -> {
-                    calls.add("invites");
-                    yield CompletableFuture.completedFuture("""
-                        {"invites":[{"inviteId":"%s","islandId":"%s","inviterUuid":"%s","targetUuid":"%s","state":"PENDING"}]}
-                        """.formatted(inviteId, islandId, playerUuid, playerUuid));
-                }
-                case "listIslandBans" -> {
-                    calls.add("bans");
-                    yield CompletableFuture.completedFuture("""
-                        {"bans":[{"bannedUuid":"%s","actorUuid":"%s","reason":"test"}]}
-                        """.formatted(playerUuid, islandId));
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        MemberQueryClient client = new CoreMemberQueryClient(raw);
-
-        assertEquals(playerUuid.toString(), client.playerProfileByName(" Alice ").join().playerUuid());
-        IslandInviteSnapshot inviteSnapshot = client.inviteSnapshots(playerUuid).join().get(0);
-        assertEquals(inviteId, inviteSnapshot.inviteId());
-        assertEquals(playerUuid, inviteSnapshot.targetUuid());
-        CoreGuiViews.InviteView invite = client.pendingInvites(playerUuid).join().get(0);
-        assertEquals(inviteId.toString(), invite.inviteId());
-        assertEquals(playerUuid.toString(), invite.targetUuid());
-        assertEquals("PENDING", invite.state());
-        IslandBanSnapshot banSnapshot = client.banSnapshots(islandId).join().get(0);
-        assertEquals(playerUuid, banSnapshot.bannedUuid());
-        assertEquals("test", client.bans(islandId).join().get(0).reason());
-        assertEquals(List.of("profile:Alice", "invites", "invites", "bans", "bans"), calls);
+            assertEquals(playerUuid.toString(), client.playerProfileByName(" Alice ").join().playerUuid());
+            IslandInviteSnapshot inviteSnapshot = client.inviteSnapshots(playerUuid).join().get(0);
+            assertEquals(inviteId, inviteSnapshot.inviteId());
+            assertEquals(playerUuid, inviteSnapshot.targetUuid());
+            CoreGuiViews.InviteView invite = client.pendingInvites(playerUuid).join().get(0);
+            assertEquals(inviteId.toString(), invite.inviteId());
+            assertEquals(playerUuid.toString(), invite.targetUuid());
+            assertEquals("PENDING", invite.state());
+            IslandBanSnapshot banSnapshot = client.banSnapshots(islandId).join().get(0);
+            assertEquals(playerUuid, banSnapshot.bannedUuid());
+            assertEquals("test", client.bans(islandId).join().get(0).reason());
+            assertEquals(List.of(
+                "{\"lastName\":\"Alice\"}",
+                "{\"playerUuid\":\"" + playerUuid + "\"}",
+                "{\"playerUuid\":\"" + playerUuid + "\"}",
+                "bans",
+                "bans"
+            ), calls.stream().map(call -> call.contains(":") ? call.substring(call.indexOf(':') + 1) : call).toList());
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
-    void memberCommandClientReturnsTypedActionsAndInviteViews() {
+    void memberCommandClientReturnsTypedActionsAndInviteViews() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
         UUID targetUuid = UUID.randomUUID();
         UUID inviteId = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "removeIslandMemberResult" -> {
-                    calls.add("remove");
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"MEMBER_REMOVED\"}");
-                }
-                case "createIslandInvite" -> {
-                    calls.add("invite");
-                    yield CompletableFuture.completedFuture("{\"inviteId\":\"%s\",\"islandId\":\"%s\",\"inviterUuid\":\"%s\"}".formatted(inviteId, islandId, actorUuid));
-                }
-                case "acceptIslandInviteResult" -> {
-                    calls.add("accept");
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"INVITE_ACCEPTED\"}");
-                }
-                case "declineIslandInviteResult" -> {
-                    calls.add("decline");
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"INVITE_EXPIRED\"}");
-                }
-                case "setIslandMemberResult" -> {
-                    calls.add("role:" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"MEMBER_ROLE_SET\"}");
-                }
-                case "trustIslandMemberTemporary" -> {
-                    calls.add("trust:" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"TEMP_TRUST_SET\",\"expiresAt\":\"later\"}");
-                }
-                case "transferIslandOwnershipResult" -> {
-                    calls.add("transfer");
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"OWNERSHIP_TRANSFERRED\"}");
-                }
-                case "banIslandVisitorResult" -> {
-                    calls.add("ban:" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"VISITOR_BAN_DENIED\"}");
-                }
-                case "pardonIslandVisitorResult" -> {
-                    calls.add("pardon");
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"VISITOR_PARDONED\"}");
-                }
-                case "kickIslandVisitorResult" -> {
-                    calls.add("kick");
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"VISITOR_KICKED\"}");
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        MemberCommandClient client = new CoreMemberCommandClient(raw);
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/islands/members/remove", exchange -> respondMemberTest(exchange, calls, "remove", "{\"accepted\":true,\"code\":\"MEMBER_REMOVED\"}"));
+            server.createContext("/v1/islands/invites", exchange -> respondMemberTest(exchange, calls, "invite", "{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\"}"));
+            server.createContext("/v1/islands/invites/accept", exchange -> respondMemberTest(exchange, calls, "accept", "{\"accepted\":true,\"code\":\"INVITE_ACCEPTED\"}"));
+            server.createContext("/v1/islands/invites/decline", exchange -> respondMemberTest(exchange, calls, "decline", "{\"accepted\":false,\"code\":\"INVITE_EXPIRED\"}"));
+            server.createContext("/v1/islands/members/set", exchange -> respondMemberTest(exchange, calls, "role", "{\"accepted\":true,\"code\":\"MEMBER_ROLE_SET\"}"));
+            server.createContext("/v1/islands/members/trust-temporary", exchange -> respondMemberTest(exchange, calls, "trust", "{\"accepted\":true,\"code\":\"TEMP_TRUST_SET\",\"expiresAt\":\"later\"}"));
+            server.createContext("/v1/islands/transfer", exchange -> respondMemberTest(exchange, calls, "transfer", "{\"accepted\":true,\"code\":\"OWNERSHIP_TRANSFERRED\"}"));
+            server.createContext("/v1/islands/bans/set", exchange -> respondMemberTest(exchange, calls, "ban", "{\"accepted\":false,\"code\":\"VISITOR_BAN_DENIED\"}"));
+            server.createContext("/v1/islands/bans/remove", exchange -> respondMemberTest(exchange, calls, "pardon", "{\"accepted\":true,\"code\":\"VISITOR_PARDONED\"}"));
+            server.createContext("/v1/islands/visitors/kick", exchange -> respondMemberTest(exchange, calls, "kick", "{\"accepted\":true,\"code\":\"VISITOR_KICKED\"}"));
+            server.start();
+            MemberCommandClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).memberCommands();
 
-        assertEquals("MEMBER_REMOVED", client.removeMember(islandId, actorUuid, targetUuid).join().code());
-        assertEquals(inviteId.toString(), client.createInvite(islandId, actorUuid, targetUuid).join().inviteId());
-        assertEquals("ACCEPTED", client.acceptInvite(inviteId, targetUuid).join().code());
-        assertEquals("INVITE_EXPIRED", client.declineInvite(inviteId, targetUuid).join().code());
-        assertEquals("MEMBER_ROLE_SET", client.setRole(islandId, actorUuid, targetUuid, "co-owner").join().code());
-        assertEquals("later", client.trustTemporarily(islandId, actorUuid, targetUuid, 60L).join().expiresAt());
-        assertEquals("OWNERSHIP_TRANSFERRED", client.transferOwnership(islandId, actorUuid, targetUuid).join().code());
-        assertFalse(client.banVisitor(islandId, actorUuid, targetUuid, "reason").join().accepted());
-        assertEquals("VISITOR_PARDONED", client.pardonVisitor(islandId, actorUuid, targetUuid).join().code());
-        assertEquals("VISITOR_KICKED", client.kickVisitor(islandId, actorUuid, targetUuid).join().code());
-        assertEquals(List.of("remove", "invite", "accept", "decline", "role:CO_OWNER", "trust:60", "transfer", "ban:reason", "pardon", "kick"), calls);
+            assertEquals("MEMBER_REMOVED", client.removeMember(islandId, actorUuid, targetUuid).join().code());
+            assertEquals(inviteId.toString(), client.createInvite(islandId, actorUuid, targetUuid).join().inviteId());
+            assertEquals("ACCEPTED", client.acceptInvite(inviteId, targetUuid).join().code());
+            assertEquals("INVITE_EXPIRED", client.declineInvite(inviteId, targetUuid).join().code());
+            assertEquals("MEMBER_ROLE_SET", client.setRole(islandId, actorUuid, targetUuid, "co-owner").join().code());
+            assertEquals("later", client.trustTemporarily(islandId, actorUuid, targetUuid, 60L).join().expiresAt());
+            assertEquals("OWNERSHIP_TRANSFERRED", client.transferOwnership(islandId, actorUuid, targetUuid).join().code());
+            assertFalse(client.banVisitor(islandId, actorUuid, targetUuid, "reason").join().accepted());
+            assertEquals("VISITOR_PARDONED", client.pardonVisitor(islandId, actorUuid, targetUuid).join().code());
+            assertEquals("VISITOR_KICKED", client.kickVisitor(islandId, actorUuid, targetUuid).join().code());
+            assertEquals(List.of(
+                "remove:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\"}",
+                "invite:{\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}",
+                "accept:{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + targetUuid + "\"}",
+                "decline:{\"inviteId\":\"" + inviteId + "\",\"playerUuid\":\"" + targetUuid + "\"}",
+                "role:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\",\"role\":\"CO_OWNER\",\"roleKey\":\"CO_OWNER\"}",
+                "trust:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\",\"durationSeconds\":60}",
+                "transfer:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}",
+                "ban:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\",\"reason\":\"reason\"}",
+                "pardon:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\"}",
+                "kick:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\"}"
+            ), calls);
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
@@ -1906,6 +1893,14 @@ class CoreTypedClientsTest {
             "nonce",
             Map.of()
         );
+    }
+
+    private static void respondMemberTest(com.sun.net.httpserver.HttpExchange exchange, List<String> calls, String key, String responseBody) throws java.io.IOException {
+        calls.add(key + ":" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        byte[] response = responseBody.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(200, response.length);
+        exchange.getResponseBody().write(response);
+        exchange.close();
     }
 
     private static NodeHeartbeatRequest heartbeat(String nodeId) {

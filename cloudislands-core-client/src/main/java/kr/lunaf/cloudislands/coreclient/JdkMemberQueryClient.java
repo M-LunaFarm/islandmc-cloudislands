@@ -6,33 +6,33 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 
-public final class CoreMemberQueryClient implements MemberQueryClient {
-    private final CoreApiClient delegate;
+public final class JdkMemberQueryClient implements MemberQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreMemberQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkMemberQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.PlayerProfileView> playerProfileByName(String playerName) {
         String normalizedPlayerName = requireText(playerName, "playerName");
-        return delegate.playerProfiles().findByName(normalizedPlayerName).thenApply(CorePlayerProfileJson::guiProfile);
+        return core.playerProfiles().findByName(normalizedPlayerName).thenApply(CorePlayerProfileJson::guiProfile);
     }
 
     @Override
     public CompletableFuture<List<IslandInviteSnapshot>> inviteSnapshots(UUID playerUuid) {
         requirePlayer(playerUuid);
-        return delegate.listPendingInvites(playerUuid)
+        return core.post("/v1/players/invites", JdkCoreApiClient.jsonObject("playerUuid", playerUuid))
             .thenApply(CoreMemberJson::invites);
     }
 
     @Override
     public CompletableFuture<List<IslandBanSnapshot>> banSnapshots(UUID islandId) {
         requireIsland(islandId);
-        return delegate.listIslandBans(islandId)
+        return core.get("/v1/islands/" + islandId + "/bans")
             .thenApply(body -> CoreMemberJson.bans(islandId, body));
     }
 

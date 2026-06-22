@@ -147,11 +147,17 @@ public interface CoreApiClient {
     }
 
     default MemberQueryClient members() {
-        return new CoreMemberQueryClient(this);
+        if (this instanceof MemberQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed member queries");
     }
 
     default MemberCommandClient memberCommands() {
-        return new CoreMemberCommandClient(this);
+        if (this instanceof MemberCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed member commands");
     }
 
     default AdminNodeQueryClient adminNodes() {
@@ -308,28 +314,7 @@ public interface CoreApiClient {
     CompletableFuture<String> getIslandLevel(UUID islandId);
     CompletableFuture<Void> setIslandName(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<String> setIslandNameResult(UUID islandId, UUID actorUuid, String name);
-    CompletableFuture<Void> setIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role);
-    CompletableFuture<String> setIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role);
-    CompletableFuture<String> setIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid, String roleKey);
-    CompletableFuture<String> trustIslandMemberTemporary(UUID islandId, UUID actorUuid, UUID playerUuid, long durationSeconds);
-    CompletableFuture<Void> transferIslandOwnership(UUID islandId, UUID actorUuid, UUID targetUuid);
-    CompletableFuture<String> transferIslandOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid);
-    CompletableFuture<Void> removeIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid);
-    CompletableFuture<String> removeIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid);
-    CompletableFuture<String> createIslandInvite(UUID islandId, UUID inviterUuid, UUID targetUuid);
-    CompletableFuture<String> listPendingInvites(UUID playerUuid);
     CompletableFuture<String> listPlayerIslands(UUID playerUuid);
-    CompletableFuture<Void> acceptIslandInvite(UUID inviteId, UUID playerUuid);
-    CompletableFuture<String> acceptIslandInviteResult(UUID inviteId, UUID playerUuid);
-    CompletableFuture<Void> declineIslandInvite(UUID inviteId, UUID playerUuid);
-    CompletableFuture<String> declineIslandInviteResult(UUID inviteId, UUID playerUuid);
-    CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
-    CompletableFuture<String> banIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
-    CompletableFuture<String> listIslandBans(UUID islandId);
-    CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
-    CompletableFuture<String> pardonIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid);
-    CompletableFuture<Void> kickIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid);
-    CompletableFuture<String> kickIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid);
     CompletableFuture<String> listIslandFlags(UUID islandId);
     CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
     CompletableFuture<String> setIslandFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value);

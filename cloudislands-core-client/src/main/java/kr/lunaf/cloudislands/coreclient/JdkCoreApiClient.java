@@ -108,8 +108,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.islandClient = new JdkIslandQueryClient(this);
         this.progressionQueryClient = new CoreProgressionQueryClient(this);
         this.progressionCommandClient = new CoreProgressionCommandClient(this);
-        this.memberQueryClient = new CoreMemberQueryClient(this);
-        this.memberCommandClient = new CoreMemberCommandClient(this);
+        this.memberQueryClient = new JdkMemberQueryClient(this);
+        this.memberCommandClient = new JdkMemberCommandClient(this);
         this.visitorStatsClient = new JdkIslandVisitorStatsQueryClient(this);
         this.playerProfileQueryClient = this;
         this.playerProfileCommandClient = this;
@@ -468,114 +468,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<Void> setIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role) {
-        return setIslandMemberResult(islandId, actorUuid, playerUuid, role).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role) {
-        return setIslandMemberResult(islandId, actorUuid, playerUuid, role.name());
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid, String roleKey) {
-        String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return postWithResultBody("/v1/islands/members/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey));
-    }
-
-    @Override
-    public CompletableFuture<String> trustIslandMemberTemporary(UUID islandId, UUID actorUuid, UUID playerUuid, long durationSeconds) {
-        return postWithResultBody("/v1/islands/members/trust-temporary", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid, "durationSeconds", durationSeconds));
-    }
-
-    @Override
-    public CompletableFuture<Void> transferIslandOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) {
-        return transferIslandOwnershipResult(islandId, actorUuid, targetUuid).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> transferIslandOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid) {
-        return postWithResultBody("/v1/islands/transfer", jsonObject("islandId", islandId, "actorUuid", actorUuid, "targetUuid", targetUuid));
-    }
-
-    @Override
-    public CompletableFuture<Void> removeIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return removeIslandMemberResult(islandId, actorUuid, playerUuid).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> removeIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/members/remove", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid));
-    }
-
-    @Override
-    public CompletableFuture<String> createIslandInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
-        return postWithResultBody("/v1/islands/invites", jsonObject("islandId", islandId, "inviterUuid", inviterUuid, "targetUuid", targetUuid));
-    }
-
-    @Override
-    public CompletableFuture<String> listPendingInvites(UUID playerUuid) {
-        return post("/v1/players/invites", jsonObject("playerUuid", playerUuid));
-    }
-
-    @Override
     public CompletableFuture<String> listPlayerIslands(UUID playerUuid) {
         return post("/v1/players/islands", jsonObject("playerUuid", playerUuid));
-    }
-
-    @Override
-    public CompletableFuture<Void> acceptIslandInvite(UUID inviteId, UUID playerUuid) {
-        return acceptIslandInviteResult(inviteId, playerUuid).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> acceptIslandInviteResult(UUID inviteId, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/invites/accept", jsonObject("inviteId", inviteId, "playerUuid", playerUuid));
-    }
-
-    @Override
-    public CompletableFuture<Void> declineIslandInvite(UUID inviteId, UUID playerUuid) {
-        return declineIslandInviteResult(inviteId, playerUuid).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> declineIslandInviteResult(UUID inviteId, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/invites/decline", jsonObject("inviteId", inviteId, "playerUuid", playerUuid));
-    }
-
-    @Override
-    public CompletableFuture<Void> banIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
-        return banIslandVisitorResult(islandId, actorUuid, playerUuid, reason).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> banIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
-        return postWithResultBody("/v1/islands/bans/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid, "reason", reason));
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandBans(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/bans");
-    }
-
-    @Override
-    public CompletableFuture<Void> pardonIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return pardonIslandVisitorResult(islandId, actorUuid, playerUuid).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> pardonIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/bans/remove", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid));
-    }
-
-    @Override
-    public CompletableFuture<Void> kickIslandVisitor(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return kickIslandVisitorResult(islandId, actorUuid, playerUuid).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> kickIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid) {
-        return postWithResultBody("/v1/islands/visitors/kick", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid));
     }
 
     @Override

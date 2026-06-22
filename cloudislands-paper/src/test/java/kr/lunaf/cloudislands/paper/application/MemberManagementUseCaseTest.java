@@ -3,13 +3,20 @@ package kr.lunaf.cloudislands.paper.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
+import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandQueryClient;
-import kr.lunaf.cloudislands.coreclient.CoreMemberCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreMemberQueryClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.IslandQueryClient;
+import kr.lunaf.cloudislands.coreclient.MemberActionView;
+import kr.lunaf.cloudislands.coreclient.MemberCommandClient;
+import kr.lunaf.cloudislands.coreclient.MemberCursor;
+import kr.lunaf.cloudislands.coreclient.MemberPage;
+import kr.lunaf.cloudislands.coreclient.MemberQueryClient;
 import org.junit.jupiter.api.Test;
 
 class MemberManagementUseCaseTest {
@@ -108,7 +115,7 @@ class MemberManagementUseCaseTest {
     private static CoreApiClient client(Map<String, String> bodies) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class},
+            new Class<?>[] {CoreApiClient.class, IslandQueryClient.class, MemberQueryClient.class, MemberCommandClient.class},
             (_proxy, method, _args) -> {
                 if (method.getDeclaringClass() == Object.class) {
                     return switch (method.getName()) {
@@ -119,20 +126,117 @@ class MemberManagementUseCaseTest {
                     };
                 }
                 if (method.getName().equals("islands")) {
-                    return new CoreIslandQueryClient((CoreApiClient) _proxy);
+                    return (IslandQueryClient) _proxy;
                 }
                 if (method.getName().equals("members")) {
-                    return new CoreMemberQueryClient((CoreApiClient) _proxy);
+                    return (MemberQueryClient) _proxy;
                 }
                 if (method.getName().equals("memberCommands")) {
-                    return new CoreMemberCommandClient((CoreApiClient) _proxy);
+                    return (MemberCommandClient) _proxy;
                 }
                 String value = bodies.get(method.getName());
+                if (method.getName().equals("findIslandByName")) {
+                    return completedView("islandInfoByName", bodies);
+                }
+                if (method.getName().equals("getIsland") || method.getName().equals("getIslandByOwner")) {
+                    return completedView("islandInfoByName", bodies);
+                }
+                if (method.getName().equals("memberSnapshots")) {
+                    return CompletableFuture.completedFuture(List.<IslandMemberSnapshot>of());
+                }
+                if (method.getName().equals("listMembers")) {
+                    if (_args != null && _args.length == 2 && _args[1] instanceof MemberCursor) {
+                        return CompletableFuture.completedFuture(new MemberPage(List.of(), (MemberCursor) _args[1], null, 0));
+                    }
+                    return CompletableFuture.completedFuture(CoreGuiViews.memberViews(bodies.getOrDefault("listIslandMembers", "{\"members\":[]}")));
+                }
+                if (method.getName().equals("playerProfileByName")) {
+                    String profile = bodies.get(method.getName());
+                    if (profile == null) {
+                        profile = bodies.get("playerInfoByName");
+                    }
+                    if ("ERROR".equals(profile)) {
+                        return CompletableFuture.failedFuture(new IllegalStateException(method.getName() + " failed"));
+                    }
+                    return CompletableFuture.completedFuture(CoreGuiViews.playerProfile(profile == null ? "{}" : profile));
+                }
+                if (method.getName().equals("pendingInvites")) {
+                    return CompletableFuture.completedFuture(CoreGuiViews.inviteViews(bodies.getOrDefault("listPendingInvites", "{\"invites\":[]}")));
+                }
+                if (method.getName().equals("bans")) {
+                    return CompletableFuture.completedFuture(CoreGuiViews.banViews(bodies.getOrDefault("listIslandBans", "{\"bans\":[]}")));
+                }
+                if (method.getName().equals("createInvite")) {
+                    return CompletableFuture.completedFuture(CoreGuiViews.inviteView(bodies.getOrDefault("createIslandInvite", "{}")));
+                }
+                if (method.getName().equals("acceptInvite")) {
+                    return inviteAction(bodies.getOrDefault("acceptIslandInviteResult", "{}"), "ACCEPTED");
+                }
+                if (method.getName().equals("declineInvite")) {
+                    return inviteAction(bodies.getOrDefault("declineIslandInviteResult", "{}"), "DECLINED");
+                }
+                if (method.getName().equals("removeMember")) {
+                    return memberAction(bodies.getOrDefault("removeIslandMemberResult", "{}"));
+                }
+                if (method.getName().equals("setRole")) {
+                    return memberAction(bodies.getOrDefault("setIslandMemberResult", "{}"));
+                }
+                if (method.getName().equals("trustTemporarily")) {
+                    return memberAction(bodies.getOrDefault("trustIslandMemberTemporary", "{}"));
+                }
+                if (method.getName().equals("transferOwnership")) {
+                    return memberAction(bodies.getOrDefault("transferIslandOwnershipResult", "{}"));
+                }
+                if (method.getName().equals("banVisitor")) {
+                    return memberAction(bodies.getOrDefault("banIslandVisitorResult", "{}"));
+                }
+                if (method.getName().equals("pardonVisitor")) {
+                    return memberAction(bodies.getOrDefault("pardonIslandVisitorResult", "{}"));
+                }
+                if (method.getName().equals("kickVisitor")) {
+                    return memberAction(bodies.getOrDefault("kickIslandVisitorResult", "{}"));
+                }
                 if ("ERROR".equals(value)) {
                     return CompletableFuture.failedFuture(new IllegalStateException(method.getName() + " failed"));
                 }
                 return CompletableFuture.completedFuture(value == null ? "{}" : value);
             });
+    }
+
+    private static CompletableFuture<CoreGuiViews.IslandInfoView> completedView(String key, Map<String, String> bodies) {
+        String value = bodies.get(key);
+        if ("ERROR".equals(value)) {
+            return CompletableFuture.failedFuture(new IllegalStateException(key + " failed"));
+        }
+        return CompletableFuture.completedFuture(CoreGuiViews.islandInfoView(value == null ? "{}" : value));
+    }
+
+    private static CompletableFuture<IslandInviteActionResult> inviteAction(String value, String successCode) {
+        boolean accepted = accepted(value);
+        String code = text(value, "code");
+        return CompletableFuture.completedFuture(new IslandInviteActionResult(accepted, accepted ? successCode : code));
+    }
+
+    private static CompletableFuture<MemberActionView> memberAction(String value) {
+        return CompletableFuture.completedFuture(new MemberActionView(accepted(value), text(value, "code"), text(value, "expiresAt")));
+    }
+
+    private static boolean accepted(String value) {
+        return value != null && value.contains("\"accepted\":true");
+    }
+
+    private static String text(String value, String key) {
+        if (value == null) {
+            return "";
+        }
+        String marker = "\"" + key + "\":\"";
+        int start = value.indexOf(marker);
+        if (start < 0) {
+            return "";
+        }
+        int valueStart = start + marker.length();
+        int valueEnd = value.indexOf('"', valueStart);
+        return valueEnd < 0 ? "" : value.substring(valueStart, valueEnd);
     }
 
     private static UUID uuid(String value) {
