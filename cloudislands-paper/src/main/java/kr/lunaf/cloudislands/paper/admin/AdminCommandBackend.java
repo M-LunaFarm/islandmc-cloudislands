@@ -2001,27 +2001,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return label + ": " + status + adminText("admin-command-node-action-node-prefix", " node=") + effectiveNodeId + operation + code;
     }
 
-    private String arrayValue(String body, String field) {
-        List<?> array = SimpleJson.list(jsonObject(body).get(field));
-        return array.isEmpty() ? "" : SimpleJson.stringify(array);
-    }
-
-    private int matchingObjectEnd(String value, int objectStart) {
-        int depth = 0;
-        for (int i = objectStart; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (current == '{') {
-                depth++;
-            } else if (current == '}') {
-                depth--;
-                if (depth == 0) {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
-
     private boolean boolValue(String body, String field) {
         Map<?, ?> object = jsonObject(body);
         if (!object.containsKey(field)) {
