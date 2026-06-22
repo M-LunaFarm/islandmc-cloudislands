@@ -38,7 +38,7 @@ public final class CoreAdminNodeCommandClient implements AdminNodeCommandClient 
         return delegate.shutdownNodeSafely(requireNode(nodeId), normalizeReason(reason)).thenApply(CoreAdminNodeCommandClient::actionResult);
     }
 
-    private static AdminNodeActionView actionResult(String body) {
+    static AdminNodeActionView actionResult(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new AdminNodeActionView(
             CoreJson.accepted(root),

@@ -40,7 +40,7 @@ public final class CoreAdminIslandQueryClient implements AdminIslandQueryClient 
         return delegate.adminIslandWhere(islandId).thenApply(CoreAdminIslandQueryClient::runtime);
     }
 
-    private static AdminIslandRuntimeView runtime(String body) {
+    static AdminIslandRuntimeView runtime(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new AdminIslandRuntimeView(
             text(root, "islandId"),

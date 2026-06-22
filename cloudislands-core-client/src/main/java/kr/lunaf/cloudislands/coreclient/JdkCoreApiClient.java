@@ -26,6 +26,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
@@ -66,6 +67,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkAdminRouteClient adminRouteClient;
     private final JdkAdminAddonStateClient adminAddonStateClient;
     private final JdkAdminMaintenanceClient adminMaintenanceClient;
+    private final JdkAdminNodeClient adminNodeClient;
+    private final JdkAdminIslandClient adminIslandClient;
 
     public JdkCoreApiClient(URI baseUri, String authToken, Duration timeout) {
         this(baseUri, authToken, System.getenv().getOrDefault("CI_ADMIN_TOKEN", ""), timeout);
@@ -97,6 +100,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.adminRouteClient = new JdkAdminRouteClient();
         this.adminAddonStateClient = new JdkAdminAddonStateClient();
         this.adminMaintenanceClient = new JdkAdminMaintenanceClient();
+        this.adminNodeClient = new JdkAdminNodeClient();
+        this.adminIslandClient = new JdkAdminIslandClient();
     }
 
     @Override
@@ -242,6 +247,21 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public AdminMaintenanceCommandClient adminMaintenance() {
         return adminMaintenanceClient;
+    }
+
+    @Override
+    public AdminNodeQueryClient adminNodes() {
+        return adminNodeClient;
+    }
+
+    @Override
+    public AdminNodeCommandClient adminNodeCommands() {
+        return adminNodeClient;
+    }
+
+    @Override
+    public AdminIslandQueryClient adminIslands() {
+        return adminIslandClient;
     }
 
     @Override
@@ -1541,6 +1561,123 @@ public final class JdkCoreApiClient implements CoreApiClient {
         public CompletableFuture<AdminMaintenanceResultView> reload() {
             return postWithResultBody("/v1/admin/reload", "{}")
                 .thenApply(CoreAdminMaintenanceCommandClient::result);
+        }
+    }
+
+    private final class JdkAdminNodeClient implements AdminNodeQueryClient, AdminNodeCommandClient {
+        @Override
+        public CompletableFuture<List<IslandNodeSnapshot>> nodes() {
+            return postWithResultBody("/v1/admin/nodes/list", "{}")
+                .thenApply(CoreAdminNodeQueryClient::nodes);
+        }
+
+        @Override
+        public CompletableFuture<AdminNodeSummaryView> listNodesSummary() {
+            return postWithResultBody("/v1/admin/nodes/list", "{}")
+                .thenApply(CoreAdminNodeQueryClient::summary);
+        }
+
+        @Override
+        public CompletableFuture<Optional<IslandNodeSnapshot>> nodeSnapshot(String nodeId) {
+            String normalizedNodeId = requireNodeId(nodeId);
+            return postWithResultBody("/v1/admin/nodes/info", jsonObject("nodeId", normalizedNodeId))
+                .thenApply(body -> CoreAdminNodeQueryClient.node(normalizedNodeId, body));
+        }
+
+        @Override
+        public CompletableFuture<CoreGuiViews.NodeSummaryView> nodeInfo(String nodeId) {
+            String normalizedNodeId = requireNodeId(nodeId);
+            return postWithResultBody("/v1/admin/nodes/info", jsonObject("nodeId", normalizedNodeId))
+                .thenApply(body -> CoreGuiViews.nodeSummary(normalizedNodeId, body));
+        }
+
+        @Override
+        public CompletableFuture<List<AdminIslandRuntimeView>> nodeIslandRuntimes(String nodeId, int limit) {
+            return postWithResultBody("/v1/admin/nodes/islands", jsonObject(
+                "nodeId", requireNodeId(nodeId),
+                "limit", Math.max(1, Math.min(limit, 100))
+            )).thenApply(CoreAdminNodeQueryClient::runtimes);
+        }
+
+        @Override
+        public CompletableFuture<AdminNodeSummaryView> nodeIslandsSummary(String nodeId, int limit) {
+            return postWithResultBody("/v1/admin/nodes/islands", jsonObject(
+                "nodeId", requireNodeId(nodeId),
+                "limit", Math.max(1, Math.min(limit, 100))
+            )).thenApply(CoreAdminNodeQueryClient::summary);
+        }
+
+        @Override
+        public CompletableFuture<AdminNodeActionView> drainNode(String nodeId) {
+            return postWithResultBody("/v1/admin/nodes/drain", jsonObject("nodeId", requireNodeId(nodeId)))
+                .thenApply(CoreAdminNodeCommandClient::actionResult);
+        }
+
+        @Override
+        public CompletableFuture<AdminNodeActionView> undrainNode(String nodeId) {
+            return postWithResultBody("/v1/admin/nodes/undrain", jsonObject("nodeId", requireNodeId(nodeId)))
+                .thenApply(CoreAdminNodeCommandClient::actionResult);
+        }
+
+        @Override
+        public CompletableFuture<AdminNodeActionView> sweepNode(String nodeId) {
+            return postWithResultBody("/v1/admin/nodes/sweep", jsonObject("nodeId", requireNodeId(nodeId)))
+                .thenApply(CoreAdminNodeCommandClient::actionResult);
+        }
+
+        @Override
+        public CompletableFuture<AdminNodeActionView> kickAllNode(String nodeId, String reason) {
+            return postWithResultBody("/v1/admin/nodes/kickall", jsonObject(
+                "nodeId", requireNodeId(nodeId),
+                "reason", reason == null ? "" : reason
+            )).thenApply(CoreAdminNodeCommandClient::actionResult);
+        }
+
+        @Override
+        public CompletableFuture<AdminNodeActionView> shutdownNodeSafely(String nodeId, String reason) {
+            return postWithResultBody("/v1/admin/nodes/shutdown-safe", jsonObject(
+                "nodeId", requireNodeId(nodeId),
+                "reason", reason == null ? "" : reason
+            )).thenApply(CoreAdminNodeCommandClient::actionResult);
+        }
+
+        private String requireNodeId(String nodeId) {
+            if (nodeId == null || nodeId.isBlank()) {
+                throw new IllegalArgumentException("nodeId is required");
+            }
+            return nodeId.trim();
+        }
+    }
+
+    private final class JdkAdminIslandClient implements AdminIslandQueryClient {
+        @Override
+        public CompletableFuture<CoreGuiViews.IslandInfoView> info(UUID lookupUuid) {
+            requireId(lookupUuid, "lookupUuid");
+            return postWithResultBody("/v1/admin/islands/info", jsonObject("lookupUuid", lookupUuid))
+                .thenApply(CoreGuiViews::islandInfoView);
+        }
+
+        @Override
+        public CompletableFuture<CoreGuiViews.IslandInfoView> infoByName(String islandName) {
+            String normalized = islandName == null ? "" : islandName.trim();
+            if (normalized.isBlank()) {
+                throw new IllegalArgumentException("islandName is required");
+            }
+            return post("/v1/islands/info", jsonObject("name", normalized))
+                .thenApply(CoreGuiViews::islandInfoView);
+        }
+
+        @Override
+        public CompletableFuture<AdminIslandRuntimeView> runtime(UUID islandId) {
+            requireId(islandId, "islandId");
+            return postWithResultBody("/v1/admin/islands/where", jsonObject("islandId", islandId))
+                .thenApply(CoreAdminIslandQueryClient::runtime);
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
         }
     }
 

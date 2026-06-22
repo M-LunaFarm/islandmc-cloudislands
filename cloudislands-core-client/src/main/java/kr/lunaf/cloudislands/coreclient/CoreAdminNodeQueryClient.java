@@ -55,7 +55,7 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
             .thenApply(CoreAdminNodeQueryClient::summary);
     }
 
-    private static List<IslandNodeSnapshot> nodes(String body) {
+    static List<IslandNodeSnapshot> nodes(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return SimpleJson.list(root.get("nodes")).stream()
             .map(SimpleJson::object)
@@ -65,7 +65,7 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
             .toList();
     }
 
-    private static Optional<IslandNodeSnapshot> node(String fallbackNodeId, String body) {
+    static Optional<IslandNodeSnapshot> node(String fallbackNodeId, String body) {
         if (body == null || body.isBlank()) {
             return Optional.empty();
         }
@@ -115,7 +115,7 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
         ));
     }
 
-    private static List<AdminIslandRuntimeView> runtimes(String body) {
+    static List<AdminIslandRuntimeView> runtimes(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return SimpleJson.list(root.get("islands")).stream()
             .map(SimpleJson::object)
@@ -135,7 +135,7 @@ public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
             .toList();
     }
 
-    private static AdminNodeSummaryView summary(String body) {
+    static AdminNodeSummaryView summary(String body) {
         Object parsed = CoreJson.value(body);
         Map<?, ?> root = SimpleJson.object(parsed);
         if (!root.isEmpty()) {
