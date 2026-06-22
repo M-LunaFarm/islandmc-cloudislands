@@ -68,6 +68,7 @@ class CoreTypedClientsTest {
         assertFalse(BankCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate bank commands to a standalone client");
         assertFalse(CommunicationQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate communication queries to a standalone client");
         assertFalse(CommunicationCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate communication commands to a standalone client");
+        assertFalse(IslandLifecycleCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate lifecycle commands to a standalone client");
         assertFalse(PlayerProfileQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile queries to a standalone client");
         assertFalse(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile commands to a standalone client");
         assertFalse(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template queries to a standalone client");
@@ -81,6 +82,7 @@ class CoreTypedClientsTest {
         assertSame(JdkBankCommandClient.class, client.bankCommands().getClass());
         assertSame(JdkCommunicationQueryClient.class, client.communication().getClass());
         assertSame(JdkCommunicationCommandClient.class, client.communicationCommands().getClass());
+        assertSame(JdkIslandLifecycleCommandClient.class, client.lifecycle().getClass());
         assertSame(JdkPlayerProfileQueryClient.class, client.playerProfiles().getClass());
         assertSame(JdkPlayerProfileCommandClient.class, client.playerProfileCommands().getClass());
         assertSame(JdkTemplateQueryClient.class, client.templates().getClass());
@@ -162,6 +164,20 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("public CompletableFuture<List<IslandLogRecord>> records("), "log queries must not live on the core transport client");
         assertTrue(source.contains("this.communicationQueryClient = new JdkCommunicationQueryClient(this);"));
         assertTrue(source.contains("this.communicationCommandClient = new JdkCommunicationCommandClient(this);"));
+    }
+
+    @Test
+    void jdkCoreApiClientDelegatesLifecycleMethodsToStandaloneClient() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+
+        assertTrue(source.contains("return lifecycleCommandClient.createIsland(playerUuid, templateId);"), "CoreApiClient createIsland compatibility method must delegate");
+        assertTrue(source.contains("return lifecycleCommandClient.deleteIsland(requesterUuid, islandId);"), "CoreApiClient deleteIsland compatibility method must delegate");
+        assertFalse(source.contains("public CompletableFuture<IslandLifecycleActionView> resetIsland("), "lifecycle reset must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<IslandLifecycleActionView> saveIsland("), "lifecycle save must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<IslandLifecycleActionView> activateIsland("), "admin lifecycle commands must not live on the core transport client");
+        assertFalse(source.contains("lifecycleAction("), "lifecycle response parsing must live in the lifecycle command client");
+        assertFalse(source.contains("parseCreateIslandResult("), "create response parsing must live in the lifecycle command client");
+        assertTrue(source.contains("this.lifecycleCommandClient = new JdkIslandLifecycleCommandClient(this);"));
     }
 
     @Test

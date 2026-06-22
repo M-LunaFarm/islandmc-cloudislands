@@ -39,7 +39,7 @@ import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -49,6 +49,7 @@ public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCom
     private final BankCommandClient bankCommandClient;
     private final CommunicationQueryClient communicationQueryClient;
     private final CommunicationCommandClient communicationCommandClient;
+    private final IslandLifecycleCommandClient lifecycleCommandClient;
     private final JdkSnapshotClient snapshotClient;
     private final IslandEnvironmentQueryClient environmentQueryClient;
     private final IslandEnvironmentCommandClient environmentCommandClient;
@@ -105,6 +106,7 @@ public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCom
         this.bankCommandClient = new JdkBankCommandClient(this);
         this.communicationQueryClient = new JdkCommunicationQueryClient(this);
         this.communicationCommandClient = new JdkCommunicationCommandClient(this);
+        this.lifecycleCommandClient = new JdkIslandLifecycleCommandClient(this);
         this.snapshotClient = new JdkSnapshotClient(this);
         this.environmentQueryClient = new JdkIslandEnvironmentQueryClient(this);
         this.environmentCommandClient = new JdkIslandEnvironmentCommandClient(this);
@@ -235,7 +237,7 @@ public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCom
 
     @Override
     public IslandLifecycleCommandClient lifecycle() {
-        return this;
+        return lifecycleCommandClient;
     }
 
     @Override
@@ -391,87 +393,12 @@ public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCom
 
     @Override
     public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
-        requireId(playerUuid, "playerUuid");
-        String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
-        return post("/v1/islands", jsonObject("playerUuid", playerUuid, "templateId", normalizedTemplateId))
-            .thenApply(JdkCoreApiClient::parseCreateIslandResult);
+        return lifecycleCommandClient.createIsland(playerUuid, templateId);
     }
 
     @Override
     public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) {
-        requireId(requesterUuid, "requesterUuid");
-        requireId(islandId, "islandId");
-        return deleteWithResultBody("/v1/islands/" + islandId + "?requesterUuid=" + requesterUuid)
-            .thenApply(body -> parseDeleteIslandResult(body, islandId));
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> resetIsland(UUID islandId, UUID actorUuid, String reason) {
-        requireId(islandId, "islandId");
-        requireId(actorUuid, "actorUuid");
-        return postWithResultBody("/v1/islands/reset", jsonObject("islandId", islandId, "actorUuid", actorUuid, "reason", reason == null || reason.isBlank() ? "player-reset" : reason.trim()))
-            .thenApply(body -> lifecycleAction(body, "RESET_QUEUED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> saveIsland(UUID islandId, String reason) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/save", jsonObject("islandId", islandId, "reason", lifecycleReason(reason, "ADMIN_SAVE")))
-            .thenApply(body -> lifecycleAction(body, "SNAPSHOT_QUEUED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> snapshotIsland(UUID islandId, String reason) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/snapshot", jsonObject("islandId", islandId, "reason", lifecycleReason(reason, "ADMIN_MANUAL")))
-            .thenApply(body -> lifecycleAction(body, "SNAPSHOT_QUEUED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> restoreIslandSnapshot(UUID islandId, long snapshotNo) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/restore", jsonObject("islandId", islandId, "snapshotNo", snapshotNo))
-            .thenApply(body -> lifecycleAction(body, "RESTORE_QUEUED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> rollbackIslandSnapshot(UUID islandId, long snapshotNo) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/rollback", jsonObject("islandId", islandId, "snapshotNo", snapshotNo))
-            .thenApply(body -> lifecycleAction(body, "RESTORE_QUEUED", islandId));
-    }
-
-    private static String lifecycleReason(String reason, String fallback) {
-        if (reason == null || reason.isBlank()) {
-            return fallback;
-        }
-        return reason.trim();
-    }
-
-    private static IslandLifecycleActionView lifecycleAction(String body, String successCode, UUID fallbackIslandId) {
-        Map<?, ?> root = CoreJson.object(body);
-        Map<?, ?> error = SimpleJson.object(root.get("error"));
-        boolean accepted = error.isEmpty()
-            && !Boolean.FALSE.equals(root.get("accepted"))
-            && !Boolean.FALSE.equals(root.get("applied"));
-        String code = CoreJson.text(root, "code");
-        if (code.isBlank()) {
-            code = SimpleJson.text(error.get("code"));
-        }
-        if (code.isBlank()) {
-            code = accepted ? successCode : "FAILED";
-        }
-        String islandId = CoreJson.text(root, "islandId");
-        if (islandId.isBlank() && fallbackIslandId != null) {
-            islandId = fallbackIslandId.toString();
-        }
-        return new IslandLifecycleActionView(
-            accepted,
-            code,
-            islandId,
-            CoreJson.number(root, "snapshotNo"),
-            CoreJson.text(root, "storagePath")
-        );
+        return lifecycleCommandClient.deleteIsland(requesterUuid, islandId);
     }
 
     @Override
@@ -559,50 +486,8 @@ public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCom
     }
 
     @Override
-    public CompletableFuture<IslandLifecycleActionView> activateIsland(UUID islandId) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/activate", jsonObject("islandId", islandId))
-            .thenApply(body -> lifecycleAction(body, "ACTIVATING", islandId));
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> deactivateIsland(UUID islandId) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/deactivate", jsonObject("islandId", islandId))
-            .thenApply(body -> lifecycleAction(body, "SAVING", islandId));
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> migrateIsland(UUID islandId, String targetNode) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/migrate", jsonObject("islandId", islandId, "targetNode", targetNode == null ? "" : targetNode.trim()))
-            .thenApply(body -> lifecycleAction(body, "MIGRATING", islandId));
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> quarantineIsland(UUID islandId, String reason) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/" + islandId + "/quarantine", jsonObject("reason", lifecycleReason(reason, "admin")))
-            .thenApply(body -> lifecycleAction(body, "QUARANTINED", islandId));
-    }
-
-    @Override
     public CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId) {
         return postWithResultBody("/v1/admin/islands/tp", jsonObject("playerUuid", playerUuid, "islandId", islandId)).thenApply(JdkCoreApiClient::parseRouteTicketResult);
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> adminDeleteIsland(UUID islandId) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/" + islandId + "/delete", "{}")
-            .thenApply(body -> lifecycleAction(body, "DELETED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<IslandLifecycleActionView> repairIsland(UUID islandId, String reason) {
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/islands/" + islandId + "/repair", jsonObject("reason", lifecycleReason(reason, "admin")))
-            .thenApply(body -> lifecycleAction(body, "REPAIRED", islandId));
     }
 
     static String stringMapJson(Map<String, String> values) {
@@ -674,7 +559,7 @@ public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCom
         return send(request).thenApply(response -> response.bodyOrEmpty(response.resultBody()));
     }
 
-    private CompletableFuture<String> deleteWithResultBody(String path) {
+    CompletableFuture<String> deleteWithResultBody(String path) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
             .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)
@@ -730,25 +615,6 @@ public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCom
         return false;
     }
 
-    private static CreateIslandResult parseCreateIslandResult(String body) {
-        Map<?, ?> root = resultObject(body);
-        return new CreateIslandResult(
-            bool(root, "accepted"),
-            resultCode(root),
-            null,
-            RouteTicketJson.parseNested(body == null ? "" : body, "ticket")
-        );
-    }
-
-    private static DeleteIslandResult parseDeleteIslandResult(String body, UUID fallbackIslandId) {
-        Map<?, ?> root = resultObject(body);
-        return new DeleteIslandResult(
-            bool(root, "accepted"),
-            resultCode(root),
-            uuid(root, "islandId", fallbackIslandId)
-        );
-    }
-
     private static Map<?, ?> resultObject(String body) {
         if (body == null || body.isBlank()) {
             return Map.of();
@@ -759,11 +625,6 @@ public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCom
     private static String resultCode(Map<?, ?> root) {
         String code = SimpleJson.text(root.get("code"));
         return code.isBlank() ? "FAILED" : code;
-    }
-
-    private static boolean bool(Map<?, ?> root, String key) {
-        Object value = root.get(key);
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
     }
 
     private static UUID uuid(Map<?, ?> root, String key, UUID fallback) {
@@ -1022,7 +883,7 @@ public final class JdkCoreApiClient implements CoreApiClient, IslandLifecycleCom
         }
     }
 
-    private static final class RouteTicketJson {
+    static final class RouteTicketJson {
         private RouteTicketJson() {}
 
         static RouteTicket parseNested(String json, String field) {
