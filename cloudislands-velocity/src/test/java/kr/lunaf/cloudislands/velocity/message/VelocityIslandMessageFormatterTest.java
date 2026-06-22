@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.coreclient.ChatActionView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
 import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
+import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.MemberActionView;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
@@ -79,19 +80,19 @@ class VelocityIslandMessageFormatterTest {
             formatter.actionResult(
                 "Island activate",
                 "11111111-1111-1111-1111-111111111111",
-                "{\"accepted\":false,\"code\":\"NO_READY_NODE_POOL\",\"islandId\":\"22222222-2222-2222-2222-222222222222\"}"
+                new IslandLifecycleActionView(false, "NO_READY_NODE_POOL", "22222222-2222-2222-2222-222222222222", 0L, "")
             )
         );
     }
 
     @Test
-    void formatsActionResultOptionalFlagsFromParsedJsonFields() {
+    void formatsActionResultSnapshotFromTypedLifecycleView() {
         assertEquals(
-            "Island restore: accepted target=11111111 snapshot=3 restoreManifest=true restorePortable=false",
+            "Island restore: accepted target=11111111 snapshot=3",
             formatter.actionResult(
                 "Island restore",
                 "11111111-1111-1111-1111-111111111111",
-                "{\"accepted\":true,\"snapshotNo\":3,\"restoreManifestRequired\":true,\"restorePortableRequired\":false}"
+                new IslandLifecycleActionView(true, "", "11111111-1111-1111-1111-111111111111", 3L, "")
             )
         );
     }

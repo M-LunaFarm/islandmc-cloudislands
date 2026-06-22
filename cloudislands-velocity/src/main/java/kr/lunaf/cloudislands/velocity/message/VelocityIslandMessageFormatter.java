@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.velocity.message;
 
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.boolValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.doubleValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.hasField;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
 import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectValue;
@@ -95,60 +94,6 @@ public final class VelocityIslandMessageFormatter {
             }
         }
         return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
-    }
-
-    public String actionResult(String label, String targetId, String body) {
-        if (body == null || body.isBlank()) {
-            return label + ": accepted target=" + compactTarget(targetId);
-        }
-        String code = jsonValue(body, "code");
-        boolean accepted = !hasField(body, "accepted") || boolValue(body, "accepted");
-        StringBuilder builder = new StringBuilder(label)
-            .append(": ")
-            .append(accepted ? "accepted" : "rejected")
-            .append(" target=")
-            .append(compactTarget(targetId));
-        if (!code.isBlank()) {
-            builder.append(" code=").append(code);
-            String detail = adminCodeDetail(code);
-            if (!detail.isBlank()) {
-                builder.append(" detail=").append(detail);
-            }
-        }
-        String islandId = jsonValue(body, "islandId");
-        if (!islandId.isBlank() && !islandId.equals(targetId)) {
-            builder.append(" 섬=").append(shortId(islandId));
-        }
-        String materialKey = jsonValue(body, "materialKey");
-        if (!materialKey.isBlank()) {
-            builder.append(" material=").append(materialKey);
-        }
-        String worth = jsonValue(body, "worth");
-        if (!worth.isBlank()) {
-            builder.append(" worth=").append(worth);
-        }
-        if (hasField(body, "snapshotNo")) {
-            builder.append(" snapshot=").append(longValue(body, "snapshotNo"));
-        }
-        String storagePath = jsonValue(body, "storagePath");
-        if (!storagePath.isBlank()) {
-            builder.append(" storagePath=").append(storagePath);
-        }
-        if (hasField(body, "restoreManifestRequired")) {
-            builder.append(" restoreManifest=").append(boolValue(body, "restoreManifestRequired"));
-        }
-        String restoreChecksumPolicy = jsonValue(body, "restoreChecksumPolicy");
-        if (!restoreChecksumPolicy.isBlank()) {
-            builder.append(" restoreChecksum=").append(restoreChecksumPolicy);
-        }
-        if (hasField(body, "restorePortableRequired")) {
-            builder.append(" restorePortable=").append(boolValue(body, "restorePortableRequired"));
-        }
-        String restoreSupportedFormats = jsonValue(body, "restoreSupportedFormats");
-        if (!restoreSupportedFormats.isBlank()) {
-            builder.append(" restoreFormats=").append(restoreSupportedFormats);
-        }
-        return builder.toString();
     }
 
     public String actionResult(String label, String targetId, IslandLifecycleActionView view) {

@@ -98,9 +98,9 @@ class VelocityPluginRolePolicyTest {
         assertFalse(formatter.contains("limitResult(String body)"), "Velocity limit mutation formatter must use typed mutation views");
         assertFalse(formatter.contains("flagList(String body)"), "Velocity flag formatter must use typed flag views");
         assertFalse(formatter.contains("upgradeRules(String body)"), "Velocity upgrade rules formatter must use typed rule views");
+        assertFalse(formatter.contains("actionResult(String label, String targetId, String body)"), "Velocity lifecycle and block actions must use typed action views");
         assertFalse(formatter.contains("body.contains(\"\\\"accepted\\\""), "Velocity message formatter must inspect accepted through parsed JSON fields");
         assertFalse(formatter.contains("body.contains(\"\\\"snapshotNo\\\""), "Velocity message formatter must inspect snapshotNo through parsed JSON fields");
-        assertTrue(formatter.contains("hasField(body, \"accepted\")"), "Velocity message formatter must use parsed field presence for optional result flags");
     }
 
     @Test
