@@ -92,6 +92,7 @@ items:
     fallback-name: 뒤로
     action: back
 actions:
+  set: island.permissions.set
   page: island.permissions.page
   save: island.permissions.save
   reset: island.permissions.reset

@@ -1,13 +1,45 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
+import java.util.stream.Stream;
+import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
 import org.junit.jupiter.api.Test;
 
 class GuiMenuDefinitionTest {
+    @Test
+    void allBundledMenuDefinitionsParseAndValidateFromDiscoveredResources() throws Exception {
+        Path menuRoot = Path.of("src/main/resources/config-v2/ui/menus");
+        try (Stream<Path> menuFiles = Files.walk(menuRoot)) {
+            java.util.List<Path> files = menuFiles
+                .filter(Files::isRegularFile)
+                .filter(path -> path.toString().endsWith(".yml") || path.toString().endsWith(".yaml"))
+                .sorted()
+                .toList();
+
+            assertTrue(files.size() >= 30, "config-v2 menu resources must be discovered from the directory, not a hardcoded test list");
+            for (Path file : files) {
+                String yaml = Files.readString(file, StandardCharsets.UTF_8);
+                String resource = "config-v2/ui/menus/" + menuRoot.relativize(file).toString().replace('\\', '/');
+                GuiMenuDefinition definition = GuiMenuDefinition.bundled(
+                    resource,
+                    new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+                );
+
+                assertFalse(definition.id().isBlank(), resource + " must define a menu id");
+                assertFalse(definition.layout().isEmpty(), resource + " must define a layout");
+                assertTrue(ConfigV2Validator.validateMenuYaml(resource, yaml, GuiActionSchema.registeredActionIds()).valid(), resource + " must pass menu schema validation");
+            }
+        }
+    }
+
     @Test
     void parsesMenuMetadataAndActionAliases() throws Exception {
         String yaml = """
