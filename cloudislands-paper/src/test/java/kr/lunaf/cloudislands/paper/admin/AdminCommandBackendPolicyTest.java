@@ -13,9 +13,11 @@ class AdminCommandBackendPolicyTest {
     @Test
     void diagnosticsExportIsAFirstClassAdminCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String configHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminConfigCommandHandler.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
         String adminSurface = source + "\n" + catalog;
+        String configSurface = source + "\n" + configHandler;
 
         assertTrue(adminSurface.contains("\"diagnostics\""), "Diagnostics root command must be registered");
         assertTrue(adminSurface.contains("ciadmin diagnostics export"), "Diagnostics export must be listed in help");
@@ -36,22 +38,25 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("nodes.staleNodeCount()"), "Heartbeat diagnostics must expose typed stale node count");
         assertTrue(source.contains("nodes.heartbeatTimeoutSeconds()"), "Heartbeat diagnostics must expose typed heartbeat timeout");
         assertTrue(source.contains("coreApiClient.adminAudit().list(25)"), "Diagnostics export must include bounded typed audit context");
-        assertTrue(source.contains("configValidationDiagnosticSection"), "Diagnostics export must include local config validation");
-        assertTrue(source.contains("effectiveConfigDiagnosticSection"), "Diagnostics export must include redacted effective config");
-        assertTrue(source.contains("## config-validation"), "Diagnostics bundle must have a config validation section");
-        assertTrue(source.contains("## effective-config-redacted"), "Diagnostics bundle must have a redacted effective config section");
+        assertTrue(source.contains("configHandler.validationDiagnosticSection()"), "Diagnostics export must include local config validation");
+        assertTrue(source.contains("configHandler.effectiveConfigDiagnosticSection()"), "Diagnostics export must include redacted effective config");
+        assertTrue(configHandler.contains("## config-validation"), "Diagnostics bundle must have a config validation section");
+        assertTrue(configHandler.contains("## effective-config-redacted"), "Diagnostics bundle must have a redacted effective config section");
         assertTrue(source.contains("pluginVersion="), "Diagnostics bundle must include runtime version context");
-        assertTrue(source.contains("validateConfigV2Bundle()"), "Diagnostics config validation must use the same validator as config reload");
-        assertTrue(source.contains("effectiveConfigV2Yaml(true)"), "Diagnostics effective config must be redacted");
+        assertTrue(configHandler.contains("validateConfigV2Bundle()"), "Diagnostics config validation must use the same validator as config reload");
+        assertTrue(configHandler.contains("effectiveConfigV2Yaml(true)"), "Diagnostics effective config must be redacted");
+        assertTrue(configSurface.contains("AdminConfigCommandHandler"), "Config admin operations must be split from the main backend");
         assertTrue(plugin.contains("cloudislands.admin.diagnostics"), "Diagnostics command must have a plugin permission");
     }
 
     @Test
     void configOperationsAreFirstClassAdminCommands() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String configHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminConfigCommandHandler.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
         String adminSurface = source + "\n" + catalog;
+        String configSurface = source + "\n" + configHandler;
 
         assertTrue(source.contains("CONFIG_COMMANDS"), "Config subcommands must be registered for completion");
         assertTrue(adminSurface.contains("ciadmin config validate"), "Config validate must be listed in help");
@@ -59,14 +64,14 @@ class AdminCommandBackendPolicyTest {
         assertTrue(adminSurface.contains("ciadmin config reload"), "Config reload must be listed in help");
         assertTrue(adminSurface.contains("ciadmin config effective"), "Config effective must be listed in help");
         assertTrue(adminSurface.contains("ciadmin config sources"), "Config sources must be listed in help");
-        assertTrue(source.contains("handleConfig"), "Config command must have a local operation handler");
-        assertTrue(source.contains("ConfigV2Validator.validateYaml"), "Config validate must run schema and secret validation");
-        assertTrue(source.contains("ConfigV2Validator.redactYaml"), "Effective config output must redact secrets");
-        assertTrue(source.contains("if (!validation.valid())"), "Config reload must keep the current config when validation fails");
-        assertTrue(source.contains("reloadRuntimeConfig()"), "Config reload must refresh the active Config v2 runtime snapshot after validation passes");
-        assertTrue(source.contains("plugin.reloadRuntimeConfig()"), "Admin config reload must call the Paper runtime snapshot reload boundary");
-        assertTrue(source.contains("ConfigDiff.between"), "Config diff must report changed and restart-required paths");
-        assertTrue(source.contains("currentConfigYaml"), "Config diff must compare against the current runtime config when available");
+        assertTrue(source.contains("configHandler.handle(sender, args)"), "Config command must route to a dedicated operation handler");
+        assertTrue(configHandler.contains("ConfigV2Validator.validateYaml"), "Config validate must run schema and secret validation");
+        assertTrue(configHandler.contains("ConfigV2Validator.redactYaml"), "Effective config output must redact secrets");
+        assertTrue(configHandler.contains("if (!validation.valid())"), "Config reload must keep the current config when validation fails");
+        assertTrue(configSurface.contains("reloadRuntimeConfig()"), "Config reload must refresh the active Config v2 runtime snapshot after validation passes");
+        assertTrue(configHandler.contains("plugin.reloadRuntimeConfig()"), "Admin config reload must call the Paper runtime snapshot reload boundary");
+        assertTrue(configHandler.contains("ConfigDiff.between"), "Config diff must report changed and restart-required paths");
+        assertTrue(configHandler.contains("currentConfigYaml"), "Config diff must compare against the current runtime config when available");
         assertTrue(plugin.contains("cloudislands.admin.config"), "Config command must have a plugin permission");
     }
 

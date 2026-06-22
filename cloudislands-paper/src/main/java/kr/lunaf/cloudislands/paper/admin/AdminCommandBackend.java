@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
@@ -35,10 +34,6 @@ import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.AdminStorageStatusView;
-import kr.lunaf.cloudislands.common.config.ConfigDiff;
-import kr.lunaf.cloudislands.common.config.ConfigIssue;
-import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
-import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
 import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -56,7 +51,6 @@ import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
-import kr.lunaf.cloudislands.paper.gui.GuiActionSchema;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
@@ -95,6 +89,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private final MessageRenderer messages;
     private final boolean superiorSkyblock2MigrationEnabled;
     private final AdminMigrationCommandHandler migrationHandler;
+    private final AdminConfigCommandHandler configHandler;
 
     AdminCommandBackend(CloudIslandsPaperAgent agent, CoreApiClient coreApiClient, String nodeId) {
         this(agent, coreApiClient, nodeId, 20);
@@ -127,6 +122,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             this::adminText,
             this::run,
             this::sendCommandUsage
+        );
+        this.configHandler = new AdminConfigCommandHandler(
+            agent,
+            coreApiClient,
+            this::adminText,
+            this::run,
+            this::sendCommandUsage,
+            this::coreConfigMessage,
+            result -> maintenanceMessage("Core reload", result)
         );
     }
 
@@ -196,7 +200,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[0].equalsIgnoreCase("config")) {
-            return handleConfig(sender, args);
+            return configHandler.handle(sender, args);
         }
         if (args[0].equalsIgnoreCase("storage")) {
             run(sender, "Storage status", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
@@ -428,7 +432,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("reload")) {
-            reloadRuntimeConfig();
+            configHandler.reloadRuntimeConfig();
             if (args.length > 2) {
                 run(sender, "Addon reload", api.addons().refresh(args[2]).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
             } else {
@@ -449,198 +453,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private boolean handleConfig(CommandSender sender, String[] args) {
-        if (args.length < 2 || args[1].equalsIgnoreCase("show")) {
-            run(sender, "Core config", coreApiClient.adminCoreConfig().config().thenApply(this::coreConfigMessage));
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("validate")) {
-            ConfigValidationResult validation = validateConfigV2Bundle();
-            message(sender, configValidationMessage(validation));
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("diff")) {
-            message(sender, configDiffMessage());
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("effective")) {
-            message(sender, writeEffectiveConfig());
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("sources")) {
-            message(sender, configSourcesMessage());
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("reload")) {
-            ConfigValidationResult validation = validateConfigV2Bundle();
-            if (!validation.valid()) {
-                message(sender, configValidationMessage(validation));
-                return true;
-            }
-            reloadRuntimeConfig();
-            run(sender, "Config reload", coreApiClient.adminMaintenance().reload().thenApply(result -> maintenanceMessage("Core reload", result)));
-            return true;
-        }
-        sendCommandUsage(sender, List.of(
-            "/ciadmin config",
-            "/ciadmin config validate",
-            "/ciadmin config diff",
-            "/ciadmin config reload",
-            "/ciadmin config effective",
-            "/ciadmin config sources"
-        ));
-        return true;
-    }
-
-    private void reloadRuntimeConfig() {
-        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
-            plugin.reloadRuntimeConfig();
-            return;
-        }
-        throw new IllegalStateException("CloudIslands Paper runtime config reload requires the Paper plugin instance");
-    }
-
-    private ConfigValidationResult validateConfigV2Bundle() {
-        List<ConfigIssue> issues = new ArrayList<>();
-        Path root = configV2Root();
-        if (Files.notExists(root)) {
-            issues.add(new ConfigIssue("CONFIG_V2_MISSING", root.toString(), "config-v2 directory is missing"));
-            return new ConfigValidationResult(issues);
-        }
-        try (Stream<Path> files = Files.walk(root)) {
-            files
-                .filter(Files::isRegularFile)
-                .filter(path -> path.toString().endsWith(".yml") || path.toString().endsWith(".yaml"))
-                .forEach(path -> issues.addAll(validateConfigV2File(root, path).issues()));
-        } catch (IOException exception) {
-            issues.add(new ConfigIssue("CONFIG_V2_READ_FAILED", root.toString(), exception.getMessage()));
-        }
-        return new ConfigValidationResult(issues);
-    }
-
-    private ConfigValidationResult validateConfigV2File(Path root, Path path) {
-        String relative = root.relativize(path).toString();
-        String yaml = readConfigFile(path);
-        if (relative.contains("ui/menus/")) {
-            return ConfigV2Validator.validateMenuYaml(relative, yaml, GuiActionSchema.registeredActionIds());
-        }
-        return ConfigV2Validator.validateYaml(relative, yaml);
-    }
-
-    private String configValidationMessage(ConfigValidationResult validation) {
-        return validation.valid()
-            ? adminText("admin-command-config-validate-ok", "Config v2 validation: valid")
-            : adminText("admin-command-config-validate-failed-prefix", "Config v2 validation failed: ") + validation.summary();
-    }
-
-    private String configDiffMessage() {
-        try {
-            String current = currentConfigYaml();
-            String candidate = candidateConfigYaml();
-            ConfigDiff diff = ConfigDiff.between(current, candidate, List.of(
-                "node.id",
-                "node.role",
-                "node.velocity-server-name",
-                "core-api.base-url",
-                "redis.uri",
-                "storage.type",
-                "security.forwarding-secret"
-            ));
-            return adminText("admin-command-config-diff-prefix", "Config diff: changed=") + diff.changedLines().size()
-                + adminText("admin-command-config-diff-restart-prefix", " restartRequired=") + diff.restartRequired()
-                + (diff.changedLines().isEmpty() ? "" : adminText("admin-command-config-diff-paths-prefix", " paths=") + String.join(",", diff.changedLines().stream().limit(12).toList()));
-        } catch (RuntimeException exception) {
-            return adminText("admin-command-config-diff-failed-prefix", "Config diff failed: ") + exception.getMessage();
-        }
-    }
-
-    private String currentConfigYaml() {
-        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
-            return plugin.runtimeConfig().sourceConfig().effectiveYaml();
-        }
-        return "";
-    }
-
-    private String candidateConfigYaml() {
-        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
-            return plugin.loadRuntimeConfigSnapshot().sourceConfig().effectiveYaml();
-        }
-        return "";
-    }
-
-    private String writeEffectiveConfig() {
-        try {
-            Path output = agent.plugin().getDataFolder().toPath().resolve("generated").resolve("effective-config.yml");
-            Files.createDirectories(output.getParent());
-            Files.writeString(output, effectiveConfigV2Yaml(true));
-            return adminText("admin-command-config-effective-written-prefix", "Effective config written: ") + output;
-        } catch (IOException | RuntimeException exception) {
-            return adminText("admin-command-config-effective-failed-prefix", "Effective config failed: ") + exception.getMessage();
-        }
-    }
-
-    private String configSourcesMessage() {
-        Path root = configV2Root();
-        if (Files.notExists(root)) {
-            return adminText("admin-command-config-sources-missing-prefix", "Config sources missing: ") + root;
-        }
-        try (Stream<Path> files = Files.walk(root)) {
-            List<String> sources = files
-                .filter(Files::isRegularFile)
-                .filter(path -> path.toString().endsWith(".yml") || path.toString().endsWith(".yaml"))
-                .map(root::relativize)
-                .map(Path::toString)
-                .sorted()
-                .toList();
-            return adminText("admin-command-config-sources-prefix", "Config sources: ") + String.join(",", sources);
-        } catch (IOException exception) {
-            return adminText("admin-command-config-sources-failed-prefix", "Config sources failed: ") + exception.getMessage();
-        }
-    }
-
-    private String effectiveConfigV2Yaml(boolean redact) {
-        Path root = configV2Root();
-        if (Files.notExists(root)) {
-            return "";
-        }
-        try (Stream<Path> files = Files.walk(root)) {
-            String effective = files
-                .filter(Files::isRegularFile)
-                .filter(path -> path.toString().endsWith(".yml") || path.toString().endsWith(".yaml"))
-                .sorted()
-                .map(path -> "# source: " + root.relativize(path) + System.lineSeparator() + readConfigFile(path))
-                .reduce((left, right) -> left + System.lineSeparator() + right)
-                .orElse("");
-            return redact ? ConfigV2Validator.redactYaml(effective) : effective;
-        } catch (IOException exception) {
-            throw new IllegalStateException(exception);
-        }
-    }
-
-    private Path configV2Root() {
-        Path data = agent.plugin().getDataFolder().toPath().resolve("config-v2");
-        if (Files.exists(data)) {
-            return data;
-        }
-        Path moduleResource = Path.of("src/main/resources/config-v2");
-        if (Files.exists(moduleResource)) {
-            return moduleResource;
-        }
-        Path repositoryResource = Path.of("cloudislands-paper/src/main/resources/config-v2");
-        if (Files.exists(repositoryResource)) {
-            return repositoryResource;
-        }
-        return data;
-    }
-
-    private String readConfigFile(Path path) {
-        try {
-            return Files.readString(path);
-        } catch (IOException exception) {
-            throw new IllegalStateException(exception);
-        }
-    }
-
     private boolean handleDiagnostics(CommandSender sender, String[] args) {
         if (args.length < 2 || !args[1].equalsIgnoreCase("export")) {
             sender.sendMessage(adminText("admin-command-diagnostics-usage", "사용법: /ciadmin diagnostics export"));
@@ -655,8 +467,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
         CompletableFuture<String> routes = diagnosticSection("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
         CompletableFuture<String> audit = diagnosticSection("audit", coreApiClient.adminAudit().list(25).thenApply(this::auditListMessage));
-        CompletableFuture<String> configValidation = CompletableFuture.completedFuture(configValidationDiagnosticSection());
-        CompletableFuture<String> effectiveConfig = CompletableFuture.completedFuture(effectiveConfigDiagnosticSection());
+        CompletableFuture<String> configValidation = CompletableFuture.completedFuture(configHandler.validationDiagnosticSection());
+        CompletableFuture<String> effectiveConfig = CompletableFuture.completedFuture(configHandler.effectiveConfigDiagnosticSection());
         run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, heartbeatLag, jobs, routes, audit, configValidation, effectiveConfig)
             .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), heartbeatLag.join(), jobs.join(), routes.join(), audit.join(), configValidation.join(), effectiveConfig.join(), integrationsDiagnosticSection()))));
         return true;
@@ -695,21 +507,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return adminText("admin-command-diagnostics-exported-prefix", "Diagnostics exported: ") + report;
         } catch (IOException exception) {
             return adminText("admin-command-diagnostics-export-failed", "Diagnostics export failed: ") + exception.getMessage();
-        }
-    }
-
-    private String configValidationDiagnosticSection() {
-        ConfigValidationResult validation = validateConfigV2Bundle();
-        return "## config-validation\n"
-            + "valid=" + validation.valid() + '\n'
-            + "summary=" + redactDiagnostic(validation.summary()) + '\n';
-    }
-
-    private String effectiveConfigDiagnosticSection() {
-        try {
-            return "## effective-config-redacted\n" + redactDiagnostic(effectiveConfigV2Yaml(true)) + '\n';
-        } catch (RuntimeException exception) {
-            return "## effective-config-redacted\nerror=" + exception.getClass().getSimpleName() + ':' + exception.getMessage() + '\n';
         }
     }
 
