@@ -67,6 +67,9 @@ class CoreTypedClientsTest {
             .map(Class::getSimpleName)
             .toList();
 
+        assertFalse(nestedClients.contains("JdkBankClient"), "bank operations must use CoreBank query and command clients");
+        assertFalse(nestedClients.contains("JdkSnapshotClient"), "snapshot operations must use CoreSnapshot query and command clients");
+        assertFalse(nestedClients.contains("JdkCommunicationClient"), "communication operations must use CoreCommunication query and command clients");
         assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use CoreAdminMetricsQueryClient");
         assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use CoreAdminCoreConfigQueryClient");
         assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use CoreAdminStorageQueryClient");

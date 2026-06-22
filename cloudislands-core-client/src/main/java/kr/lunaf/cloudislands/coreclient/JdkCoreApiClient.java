@@ -49,9 +49,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final String adminToken;
     private final Duration timeout;
     private final HttpClient httpClient;
-    private final JdkBankClient bankClient;
-    private final JdkSnapshotClient snapshotClient;
-    private final JdkCommunicationClient communicationClient;
+    private final BankQueryClient bankQueryClient;
+    private final BankCommandClient bankCommandClient;
+    private final SnapshotQueryClient snapshotQueryClient;
+    private final SnapshotCommandClient snapshotCommandClient;
+    private final CommunicationQueryClient communicationQueryClient;
+    private final CommunicationCommandClient communicationCommandClient;
     private final JdkEnvironmentClient environmentClient;
     private final JdkSettingsClient settingsClient;
     private final JdkPermissionClient permissionClient;
@@ -92,9 +95,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.adminToken = adminToken == null ? "" : adminToken;
         this.timeout = timeout == null || timeout.isNegative() || timeout.isZero() ? Duration.ofSeconds(5) : timeout;
         this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
-        this.bankClient = new JdkBankClient();
-        this.snapshotClient = new JdkSnapshotClient();
-        this.communicationClient = new JdkCommunicationClient();
+        this.bankQueryClient = new CoreBankQueryClient(this);
+        this.bankCommandClient = new CoreBankCommandClient(this);
+        this.snapshotQueryClient = new CoreSnapshotQueryClient(this);
+        this.snapshotCommandClient = new CoreSnapshotCommandClient(this);
+        this.communicationQueryClient = new CoreCommunicationQueryClient(this);
+        this.communicationCommandClient = new CoreCommunicationCommandClient(this);
         this.environmentClient = new JdkEnvironmentClient();
         this.settingsClient = new JdkSettingsClient();
         this.permissionClient = new JdkPermissionClient();
@@ -128,32 +134,32 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public BankQueryClient bank() {
-        return bankClient;
+        return bankQueryClient;
     }
 
     @Override
     public BankCommandClient bankCommands() {
-        return bankClient;
+        return bankCommandClient;
     }
 
     @Override
     public SnapshotQueryClient snapshots() {
-        return snapshotClient;
+        return snapshotQueryClient;
     }
 
     @Override
     public SnapshotCommandClient snapshotCommands() {
-        return snapshotClient;
+        return snapshotCommandClient;
     }
 
     @Override
     public CommunicationQueryClient communication() {
-        return communicationClient;
+        return communicationQueryClient;
     }
 
     @Override
     public CommunicationCommandClient communicationCommands() {
-        return communicationClient;
+        return communicationCommandClient;
     }
 
     @Override
@@ -949,130 +955,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount) {
         return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount));
-    }
-
-    private final class JdkBankClient implements BankQueryClient, BankCommandClient {
-        @Override
-        public CompletableFuture<kr.lunaf.cloudislands.api.model.IslandBankSnapshot> snapshot(UUID islandId) {
-            requireId(islandId, "islandId");
-            return post("/v1/islands/bank", jsonObject("islandId", islandId))
-                .thenApply(CoreBankJson::snapshot);
-        }
-
-        @Override
-        public CompletableFuture<kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot> depositSnapshot(UUID islandId, UUID actorUuid, String amount) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return postWithResultBody("/v1/islands/bank/deposit", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
-                .thenApply(CoreBankJson::mutation);
-        }
-
-        @Override
-        public CompletableFuture<kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot> withdrawSnapshot(UUID islandId, UUID actorUuid, String amount) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
-                .thenApply(CoreBankJson::mutation);
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-    }
-
-    private final class JdkSnapshotClient implements SnapshotQueryClient, SnapshotCommandClient {
-        @Override
-        public CompletableFuture<List<IslandSnapshotRecord>> records(UUID islandId, int limit) {
-            requireId(islandId, "islandId");
-            return post("/v1/islands/snapshots", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))))
-                .thenApply(CoreSnapshotJson::records);
-        }
-
-        @Override
-        public CompletableFuture<SnapshotActionView> recordSnapshot(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
-            requireId(islandId, "islandId");
-            if (snapshotNo <= 0L) {
-                throw new IllegalArgumentException("positive snapshotNo is required");
-            }
-            String payload = fencingToken > 0L
-                ? jsonObject(
-                    "islandId", islandId,
-                    "snapshotNo", snapshotNo,
-                    "storagePath", storagePath == null ? "" : storagePath.trim(),
-                    "reason", reason == null || reason.isBlank() ? "manual" : reason.trim(),
-                    "checksum", checksum == null ? "" : checksum.trim(),
-                    "sizeBytes", Math.max(0L, sizeBytes),
-                    "nodeId", nodeId == null ? "" : nodeId.trim(),
-                    "fencingToken", fencingToken
-                )
-                : jsonObject(
-                    "islandId", islandId,
-                    "snapshotNo", snapshotNo,
-                    "storagePath", storagePath == null ? "" : storagePath.trim(),
-                    "reason", reason == null || reason.isBlank() ? "manual" : reason.trim(),
-                    "checksum", checksum == null ? "" : checksum.trim(),
-                    "sizeBytes", Math.max(0L, sizeBytes),
-                    "nodeId", nodeId == null ? "" : nodeId.trim()
-                );
-            return postWithResultBody(
-                    "/v1/islands/snapshots/record",
-                    payload
-                )
-                .thenApply(body -> CoreSnapshotJson.action(body, "SNAPSHOT_RECORDED"));
-        }
-
-        @Override
-        public CompletableFuture<SnapshotActionView> requestSnapshot(UUID islandId, String reason) {
-            requireId(islandId, "islandId");
-            return postWithResultBody("/v1/admin/islands/snapshot", jsonObject("islandId", islandId, "reason", reason == null || reason.isBlank() ? "manual" : reason.trim()))
-                .thenApply(body -> CoreSnapshotJson.action(body, "SNAPSHOT_REQUESTED"));
-        }
-
-        @Override
-        public CompletableFuture<SnapshotActionView> restoreSnapshot(UUID islandId, long snapshotNo) {
-            requireId(islandId, "islandId");
-            if (snapshotNo <= 0L) {
-                throw new IllegalArgumentException("positive snapshotNo is required");
-            }
-            return postWithResultBody("/v1/admin/islands/restore", jsonObject("islandId", islandId, "snapshotNo", snapshotNo))
-                .thenApply(body -> CoreSnapshotJson.action(body, "RESTORE_REQUESTED"));
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
-    }
-
-    private final class JdkCommunicationClient implements CommunicationQueryClient, CommunicationCommandClient {
-        @Override
-        public CompletableFuture<List<IslandLogRecord>> records(UUID islandId, int limit) {
-            requireId(islandId, "islandId");
-            return post("/v1/islands/logs", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))))
-                .thenApply(CoreCommunicationJson::records);
-        }
-
-        @Override
-        public CompletableFuture<ChatActionView> sendChat(UUID islandId, UUID actorUuid, String channel, String message) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            String normalizedChannel = channel == null || channel.isBlank() ? "ISLAND" : channel.trim().toUpperCase(java.util.Locale.ROOT);
-            String normalizedMessage = message == null ? "" : message.trim();
-            if (normalizedMessage.isBlank()) {
-                throw new IllegalArgumentException("message is required");
-            }
-            return postWithResultBody("/v1/islands/chat", jsonObject("islandId", islandId, "actorUuid", actorUuid, "channel", normalizedChannel, "message", normalizedMessage))
-                .thenApply(body -> CoreCommunicationJson.chatAction(body, "CHAT_SENT"));
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
     }
 
     private final class JdkEnvironmentClient implements IslandEnvironmentQueryClient, IslandEnvironmentCommandClient {
