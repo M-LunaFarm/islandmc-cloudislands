@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -16,13 +15,9 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreApiException;
-import kr.lunaf.cloudislands.coreclient.CoreMutationContext;
-import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
-import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
@@ -878,11 +873,11 @@ final class IslandCommandBackend {
     }
 
     private <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-        return CoreMutationContext.with(CoreMutationMetadata.request(auditAction), operation);
+        return IslandCommandRuntimeSupport.mutate(auditAction, operation);
     }
 
     private <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-        return CoreMutationContext.with(CoreMutationMetadata.idempotent(auditAction), operation);
+        return IslandCommandRuntimeSupport.mutateIdempotent(auditAction, operation);
     }
 
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -1110,27 +1105,18 @@ final class IslandCommandBackend {
     }
 
     private String playerMessage(String message) {
-        String value = message == null || message.isBlank() ? "섬 요청을 처리하지 못했습니다." : message;
-        return PlayerRouteMessagePolicy.sanitize(value);
+        return IslandCommandRuntimeSupport.playerMessage(message);
     }
 
     private String coreWriteFailureMessage(Throwable error, String fallback) {
-        return coreUnavailable(error)
-            ? routeMessage("core-service-maintenance", CoreApiDegradedModePolicy.MAINTENANCE_MESSAGE)
-            : fallback;
+        return IslandCommandRuntimeSupport.coreWriteFailureMessage(
+            coreUnavailable(error),
+            routeMessage("core-service-maintenance", IslandCommandRuntimeSupport.maintenanceFallback()),
+            fallback
+        );
     }
 
     private boolean coreUnavailable(Throwable error) {
-        Throwable current = error;
-        while (current instanceof CompletionException && current.getCause() != null) {
-            current = current.getCause();
-        }
-        if (current instanceof CoreApiException exception) {
-            return exception.status() == 0 || exception.status() >= 500;
-        }
-        return current instanceof java.io.IOException
-            || current instanceof java.net.ConnectException
-            || current instanceof java.net.http.HttpTimeoutException
-            || current instanceof java.net.http.HttpConnectTimeoutException;
+        return IslandCommandRuntimeSupport.coreUnavailable(error);
     }
 }
