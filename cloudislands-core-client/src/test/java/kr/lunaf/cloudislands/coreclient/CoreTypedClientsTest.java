@@ -69,7 +69,7 @@ class CoreTypedClientsTest {
         assertFalse(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template queries to a standalone client");
         assertFalse(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template commands to a standalone client");
         assertTrue(JobCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed job commands directly");
-        assertTrue(BlockValueCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed block value commands directly");
+        assertFalse(BlockValueCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate block value commands to a standalone client");
         assertFalse(WarehouseQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse queries to a standalone client");
         assertFalse(WarehouseCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse commands to a standalone client");
         JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:1"), "token", Duration.ofSeconds(1));
@@ -77,10 +77,10 @@ class CoreTypedClientsTest {
         assertSame(JdkPlayerProfileCommandClient.class, client.playerProfileCommands().getClass());
         assertSame(JdkTemplateQueryClient.class, client.templates().getClass());
         assertSame(JdkTemplateCommandClient.class, client.templateCommands().getClass());
+        assertSame(JdkBlockValueCommandClient.class, client.blockValueCommands().getClass());
         assertSame(JdkWarehouseQueryClient.class, client.warehouse().getClass());
         assertSame(JdkWarehouseCommandClient.class, client.warehouseCommands().getClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("retry", UUID.class).getDeclaringClass());
-        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("set", UUID.class, String.class, String.class, long.class, long.class).getDeclaringClass());
     }
 
     @Test
@@ -172,6 +172,15 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("requireTemplateId("), "template validation must live in the template command client");
         assertTrue(source.contains("this.templateQueryClient = new JdkTemplateQueryClient(this);"));
         assertTrue(source.contains("this.templateCommandClient = new JdkTemplateCommandClient(this);"));
+    }
+
+    @Test
+    void jdkCoreApiClientDelegatesBlockValueCommandsToStandaloneClient() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+
+        assertFalse(source.contains("public CompletableFuture<BlockValueActionView> set("), "block value commands must not live on the core transport client");
+        assertFalse(source.contains("requireMaterialKey("), "block value input validation must live in the block value command client");
+        assertTrue(source.contains("this.blockValueCommandClient = new JdkBlockValueCommandClient(this);"));
     }
 
     @Test

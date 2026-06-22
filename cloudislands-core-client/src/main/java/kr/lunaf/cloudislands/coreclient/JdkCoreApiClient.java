@@ -43,7 +43,7 @@ import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, IslandLifecycleCommandClient, JobCommandClient, BlockValueCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, IslandLifecycleCommandClient, JobCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -75,6 +75,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     private final TemplateCommandClient templateCommandClient;
     private final JdkJobClient jobQueryClient;
     private final BlockValueQueryClient blockValueQueryClient;
+    private final BlockValueCommandClient blockValueCommandClient;
     private final AdminMetricsQueryClient adminMetricsClient;
     private final AdminCoreConfigQueryClient adminCoreConfigClient;
     private final AdminStorageQueryClient adminStorageClient;
@@ -125,6 +126,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.templateCommandClient = new JdkTemplateCommandClient(this);
         this.jobQueryClient = new JdkJobClient(this);
         this.blockValueQueryClient = new JdkBlockValueQueryClient(this);
+        this.blockValueCommandClient = new JdkBlockValueCommandClient(this);
         this.adminMetricsClient = new JdkAdminMetricsClient(this);
         this.adminCoreConfigClient = new JdkAdminCoreConfigClient(this);
         this.adminStorageClient = new JdkAdminStorageClient(this);
@@ -307,7 +309,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
 
     @Override
     public BlockValueCommandClient blockValueCommands() {
-        return this;
+        return blockValueCommandClient;
     }
 
     @Override
@@ -403,21 +405,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         requireId(actorUuid, "actorUuid");
         return postWithResultBody("/v1/islands/reset", jsonObject("islandId", islandId, "actorUuid", actorUuid, "reason", reason == null || reason.isBlank() ? "player-reset" : reason.trim()))
             .thenApply(body -> lifecycleAction(body, "RESET_QUEUED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<BlockValueActionView> set(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
-        UUID safeActor = actorUuid == null ? new UUID(0L, 0L) : actorUuid;
-        String safeMaterial = requireMaterialKey(materialKey);
-        return postWithResultBody("/v1/admin/block-values", jsonObject("actorUuid", safeActor, "materialKey", safeMaterial, "worth", worth == null ? "0" : worth, "levelPoints", levelPoints, "limit", limit))
-            .thenApply(body -> CoreBlockValueJson.action(body, safeMaterial));
-    }
-
-    private static String requireMaterialKey(String materialKey) {
-        if (materialKey == null || materialKey.isBlank()) {
-            throw new IllegalArgumentException("materialKey is required");
-        }
-        return materialKey.trim();
     }
 
     @Override
