@@ -3,9 +3,9 @@ rows: 6
 title-key: menu.ranking.title
 layout:
   - "....T...."
-  - "........."
-  - "........."
-  - "........."
+  - "LLLLLLLLL"
+  - "WWWWWWWWW"
+  - "CCCCCCCCC"
   - "........."
   - "P...R...V"
 items:
@@ -19,12 +19,27 @@ items:
     name-key: ranking-menu-level-entry-name
     fallback-name: 레벨 랭킹
     action: visit
+  L:
+    material: EXPERIENCE_BOTTLE
+    name-key: ranking-menu-level-entry-name
+    fallback-name: 레벨 랭킹
+    action: visit
   WORTH:
     material: EMERALD
     name-key: ranking-menu-worth-entry-name
     fallback-name: 가치 랭킹
     action: visit
+  W:
+    material: EMERALD
+    name-key: ranking-menu-worth-entry-name
+    fallback-name: 가치 랭킹
+    action: visit
   REVIEWS:
+    material: WRITABLE_BOOK
+    name-key: ranking-menu-review-entry-name
+    fallback-name: 후기 랭킹
+    action: visit
+  C:
     material: WRITABLE_BOOK
     name-key: ranking-menu-review-entry-name
     fallback-name: 후기 랭킹

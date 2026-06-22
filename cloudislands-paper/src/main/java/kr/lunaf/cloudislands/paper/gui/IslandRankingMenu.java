@@ -82,21 +82,20 @@ public final class IslandRankingMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
-            int slot = 9;
-            for (RankingView ranking : levels.stream().limit(9).toList()) {
-                inventory.setItem(slot++, rankingItem("LEVEL", ranking, messages));
-            }
-            slot = 18;
-            for (RankingView ranking : worths.stream().limit(9).toList()) {
-                inventory.setItem(slot++, rankingItem("WORTH", ranking, messages));
-            }
-            slot = 27;
-            for (RankingView ranking : reviews.stream().limit(9).toList()) {
-                inventory.setItem(slot++, rankingItem("REVIEWS", ranking, messages));
-            }
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"L".equals(item.symbol()) && !"W".equals(item.symbol()) && !"C".equals(item.symbol()));
+            setRankingItems(inventory, "L", levels, messages);
+            setRankingItems(inventory, "W", worths, messages);
+            setRankingItems(inventory, "C", reviews, messages);
             player.openInventory(inventory);
         });
+    }
+
+    private static void setRankingItems(Inventory inventory, String symbol, List<RankingView> rankings, MessageRenderer messages) {
+        List<Integer> slots = GuiMenuRenderer.slots(MENU, symbol);
+        List<RankingView> visibleRankings = rankings.stream().limit(slots.size()).toList();
+        for (int index = 0; index < visibleRankings.size(); index++) {
+            inventory.setItem(slots.get(index), rankingItem(symbol, visibleRankings.get(index), messages));
+        }
     }
 
     private static ItemStack rankingItem(String symbol, RankingView ranking, MessageRenderer messages) {

@@ -393,6 +393,19 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void rankingGroupSlotsRenderFromMenuDefinitionLayout() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandRankingMenu.java"));
+        String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/ranking.yml"));
+
+        assertTrue(definition.contains("\"LLLLLLLLL\""), "ranking level slots must live in config-v2 layout");
+        assertTrue(definition.contains("\"WWWWWWWWW\""), "ranking worth slots must live in config-v2 layout");
+        assertTrue(definition.contains("\"CCCCCCCCC\""), "ranking review slots must live in config-v2 layout");
+        assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, symbol)"), "ranking entries must use menu definition slots");
+        assertFalse(menu.contains("int slot = 9"), "ranking entries must not start from a Java hard-coded slot");
+        assertFalse(menu.contains("slot++"), "ranking entries must not advance through Java hard-coded slots");
+    }
+
+    @Test
     void remainingDynamicItemMaterialsRenderFromMenuDefinitions() throws Exception {
         for (String[] menuCase : List.of(
                 new String[] {"IslandPermissionMenu", "permissions.yml", "ALLOW", "LIME_DYE"},
