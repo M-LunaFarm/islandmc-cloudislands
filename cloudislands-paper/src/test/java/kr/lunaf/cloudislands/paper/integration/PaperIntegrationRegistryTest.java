@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
@@ -178,6 +180,18 @@ class PaperIntegrationRegistryTest {
             "minSupportedVersion", "23.0"
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, accepted.status());
+    }
+
+    @Test
+    void registryLifecycleHooksValidateDetectedPluginVersionBeforeExternalPlan() throws Exception {
+        String registry = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java"));
+
+        assertTrue(registry.contains("IntegrationContext enrichedContext = withPluginRuntimeMetadata(integration.pluginName(), context, plugin);"));
+        assertTrue(registry.contains("validateVersion && integration.capabilities().contains(IntegrationCapability.VALIDATE_VERSION)"));
+        assertTrue(registry.contains("IntegrationResult version = integration.validateVersion(enrichedContext);"));
+        assertTrue(registry.contains("if (version.status() == IntegrationResult.Status.FAILED)"));
+        assertTrue(registry.contains("return version;"));
+        assertTrue(registry.contains("return operation.apply(integration, enrichedContext);"));
     }
 
     @Test

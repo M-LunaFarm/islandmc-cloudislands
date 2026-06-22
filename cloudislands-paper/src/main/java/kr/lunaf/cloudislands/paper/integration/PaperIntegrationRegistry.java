@@ -62,7 +62,7 @@ public final class PaperIntegrationRegistry {
     }
 
     public IntegrationResult validateVersion(String pluginName, IntegrationContext context) {
-        return execute(pluginName, CloudIntegration::validateVersion, context);
+        return execute(pluginName, CloudIntegration::validateVersion, context, false);
     }
 
     public IntegrationResult onIslandActivate(String pluginName, IntegrationContext context) {
@@ -137,12 +137,23 @@ public final class PaperIntegrationRegistry {
     }
 
     private IntegrationResult execute(String pluginName, BiFunction<CloudIntegration, IntegrationContext, IntegrationResult> operation, IntegrationContext context) {
+        return execute(pluginName, operation, context, true);
+    }
+
+    private IntegrationResult execute(String pluginName, BiFunction<CloudIntegration, IntegrationContext, IntegrationResult> operation, IntegrationContext context, boolean validateVersion) {
         CloudIntegration integration = integration(pluginName);
         Plugin plugin = plugin(integration.pluginName());
         if (!integration.detect(pluginEnabled(integration.pluginName()))) {
             return IntegrationResult.skipped(integration.pluginName() + " is not enabled");
         }
-        return operation.apply(integration, withPluginRuntimeMetadata(integration.pluginName(), context, plugin));
+        IntegrationContext enrichedContext = withPluginRuntimeMetadata(integration.pluginName(), context, plugin);
+        if (validateVersion && integration.capabilities().contains(IntegrationCapability.VALIDATE_VERSION)) {
+            IntegrationResult version = integration.validateVersion(enrichedContext);
+            if (version.status() == IntegrationResult.Status.FAILED) {
+                return version;
+            }
+        }
+        return operation.apply(integration, enrichedContext);
     }
 
     private IntegrationContext withPluginRuntimeMetadata(String pluginName, IntegrationContext context, Plugin plugin) {
