@@ -53,6 +53,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkEnvironmentClient environmentClient;
     private final JdkSettingsClient settingsClient;
     private final JdkHomeWarpClient homeWarpClient;
+    private final JdkRoutingClient routingClient;
+    private final JdkRuntimeClient runtimeClient;
     private final JdkIslandClient islandClient;
     private final JdkMemberQueryClient memberQueryClient;
     private final JdkPlayerProfileClient playerProfileClient;
@@ -86,6 +88,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.environmentClient = new JdkEnvironmentClient();
         this.settingsClient = new JdkSettingsClient();
         this.homeWarpClient = new JdkHomeWarpClient();
+        this.routingClient = new JdkRoutingClient();
+        this.runtimeClient = new JdkRuntimeClient();
         this.islandClient = new JdkIslandClient();
         this.memberQueryClient = new JdkMemberQueryClient();
         this.playerProfileClient = new JdkPlayerProfileClient();
@@ -157,6 +161,16 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public HomeWarpCommandClient homeWarpCommands() {
         return homeWarpClient;
+    }
+
+    @Override
+    public RoutingCommandClient routingCommands() {
+        return routingClient;
+    }
+
+    @Override
+    public RuntimeCommandClient runtimeCommands() {
+        return runtimeClient;
     }
 
     @Override
@@ -1678,6 +1692,151 @@ public final class JdkCoreApiClient implements CoreApiClient {
             if (id == null) {
                 throw new IllegalArgumentException(name + " is required");
             }
+        }
+    }
+
+    private final class JdkRoutingClient implements RoutingCommandClient {
+        @Override
+        public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
+            requireId(playerUuid, "playerUuid");
+            requireId(islandId, "islandId");
+            return postWithResultBody("/v1/routes/warp", jsonObject(
+                "playerUuid", playerUuid,
+                "islandId", islandId,
+                "warpName", warpName == null ? "" : warpName
+            )).thenApply(JdkCoreApiClient::parseRouteTicketResult);
+        }
+
+        @Override
+        public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(RouteTicket ticket) {
+            requireTicket(ticket);
+            return post("/v1/routes/ticket-status", jsonObject(
+                "ticketId", ticket.ticketId(),
+                "playerUuid", ticket.playerUuid(),
+                "nonce", ticket.nonce()
+            )).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(RouteTicketJson.parse(body)));
+        }
+
+        @Override
+        public CompletableFuture<Void> publishRouteSession(RouteTicket ticket) {
+            return publishRouteSessionResult(ticket).thenApply(_result -> null);
+        }
+
+        @Override
+        public CompletableFuture<RoutePublishView> publishRouteSessionResult(RouteTicket ticket) {
+            requireTicket(ticket);
+            String targetServerName = ticket.payload().getOrDefault("targetServerName", ticket.targetNode());
+            return postWithResultBody("/v1/routes/session", jsonObject(
+                "playerUuid", ticket.playerUuid(),
+                "ticketId", ticket.ticketId(),
+                "targetNode", ticket.targetNode(),
+                "targetServerName", targetServerName,
+                "nonce", ticket.nonce(),
+                "expiresAt", ticket.expiresAt()
+            )).thenApply(CoreRoutingCommandClient::routePublishResult);
+        }
+
+        @Override
+        public CompletableFuture<RouteClearView> clearRoute(RouteTicket ticket, String reason) {
+            requireTicket(ticket);
+            String normalizedReason = reason == null || reason.isBlank() ? "PLUGIN_MESSAGE_FAILED" : reason;
+            return postWithResultBody("/v1/admin/routes/clear", jsonObject(
+                "playerUuid", ticket.playerUuid(),
+                "ticketId", ticket.ticketId(),
+                "reason", normalizedReason
+            )).thenApply(CoreRoutingCommandClient::routeClearResult);
+        }
+
+        private void requireTicket(RouteTicket ticket) {
+            if (ticket == null) {
+                throw new IllegalArgumentException("ticket is required");
+            }
+            requireId(ticket.ticketId(), "ticketId");
+            requireId(ticket.playerUuid(), "playerUuid");
+        }
+
+        private void requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+        }
+    }
+
+    private final class JdkRuntimeClient implements RuntimeCommandClient {
+        @Override
+        public CompletableFuture<RuntimeActionView> publishHeartbeat(NodeHeartbeatRequest request) {
+            if (request == null) {
+                throw new IllegalArgumentException("request is required");
+            }
+            return postWithResultBody("/v1/nodes/heartbeat", jsonObject(
+                "protocolVersion", request.protocolVersion(),
+                "nodeId", request.nodeId(),
+                "pool", request.pool(),
+                "velocityServerName", request.velocityServerName(),
+                "nodeVersion", request.nodeVersion(),
+                "state", request.state().name(),
+                "players", request.players(),
+                "softPlayerCap", request.softPlayerCap(),
+                "hardPlayerCap", request.hardPlayerCap(),
+                "reservedSlots", request.reservedSlots(),
+                "activeIslands", request.activeIslands(),
+                "maxActiveIslands", request.maxActiveIslands(),
+                "mspt", request.mspt(),
+                "activationQueue", request.activationQueue(),
+                "maxActivationQueue", request.maxActivationQueue(),
+                "chunkLoadPressure", request.chunkLoadPressure(),
+                "heapUsedMb", request.heapUsedMb(),
+                "heapMaxMb", request.heapMaxMb(),
+                "recentFailurePenalty", request.recentFailurePenalty(),
+                "storageAvailable", request.storageAvailable(),
+                "supportedTemplates", request.supportedTemplates()
+            )).thenApply(body -> CoreRuntimeCommandClient.action(body, "HEARTBEAT_ACCEPTED"));
+        }
+
+        @Override
+        public CompletableFuture<RuntimeActionView> recordBlockDelta(UUID islandId, String materialKey, long delta) {
+            requireId(islandId, "islandId");
+            String safeMaterialKey = materialKey == null ? "" : materialKey.trim();
+            if (safeMaterialKey.isBlank()) {
+                throw new IllegalArgumentException("materialKey is required");
+            }
+            return postWithResultBody("/v1/islands/blocks/delta", jsonObject(
+                "islandId", islandId,
+                "materialKey", safeMaterialKey,
+                "delta", delta
+            )).thenApply(body -> CoreRuntimeCommandClient.action(body, "BLOCK_DELTA_RECORDED"));
+        }
+
+        @Override
+        public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
+            return postWithResultBody("/v1/jobs/complete", jsonObject(
+                "nodeId", requireNode(nodeId),
+                "jobId", requireId(jobId, "jobId"),
+                "payload", rawJson(mapJson(payload == null ? Map.of() : payload))
+            )).thenApply(body -> CoreRuntimeCommandClient.action(body, "JOB_COMPLETED"));
+        }
+
+        @Override
+        public CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, String errorMessage) {
+            return postWithResultBody("/v1/jobs/fail", jsonObject(
+                "nodeId", requireNode(nodeId),
+                "jobId", requireId(jobId, "jobId"),
+                "error", errorMessage == null ? "" : errorMessage
+            )).thenApply(body -> CoreRuntimeCommandClient.action(body, "JOB_FAILED"));
+        }
+
+        private UUID requireId(UUID id, String name) {
+            if (id == null) {
+                throw new IllegalArgumentException(name + " is required");
+            }
+            return id;
+        }
+
+        private String requireNode(String nodeId) {
+            if (nodeId == null || nodeId.isBlank()) {
+                throw new IllegalArgumentException("nodeId is required");
+            }
+            return nodeId.trim();
         }
     }
 

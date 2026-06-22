@@ -48,12 +48,12 @@ public final class CoreRoutingCommandClient implements RoutingCommandClient {
             .thenApply(CoreRoutingCommandClient::routeClearResult);
     }
 
-    private static RouteClearView routeClearResult(String body) {
+    static RouteClearView routeClearResult(String body) {
         String code = body == null || body.isBlank() ? "CLEARED" : body.trim();
         return new RouteClearView(true, code);
     }
 
-    private static RoutePublishView routePublishResult(String body) {
+    static RoutePublishView routePublishResult(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new RoutePublishView(CoreJson.accepted(root), CoreJson.code(root, "ROUTE_SESSION_PUBLISHED"));
     }

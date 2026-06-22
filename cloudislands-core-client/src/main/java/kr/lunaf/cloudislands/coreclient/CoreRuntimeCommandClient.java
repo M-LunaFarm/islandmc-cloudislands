@@ -45,7 +45,7 @@ public final class CoreRuntimeCommandClient implements RuntimeCommandClient {
             .thenApply(body -> action(body, "JOB_FAILED"));
     }
 
-    private static RuntimeActionView action(String body, String fallbackCode) {
+    static RuntimeActionView action(String body, String fallbackCode) {
         Map<?, ?> root = CoreJson.object(body);
         return new RuntimeActionView(CoreJson.accepted(root), CoreJson.code(root, fallbackCode));
     }
