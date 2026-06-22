@@ -107,7 +107,7 @@ final class PaperPluginBootstrap {
         if (config.guiEnabledForRole(role)) {
             IslandGuiMenuRegistrar.register(plugin, plugin.messages, guiActions);
         }
-        MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? new MeteredIslandStorage(PaperStorageFactory.create(plugin, config.storage()), PaperStorageFactory.backendName(config.storage())) : null;
+        MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? PaperStorageFactory.createMetered(plugin, config.storage()) : null;
         plugin.islandStorage = storage;
         String supportedTemplates = config.node().supportedTemplatesCsv();
         String templateVersions = config.node().templateVersions();

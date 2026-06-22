@@ -25,6 +25,10 @@ public final class PaperStorageFactory {
         return new FallbackIslandStorage(primary, fallback, plugin.getLogger());
     }
 
+    public static MeteredIslandStorage createMetered(Plugin plugin, PaperRuntimeConfig.Storage config) {
+        return new MeteredIslandStorage(create(plugin, config), backendName(config));
+    }
+
     private static IslandStorage createConfiguredStorage(Plugin plugin, PaperRuntimeConfig.StorageTarget config) {
         String backend = backendName(config);
         if (StorageBackendPolicy.sharedBackend(backend)) {
