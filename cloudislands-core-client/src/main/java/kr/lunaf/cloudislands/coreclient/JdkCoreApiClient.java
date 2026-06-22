@@ -858,8 +858,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
         HttpRequest request = builder.build();
-        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-            .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : "");
+        return send(request).thenApply(response -> response.bodyOrEmpty(response.successBody()));
     }
 
     CompletableFuture<String> get(String path) {
@@ -870,8 +869,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
         HttpRequest request = builder.build();
-        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-            .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : "");
+        return send(request).thenApply(response -> response.bodyOrEmpty(response.successBody()));
     }
 
     CompletableFuture<String> postWithResultBody(String path, String body) {
@@ -883,8 +881,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
         HttpRequest request = builder.build();
-        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-            .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : "");
+        return send(request).thenApply(response -> response.bodyOrEmpty(response.resultBody()));
     }
 
     private CompletableFuture<String> deleteWithResultBody(String path) {
@@ -895,8 +892,12 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
         HttpRequest request = builder.build();
+        return send(request).thenApply(response -> response.bodyOrEmpty(response.resultBody()));
+    }
+
+    private CompletableFuture<CoreHttpResponse> send(HttpRequest request) {
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-            .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : "");
+            .thenApply(response -> new CoreHttpResponse(response.statusCode(), response.body()));
     }
 
     private static RouteTicket parseRouteTicketResult(String body) {
