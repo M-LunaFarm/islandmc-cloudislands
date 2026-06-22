@@ -106,8 +106,9 @@ public final class IslandBanMenu implements Listener {
             if (bans.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                for (int index = 0; index < bans.size() && index < 45; index++) {
-                    inventory.setItem(index, banItem(bans.get(index), messages));
+                List<Integer> banSlots = GuiMenuRenderer.slots(MENU, "_");
+                for (int index = 0; index < bans.size() && index < banSlots.size(); index++) {
+                    inventory.setItem(banSlots.get(index), banItem(bans.get(index), messages));
                 }
             }
             player.openInventory(inventory);

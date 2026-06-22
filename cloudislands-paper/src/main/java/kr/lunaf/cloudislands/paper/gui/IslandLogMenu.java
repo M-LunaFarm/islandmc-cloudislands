@@ -93,9 +93,10 @@ public final class IslandLogMenu implements Listener {
             if (entries.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                for (int index = 0; index < entries.size() && index < 27; index++) {
+                List<Integer> logSlots = GuiMenuRenderer.slots(MENU, "_");
+                for (int index = 0; index < entries.size() && index < logSlots.size(); index++) {
                     LogEntryView entry = entries.get(index);
-                    inventory.setItem(index, logItem(entry, index, messages));
+                    inventory.setItem(logSlots.get(index), logItem(entry, index, messages));
                 }
             }
             player.openInventory(inventory);

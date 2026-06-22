@@ -196,7 +196,7 @@ class GuiSystemPolicyTest {
 
         assertTrue(config.contains("material: GOLD_BLOCK"), "bank balance material must live in config-v2");
         assertTrue(config.contains("name-key: bank-menu-balance-name"), "bank balance label must live in config-v2");
-        assertTrue(menu.contains("MENU.itemAt(4)"), "bank balance panel must render the configured menu item");
+        assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, \"B\")"), "bank balance panel must render configured balance slots");
         assertTrue(menu.contains("GuiMenuRenderer.item(MENU, item, messages"), "bank balance panel must use the shared config-backed renderer");
         assertFalse(menu.contains("Material.GOLD_BLOCK"), "bank menu must not hard-code the balance material");
     }
@@ -221,6 +221,9 @@ class GuiSystemPolicyTest {
 
     @Test
     void emptyListPlaceholdersRenderFromMenuDefinitions() throws Exception {
+        String renderer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiMenuRenderer.java"));
+        assertTrue(renderer.contains("setSymbolItem(Inventory inventory"), "shared renderer must expose symbol-based empty placeholder rendering");
+        assertTrue(renderer.contains("item(definition, item, messages, data, extraLore)"), "shared symbol renderer must use config-backed item rendering");
         for (String menuName : List.of(
                 "IslandHomeMenu",
                 "IslandBanMenu",
@@ -236,8 +239,7 @@ class GuiSystemPolicyTest {
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())"), menuName + " must hide the configured empty placeholder during normal render");
-            assertTrue(menu.contains("MENU.itemAt(22)") || menu.contains("MENU.itemAt(13)"), menuName + " must render the configured empty placeholder when the list is empty");
-            assertTrue(menu.contains("GuiMenuRenderer.item(MENU, item, messages"), menuName + " empty placeholder must use the shared config-backed renderer");
+            assertTrue(menu.contains("GuiMenuRenderer.setSymbolItem(inventory, MENU, \"E\""), menuName + " must render the configured empty placeholder when the list is empty");
         }
         assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandHomeMenu.java")).contains("home-menu-empty-title"), "home empty placeholder copy must live in config-v2");
         assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBanMenu.java")).contains("ban-menu-empty-title"), "ban empty placeholder copy must live in config-v2");
@@ -359,7 +361,11 @@ class GuiSystemPolicyTest {
                 new String[] {"IslandRoleMenu", "roles.yml"},
                 new String[] {"IslandSnapshotMenu", "snapshots.yml"},
                 new String[] {"IslandLimitMenu", "limits.yml"},
-                new String[] {"IslandUpgradeMenu", "upgrades.yml"}
+                new String[] {"IslandUpgradeMenu", "upgrades.yml"},
+                new String[] {"IslandVisitMenu", "visit.yml"},
+                new String[] {"IslandMyIslandsMenu", "my-islands.yml"},
+                new String[] {"IslandBanMenu", "bans.yml"},
+                new String[] {"IslandLogMenu", "logs.yml"}
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuCase[0] + ".java"));
             String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + menuCase[1]));

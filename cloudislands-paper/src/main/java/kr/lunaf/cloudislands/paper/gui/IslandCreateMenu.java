@@ -82,9 +82,9 @@ public final class IslandCreateMenu implements Listener {
             if (enabled.isEmpty()) {
                 enabled = List.of(new TemplateView("default", message(messages, "create-menu-default-template", "기본 섬"), true, ""));
             }
-            int[] templateSlots = {9, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 23, 24, 25};
-            for (int index = 0; index < enabled.size() && index < templateSlots.length; index++) {
-                inventory.setItem(templateSlots[index], item(enabled.get(index), messages));
+            List<Integer> templateSlots = GuiMenuRenderer.slots(MENU, "_");
+            for (int index = 0; index < enabled.size() && index < templateSlots.size(); index++) {
+                inventory.setItem(templateSlots.get(index), item(enabled.get(index), messages));
             }
             player.openInventory(inventory);
         });

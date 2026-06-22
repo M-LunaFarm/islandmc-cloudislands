@@ -303,6 +303,8 @@ class GuiMenuDefinitionTest {
         assertEquals("island.logs", definition.id());
         assertEquals(36, definition.size());
         assertEquals("menu.logs.title", definition.titleKey());
+        assertEquals(26, GuiMenuRenderer.slots(definition, "_").size());
+        assertEquals("_", definition.itemAt(0).orElseThrow().symbol());
         assertEquals("M", definition.itemAt(30).orElseThrow().symbol());
         assertEquals("island.main.open", definition.action(definition.itemAt(30).orElseThrow().actionKey(), ""));
         assertEquals("R", definition.itemAt(31).orElseThrow().symbol());
@@ -329,6 +331,8 @@ class GuiMenuDefinitionTest {
         );
 
         assertEquals("island.bans", bans.id());
+        assertEquals(44, GuiMenuRenderer.slots(bans, "_").size());
+        assertEquals("_", bans.itemAt(0).orElseThrow().symbol());
         assertEquals("R", bans.itemAt(49).orElseThrow().symbol());
         assertEquals("island.bans.open", bans.action(bans.itemAt(49).orElseThrow().actionKey(), ""));
         assertEquals("S", bans.itemAt(53).orElseThrow().symbol());
@@ -365,6 +369,8 @@ class GuiMenuDefinitionTest {
 
         assertEquals("island.create", create.id());
         assertEquals(27, create.size());
+        assertEquals(14, GuiMenuRenderer.slots(create, "_").size());
+        assertEquals("_", create.itemAt(9).orElseThrow().symbol());
         assertEquals("M", create.itemAt(18).orElseThrow().symbol());
         assertEquals("island.main.open", create.action(create.itemAt(18).orElseThrow().actionKey(), ""));
         assertEquals("R", create.itemAt(22).orElseThrow().symbol());
@@ -423,6 +429,8 @@ class GuiMenuDefinitionTest {
         );
 
         assertEquals("island.my-islands", myIslands.id());
+        assertEquals(44, GuiMenuRenderer.slots(myIslands, "_").size());
+        assertEquals("_", myIslands.itemAt(0).orElseThrow().symbol());
         assertEquals("M", myIslands.itemAt(45).orElseThrow().symbol());
         assertEquals("island.main.open", myIslands.action(myIslands.itemAt(45).orElseThrow().actionKey(), ""));
         assertEquals("C", myIslands.itemAt(48).orElseThrow().symbol());
@@ -433,6 +441,8 @@ class GuiMenuDefinitionTest {
         assertEquals("island.visit.open", myIslands.action(myIslands.itemAt(53).orElseThrow().actionKey(), ""));
 
         assertEquals("island.visit", visit.id());
+        assertEquals(35, GuiMenuRenderer.slots(visit, "_").size());
+        assertEquals("_", visit.itemAt(9).orElseThrow().symbol());
         assertEquals("R", visit.itemAt(4).orElseThrow().symbol());
         assertEquals("island.visit.random", visit.action(visit.itemAt(4).orElseThrow().actionKey(), ""));
         assertEquals("P", visit.itemAt(45).orElseThrow().symbol());

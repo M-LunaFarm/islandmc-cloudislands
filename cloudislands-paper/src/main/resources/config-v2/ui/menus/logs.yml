@@ -2,9 +2,9 @@ id: island.logs
 rows: 4
 title-key: menu.logs.title
 layout:
-  - "........."
-  - "....E...."
-  - "........."
+  - "_________"
+  - "____E____"
+  - "_________"
   - "...MRS..X"
 items:
   _:

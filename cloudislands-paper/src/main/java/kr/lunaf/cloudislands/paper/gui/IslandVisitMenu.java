@@ -86,9 +86,10 @@ public final class IslandVisitMenu implements Listener {
             if (islands.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                for (int index = 0; index < islands.size() && index < 36; index++) {
+                List<Integer> islandSlots = GuiMenuRenderer.slots(MENU, "_");
+                for (int index = 0; index < islands.size() && index < islandSlots.size(); index++) {
                     PublicIslandView island = islands.get(index);
-                    inventory.setItem(index + 9, GuiItems.action(GuiMenuRenderer.material(MENU, "_", "GRASS_BLOCK"), island.name(), "island.visit.target",
+                    inventory.setItem(islandSlots.get(index), GuiItems.action(GuiMenuRenderer.material(MENU, "_", "GRASS_BLOCK"), island.name(), "island.visit.target",
                         Map.of("target", island.islandId()),
                         message(messages, "visit-menu-owner", "소유자: ") + shortId(island.ownerUuid()),
                         message(messages, "visit-menu-level", "레벨: ") + island.level(),

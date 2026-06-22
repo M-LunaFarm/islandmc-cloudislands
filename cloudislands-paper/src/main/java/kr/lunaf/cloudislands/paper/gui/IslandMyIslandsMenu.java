@@ -86,9 +86,10 @@ public final class IslandMyIslandsMenu implements Listener {
             if (islands.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                for (int index = 0; index < islands.size() && index < 45; index++) {
+                List<Integer> islandSlots = GuiMenuRenderer.slots(MENU, "_");
+                for (int index = 0; index < islands.size() && index < islandSlots.size(); index++) {
                     PlayerIslandView island = islands.get(index);
-                    inventory.setItem(index, GuiItems.action(GuiMenuRenderer.material(MENU, island.role(), "_", "GRASS_BLOCK"), island.name(), "island.visit.target",
+                    inventory.setItem(islandSlots.get(index), GuiItems.action(GuiMenuRenderer.material(MENU, island.role(), "_", "GRASS_BLOCK"), island.name(), "island.visit.target",
                         Map.of("target", island.islandId()),
                         message(messages, "my-islands-menu-role", "역할: ") + island.role(),
                         message(messages, "my-islands-menu-state", "상태: ") + island.state(),

@@ -3,8 +3,8 @@ rows: 3
 title-key: menu.create.title
 layout:
   - "........."
-  - "........."
-  - "M...R...."
+  - "________."
+  - "M___R___."
 items:
   _:
     material: OAK_SAPLING
