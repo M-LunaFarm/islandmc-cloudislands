@@ -102,10 +102,11 @@ public final class IslandHomeMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<HomeView> homes, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
-            int slot = 0;
-            for (HomeView home : homes.stream().limit(45).toList()) {
-                inventory.setItem(slot++, homeItem(home, messages));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
+            List<Integer> homeSlots = GuiMenuRenderer.slots(MENU, "_");
+            List<HomeView> visibleHomes = homes.stream().limit(homeSlots.size()).toList();
+            for (int index = 0; index < visibleHomes.size(); index++) {
+                inventory.setItem(homeSlots.get(index), homeItem(visibleHomes.get(index), messages));
             }
             if (homes.isEmpty()) {
                 setEmptyItem(inventory, messages);
