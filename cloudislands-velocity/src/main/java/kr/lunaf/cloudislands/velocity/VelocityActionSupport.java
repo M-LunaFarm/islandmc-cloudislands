@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.velocity;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 import com.velocitypowered.api.proxy.Player;
 import java.util.List;
@@ -98,10 +97,6 @@ abstract class VelocityActionSupport {
 
     protected String routeTicketMessage(Optional<AdminRouteTicketView> ticket) {
         return playerMessage(routeMessages.ticket(ticket));
-    }
-
-    String routeClearMessage(String body) {
-        return playerMessage(routeMessages.clear(body));
     }
 
     String routeClearMessage(AdminRouteClearView view) {

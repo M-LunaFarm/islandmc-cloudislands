@@ -163,10 +163,6 @@ public final class VelocityRoutingController {
         return kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy.sanitize(value);
     }
 
-    private String routeClearMessage(String body) {
-        return actions.routeClearMessage(body);
-    }
-
     public void startEventPolling(Object plugin) {
         stopEventPolling();
         eventPollTask = proxy.getScheduler()

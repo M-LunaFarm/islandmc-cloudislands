@@ -3,6 +3,9 @@ package kr.lunaf.cloudislands.velocity;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
+import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
+import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
+import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
 import kr.lunaf.cloudislands.velocity.routing.RouteTicketRouter;
 import org.junit.jupiter.api.Test;
 
@@ -38,19 +41,9 @@ class VelocityRoutingControllerTest {
 
     @Test
     void sanitizesRouteSummaryReasonsWhenNodeNamesAreHidden() throws Exception {
-        VelocityRoutingController controller = new VelocityRoutingController(
-                null,
-                null,
-                "Lobby",
-                20,
-                true,
-                true,
-                true,
-                "island",
-                30
-        );
+        TestActionSupport actions = new TestActionSupport();
 
-        String message = privateString(controller, "routeClearMessage", "{\"clearedSession\":true,\"clearedTicket\":true,\"reason\":\"targetNode=Island-2 backendServer=island-5\"}");
+        String message = actions.routeClearMessage(new AdminRouteClearView(true, true, "targetNode=Island-2 backendServer=island-5"));
 
         assertFalse(message.contains("Island-2"));
         assertFalse(message.contains("island-5"));
@@ -97,4 +90,20 @@ class VelocityRoutingControllerTest {
         return (String) method.invoke(controller, value);
     }
 
+    private static final class TestActionSupport extends VelocityActionSupport {
+        private TestActionSupport() {
+            super(new VelocityActionContext(
+                null,
+                true,
+                VelocityMessages.defaults(),
+                new VelocityRoutePrivacyFormatter(true),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ));
+        }
+    }
 }

@@ -58,6 +58,9 @@ class VelocityPluginRolePolicyTest {
         assertFalse(source.contains("VelocityPlayerPayloadFormatter"), "Velocity actions must not parse raw player payloads");
         assertFalse(source.contains("sendInviteActionResult("), "Velocity actions must not infer invite success from raw JSON bodies");
         assertFalse(source.contains("body.contains(\"\\\"accepted\\\":false\")"), "Velocity actions must not inspect raw JSON success flags");
+        assertFalse(source.contains("routeClearMessage(String body)"), "Velocity route clear actions must use typed route clear views");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityRoutingActions.java")).contains("routeClearMessage(String body)"), "Velocity routing facade must not retain raw route clear forwarding");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityRoutingController.java")).contains("routeClearMessage(String body)"), "Velocity routing controller must not expose raw route clear formatting helpers");
 
         String formatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityIslandMessageFormatter.java"));
         assertFalse(formatter.contains("body.contains(\"\\\"accepted\\\""), "Velocity message formatter must inspect accepted through parsed JSON fields");

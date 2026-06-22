@@ -57,8 +57,4 @@ public final class VelocityRoutingActions {
     public VelocityAdminActions admin() {
         return admin;
     }
-
-    String routeClearMessage(String body) {
-        return admin.routeClearMessage(body);
-    }
 }
