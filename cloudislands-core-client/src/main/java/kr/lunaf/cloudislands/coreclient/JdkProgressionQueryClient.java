@@ -32,7 +32,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     @Override
     public CompletableFuture<ProgressionBlockDetailsView> blockDetails(UUID islandId, int limit) {
         requireIsland(islandId);
-        return core.post("/v1/islands/blocks", JdkCoreApiClient.jsonObject("islandId", islandId, "limit", boundedLimit(limit))).thenApply(JdkProgressionQueryClient::blockDetailsView);
+        return core.post("/v1/islands/blocks", CoreJsonPayload.object("islandId", islandId, "limit", boundedLimit(limit))).thenApply(JdkProgressionQueryClient::blockDetailsView);
     }
 
     @Override
@@ -50,23 +50,23 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
 
     @Override
     public CompletableFuture<List<ProgressionRankingEntryView>> topWorth(int limit) {
-        return core.post("/v1/rankings/worth", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit))).thenApply(body -> rankingViews(body, "worth"));
+        return core.post("/v1/rankings/worth", CoreJsonPayload.object("limit", boundedLimit(limit))).thenApply(body -> rankingViews(body, "worth"));
     }
 
     @Override
     public CompletableFuture<List<ProgressionRankingEntryView>> topLevel(int limit) {
-        return core.post("/v1/rankings/level", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit))).thenApply(body -> rankingViews(body, "level"));
+        return core.post("/v1/rankings/level", CoreJsonPayload.object("limit", boundedLimit(limit))).thenApply(body -> rankingViews(body, "level"));
     }
 
     @Override
     public CompletableFuture<List<ProgressionReviewRankingEntryView>> topReviews(int limit) {
-        return core.post("/v1/rankings/reviews", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit))).thenApply(JdkProgressionQueryClient::reviewRankingViews);
+        return core.post("/v1/rankings/reviews", CoreJsonPayload.object("limit", boundedLimit(limit))).thenApply(JdkProgressionQueryClient::reviewRankingViews);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.UpgradeView>> upgrades(UUID islandId) {
         requireIsland(islandId);
-        return core.post("/v1/islands/upgrades", JdkCoreApiClient.jsonObject("islandId", islandId)).thenApply(JdkProgressionQueryClient::upgradeViews);
+        return core.post("/v1/islands/upgrades", CoreJsonPayload.object("islandId", islandId)).thenApply(JdkProgressionQueryClient::upgradeViews);
     }
 
     @Override
@@ -77,7 +77,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     @Override
     public CompletableFuture<List<CoreGuiViews.MissionView>> missions(UUID islandId, String kind) {
         requireIsland(islandId);
-        return core.post("/v1/islands/missions", JdkCoreApiClient.jsonObject("islandId", islandId, "kind", kind == null || kind.isBlank() ? "MISSION" : kind))
+        return core.post("/v1/islands/missions", CoreJsonPayload.object("islandId", islandId, "kind", kind == null || kind.isBlank() ? "MISSION" : kind))
             .thenApply(JdkProgressionQueryClient::missionViews);
     }
 

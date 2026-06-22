@@ -19,7 +19,7 @@ final class JdkCoreJobClaimClient {
 
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
         String types = supportedTypes.stream().map(Enum::name).collect(Collectors.joining(","));
-        return core.postWithResultBody("/v1/jobs/claim", JdkCoreApiClient.jsonObject("nodeId", nodeId, "supportedTypes", types, "maxJobs", maxJobs))
+        return core.postWithResultBody("/v1/jobs/claim", CoreJsonPayload.object("nodeId", nodeId, "supportedTypes", types, "maxJobs", maxJobs))
             .thenApply(IslandJobJson::readArray);
     }
 }

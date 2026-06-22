@@ -53,7 +53,7 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
         String normalizedDisplayName = displayName == null || displayName.isBlank() ? normalizedRoleKey : displayName.trim();
         return core.postWithResultBody(
                 "/v1/islands/roles/upsert",
-                JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "weight", weight, "displayName", normalizedDisplayName)
+                CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "weight", weight, "displayName", normalizedDisplayName)
             )
             .thenApply(JdkPermissionCommandClient::roleMutationResult);
     }
@@ -65,7 +65,7 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
         String normalizedRoleKey = normalizeRoleKey(roleKey);
         return core.postWithResultBody(
                 "/v1/islands/roles/reset",
-                JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey)
+                CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey)
             )
             .thenApply(JdkPermissionCommandClient::roleMutationResult);
     }
@@ -90,7 +90,7 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
         requirePermission(permission);
         return core.postWithResultBody(
                 "/v1/islands/permissions/overrides/set",
-                JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "permission", permission.name(), "allowed", allowed)
+                CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "permission", permission.name(), "allowed", allowed)
             )
             .thenApply(body -> permissionAction(body, "PERMISSION_OVERRIDE_SET"));
     }
@@ -131,8 +131,8 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
         requirePermission(permission);
         String normalizedRoleKey = normalizeRoleKey(roleKey);
         return expectedVersion == null || expectedVersion.isBlank()
-            ? JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed)
-            : JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed, "expectedVersion", expectedVersion);
+            ? CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed)
+            : CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed, "expectedVersion", expectedVersion);
     }
 
     private static String normalizeRoleKey(String roleKey) {

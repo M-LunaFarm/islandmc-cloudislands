@@ -18,7 +18,7 @@ final class JdkWarehouseCommandClient implements WarehouseCommandClient {
     public CompletableFuture<WarehouseMutationView> deposit(UUID islandId, UUID actorUuid, String materialKey, long amount) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/warehouse/deposit", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey == null ? "" : materialKey, "amount", amount))
+        return core.postWithResultBody("/v1/islands/warehouse/deposit", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey == null ? "" : materialKey, "amount", amount))
             .thenApply(JdkWarehouseCommandClient::warehouseMutation);
     }
 
@@ -26,7 +26,7 @@ final class JdkWarehouseCommandClient implements WarehouseCommandClient {
     public CompletableFuture<WarehouseMutationView> withdraw(UUID islandId, UUID actorUuid, String materialKey, long amount) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/warehouse/withdraw", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey == null ? "" : materialKey, "amount", amount))
+        return core.postWithResultBody("/v1/islands/warehouse/withdraw", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "materialKey", materialKey == null ? "" : materialKey, "amount", amount))
             .thenApply(JdkWarehouseCommandClient::warehouseMutation);
     }
 

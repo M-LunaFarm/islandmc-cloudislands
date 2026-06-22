@@ -20,7 +20,7 @@ public final class JdkHomeWarpCommandClient implements HomeWarpCommandClient {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         requireLocation(location);
-        return core.postWithResultBody("/v1/islands/homes/set", JdkCoreApiClient.locationPayload(islandId, actorUuid, normalizeName(name), location))
+        return core.postWithResultBody("/v1/islands/homes/set", CoreJsonPayload.location(islandId, actorUuid, normalizeName(name), location))
             .thenApply(body -> actionResult(body, "HOME_SET"));
     }
 
@@ -29,7 +29,7 @@ public final class JdkHomeWarpCommandClient implements HomeWarpCommandClient {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         requireLocation(location);
-        return core.postWithResultBody("/v1/islands/warps/set", JdkCoreApiClient.warpPayload(islandId, actorUuid, normalizeName(name), category == null ? "" : category, location, publicAccess))
+        return core.postWithResultBody("/v1/islands/warps/set", CoreJsonPayload.warp(islandId, actorUuid, normalizeName(name), category == null ? "" : category, location, publicAccess))
             .thenApply(body -> actionResult(body, "WARP_SET"));
     }
 
@@ -37,7 +37,7 @@ public final class JdkHomeWarpCommandClient implements HomeWarpCommandClient {
     public CompletableFuture<HomeWarpActionView> deleteWarp(UUID islandId, UUID actorUuid, String name) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/warps/delete", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", normalizeName(name)))
+        return core.postWithResultBody("/v1/islands/warps/delete", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "name", normalizeName(name)))
             .thenApply(body -> actionResult(body, "WARP_DELETED"));
     }
 
@@ -45,7 +45,7 @@ public final class JdkHomeWarpCommandClient implements HomeWarpCommandClient {
     public CompletableFuture<HomeWarpActionView> setWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/warps/access", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", normalizeName(name), "publicAccess", publicAccess))
+        return core.postWithResultBody("/v1/islands/warps/access", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "name", normalizeName(name), "publicAccess", publicAccess))
             .thenApply(body -> actionResult(body, publicAccess ? "WARP_PUBLIC" : "WARP_PRIVATE"));
     }
 

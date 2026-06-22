@@ -18,7 +18,7 @@ final class JdkBankCommandClient implements BankCommandClient {
     public CompletableFuture<IslandBankChangeSnapshot> depositSnapshot(UUID islandId, UUID actorUuid, String amount) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/bank/deposit", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
+        return core.postWithResultBody("/v1/islands/bank/deposit", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
             .thenApply(CoreBankJson::mutation);
     }
 
@@ -26,7 +26,7 @@ final class JdkBankCommandClient implements BankCommandClient {
     public CompletableFuture<IslandBankChangeSnapshot> withdrawSnapshot(UUID islandId, UUID actorUuid, String amount) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/bank/withdraw", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
+        return core.postWithResultBody("/v1/islands/bank/withdraw", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
             .thenApply(CoreBankJson::mutation);
     }
 

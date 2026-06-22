@@ -20,7 +20,7 @@ final class JdkAdminIslandQueryClient implements AdminIslandQueryClient {
         if (lookupUuid == null) {
             throw new IllegalArgumentException("lookupUuid is required");
         }
-        return core.postWithResultBody("/v1/admin/islands/info", JdkCoreApiClient.jsonObject("lookupUuid", lookupUuid)).thenApply(CoreGuiViews::islandInfoView);
+        return core.postWithResultBody("/v1/admin/islands/info", CoreJsonPayload.object("lookupUuid", lookupUuid)).thenApply(CoreGuiViews::islandInfoView);
     }
 
     @Override
@@ -37,7 +37,7 @@ final class JdkAdminIslandQueryClient implements AdminIslandQueryClient {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
-        return core.postWithResultBody("/v1/admin/islands/where", JdkCoreApiClient.jsonObject("islandId", islandId)).thenApply(JdkAdminIslandQueryClient::runtime);
+        return core.postWithResultBody("/v1/admin/islands/where", CoreJsonPayload.object("islandId", islandId)).thenApply(JdkAdminIslandQueryClient::runtime);
     }
 
     static AdminIslandRuntimeView runtime(String body) {

@@ -57,7 +57,7 @@ public final class JdkNavigationCommandClient implements NavigationCommandClient
         if (rating < 1 || rating > 5) {
             throw new IllegalArgumentException("rating must be between 1 and 5");
         }
-        return core.postWithResultBody("/v1/islands/reviews/set", JdkCoreApiClient.jsonObject("islandId", islandId, "reviewerUuid", reviewerUuid, "rating", rating, "comment", comment == null ? "" : comment))
+        return core.postWithResultBody("/v1/islands/reviews/set", CoreJsonPayload.object("islandId", islandId, "reviewerUuid", reviewerUuid, "rating", rating, "comment", comment == null ? "" : comment))
             .thenApply(JdkNavigationCommandClient::reviewActionResult);
     }
 
@@ -65,7 +65,7 @@ public final class JdkNavigationCommandClient implements NavigationCommandClient
     public CompletableFuture<ReviewActionView> deleteReview(UUID islandId, UUID reviewerUuid) {
         requireId(islandId, "islandId");
         requireId(reviewerUuid, "reviewerUuid");
-        return core.postWithResultBody("/v1/islands/reviews/delete", JdkCoreApiClient.jsonObject("islandId", islandId, "reviewerUuid", reviewerUuid))
+        return core.postWithResultBody("/v1/islands/reviews/delete", CoreJsonPayload.object("islandId", islandId, "reviewerUuid", reviewerUuid))
             .thenApply(JdkNavigationCommandClient::reviewActionResult);
     }
 

@@ -19,28 +19,28 @@ public final class JdkMemberCommandClient implements MemberCommandClient {
     @Override
     public CompletableFuture<MemberActionView> removeMember(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
-        return core.postWithResultBody("/v1/islands/members/remove", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid))
+        return core.postWithResultBody("/v1/islands/members/remove", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid))
             .thenApply(body -> memberAction(body, "MEMBER_REMOVED"));
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.InviteView> createInvite(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
-        return core.postWithResultBody("/v1/islands/invites", JdkCoreApiClient.jsonObject("islandId", islandId, "inviterUuid", actorUuid, "targetUuid", targetUuid))
+        return core.postWithResultBody("/v1/islands/invites", CoreJsonPayload.object("islandId", islandId, "inviterUuid", actorUuid, "targetUuid", targetUuid))
             .thenApply(CoreGuiViews::inviteView);
     }
 
     @Override
     public CompletableFuture<IslandInviteActionResult> acceptInvite(UUID inviteId, UUID playerUuid) {
         requireInviteAndPlayer(inviteId, playerUuid);
-        return core.postWithResultBody("/v1/islands/invites/accept", JdkCoreApiClient.jsonObject("inviteId", inviteId, "playerUuid", playerUuid))
+        return core.postWithResultBody("/v1/islands/invites/accept", CoreJsonPayload.object("inviteId", inviteId, "playerUuid", playerUuid))
             .thenApply(body -> inviteAction(body, "ACCEPTED"));
     }
 
     @Override
     public CompletableFuture<IslandInviteActionResult> declineInvite(UUID inviteId, UUID playerUuid) {
         requireInviteAndPlayer(inviteId, playerUuid);
-        return core.postWithResultBody("/v1/islands/invites/decline", JdkCoreApiClient.jsonObject("inviteId", inviteId, "playerUuid", playerUuid))
+        return core.postWithResultBody("/v1/islands/invites/decline", CoreJsonPayload.object("inviteId", inviteId, "playerUuid", playerUuid))
             .thenApply(body -> inviteAction(body, "DECLINED"));
     }
 
@@ -50,7 +50,7 @@ public final class JdkMemberCommandClient implements MemberCommandClient {
         String normalizedRoleKey = normalizeRoleKey(roleKey);
         return core.postWithResultBody(
                 "/v1/islands/members/set",
-                JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey)
+                CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey)
             )
             .thenApply(body -> memberAction(body, "MEMBER_ROLE_SET"));
     }
@@ -61,35 +61,35 @@ public final class JdkMemberCommandClient implements MemberCommandClient {
         if (durationSeconds <= 0L) {
             throw new IllegalArgumentException("durationSeconds must be positive");
         }
-        return core.postWithResultBody("/v1/islands/members/trust-temporary", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "durationSeconds", durationSeconds))
+        return core.postWithResultBody("/v1/islands/members/trust-temporary", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "durationSeconds", durationSeconds))
             .thenApply(body -> memberAction(body, "TEMP_TRUST_SET"));
     }
 
     @Override
     public CompletableFuture<MemberActionView> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
-        return core.postWithResultBody("/v1/islands/transfer", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "targetUuid", targetUuid))
+        return core.postWithResultBody("/v1/islands/transfer", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "targetUuid", targetUuid))
             .thenApply(body -> memberAction(body, "OWNERSHIP_TRANSFERRED"));
     }
 
     @Override
     public CompletableFuture<MemberActionView> banVisitor(UUID islandId, UUID actorUuid, UUID targetUuid, String reason) {
         requireIds(islandId, actorUuid, targetUuid);
-        return core.postWithResultBody("/v1/islands/bans/set", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "reason", reason == null ? "" : reason))
+        return core.postWithResultBody("/v1/islands/bans/set", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "reason", reason == null ? "" : reason))
             .thenApply(body -> memberAction(body, "VISITOR_BANNED"));
     }
 
     @Override
     public CompletableFuture<MemberActionView> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
-        return core.postWithResultBody("/v1/islands/bans/remove", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid))
+        return core.postWithResultBody("/v1/islands/bans/remove", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid))
             .thenApply(body -> memberAction(body, "VISITOR_PARDONED"));
     }
 
     @Override
     public CompletableFuture<MemberActionView> kickVisitor(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireIds(islandId, actorUuid, targetUuid);
-        return core.postWithResultBody("/v1/islands/visitors/kick", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid))
+        return core.postWithResultBody("/v1/islands/visitors/kick", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid))
             .thenApply(body -> memberAction(body, "VISITOR_KICKED"));
     }
 

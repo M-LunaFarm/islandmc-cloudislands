@@ -25,7 +25,7 @@ public final class JdkMemberQueryClient implements MemberQueryClient {
     @Override
     public CompletableFuture<List<IslandInviteSnapshot>> inviteSnapshots(UUID playerUuid) {
         requirePlayer(playerUuid);
-        return core.post("/v1/players/invites", JdkCoreApiClient.jsonObject("playerUuid", playerUuid))
+        return core.post("/v1/players/invites", CoreJsonPayload.object("playerUuid", playerUuid))
             .thenApply(CoreMemberJson::invites);
     }
 

@@ -20,15 +20,15 @@ public final class JdkAddonStateClient implements AddonStateClient {
 
     @Override
     public CompletableFuture<Map<String, String>> state(String addonId) {
-        return core.post("/v1/addons/state", JdkCoreApiClient.jsonObject("addonId", safeAddonId(addonId)))
+        return core.post("/v1/addons/state", CoreJsonPayload.object("addonId", safeAddonId(addonId)))
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> putState(String addonId, Map<String, String> values) {
-        return core.postWithResultBody("/v1/addons/state/bulk", JdkCoreApiClient.jsonObject(
+        return core.postWithResultBody("/v1/addons/state/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
-                "values", JdkCoreApiClient.rawJson(JdkCoreApiClient.stringMapJson(safeValues(values)))
+                "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values)))
             ))
             .thenApply(CoreAddonStateJson::values);
     }
@@ -47,16 +47,16 @@ public final class JdkAddonStateClient implements AddonStateClient {
 
     @Override
     public CompletableFuture<Map<String, String>> tableBulkState(String addonId, Map<String, Map<String, String>> tables) {
-        return core.postWithResultBody("/v1/addons/state/table/bulk", JdkCoreApiClient.jsonObject(
+        return core.postWithResultBody("/v1/addons/state/table/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
-                "tables", JdkCoreApiClient.rawJson(core.tableMapJson(safeTables(tables)))
+                "tables", CoreJsonPayload.raw(CoreJsonPayload.tableMap(safeTables(tables)))
             ))
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadState(String addonId, String table) {
-        return core.post(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, JdkCoreApiClient.jsonObject("addonId", safeAddonId(addonId), "table", safeTable(table)))
+        return core.post(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, CoreJsonPayload.object("addonId", safeAddonId(addonId), "table", safeTable(table)))
             .thenApply(CoreAddonStateJson::values);
     }
 
@@ -74,19 +74,19 @@ public final class JdkAddonStateClient implements AddonStateClient {
 
     @Override
     public CompletableFuture<Map<String, String>> clearTableState(String addonId, String table) {
-        return core.postWithResultBody("/v1/addons/state/table/clear", JdkCoreApiClient.jsonObject("addonId", safeAddonId(addonId), "table", safeTable(table)))
+        return core.postWithResultBody("/v1/addons/state/table/clear", CoreJsonPayload.object("addonId", safeAddonId(addonId), "table", safeTable(table)))
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> removeState(String addonId, String key) {
-        return core.postWithResultBody("/v1/addons/state/remove", JdkCoreApiClient.jsonObject("addonId", safeAddonId(addonId), "key", safeKey(key)))
+        return core.postWithResultBody("/v1/addons/state/remove", CoreJsonPayload.object("addonId", safeAddonId(addonId), "key", safeKey(key)))
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Void> clearState(String addonId) {
-        return core.postWithResultBody("/v1/addons/state/clear", JdkCoreApiClient.jsonObject("addonId", safeAddonId(addonId)))
+        return core.postWithResultBody("/v1/addons/state/clear", CoreJsonPayload.object("addonId", safeAddonId(addonId)))
             .thenApply(_body -> (Void) null);
     }
 
@@ -98,10 +98,10 @@ public final class JdkAddonStateClient implements AddonStateClient {
 
     @Override
     public CompletableFuture<Map<String, String>> putIslandState(String addonId, UUID islandId, Map<String, String> values) {
-        return core.postWithResultBody("/v1/addons/islands/state/bulk", JdkCoreApiClient.jsonObject(
+        return core.postWithResultBody("/v1/addons/islands/state/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
-                "values", JdkCoreApiClient.rawJson(JdkCoreApiClient.stringMapJson(safeValues(values)))
+                "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values)))
             ))
             .thenApply(CoreAddonStateJson::values);
     }
@@ -120,17 +120,17 @@ public final class JdkAddonStateClient implements AddonStateClient {
 
     @Override
     public CompletableFuture<Map<String, String>> tableBulkIslandState(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
-        return core.postWithResultBody("/v1/addons/islands/state/table/bulk", JdkCoreApiClient.jsonObject(
+        return core.postWithResultBody("/v1/addons/islands/state/table/bulk", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
-                "tables", JdkCoreApiClient.rawJson(core.tableMapJson(safeTables(tables)))
+                "tables", CoreJsonPayload.raw(CoreJsonPayload.tableMap(safeTables(tables)))
             ))
             .thenApply(CoreAddonStateJson::values);
     }
 
     @Override
     public CompletableFuture<Map<String, String>> tableKeyValueBulkLoadIslandState(String addonId, UUID islandId, String table) {
-        return core.post(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, JdkCoreApiClient.jsonObject(
+        return core.post(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
                 "table", safeTable(table)
@@ -152,7 +152,7 @@ public final class JdkAddonStateClient implements AddonStateClient {
 
     @Override
     public CompletableFuture<Map<String, String>> clearIslandTableState(String addonId, UUID islandId, String table) {
-        return core.postWithResultBody("/v1/addons/islands/state/table/clear", JdkCoreApiClient.jsonObject(
+        return core.postWithResultBody("/v1/addons/islands/state/table/clear", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
                 "table", safeTable(table)
@@ -162,7 +162,7 @@ public final class JdkAddonStateClient implements AddonStateClient {
 
     @Override
     public CompletableFuture<Map<String, String>> removeIslandState(String addonId, UUID islandId, String key) {
-        return core.postWithResultBody("/v1/addons/islands/state/remove", JdkCoreApiClient.jsonObject(
+        return core.postWithResultBody("/v1/addons/islands/state/remove", CoreJsonPayload.object(
                 "addonId", safeAddonId(addonId),
                 "islandId", requireIslandId(islandId),
                 "key", safeKey(key)
@@ -177,40 +177,40 @@ public final class JdkAddonStateClient implements AddonStateClient {
     }
 
     private String statePayload(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return JdkCoreApiClient.jsonObject(
+        return CoreJsonPayload.object(
             "addonId", safeAddonId(addonId),
-            "values", JdkCoreApiClient.rawJson(JdkCoreApiClient.stringMapJson(safeValues(values))),
-            "tables", JdkCoreApiClient.rawJson(core.tableMapJson(safeTables(tables)))
+            "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values))),
+            "tables", CoreJsonPayload.raw(CoreJsonPayload.tableMap(safeTables(tables)))
         );
     }
 
     private String islandStatePayload(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return JdkCoreApiClient.jsonObject(
+        return CoreJsonPayload.object(
             "addonId", safeAddonId(addonId),
             "islandId", requireIslandId(islandId),
-            "values", JdkCoreApiClient.rawJson(JdkCoreApiClient.stringMapJson(safeValues(values))),
-            "tables", JdkCoreApiClient.rawJson(core.tableMapJson(safeTables(tables)))
+            "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values))),
+            "tables", CoreJsonPayload.raw(CoreJsonPayload.tableMap(safeTables(tables)))
         );
     }
 
     private String tablePayload(String addonId, String table, Map<String, String> values) {
-        return JdkCoreApiClient.jsonObject(
+        return CoreJsonPayload.object(
             "addonId", safeAddonId(addonId),
             "table", safeTable(table),
-            "values", JdkCoreApiClient.rawJson(JdkCoreApiClient.stringMapJson(safeValues(values)))
+            "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values)))
         );
     }
 
     private String islandPayload(String addonId, UUID islandId) {
-        return JdkCoreApiClient.jsonObject("addonId", safeAddonId(addonId), "islandId", requireIslandId(islandId));
+        return CoreJsonPayload.object("addonId", safeAddonId(addonId), "islandId", requireIslandId(islandId));
     }
 
     private String islandTablePayload(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return JdkCoreApiClient.jsonObject(
+        return CoreJsonPayload.object(
             "addonId", safeAddonId(addonId),
             "islandId", requireIslandId(islandId),
             "table", safeTable(table),
-            "values", JdkCoreApiClient.rawJson(JdkCoreApiClient.stringMapJson(safeValues(values)))
+            "values", CoreJsonPayload.raw(CoreJsonPayload.stringMap(safeValues(values)))
         );
     }
 

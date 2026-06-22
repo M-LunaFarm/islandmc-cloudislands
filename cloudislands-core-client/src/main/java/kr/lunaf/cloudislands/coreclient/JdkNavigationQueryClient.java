@@ -25,18 +25,18 @@ public final class JdkNavigationQueryClient implements NavigationQueryClient {
     @Override
     public CompletableFuture<List<CoreGuiViews.PlayerIslandView>> playerIslands(UUID playerUuid) {
         requirePlayer(playerUuid);
-        return core.post("/v1/players/islands", JdkCoreApiClient.jsonObject("playerUuid", playerUuid)).thenApply(JdkNavigationQueryClient::playerIslandViews);
+        return core.post("/v1/players/islands", CoreJsonPayload.object("playerUuid", playerUuid)).thenApply(JdkNavigationQueryClient::playerIslandViews);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int limit) {
-        return core.post("/v1/islands/public", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit))).thenApply(JdkNavigationQueryClient::publicIslandViews);
+        return core.post("/v1/islands/public", CoreJsonPayload.object("limit", boundedLimit(limit))).thenApply(JdkNavigationQueryClient::publicIslandViews);
     }
 
     @Override
     public CompletableFuture<ReviewListView> listReviews(UUID islandId, int limit) {
         requireIsland(islandId);
-        return core.post("/v1/islands/reviews", JdkCoreApiClient.jsonObject("islandId", islandId, "limit", boundedLimit(limit))).thenApply(JdkNavigationQueryClient::reviewViews);
+        return core.post("/v1/islands/reviews", CoreJsonPayload.object("islandId", islandId, "limit", boundedLimit(limit))).thenApply(JdkNavigationQueryClient::reviewViews);
     }
 
     static ReviewListView reviewViews(String body) {

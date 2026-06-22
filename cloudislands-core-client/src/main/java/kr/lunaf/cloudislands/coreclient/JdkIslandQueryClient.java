@@ -18,19 +18,19 @@ public final class JdkIslandQueryClient implements IslandQueryClient {
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
         requireIsland(islandId);
-        return core.post("/v1/islands/info", JdkCoreApiClient.jsonObject("islandId", islandId)).thenApply(CoreIslandJson::info);
+        return core.post("/v1/islands/info", CoreJsonPayload.object("islandId", islandId)).thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIslandByOwner(UUID ownerUuid) {
         requireIsland(ownerUuid);
-        return core.post("/v1/islands/info", JdkCoreApiClient.jsonObject("ownerUuid", ownerUuid)).thenApply(CoreIslandJson::info);
+        return core.post("/v1/islands/info", CoreJsonPayload.object("ownerUuid", ownerUuid)).thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> findIslandByName(String islandName) {
         String normalizedIslandName = requireName(islandName);
-        return core.post("/v1/islands/info", JdkCoreApiClient.jsonObject("name", normalizedIslandName)).thenApply(CoreIslandJson::info);
+        return core.post("/v1/islands/info", CoreJsonPayload.object("name", normalizedIslandName)).thenApply(CoreIslandJson::info);
     }
 
     @Override

@@ -310,17 +310,20 @@ class CoreTypedClientsTest {
     }
 
     @Test
-    void jdkCoreApiClientJsonObjectEscapesRouteRequestFields() throws Exception {
-        Method method = JdkCoreApiClient.class.getDeclaredMethod("jsonObject", Object[].class);
-        method.setAccessible(true);
+    void coreJsonPayloadEscapesRouteRequestFieldsOutsideJdkCoreApiClient() throws Exception {
+        String coreClient = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+        String payload = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreJsonPayload.java"));
 
-        String body = (String) method.invoke(null, (Object) new Object[] {
+        String body = CoreJsonPayload.object(
             "nodeId", "paper\"east",
             "reportMissing", true,
             "retry", 2
-        });
+        );
 
         assertEquals("{\"nodeId\":\"paper\\\"east\",\"reportMissing\":true,\"retry\":2}", body);
+        assertFalse(coreClient.contains("static String jsonObject("), "JDK core client must not own JSON payload builders");
+        assertFalse(coreClient.contains("private static String escape("), "JDK core client must not own JSON escaping");
+        assertTrue(payload.contains("static String object(Object... fields)"), "JSON payload builder must live in CoreJsonPayload");
     }
 
     @Test

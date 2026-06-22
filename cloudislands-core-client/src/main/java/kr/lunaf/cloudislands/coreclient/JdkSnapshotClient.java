@@ -19,7 +19,7 @@ final class JdkSnapshotClient implements SnapshotQueryClient, SnapshotCommandCli
     public CompletableFuture<List<IslandSnapshotRecord>> records(UUID islandId, int limit) {
         requireId(islandId, "islandId");
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        return core.post("/v1/islands/snapshots", JdkCoreApiClient.jsonObject("islandId", islandId, "limit", safeLimit))
+        return core.post("/v1/islands/snapshots", CoreJsonPayload.object("islandId", islandId, "limit", safeLimit))
             .thenApply(CoreSnapshotJson::records);
     }
 
@@ -29,7 +29,7 @@ final class JdkSnapshotClient implements SnapshotQueryClient, SnapshotCommandCli
         if (snapshotNo <= 0L) {
             throw new IllegalArgumentException("positive snapshotNo is required");
         }
-        return core.postWithResultBody("/v1/islands/snapshots/record", JdkCoreApiClient.jsonObject(
+        return core.postWithResultBody("/v1/islands/snapshots/record", CoreJsonPayload.object(
                 "islandId", islandId,
                 "snapshotNo", snapshotNo,
                 "storagePath", textOrEmpty(storagePath),
@@ -45,7 +45,7 @@ final class JdkSnapshotClient implements SnapshotQueryClient, SnapshotCommandCli
     @Override
     public CompletableFuture<SnapshotActionView> requestSnapshot(UUID islandId, String reason) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/snapshot", JdkCoreApiClient.jsonObject("islandId", islandId, "reason", snapshotReason(reason)))
+        return core.postWithResultBody("/v1/admin/islands/snapshot", CoreJsonPayload.object("islandId", islandId, "reason", snapshotReason(reason)))
             .thenApply(body -> CoreSnapshotJson.action(body, "SNAPSHOT_REQUESTED"));
     }
 
@@ -55,7 +55,7 @@ final class JdkSnapshotClient implements SnapshotQueryClient, SnapshotCommandCli
         if (snapshotNo <= 0L) {
             throw new IllegalArgumentException("positive snapshotNo is required");
         }
-        return core.postWithResultBody("/v1/admin/islands/restore", JdkCoreApiClient.jsonObject("islandId", islandId, "snapshotNo", snapshotNo))
+        return core.postWithResultBody("/v1/admin/islands/restore", CoreJsonPayload.object("islandId", islandId, "snapshotNo", snapshotNo))
             .thenApply(body -> CoreSnapshotJson.action(body, "RESTORE_REQUESTED"));
     }
 

@@ -15,27 +15,27 @@ final class JdkAdminNodeCommandClient implements AdminNodeCommandClient {
 
     @Override
     public CompletableFuture<AdminNodeActionView> drainNode(String nodeId) {
-        return core.postWithResultBody("/v1/admin/nodes/drain", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId))).thenApply(JdkAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/drain", CoreJsonPayload.object("nodeId", requireNode(nodeId))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     @Override
     public CompletableFuture<AdminNodeActionView> undrainNode(String nodeId) {
-        return core.postWithResultBody("/v1/admin/nodes/undrain", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId))).thenApply(JdkAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/undrain", CoreJsonPayload.object("nodeId", requireNode(nodeId))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     @Override
     public CompletableFuture<AdminNodeActionView> sweepNode(String nodeId) {
-        return core.postWithResultBody("/v1/admin/nodes/sweep", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId))).thenApply(JdkAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/sweep", CoreJsonPayload.object("nodeId", requireNode(nodeId))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     @Override
     public CompletableFuture<AdminNodeActionView> kickAllNode(String nodeId, String reason) {
-        return core.postWithResultBody("/v1/admin/nodes/kickall", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId), "reason", normalizeReason(reason))).thenApply(JdkAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/kickall", CoreJsonPayload.object("nodeId", requireNode(nodeId), "reason", normalizeReason(reason))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     @Override
     public CompletableFuture<AdminNodeActionView> shutdownNodeSafely(String nodeId, String reason) {
-        return core.postWithResultBody("/v1/admin/nodes/shutdown-safe", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId), "reason", normalizeReason(reason))).thenApply(JdkAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/shutdown-safe", CoreJsonPayload.object("nodeId", requireNode(nodeId), "reason", normalizeReason(reason))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     static AdminNodeActionView actionResult(String body) {

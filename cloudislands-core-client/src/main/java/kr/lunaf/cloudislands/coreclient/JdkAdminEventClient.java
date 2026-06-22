@@ -17,13 +17,13 @@ final class JdkAdminEventClient implements AdminEventQueryClient {
 
     @Override
     public CompletableFuture<AdminEventStreamView> list(int limit) {
-        return core.postWithResultBody("/v1/events", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit)))
+        return core.postWithResultBody("/v1/events", CoreJsonPayload.object("limit", boundedLimit(limit)))
             .thenApply(JdkAdminEventClient::stream);
     }
 
     @Override
     public CompletableFuture<AdminEventStreamView> listSince(long sinceSeq, int limit) {
-        return core.postWithResultBody("/v1/events", JdkCoreApiClient.jsonObject("sinceSeq", Math.max(0L, sinceSeq), "limit", boundedLimit(limit)))
+        return core.postWithResultBody("/v1/events", CoreJsonPayload.object("sinceSeq", Math.max(0L, sinceSeq), "limit", boundedLimit(limit)))
             .thenApply(JdkAdminEventClient::stream);
     }
 

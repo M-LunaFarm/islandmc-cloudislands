@@ -40,7 +40,7 @@ public final class JdkIslandEnvironmentQueryClient implements IslandEnvironmentQ
     @Override
     public CompletableFuture<List<IslandLimitSnapshot>> limits(UUID islandId) {
         requireIsland(islandId);
-        return core.post("/v1/islands/limits", JdkCoreApiClient.jsonObject("islandId", islandId))
+        return core.post("/v1/islands/limits", CoreJsonPayload.object("islandId", islandId))
             .thenApply(body -> CoreEnvironmentJson.limits(islandId, body));
     }
 

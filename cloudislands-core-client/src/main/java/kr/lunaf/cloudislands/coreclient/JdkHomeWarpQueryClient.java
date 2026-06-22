@@ -40,8 +40,8 @@ public final class JdkHomeWarpQueryClient implements HomeWarpQueryClient {
         String safeCategory = category == null ? "" : category;
         String safeQuery = query == null ? "" : query;
         String payload = safeCategory.isBlank() && safeQuery.isBlank()
-            ? JdkCoreApiClient.jsonObject("limit", safeLimit)
-            : JdkCoreApiClient.jsonObject("limit", safeLimit, "category", safeCategory, "query", safeQuery);
+            ? CoreJsonPayload.object("limit", safeLimit)
+            : CoreJsonPayload.object("limit", safeLimit, "category", safeCategory, "query", safeQuery);
         return core.post("/v1/islands/public-warps", payload)
             .thenApply(body -> CoreHomeWarpJson.warps(null, body));
     }

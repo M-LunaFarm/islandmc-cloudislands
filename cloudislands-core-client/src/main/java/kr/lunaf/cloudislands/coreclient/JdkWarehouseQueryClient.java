@@ -20,7 +20,7 @@ final class JdkWarehouseQueryClient implements WarehouseQueryClient {
     public CompletableFuture<List<WarehouseItemView>> listItems(UUID islandId, int limit) {
         requireId(islandId, "islandId");
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        return core.post("/v1/islands/warehouse", JdkCoreApiClient.jsonObject("islandId", islandId, "limit", safeLimit))
+        return core.post("/v1/islands/warehouse", CoreJsonPayload.object("islandId", islandId, "limit", safeLimit))
             .thenApply(body -> warehouseItems(islandId, body));
     }
 

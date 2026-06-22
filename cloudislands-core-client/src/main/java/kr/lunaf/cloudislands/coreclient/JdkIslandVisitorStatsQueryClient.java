@@ -21,7 +21,7 @@ final class JdkIslandVisitorStatsQueryClient implements IslandVisitorStatsQueryC
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
-        return core.postWithResultBody("/v1/islands/visitors/stats", JdkCoreApiClient.jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(recentLimit, 100)))).thenApply(JdkIslandVisitorStatsQueryClient::stats);
+        return core.postWithResultBody("/v1/islands/visitors/stats", CoreJsonPayload.object("islandId", islandId, "limit", Math.max(1, Math.min(recentLimit, 100)))).thenApply(JdkIslandVisitorStatsQueryClient::stats);
     }
 
     static IslandVisitorStatsView stats(String body) {

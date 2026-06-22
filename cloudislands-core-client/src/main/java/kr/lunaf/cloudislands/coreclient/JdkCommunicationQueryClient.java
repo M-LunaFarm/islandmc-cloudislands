@@ -19,7 +19,7 @@ final class JdkCommunicationQueryClient implements CommunicationQueryClient {
     public CompletableFuture<List<IslandLogRecord>> records(UUID islandId, int limit) {
         requireId(islandId, "islandId");
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        return core.post("/v1/islands/logs", JdkCoreApiClient.jsonObject("islandId", islandId, "limit", safeLimit))
+        return core.post("/v1/islands/logs", CoreJsonPayload.object("islandId", islandId, "limit", safeLimit))
             .thenApply(CoreCommunicationJson::records);
     }
 

@@ -21,7 +21,7 @@ final class JdkIslandLifecycleCommandClient implements IslandLifecycleCommandCli
     public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
         requireId(playerUuid, "playerUuid");
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
-        return core.post("/v1/islands", JdkCoreApiClient.jsonObject("playerUuid", playerUuid, "templateId", normalizedTemplateId))
+        return core.post("/v1/islands", CoreJsonPayload.object("playerUuid", playerUuid, "templateId", normalizedTemplateId))
             .thenApply(JdkIslandLifecycleCommandClient::createIslandResult);
     }
 
@@ -37,70 +37,70 @@ final class JdkIslandLifecycleCommandClient implements IslandLifecycleCommandCli
     public CompletableFuture<IslandLifecycleActionView> resetIsland(UUID islandId, UUID actorUuid, String reason) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return core.postWithResultBody("/v1/islands/reset", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "reason", reason == null || reason.isBlank() ? "player-reset" : reason.trim()))
+        return core.postWithResultBody("/v1/islands/reset", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "reason", reason == null || reason.isBlank() ? "player-reset" : reason.trim()))
             .thenApply(body -> lifecycleAction(body, "RESET_QUEUED", islandId));
     }
 
     @Override
     public CompletableFuture<IslandLifecycleActionView> saveIsland(UUID islandId, String reason) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/save", JdkCoreApiClient.jsonObject("islandId", islandId, "reason", lifecycleReason(reason, "ADMIN_SAVE")))
+        return core.postWithResultBody("/v1/admin/islands/save", CoreJsonPayload.object("islandId", islandId, "reason", lifecycleReason(reason, "ADMIN_SAVE")))
             .thenApply(body -> lifecycleAction(body, "SNAPSHOT_QUEUED", islandId));
     }
 
     @Override
     public CompletableFuture<IslandLifecycleActionView> snapshotIsland(UUID islandId, String reason) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/snapshot", JdkCoreApiClient.jsonObject("islandId", islandId, "reason", lifecycleReason(reason, "ADMIN_MANUAL")))
+        return core.postWithResultBody("/v1/admin/islands/snapshot", CoreJsonPayload.object("islandId", islandId, "reason", lifecycleReason(reason, "ADMIN_MANUAL")))
             .thenApply(body -> lifecycleAction(body, "SNAPSHOT_QUEUED", islandId));
     }
 
     @Override
     public CompletableFuture<IslandLifecycleActionView> restoreIslandSnapshot(UUID islandId, long snapshotNo) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/restore", JdkCoreApiClient.jsonObject("islandId", islandId, "snapshotNo", snapshotNo))
+        return core.postWithResultBody("/v1/admin/islands/restore", CoreJsonPayload.object("islandId", islandId, "snapshotNo", snapshotNo))
             .thenApply(body -> lifecycleAction(body, "RESTORE_QUEUED", islandId));
     }
 
     @Override
     public CompletableFuture<IslandLifecycleActionView> rollbackIslandSnapshot(UUID islandId, long snapshotNo) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/rollback", JdkCoreApiClient.jsonObject("islandId", islandId, "snapshotNo", snapshotNo))
+        return core.postWithResultBody("/v1/admin/islands/rollback", CoreJsonPayload.object("islandId", islandId, "snapshotNo", snapshotNo))
             .thenApply(body -> lifecycleAction(body, "RESTORE_QUEUED", islandId));
     }
 
     @Override
     public CompletableFuture<IslandLifecycleActionView> activateIsland(UUID islandId) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/activate", JdkCoreApiClient.jsonObject("islandId", islandId))
+        return core.postWithResultBody("/v1/admin/islands/activate", CoreJsonPayload.object("islandId", islandId))
             .thenApply(body -> lifecycleAction(body, "ACTIVATING", islandId));
     }
 
     @Override
     public CompletableFuture<IslandLifecycleActionView> deactivateIsland(UUID islandId) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/deactivate", JdkCoreApiClient.jsonObject("islandId", islandId))
+        return core.postWithResultBody("/v1/admin/islands/deactivate", CoreJsonPayload.object("islandId", islandId))
             .thenApply(body -> lifecycleAction(body, "SAVING", islandId));
     }
 
     @Override
     public CompletableFuture<IslandLifecycleActionView> migrateIsland(UUID islandId, String targetNode) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/migrate", JdkCoreApiClient.jsonObject("islandId", islandId, "targetNode", targetNode == null ? "" : targetNode.trim()))
+        return core.postWithResultBody("/v1/admin/islands/migrate", CoreJsonPayload.object("islandId", islandId, "targetNode", targetNode == null ? "" : targetNode.trim()))
             .thenApply(body -> lifecycleAction(body, "MIGRATING", islandId));
     }
 
     @Override
     public CompletableFuture<IslandLifecycleActionView> quarantineIsland(UUID islandId, String reason) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/" + islandId + "/quarantine", JdkCoreApiClient.jsonObject("reason", lifecycleReason(reason, "admin")))
+        return core.postWithResultBody("/v1/admin/islands/" + islandId + "/quarantine", CoreJsonPayload.object("reason", lifecycleReason(reason, "admin")))
             .thenApply(body -> lifecycleAction(body, "QUARANTINED", islandId));
     }
 
     @Override
     public CompletableFuture<IslandLifecycleActionView> repairIsland(UUID islandId, String reason) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/admin/islands/" + islandId + "/repair", JdkCoreApiClient.jsonObject("reason", lifecycleReason(reason, "admin")))
+        return core.postWithResultBody("/v1/admin/islands/" + islandId + "/repair", CoreJsonPayload.object("reason", lifecycleReason(reason, "admin")))
             .thenApply(body -> lifecycleAction(body, "REPAIRED", islandId));
     }
 
