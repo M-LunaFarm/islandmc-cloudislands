@@ -977,34 +977,15 @@ final class IslandCommandBackend {
     }
 
     private String joined(String[] args, int start) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = start; i < args.length; i++) {
-            if (builder.length() > 0) {
-                builder.append(' ');
-            }
-            builder.append(args[i]);
-        }
-        return builder.toString();
+        return IslandCommandArgs.joined(args, start);
     }
 
     private int integer(String value, int fallback) {
-        try {
-            return Integer.parseInt(value);
-        } catch (RuntimeException ignored) {
-            return fallback;
-        }
+        return IslandCommandArgs.integer(value, fallback);
     }
 
     private long longValue(String value, long fallback) {
-        try {
-            return Long.parseLong(value);
-        } catch (RuntimeException ignored) {
-            return fallback;
-        }
-    }
-
-    private long number(String value, long fallback) {
-        return longValue(value, fallback);
+        return IslandCommandArgs.longValue(value, fallback);
     }
 
     private CompletableFuture<UUID> resolvePlayerUuid(String value) {
