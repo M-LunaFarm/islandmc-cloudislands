@@ -61,15 +61,13 @@ public interface IslandCommandService {
     default CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
         return setRoleResult(islandId, actorUuid, targetUuid, roleKey).thenApply(_result -> null);
     }
-    default CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
-        IslandRole legacyRole = legacyRole(roleKey);
-        if (legacyRole == null) {
-            return CompletableFuture.failedFuture(new UnsupportedOperationException("custom role keys require an implementation override"));
-        }
-        return setRoleResult(islandId, actorUuid, targetUuid, legacyRole);
+    CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey);
+    default CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) {
+        return setRole(islandId, actorUuid, targetUuid, legacyRoleKey(role));
     }
-    CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role);
-    CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role);
+    default CompletableFuture<IslandActionResult> setRoleResult(UUID islandId, UUID actorUuid, UUID targetUuid, IslandRole role) {
+        return setRoleResult(islandId, actorUuid, targetUuid, legacyRoleKey(role));
+    }
     CompletableFuture<Void> transferOwnership(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<IslandActionResult> transferOwnershipResult(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
@@ -83,15 +81,13 @@ public interface IslandCommandService {
     default CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed) {
         return setPermissionResult(islandId, actorUuid, roleKey, permission, allowed).thenApply(_result -> null);
     }
-    default CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed) {
-        IslandRole legacyRole = legacyRole(roleKey);
-        if (legacyRole == null) {
-            return CompletableFuture.failedFuture(new UnsupportedOperationException("custom role keys require an implementation override"));
-        }
-        return setPermissionResult(islandId, actorUuid, legacyRole, permission, allowed);
+    CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed);
+    default CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) {
+        return setPermission(islandId, actorUuid, legacyRoleKey(role), permission, allowed);
     }
-    CompletableFuture<Void> setPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
-    CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
+    default CompletableFuture<IslandActionResult> setPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) {
+        return setPermissionResult(islandId, actorUuid, legacyRoleKey(role), permission, allowed);
+    }
     default CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, RoleId roleId, int weight, String displayName) {
         return upsertRole(islandId, actorUuid, roleId == null ? "" : roleId.value(), weight, displayName);
     }
@@ -101,15 +97,13 @@ public interface IslandCommandService {
     default CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName) {
         return upsertRoleResult(islandId, actorUuid, roleKey, weight, displayName).thenApply(_result -> null);
     }
-    default CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName) {
-        IslandRole legacyRole = legacyRole(roleKey);
-        if (legacyRole == null) {
-            return CompletableFuture.failedFuture(new UnsupportedOperationException("custom role keys require an implementation override"));
-        }
-        return upsertRoleResult(islandId, actorUuid, legacyRole, weight, displayName);
+    CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName);
+    default CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) {
+        return upsertRole(islandId, actorUuid, legacyRoleKey(role), weight, displayName);
     }
-    CompletableFuture<Void> upsertRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName);
-    CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName);
+    default CompletableFuture<IslandRoleSnapshot> upsertRoleResult(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) {
+        return upsertRoleResult(islandId, actorUuid, legacyRoleKey(role), weight, displayName);
+    }
     default CompletableFuture<Void> resetRole(UUID islandId, UUID actorUuid, RoleId roleId) {
         return resetRole(islandId, actorUuid, roleId == null ? "" : roleId.value());
     }
@@ -119,15 +113,13 @@ public interface IslandCommandService {
     default CompletableFuture<Void> resetRole(UUID islandId, UUID actorUuid, String roleKey) {
         return resetRoleResult(islandId, actorUuid, roleKey).thenApply(_result -> null);
     }
-    default CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, String roleKey) {
-        IslandRole legacyRole = legacyRole(roleKey);
-        if (legacyRole == null) {
-            return CompletableFuture.failedFuture(new UnsupportedOperationException("custom role keys require an implementation override"));
-        }
-        return resetRoleResult(islandId, actorUuid, legacyRole);
+    CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, String roleKey);
+    default CompletableFuture<Void> resetRole(UUID islandId, UUID actorUuid, IslandRole role) {
+        return resetRole(islandId, actorUuid, legacyRoleKey(role));
     }
-    CompletableFuture<Void> resetRole(UUID islandId, UUID actorUuid, IslandRole role);
-    CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, IslandRole role);
+    default CompletableFuture<IslandActionResult> resetRoleResult(UUID islandId, UUID actorUuid, IslandRole role) {
+        return resetRoleResult(islandId, actorUuid, legacyRoleKey(role));
+    }
     CompletableFuture<Void> setLocked(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<IslandActionResult> setLockedResult(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<Void> lockIsland(UUID islandId, UUID actorUuid);
@@ -200,11 +192,7 @@ public interface IslandCommandService {
     CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount);
     CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount);
 
-    private static IslandRole legacyRole(String roleKey) {
-        try {
-            return IslandRole.valueOf(RoleId.normalize(roleKey, ""));
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
+    private static String legacyRoleKey(IslandRole role) {
+        return role == null ? "" : role.name();
     }
 }
