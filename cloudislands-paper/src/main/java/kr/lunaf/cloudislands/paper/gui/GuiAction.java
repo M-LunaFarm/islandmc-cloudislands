@@ -316,11 +316,10 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
     }
 
-    record BankAmount(String actionId, BigDecimal amount) implements GuiAction {
+    record BankAmount(BankAmountType type, BigDecimal amount) implements GuiAction {
         public BankAmount {
-            actionId = actionId == null ? "" : actionId.trim();
-            if (!actionId.equals("island.bank.deposit") && !actionId.equals("island.bank.withdraw")) {
-                throw new IllegalArgumentException("unsupported bank action");
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
             }
             if (amount == null || amount.signum() <= 0) {
                 throw new IllegalArgumentException("positive amount is required");
@@ -329,12 +328,32 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
 
         @Override
+        public String actionId() {
+            return type.actionId();
+        }
+
+        @Override
         public Map<String, String> data() {
             return Map.of("amount", amount.toPlainString());
         }
 
         public boolean deposit() {
-            return actionId.equals("island.bank.deposit");
+            return type == BankAmountType.DEPOSIT;
+        }
+    }
+
+    enum BankAmountType {
+        DEPOSIT("island.bank.deposit"),
+        WITHDRAW("island.bank.withdraw");
+
+        private final String actionId;
+
+        BankAmountType(String actionId) {
+            this.actionId = actionId;
+        }
+
+        public String actionId() {
+            return actionId;
         }
     }
 

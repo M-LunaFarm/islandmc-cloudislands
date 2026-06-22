@@ -13,7 +13,7 @@ class GuiActionDedupePolicyTest {
     @Test
     void rejectsSamePlayerSameActionInsideWindow() {
         GuiActionDedupePolicy policy = new GuiActionDedupePolicy(500L);
-        GuiAction action = new GuiAction.BankAmount("island.bank.withdraw", new BigDecimal("1000"));
+        GuiAction action = new GuiAction.BankAmount(GuiAction.BankAmountType.WITHDRAW, new BigDecimal("1000"));
 
         assertTrue(policy.accept(PLAYER, action, GuiClick.LEFT, 1_000L));
         assertFalse(policy.accept(PLAYER, action, GuiClick.LEFT, 1_100L));
@@ -23,10 +23,10 @@ class GuiActionDedupePolicyTest {
     @Test
     void allowsDifferentActionDataClickOrPlayerInsideWindow() {
         GuiActionDedupePolicy policy = new GuiActionDedupePolicy(500L);
-        GuiAction first = new GuiAction.BankAmount("island.bank.withdraw", new BigDecimal("1000"));
+        GuiAction first = new GuiAction.BankAmount(GuiAction.BankAmountType.WITHDRAW, new BigDecimal("1000"));
 
         assertTrue(policy.accept(PLAYER, first, GuiClick.LEFT, 1_000L));
-        assertTrue(policy.accept(PLAYER, new GuiAction.BankAmount("island.bank.withdraw", new BigDecimal("10000")), GuiClick.LEFT, 1_100L));
+        assertTrue(policy.accept(PLAYER, new GuiAction.BankAmount(GuiAction.BankAmountType.WITHDRAW, new BigDecimal("10000")), GuiClick.LEFT, 1_100L));
         assertTrue(policy.accept(PLAYER, first, GuiClick.RIGHT, 1_200L));
         assertTrue(policy.accept(UUID.fromString("00000000-0000-0000-0000-000000000002"), first, GuiClick.LEFT, 1_300L));
     }

@@ -257,7 +257,7 @@ public final class GuiActionParser {
                     safeData.getOrDefault("templateId", "default")
                 ));
                 case "island.bank.deposit", "island.bank.withdraw" -> Optional.of(new GuiAction.BankAmount(
-                    safeAction,
+                    safeAction.equals("island.bank.deposit") ? GuiAction.BankAmountType.DEPOSIT : GuiAction.BankAmountType.WITHDRAW,
                     positiveDecimal(required(safeData, "amount"))
                 ));
                 case "island.snapshot.create" -> Optional.of(new GuiAction.SnapshotCreate(
