@@ -57,11 +57,7 @@ public final class AdminNodeMenu implements Listener {
     }
 
     public static void open(Player player, String nodeId, MessageRenderer messages) {
-        open(player, nodeId, "", messages);
-    }
-
-    public static void open(Player player, String nodeId, String nodeInfoBody, MessageRenderer messages) {
-        open(player, nodeId, PaperGuiViews.nodeSummary(nodeId, nodeInfoBody), messages);
+        open(player, nodeId, PaperGuiViews.emptyNodeSummary(nodeId), messages);
     }
 
     public static void open(Player player, String nodeId, CoreGuiViews.NodeSummaryView summary, MessageRenderer messages) {
@@ -70,7 +66,7 @@ public final class AdminNodeMenu implements Listener {
 
     public static void open(Player player, String nodeId, NodeSummaryView summary, MessageRenderer messages) {
         Inventory inventory = GuiMenuRenderer.render(MENU, messages, TITLE, item -> true);
-        setNodeSummaryItem(inventory, summary == null ? PaperGuiViews.nodeSummary(nodeId, "") : summary, messages);
+        setNodeSummaryItem(inventory, summary == null ? PaperGuiViews.emptyNodeSummary(nodeId) : summary, messages);
         for (String symbol : NODE_ACTION_SYMBOLS) {
             for (int slot : GuiMenuRenderer.slots(MENU, symbol)) {
                 MENU.itemAt(slot).ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of("nodeId", nodeId))));

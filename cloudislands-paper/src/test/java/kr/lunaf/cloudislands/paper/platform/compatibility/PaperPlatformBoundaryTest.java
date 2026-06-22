@@ -902,9 +902,14 @@ class PaperPlatformBoundaryTest {
     void adminNodeGuiUsesTypedActionFieldsInsteadOfRawMaps() throws Exception {
         Path root = repositoryRoot();
         String handler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
+        String menu = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/AdminNodeMenu.java"));
+        String views = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/view/PaperGuiViews.java"));
 
         assertTrue(handler.contains("adminNodeId(GuiAction.AdminNodeAction action)"), "Admin node GUI handler must resolve node ids from the typed action");
         assertTrue(!handler.contains("adminNodeId(action.data())"), "Admin node GUI handler must not re-read node ids from raw action maps");
+        assertTrue(!menu.contains("String nodeInfoBody"), "Admin node GUI must not accept raw Core node JSON bodies");
+        assertTrue(!views.contains("nodeSummary(String nodeId, String body)"), "Paper GUI views must not expose raw Core node JSON parsers");
+        assertTrue(views.contains("emptyNodeSummary(String nodeId)"), "Paper GUI fallback node summaries must be explicit typed views");
     }
 
     @Test

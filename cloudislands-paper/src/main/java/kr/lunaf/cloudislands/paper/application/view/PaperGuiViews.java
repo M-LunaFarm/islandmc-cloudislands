@@ -114,10 +114,6 @@ public final class PaperGuiViews {
         return CoreGuiViews.islandLogs(client, islandId, limit).thenApply(views -> views.stream().map(PaperGuiViews::logEntry).toList());
     }
 
-    public static NodeSummaryView nodeSummary(String nodeId, String body) {
-        return nodeSummary(CoreGuiViews.nodeSummary(nodeId, body));
-    }
-
     private static IslandInfoView islandInfo(CoreGuiViews.IslandInfoView view) {
         return new IslandInfoView(view.name(), view.state(), view.islandId(), view.level(), view.worth(), view.publicAccess(), view.locked(), view.size(), view.border(), view.ownerUuid());
     }
@@ -200,6 +196,10 @@ public final class PaperGuiViews {
 
     public static NodeSummaryView nodeSummary(CoreGuiViews.NodeSummaryView view) {
         return new NodeSummaryView(view.nodeId(), view.state(), view.pool(), view.players(), view.softPlayerCap(), view.hardPlayerCap(), view.activeIslands(), view.maxActiveIslands(), view.activationQueue(), view.maxActivationQueue(), view.mspt());
+    }
+
+    public static NodeSummaryView emptyNodeSummary(String nodeId) {
+        return new NodeSummaryView(nodeId == null ? "" : nodeId, "UNKNOWN", "island", 0L, 0L, 0L, 0L, 0L, 0L, 0L, "0");
     }
 
     public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid) {
