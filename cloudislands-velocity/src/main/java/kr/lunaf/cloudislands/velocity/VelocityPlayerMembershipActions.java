@@ -4,7 +4,6 @@ import com.velocitypowered.api.proxy.Player;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityPlayerMembershipActions extends VelocityActionSupport {
@@ -84,25 +83,8 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
         sendBodyResult(player, coreApiClient.islands().listMembers(islandId).thenApply(islandMessages::memberList), "멤버 목록을 불러오지 못했습니다.");
     }
 
-    public void setRole(Player player, UUID islandId, UUID targetUuid, IslandRole role) {
-        sendBodyResult(player, coreApiClient.memberCommands().setRole(islandId, player.getUniqueId(), targetUuid, role.name()).thenApply(result -> islandMessages.memberAction("섬 멤버 역할 변경", result)), "섬 멤버 역할을 변경하지 못했습니다.");
-    }
-
     public void setRole(Player player, UUID islandId, UUID targetUuid, String roleKey) {
         sendBodyResult(player, coreApiClient.memberCommands().setRole(islandId, player.getUniqueId(), targetUuid, roleKey).thenApply(result -> islandMessages.memberAction("섬 멤버 역할 변경", result)), "섬 멤버 역할을 변경하지 못했습니다.");
-    }
-
-    public void setRoleTarget(Player player, UUID islandId, String target, IslandRole role) {
-        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
-            if (targetUuid.equals(new UUID(0L, 0L))) {
-                player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
-                return;
-            }
-            setRole(player, islandId, targetUuid, role);
-        }).exceptionally(error -> {
-            player.sendMessage(Component.text("대상 플레이어를 찾지 못했습니다."));
-            return null;
-        });
     }
 
     public void setRoleTarget(Player player, UUID islandId, String target, String roleKey) {
@@ -257,10 +239,6 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             resolved -> sendBodyResult(player, coreApiClient.permissionQueries().permissions(resolved).thenApply(islandMessages::permissionList), "섬 권한을 불러오지 못했습니다."));
     }
 
-    public void setPermission(Player player, UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
-        sendBodyResult(player, coreApiClient.permissions().setPermission(islandId, player.getUniqueId(), role.name(), permission, allowed).thenApply(result -> islandMessages.permissionAction("섬 권한 변경", result)), "섬 권한을 변경하지 못했습니다.");
-    }
-
     public void setPermission(Player player, UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
         sendBodyResult(player, coreApiClient.permissions().setPermission(islandId, player.getUniqueId(), roleKey, permission, allowed).thenApply(result -> islandMessages.permissionAction("섬 권한 변경", result)), "섬 권한을 변경하지 못했습니다.");
     }
@@ -273,16 +251,8 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             resolved -> sendBodyResult(player, coreApiClient.permissionQueries().roles(resolved).thenApply(islandMessages::roleList), "섬 역할을 불러오지 못했습니다."));
     }
 
-    public void upsertRole(Player player, UUID islandId, IslandRole role, int weight, String displayName) {
-        sendBodyResult(player, coreApiClient.permissions().upsertRole(islandId, player.getUniqueId(), role.name(), weight, displayName).thenApply(result -> islandMessages.roleMutation("섬 역할 저장 완료", result)), "섬 역할을 저장하지 못했습니다.");
-    }
-
     public void upsertRole(Player player, UUID islandId, String roleKey, int weight, String displayName) {
         sendBodyResult(player, coreApiClient.permissions().upsertRole(islandId, player.getUniqueId(), roleKey, weight, displayName).thenApply(result -> islandMessages.roleMutation("섬 역할 저장 완료", result)), "섬 역할을 저장하지 못했습니다.");
-    }
-
-    public void resetRole(Player player, UUID islandId, IslandRole role) {
-        sendBodyResult(player, coreApiClient.permissions().resetRole(islandId, player.getUniqueId(), role.name()).thenApply(result -> islandMessages.roleMutation("섬 역할 초기화 완료", result)), "섬 역할을 초기화하지 못했습니다.");
     }
 
     public void resetRole(Player player, UUID islandId, String roleKey) {

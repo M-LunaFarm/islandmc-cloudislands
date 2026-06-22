@@ -56,4 +56,16 @@ class VelocityPluginRolePolicyTest {
         assertFalse(source.contains("sendInviteActionResult("), "Velocity actions must not infer invite success from raw JSON bodies");
         assertFalse(source.contains("body.contains(\"\\\"accepted\\\":false\")"), "Velocity actions must not inspect raw JSON success flags");
     }
+
+    @Test
+    void membershipCommandsUseRoleKeysInsteadOfIslandRoleOverloads() throws Exception {
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerMembershipActions.java"));
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerMembershipCommandDispatcher.java"));
+        String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
+
+        assertFalse(actions.contains("IslandRole"), "Membership actions must expose role-key commands, not IslandRole overloads");
+        assertFalse(dispatcher.contains("IslandRole"), "Membership commands must normalize role keys without the legacy enum");
+        assertFalse(support.contains("parseRole("), "Shared command support must not keep legacy IslandRole parsing");
+        assertFalse(support.contains("memberRoleNames("), "Role completions must come from dynamic role keys");
+    }
 }

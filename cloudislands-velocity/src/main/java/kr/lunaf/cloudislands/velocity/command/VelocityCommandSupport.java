@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.velocity.VelocityAdminActions;
 import kr.lunaf.cloudislands.velocity.VelocityPlayerMembershipActions;
 import kr.lunaf.cloudislands.velocity.VelocityPlayerProgressionActions;
@@ -220,26 +219,6 @@ abstract class VelocityCommandSupport {
             builder.append(args[index]);
         }
         return builder.toString();
-    }
-
-    protected IslandRole parseRole(String value) {
-        IslandRole role = parseRoleOrNull(value);
-        return role == null ? IslandRole.MEMBER : role;
-    }
-
-    protected IslandRole parseRoleOrNull(String value) {
-        try {
-            return IslandRole.valueOf(value.toUpperCase(Locale.ROOT).replace('-', '_'));
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
-    }
-
-    protected List<String> memberRoleNames() {
-        return java.util.Arrays.stream(IslandRole.values())
-            .filter(role -> role.islandMemberRole() && role != IslandRole.OWNER)
-            .map(Enum::name)
-            .toList();
     }
 
     protected List<String> permissionNames() {

@@ -4,7 +4,6 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.api.model.SystemRole;
 import kr.lunaf.cloudislands.velocity.VelocityRoutingController;
@@ -12,6 +11,10 @@ import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 import net.kyori.adventure.text.Component;
 
 final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSupport {
+    private static final String ROLE_MODERATOR = "MODERATOR";
+    private static final String ROLE_MEMBER = "MEMBER";
+    private static final String ROLE_TRUSTED = "TRUSTED";
+
     VelocityPlayerMembershipCommandDispatcher(ProxyServer proxy, VelocityRoutingController routingController, VelocityConfig config) {
         super(proxy, routingController, config);
     }
@@ -46,12 +49,12 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
         }
         if (args[0].equalsIgnoreCase("promote") || args[0].equals("승급")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), IslandRole.MODERATOR);
+            playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), ROLE_MODERATOR);
             return true;
         }
         if (args[0].equalsIgnoreCase("demote") || args[0].equals("강등")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), IslandRole.MEMBER);
+            playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), ROLE_MEMBER);
             return true;
         }
         if (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정")) {
@@ -104,12 +107,12 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
         }
         if (args[0].equalsIgnoreCase("trust") || args[0].equals("신뢰")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), IslandRole.TRUSTED);
+            playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), ROLE_TRUSTED);
             return true;
         }
         if (args[0].equalsIgnoreCase("untrust") || args[0].equals("신뢰해제")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
-            playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), IslandRole.MEMBER);
+            playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), ROLE_MEMBER);
             return true;
         }
         if (args[0].equalsIgnoreCase("ban") || args[0].equals("밴")) {
@@ -197,7 +200,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
         if (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
-            String roleKey = args.length > roleIndex ? roleKeyOrBlank(args[roleIndex]) : IslandRole.MEMBER.name();
+            String roleKey = args.length > roleIndex ? roleKeyOrBlank(args[roleIndex]) : ROLE_MEMBER;
             IslandPermission permission = args.length > roleIndex + 1 ? parsePermission(args[roleIndex + 1]) : IslandPermission.BUILD;
             boolean allowed = parseToggle(args, roleIndex + 2, false);
             if (roleKey.isBlank()) {
@@ -237,12 +240,12 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
     }
 
     private static int defaultRoleWeight(String roleKey) {
-        IslandRole role = null;
-        try {
-            role = IslandRole.valueOf(roleKey);
-        } catch (IllegalArgumentException ignored) {
-            // Dynamic role keys are weighted after built-in member roles by default.
-        }
-        return role == null ? 100 : role.ordinal();
+        return switch (RoleId.normalize(roleKey, "CUSTOM")) {
+            case "CO_OWNER" -> 1;
+            case "MODERATOR" -> 2;
+            case "MEMBER" -> 3;
+            case "TRUSTED" -> 4;
+            default -> 100;
+        };
     }
 }
