@@ -20,7 +20,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> islandInfo(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandInfo(delegate, islandId);
+        return new CoreIslandQueryClient(delegate).getIsland(islandId);
     }
 
     @Override

@@ -18,19 +18,19 @@ public final class CoreIslandQueryClient implements IslandQueryClient {
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandInfo(delegate, islandId);
+        return delegate.islandInfo(islandId).thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIslandByOwner(UUID ownerUuid) {
         requireIsland(ownerUuid);
-        return delegate.islandInfoByOwner(ownerUuid).thenApply(CoreGuiViews::islandInfoView);
+        return delegate.islandInfoByOwner(ownerUuid).thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> findIslandByName(String islandName) {
         String normalizedIslandName = requireName(islandName);
-        return delegate.islandInfoByName(normalizedIslandName).thenApply(CoreGuiViews::islandInfoView);
+        return delegate.islandInfoByName(normalizedIslandName).thenApply(CoreIslandJson::info);
     }
 
     @Override

@@ -16,11 +16,11 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<IslandInfoView> islandInfo(CoreApiClient client, UUID islandId) {
-        return client.islandInfo(islandId).thenApply(CoreGuiViews::islandInfo);
+        return new CoreIslandQueryClient(client).getIsland(islandId);
     }
 
     public static IslandInfoView islandInfoView(String body) {
-        return islandInfo(body);
+        return CoreIslandJson.info(body);
     }
 
     public static CompletableFuture<BankView> islandBank(CoreApiClient client, UUID islandId) {
@@ -175,24 +175,6 @@ public final class CoreGuiViews {
             longValue(root, "activationQueue"),
             longValue(root, "maxActivationQueue"),
             text(root, "mspt")
-        );
-    }
-
-    private static IslandInfoView islandInfo(String body) {
-        Map<?, ?> root = root(body);
-        return new IslandInfoView(
-            text(root, "name"),
-            text(root, "state"),
-            text(root, "islandId"),
-            longValue(root, "level"),
-            text(root, "worth"),
-            bool(root, "publicAccess"),
-            bool(root, "locked"),
-            longValue(root, "size"),
-            longValue(root, "border"),
-            text(root, "ownerUuid"),
-            text(root, "createdAt"),
-            text(root, "updatedAt")
         );
     }
 

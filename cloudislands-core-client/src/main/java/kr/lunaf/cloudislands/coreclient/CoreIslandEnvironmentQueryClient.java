@@ -27,7 +27,7 @@ public final class CoreIslandEnvironmentQueryClient implements IslandEnvironment
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
         requireIsland(islandId);
-        return CoreGuiViews.islandInfo(delegate, islandId);
+        return new CoreIslandQueryClient(delegate).getIsland(islandId);
     }
 
     @Override
