@@ -2714,20 +2714,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return Optional.of(routeSession(debug.sessions().get(0)));
     }
 
-    private static Optional<PlayerRouteSessionSnapshot> routeSession(String json) {
-        if (json == null || json.isBlank() || json.contains("\"error\"")) {
-            return Optional.empty();
-        }
-        return Optional.of(new PlayerRouteSessionSnapshot(
-            uuid(json, "playerUuid", new UUID(0L, 0L)),
-            uuid(json, "ticketId", new UUID(0L, 0L)),
-            text(json, "targetNode", ""),
-            text(json, "targetServerName", ""),
-            text(json, "nonce", ""),
-            instant(text(json, "expiresAt", Instant.EPOCH.toString()))
-        ));
-    }
-
     private static RouteDebugSnapshot routeDebug(AdminRouteDebugView debug) {
         if (debug == null) {
             return new RouteDebugSnapshot(List.of(), List.of());
@@ -2736,18 +2722,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             debug.sessions().stream().map(PaperCloudIslandsApi::routeSession).toList(),
             debug.tickets().stream().map(PaperCloudIslandsApi::routeTicket).toList()
         );
-    }
-
-    private static RouteDebugSnapshot routeDebug(String json) {
-        List<PlayerRouteSessionSnapshot> sessions = new ArrayList<>();
-        for (String object : objects(json, "sessions")) {
-            routeSession(object).ifPresent(sessions::add);
-        }
-        List<RouteTicket> tickets = new ArrayList<>();
-        for (String object : objects(json, "tickets")) {
-            routeTicket(object).ifPresent(tickets::add);
-        }
-        return new RouteDebugSnapshot(List.copyOf(sessions), List.copyOf(tickets));
     }
 
     private static IslandRuntimeSnapshot runtime(String json) {
@@ -3382,34 +3356,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             .toList();
     }
 
-    private static Optional<RouteTicket> routeTicket(String json) {
-        if (json == null || json.isBlank() || json.contains("\"error\"")) {
-            return Optional.empty();
-        }
-        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
-        payload.put("targetServerName", text(json, "targetServerName", text(json, "targetNode", "")));
-        putPayloadIfPresent(payload, json, "targetType");
-        putPayloadIfPresent(payload, json, "homeName");
-        putPayloadIfPresent(payload, json, "warpName");
-        putPayloadIfPresent(payload, json, "localX");
-        putPayloadIfPresent(payload, json, "localY");
-        putPayloadIfPresent(payload, json, "localZ");
-        putPayloadIfPresent(payload, json, "yaw");
-        putPayloadIfPresent(payload, json, "pitch");
-        return Optional.of(new RouteTicket(
-            uuid(json, "ticketId", new UUID(0L, 0L)),
-            uuid(json, "playerUuid", new UUID(0L, 0L)),
-            enumValue(RouteAction.class, text(json, "action", "HOME"), RouteAction.HOME),
-            uuid(json, "islandId", new UUID(0L, 0L)),
-            text(json, "targetNode", ""),
-            text(json, "targetWorld", ""),
-            enumValue(RouteTicketState.class, text(json, "state", "READY"), RouteTicketState.READY),
-            instant(text(json, "expiresAt", Instant.EPOCH.toString())),
-            text(json, "nonce", ""),
-            Map.copyOf(payload)
-        ));
-    }
-
     private static RouteTicket routeTicket(AdminRouteTicketView view) {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("targetServerName", view.targetServerName().isBlank() ? view.targetNode() : view.targetServerName());
@@ -3427,13 +3373,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             instant(view.expiresAt().isBlank() ? Instant.EPOCH.toString() : view.expiresAt()),
             view.nonce(),
             Map.copyOf(payload)
-        );
-    }
-
-    private static RouteClearResult routeClear(String json) {
-        return new RouteClearResult(
-            bool(json, "clearedSession", false),
-            bool(json, "clearedTicket", false)
         );
     }
 
@@ -3473,18 +3412,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return new JobRecoveryResult(false, "", "FAILED");
         }
         return new JobRecoveryResult(view.accepted(), view.accepted() ? view.recovered() : "", view.code().isBlank() ? (view.accepted() ? "RECOVERED" : "FAILED") : view.code());
-    }
-
-    private static void putPayloadIfPresent(Map<String, String> payload, String json, String field) {
-        String value = text(json, field, null);
-        if (value != null) {
-            payload.put(field, value);
-            return;
-        }
-        String scalar = scalar(json, field);
-        if (scalar != null) {
-            payload.put(field, scalar);
-        }
     }
 
     private static void putPayloadValueIfPresent(Map<String, String> payload, String field, String value) {
