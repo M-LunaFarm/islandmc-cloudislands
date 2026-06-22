@@ -17,7 +17,8 @@ final class JdkAdminAuditClient implements AdminAuditQueryClient {
 
     @Override
     public CompletableFuture<List<AdminAuditEntryView>> list(int limit) {
-        return core.postWithResultBody("/v1/admin/audit/list", CoreJsonPayload.object("limit", Math.max(1, Math.min(limit, 500))))
+        return core.postResultBody("/v1/admin/audit/list", CoreJsonPayload.object("limit", Math.max(1, Math.min(limit, 500))))
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkAdminAuditClient::entries);
     }
 

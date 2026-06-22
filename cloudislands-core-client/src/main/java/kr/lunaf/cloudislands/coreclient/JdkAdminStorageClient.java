@@ -17,7 +17,8 @@ final class JdkAdminStorageClient implements AdminStorageQueryClient {
 
     @Override
     public CompletableFuture<AdminStorageStatusView> status() {
-        return core.postWithResultBody("/v1/admin/storage", "{}")
+        return core.postResultBody("/v1/admin/storage", "{}")
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkAdminStorageClient::status);
     }
 

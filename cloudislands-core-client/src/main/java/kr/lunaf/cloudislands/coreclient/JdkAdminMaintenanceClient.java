@@ -16,13 +16,15 @@ final class JdkAdminMaintenanceClient implements AdminMaintenanceCommandClient {
 
     @Override
     public CompletableFuture<AdminMaintenanceResultView> clearCache() {
-        return core.postWithResultBody("/v1/admin/cache/clear", "{}")
+        return core.postResultBody("/v1/admin/cache/clear", "{}")
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkAdminMaintenanceClient::result);
     }
 
     @Override
     public CompletableFuture<AdminMaintenanceResultView> reload() {
-        return core.postWithResultBody("/v1/admin/reload", "{}")
+        return core.postResultBody("/v1/admin/reload", "{}")
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkAdminMaintenanceClient::result);
     }
 

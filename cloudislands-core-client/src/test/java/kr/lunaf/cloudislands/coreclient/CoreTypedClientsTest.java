@@ -163,6 +163,14 @@ class CoreTypedClientsTest {
     @Test
     void migratedDomainClientsUseTypedCoreResponseBodyHelpers() throws Exception {
         for (String clientName : List.of(
+                "JdkAdminAuditClient",
+                "JdkAdminCoreConfigClient",
+                "JdkAdminEventClient",
+                "JdkAdminMaintenanceClient",
+                "JdkAdminMetricsClient",
+                "JdkAdminNodeCommandClient",
+                "JdkAdminNodeQueryClient",
+                "JdkAdminStorageClient",
                 "JdkBankQueryClient",
                 "JdkBlockValueCommandClient",
                 "JdkBlockValueQueryClient",

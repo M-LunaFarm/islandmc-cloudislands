@@ -14,7 +14,8 @@ final class JdkAdminCoreConfigClient implements AdminCoreConfigQueryClient {
 
     @Override
     public CompletableFuture<AdminCoreConfigView> config() {
-        return core.postWithResultBody("/v1/admin/config", "{}")
+        return core.postResultBody("/v1/admin/config", "{}")
+            .thenApply(CoreResponseBody::value)
             .thenApply(AdminCoreConfigView::parse);
     }
 }

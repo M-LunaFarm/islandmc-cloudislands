@@ -23,35 +23,45 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
 
     @Override
     public CompletableFuture<List<IslandNodeSnapshot>> nodes() {
-        return core.postWithResultBody("/v1/admin/nodes/list", "{}").thenApply(JdkAdminNodeQueryClient::nodes);
+        return core.postResultBody("/v1/admin/nodes/list", "{}")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkAdminNodeQueryClient::nodes);
     }
 
     @Override
     public CompletableFuture<AdminNodeSummaryView> listNodesSummary() {
-        return core.postWithResultBody("/v1/admin/nodes/list", "{}").thenApply(JdkAdminNodeQueryClient::summary);
+        return core.postResultBody("/v1/admin/nodes/list", "{}")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkAdminNodeQueryClient::summary);
     }
 
     @Override
     public CompletableFuture<Optional<IslandNodeSnapshot>> nodeSnapshot(String nodeId) {
         String normalizedNodeId = requireNode(nodeId);
-        return core.postWithResultBody("/v1/admin/nodes/info", CoreJsonPayload.object("nodeId", normalizedNodeId)).thenApply(body -> node(normalizedNodeId, body));
+        return core.postResultBody("/v1/admin/nodes/info", CoreJsonPayload.object("nodeId", normalizedNodeId))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> node(normalizedNodeId, body));
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.NodeSummaryView> nodeInfo(String nodeId) {
         String normalizedNodeId = requireNode(nodeId);
-        return core.postWithResultBody("/v1/admin/nodes/info", CoreJsonPayload.object("nodeId", normalizedNodeId)).thenApply(body -> nodeSummary(normalizedNodeId, body));
+        return core.postResultBody("/v1/admin/nodes/info", CoreJsonPayload.object("nodeId", normalizedNodeId))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> nodeSummary(normalizedNodeId, body));
     }
 
     @Override
     public CompletableFuture<List<AdminIslandRuntimeView>> nodeIslandRuntimes(String nodeId, int limit) {
-        return core.postWithResultBody("/v1/admin/nodes/islands", CoreJsonPayload.object("nodeId", requireNode(nodeId), "limit", Math.max(1, Math.min(limit, 100))))
+        return core.postResultBody("/v1/admin/nodes/islands", CoreJsonPayload.object("nodeId", requireNode(nodeId), "limit", Math.max(1, Math.min(limit, 100))))
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkAdminNodeQueryClient::runtimes);
     }
 
     @Override
     public CompletableFuture<AdminNodeSummaryView> nodeIslandsSummary(String nodeId, int limit) {
-        return core.postWithResultBody("/v1/admin/nodes/islands", CoreJsonPayload.object("nodeId", requireNode(nodeId), "limit", Math.max(1, Math.min(limit, 100))))
+        return core.postResultBody("/v1/admin/nodes/islands", CoreJsonPayload.object("nodeId", requireNode(nodeId), "limit", Math.max(1, Math.min(limit, 100))))
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkAdminNodeQueryClient::summary);
     }
 

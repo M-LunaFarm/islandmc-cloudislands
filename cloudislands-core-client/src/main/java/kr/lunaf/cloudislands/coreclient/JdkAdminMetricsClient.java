@@ -14,7 +14,8 @@ final class JdkAdminMetricsClient implements AdminMetricsQueryClient {
 
     @Override
     public CompletableFuture<AdminMetricsSummaryView> summary() {
-        return core.postWithResultBody("/metrics", "{}")
+        return core.postResultBody("/metrics", "{}")
+            .thenApply(CoreResponseBody::value)
             .thenApply(AdminMetricsSummaryView::parse);
     }
 }
