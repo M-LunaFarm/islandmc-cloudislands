@@ -224,11 +224,17 @@ public interface CoreApiClient {
     }
 
     default AdminEventQueryClient adminEvents() {
-        return new CoreAdminEventQueryClient(this);
+        if (this instanceof AdminEventQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin event queries");
     }
 
     default AdminAuditQueryClient adminAudit() {
-        return new CoreAdminAuditQueryClient(this);
+        if (this instanceof AdminAuditQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin audit queries");
     }
 
     default AdminStorageQueryClient adminStorage() {
@@ -414,11 +420,6 @@ public interface CoreApiClient {
     CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId);
     CompletableFuture<String> clearRoute(UUID playerUuid, UUID ticketId, String reason);
     CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId, String reason);
-    CompletableFuture<String> listEvents();
-    CompletableFuture<String> listEvents(int limit);
-    CompletableFuture<String> listEventsSince(long sinceSeq, int limit);
-    CompletableFuture<String> listAuditLogs();
-    CompletableFuture<String> listAuditLogs(int limit);
     CompletableFuture<String> addonStateSummary();
     CompletableFuture<String> addonState(String addonId);
     CompletableFuture<String> putAddonState(String addonId, String key, String value);

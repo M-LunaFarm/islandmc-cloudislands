@@ -333,12 +333,13 @@ class CoreMutationContextTest {
             assertEquals("{\"ticketId\":\"" + ticketId + "\"}", requestBodies.get("routeTicket"));
             client.routeTicketForPlayer(playerUuid).join();
             client.clearRouteResult(playerUuid, ticketId, "").join();
-            client.listEvents().join();
-            assertEquals("{}", requestBodies.get("events"));
-            client.listEvents(5000).join();
+            client.adminEvents().list(100).join();
+            assertEquals("{\"limit\":100}", requestBodies.get("events"));
+            client.adminEvents().list(5000).join();
             assertEquals("{\"limit\":4096}", requestBodies.get("events"));
-            client.listEventsSince(-5L, 0).join();
-            client.listAuditLogs(1000).join();
+            client.adminEvents().listSince(-5L, 0).join();
+            client.adminAudit().list(1000).join();
+            assertEquals("{\"limit\":500}", requestBodies.get("audit"));
 
             assertEquals("{\"nodeId\":\"node\\\"a\"}", requestBodies.get("nodeInfo"));
             assertEquals("{\"nodeId\":\"node\\\"a\",\"limit\":200}", requestBodies.get("nodeIslands"));

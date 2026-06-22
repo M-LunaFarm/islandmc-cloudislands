@@ -5,19 +5,20 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreAdminAuditQueryClient implements AdminAuditQueryClient {
-    private final CoreApiClient delegate;
+final class JdkAdminAuditClient implements AdminAuditQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreAdminAuditQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkAdminAuditClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<List<AdminAuditEntryView>> list(int limit) {
-        return delegate.listAuditLogs(Math.max(1, Math.min(limit, 500))).thenApply(CoreAdminAuditQueryClient::entries);
+        return core.postWithResultBody("/v1/admin/audit/list", JdkCoreApiClient.jsonObject("limit", Math.max(1, Math.min(limit, 500))))
+            .thenApply(JdkAdminAuditClient::entries);
     }
 
     static List<AdminAuditEntryView> entries(String body) {

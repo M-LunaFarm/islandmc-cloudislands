@@ -105,8 +105,8 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use a standalone typed client");
-        assertFalse(nestedClients.contains("JdkAdminEventClient"), "admin events must use CoreAdminEventQueryClient");
-        assertFalse(nestedClients.contains("JdkAdminAuditClient"), "admin audit must use CoreAdminAuditQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminEventClient"), "admin events must use a standalone typed client");
+        assertFalse(nestedClients.contains("JdkAdminAuditClient"), "admin audit must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminRouteClient"), "admin routes must use CoreAdminRouteClient");
         assertFalse(nestedClients.contains("JdkAdminAddonStateClient"), "admin addon state must use CoreAdminAddonStateQueryClient");
         assertFalse(nestedClients.contains("JdkAdminMaintenanceClient"), "admin maintenance must use a standalone typed client");
@@ -125,6 +125,9 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("storageStatus"));
         assertFalse(names.contains("clearCacheResult"));
         assertFalse(names.contains("reloadResult"));
+        assertFalse(names.contains("listEvents"));
+        assertFalse(names.contains("listEventsSince"));
+        assertFalse(names.contains("listAuditLogs"));
     }
 
     @Test
@@ -1893,45 +1896,21 @@ class CoreTypedClientsTest {
 
     @Test
     void adminEventAndAuditClientsReturnTypedEntries() {
-        List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "listEvents" -> {
-                    calls.add("events:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"oldestSeq":1,"latestSeq":3,"events":[
-                          {"seq":3,"type":"ROUTE_CLEAR","fields":{"playerUuid":"player-a","ticketId":"ticket-a","clearedSession":"true","targetNode":"node-a"},"occurredAt":"now"}
-                        ]}
-                        """);
-                }
-                case "listEventsSince" -> {
-                    calls.add("eventsSince:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("""
-                        {"oldestSeq":1,"latestSeq":4,"events":[
-                          {"seq":4,"type":"ISLAND_ACTIVATED","fields":{"islandId":"island-a","nodeId":"node-b"},"occurredAt":"later"}
-                        ]}
-                        """);
-                }
-                case "listAuditLogs" -> {
-                    calls.add("audit:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"audit":[
-                          {"id":"audit-a","actorUuid":null,"actorType":"ADMIN","action":"NODE_DRAIN","targetType":"NODE","targetId":"node-a","payload":{"reason":"maintenance"},"createdAt":"now"}
-                        ]}
-                        """);
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-
-        AdminEventQueryClient events = new CoreAdminEventQueryClient(raw);
-        AdminAuditQueryClient audit = new CoreAdminAuditQueryClient(raw);
-
-        AdminEventStreamView stream = events.list(5000).join();
-        AdminEventStreamView since = events.listSince(-1L, 0).join();
-        List<AdminAuditEntryView> auditEntries = audit.list(1000).join();
+        AdminEventStreamView stream = JdkAdminEventClient.stream("""
+            {"oldestSeq":1,"latestSeq":3,"events":[
+              {"seq":3,"type":"ROUTE_CLEAR","fields":{"playerUuid":"player-a","ticketId":"ticket-a","clearedSession":"true","targetNode":"node-a"},"occurredAt":"now"}
+            ]}
+            """);
+        AdminEventStreamView since = JdkAdminEventClient.stream("""
+            {"oldestSeq":1,"latestSeq":4,"events":[
+              {"seq":4,"type":"ISLAND_ACTIVATED","fields":{"islandId":"island-a","nodeId":"node-b"},"occurredAt":"later"}
+            ]}
+            """);
+        List<AdminAuditEntryView> auditEntries = JdkAdminAuditClient.entries("""
+            {"audit":[
+              {"id":"audit-a","actorUuid":null,"actorType":"ADMIN","action":"NODE_DRAIN","targetType":"NODE","targetId":"node-a","payload":{"reason":"maintenance"},"createdAt":"now"}
+            ]}
+            """);
 
         assertEquals(3L, stream.latestSeq());
         assertEquals("ROUTE_CLEAR", stream.events().get(0).type());
@@ -1940,7 +1919,6 @@ class CoreTypedClientsTest {
         assertEquals("node-b", since.events().get(0).fields().get("nodeId"));
         assertEquals("NODE_DRAIN", auditEntries.get(0).action());
         assertEquals("maintenance", auditEntries.get(0).payload().get("reason"));
-        assertEquals(List.of("events:4096", "eventsSince:0:1", "audit:500"), calls);
     }
 
     @Test

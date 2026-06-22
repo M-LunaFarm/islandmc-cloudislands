@@ -5,24 +5,26 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreAdminEventQueryClient implements AdminEventQueryClient {
-    private final CoreApiClient delegate;
+final class JdkAdminEventClient implements AdminEventQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreAdminEventQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkAdminEventClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<AdminEventStreamView> list(int limit) {
-        return delegate.listEvents(Math.max(1, Math.min(limit, 4096))).thenApply(CoreAdminEventQueryClient::stream);
+        return core.postWithResultBody("/v1/events", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit)))
+            .thenApply(JdkAdminEventClient::stream);
     }
 
     @Override
     public CompletableFuture<AdminEventStreamView> listSince(long sinceSeq, int limit) {
-        return delegate.listEventsSince(Math.max(0L, sinceSeq), Math.max(1, Math.min(limit, 4096))).thenApply(CoreAdminEventQueryClient::stream);
+        return core.postWithResultBody("/v1/events", JdkCoreApiClient.jsonObject("sinceSeq", Math.max(0L, sinceSeq), "limit", boundedLimit(limit)))
+            .thenApply(JdkAdminEventClient::stream);
     }
 
     static AdminEventStreamView stream(String body) {
@@ -37,6 +39,10 @@ public final class CoreAdminEventQueryClient implements AdminEventQueryClient {
             ))
             .toList();
         return new AdminEventStreamView(SimpleJson.number(root.get("oldestSeq")), SimpleJson.number(root.get("latestSeq")), events);
+    }
+
+    private static int boundedLimit(int limit) {
+        return Math.max(1, Math.min(limit, 4096));
     }
 
     private static Map<String, String> stringMap(Map<?, ?> object) {

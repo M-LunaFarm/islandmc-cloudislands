@@ -120,8 +120,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.adminMetricsClient = new JdkAdminMetricsClient(this);
         this.adminCoreConfigClient = new JdkAdminCoreConfigClient(this);
         this.adminStorageClient = new JdkAdminStorageClient(this);
-        this.adminEventClient = new CoreAdminEventQueryClient(this);
-        this.adminAuditClient = new CoreAdminAuditQueryClient(this);
+        this.adminEventClient = new JdkAdminEventClient(this);
+        this.adminAuditClient = new JdkAdminAuditClient(this);
         this.adminRouteClient = new CoreAdminRouteClient(this);
         this.adminAddonStateClient = new CoreAdminAddonStateQueryClient(this);
         this.addonStateClient = new CoreAddonStateClient(this);
@@ -1362,31 +1362,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public CompletableFuture<String> clearRouteResult(UUID playerUuid, UUID ticketId, String reason) {
         return postWithResultBody("/v1/admin/routes/clear", jsonObject("playerUuid", playerUuid, "ticketId", ticketId, "reason", reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason));
-    }
-
-    @Override
-    public CompletableFuture<String> listEvents() {
-        return postWithResultBody("/v1/events", "{}");
-    }
-
-    @Override
-    public CompletableFuture<String> listEvents(int limit) {
-        return postWithResultBody("/v1/events", jsonObject("limit", Math.max(1, Math.min(limit, 4096))));
-    }
-
-    @Override
-    public CompletableFuture<String> listEventsSince(long sinceSeq, int limit) {
-        return postWithResultBody("/v1/events", jsonObject("sinceSeq", Math.max(0L, sinceSeq), "limit", Math.max(1, Math.min(limit, 4096))));
-    }
-
-    @Override
-    public CompletableFuture<String> listAuditLogs() {
-        return listAuditLogs(100);
-    }
-
-    @Override
-    public CompletableFuture<String> listAuditLogs(int limit) {
-        return postWithResultBody("/v1/admin/audit/list", jsonObject("limit", Math.max(1, Math.min(limit, 500))));
     }
 
     @Override
