@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class JdkAdminAddonStateQueryClient implements AdminAddonStateQueryClient {
     private final JdkCoreApiClient core;
@@ -24,41 +23,24 @@ public final class JdkAdminAddonStateQueryClient implements AdminAddonStateQuery
 
     static AdminAddonStateSummaryView summary(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        List<AdminAddonStateSummaryView.AddonView> addons = SimpleJson.list(root.get("addons")).stream()
-            .map(SimpleJson::object)
+        List<AdminAddonStateSummaryView.AddonView> addons = CoreJson.objects(root, "addons").stream()
             .map(addon -> new AdminAddonStateSummaryView.AddonView(
-                text(addon, "addonId"),
-                number(addon, "globalKeys"),
-                number(addon, "islandKeys"),
-                number(addon, "totalKeys")
+                CoreJson.text(addon, "addonId"),
+                CoreJson.number(addon, "globalKeys"),
+                CoreJson.number(addon, "islandKeys"),
+                CoreJson.number(addon, "totalKeys")
             ))
             .filter(addon -> !addon.addonId().isBlank())
             .toList();
         return new AdminAddonStateSummaryView(
-            text(root, "stateOwnership"),
-            bool(root, "registeredAddonRequired"),
-            text(root, "orphanStatePolicy"),
-            text(root, "missingAddonStatePolicy"),
-            text(root, "tableKeyPrefix"),
-            number(root, "maxKeysPerAddon"),
-            number(root, "maxValueLength"),
+            CoreJson.text(root, "stateOwnership"),
+            CoreJson.bool(root, "registeredAddonRequired"),
+            CoreJson.text(root, "orphanStatePolicy"),
+            CoreJson.text(root, "missingAddonStatePolicy"),
+            CoreJson.text(root, "tableKeyPrefix"),
+            CoreJson.number(root, "maxKeysPerAddon"),
+            CoreJson.number(root, "maxValueLength"),
             addons
         );
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static long number(Map<?, ?> object, String key) {
-        return SimpleJson.number(object.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key) {
-        Object value = object.get(key);
-        if (value instanceof Boolean bool) {
-            return bool;
-        }
-        return Boolean.parseBoolean(SimpleJson.text(value));
     }
 }

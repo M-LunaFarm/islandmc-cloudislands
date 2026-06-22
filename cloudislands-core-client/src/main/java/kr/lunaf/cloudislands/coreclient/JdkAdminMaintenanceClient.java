@@ -31,32 +31,16 @@ final class JdkAdminMaintenanceClient implements AdminMaintenanceCommandClient {
     static AdminMaintenanceResultView result(String body) {
         Map<?, ?> root = CoreJson.object(body);
         Map<?, ?> error = SimpleJson.object(root.get("error"));
-        String code = text(root, "code");
+        String code = CoreJson.text(root, "code");
         if (code.isBlank()) {
-            code = text(error, "code");
+            code = CoreJson.text(error, "code");
         }
         return new AdminMaintenanceResultView(
-            bool(root, "reloaded"),
-            number(root, "clearedSessions"),
-            number(root, "clearedTickets"),
-            number(root, "clearedRedisKeys"),
+            CoreJson.bool(root, "reloaded"),
+            CoreJson.number(root, "clearedSessions"),
+            CoreJson.number(root, "clearedTickets"),
+            CoreJson.number(root, "clearedRedisKeys"),
             code
         );
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static long number(Map<?, ?> object, String key) {
-        return SimpleJson.number(object.get(key));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key) {
-        Object value = object.get(key);
-        if (value instanceof Boolean bool) {
-            return bool;
-        }
-        return Boolean.parseBoolean(SimpleJson.text(value));
     }
 }

@@ -24,17 +24,16 @@ final class JdkAdminAuditClient implements AdminAuditQueryClient {
 
     static List<AdminAuditEntryView> entries(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        return SimpleJson.list(root.get("audit")).stream()
-            .map(SimpleJson::object)
+        return CoreJson.objects(root, "audit").stream()
             .map(entry -> new AdminAuditEntryView(
-                text(entry, "id"),
-                text(entry, "actorUuid"),
-                text(entry, "actorType"),
-                text(entry, "action"),
-                text(entry, "targetType"),
-                text(entry, "targetId"),
+                CoreJson.text(entry, "id"),
+                CoreJson.text(entry, "actorUuid"),
+                CoreJson.text(entry, "actorType"),
+                CoreJson.text(entry, "action"),
+                CoreJson.text(entry, "targetType"),
+                CoreJson.text(entry, "targetId"),
                 stringMap(SimpleJson.object(entry.get("payload"))),
-                text(entry, "createdAt")
+                CoreJson.text(entry, "createdAt")
             ))
             .toList();
     }
@@ -46,7 +45,4 @@ final class JdkAdminAuditClient implements AdminAuditQueryClient {
         ));
     }
 
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
 }

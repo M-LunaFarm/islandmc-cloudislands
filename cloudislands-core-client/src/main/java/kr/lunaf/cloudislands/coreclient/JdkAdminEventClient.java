@@ -31,16 +31,15 @@ final class JdkAdminEventClient implements AdminEventQueryClient {
 
     static AdminEventStreamView stream(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        List<AdminEventView> events = SimpleJson.list(root.get("events")).stream()
-            .map(SimpleJson::object)
+        List<AdminEventView> events = CoreJson.objects(root, "events").stream()
             .map(event -> new AdminEventView(
-                SimpleJson.number(event.get("seq")),
-                text(event, "type"),
+                CoreJson.number(event, "seq"),
+                CoreJson.text(event, "type"),
                 stringMap(SimpleJson.object(event.get("fields"))),
-                text(event, "occurredAt")
+                CoreJson.text(event, "occurredAt")
             ))
             .toList();
-        return new AdminEventStreamView(SimpleJson.number(root.get("oldestSeq")), SimpleJson.number(root.get("latestSeq")), events);
+        return new AdminEventStreamView(CoreJson.number(root, "oldestSeq"), CoreJson.number(root, "latestSeq"), events);
     }
 
     private static int boundedLimit(int limit) {
@@ -54,7 +53,4 @@ final class JdkAdminEventClient implements AdminEventQueryClient {
         ));
     }
 
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
 }

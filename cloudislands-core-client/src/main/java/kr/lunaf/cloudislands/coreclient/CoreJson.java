@@ -109,6 +109,14 @@ final class CoreJson {
         return root == null ? 0L : SimpleJson.number(root.get(key));
     }
 
+    static boolean bool(Map<?, ?> root, String key) {
+        if (root == null) {
+            return false;
+        }
+        Object value = root.get(key);
+        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
+    }
+
     static List<String> strings(Map<?, ?> root, String key) {
         return SimpleJson.list(root == null ? null : root.get(key)).stream()
             .map(SimpleJson::text)

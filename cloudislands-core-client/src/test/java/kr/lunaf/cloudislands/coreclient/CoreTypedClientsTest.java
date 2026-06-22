@@ -911,6 +911,7 @@ class CoreTypedClientsTest {
     @Test
     void visitorStatsClientReturnsTypedRecentVisitors() {
         UUID islandId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkIslandVisitorStatsQueryClient.java")));
         IslandVisitorStatsView stats = JdkIslandVisitorStatsQueryClient.stats("""
             {"islandId":"%s","totalVisits":12,"uniqueVisitors":3,"recentVisitors":[
               {"visitorUuid":"visitor-a","lastVisitedAt":"now"},
@@ -923,6 +924,8 @@ class CoreTypedClientsTest {
         assertEquals(3L, stats.uniqueVisitors());
         assertEquals("visitor-a", stats.recentVisitors().get(0).visitorUuid());
         assertEquals("later", stats.recentVisitors().get(1).lastVisitedAt());
+        assertFalse(source.contains("private static String text("), "visitor stats parser must use shared CoreJson text helpers");
+        assertTrue(source.contains("CoreJson.objects(root, \"recentVisitors\")"), "visitor stats parser must use shared CoreJson object list helpers");
     }
 
     @Test
@@ -987,6 +990,7 @@ class CoreTypedClientsTest {
 
     @Test
     void adminMaintenanceClientReturnsTypedCacheAndReloadResults() {
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminMaintenanceClient.java")));
         AdminMaintenanceResultView clear = JdkAdminMaintenanceClient.result("{\"clearedSessions\":2,\"clearedTickets\":3,\"clearedRedisKeys\":4}");
         AdminMaintenanceResultView reload = JdkAdminMaintenanceClient.result("{\"reloaded\":true,\"clearedSessions\":5,\"clearedTickets\":6,\"clearedRedisKeys\":7}");
 
@@ -995,6 +999,9 @@ class CoreTypedClientsTest {
         assertEquals(3L, clear.clearedTickets());
         assertTrue(reload.reloaded());
         assertEquals(7L, reload.clearedRedisKeys());
+        assertFalse(source.contains("private static String text("), "admin maintenance parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("private static long number("), "admin maintenance parser must use shared CoreJson numeric helpers");
+        assertFalse(source.contains("private static boolean bool("), "admin maintenance parser must use shared CoreJson boolean helpers");
     }
 
     @Test
@@ -1006,6 +1013,7 @@ class CoreTypedClientsTest {
 
     @Test
     void adminAddonStateClientReturnsTypedSummary() {
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminAddonStateQueryClient.java")));
         AdminAddonStateSummaryView summary = JdkAdminAddonStateQueryClient.summary("""
             {"stateOwnership":"core-addon-state-store","registeredAddonRequired":false,"orphanStatePolicy":"preserve","missingAddonStatePolicy":"ignored","tableKeyPrefix":"table/<name>/","maxKeysPerAddon":128,"maxValueLength":4096,"addons":[{"addonId":"shop","globalKeys":2,"islandKeys":3,"totalKeys":5}]}
             """);
@@ -1015,6 +1023,9 @@ class CoreTypedClientsTest {
         assertEquals(128L, summary.maxKeysPerAddon());
         assertEquals("shop", summary.addons().get(0).addonId());
         assertEquals(5L, summary.addons().get(0).totalKeys());
+        assertFalse(source.contains("private static String text("), "admin addon state parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("private static long number("), "admin addon state parser must use shared CoreJson numeric helpers");
+        assertTrue(source.contains("CoreJson.objects(root, \"addons\")"), "admin addon state parser must use shared CoreJson object list helpers");
     }
 
     @Test
@@ -2104,6 +2115,8 @@ class CoreTypedClientsTest {
 
     @Test
     void adminEventAndAuditClientsReturnTypedEntries() {
+        String eventSource = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminEventClient.java")));
+        String auditSource = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminAuditClient.java")));
         AdminEventStreamView stream = JdkAdminEventClient.stream("""
             {"oldestSeq":1,"latestSeq":3,"events":[
               {"seq":3,"type":"ROUTE_CLEAR","fields":{"playerUuid":"player-a","ticketId":"ticket-a","clearedSession":"true","targetNode":"node-a"},"occurredAt":"now"}
@@ -2127,6 +2140,10 @@ class CoreTypedClientsTest {
         assertEquals("node-b", since.events().get(0).fields().get("nodeId"));
         assertEquals("NODE_DRAIN", auditEntries.get(0).action());
         assertEquals("maintenance", auditEntries.get(0).payload().get("reason"));
+        assertFalse(eventSource.contains("private static String text("), "admin event parser must use shared CoreJson text helpers");
+        assertTrue(eventSource.contains("CoreJson.objects(root, \"events\")"), "admin event parser must use shared CoreJson object list helpers");
+        assertFalse(auditSource.contains("private static String text("), "admin audit parser must use shared CoreJson text helpers");
+        assertTrue(auditSource.contains("CoreJson.objects(root, \"audit\")"), "admin audit parser must use shared CoreJson object list helpers");
     }
 
     @Test
