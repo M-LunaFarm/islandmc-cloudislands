@@ -13,7 +13,7 @@ class VelocityRoutePrivacyFormatterTest {
         assertEquals("", formatter.routeRequestedNodeSuffix("island-3"));
         assertEquals("", formatter.routeServerSuffix("island-4"));
         assertEquals("", formatter.runtimeWorldSuffix("ci_island_shard_03"));
-        assertEquals("", formatter.runtimeCellSuffix("{\"cellX\":12,\"cellZ\":7}"));
+        assertEquals("", formatter.runtimeCellSuffix(12, 7));
         assertEquals("node-2", formatter.displayNodeName("island-3", 2));
     }
 
@@ -27,13 +27,6 @@ class VelocityRoutePrivacyFormatterTest {
         assertEquals(" requestedNode=island-3", formatter.routeRequestedNodeSuffix("island-3"));
         assertEquals(" server=island-4", formatter.routeServerSuffix("island-4"));
         assertEquals(" world=ci_island_shard_03", formatter.runtimeWorldSuffix("ci_island_shard_03"));
-        assertEquals(" cell=12,7", formatter.runtimeCellSuffix("{\"cellX\":12,\"cellZ\":7}"));
-    }
-
-    @Test
-    void formatsNodeIslandRuntimeSuffix() {
-        VelocityRoutePrivacyFormatter formatter = new VelocityRoutePrivacyFormatter(true);
-
-        assertEquals("ACTIVE world=ci cell=1,2", formatter.nodeIslandRuntimeSuffix("{\"state\":\"ACTIVE\",\"activeWorld\":\"ci\",\"cellX\":1,\"cellZ\":2}"));
+        assertEquals(" cell=12,7", formatter.runtimeCellSuffix(12, 7));
     }
 }

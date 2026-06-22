@@ -129,6 +129,7 @@ class VelocityPluginRolePolicyTest {
 
         String coreConfigFormatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityCoreConfigMessageFormatter.java"));
         assertFalse(coreConfigFormatter.contains("format(String body)"), "Velocity core config formatter must use typed config views");
+        assertFalse(Files.exists(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityJsonFields.java")), "Velocity presentation must not keep a raw JSON field helper");
     }
 
     @Test

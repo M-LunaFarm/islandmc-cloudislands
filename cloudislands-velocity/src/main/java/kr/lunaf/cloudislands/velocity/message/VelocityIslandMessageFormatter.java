@@ -1,10 +1,5 @@
 package kr.lunaf.cloudislands.velocity.message;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.doubleValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.objectValue;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -208,7 +203,7 @@ public final class VelocityIslandMessageFormatter {
             + " state=" + (view.state().isBlank() ? "UNKNOWN" : view.state())
             + routePrivacy.routeNodeSuffix(view.activeNode())
             + routePrivacy.runtimeWorldSuffix(view.activeWorld())
-            + (view.hasCell() ? routePrivacy.runtimeCellSuffix("{\"cellX\":" + view.cellX() + ",\"cellZ\":" + view.cellZ() + "}") : "")
+            + (view.hasCell() ? routePrivacy.runtimeCellSuffix(view.cellX(), view.cellZ()) : "")
             + " fence=" + view.fencingToken();
     }
 

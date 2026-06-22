@@ -1,8 +1,5 @@
 package kr.lunaf.cloudislands.velocity;
 
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.jsonValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.longValue;
-import static kr.lunaf.cloudislands.velocity.message.VelocityJsonFields.parseLong;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
 import com.velocitypowered.api.proxy.Player;
