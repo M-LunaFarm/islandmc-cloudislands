@@ -167,7 +167,10 @@ public interface CoreApiClient {
     }
 
     default PlayerProfileQueryClient playerProfiles() {
-        return new CorePlayerProfileQueryClient(this);
+        if (this instanceof PlayerProfileQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed player profile queries");
     }
 
     default PlayerProfileCommandClient playerProfileCommands() {
@@ -628,8 +631,6 @@ public interface CoreApiClient {
     CompletableFuture<String> removeAddonIslandState(String addonId, UUID islandId, String key);
     CompletableFuture<String> clearAddonIslandState(String addonId, UUID islandId);
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
-    CompletableFuture<String> playerInfo(UUID playerUuid);
-    CompletableFuture<String> playerInfoByName(String lastName);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
     CompletableFuture<String> listJobs();
     CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload);

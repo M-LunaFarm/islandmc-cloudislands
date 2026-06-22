@@ -1631,19 +1631,15 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, PlayerProfileCommandClient.class },
+            new Class<?>[] { CoreApiClient.class, PlayerProfileQueryClient.class, PlayerProfileCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "playerInfo" -> {
+                case "profile" -> {
                     calls.add("info:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"playerUuid":"%s","lastName":"Alice","primaryIslandId":"%s","lastSeenAt":"now","locale":"ko_kr"}
-                        """.formatted(args[0], islandId));
+                    yield CompletableFuture.completedFuture(new PlayerProfileView(args[0].toString(), "Alice", islandId.toString(), "now", "ko_kr"));
                 }
-                case "playerInfoByName" -> {
+                case "findByName" -> {
                     calls.add("name:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"playerUuid":"%s","lastName":"%s","primaryIslandId":null,"lastSeenAt":"later","locale":"en_us"}
-                        """.formatted(playerUuid, args[0]));
+                    yield CompletableFuture.completedFuture(new PlayerProfileView(playerUuid.toString(), args[0].toString(), "", "later", "en_us"));
                 }
                 case "touch" -> {
                     calls.add("touch:" + args[1] + ":" + (args.length > 2 ? args[2] : ""));
@@ -1688,11 +1684,11 @@ class CoreTypedClientsTest {
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        PlayerProfileQueryClient queries = new CorePlayerProfileQueryClient(raw);
+        PlayerProfileQueryClient queries = (PlayerProfileQueryClient) raw;
         PlayerProfileCommandClient commands = (PlayerProfileCommandClient) raw;
 
         assertEquals("Alice", queries.profile(playerUuid).join().lastName());
-        assertEquals("en_us", queries.findByName(" Alice ").join().locale());
+        assertEquals("en_us", queries.findByName("Alice").join().locale());
         assertEquals(islandId.toString(), commands.touch(playerUuid, "Alice", "fr_fr").join().primaryIslandId());
         assertEquals("de_de", commands.setLocale(playerUuid, "de_de").join().locale());
         assertEquals(islandId.toString(), commands.setPrimaryIsland(playerUuid, islandId).join().primaryIslandId());

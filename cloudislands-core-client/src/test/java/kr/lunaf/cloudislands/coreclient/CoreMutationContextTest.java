@@ -396,8 +396,8 @@ class CoreMutationContextTest {
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
-            client.playerInfo(playerUuid).join();
-            client.playerInfoByName("Player \"One\"").join();
+            client.playerProfiles().profile(playerUuid).join();
+            client.playerProfiles().findByName("Player \"One\"").join();
             client.playerProfileCommands().touch(playerUuid, "Player \"One\"").join();
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"Player \\\"One\\\"\"}", requestBodies.get("playerTouch"));
             client.playerProfileCommands().touch(playerUuid, "Player \"One\"", "ko\"KR").join();

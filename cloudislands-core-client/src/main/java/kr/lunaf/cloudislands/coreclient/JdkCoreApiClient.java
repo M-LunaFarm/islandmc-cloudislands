@@ -1907,16 +1907,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<String> playerInfo(UUID playerUuid) {
-        return postWithResultBody("/v1/admin/players/info", jsonObject("playerUuid", playerUuid));
-    }
-
-    @Override
-    public CompletableFuture<String> playerInfoByName(String lastName) {
-        return post("/v1/players/info", jsonObject("lastName", lastName));
-    }
-
-    @Override
     public CompletableFuture<List<TemplateView>> list() {
         return postWithResultBody("/v1/admin/templates/list", "{}")
             .thenApply(CoreTemplateJson::templates);
