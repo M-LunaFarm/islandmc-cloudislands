@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
@@ -128,6 +130,34 @@ class PaperIntegrationRegistryTest {
         assertEquals("rollback-plan,affected-region-audit", restoreResult.details().get("external.artifacts"));
         assertEquals("runtime-authority,fencing-token,idempotency-key,region-boundary", restoreResult.details().get("external.safetyBarriers"));
         assertEquals("world,cell,region,rollbackSeconds,bundleKey", restoreResult.details().get("plan.requiredMetadata"));
+    }
+
+    @Test
+    void guardedIntegrationAdaptersInvokeExternalRuntimeAfterPolicyValidation() {
+        List<String> calls = new ArrayList<>();
+        CoreProtectIntegration integration = new CoreProtectIntegration((pluginName, category, operation, context, plan) -> {
+            calls.add(pluginName + ":" + category + ":" + operation + ":" + plan.externalApi());
+            return IntegrationResult.success("external called", Map.of("call", "ok"));
+        });
+
+        IntegrationResult denied = integration.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:export:missing", Map.of(
+            "world", "islands"
+        )));
+        assertEquals(IntegrationResult.Status.FAILED, denied.status());
+        assertEquals(List.of(), calls);
+
+        IntegrationResult allowed = integration.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:export:runtime", Map.of(
+            "world", "islands",
+            "cell", "12,-4",
+            "region", "192,64,-64..255,319,-1",
+            "bundleKey", "bundles/island.tar.zst"
+        )));
+
+        assertEquals(IntegrationResult.Status.SUCCESS, allowed.status());
+        assertEquals(List.of("CoreProtect:audit-rollback:audit-export:CoreProtectAPI#performLookup"), calls);
+        assertEquals("SUCCESS", allowed.details().get("external.result"));
+        assertEquals("external called", allowed.details().get("external.message"));
+        assertEquals("ok", allowed.details().get("external.runtime.call"));
     }
 
     @Test

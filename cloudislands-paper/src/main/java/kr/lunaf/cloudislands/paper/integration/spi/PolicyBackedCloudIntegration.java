@@ -8,12 +8,18 @@ import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
 public class PolicyBackedCloudIntegration implements CloudIntegration {
     private final String pluginName;
     private final Set<IntegrationCapability> capabilities;
+    private final IntegrationExternalRuntime externalRuntime;
 
     public PolicyBackedCloudIntegration(String pluginName, Set<IntegrationCapability> capabilities) {
+        this(pluginName, capabilities, IntegrationExternalRuntime.noop());
+    }
+
+    protected PolicyBackedCloudIntegration(String pluginName, Set<IntegrationCapability> capabilities, IntegrationExternalRuntime externalRuntime) {
         this.pluginName = pluginName == null ? "" : pluginName;
         this.capabilities = capabilities == null || capabilities.isEmpty()
             ? Set.of(IntegrationCapability.DETECT)
             : Set.copyOf(capabilities);
+        this.externalRuntime = externalRuntime == null ? IntegrationExternalRuntime.noop() : externalRuntime;
     }
 
     @Override
@@ -75,7 +81,18 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
                 pluginName + " " + operation + " missing metadata: " + String.join(",", missingMetadata),
                 failureDetails(operation, context, stateChanging, requiredMetadata, "missingMetadata", String.join(",", missingMetadata)));
         }
-        return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId(), successDetails(operation, context, stateChanging, requiredMetadata));
+        IntegrationOperationPlan plan = IntegrationOperationPlan.of(pluginName, category(), operation, externalApiCall(operation), stateChanging, requiredMetadata);
+        LinkedHashMap<String, String> details = new LinkedHashMap<>(successDetails(operation, context, stateChanging, requiredMetadata));
+        IntegrationResult external = externalRuntime.invoke(pluginName, category(), operation, context, plan);
+        details.put("external.result", external.status().name());
+        details.put("external.message", external.message());
+        external.details().entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(entry -> details.put("external.runtime." + entry.getKey(), entry.getValue()));
+        if (external.status() == IntegrationResult.Status.FAILED) {
+            return IntegrationResult.failed(pluginName + " " + operation + " external hook failed: " + external.message(), details);
+        }
+        return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId(), details);
     }
 
     private Map<String, String> failureDetails(String operation, IntegrationContext context, String key, String value) {
