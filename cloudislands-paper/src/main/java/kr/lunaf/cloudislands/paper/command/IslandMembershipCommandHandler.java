@@ -17,7 +17,9 @@ import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase.MemberActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
+import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -273,7 +275,7 @@ final class IslandMembershipCommandHandler {
                 runtime.openConfirmation(player,
                     runtime.routeMessage(promote ? "member-promote-confirm-title" : "member-demote-confirm-title", promote ? "멤버 승급 확인" : "멤버 강등 확인"),
                     runtime.routeMessage(promote ? "member-promote-confirm-description" : "member-demote-confirm-description", promote ? "선택한 플레이어를 MODERATOR 역할로 변경합니다." : "선택한 플레이어를 MEMBER 역할로 변경합니다."),
-                    promote ? Material.EMERALD : Material.IRON_INGOT,
+                    promote ? IslandMemberMenu.promoteConfirmationMaterial() : IslandMemberMenu.demoteConfirmationMaterial(),
                     runtime.routeMessage(promote ? "member-promote-confirm-name" : "member-demote-confirm-name", promote ? "승급 확인" : "강등 확인"),
                     promote ? "island.member.promote" : "island.member.demote",
                     Map.of("playerUuid", roleChange.playerUuid().toString()),
@@ -295,7 +297,7 @@ final class IslandMembershipCommandHandler {
                 runtime.openConfirmation(player,
                     runtime.routeMessage("member-remove-confirm-title", "멤버 추방 확인"),
                     runtime.routeMessage("member-remove-confirm-description", "선택한 플레이어를 섬 멤버에서 제거합니다."),
-                    Material.BARRIER,
+                    IslandMemberMenu.removeConfirmationMaterial(),
                     runtime.routeMessage("member-remove-confirm-name", "멤버 추방"),
                     "island.member.remove.confirm",
                     Map.of("playerUuid", memberRemoval.playerUuid().toString()),
@@ -313,7 +315,7 @@ final class IslandMembershipCommandHandler {
                 runtime.openConfirmation(player,
                     runtime.routeMessage("ban-pardon-confirm-title", "밴 해제 확인"),
                     runtime.routeMessage("ban-pardon-confirm-description", "선택한 방문자의 밴을 해제합니다."),
-                    Material.MILK_BUCKET,
+                    IslandBanMenu.pardonConfirmationMaterial(),
                     runtime.routeMessage("ban-pardon-confirm-name", "밴 해제"),
                     "island.ban.pardon.confirm",
                     Map.of("playerUuid", banPardon.playerUuid().toString()),

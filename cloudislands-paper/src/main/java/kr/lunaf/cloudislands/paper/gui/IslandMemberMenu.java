@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MemberView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -72,6 +73,18 @@ public final class IslandMemberMenu implements Listener {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "member-menu-load-failed", "섬 멤버를 불러오지 못했습니다."), "island.members.open", "island.main.open");
                 return null;
             });
+    }
+
+    public static Material promoteConfirmationMaterial() {
+        return GuiMenuRenderer.material(MENU, "TRUSTED", "EMERALD");
+    }
+
+    public static Material demoteConfirmationMaterial() {
+        return GuiMenuRenderer.material(MENU, "MEMBER", "IRON_INGOT");
+    }
+
+    public static Material removeConfirmationMaterial() {
+        return GuiMenuRenderer.material(MENU, "_", "BARRIER");
     }
 
     @EventHandler

@@ -30,6 +30,11 @@ items:
     name-key: member-menu-moderator-name
     fallback-name: 관리자
     action: detail
+  MEMBER:
+    material: IRON_INGOT
+    name-key: member-menu-member-name
+    fallback-name: 일반 멤버
+    action: detail
   TRUSTED:
     material: EMERALD
     name-key: member-menu-trusted-name

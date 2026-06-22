@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.BanView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -58,6 +59,10 @@ public final class IslandBanMenu implements Listener {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다."), "island.bans.open", "island.settings.open");
                 return null;
             });
+    }
+
+    public static Material pardonConfirmationMaterial() {
+        return GuiMenuRenderer.material(MENU, "PARDON", "MILK_BUCKET");
     }
 
     @EventHandler

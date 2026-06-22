@@ -22,6 +22,11 @@ items:
     name-key: ban-menu-entry-name
     fallback-name: 밴 기록
     action: pardon-prepare
+  PARDON:
+    material: MILK_BUCKET
+    name-key: ban-pardon-confirm-name
+    fallback-name: 밴 해제
+    action: pardon-confirm
   R:
     material: CLOCK
     name-key: ban-menu-refresh-name

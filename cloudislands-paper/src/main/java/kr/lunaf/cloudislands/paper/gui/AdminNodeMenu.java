@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.NodeSummaryView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -76,6 +77,14 @@ public final class AdminNodeMenu implements Listener {
             }
         }
         player.openInventory(inventory);
+    }
+
+    public static Material kickAllConfirmationMaterial() {
+        return GuiMenuRenderer.material(MENU, "K", "IRON_DOOR");
+    }
+
+    public static Material shutdownConfirmationMaterial() {
+        return GuiMenuRenderer.material(MENU, "Q", "BELL");
     }
 
     private static void setNodeSummaryItem(Inventory inventory, NodeSummaryView summary, MessageRenderer messages) {
