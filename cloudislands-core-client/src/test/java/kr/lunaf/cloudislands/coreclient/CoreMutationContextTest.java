@@ -682,7 +682,7 @@ class CoreMutationContextTest {
             client.blockValueCommands().set(actorUuid, "minecraft:emerald\"block", "100.50", 20L, 64L).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"materialKey\":\"minecraft:diamond\\\"block\",\"delta\":3}", requestBodies.get("blockDelta"));
-            assertEquals("{\"islandId\":\"" + islandId + "\",\"counts\":\"minecraft:stone\\\"block=3\"}", requestBodies.get("blockReplace"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"counts\":{\"minecraft:stone\\\"block\":3}}", requestBodies.get("blockReplace"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":25}", requestBodies.get("blockDetails"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\"}", requestBodies.get("recalculate"));
             assertEquals("{\"limit\":10}", requestBodies.get("rankLevel"));

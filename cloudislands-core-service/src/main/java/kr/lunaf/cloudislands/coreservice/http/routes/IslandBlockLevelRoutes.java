@@ -105,7 +105,7 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
     private void replaceBlocks(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        Map<String, Long> counts = parseCountsPayload(JsonFields.text(body, "counts", ""));
+        Map<String, Long> counts = parseCountsBody(body);
         levelRepository.replaceBlockCounts(islandId, counts);
         rankingRepository.markDirty(islandId);
         events.publish(CloudIslandEventType.ISLAND_BLOCKS_CHANGED.name(), Map.of("islandId", islandId.toString(), "materialKey", "*", "delta", "rescan"));
@@ -141,6 +141,22 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
         }
         CoreHttpResponses.write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island permission " + permission.name() + " is required"));
         return false;
+    }
+
+    static Map<String, Long> parseCountsBody(String body) {
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Object countsValue = root.get("counts");
+        if (countsValue instanceof Map<?, ?> map) {
+            Map<String, Long> counts = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                String key = SimpleJson.text(entry.getKey()).trim();
+                if (!key.isBlank()) {
+                    counts.put(key, SimpleJson.number(entry.getValue()));
+                }
+            }
+            return counts;
+        }
+        return parseCountsPayload(JsonFields.text(body, "counts", ""));
     }
 
     static Map<String, Long> parseCountsPayload(String payload) {

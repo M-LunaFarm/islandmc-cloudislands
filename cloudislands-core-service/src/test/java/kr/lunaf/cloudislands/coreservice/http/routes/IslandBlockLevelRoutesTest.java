@@ -38,6 +38,9 @@ class IslandBlockLevelRoutesTest {
 
         assertEquals(2L, IslandBlockLevelRoutes.parseCountsPayload("minecraft:stone=2,bad=x").get("minecraft:stone"));
         assertEquals(0L, IslandBlockLevelRoutes.parseCountsPayload("minecraft:stone=2,bad=x").get("bad"));
+        assertEquals(4L, IslandBlockLevelRoutes.parseCountsBody("{\"counts\":{\"minecraft:diamond_block\":4,\"bad\":\"x\"}}").get("minecraft:diamond_block"));
+        assertEquals(0L, IslandBlockLevelRoutes.parseCountsBody("{\"counts\":{\"minecraft:diamond_block\":4,\"bad\":\"x\"}}").get("bad"));
+        assertEquals(2L, IslandBlockLevelRoutes.parseCountsBody("{\"counts\":\"minecraft:stone=2,bad=x\"}").get("minecraft:stone"));
         Map<?, ?> level = SimpleJson.object(SimpleJson.parse(
             IslandBlockLevelRoutes.levelJson(new IslandRankSnapshot(islandId, 7L, new BigDecimal("12.50"), 2, Instant.parse("2026-01-02T03:04:05Z")))
         ));

@@ -24,6 +24,19 @@ final class CoreJsonPayload {
         return result;
     }
 
+    static Map<String, Long> positiveLongMap(Map<String, Long> values) {
+        if (values == null || values.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Long> entry : values.entrySet()) {
+            if (entry.getKey() != null && !entry.getKey().isBlank() && entry.getValue() != null && entry.getValue() > 0L) {
+                result.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return result;
+    }
+
     static Map<String, Map<String, String>> tableMap(Map<String, Map<String, String>> tables) {
         Map<String, Map<String, String>> result = new LinkedHashMap<>();
         if (tables != null) {

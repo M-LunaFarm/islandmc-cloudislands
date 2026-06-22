@@ -60,7 +60,7 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
     @Override
     public CompletableFuture<RuntimeActionView> replaceBlockCounts(UUID islandId, Map<String, Long> counts) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/islands/blocks/replace", CoreJsonPayload.object("islandId", islandId, "counts", countsPayload(counts == null ? Map.of() : counts)))
+        return core.postWithResultBody("/v1/islands/blocks/replace", CoreJsonPayload.object("islandId", islandId, "counts", CoreJsonPayload.positiveLongMap(counts)))
             .thenApply(body -> runtimeAction(body, "BLOCK_COUNTS_REPLACED"));
     }
 
@@ -106,19 +106,4 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
         return jobId;
     }
 
-    private static String countsPayload(Map<String, Long> counts) {
-        StringBuilder builder = new StringBuilder();
-        boolean first = true;
-        for (Map.Entry<String, Long> entry : counts.entrySet()) {
-            if (entry.getKey() == null || entry.getKey().isBlank() || entry.getValue() == null || entry.getValue() <= 0L) {
-                continue;
-            }
-            if (!first) {
-                builder.append('|');
-            }
-            first = false;
-            builder.append(entry.getKey()).append('=').append(entry.getValue());
-        }
-        return builder.toString();
-    }
 }
