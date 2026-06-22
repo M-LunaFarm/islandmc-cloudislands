@@ -100,6 +100,8 @@ final class IslandCommandCatalog {
         "섬 권한",
         "섬 권한설정 <role> <permission> <true|false|허용|거부>",
         "섬 플래그",
+        "섬 권한예외 <player> <permission> <true|false|허용|거부>",
+        "섬 권한예외목록",
         "섬 제한 [limitKey value]",
         "섬 호퍼 <limit>",
         "섬 스포너 <limit>",
