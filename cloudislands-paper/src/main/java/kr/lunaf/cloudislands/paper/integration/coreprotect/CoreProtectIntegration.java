@@ -21,22 +21,22 @@ public final class CoreProtectIntegration extends PolicyBackedCloudIntegration {
 
     @Override
     public IntegrationResult onIslandActivate(IntegrationContext context) {
-        return guardedStateHook("audit-activate", context, "world", "cell");
+        return guardedStateHook("audit-activate", context, "world", "cell", "region");
     }
 
     @Override
     public IntegrationResult onIslandDeactivate(IntegrationContext context) {
-        return guardedStateHook("audit-deactivate", context, "world", "cell", "bundleKey");
+        return guardedStateHook("audit-deactivate", context, "world", "cell", "region", "bundleKey");
     }
 
     @Override
     public IntegrationResult exportState(IntegrationContext context) {
-        return guardedStateHook("audit-export", context, "world", "cell", "bundleKey");
+        return guardedStateHook("audit-export", context, "world", "cell", "region", "bundleKey");
     }
 
     @Override
     public IntegrationResult restoreState(IntegrationContext context) {
-        return guardedStateHook("rollback-restore", context, "world", "cell", "rollbackSeconds", "bundleKey");
+        return guardedStateHook("rollback-restore", context, "world", "cell", "region", "rollbackSeconds", "bundleKey");
     }
 
     @Override

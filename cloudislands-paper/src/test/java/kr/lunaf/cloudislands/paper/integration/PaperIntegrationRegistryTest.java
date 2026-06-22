@@ -72,12 +72,14 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.FAILED, missingResult.status());
         assertTrue(missingResult.message().contains("missing metadata"));
         assertTrue(missingResult.message().contains("cell"));
+        assertTrue(missingResult.message().contains("region"));
         assertTrue(missingResult.message().contains("bundleKey"));
         assertEquals("CoreProtectAPI#performLookup", missingResult.details().get("external.api"));
 
         IntegrationContext exportContext = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:export:2", Map.of(
             "world", "islands",
             "cell", "12,-4",
+            "region", "192,64,-64..255,319,-1",
             "bundleKey", "bundles/island.tar.zst"
         ));
         IntegrationResult exportResult = integration.exportState(exportContext);
@@ -94,6 +96,7 @@ class PaperIntegrationRegistryTest {
         assertEquals("audit-export", exportResult.details().get("manifest.operation"));
         assertEquals("islands", exportResult.details().get("manifest.world"));
         assertEquals("12,-4", exportResult.details().get("manifest.cell"));
+        assertEquals("192,64,-64..255,319,-1", exportResult.details().get("manifest.metadata.region"));
         assertEquals("bundles/island.tar.zst", exportResult.details().get("manifest.bundleKey"));
         assertEquals("coreprotect:export:2", exportResult.details().get("manifest.idempotencyKey"));
         assertEquals("CoreProtectAPI#performLookup", exportResult.details().get("external.api"));
@@ -101,6 +104,7 @@ class PaperIntegrationRegistryTest {
         IntegrationContext restoreContext = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:restore:1", Map.of(
             "world", "islands",
             "cell", "12,-4",
+            "region", "192,64,-64..255,319,-1",
             "rollbackSeconds", "3600",
             "bundleKey", "bundles/island.tar.zst"
         ));
@@ -118,6 +122,7 @@ class PaperIntegrationRegistryTest {
         IntegrationContext worldCell = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "lifecycle:1", Map.of(
             "world", "islands",
             "cell", "12,-4",
+            "region", "192,64,-64..255,319,-1",
             "namespace", "itemsadder",
             "entityCountKey", "limits.entities.effective",
             "spawnerCountKey", "limits.spawners.effective",
@@ -186,6 +191,7 @@ class PaperIntegrationRegistryTest {
         IntegrationContext context = new IntegrationContext(UUID.randomUUID(), "island-node-01", 99L, true, "fawe:restore:1", Map.of(
             "world", "islands",
             "cell", "0,0",
+            "region", "0,64,0..63,319,63",
             "bundleKey", "bundles/island.tar.zst"
         ));
 
@@ -195,6 +201,7 @@ class PaperIntegrationRegistryTest {
         assertEquals(IntegrationResult.Status.SUCCESS, result.status());
         assertEquals("world-edit", result.details().get("manifest.category"));
         assertEquals("schematic-restore", result.details().get("manifest.operation"));
+        assertEquals("0,64,0..63,319,63", result.details().get("manifest.metadata.region"));
         assertEquals("ClipboardReader#read+EditSession#paste", result.details().get("external.api"));
     }
 
@@ -206,6 +213,7 @@ class PaperIntegrationRegistryTest {
         IntegrationResult result = integration.restoreState(context);
         assertEquals(IntegrationResult.Status.FAILED, result.status());
         assertTrue(result.message().contains("cell"));
+        assertTrue(result.message().contains("region"));
         assertTrue(result.message().contains("bundleKey"));
         assertEquals("ClipboardReader#read+EditSession#paste", result.details().get("external.api"));
     }

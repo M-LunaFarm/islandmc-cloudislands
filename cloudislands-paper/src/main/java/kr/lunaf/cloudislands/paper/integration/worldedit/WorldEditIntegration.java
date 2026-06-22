@@ -20,17 +20,17 @@ public final class WorldEditIntegration extends PolicyBackedCloudIntegration {
 
     @Override
     public IntegrationResult onIslandActivate(IntegrationContext context) {
-        return guardedStateHook("clipboard-activate", context, "world", "cell");
+        return guardedStateHook("clipboard-activate", context, "world", "cell", "region");
     }
 
     @Override
     public IntegrationResult exportState(IntegrationContext context) {
-        return guardedStateHook("schematic-export", context, "world", "cell", "bundleKey");
+        return guardedStateHook("schematic-export", context, "world", "cell", "region", "bundleKey");
     }
 
     @Override
     public IntegrationResult restoreState(IntegrationContext context) {
-        return guardedStateHook("schematic-restore", context, "world", "cell", "bundleKey");
+        return guardedStateHook("schematic-restore", context, "world", "cell", "region", "bundleKey");
     }
 
     @Override
