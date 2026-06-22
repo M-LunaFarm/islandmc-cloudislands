@@ -469,6 +469,9 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("private void declineIslandInviteTarget(Player player, String target)"), "invite decline execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void listIslandMembers(Player player)"), "member list execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void listIslandBans(Player player)"), "ban list execution must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private void openIslandMemberMenu(Player player)"), "member menu presentation wrapper must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private void openIslandBanMenu(Player player)"), "ban menu presentation wrapper must not stay in IslandCommandBackend");
+        assertFalse(backend.contains("private boolean moveVisitorToFallback("), "visitor fallback presentation wrapper must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void removeIslandMember(Player player, String target)"), "member removal execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage)"), "member role execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void trustIslandMemberTemporary(Player player, String target, String duration)"), "temporary trust execution must not stay in IslandCommandBackend");

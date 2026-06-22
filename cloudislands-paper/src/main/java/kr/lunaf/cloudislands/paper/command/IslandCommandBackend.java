@@ -701,7 +701,7 @@ final class IslandCommandBackend {
 
             @Override
             public boolean moveVisitorToFallback(UUID islandId, UUID targetUuid, String successMessage, String failureMessage) {
-                return IslandCommandBackend.this.moveVisitorToFallback(islandId, targetUuid, successMessage, failureMessage);
+                return memberPresentation.moveVisitorToFallback(islandId, targetUuid, successMessage, failureMessage);
             }
 
             @Override
@@ -711,17 +711,17 @@ final class IslandCommandBackend {
 
             @Override
             public void openIslandMemberMenu(Player player) {
-                IslandCommandBackend.this.openIslandMemberMenu(player);
+                memberPresentation.openMemberMenu(player);
             }
 
             @Override
             public void openIslandMemberMenu(Player player, int page) {
-                IslandCommandBackend.this.openIslandMemberMenu(player, page);
+                memberPresentation.openMemberMenu(player, page);
             }
 
             @Override
             public void openIslandBanMenu(Player player) {
-                IslandCommandBackend.this.openIslandBanMenu(player);
+                memberPresentation.openBanMenu(player);
             }
 
             @Override
@@ -872,22 +872,6 @@ final class IslandCommandBackend {
 
     public void onKick(PlayerKickEvent event) {
         routingCommands.clearRouteLoading(event.getPlayer());
-    }
-
-    private void openIslandMemberMenu(Player player) {
-        memberPresentation.openMemberMenu(player);
-    }
-
-    private void openIslandMemberMenu(Player player, int page) {
-        memberPresentation.openMemberMenu(player, page);
-    }
-
-    private boolean moveVisitorToFallback(UUID islandId, UUID targetUuid, String successMessage, String failureMessage) {
-        return memberPresentation.moveVisitorToFallback(islandId, targetUuid, successMessage, failureMessage);
-    }
-
-    private void openIslandBanMenu(Player player) {
-        memberPresentation.openBanMenu(player);
     }
 
 }
