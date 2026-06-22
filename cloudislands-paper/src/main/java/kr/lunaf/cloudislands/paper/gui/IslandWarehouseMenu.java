@@ -72,7 +72,7 @@ public final class IslandWarehouseMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<WarehouseItemView> items, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"_".equals(item.symbol()));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             List<Integer> slots = GuiMenuRenderer.slots(MENU, "_");
             List<WarehouseItemView> entries = items == null ? List.of() : items;
             for (int index = 0; index < entries.size() && index < slots.size(); index++) {
@@ -81,7 +81,7 @@ public final class IslandWarehouseMenu implements Listener {
                 MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of(), itemLore(itemView, messages))));
             }
             if (entries.isEmpty() && !slots.isEmpty()) {
-                MENU.item("_").ifPresent(item -> inventory.setItem(slots.getFirst(), GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of(message(messages, "warehouse-menu-empty", "섬 창고가 비어 있습니다.")))));
+                GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
             }
             player.openInventory(inventory);
         });

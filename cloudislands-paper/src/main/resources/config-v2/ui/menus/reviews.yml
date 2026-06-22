@@ -6,7 +6,7 @@ layout:
   - "_________"
   - "_________"
   - "_________"
-  - "........."
+  - "....E...."
   - "P...R...M"
 items:
   _:
@@ -20,6 +20,15 @@ items:
       - "평점과 후기를 확인합니다."
       - "후기는 Core 리뷰 API 기준입니다."
     action: list
+  E:
+    material: PAPER
+    name-key: reviews-menu-empty-name
+    fallback-name: 등록된 후기가 없습니다
+    lore-keys:
+      - reviews-menu-empty-lore
+    fallback-lore:
+      - "아직 등록된 후기가 없습니다."
+    action: open
   P:
     material: GOLD_BLOCK
     name-key: reviews-menu-ranking-name

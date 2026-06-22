@@ -284,7 +284,10 @@ class GuiSystemPolicyTest {
                 "IslandLimitMenu",
                 "IslandMissionMenu",
                 "IslandLogMenu",
-                "IslandRoleMenu"
+                "IslandRoleMenu",
+                "IslandReviewMenu",
+                "IslandWarehouseMenu",
+                "IslandVisitorStatsMenu"
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())"), menuName + " must hide the configured empty placeholder during normal render");
@@ -301,6 +304,9 @@ class GuiSystemPolicyTest {
         assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMissionMenu.java")).contains("mission-menu-empty-title"), "mission empty placeholder copy must live in config-v2");
         assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandLogMenu.java")).contains("log-menu-empty-title"), "log empty placeholder copy must live in config-v2");
         assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandRoleMenu.java")).contains("role-menu-empty-title"), "role empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandReviewMenu.java")).contains("reviews-menu-empty\", \"아직 등록된 후기가 없습니다."), "review empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandWarehouseMenu.java")).contains("warehouse-menu-empty\", \"섬 창고가 비어 있습니다."), "warehouse empty placeholder copy must live in config-v2");
+        assertFalse(Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandVisitorStatsMenu.java")).contains("visitor-stats-menu-empty\", \"아직 방문 기록이 없습니다."), "visitor stats empty placeholder copy must live in config-v2");
 
         for (String configPath : List.of(
                 "homes.yml",
@@ -313,7 +319,10 @@ class GuiSystemPolicyTest {
                 "limits.yml",
                 "missions.yml",
                 "logs.yml",
-                "roles.yml"
+                "roles.yml",
+                "reviews.yml",
+                "warehouse.yml",
+                "visitor-stats.yml"
         )) {
             String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + configPath));
             assertTrue(config.contains("  E:"), configPath + " must define the empty placeholder item");

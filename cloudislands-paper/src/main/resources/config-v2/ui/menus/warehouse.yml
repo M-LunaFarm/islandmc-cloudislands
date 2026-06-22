@@ -6,7 +6,7 @@ layout:
   - "_________"
   - "_________"
   - "_________"
-  - "........."
+  - "....E...."
   - "D...R...M"
 items:
   _:
@@ -20,6 +20,15 @@ items:
       - "섬 UUID 기준으로 공유되는 창고 항목입니다."
       - "Core 창고 API 기준으로 표시됩니다."
     action: list
+  E:
+    material: CHEST
+    name-key: warehouse-menu-empty-name
+    fallback-name: 섬 창고가 비어 있습니다
+    lore-keys:
+      - warehouse-menu-empty-lore
+    fallback-lore:
+      - "섬 창고가 비어 있습니다."
+    action: open
   D:
     material: HOPPER
     name-key: warehouse-menu-deposit-name

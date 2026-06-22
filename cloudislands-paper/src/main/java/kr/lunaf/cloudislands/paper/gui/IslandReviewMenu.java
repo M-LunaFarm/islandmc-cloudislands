@@ -73,7 +73,7 @@ public final class IslandReviewMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, ReviewListView reviews, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"_".equals(item.symbol()));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             List<Integer> slots = GuiMenuRenderer.slots(MENU, "_");
             List<ReviewView> entries = reviews == null ? List.of() : reviews.reviews();
             for (int index = 0; index < entries.size() && index < slots.size(); index++) {
@@ -82,7 +82,7 @@ public final class IslandReviewMenu implements Listener {
                 MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of(), reviewLore(review, messages))));
             }
             if (entries.isEmpty() && !slots.isEmpty()) {
-                MENU.item("_").ifPresent(item -> inventory.setItem(slots.getFirst(), GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of(message(messages, "reviews-menu-empty", "아직 등록된 후기가 없습니다.")))));
+                GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
             }
             player.openInventory(inventory);
         });

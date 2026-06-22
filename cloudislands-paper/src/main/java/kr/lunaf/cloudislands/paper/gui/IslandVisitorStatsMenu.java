@@ -71,7 +71,7 @@ public final class IslandVisitorStatsMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, IslandVisitorStatsView stats, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"_".equals(item.symbol()));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             IslandVisitorStatsView safeStats = stats == null ? new IslandVisitorStatsView("", 0L, 0L, List.of()) : stats;
             setItem(inventory, "T", messages, message(messages, "visitor-stats-menu-total", "전체 방문: ") + safeStats.totalVisits());
             setItem(inventory, "U", messages, message(messages, "visitor-stats-menu-unique", "고유 방문자: ") + safeStats.uniqueVisitors());
@@ -89,7 +89,7 @@ public final class IslandVisitorStatsMenu implements Listener {
             MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of(), visitorLore(visitor, messages))));
         }
         if (entries.isEmpty() && !slots.isEmpty()) {
-            MENU.item("_").ifPresent(item -> inventory.setItem(slots.getFirst(), GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of(message(messages, "visitor-stats-menu-empty", "아직 방문 기록이 없습니다.")))));
+            GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
         }
     }
 

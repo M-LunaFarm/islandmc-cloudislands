@@ -6,7 +6,7 @@ layout:
   - "_________"
   - "_________"
   - "_________"
-  - "........."
+  - "....E...."
   - "S...R...M"
 items:
   T:
@@ -33,6 +33,15 @@ items:
       - visitor-stats-menu-recent-lore
     fallback-lore:
       - "최근 방문자 UUID와 마지막 방문 시각을 표시합니다."
+  E:
+    material: PLAYER_HEAD
+    name-key: visitor-stats-menu-empty-name
+    fallback-name: 방문 기록이 없습니다
+    lore-keys:
+      - visitor-stats-menu-empty-lore
+    fallback-lore:
+      - "아직 방문 기록이 없습니다."
+    action: open
   S:
     material: COMPARATOR
     name-key: visitor-stats-menu-settings-name
