@@ -158,6 +158,13 @@ public interface CoreApiClient {
         throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed routing commands");
     }
 
+    default RouteTicketClient routeTickets() {
+        if (this instanceof RouteTicketClient client) {
+            return client;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed route ticket operations");
+    }
+
     default RuntimeCommandClient runtimeCommands() {
         if (this instanceof RuntimeCommandClient commands) {
             return commands;
@@ -247,6 +254,13 @@ public interface CoreApiClient {
             return commands;
         }
         throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed job commands");
+    }
+
+    default JobClaimClient jobClaims() {
+        if (this instanceof JobClaimClient claims) {
+            return claims;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed runtime job claims");
     }
 
     default TemplateQueryClient templates() {
@@ -347,23 +361,79 @@ public interface CoreApiClient {
         throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed migration commands");
     }
 
-    CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
-    CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
-    CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
-    CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
-    CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
-    CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName);
-    CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid);
-    CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid);
-    CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName);
-    CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch);
-    CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId);
-    CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid);
-    CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId);
-    CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, boolean reportMissing);
-    CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, UUID ticketId, String nonce, boolean reportMissing);
-    CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce);
-    CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
-    CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
-    CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
+    default CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
+        return lifecycle().createIsland(playerUuid, templateId);
+    }
+
+    default CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) {
+        return lifecycle().deleteIsland(requesterUuid, islandId);
+    }
+
+    default CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
+        return routeTickets().createHomeTicket(playerUuid);
+    }
+
+    default CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
+        return routeTickets().createHomeTicket(playerUuid, homeName);
+    }
+
+    default CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) {
+        return routeTickets().createVisitTicket(visitorUuid, targetIslandId);
+    }
+
+    default CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) {
+        return routeTickets().createVisitTicket(visitorUuid, islandName);
+    }
+
+    default CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
+        return routeTickets().createVisitTicketForOwner(visitorUuid, ownerUuid);
+    }
+
+    default CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
+        return routeTickets().createRandomVisitTicket(visitorUuid);
+    }
+
+    default CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
+        return routeTickets().createWarpTicket(playerUuid, islandId, warpName);
+    }
+
+    default CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch) {
+        return routeTickets().createMigrationReturnTicket(playerUuid, islandId, targetNode, localX, localY, localZ, yaw, pitch);
+    }
+
+    default CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId) {
+        return routeTickets().findRouteSession(playerUuid, nodeId);
+    }
+
+    default CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid) {
+        return routeTickets().findAnyRouteSession(playerUuid);
+    }
+
+    default CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId) {
+        return routeTickets().consumeRouteSession(playerUuid, nodeId);
+    }
+
+    default CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, boolean reportMissing) {
+        return routeTickets().consumeRouteSession(playerUuid, nodeId, reportMissing);
+    }
+
+    default CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, UUID ticketId, String nonce, boolean reportMissing) {
+        return routeTickets().consumeRouteSession(playerUuid, nodeId, ticketId, nonce, reportMissing);
+    }
+
+    default CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce) {
+        return routeTickets().routeTicketStatus(ticketId, playerUuid, nonce);
+    }
+
+    default CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
+        return routeTickets().consumeTicket(ticketId, playerUuid, nodeId, nonce);
+    }
+
+    default CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId) {
+        return routeTickets().adminIslandTeleport(playerUuid, islandId);
+    }
+
+    default CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
+        return jobClaims().claimJobs(nodeId, supportedTypes, maxJobs);
+    }
 }

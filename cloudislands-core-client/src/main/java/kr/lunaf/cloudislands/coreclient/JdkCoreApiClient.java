@@ -2,17 +2,7 @@ package kr.lunaf.cloudislands.coreclient;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.api.model.CreateIslandResult;
-import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
-import kr.lunaf.cloudislands.api.model.RouteTicket;
-import kr.lunaf.cloudislands.protocol.job.IslandJob;
-import kr.lunaf.cloudislands.protocol.job.IslandJobType;
-import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
 public final class JdkCoreApiClient implements CoreApiClient {
     private final CoreHttpTransport transport;
@@ -192,6 +182,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public RouteTicketClient routeTickets() {
+        return routeCoreClient;
+    }
+
+    @Override
     public NavigationQueryClient navigation() {
         return navigationQueryClient;
     }
@@ -282,6 +277,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     @Override
+    public JobClaimClient jobClaims() {
+        return jobClaimClient;
+    }
+
+    @Override
     public BlockValueQueryClient blockValues() {
         return blockValueQueryClient;
     }
@@ -354,107 +354,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public AdminIslandQueryClient adminIslands() {
         return adminIslandClient;
-    }
-
-    private static void requireId(UUID id, String name) {
-        if (id == null) {
-            throw new IllegalArgumentException(name + " is required");
-        }
-    }
-
-    @Override
-    public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
-        return lifecycleCommandClient.createIsland(playerUuid, templateId);
-    }
-
-    @Override
-    public CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId) {
-        return lifecycleCommandClient.deleteIsland(requesterUuid, islandId);
-    }
-
-    @Override
-    public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
-        return routeCoreClient.createHomeTicket(playerUuid);
-    }
-
-    @Override
-    public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
-        return routeCoreClient.createHomeTicket(playerUuid, homeName);
-    }
-
-    @Override
-    public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) {
-        return routeCoreClient.createVisitTicket(visitorUuid, targetIslandId);
-    }
-
-    @Override
-    public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) {
-        return routeCoreClient.createVisitTicket(visitorUuid, islandName);
-    }
-
-    @Override
-    public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
-        return routeCoreClient.createVisitTicketForOwner(visitorUuid, ownerUuid);
-    }
-
-    @Override
-    public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
-        return routeCoreClient.createRandomVisitTicket(visitorUuid);
-    }
-
-    @Override
-    public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
-        return routeCoreClient.createWarpTicket(playerUuid, islandId, warpName);
-    }
-
-    @Override
-    public CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch) {
-        return routeCoreClient.createMigrationReturnTicket(playerUuid, islandId, targetNode, localX, localY, localZ, yaw, pitch);
-    }
-
-    @Override
-    public CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId) {
-        return routeCoreClient.findRouteSession(playerUuid, nodeId);
-    }
-
-    @Override
-    public CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid) {
-        return routeCoreClient.findAnyRouteSession(playerUuid);
-    }
-
-    @Override
-    public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId) {
-        return routeCoreClient.consumeRouteSession(playerUuid, nodeId);
-    }
-
-    @Override
-    public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, boolean reportMissing) {
-        return routeCoreClient.consumeRouteSession(playerUuid, nodeId, reportMissing);
-    }
-
-    @Override
-    public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, UUID ticketId, String nonce, boolean reportMissing) {
-        return routeCoreClient.consumeRouteSession(playerUuid, nodeId, ticketId, nonce, reportMissing);
-    }
-
-    @Override
-    public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce) {
-        return routeCoreClient.routeTicketStatus(ticketId, playerUuid, nonce);
-    }
-
-    @Override
-    public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
-        return routeCoreClient.consumeTicket(ticketId, playerUuid, nodeId, nonce);
-    }
-
-    @Override
-    public CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId) {
-        return routeCoreClient.adminIslandTeleport(playerUuid, islandId);
-    }
-
-    @Override
-    public CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
-        return jobClaimClient.claimJobs(nodeId, supportedTypes, maxJobs);
     }
 
     CompletableFuture<String> post(String path, String body) {

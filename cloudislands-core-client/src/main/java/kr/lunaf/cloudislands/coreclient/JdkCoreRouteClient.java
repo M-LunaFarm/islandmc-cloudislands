@@ -6,7 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-final class JdkCoreRouteClient {
+final class JdkCoreRouteClient implements RouteTicketClient {
     private final JdkCoreApiClient core;
 
     JdkCoreRouteClient(JdkCoreApiClient core) {
@@ -16,41 +16,49 @@ final class JdkCoreRouteClient {
         this.core = core;
     }
 
-    CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
+    @Override
+    public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid) {
         return createHomeTicket(playerUuid, "default");
     }
 
-    CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
+    @Override
+    public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName) {
         return core.postWithResultBody("/v1/routes/home", CoreJsonPayload.object("playerUuid", playerUuid, "homeName", homeName))
             .thenApply(CoreRouteJson::routeTicketResult);
     }
 
-    CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) {
+    @Override
+    public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId) {
         return core.postWithResultBody("/v1/routes/visit", CoreJsonPayload.object("playerUuid", visitorUuid, "islandId", targetIslandId))
             .thenApply(CoreRouteJson::routeTicketResult);
     }
 
-    CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) {
+    @Override
+    public CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, String islandName) {
         return core.postWithResultBody("/v1/routes/visit", CoreJsonPayload.object("playerUuid", visitorUuid, "islandName", islandName))
             .thenApply(CoreRouteJson::routeTicketResult);
     }
 
-    CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
+    @Override
+    public CompletableFuture<RouteTicket> createVisitTicketForOwner(UUID visitorUuid, UUID ownerUuid) {
         return core.postWithResultBody("/v1/routes/visit", CoreJsonPayload.object("playerUuid", visitorUuid, "ownerUuid", ownerUuid))
             .thenApply(CoreRouteJson::routeTicketResult);
     }
 
-    CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
+    @Override
+    public CompletableFuture<RouteTicket> createRandomVisitTicket(UUID visitorUuid) {
         return core.postWithResultBody("/v1/routes/random", CoreJsonPayload.object("playerUuid", visitorUuid))
             .thenApply(CoreRouteJson::routeTicketResult);
     }
 
-    CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
+    @Override
+    public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName) {
         return core.postWithResultBody("/v1/routes/warp", CoreJsonPayload.object("playerUuid", playerUuid, "islandId", islandId, "warpName", warpName))
             .thenApply(CoreRouteJson::routeTicketResult);
     }
 
-    CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch) {
+    @Override
+    public CompletableFuture<RouteTicket> createMigrationReturnTicket(UUID playerUuid, UUID islandId, String targetNode, double localX, double localY, double localZ, float yaw, float pitch) {
         return core.postWithResultBody("/v1/routes/migration-return", CoreJsonPayload.object(
             "playerUuid", playerUuid,
             "islandId", islandId,
@@ -63,41 +71,49 @@ final class JdkCoreRouteClient {
         )).thenApply(CoreRouteJson::routeTicketResult);
     }
 
-    CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId) {
+    @Override
+    public CompletableFuture<Optional<PlayerRouteSession>> findRouteSession(UUID playerUuid, String nodeId) {
         return core.post("/v1/routes/session/find", CoreJsonPayload.object("playerUuid", playerUuid, "nodeId", nodeId))
             .thenApply(JdkCoreRouteClient::routeSession);
     }
 
-    CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid) {
+    @Override
+    public CompletableFuture<Optional<PlayerRouteSession>> findAnyRouteSession(UUID playerUuid) {
         return core.post("/v1/routes/session/find-any", CoreJsonPayload.object("playerUuid", playerUuid))
             .thenApply(JdkCoreRouteClient::routeSession);
     }
 
-    CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId) {
+    @Override
+    public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId) {
         return consumeRouteSession(playerUuid, nodeId, true);
     }
 
-    CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, boolean reportMissing) {
+    @Override
+    public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, boolean reportMissing) {
         return core.post("/v1/routes/session/consume", CoreJsonPayload.object("playerUuid", playerUuid, "nodeId", nodeId, "reportMissing", reportMissing))
             .thenApply(JdkCoreRouteClient::routeSession);
     }
 
-    CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, UUID ticketId, String nonce, boolean reportMissing) {
+    @Override
+    public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, UUID ticketId, String nonce, boolean reportMissing) {
         return core.post("/v1/routes/session/consume", CoreJsonPayload.object("playerUuid", playerUuid, "nodeId", nodeId, "ticketId", ticketId, "nonce", nonce, "reportMissing", reportMissing))
             .thenApply(JdkCoreRouteClient::routeSession);
     }
 
-    CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce) {
+    @Override
+    public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce) {
         return core.post("/v1/routes/ticket-status", CoreJsonPayload.object("ticketId", ticketId, "playerUuid", playerUuid, "nonce", nonce))
             .thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(CoreRouteJson.routeTicket(body)));
     }
 
-    CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
+    @Override
+    public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
         return core.post("/v1/routes/consume", CoreJsonPayload.object("ticketId", ticketId, "playerUuid", playerUuid, "nodeId", nodeId, "nonce", nonce))
             .thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(CoreRouteJson.routeTicket(body)));
     }
 
-    CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId) {
+    @Override
+    public CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId) {
         return core.postWithResultBody("/v1/admin/islands/tp", CoreJsonPayload.object("playerUuid", playerUuid, "islandId", islandId))
             .thenApply(CoreRouteJson::routeTicketResult);
     }

@@ -74,6 +74,8 @@ class CoreTypedClientsTest {
         assertFalse(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile commands to a standalone client");
         assertFalse(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template queries to a standalone client");
         assertFalse(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate template commands to a standalone client");
+        assertFalse(RouteTicketClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate route tickets to a standalone client");
+        assertFalse(JobClaimClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate job claims to a standalone client");
         assertFalse(JobCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate job commands to a standalone client");
         assertFalse(BlockValueCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate block value commands to a standalone client");
         assertFalse(WarehouseQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse queries to a standalone client");
@@ -88,6 +90,8 @@ class CoreTypedClientsTest {
         assertSame(JdkPlayerProfileCommandClient.class, client.playerProfileCommands().getClass());
         assertSame(JdkTemplateQueryClient.class, client.templates().getClass());
         assertSame(JdkTemplateCommandClient.class, client.templateCommands().getClass());
+        assertSame(JdkCoreRouteClient.class, client.routeTickets().getClass());
+        assertSame(JdkCoreJobClaimClient.class, client.jobClaims().getClass());
         assertSame(JdkJobCommandClient.class, client.jobCommands().getClass());
         assertSame(JdkBlockValueCommandClient.class, client.blockValueCommands().getClass());
         assertSame(JdkWarehouseQueryClient.class, client.warehouse().getClass());
@@ -173,9 +177,12 @@ class CoreTypedClientsTest {
     @Test
     void jdkCoreApiClientDelegatesLifecycleMethodsToStandaloneClient() throws Exception {
         String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+        String api = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreApiClient.java"));
 
-        assertTrue(source.contains("return lifecycleCommandClient.createIsland(playerUuid, templateId);"), "CoreApiClient createIsland compatibility method must delegate");
-        assertTrue(source.contains("return lifecycleCommandClient.deleteIsland(requesterUuid, islandId);"), "CoreApiClient deleteIsland compatibility method must delegate");
+        assertTrue(api.contains("return lifecycle().createIsland(playerUuid, templateId);"), "CoreApiClient createIsland compatibility method must delegate through the typed lifecycle accessor");
+        assertTrue(api.contains("return lifecycle().deleteIsland(requesterUuid, islandId);"), "CoreApiClient deleteIsland compatibility method must delegate through the typed lifecycle accessor");
+        assertFalse(source.contains("public CompletableFuture<CreateIslandResult> createIsland("), "createIsland compatibility must stay on the CoreApiClient default adapter");
+        assertFalse(source.contains("public CompletableFuture<DeleteIslandResult> deleteIsland("), "deleteIsland compatibility must stay on the CoreApiClient default adapter");
         assertFalse(source.contains("public CompletableFuture<IslandLifecycleActionView> resetIsland("), "lifecycle reset must not live on the core transport client");
         assertFalse(source.contains("public CompletableFuture<IslandLifecycleActionView> saveIsland("), "lifecycle save must not live on the core transport client");
         assertFalse(source.contains("public CompletableFuture<IslandLifecycleActionView> activateIsland("), "admin lifecycle commands must not live on the core transport client");
@@ -187,13 +194,17 @@ class CoreTypedClientsTest {
     @Test
     void jdkCoreApiClientDelegatesRouteCompatibilityMethodsToStandaloneClient() throws Exception {
         String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+        String api = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreApiClient.java"));
         String routeClient = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreRouteClient.java"));
         String routeJson = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreRouteJson.java"));
 
         assertTrue(source.contains("this.routeCoreClient = new JdkCoreRouteClient(this);"));
-        assertTrue(source.contains("return routeCoreClient.createHomeTicket(playerUuid, homeName);"));
-        assertTrue(source.contains("return routeCoreClient.consumeRouteSession(playerUuid, nodeId, ticketId, nonce, reportMissing);"));
-        assertTrue(source.contains("return routeCoreClient.adminIslandTeleport(playerUuid, islandId);"));
+        assertTrue(source.contains("public RouteTicketClient routeTickets()"));
+        assertTrue(api.contains("return routeTickets().createHomeTicket(playerUuid, homeName);"));
+        assertTrue(api.contains("return routeTickets().consumeRouteSession(playerUuid, nodeId, ticketId, nonce, reportMissing);"));
+        assertTrue(api.contains("return routeTickets().adminIslandTeleport(playerUuid, islandId);"));
+        assertFalse(source.contains("public CompletableFuture<RouteTicket> createHomeTicket("), "route compatibility must stay on the CoreApiClient default adapter");
+        assertFalse(source.contains("public CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession("), "route session compatibility must stay on the CoreApiClient default adapter");
         assertFalse(source.contains("parseRouteTicketResult("), "route result parsing must not live on the core transport client");
         assertFalse(source.contains("private static final class RouteSessionJson"), "route session parsing must not live on the core transport client");
         assertFalse(source.contains("static final class RouteTicketJson"), "route ticket parsing must not live on the core transport client");
@@ -253,11 +264,13 @@ class CoreTypedClientsTest {
     @Test
     void jdkCoreApiClientDelegatesJobCommandsToStandaloneClient() throws Exception {
         String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+        String api = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreApiClient.java"));
         String jobClaimClient = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreJobClaimClient.java"));
 
-        assertTrue(source.contains("public CompletableFuture<List<IslandJob>> claimJobs("), "runtime job claims remain the CoreApiClient direct protocol contract");
+        assertTrue(api.contains("return jobClaims().claimJobs(nodeId, supportedTypes, maxJobs);"), "runtime job claim compatibility must delegate through the typed job claim accessor");
         assertTrue(source.contains("this.jobClaimClient = new JdkCoreJobClaimClient(this);"));
-        assertTrue(source.contains("return jobClaimClient.claimJobs(nodeId, supportedTypes, maxJobs);"));
+        assertTrue(source.contains("public JobClaimClient jobClaims()"));
+        assertFalse(source.contains("public CompletableFuture<List<IslandJob>> claimJobs("), "job claim compatibility must stay on the CoreApiClient default adapter");
         assertFalse(source.contains("public CompletableFuture<JobActionView> retry("), "job retry must not live on the core transport client");
         assertFalse(source.contains("public CompletableFuture<JobActionView> cancel("), "job cancel must not live on the core transport client");
         assertFalse(source.contains("public CompletableFuture<JobRecoveryView> recover("), "job recovery must not live on the core transport client");
