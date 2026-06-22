@@ -12,11 +12,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
-import kr.lunaf.cloudislands.coreclient.CorePermissionCommandClient;
-import kr.lunaf.cloudislands.coreclient.CorePermissionQueryClient;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
+import kr.lunaf.cloudislands.coreclient.PermissionActionView;
+import kr.lunaf.cloudislands.coreclient.PermissionAssignmentView;
+import kr.lunaf.cloudislands.coreclient.PermissionCommandClient;
 import kr.lunaf.cloudislands.coreclient.PermissionMatrixView;
+import kr.lunaf.cloudislands.coreclient.PermissionQueryClient;
+import kr.lunaf.cloudislands.coreclient.UpdatePermissionsRequest;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionActionResult;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionView;
 import org.junit.jupiter.api.Test;
@@ -163,19 +167,26 @@ class PermissionManagementUseCaseTest {
     private CoreApiClient coreApiClient(List<String> expectedVersions) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, PermissionCommandClient.class, PermissionQueryClient.class },
             (_proxy, method, args) -> {
                 if (method.getName().equals("permissions")) {
-                    return new CorePermissionCommandClient((CoreApiClient) _proxy);
+                    return (PermissionCommandClient) _proxy;
                 }
                 if (method.getName().equals("permissionQueries")) {
-                    return new CorePermissionQueryClient((CoreApiClient) _proxy);
+                    return (PermissionQueryClient) _proxy;
                 }
-                if (method.getName().equals("setIslandPermissionResult") && args.length == 6) {
-                    expectedVersions.add((String) args[5]);
-                    return CompletableFuture.completedFuture("""
-                        {"version":"v%s","rules":[{"role":"%s","permission":"%s","allowed":%s}]}
-                        """.formatted(expectedVersions.size() + 1, args[2], args[3], args[4]));
+                if (method.getName().equals("updatePermissions")) {
+                    UpdatePermissionsRequest request = (UpdatePermissionsRequest) args[0];
+                    String version = "";
+                    CoreGuiViews.PermissionRuleView last = null;
+                    for (UpdatePermissionsRequest.Change change : request.changes()) {
+                        String expectedVersion = version.isBlank() ? change.expectedVersion() : version;
+                        expectedVersions.add(expectedVersion);
+                        version = "v" + (expectedVersions.size() + 1);
+                        last = new CoreGuiViews.PermissionRuleView(change.roleId().value(), change.permission().name(), change.allowed(), version);
+                    }
+                    PermissionMatrixView matrix = new PermissionMatrixView(version, List.of(last));
+                    return CompletableFuture.completedFuture(new MutationResult<>(matrix, version, true));
                 }
                 throw new UnsupportedOperationException(method.getName());
             }
@@ -185,41 +196,50 @@ class PermissionManagementUseCaseTest {
     private CoreApiClient commandClient(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "permissions" -> new CorePermissionCommandClient((CoreApiClient) _proxy);
-                case "permissionQueries" -> new CorePermissionQueryClient((CoreApiClient) _proxy);
-                case "listIslandRoles" -> {
-                    calls.add("listIslandRoles");
-                    yield CompletableFuture.completedFuture("{\"roles\":[{\"role\":\"BUILDER\",\"weight\":50,\"displayName\":\"Builder\"}]}");
-                }
-                case "listIslandPermissions" -> {
+            new Class<?>[] { CoreApiClient.class, PermissionCommandClient.class, PermissionQueryClient.class },
+	            (_proxy, method, args) -> switch (method.getName()) {
+	                case "permissions" -> {
+                    if (method.getParameterCount() == 0) {
+                        yield (PermissionCommandClient) _proxy;
+                    }
                     calls.add("listIslandPermissions");
-                    yield CompletableFuture.completedFuture("{\"rules\":[{\"role\":\"BUILDER\",\"permission\":\"BUILD\",\"allowed\":true},{\"playerUuid\":\"00000000-0000-0000-0000-000000000080\",\"permission\":\"BREAK\",\"allowed\":false}]}");
+                    yield CompletableFuture.completedFuture(List.of(
+                        new PermissionAssignmentView("BUILDER", "", "BUILD", true, ""),
+                        new PermissionAssignmentView("", "00000000-0000-0000-0000-000000000080", "BREAK", false, "")
+                    ));
                 }
-                case "upsertIslandRole" -> {
-                    calls.add("upsert:" + args[2] + ":" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("""
-                        {"islandId":"00000000-0000-0000-0000-000000000001","role":"%s","roleKey":"%s","weight":%s,"displayName":"%s"}
-                        """.formatted(args[2], args[2], args[3], args[4]));
+	                case "permissionQueries" -> (PermissionQueryClient) _proxy;
+	                case "roles" -> {
+                    calls.add("listIslandRoles");
+                    yield CompletableFuture.completedFuture(List.of(new RoleView("BUILDER", 50, "Builder")));
                 }
-                case "resetIslandRole" -> {
-                    calls.add("reset:" + args[2]);
-                    yield CompletableFuture.completedFuture("""
-                        {"accepted":true,"code":"ROLE_RESET","role":"%s","roleKey":"%s","removed":true}
-                        """.formatted(args[2], args[2]));
+                case "upsertRole" -> {
+                    String role = normalizeRole((String) args[2]);
+                    String displayName = args[4] == null || ((String) args[4]).isBlank() ? role : ((String) args[4]).trim();
+                    calls.add("upsert:" + role + ":" + args[3] + ":" + displayName);
+                    yield CompletableFuture.completedFuture(new MutationResult<>(new RoleView(role, (int) args[3], displayName), "", true));
                 }
-                case "setIslandPermissionResult" -> {
-                    calls.add("set:" + args[2] + ":" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PERMISSION_SET\"}");
+                case "resetRole" -> {
+                    String role = normalizeRole((String) args[2]);
+                    calls.add("reset:" + role);
+                    yield CompletableFuture.completedFuture(new MutationResult<>(new RoleView(role, 0, ""), "", true));
                 }
-                case "setIslandPermissionOverride" -> {
+                case "setPermission" -> {
+                    String role = normalizeRole((String) args[2]);
+                    calls.add("set:" + role + ":" + args[3] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture(new PermissionActionView(true, "PERMISSION_SET"));
+                }
+                case "setPermissionOverride" -> {
                     calls.add("override:" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PERMISSION_OVERRIDE_SET\"}");
+                    yield CompletableFuture.completedFuture(new PermissionActionView(true, "PERMISSION_OVERRIDE_SET"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
+    }
+
+    private static String normalizeRole(String roleKey) {
+        return roleKey == null ? "" : roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 
     private PermissionManagementUseCase.MutationRunner mutationRunner(List<String> calls) {

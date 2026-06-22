@@ -38,11 +38,17 @@ public interface CoreApiClient {
     }
 
     default PermissionCommandClient permissions() {
-        return new CorePermissionCommandClient(this);
+        if (this instanceof PermissionCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed permission commands");
     }
 
     default PermissionQueryClient permissionQueries() {
-        return new CorePermissionQueryClient(this);
+        if (this instanceof PermissionQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed permission queries");
     }
 
     default SnapshotQueryClient snapshots() {
@@ -329,17 +335,6 @@ public interface CoreApiClient {
     CompletableFuture<String> islandBiome(UUID islandId);
     CompletableFuture<Void> setIslandBiome(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<String> setIslandBiomeResult(UUID islandId, UUID actorUuid, String biomeKey);
-    CompletableFuture<String> listIslandPermissions(UUID islandId);
-    CompletableFuture<Void> setIslandPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
-    CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed);
-    CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed);
-    CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion);
-    CompletableFuture<String> setIslandPermissionOverride(UUID islandId, UUID actorUuid, UUID playerUuid, IslandPermission permission, boolean allowed);
-    CompletableFuture<String> listIslandRoles(UUID islandId);
-    CompletableFuture<String> upsertIslandRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName);
-    CompletableFuture<String> upsertIslandRole(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName);
-    CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, IslandRole role);
-    CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, String roleKey);
     CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
     CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
     CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);

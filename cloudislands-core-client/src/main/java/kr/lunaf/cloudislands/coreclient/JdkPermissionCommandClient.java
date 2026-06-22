@@ -6,14 +6,14 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 
-public final class CorePermissionCommandClient implements PermissionCommandClient {
-    private final CoreApiClient delegate;
+public final class JdkPermissionCommandClient implements PermissionCommandClient {
+    private final JdkCoreApiClient core;
 
-    public CorePermissionCommandClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkPermissionCommandClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
@@ -39,7 +39,7 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
                     change.permission(),
                     change.allowed(),
                     expectedVersion
-                ).thenApply(CorePermissionCommandClient::mutationResult);
+                ).thenApply(JdkPermissionCommandClient::mutationResult);
             });
         }
         return chain;
@@ -51,8 +51,11 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
         requireId(actorUuid, "actorUuid");
         String normalizedRoleKey = normalizeRoleKey(roleKey);
         String normalizedDisplayName = displayName == null || displayName.isBlank() ? normalizedRoleKey : displayName.trim();
-        return delegate.upsertIslandRole(islandId, actorUuid, normalizedRoleKey, weight, normalizedDisplayName)
-            .thenApply(CorePermissionCommandClient::roleMutationResult);
+        return core.postWithResultBody(
+                "/v1/islands/roles/upsert",
+                JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "weight", weight, "displayName", normalizedDisplayName)
+            )
+            .thenApply(JdkPermissionCommandClient::roleMutationResult);
     }
 
     @Override
@@ -60,8 +63,11 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return delegate.resetIslandRole(islandId, actorUuid, normalizedRoleKey)
-            .thenApply(CorePermissionCommandClient::roleMutationResult);
+        return core.postWithResultBody(
+                "/v1/islands/roles/reset",
+                JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey)
+            )
+            .thenApply(JdkPermissionCommandClient::roleMutationResult);
     }
 
     @Override
@@ -79,7 +85,10 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
             throw new IllegalArgumentException("targetUuid is required");
         }
         requirePermission(permission);
-        return delegate.setIslandPermissionOverride(islandId, actorUuid, targetUuid, permission, allowed)
+        return core.postWithResultBody(
+                "/v1/islands/permissions/overrides/set",
+                JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "permission", permission.name(), "allowed", allowed)
+            )
             .thenApply(body -> permissionAction(body, "PERMISSION_OVERRIDE_SET"));
     }
 
@@ -110,7 +119,10 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
         requireId(actorUuid, "actorUuid");
         requirePermission(permission);
         String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return delegate.setIslandPermissionResult(islandId, actorUuid, normalizedRoleKey, permission, allowed, expectedVersion);
+        String payload = expectedVersion == null || expectedVersion.isBlank()
+            ? JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed)
+            : JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed, "expectedVersion", expectedVersion);
+        return core.postWithResultBody("/v1/islands/permissions/set", payload);
     }
 
     private static String normalizeRoleKey(String roleKey) {

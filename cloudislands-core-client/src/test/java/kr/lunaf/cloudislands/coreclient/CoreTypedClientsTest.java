@@ -313,108 +313,119 @@ class CoreTypedClientsTest {
     }
 
     @Test
-    void permissionCommandClientCarriesTypedVersionAcrossBatch() {
+    void permissionCommandClientCarriesTypedVersionAcrossBatch() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
         List<String> expectedVersions = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
-            (_proxy, method, args) -> {
-                if (method.getName().equals("setIslandPermissionResult")) {
-                    expectedVersions.add((String) args[5]);
-                    return CompletableFuture.completedFuture("""
-                        {"version":"v%s","rules":[{"role":"%s","permission":"%s","allowed":%s}]}
-                        """.formatted(expectedVersions.size() + 1, args[2], args[3], args[4]));
-                }
-                throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        PermissionCommandClient client = new CorePermissionCommandClient(raw);
+        int[] counter = {0};
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/islands/permissions/set", exchange -> {
+                String request = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                expectedVersions.add(request.contains("\"expectedVersion\":\"v2\"") ? "v2" : "v1");
+                counter[0]++;
+                String response = counter[0] == 1
+                    ? """
+                        {"version":"v2","rules":[{"role":"BUILDER","permission":"BUILD","allowed":true}]}
+                        """
+                    : """
+                        {"version":"v3","rules":[{"role":"BUILDER","permission":"OPEN_CONTAINER","allowed":false}]}
+                        """;
+                byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, bytes.length);
+                exchange.getResponseBody().write(bytes);
+                exchange.close();
+            });
+            server.start();
+            PermissionCommandClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).permissions();
 
-        MutationResult<PermissionMatrixView> result = client.updatePermissions(new UpdatePermissionsRequest(
-            islandId,
-            actorUuid,
-            List.of(
-                new UpdatePermissionsRequest.Change("builder", IslandPermission.BUILD, true, "v1"),
-                new UpdatePermissionsRequest.Change("builder", IslandPermission.OPEN_CONTAINER, false, "stale")
-            )
-        )).join();
+            MutationResult<PermissionMatrixView> result = client.updatePermissions(new UpdatePermissionsRequest(
+                islandId,
+                actorUuid,
+                List.of(
+                    new UpdatePermissionsRequest.Change("builder", IslandPermission.BUILD, true, "v1"),
+                    new UpdatePermissionsRequest.Change("builder", IslandPermission.OPEN_CONTAINER, false, "stale")
+                )
+            )).join();
 
-        assertEquals(List.of("v1", "v2"), expectedVersions);
-        assertEquals("v3", result.version());
-        assertTrue(result.changed());
-        assertEquals("BUILDER", result.value().rules().get(0).role());
-        assertEquals("OPEN_CONTAINER", result.value().rules().get(0).permission());
-        assertFalse(result.value().rules().get(0).allowed());
+            assertEquals(List.of("v1", "v2"), expectedVersions);
+            assertEquals("v3", result.version());
+            assertTrue(result.changed());
+            assertEquals("BUILDER", result.value().rules().get(0).role());
+            assertEquals("OPEN_CONTAINER", result.value().rules().get(0).permission());
+            assertFalse(result.value().rules().get(0).allowed());
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
-    void permissionCommandClientReturnsTypedActionViews() {
+    void permissionCommandClientReturnsTypedActionViews() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
         UUID targetUuid = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "setIslandPermissionResult" -> {
-                    calls.add("set:" + args[2] + ":" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PERMISSION_SET\"}");
-                }
-                case "setIslandPermissionOverride" -> {
-                    calls.add("override:" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("plain-success");
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        PermissionCommandClient client = new CorePermissionCommandClient(raw);
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/islands/permissions/set", exchange -> respondMemberTest(exchange, calls, "set", "{\"accepted\":true,\"code\":\"PERMISSION_SET\"}"));
+            server.createContext("/v1/islands/permissions/overrides/set", exchange -> respondMemberTest(exchange, calls, "override", "plain-success"));
+            server.start();
+            PermissionCommandClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).permissions();
 
-        assertEquals("PERMISSION_SET", client.setPermission(islandId, actorUuid, "builder", IslandPermission.BUILD, true).join().code());
-        assertEquals("PERMISSION_OVERRIDE_SET", client.setPermissionOverride(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false).join().code());
-        assertEquals(List.of("set:BUILDER:BUILD:true", "override:BREAK:false"), calls);
+            assertEquals("PERMISSION_SET", client.setPermission(islandId, actorUuid, "builder", IslandPermission.BUILD, true).join().code());
+            assertEquals("PERMISSION_OVERRIDE_SET", client.setPermissionOverride(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false).join().code());
+            assertEquals(List.of(
+                "set:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\",\"permission\":\"BUILD\",\"allowed\":true}",
+                "override:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\",\"permission\":\"BREAK\",\"allowed\":false}"
+            ), calls);
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
-    void permissionQueryClientReturnsTypedAssignmentsAndRoles() {
+    void permissionQueryClientReturnsTypedAssignmentsAndRoles() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID playerUuid = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "listIslandPermissions" -> {
-                    calls.add("permissions");
-                    yield CompletableFuture.completedFuture("""
-                        {"version":"v1","rules":[{"role":"BUILDER","permission":"BUILD","allowed":true}],"overrides":[{"playerUuid":"%s","permission":"BREAK","allowed":false}]}
-                        """.formatted(playerUuid));
-                }
-                case "listIslandRoles" -> {
-                    calls.add("roles");
-                    yield CompletableFuture.completedFuture("""
-                        {"roles":[{"role":"BUILDER","weight":50,"displayName":"Builder"}]}
-                        """);
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        PermissionQueryClient client = new CorePermissionQueryClient(raw);
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/islands/" + islandId + "/permissions", exchange -> {
+                calls.add("permissions");
+                byte[] response = """
+                    {"version":"v1","rules":[{"role":"BUILDER","permission":"BUILD","allowed":true}],"overrides":[{"playerUuid":"%s","permission":"BREAK","allowed":false}]}
+                    """.formatted(playerUuid).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/islands/" + islandId + "/roles", exchange -> {
+                calls.add("roles");
+                byte[] response = """
+                    {"roles":[{"role":"BUILDER","weight":50,"displayName":"Builder"}]}
+                    """.getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.start();
+            PermissionQueryClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).permissionQueries();
 
-        List<PermissionAssignmentView> permissions = client.permissions(islandId).join();
-        CoreGuiViews.PermissionRulesView rules = client.permissionRules(islandId).join();
-        List<CoreGuiViews.RoleView> roles = client.roles(islandId).join();
+            List<PermissionAssignmentView> permissions = client.permissions(islandId).join();
+            CoreGuiViews.PermissionRulesView rules = client.permissionRules(islandId).join();
+            List<CoreGuiViews.RoleView> roles = client.roles(islandId).join();
 
-        assertEquals(List.of("permissions", "permissions", "roles"), calls);
-        assertEquals("BUILDER", permissions.get(0).role());
-        assertEquals(playerUuid.toString(), permissions.get(1).playerUuid());
-        assertFalse(permissions.get(1).allowed());
-        assertEquals("v1", permissions.get(1).version());
-        assertEquals("v1", rules.version());
-        assertEquals("BUILD", rules.rules().get(0).permission());
-        assertEquals("BUILDER", roles.get(0).role());
+            assertEquals(List.of("permissions", "permissions", "roles"), calls);
+            assertEquals("BUILDER", permissions.get(0).role());
+            assertEquals(playerUuid.toString(), permissions.get(1).playerUuid());
+            assertFalse(permissions.get(1).allowed());
+            assertEquals("v1", permissions.get(1).version());
+            assertEquals("v1", rules.version());
+            assertEquals("BUILD", rules.rules().get(0).permission());
+            assertEquals("BUILDER", roles.get(0).role());
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
@@ -1871,40 +1882,50 @@ class CoreTypedClientsTest {
     }
 
     @Test
-    void permissionCommandClientReturnsTypedRoleMutations() {
+    void permissionCommandClientReturnsTypedRoleMutations() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
         List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "upsertIslandRole" -> {
-                    calls.add("upsert:" + args[2] + ":" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("""
-                        {"islandId":"%s","role":"%s","roleKey":"%s","weight":%s,"displayName":"%s"}
-                        """.formatted(islandId, args[2], args[2], args[3], args[4]));
-                }
-                case "resetIslandRole" -> {
-                    calls.add("reset:" + args[2]);
-                    yield CompletableFuture.completedFuture("""
-                        {"accepted":true,"code":"ROLE_RESET","role":"%s","roleKey":"%s","removed":true}
-                        """.formatted(args[2], args[2]));
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        PermissionCommandClient client = new CorePermissionCommandClient(raw);
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/islands/roles/upsert", exchange -> {
+                String request = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                calls.add("upsert:" + request);
+                byte[] response = """
+                    {"islandId":"%s","role":"BUILDER","roleKey":"BUILDER","weight":42,"displayName":"Builder"}
+                    """.formatted(islandId).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/islands/roles/reset", exchange -> {
+                String request = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                calls.add("reset:" + request);
+                byte[] response = """
+                    {"accepted":true,"code":"ROLE_RESET","role":"BUILDER","roleKey":"BUILDER","removed":true}
+                    """.getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.start();
+            PermissionCommandClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).permissions();
 
-        MutationResult<CoreGuiViews.RoleView> upserted = client.upsertRole(islandId, actorUuid, "builder", 42, "Builder").join();
-        MutationResult<CoreGuiViews.RoleView> reset = client.resetRole(islandId, actorUuid, "builder").join();
+            MutationResult<CoreGuiViews.RoleView> upserted = client.upsertRole(islandId, actorUuid, "builder", 42, "Builder").join();
+            MutationResult<CoreGuiViews.RoleView> reset = client.resetRole(islandId, actorUuid, "builder").join();
 
-        assertEquals(List.of("upsert:BUILDER:42:Builder", "reset:BUILDER"), calls);
-        assertEquals("BUILDER", upserted.value().role());
-        assertEquals(42, upserted.value().weight());
-        assertEquals("Builder", upserted.value().displayName());
-        assertEquals("BUILDER", reset.value().role());
-        assertTrue(reset.changed());
+            assertEquals(List.of(
+                "upsert:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\",\"weight\":42,\"displayName\":\"Builder\"}",
+                "reset:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\"}"
+            ), calls);
+            assertEquals("BUILDER", upserted.value().role());
+            assertEquals(42, upserted.value().weight());
+            assertEquals("Builder", upserted.value().displayName());
+            assertEquals("BUILDER", reset.value().role());
+            assertTrue(reset.changed());
+        } finally {
+            server.stop(0);
+        }
     }
 
     private static RouteTicket routeTicket(UUID playerUuid, UUID islandId) {

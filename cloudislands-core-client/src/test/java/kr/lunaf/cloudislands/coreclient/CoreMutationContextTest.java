@@ -732,10 +732,14 @@ class CoreMutationContextTest {
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
-            client.setIslandPermissionResult(islandId, actorUuid, "builder-role", IslandPermission.BUILD, true, "v\"2").join();
-            client.setIslandPermissionOverride(islandId, actorUuid, playerUuid, IslandPermission.BREAK, false).join();
-            client.upsertIslandRole(islandId, actorUuid, "builder-role", 42, "Builder \"Role\"").join();
-            client.resetIslandRole(islandId, actorUuid, "builder-role").join();
+            client.permissions().updatePermissions(new UpdatePermissionsRequest(
+                islandId,
+                actorUuid,
+                java.util.List.of(new UpdatePermissionsRequest.Change("builder-role", IslandPermission.BUILD, true, "v\"2"))
+            )).join();
+            client.permissions().setPermissionOverride(islandId, actorUuid, playerUuid, IslandPermission.BREAK, false).join();
+            client.permissions().upsertRole(islandId, actorUuid, "builder-role", 42, "Builder \"Role\"").join();
+            client.permissions().resetRole(islandId, actorUuid, "builder-role").join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER_ROLE\",\"roleKey\":\"BUILDER_ROLE\",\"permission\":\"BUILD\",\"allowed\":true,\"expectedVersion\":\"v\\\"2\"}", requestBodies.get("permissionSet"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"permission\":\"BREAK\",\"allowed\":false}", requestBodies.get("permissionOverride"));

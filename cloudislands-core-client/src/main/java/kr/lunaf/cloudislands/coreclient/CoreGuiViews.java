@@ -114,11 +114,11 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<PermissionRulesView> islandPermissionRules(CoreApiClient client, UUID islandId) {
-        return new CorePermissionQueryClient(client).permissionRules(islandId);
+        return client.permissionQueries().permissionRules(islandId);
     }
 
     public static CompletableFuture<List<RoleView>> islandRoles(CoreApiClient client, UUID islandId) {
-        return new CorePermissionQueryClient(client).roles(islandId);
+        return client.permissionQueries().roles(islandId);
     }
 
     public static RoleView roleView(String body) {

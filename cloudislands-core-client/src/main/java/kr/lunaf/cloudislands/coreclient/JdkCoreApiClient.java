@@ -98,8 +98,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.environmentQueryClient = new CoreIslandEnvironmentQueryClient(this);
         this.environmentCommandClient = new CoreIslandEnvironmentCommandClient(this);
         this.settingsClient = new CoreIslandSettingsCommandClient(this);
-        this.permissionQueryClient = new CorePermissionQueryClient(this);
-        this.permissionCommandClient = new CorePermissionCommandClient(this);
+        this.permissionQueryClient = new JdkPermissionQueryClient(this);
+        this.permissionCommandClient = new JdkPermissionCommandClient(this);
         this.homeWarpQueryClient = new JdkHomeWarpQueryClient(this);
         this.homeWarpCommandClient = new JdkHomeWarpCommandClient(this);
         this.routingClient = new JdkRoutingClient(this);
@@ -495,67 +495,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public CompletableFuture<String> setIslandBiomeResult(UUID islandId, UUID actorUuid, String biomeKey) {
         return postWithResultBody("/v1/islands/biome/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "biomeKey", biomeKey));
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandPermissions(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/permissions");
-    }
-
-    @Override
-    public CompletableFuture<Void> setIslandPermission(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) {
-        return setIslandPermissionResult(islandId, actorUuid, role, permission, allowed).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, IslandRole role, IslandPermission permission, boolean allowed) {
-        return setIslandPermissionResult(islandId, actorUuid, role.name(), permission, allowed);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed) {
-        return setIslandPermissionResult(islandId, actorUuid, roleKey, permission, allowed, "");
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
-        String normalizedRoleKey = normalizeRoleKey(roleKey);
-        String payload = expectedVersion == null || expectedVersion.isBlank()
-            ? jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed)
-            : jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed, "expectedVersion", expectedVersion);
-        return postWithResultBody("/v1/islands/permissions/set", payload);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandPermissionOverride(UUID islandId, UUID actorUuid, UUID playerUuid, IslandPermission permission, boolean allowed) {
-        return postWithResultBody("/v1/islands/permissions/overrides/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid, "permission", permission.name(), "allowed", allowed));
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandRoles(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/roles");
-    }
-
-    @Override
-    public CompletableFuture<String> upsertIslandRole(UUID islandId, UUID actorUuid, IslandRole role, int weight, String displayName) {
-        return upsertIslandRole(islandId, actorUuid, role.name(), weight, displayName);
-    }
-
-    @Override
-    public CompletableFuture<String> upsertIslandRole(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName) {
-        String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return postWithResultBody("/v1/islands/roles/upsert", jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "weight", weight, "displayName", displayName));
-    }
-
-    @Override
-    public CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, IslandRole role) {
-        return resetIslandRole(islandId, actorUuid, role.name());
-    }
-
-    @Override
-    public CompletableFuture<String> resetIslandRole(UUID islandId, UUID actorUuid, String roleKey) {
-        String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return postWithResultBody("/v1/islands/roles/reset", jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey));
     }
 
     @Override

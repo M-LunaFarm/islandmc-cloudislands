@@ -7,32 +7,32 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CorePermissionQueryClient implements PermissionQueryClient {
-    private final CoreApiClient delegate;
+public final class JdkPermissionQueryClient implements PermissionQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CorePermissionQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkPermissionQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<List<PermissionAssignmentView>> permissions(UUID islandId) {
         requireIsland(islandId);
-        return delegate.listIslandPermissions(islandId).thenApply(CorePermissionQueryClient::permissionViews);
+        return core.get("/v1/islands/" + islandId + "/permissions").thenApply(JdkPermissionQueryClient::permissionViews);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.PermissionRulesView> permissionRules(UUID islandId) {
         requireIsland(islandId);
-        return delegate.listIslandPermissions(islandId).thenApply(CorePermissionJson::permissionRulesView);
+        return core.get("/v1/islands/" + islandId + "/permissions").thenApply(CorePermissionJson::permissionRulesView);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.RoleView>> roles(UUID islandId) {
         requireIsland(islandId);
-        return delegate.listIslandRoles(islandId).thenApply(CorePermissionJson::roleViews);
+        return core.get("/v1/islands/" + islandId + "/roles").thenApply(CorePermissionJson::roleViews);
     }
 
     static List<PermissionAssignmentView> permissionViews(String body) {
