@@ -20,7 +20,7 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
         if (request == null) {
             return CompletableFuture.failedFuture(new IllegalArgumentException("request is required"));
         }
-        return core.postWithResultBody("/v1/nodes/heartbeat", CoreJsonPayload.object(
+        return core.postResultBody("/v1/nodes/heartbeat", CoreJsonPayload.object(
                 "protocolVersion", request.protocolVersion(),
                 "nodeId", request.nodeId(),
                 "pool", request.pool(),
@@ -43,6 +43,7 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
                 "storageAvailable", request.storageAvailable(),
                 "supportedTemplates", request.supportedTemplates()
             ))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> runtimeAction(body, "HEARTBEAT_ACCEPTED"));
     }
 
@@ -53,26 +54,30 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
         if (safeMaterialKey.isBlank()) {
             return CompletableFuture.failedFuture(new IllegalArgumentException("materialKey is required"));
         }
-        return core.postWithResultBody("/v1/islands/blocks/delta", CoreJsonPayload.object("islandId", islandId, "materialKey", safeMaterialKey, "delta", delta))
+        return core.postResultBody("/v1/islands/blocks/delta", CoreJsonPayload.object("islandId", islandId, "materialKey", safeMaterialKey, "delta", delta))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> runtimeAction(body, "BLOCK_DELTA_RECORDED"));
     }
 
     @Override
     public CompletableFuture<RuntimeActionView> replaceBlockCounts(UUID islandId, Map<String, Long> counts) {
         requireId(islandId, "islandId");
-        return core.postWithResultBody("/v1/islands/blocks/replace", CoreJsonPayload.object("islandId", islandId, "counts", CoreJsonPayload.positiveLongMap(counts)))
+        return core.postResultBody("/v1/islands/blocks/replace", CoreJsonPayload.object("islandId", islandId, "counts", CoreJsonPayload.positiveLongMap(counts)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> runtimeAction(body, "BLOCK_COUNTS_REPLACED"));
     }
 
     @Override
     public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
-        return core.postWithResultBody("/v1/jobs/complete", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "payload", CoreJsonPayload.stringMap(payload == null ? Map.of() : payload)))
+        return core.postResultBody("/v1/jobs/complete", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "payload", CoreJsonPayload.stringMap(payload == null ? Map.of() : payload)))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> runtimeAction(body, "JOB_COMPLETED"));
     }
 
     @Override
     public CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, String errorMessage) {
-        return core.postWithResultBody("/v1/jobs/fail", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "error", errorMessage == null ? "" : errorMessage))
+        return core.postResultBody("/v1/jobs/fail", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "error", errorMessage == null ? "" : errorMessage))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> runtimeAction(body, "JOB_FAILED"));
     }
 

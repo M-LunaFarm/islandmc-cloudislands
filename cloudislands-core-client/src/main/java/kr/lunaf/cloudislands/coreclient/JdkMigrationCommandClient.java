@@ -47,7 +47,8 @@ public final class JdkMigrationCommandClient implements MigrationCommandClient {
         String payload = endpoint.equals("import")
             ? CoreJsonPayload.object("approval", value)
             : (endpoint.equals("rollback") || endpoint.equals("status")) ? "{}" : CoreJsonPayload.object("path", value);
-        return core.postWithResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, payload)
+        return core.postResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, payload)
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreMigrationJson::run);
     }
 }

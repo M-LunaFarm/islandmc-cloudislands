@@ -17,7 +17,9 @@ public final class JdkAdminAddonStateQueryClient implements AdminAddonStateQuery
 
     @Override
     public CompletableFuture<AdminAddonStateSummaryView> summary() {
-        return core.post("/v1/admin/addons/state/summary", "{}").thenApply(JdkAdminAddonStateQueryClient::summary);
+        return core.postBody("/v1/admin/addons/state/summary", "{}")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkAdminAddonStateQueryClient::summary);
     }
 
     static AdminAddonStateSummaryView summary(String body) {

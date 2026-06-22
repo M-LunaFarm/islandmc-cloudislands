@@ -51,10 +51,11 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
         requireId(actorUuid, "actorUuid");
         String normalizedRoleKey = normalizeRoleKey(roleKey);
         String normalizedDisplayName = displayName == null || displayName.isBlank() ? normalizedRoleKey : displayName.trim();
-        return core.postWithResultBody(
+        return core.postResultBody(
                 "/v1/islands/roles/upsert",
                 CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "weight", weight, "displayName", normalizedDisplayName)
             )
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkPermissionCommandClient::roleMutationResult);
     }
 
@@ -63,20 +64,22 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         String normalizedRoleKey = normalizeRoleKey(roleKey);
-        return core.postWithResultBody(
+        return core.postResultBody(
                 "/v1/islands/roles/reset",
                 CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey)
             )
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkPermissionCommandClient::roleMutationResult);
     }
 
     @Override
     public CompletableFuture<PermissionActionView> setPermission(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed) {
         requirePermission(permission);
-        return core.postWithResultBody(
+        return core.postResultBody(
                 "/v1/islands/permissions/set",
                 setPermissionPayload(islandId, actorUuid, normalizeRoleKey(roleKey), permission, allowed, "")
             )
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> permissionAction(body, "PERMISSION_SET"));
     }
 
@@ -88,10 +91,11 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
             throw new IllegalArgumentException("targetUuid is required");
         }
         requirePermission(permission);
-        return core.postWithResultBody(
+        return core.postResultBody(
                 "/v1/islands/permissions/overrides/set",
                 CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "playerUuid", targetUuid, "permission", permission.name(), "allowed", allowed)
             )
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> permissionAction(body, "PERMISSION_OVERRIDE_SET"));
     }
 
@@ -118,10 +122,11 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
     }
 
     private CompletableFuture<MutationResult<PermissionMatrixView>> setPermissionMutation(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
-        return core.postWithResultBody(
+        return core.postResultBody(
                 "/v1/islands/permissions/set",
                 setPermissionPayload(islandId, actorUuid, roleKey, permission, allowed, expectedVersion)
             )
+            .thenApply(CoreResponseBody::value)
             .thenApply(JdkPermissionCommandClient::mutationResult);
     }
 

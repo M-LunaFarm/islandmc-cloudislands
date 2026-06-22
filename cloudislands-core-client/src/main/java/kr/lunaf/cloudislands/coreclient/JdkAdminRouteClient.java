@@ -17,21 +17,24 @@ final class JdkAdminRouteClient implements AdminRouteClient {
     @Override
     public CompletableFuture<AdminRouteDebugView> debug(UUID playerUuid) {
         requireId(playerUuid, "playerUuid");
-        return core.postWithResultBody("/v1/admin/routes/debug", CoreJsonPayload.object("playerUuid", playerUuid))
+        return core.postResultBody("/v1/admin/routes/debug", CoreJsonPayload.object("playerUuid", playerUuid))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAdminRouteJson::debug);
     }
 
     @Override
     public CompletableFuture<Optional<AdminRouteTicketView>> ticket(UUID ticketId) {
         requireId(ticketId, "ticketId");
-        return core.postWithResultBody("/v1/admin/routes/ticket", CoreJsonPayload.object("ticketId", ticketId))
+        return core.postResultBody("/v1/admin/routes/ticket", CoreJsonPayload.object("ticketId", ticketId))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAdminRouteJson::ticket);
     }
 
     @Override
     public CompletableFuture<Optional<AdminRouteTicketView>> ticketForPlayer(UUID playerUuid) {
         requireId(playerUuid, "playerUuid");
-        return core.postWithResultBody("/v1/admin/routes/ticket", CoreJsonPayload.object("playerUuid", playerUuid))
+        return core.postResultBody("/v1/admin/routes/ticket", CoreJsonPayload.object("playerUuid", playerUuid))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAdminRouteJson::ticket);
     }
 
@@ -45,7 +48,8 @@ final class JdkAdminRouteClient implements AdminRouteClient {
         requireId(playerUuid, "playerUuid");
         requireId(ticketId, "ticketId");
         String normalizedReason = reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason;
-        return core.postWithResultBody("/v1/admin/routes/clear", CoreJsonPayload.object("playerUuid", playerUuid, "ticketId", ticketId, "reason", normalizedReason))
+        return core.postResultBody("/v1/admin/routes/clear", CoreJsonPayload.object("playerUuid", playerUuid, "ticketId", ticketId, "reason", normalizedReason))
+            .thenApply(CoreResponseBody::value)
             .thenApply(CoreAdminRouteJson::clear);
     }
 
