@@ -168,7 +168,11 @@ class CoreTypedClientsTest {
                 "JdkCommunicationQueryClient",
                 "JdkHomeWarpQueryClient",
                 "JdkIslandQueryClient",
-                "JdkPlayerProfileQueryClient"
+                "JdkIslandEnvironmentQueryClient",
+                "JdkMemberQueryClient",
+                "JdkPermissionQueryClient",
+                "JdkPlayerProfileQueryClient",
+                "JdkWarehouseQueryClient"
         )) {
             String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/" + clientName + ".java"));
             assertTrue(source.contains("CoreResponseBody::value"), clientName + " must unwrap typed response bodies locally");

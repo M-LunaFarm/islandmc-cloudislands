@@ -20,19 +20,25 @@ public final class JdkPermissionQueryClient implements PermissionQueryClient {
     @Override
     public CompletableFuture<List<PermissionAssignmentView>> permissions(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/permissions").thenApply(JdkPermissionQueryClient::permissionViews);
+        return core.getBody("/v1/islands/" + islandId + "/permissions")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkPermissionQueryClient::permissionViews);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.PermissionRulesView> permissionRules(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/permissions").thenApply(CorePermissionJson::permissionRulesView);
+        return core.getBody("/v1/islands/" + islandId + "/permissions")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePermissionJson::permissionRulesView);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.RoleView>> roles(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/roles").thenApply(CorePermissionJson::roleViews);
+        return core.getBody("/v1/islands/" + islandId + "/roles")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePermissionJson::roleViews);
     }
 
     static List<PermissionAssignmentView> permissionViews(String body) {

@@ -20,7 +20,8 @@ public final class JdkIslandEnvironmentQueryClient implements IslandEnvironmentQ
     @Override
     public CompletableFuture<IslandBiomeSnapshot> biome(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/biome")
+        return core.getBody("/v1/islands/" + islandId + "/biome")
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreEnvironmentJson.biome(islandId, body));
     }
 
@@ -33,14 +34,16 @@ public final class JdkIslandEnvironmentQueryClient implements IslandEnvironmentQ
     @Override
     public CompletableFuture<IslandFlagsSnapshot> flags(UUID islandId) {
         requireIsland(islandId);
-        return core.get("/v1/islands/" + islandId + "/flags")
+        return core.getBody("/v1/islands/" + islandId + "/flags")
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreEnvironmentJson.flags(islandId, body));
     }
 
     @Override
     public CompletableFuture<List<IslandLimitSnapshot>> limits(UUID islandId) {
         requireIsland(islandId);
-        return core.post("/v1/islands/limits", CoreJsonPayload.object("islandId", islandId))
+        return core.postBody("/v1/islands/limits", CoreJsonPayload.object("islandId", islandId))
+            .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreEnvironmentJson.limits(islandId, body));
     }
 
