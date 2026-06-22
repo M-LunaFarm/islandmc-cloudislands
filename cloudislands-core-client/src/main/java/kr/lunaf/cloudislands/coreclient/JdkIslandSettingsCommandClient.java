@@ -5,21 +5,21 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 
-public final class CoreIslandSettingsCommandClient implements IslandSettingsCommandClient {
-    private final CoreApiClient delegate;
+public final class JdkIslandSettingsCommandClient implements IslandSettingsCommandClient {
+    private final JdkCoreApiClient core;
 
-    public CoreIslandSettingsCommandClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkIslandSettingsCommandClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<SettingsActionView> setPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return delegate.setIslandPublicAccessResult(islandId, actorUuid, publicAccess)
+        return core.postWithResultBody("/v1/islands/access", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "publicAccess", publicAccess))
             .thenApply(body -> actionResult(body, publicAccess ? "PUBLIC_ACCESS_ENABLED" : "PUBLIC_ACCESS_DISABLED"));
     }
 
@@ -27,7 +27,7 @@ public final class CoreIslandSettingsCommandClient implements IslandSettingsComm
     public CompletableFuture<SettingsActionView> setLocked(UUID islandId, UUID actorUuid, boolean locked) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return delegate.setIslandLockedResult(islandId, actorUuid, locked)
+        return core.postWithResultBody("/v1/islands/lock", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "locked", locked))
             .thenApply(body -> actionResult(body, locked ? "ISLAND_LOCKED" : "ISLAND_UNLOCKED"));
     }
 
@@ -35,7 +35,7 @@ public final class CoreIslandSettingsCommandClient implements IslandSettingsComm
     public CompletableFuture<SettingsActionView> setName(UUID islandId, UUID actorUuid, String name) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return delegate.setIslandNameResult(islandId, actorUuid, name == null ? "" : name)
+        return core.postWithResultBody("/v1/islands/name", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", name == null ? "" : name))
             .thenApply(body -> actionResult(body, "ISLAND_RENAMED"));
     }
 
@@ -44,7 +44,7 @@ public final class CoreIslandSettingsCommandClient implements IslandSettingsComm
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         requireFlag(flag);
-        return delegate.setIslandFlagResult(islandId, actorUuid, flag, value == null ? "" : value)
+        return core.postWithResultBody("/v1/islands/flags/set", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "flag", flag.name(), "value", value == null ? "" : value))
             .thenApply(body -> actionResult(body, "FLAG_SET"));
     }
 

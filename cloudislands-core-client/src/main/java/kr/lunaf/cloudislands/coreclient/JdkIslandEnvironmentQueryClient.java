@@ -7,40 +7,40 @@ import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 
-public final class CoreIslandEnvironmentQueryClient implements IslandEnvironmentQueryClient {
-    private final CoreApiClient delegate;
+public final class JdkIslandEnvironmentQueryClient implements IslandEnvironmentQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreIslandEnvironmentQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkIslandEnvironmentQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<IslandBiomeSnapshot> biome(UUID islandId) {
         requireIsland(islandId);
-        return delegate.islandBiome(islandId)
+        return core.get("/v1/islands/" + islandId + "/biome")
             .thenApply(body -> CoreEnvironmentJson.biome(islandId, body));
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
         requireIsland(islandId);
-        return islandQueries().getIsland(islandId);
+        return core.islands().getIsland(islandId);
     }
 
     @Override
     public CompletableFuture<IslandFlagsSnapshot> flags(UUID islandId) {
         requireIsland(islandId);
-        return delegate.listIslandFlags(islandId)
+        return core.get("/v1/islands/" + islandId + "/flags")
             .thenApply(body -> CoreEnvironmentJson.flags(islandId, body));
     }
 
     @Override
     public CompletableFuture<List<IslandLimitSnapshot>> limits(UUID islandId) {
         requireIsland(islandId);
-        return delegate.listIslandLimits(islandId)
+        return core.listIslandLimits(islandId)
             .thenApply(body -> CoreEnvironmentJson.limits(islandId, body));
     }
 
@@ -50,7 +50,4 @@ public final class CoreIslandEnvironmentQueryClient implements IslandEnvironment
         }
     }
 
-    private IslandQueryClient islandQueries() {
-        return delegate instanceof IslandQueryClient queries ? queries : delegate.islands();
-    }
 }

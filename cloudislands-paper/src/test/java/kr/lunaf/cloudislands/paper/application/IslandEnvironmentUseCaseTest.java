@@ -4,15 +4,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Proxy;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LimitView;
+import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
+import kr.lunaf.cloudislands.coreclient.IslandEnvironmentCommandClient;
+import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
 import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase.EnvironmentActionResult;
 import org.junit.jupiter.api.Test;
 
@@ -48,51 +55,63 @@ class IslandEnvironmentUseCaseTest {
         assertEquals(List.of(
             "islandBiome",
             "islandInfo",
-            "listIslandFlags",
-            "listIslandLimits",
+            "flags",
+            "limits",
             "audit:island.biome.set",
-            "setIslandBiomeResult:PLAINS",
+            "setBiome:PLAINS",
             "audit:island.flag.set",
-            "setIslandFlagResult:BORDER_VISIBLE:true",
+            "setFlag:BORDER_VISIBLE:true",
             "audit:island.limit.set",
-            "setIslandLimit:HOPPER:64"
+            "setLimit:HOPPER:64"
         ), calls);
     }
 
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-	            new Class<?>[] {CoreApiClient.class},
+	            new Class<?>[] {CoreApiClient.class, IslandEnvironmentQueryClient.class, IslandEnvironmentCommandClient.class},
 	            (_proxy, method, args) -> switch (method.getName()) {
-	                case "environment" -> new CoreIslandEnvironmentQueryClient((CoreApiClient) _proxy);
-	                case "environmentCommands" -> new CoreIslandEnvironmentCommandClient((CoreApiClient) _proxy);
-	                case "islandBiome" -> {
+	                case "environment" -> (IslandEnvironmentQueryClient) _proxy;
+	                case "environmentCommands" -> (IslandEnvironmentCommandClient) _proxy;
+	                case "biome" -> {
                     calls.add("islandBiome");
-                    yield CompletableFuture.completedFuture("{\"biomeKey\":\"PLAINS\"}");
+                    yield CompletableFuture.completedFuture(new IslandBiomeSnapshot(uuid("00000000-0000-0000-0000-000000000070"), "PLAINS", null, Instant.EPOCH));
                 }
-                case "setIslandBiomeResult" -> {
-                    calls.add("setIslandBiomeResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"BIOME_SET\",\"biomeKey\":\"PLAINS\"}");
+                case "islandBiome" -> {
+                    calls.add("islandBiome");
+                    yield CompletableFuture.completedFuture(new CoreGuiViews.BiomeView("PLAINS", "", ""));
                 }
-                case "islandInfo" -> {
+                case "setBiome" -> {
+                    calls.add("setBiome:" + args[2]);
+                    yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "BIOME_SET", "PLAINS", 0L));
+                }
+                case "getIsland" -> {
                     calls.add("islandInfo");
-                    yield CompletableFuture.completedFuture("{\"size\":300,\"border\":310}");
+                    yield CompletableFuture.completedFuture(new CoreGuiViews.IslandInfoView("", "", "", 0L, "0", false, false, 300L, 310L, "", "", ""));
                 }
-                case "listIslandFlags" -> {
-                    calls.add("listIslandFlags");
-                    yield CompletableFuture.completedFuture("{\"flags\":{\"BORDER_VISIBLE\":\"true\",\"BORDER_COLOR\":\"blue\"}}");
+                case "flags" -> {
+                    calls.add("flags");
+                    yield CompletableFuture.completedFuture(new IslandFlagsSnapshot(uuid("00000000-0000-0000-0000-000000000070"), Map.of(IslandFlag.BORDER_VISIBLE, "true", IslandFlag.BORDER_COLOR, "blue")));
                 }
-                case "setIslandFlagResult" -> {
-                    calls.add("setIslandFlagResult:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"FLAG_SET\",\"flag\":\"BORDER_VISIBLE\"}");
+                case "flagValues" -> {
+                    calls.add("flags");
+                    yield CompletableFuture.completedFuture(Map.of(IslandFlag.BORDER_VISIBLE, "true", IslandFlag.BORDER_COLOR, "blue"));
                 }
-                case "listIslandLimits" -> {
-                    calls.add("listIslandLimits");
-                    yield CompletableFuture.completedFuture("{\"limits\":[{\"limitKey\":\"HOPPER\",\"value\":64,\"updatedAt\":\"now\"}]}");
+                case "setFlag" -> {
+                    calls.add("setFlag:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "FLAG_SET", "BORDER_VISIBLE", 0L));
                 }
-                case "setIslandLimit" -> {
-                    calls.add("setIslandLimit:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"LIMIT_SET\",\"limitKey\":\"HOPPER\",\"value\":64}");
+                case "limits" -> {
+                    calls.add("limits");
+                    yield CompletableFuture.completedFuture(List.of(new IslandLimitSnapshot(uuid("00000000-0000-0000-0000-000000000070"), "HOPPER", 64L, null, Instant.EPOCH)));
+                }
+                case "limitViews" -> {
+                    calls.add("limits");
+                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.LimitView("HOPPER", 64L, "")));
+                }
+                case "setLimit" -> {
+                    calls.add("setLimit:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "LIMIT_SET", "HOPPER", 64L));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });

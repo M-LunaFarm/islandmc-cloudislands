@@ -87,8 +87,8 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkBankClient"), "bank operations must use CoreBank query and command clients");
         assertFalse(nestedClients.contains("JdkSnapshotClient"), "snapshot operations must use CoreSnapshot query and command clients");
         assertFalse(nestedClients.contains("JdkCommunicationClient"), "communication operations must use CoreCommunication query and command clients");
-        assertFalse(nestedClients.contains("JdkEnvironmentClient"), "environment operations must use CoreIslandEnvironment query and command clients");
-        assertFalse(nestedClients.contains("JdkSettingsClient"), "settings operations must use CoreIslandSettingsCommandClient");
+        assertFalse(nestedClients.contains("JdkEnvironmentClient"), "environment operations must use standalone JDK environment query and command clients");
+        assertFalse(nestedClients.contains("JdkSettingsClient"), "settings operations must use a standalone JDK settings command client");
         assertFalse(nestedClients.contains("JdkHomeWarpClient"), "home and warp operations must use CoreHomeWarp query and command clients");
         assertFalse(nestedClients.contains("JdkIslandClient"), "island queries must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkVisitorStatsClient"), "visitor stats must use a standalone typed client");
@@ -434,20 +434,23 @@ class CoreTypedClientsTest {
         UUID playerUuid = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class, IslandEnvironmentQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "islandBiome" -> CompletableFuture.completedFuture("""
+                case "biome" -> CompletableFuture.completedFuture(CoreEnvironmentJson.biome(islandId, """
                     {"biomeKey":"minecraft:plains","updatedBy":"%s","updatedAt":"2026-06-21T00:00:00Z"}
-                    """.formatted(playerUuid));
+                    """.formatted(playerUuid)));
                 case "getIsland" -> CompletableFuture.completedFuture(CoreIslandJson.info("""
                     {"islandId":"%s","name":"Spawn","state":"ACTIVE","size":300,"border":310}
                     """.formatted(islandId)));
-                case "listIslandFlags" -> CompletableFuture.completedFuture("{\"flags\":{\"BORDER_COLOR\":\"blue\"}}");
-                case "listIslandLimits" -> CompletableFuture.completedFuture("{\"limits\":[{\"limitKey\":\"HOPPER\",\"value\":64,\"updatedAt\":\"now\"}]}");
+                case "flags" -> CompletableFuture.completedFuture(CoreEnvironmentJson.flags(islandId, "{\"flags\":{\"BORDER_COLOR\":\"blue\"}}"));
+                case "limits" -> CompletableFuture.completedFuture(CoreEnvironmentJson.limits(islandId, "{\"limits\":[{\"limitKey\":\"HOPPER\",\"value\":64,\"updatedAt\":\"now\"}]}"));
+                case "islandBiome" -> CompletableFuture.completedFuture(new CoreGuiViews.BiomeView("minecraft:plains", playerUuid.toString(), "2026-06-21T00:00:00Z"));
+                case "flagValues" -> CompletableFuture.completedFuture(Map.of(IslandFlag.BORDER_COLOR, "blue"));
+                case "limitViews" -> CompletableFuture.completedFuture(List.of(new CoreGuiViews.LimitView("HOPPER", 64L, "")));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        IslandEnvironmentQueryClient client = new CoreIslandEnvironmentQueryClient(raw);
+        IslandEnvironmentQueryClient client = (IslandEnvironmentQueryClient) raw;
 
         IslandBiomeSnapshot biomeSnapshot = client.biome(islandId).join();
         IslandFlagsSnapshot flagsSnapshot = client.flags(islandId).join();
@@ -474,24 +477,24 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandEnvironmentCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "setIslandBiomeResult" -> {
+                case "setBiome" -> {
                     calls.add("biome:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"BIOME_SET\",\"biomeKey\":\"PLAINS\"}");
+                    yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "BIOME_SET", "PLAINS", 0L));
                 }
-                case "setIslandFlagResult" -> {
+                case "setFlag" -> {
                     calls.add("flag:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"FLAG_SET\",\"flag\":\"BORDER_VISIBLE\"}");
+                    yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "FLAG_SET", "BORDER_VISIBLE", 0L));
                 }
-                case "setIslandLimit" -> {
+                case "setLimit" -> {
                     calls.add("limit:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"LIMIT_SET\",\"islandId\":\"%s\",\"updatedBy\":\"%s\",\"updatedAt\":\"2026-06-21T00:00:00Z\",\"limitKey\":\"HOPPER\",\"value\":64}".formatted(islandId, actorUuid));
+                    yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "LIMIT_SET", "HOPPER", 64L, islandId.toString(), actorUuid.toString(), "2026-06-21T00:00:00Z"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        IslandEnvironmentCommandClient client = new CoreIslandEnvironmentCommandClient(raw);
+        IslandEnvironmentCommandClient client = (IslandEnvironmentCommandClient) raw;
 
         EnvironmentActionView biome = client.setBiome(islandId, actorUuid, "PLAINS").join();
         EnvironmentActionView flag = client.setFlag(islandId, actorUuid, IslandFlag.BORDER_VISIBLE, "true").join();
@@ -514,28 +517,28 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandSettingsCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "setIslandPublicAccessResult" -> {
+                case "setPublicAccess" -> {
                     calls.add("public:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PUBLIC_ACCESS_ENABLED\"}");
+                    yield CompletableFuture.completedFuture(new SettingsActionView(true, "PUBLIC_ACCESS_ENABLED"));
                 }
-                case "setIslandLockedResult" -> {
+                case "setLocked" -> {
                     calls.add("locked:" + args[2]);
-                    yield CompletableFuture.completedFuture("plain-success");
+                    yield CompletableFuture.completedFuture(new SettingsActionView(true, "ISLAND_UNLOCKED"));
                 }
-                case "setIslandNameResult" -> {
+                case "setName" -> {
                     calls.add("name:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"ISLAND_RENAMED\"}");
+                    yield CompletableFuture.completedFuture(new SettingsActionView(true, "ISLAND_RENAMED"));
                 }
-                case "setIslandFlagResult" -> {
+                case "setFlag" -> {
                     calls.add("flag:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"FLAG_SET\"}");
+                    yield CompletableFuture.completedFuture(new SettingsActionView(true, "FLAG_SET"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        IslandSettingsCommandClient client = new CoreIslandSettingsCommandClient(raw);
+        IslandSettingsCommandClient client = (IslandSettingsCommandClient) raw;
 
         assertEquals("PUBLIC_ACCESS_ENABLED", client.setPublicAccess(islandId, actorUuid, true).join().code());
         assertEquals("ISLAND_UNLOCKED", client.setLocked(islandId, actorUuid, false).join().code());

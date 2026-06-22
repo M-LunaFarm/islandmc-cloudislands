@@ -628,8 +628,8 @@ class CoreMutationContextTest {
             client.homeWarpCommands().setWarp(islandId, actorUuid, "spawn\"main", location, true, "market").join();
             client.homeWarpCommands().deleteWarp(islandId, actorUuid, "spawn\"main").join();
             client.homeWarpCommands().setWarpPublicAccess(islandId, actorUuid, "spawn\"main", false).join();
-            client.setIslandPublicAccessResult(islandId, actorUuid, true).join();
-            client.setIslandLockedResult(islandId, actorUuid, false).join();
+            client.settingsCommands().setPublicAccess(islandId, actorUuid, true).join();
+            client.settingsCommands().setLocked(islandId, actorUuid, false).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\\\"main\",\"category\":\"market\",\"worldName\":\"world\\\"nether\",\"localX\":1.25,\"localY\":64.0,\"localZ\":-3.5,\"yaw\":90.0,\"pitch\":12.5,\"publicAccess\":true}", requestBodies.get("warpSet"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\\\"main\"}", requestBodies.get("warpDelete"));
@@ -780,7 +780,7 @@ class CoreMutationContextTest {
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
-            client.setIslandNameResult(islandId, actorUuid, "Base \"One\"").join();
+            client.settingsCommands().setName(islandId, actorUuid, "Base \"One\"").join();
             client.memberCommands().setRole(islandId, actorUuid, playerUuid, "trusted-member").join();
             client.memberCommands().trustTemporarily(islandId, actorUuid, playerUuid, 30L).join();
             client.memberCommands().transferOwnership(islandId, actorUuid, playerUuid).join();
@@ -794,8 +794,8 @@ class CoreMutationContextTest {
             client.memberCommands().pardonVisitor(islandId, actorUuid, playerUuid).join();
             client.memberCommands().kickVisitor(islandId, actorUuid, playerUuid).join();
             client.visitorStats().stats(islandId, 500).join();
-            client.setIslandFlagResult(islandId, actorUuid, IslandFlag.PVP, "deny \"all\"").join();
-            client.setIslandBiomeResult(islandId, actorUuid, "minecraft:plains\"warm").join();
+            client.settingsCommands().setFlag(islandId, actorUuid, IslandFlag.PVP, "deny \"all\"").join();
+            client.environmentCommands().setBiome(islandId, actorUuid, "minecraft:plains\"warm").join();
             client.homeWarpCommands().setHome(islandId, actorUuid, "home\"main", location).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"Base \\\"One\\\"\"}", requestBodies.get("name"));

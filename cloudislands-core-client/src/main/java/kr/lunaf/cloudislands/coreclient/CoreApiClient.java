@@ -26,15 +26,24 @@ public interface CoreApiClient {
     }
 
     default IslandEnvironmentQueryClient environment() {
-        return new CoreIslandEnvironmentQueryClient(this);
+        if (this instanceof IslandEnvironmentQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed environment queries");
     }
 
     default IslandEnvironmentCommandClient environmentCommands() {
-        return new CoreIslandEnvironmentCommandClient(this);
+        if (this instanceof IslandEnvironmentCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed environment commands");
     }
 
     default IslandSettingsCommandClient settingsCommands() {
-        return new CoreIslandSettingsCommandClient(this);
+        if (this instanceof IslandSettingsCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed settings commands");
     }
 
     default PermissionCommandClient permissions() {
@@ -325,22 +334,9 @@ public interface CoreApiClient {
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> getIslandRuntime(UUID islandId);
-    CompletableFuture<String> getIslandFlags(UUID islandId);
     CompletableFuture<String> getIslandLevel(UUID islandId);
-    CompletableFuture<Void> setIslandName(UUID islandId, UUID actorUuid, String name);
-    CompletableFuture<String> setIslandNameResult(UUID islandId, UUID actorUuid, String name);
-    CompletableFuture<String> listIslandFlags(UUID islandId);
-    CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
-    CompletableFuture<String> setIslandFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
-    CompletableFuture<String> islandBiome(UUID islandId);
-    CompletableFuture<Void> setIslandBiome(UUID islandId, UUID actorUuid, String biomeKey);
-    CompletableFuture<String> setIslandBiomeResult(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
     CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
-    CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess);
-    CompletableFuture<String> setIslandPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess);
-    CompletableFuture<Void> setIslandLocked(UUID islandId, UUID actorUuid, boolean locked);
-    CompletableFuture<String> setIslandLockedResult(UUID islandId, UUID actorUuid, boolean locked);
     CompletableFuture<String> recordBlockDeltaResult(UUID islandId, String materialKey, long delta);
     CompletableFuture<String> replaceBlockCounts(UUID islandId, Map<String, Long> counts);
     CompletableFuture<String> islandBlockDetails(UUID islandId, int limit);

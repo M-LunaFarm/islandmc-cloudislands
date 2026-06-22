@@ -3,15 +3,18 @@ package kr.lunaf.cloudislands.paper.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.reflect.Proxy;
+import java.util.EnumMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandEnvironmentQueryClient;
-import kr.lunaf.cloudislands.coreclient.CoreIslandSettingsCommandClient;
+import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
+import kr.lunaf.cloudislands.coreclient.IslandSettingsCommandClient;
+import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import org.junit.jupiter.api.Test;
 
 class IslandSettingsUseCaseTest {
@@ -32,42 +35,52 @@ class IslandSettingsUseCaseTest {
         assertEquals(List.of(
             "listIslandFlags",
             "audit:island.public-access.set",
-            "setIslandPublicAccessResult:true",
+            "setPublicAccess:true",
             "audit:island.locked.set",
-            "setIslandLockedResult:false",
+            "setLocked:false",
             "audit:island.name.set",
-            "setIslandNameResult:My Island",
+            "setName:My Island",
             "audit:island.flag.set",
-            "setIslandFlagResult:PVP:false"
+            "setFlag:PVP:false"
         ), calls);
     }
 
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-	            new Class<?>[] {CoreApiClient.class},
+	            new Class<?>[] {CoreApiClient.class, IslandEnvironmentQueryClient.class, IslandSettingsCommandClient.class},
 	            (_proxy, method, args) -> switch (method.getName()) {
-	                case "environment" -> new CoreIslandEnvironmentQueryClient((CoreApiClient) _proxy);
-	                case "settingsCommands" -> new CoreIslandSettingsCommandClient((CoreApiClient) _proxy);
-	                case "setIslandPublicAccessResult" -> {
-                    calls.add("setIslandPublicAccessResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"PUBLIC_ACCESS_ENABLED\"}");
+	                case "environment" -> (IslandEnvironmentQueryClient) _proxy;
+	                case "settingsCommands" -> (IslandSettingsCommandClient) _proxy;
+	                case "setPublicAccess" -> {
+                    calls.add("setPublicAccess:" + args[2]);
+                    yield CompletableFuture.completedFuture(new SettingsActionView(true, "PUBLIC_ACCESS_ENABLED"));
                 }
-                case "setIslandLockedResult" -> {
-                    calls.add("setIslandLockedResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"ISLAND_UNLOCKED\"}");
+                case "setLocked" -> {
+                    calls.add("setLocked:" + args[2]);
+                    yield CompletableFuture.completedFuture(new SettingsActionView(true, "ISLAND_UNLOCKED"));
                 }
-                case "setIslandNameResult" -> {
-                    calls.add("setIslandNameResult:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"ISLAND_RENAMED\"}");
+                case "setName" -> {
+                    calls.add("setName:" + args[2]);
+                    yield CompletableFuture.completedFuture(new SettingsActionView(true, "ISLAND_RENAMED"));
                 }
-                case "listIslandFlags" -> {
+                case "flags" -> {
                     calls.add("listIslandFlags");
-                    yield CompletableFuture.completedFuture("{\"flags\":{\"PVP\":\"true\",\"FLY\":\"false\"}}");
+                    EnumMap<IslandFlag, String> flags = new EnumMap<>(IslandFlag.class);
+                    flags.put(IslandFlag.PVP, "true");
+                    flags.put(IslandFlag.FLY, "false");
+                    yield CompletableFuture.completedFuture(new IslandFlagsSnapshot(uuid("00000000-0000-0000-0000-000000000040"), flags));
                 }
-                case "setIslandFlagResult" -> {
-                    calls.add("setIslandFlagResult:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"FLAG_SET\",\"flag\":\"PVP\"}");
+                case "flagValues" -> {
+                    calls.add("listIslandFlags");
+                    EnumMap<IslandFlag, String> flags = new EnumMap<>(IslandFlag.class);
+                    flags.put(IslandFlag.PVP, "true");
+                    flags.put(IslandFlag.FLY, "false");
+                    yield CompletableFuture.completedFuture(flags);
+                }
+                case "setFlag" -> {
+                    calls.add("setFlag:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture(new SettingsActionView(true, "FLAG_SET"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });

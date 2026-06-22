@@ -95,9 +95,9 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.timeout = timeout == null || timeout.isNegative() || timeout.isZero() ? Duration.ofSeconds(5) : timeout;
         this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
         this.snapshotClient = new JdkSnapshotClient(this);
-        this.environmentQueryClient = new CoreIslandEnvironmentQueryClient(this);
-        this.environmentCommandClient = new CoreIslandEnvironmentCommandClient(this);
-        this.settingsClient = new CoreIslandSettingsCommandClient(this);
+        this.environmentQueryClient = new JdkIslandEnvironmentQueryClient(this);
+        this.environmentCommandClient = new JdkIslandEnvironmentCommandClient(this);
+        this.settingsClient = new JdkIslandSettingsCommandClient(this);
         this.permissionQueryClient = new JdkPermissionQueryClient(this);
         this.permissionCommandClient = new JdkPermissionCommandClient(this);
         this.homeWarpQueryClient = new JdkHomeWarpQueryClient(this);
@@ -448,53 +448,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<String> getIslandFlags(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/flags");
-    }
-
-    @Override
     public CompletableFuture<String> getIslandLevel(UUID islandId) {
         return get("/v1/islands/" + islandId + "/level");
-    }
-
-    @Override
-    public CompletableFuture<Void> setIslandName(UUID islandId, UUID actorUuid, String name) {
-        return setIslandNameResult(islandId, actorUuid, name).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandNameResult(UUID islandId, UUID actorUuid, String name) {
-        return postWithResultBody("/v1/islands/name", jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", name));
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandFlags(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/flags");
-    }
-
-    @Override
-    public CompletableFuture<Void> setIslandFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
-        return setIslandFlagResult(islandId, actorUuid, flag, value).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandFlagResult(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
-        return postWithResultBody("/v1/islands/flags/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "flag", flag.name(), "value", value));
-    }
-
-    @Override
-    public CompletableFuture<String> islandBiome(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/biome");
-    }
-
-    @Override
-    public CompletableFuture<Void> setIslandBiome(UUID islandId, UUID actorUuid, String biomeKey) {
-        return setIslandBiomeResult(islandId, actorUuid, biomeKey).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandBiomeResult(UUID islandId, UUID actorUuid, String biomeKey) {
-        return postWithResultBody("/v1/islands/biome/set", jsonObject("islandId", islandId, "actorUuid", actorUuid, "biomeKey", biomeKey));
     }
 
     @Override
@@ -548,26 +503,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     private static WarehouseMutationView warehouseMutation(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new WarehouseMutationView(CoreJson.accepted(root), CoreJson.text(root, "code"), CoreJson.text(root, "materialKey"), CoreJson.number(root, "amount"));
-    }
-
-    @Override
-    public CompletableFuture<Void> setIslandPublicAccess(UUID islandId, UUID actorUuid, boolean publicAccess) {
-        return setIslandPublicAccessResult(islandId, actorUuid, publicAccess).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandPublicAccessResult(UUID islandId, UUID actorUuid, boolean publicAccess) {
-        return postWithResultBody("/v1/islands/access", jsonObject("islandId", islandId, "actorUuid", actorUuid, "publicAccess", publicAccess));
-    }
-
-    @Override
-    public CompletableFuture<Void> setIslandLocked(UUID islandId, UUID actorUuid, boolean locked) {
-        return setIslandLockedResult(islandId, actorUuid, locked).thenApply(_body -> null);
-    }
-
-    @Override
-    public CompletableFuture<String> setIslandLockedResult(UUID islandId, UUID actorUuid, boolean locked) {
-        return postWithResultBody("/v1/islands/lock", jsonObject("islandId", islandId, "actorUuid", actorUuid, "locked", locked));
     }
 
     @Override

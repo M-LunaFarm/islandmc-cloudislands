@@ -5,21 +5,21 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 
-public final class CoreIslandEnvironmentCommandClient implements IslandEnvironmentCommandClient {
-    private final CoreApiClient delegate;
+public final class JdkIslandEnvironmentCommandClient implements IslandEnvironmentCommandClient {
+    private final JdkCoreApiClient core;
 
-    public CoreIslandEnvironmentCommandClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkIslandEnvironmentCommandClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<EnvironmentActionView> setBiome(UUID islandId, UUID actorUuid, String biomeKey) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return delegate.setIslandBiomeResult(islandId, actorUuid, biomeKey == null ? "" : biomeKey)
+        return core.postWithResultBody("/v1/islands/biome/set", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "biomeKey", biomeKey == null ? "" : biomeKey))
             .thenApply(body -> actionResult(body, "BIOME_SET"));
     }
 
@@ -28,7 +28,7 @@ public final class CoreIslandEnvironmentCommandClient implements IslandEnvironme
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         requireFlag(flag);
-        return delegate.setIslandFlagResult(islandId, actorUuid, flag, value == null ? "" : value)
+        return core.postWithResultBody("/v1/islands/flags/set", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "flag", flag.name(), "value", value == null ? "" : value))
             .thenApply(body -> actionResult(body, "FLAG_SET"));
     }
 
@@ -36,7 +36,7 @@ public final class CoreIslandEnvironmentCommandClient implements IslandEnvironme
     public CompletableFuture<EnvironmentActionView> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return delegate.setIslandLimit(islandId, actorUuid, limitKey == null ? "" : limitKey, value)
+        return core.setIslandLimit(islandId, actorUuid, limitKey == null ? "" : limitKey, value)
             .thenApply(body -> actionResult(body, "LIMIT_SET"));
     }
 
