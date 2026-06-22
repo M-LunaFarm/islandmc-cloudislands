@@ -48,6 +48,8 @@ items:
     fallback-lore:
       - "좌클릭: 공개 섬 목록"
       - "우클릭: /섬 랜덤방문"
+    data:
+      rightAction: island.visit.random
     action: island.visit.open
   Y:
     material: FILLED_MAP

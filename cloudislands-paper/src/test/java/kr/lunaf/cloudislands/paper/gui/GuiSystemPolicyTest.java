@@ -175,6 +175,18 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void mainMenuAlternateClickActionsComeFromMenuDefinition() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMainMenu.java"));
+        String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/main.yml"));
+
+        assertTrue(config.contains("rightAction: island.visit.random"), "main menu right-click alternate action must live in config-v2");
+        assertTrue(menu.contains("data.getOrDefault(\"rightAction\", actionId)"), "main menu must read alternate click actions from item data");
+        assertTrue(menu.contains("GuiActions.from(actionId, data)"), "main menu alternate actions must still pass through the typed action parser");
+        assertFalse(menu.contains("actionId.equals(\"island.visit.open\")"), "main menu must not hard-code the visit item as a special action branch");
+        assertFalse(menu.contains("GuiAction.NoPayloadType.VISIT_RANDOM"), "main menu must not hard-code the random visit action type");
+    }
+
+    @Test
     void settingsMenuToggleMaterialsRenderFromMenuDefinition() throws Exception {
         String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandSettingsMenu.java"));
         String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/settings.yml"));

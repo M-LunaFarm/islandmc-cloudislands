@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import java.util.Map;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -57,15 +58,15 @@ public final class IslandMainMenu implements Listener {
             return;
         }
         String actionId = GuiItems.actionId(event.getCurrentItem());
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        if (click.right()) {
+            actionId = data.getOrDefault("rightAction", actionId);
+        }
         if (actionId.isBlank()) {
             return;
         }
         player.closeInventory();
-        if (actionId.equals("island.visit.open") && click.right()) {
-            actions.execute(player, new GuiAction.NoPayload(GuiAction.NoPayloadType.VISIT_RANDOM), click);
-            return;
-        }
-        actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
+        actions.execute(player, GuiActions.from(actionId, data).orElse(null), click);
     }
 
     private static boolean showItem(Player player, GuiMenuDefinition.MenuItem item) {
