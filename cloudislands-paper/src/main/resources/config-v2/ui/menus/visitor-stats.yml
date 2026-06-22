@@ -18,7 +18,7 @@ items:
     fallback-lore:
       - "Core 방문 이벤트 기준 전체 방문 수입니다."
   U:
-    material: AMETHYST_SHARD
+    material: DIAMOND
     name-key: visitor-stats-menu-unique-name
     fallback-name: 고유 방문자
     lore-keys:

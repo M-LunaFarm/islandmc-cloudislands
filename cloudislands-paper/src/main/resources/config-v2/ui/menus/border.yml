@@ -25,7 +25,7 @@ items:
       - "운영자가 보더 색상 UX를 연결할 수 있는 메뉴 슬롯입니다."
     action: info
   C:
-    material: CYAN_DYE
+    material: DIAMOND
     name-key: border-menu-cyan-name
     fallback-name: 청록 보더
     lore-keys:
@@ -34,7 +34,7 @@ items:
       - "운영자가 보더 색상 UX를 연결할 수 있는 메뉴 슬롯입니다."
     action: info
   B:
-    material: BLUE_DYE
+    material: EMERALD
     name-key: border-menu-blue-name
     fallback-name: 파랑 보더
     lore-keys:

@@ -178,7 +178,7 @@ items:
       - "/섬 보더"
     action: border
   V:
-    material: SPYGLASS
+    material: ENDER_EYE
     name-key: settings-menu-visitor-stats-name
     fallback-name: 방문 통계
     lore-keys:

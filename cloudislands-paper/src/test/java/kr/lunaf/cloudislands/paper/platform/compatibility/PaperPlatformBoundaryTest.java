@@ -1086,6 +1086,7 @@ class PaperPlatformBoundaryTest {
         assertTrue(protection.contains("roleCatalog(UUID islandId"), "ProtectionController must expose the cached role catalog");
         assertTrue(cache.contains("putRoleDefinition"), "permission cache must store Core role definitions");
         assertTrue(cache.contains("roleCatalog(UUID islandId"), "permission cache must expose role catalog suggestions");
+        assertTrue(!cache.contains("Map<UUID, IslandRole> roles"), "permission cache must store role keys as canonical identity and adapt legacy enum roles at the edge");
         assertTrue(sync.contains("client.permissionQueries()"), "permission cache sync must use the typed Core permission query boundary");
         assertTrue(sync.contains("permissions.roles(islandId)"), "permission cache sync must hydrate role catalog from typed Core roles");
     }
