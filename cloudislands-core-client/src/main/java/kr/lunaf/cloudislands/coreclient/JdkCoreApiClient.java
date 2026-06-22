@@ -58,7 +58,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final IslandEnvironmentQueryClient environmentQueryClient;
     private final IslandEnvironmentCommandClient environmentCommandClient;
     private final IslandSettingsCommandClient settingsClient;
-    private final JdkPermissionClient permissionClient;
+    private final PermissionQueryClient permissionQueryClient;
+    private final PermissionCommandClient permissionCommandClient;
     private final HomeWarpQueryClient homeWarpQueryClient;
     private final HomeWarpCommandClient homeWarpCommandClient;
     private final RoutingCommandClient routingClient;
@@ -113,7 +114,8 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.environmentQueryClient = new CoreIslandEnvironmentQueryClient(this);
         this.environmentCommandClient = new CoreIslandEnvironmentCommandClient(this);
         this.settingsClient = new CoreIslandSettingsCommandClient(this);
-        this.permissionClient = new JdkPermissionClient();
+        this.permissionQueryClient = new CorePermissionQueryClient(this);
+        this.permissionCommandClient = new CorePermissionCommandClient(this);
         this.homeWarpQueryClient = new CoreHomeWarpQueryClient(this);
         this.homeWarpCommandClient = new CoreHomeWarpCommandClient(this);
         this.routingClient = new CoreRoutingCommandClient(this);
@@ -197,12 +199,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public PermissionCommandClient permissions() {
-        return permissionClient;
+        return permissionCommandClient;
     }
 
     @Override
     public PermissionQueryClient permissionQueries() {
-        return permissionClient;
+        return permissionQueryClient;
     }
 
     @Override
@@ -973,124 +975,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount) {
         return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount));
-    }
-
-    private final class JdkPermissionClient implements PermissionQueryClient, PermissionCommandClient {
-        @Override
-        public CompletableFuture<List<PermissionAssignmentView>> permissions(UUID islandId) {
-            requireId(islandId, "islandId");
-            return get("/v1/islands/" + islandId + "/permissions")
-                .thenApply(CorePermissionQueryClient::permissionViews);
-        }
-
-        @Override
-        public CompletableFuture<List<CoreGuiViews.RoleView>> roles(UUID islandId) {
-            requireId(islandId, "islandId");
-            return CoreGuiViews.islandRoles(JdkCoreApiClient.this, islandId);
-        }
-
-        @Override
-        public CompletableFuture<MutationResult<PermissionMatrixView>> updatePermissions(UpdatePermissionsRequest request) {
-            if (request == null) {
-                return CompletableFuture.failedFuture(new IllegalArgumentException("request is required"));
-            }
-            List<UpdatePermissionsRequest.Change> changes = request.changes();
-            if (changes.isEmpty()) {
-                PermissionMatrixView empty = new PermissionMatrixView("", List.of());
-                return CompletableFuture.completedFuture(new MutationResult<>(empty, empty.version(), false));
-            }
-            CompletableFuture<MutationResult<PermissionMatrixView>> chain = CompletableFuture.completedFuture(
-                new MutationResult<>(new PermissionMatrixView("", List.of()), "", false)
-            );
-            for (UpdatePermissionsRequest.Change change : changes) {
-                chain = chain.thenCompose(previous -> {
-                    String expectedVersion = previous.version().isBlank() ? change.expectedVersion() : previous.version();
-                    return setPermissionResult(
-                        request.islandId(),
-                        request.actorUuid(),
-                        change.roleId().value(),
-                        change.permission(),
-                        change.allowed(),
-                        expectedVersion
-                    ).thenApply(CorePermissionCommandClient::mutationResult);
-                });
-            }
-            return chain;
-        }
-
-        @Override
-        public CompletableFuture<MutationResult<CoreGuiViews.RoleView>> upsertRole(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            String normalizedRoleKey = normalizeRoleKey(roleKey);
-            String normalizedDisplayName = displayName == null || displayName.isBlank() ? normalizedRoleKey : displayName.trim();
-            return postWithResultBody("/v1/islands/roles/upsert", jsonObject(
-                "islandId", islandId,
-                "actorUuid", actorUuid,
-                "role", normalizedRoleKey,
-                "roleKey", normalizedRoleKey,
-                "weight", weight,
-                "displayName", normalizedDisplayName
-            )).thenApply(CorePermissionCommandClient::roleMutationResult);
-        }
-
-        @Override
-        public CompletableFuture<MutationResult<CoreGuiViews.RoleView>> resetRole(UUID islandId, UUID actorUuid, String roleKey) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            String normalizedRoleKey = normalizeRoleKey(roleKey);
-            return postWithResultBody("/v1/islands/roles/reset", jsonObject(
-                "islandId", islandId,
-                "actorUuid", actorUuid,
-                "role", normalizedRoleKey,
-                "roleKey", normalizedRoleKey
-            )).thenApply(CorePermissionCommandClient::roleMutationResult);
-        }
-
-        @Override
-        public CompletableFuture<PermissionActionView> setPermission(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed) {
-            requirePermission(permission);
-            return setPermissionResult(islandId, actorUuid, normalizeRoleKey(roleKey), permission, allowed, "")
-                .thenApply(body -> CorePermissionCommandClient.permissionAction(body, "PERMISSION_SET"));
-        }
-
-        @Override
-        public CompletableFuture<PermissionActionView> setPermissionOverride(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            requireId(targetUuid, "targetUuid");
-            requirePermission(permission);
-            return postWithResultBody("/v1/islands/permissions/overrides/set", jsonObject(
-                "islandId", islandId,
-                "actorUuid", actorUuid,
-                "playerUuid", targetUuid,
-                "permission", permission.name(),
-                "allowed", allowed
-            )).thenApply(body -> CorePermissionCommandClient.permissionAction(body, "PERMISSION_OVERRIDE_SET"));
-        }
-
-        private CompletableFuture<String> setPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
-            requireId(islandId, "islandId");
-            requireId(actorUuid, "actorUuid");
-            requirePermission(permission);
-            String normalizedRoleKey = normalizeRoleKey(roleKey);
-            String payload = expectedVersion == null || expectedVersion.isBlank()
-                ? jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed)
-                : jsonObject("islandId", islandId, "actorUuid", actorUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey, "permission", permission.name(), "allowed", allowed, "expectedVersion", expectedVersion);
-            return postWithResultBody("/v1/islands/permissions/set", payload);
-        }
-
-        private void requirePermission(IslandPermission permission) {
-            if (permission == null) {
-                throw new IllegalArgumentException("permission is required");
-            }
-        }
-
-        private void requireId(UUID id, String name) {
-            if (id == null) {
-                throw new IllegalArgumentException(name + " is required");
-            }
-        }
     }
 
     @Override

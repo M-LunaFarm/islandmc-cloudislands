@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.RoleId;
 
 public final class CorePermissionCommandClient implements PermissionCommandClient {
     private final CoreApiClient delegate;
@@ -33,7 +32,7 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
         for (UpdatePermissionsRequest.Change change : changes) {
             chain = chain.thenCompose(previous -> {
                 String expectedVersion = previous.version().isBlank() ? change.expectedVersion() : previous.version();
-                return delegate.setIslandPermissionResult(
+                return setPermissionResult(
                     request.islandId(),
                     request.actorUuid(),
                     change.roleId().value(),
@@ -48,7 +47,9 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
 
     @Override
     public CompletableFuture<MutationResult<CoreGuiViews.RoleView>> upsertRole(UUID islandId, UUID actorUuid, String roleKey, int weight, String displayName) {
-        String normalizedRoleKey = RoleId.of(roleKey).value();
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        String normalizedRoleKey = normalizeRoleKey(roleKey);
         String normalizedDisplayName = displayName == null || displayName.isBlank() ? normalizedRoleKey : displayName.trim();
         return delegate.upsertIslandRole(islandId, actorUuid, normalizedRoleKey, weight, normalizedDisplayName)
             .thenApply(CorePermissionCommandClient::roleMutationResult);
@@ -56,7 +57,9 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
 
     @Override
     public CompletableFuture<MutationResult<CoreGuiViews.RoleView>> resetRole(UUID islandId, UUID actorUuid, String roleKey) {
-        String normalizedRoleKey = RoleId.of(roleKey).value();
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        String normalizedRoleKey = normalizeRoleKey(roleKey);
         return delegate.resetIslandRole(islandId, actorUuid, normalizedRoleKey)
             .thenApply(CorePermissionCommandClient::roleMutationResult);
     }
@@ -64,13 +67,14 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
     @Override
     public CompletableFuture<PermissionActionView> setPermission(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed) {
         requirePermission(permission);
-        String normalizedRoleKey = RoleId.of(roleKey).value();
-        return delegate.setIslandPermissionResult(islandId, actorUuid, normalizedRoleKey, permission, allowed)
+        return setPermissionResult(islandId, actorUuid, normalizeRoleKey(roleKey), permission, allowed, "")
             .thenApply(body -> permissionAction(body, "PERMISSION_SET"));
     }
 
     @Override
     public CompletableFuture<PermissionActionView> setPermissionOverride(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
         if (targetUuid == null) {
             throw new IllegalArgumentException("targetUuid is required");
         }
@@ -98,6 +102,24 @@ public final class CorePermissionCommandClient implements PermissionCommandClien
     private static void requirePermission(IslandPermission permission) {
         if (permission == null) {
             throw new IllegalArgumentException("permission is required");
+        }
+    }
+
+    private CompletableFuture<String> setPermissionResult(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed, String expectedVersion) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        requirePermission(permission);
+        String normalizedRoleKey = normalizeRoleKey(roleKey);
+        return delegate.setIslandPermissionResult(islandId, actorUuid, normalizedRoleKey, permission, allowed, expectedVersion);
+    }
+
+    private static String normalizeRoleKey(String roleKey) {
+        return roleKey == null ? "" : roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
+    }
+
+    private static void requireId(UUID id, String name) {
+        if (id == null) {
+            throw new IllegalArgumentException(name + " is required");
         }
     }
 }
