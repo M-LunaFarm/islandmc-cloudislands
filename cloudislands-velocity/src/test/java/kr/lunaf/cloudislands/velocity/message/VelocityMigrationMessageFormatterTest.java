@@ -2,6 +2,9 @@ package kr.lunaf.cloudislands.velocity.message;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
+import kr.lunaf.cloudislands.api.model.MigrationIssueSnapshot;
+import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import org.junit.jupiter.api.Test;
 
 class VelocityMigrationMessageFormatterTest {
@@ -9,16 +12,16 @@ class VelocityMigrationMessageFormatterTest {
 
     @Test
     void reportsEmptyMigrationResponse() {
-        assertEquals("Migration: no response", formatter.format(""));
+        assertEquals("Migration: no response", formatter.format(null));
     }
 
     @Test
-    void reportsDisabledMigrationWithConfigContext() {
-        String body = "{\"code\":\"MIGRATION_DISABLED\",\"sourcePlugin\":\"SuperiorSkyblock2\",\"migrationInputOnly\":true,\"runtimeDependency\":false,\"targetRuntime\":\"paper\"}";
+    void reportsDisabledMigration() {
+        MigrationRunSnapshot snapshot = failure("MIGRATION_DISABLED", "disabled by config");
 
         assertEquals(
-            "SuperiorSkyblock2 migration is disabled by config. source=SuperiorSkyblock2 inputOnly=true runtimeDependency=false targetRuntime=paper",
-            formatter.format(body)
+            "SuperiorSkyblock2 migration is disabled by config.",
+            formatter.format(snapshot)
         );
     }
 
@@ -26,36 +29,69 @@ class VelocityMigrationMessageFormatterTest {
     void reportsFailedMigrationWithMessage() {
         assertEquals(
             "Migration: failed code=BAD_PATH message=missing export",
-            formatter.format("{\"code\":\"BAD_PATH\",\"message\":\"missing export\"}")
+            formatter.format(failure("BAD_PATH", "missing export"))
         );
     }
 
     @Test
     void reportsPlanSummaryWithIssueSamples() {
-        String body = "{"
-            + "\"state\":\"PLANNED\","
-            + "\"scanManifests\":3,"
-            + "\"path\":\"/tmp/import\","
-            + "\"manifestPath\":\"/tmp/manifest.json\","
-            + "\"reportPath\":\"/tmp/report.json\","
-            + "\"approvalToken\":\"abc\","
-            + "\"sourcePlugin\":\"SuperiorSkyblock2\","
-            + "\"migrationInputOnly\":true,"
-            + "\"runtimeDependency\":false,"
-            + "\"targetRuntime\":\"paper\","
-            + "\"canImport\":true,"
-            + "\"planManifests\":3,"
-            + "\"rollbackPlanAvailable\":true,"
-            + "\"approvalRequired\":true,"
-            + "\"manifestStatus\":\"OK\","
-            + "\"conflictStatus\":\"WARN\","
-            + "\"conflictIssues\":1,"
-            + "\"issues\":[{\"code\":\"MISSING_HOME\",\"blocking\":true},{\"code\":\"BAD_WARP\",\"blocking\":false}]"
-            + "}";
+        MigrationRunSnapshot snapshot = new MigrationRunSnapshot(
+            "PLANNED",
+            "/tmp/import",
+            "/tmp/manifest.json",
+            "/tmp/report.json",
+            "abc",
+            "fingerprint",
+            3,
+            true,
+            false,
+            0,
+            false,
+            0,
+            false,
+            0,
+            true,
+            false,
+            0,
+            0L,
+            0L,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            List.of(new MigrationIssueSnapshot("MISSING_HOME", "", true), new MigrationIssueSnapshot("BAD_WARP", "", false))
+        );
 
         assertEquals(
-            "Migration: state=PLANNED manifests=3 path=/tmp/import manifest=/tmp/manifest.json report=/tmp/report.json approval=abc source=SuperiorSkyblock2 inputOnly=true runtimeDependency=false targetRuntime=paper canImport=true planManifests=3 rollbackPlan=true approvalRequired=true manifestStatus=OK conflictStatus=WARN conflicts=1 issues=2 blocking=1 [MISSING_HOME(blocking), BAD_WARP]",
-            formatter.format(body)
+            "Migration: state=PLANNED manifests=3 path=/tmp/import manifest=/tmp/manifest.json report=/tmp/report.json approval=abc canImport=true rollbackPlan=true imported=false islands=0 passed=false expected=0 activationTested=0 activationPassed=0 rolledBack=false removed=0 extracted=0 files=0 bytes=0 blocking=1 warnings=1 issues=2 blocking=1 [MISSING_HOME(blocking), BAD_WARP]",
+            formatter.format(snapshot)
+        );
+    }
+
+    private static MigrationRunSnapshot failure(String code, String message) {
+        return new MigrationRunSnapshot(
+            code,
+            "",
+            0,
+            false,
+            false,
+            0,
+            false,
+            0,
+            false,
+            0,
+            List.of(new MigrationIssueSnapshot(code, message, true))
         );
     }
 }
