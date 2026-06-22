@@ -3,7 +3,6 @@ package kr.lunaf.cloudislands.paper.cache;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
@@ -14,6 +13,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 public final class PermissionCacheSyncService {
+    private static final String VISITOR_ROLE_KEY = "VISITOR";
+
     private final Plugin plugin;
     private final IslandQueryClient islands;
     private final PermissionQueryClient permissions;
@@ -55,7 +56,7 @@ public final class PermissionCacheSyncService {
     private void loadMembers(UUID islandId, java.util.List<CoreGuiViews.MemberView> members) {
         for (CoreGuiViews.MemberView member : members == null ? java.util.List.<CoreGuiViews.MemberView>of() : members) {
             try {
-                cache.putRoleKey(islandId, UUID.fromString(member.playerUuid()), roleKey(member.role(), IslandRole.VISITOR.name()));
+                cache.putRoleKey(islandId, UUID.fromString(member.playerUuid()), roleKey(member.role(), VISITOR_ROLE_KEY));
             } catch (RuntimeException ignored) {
             }
         }
@@ -66,7 +67,7 @@ public final class PermissionCacheSyncService {
             try {
                 IslandPermission permission = IslandPermission.valueOf(assignment.permission());
                 if (assignment.playerUuid() == null || assignment.playerUuid().isBlank()) {
-                    cache.putRuleKey(islandId, roleKey(assignment.role(), IslandRole.VISITOR.name()), permission, assignment.allowed());
+                    cache.putRuleKey(islandId, roleKey(assignment.role(), VISITOR_ROLE_KEY), permission, assignment.allowed());
                 } else {
                     cache.putPlayerOverride(islandId, UUID.fromString(assignment.playerUuid()), permission, assignment.allowed());
                 }

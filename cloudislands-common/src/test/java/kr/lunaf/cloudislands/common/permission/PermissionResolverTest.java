@@ -35,6 +35,22 @@ class PermissionResolverTest {
         assertDenied(resolver.check(BANNED, IslandPermission.INTERACT, false), IslandRole.BANNED);
     }
 
+    @Test
+    void resolvesLegacyDefaultsFromRoleKeysWithoutEnumInput() {
+        CachedPermissionSet permissions = new CachedPermissionSet();
+        permissions.put(IslandRole.TRUSTED, IslandPermission.INTERACT, true);
+        PermissionResolver resolver = PermissionResolver.fromRoleKeys(permissions, Map.of(
+            OWNER, "owner",
+            TRUSTED, "trusted",
+            BANNED, "banned"
+        ));
+
+        assertAllowed(resolver.check(OWNER, IslandPermission.BREAK, false), IslandRole.OWNER);
+        assertAllowed(resolver.check(TRUSTED, IslandPermission.INTERACT, false), IslandRole.TRUSTED);
+        assertDenied(resolver.check(BANNED, IslandPermission.INTERACT, false), IslandRole.BANNED);
+        assertDenied(resolver.check(VISITOR, IslandPermission.INTERACT, false), IslandRole.VISITOR);
+    }
+
     private void assertAllowed(PermissionResult result, IslandRole role) {
         assertTrue(result.allowed());
         assertEquals(role, result.effectiveRole());
