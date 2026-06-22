@@ -83,6 +83,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkRoutingClient"), "routing must use CoreRoutingCommandClient");
         assertFalse(nestedClients.contains("JdkRuntimeClient"), "runtime operations must use CoreRuntimeCommandClient");
         assertFalse(nestedClients.contains("JdkWarehouseClient"), "warehouse operations must use CoreWarehouse query and command clients");
+        assertFalse(nestedClients.contains("JdkLifecycleClient"), "lifecycle operations must use CoreIslandLifecycleCommandClient");
         assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use CoreAdminMetricsQueryClient");
         assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use CoreAdminCoreConfigQueryClient");
         assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use CoreAdminStorageQueryClient");
