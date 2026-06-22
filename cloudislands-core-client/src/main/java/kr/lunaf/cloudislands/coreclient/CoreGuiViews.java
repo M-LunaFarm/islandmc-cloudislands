@@ -87,12 +87,11 @@ public final class CoreGuiViews {
     }
 
     public static PlayerProfileView playerProfile(String body) {
-        Map<?, ?> root = root(body);
-        return new PlayerProfileView(text(root, "playerUuid"), text(root, "primaryIslandId"));
+        return CorePlayerProfileJson.guiProfile(body);
     }
 
     public static PlayerProfileView playerProfile(kr.lunaf.cloudislands.coreclient.PlayerProfileView profile) {
-        return new PlayerProfileView(profile == null ? "" : profile.playerUuid(), profile == null ? "" : profile.primaryIslandId());
+        return CorePlayerProfileJson.guiProfile(profile);
     }
 
     public static CompletableFuture<List<HomeView>> islandHomes(CoreApiClient client, UUID islandId) {
