@@ -1621,6 +1621,9 @@ class CoreTypedClientsTest {
         assertEquals("MAX_MEMBERS", client.upgradeRules().join().get(0).type());
         assertEquals("starter", client.missions(islandId, null).join().get(0).key());
         assertFalse(source.contains("private static String text("), "progression query parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("private static boolean bool("), "progression query parser must use shared CoreJson bool helpers");
+        assertFalse(source.contains("private static double doubleValue("), "progression query parser must use shared CoreJson decimal helpers");
+        assertFalse(source.contains("SimpleJson.object(root.get(\"summary\"))"), "progression summary parser must use shared CoreJson object helpers");
         assertFalse(source.contains("SimpleJson.list(root.get(\"blocks\"))"), "progression block parser must use shared CoreJson object list helpers");
         assertTrue(source.contains("CoreJson.firstText(object, \"key\", \"upgradeKey\")"), "upgrade keys must use shared alternate-field parsing");
         assertTrue(source.contains("CoreJson.firstText(object, \"key\", \"missionKey\")"), "mission keys must use shared alternate-field parsing");
@@ -1645,6 +1648,7 @@ class CoreTypedClientsTest {
     void progressionCommandClientReturnsTypedMutationViews() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkProgressionCommandClient.java")));
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
@@ -1715,6 +1719,11 @@ class CoreTypedClientsTest {
         assertEquals("addon-one", registered.getFirst().providerId());
         assertEquals("starter", registered.getFirst().missionKey());
         assertEquals(3L, registered.getFirst().goal());
+        assertFalse(source.contains("private static String text("), "progression command parser must use shared CoreJson text helpers");
+        assertFalse(source.contains("private static boolean bool("), "progression command parser must use shared CoreJson bool helpers");
+        assertFalse(source.contains("SimpleJson.object(root.get(\"upgrade\"))"), "progression upgrade parser must use shared CoreJson object helpers");
+        assertFalse(source.contains("SimpleJson.number(root.get("), "progression command parser must use shared CoreJson number helpers");
+        assertFalse(source.contains("SimpleJson.list(SimpleJson.object(parsed).get(\"missions\"))"), "mission definition parser must use shared CoreJson entries helper");
         assertEquals(List.of(
             "recalculate",
             "purchase:generator",

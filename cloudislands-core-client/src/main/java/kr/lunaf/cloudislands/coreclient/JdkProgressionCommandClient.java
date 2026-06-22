@@ -67,12 +67,12 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
 
     static ProgressionUpgradePurchaseView upgradePurchaseResult(String body, String fallbackKey) {
         Map<?, ?> root = CoreJson.object(body);
-        Map<?, ?> upgrade = SimpleJson.object(root.get("upgrade"));
+        Map<?, ?> upgrade = CoreJson.objectValue(root, "upgrade");
         boolean accepted = CoreJson.accepted(root);
-        String code = text(root, "code");
-        String upgradeKey = text(upgrade, "upgradeKey");
+        String code = CoreJson.text(root, "code");
+        String upgradeKey = CoreJson.text(upgrade, "upgradeKey");
         if (upgradeKey.isBlank()) {
-            upgradeKey = text(root, "upgradeKey");
+            upgradeKey = CoreJson.text(root, "upgradeKey");
         }
         if (upgradeKey.isBlank()) {
             upgradeKey = fallbackKey == null ? "" : fallbackKey;
@@ -80,38 +80,38 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
         return new ProgressionUpgradePurchaseView(
             accepted,
             code,
-            text(upgrade, "islandId"),
+            CoreJson.text(upgrade, "islandId"),
             upgradeKey,
-            text(upgrade, "type"),
-            SimpleJson.number(upgrade.get("level")),
-            text(root, "cost"),
-            text(upgrade, "updatedAt")
+            CoreJson.text(upgrade, "type"),
+            CoreJson.number(upgrade, "level"),
+            CoreJson.text(root, "cost"),
+            CoreJson.text(upgrade, "updatedAt")
         );
     }
 
     static LevelView levelView(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new LevelView(
-            text(root, "islandId"),
-            SimpleJson.number(root.get("level")),
-            text(root, "worth"),
-            text(root, "calculatedAt").isBlank() ? text(root, "updatedAt") : text(root, "calculatedAt")
+            CoreJson.text(root, "islandId"),
+            CoreJson.number(root, "level"),
+            CoreJson.text(root, "worth"),
+            CoreJson.text(root, "calculatedAt").isBlank() ? CoreJson.text(root, "updatedAt") : CoreJson.text(root, "calculatedAt")
         );
     }
 
     static ProgressionMissionCompletionView missionCompletionResult(String body, UUID fallbackIslandId, String fallbackKey, String fallbackKind) {
         Map<?, ?> root = CoreJson.object(body);
         boolean accepted = CoreJson.accepted(root);
-        String code = text(root, "code");
-        String missionKey = text(root, "missionKey");
+        String code = CoreJson.text(root, "code");
+        String missionKey = CoreJson.text(root, "missionKey");
         if (missionKey.isBlank()) {
             missionKey = fallbackKey == null ? "" : fallbackKey;
         }
-        String islandId = text(root, "islandId");
+        String islandId = CoreJson.text(root, "islandId");
         if (islandId.isBlank() && fallbackIslandId != null) {
             islandId = fallbackIslandId.toString();
         }
-        String kind = text(root, "kind");
+        String kind = CoreJson.text(root, "kind");
         if (kind.isBlank()) {
             kind = fallbackKind == null || fallbackKind.isBlank() ? "MISSION" : fallbackKind;
         }
@@ -121,33 +121,32 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
             islandId,
             missionKey,
             kind,
-            text(root, "title"),
-            SimpleJson.number(root.get("progress")),
-            SimpleJson.number(root.get("goal")),
-            bool(root.get("completed"), accepted),
-            text(root, "reward"),
-            text(root, "updatedAt")
+            CoreJson.text(root, "title"),
+            CoreJson.number(root, "progress"),
+            CoreJson.number(root, "goal"),
+            CoreJson.bool(root, "completed", accepted),
+            CoreJson.text(root, "reward"),
+            CoreJson.text(root, "updatedAt")
         );
     }
 
     static List<MissionProviderDefinitionSnapshot> missionDefinitions(String body) {
-        Object parsed = CoreJson.value(body);
-        List<?> entries = parsed instanceof List<?> ? SimpleJson.list(parsed) : SimpleJson.list(SimpleJson.object(parsed).get("missions"));
-        return entries.stream()
-            .map(entry -> missionDefinition(SimpleJson.object(entry)))
+        return CoreJson.entries(body).stream()
+            .map(JdkProgressionCommandClient::missionDefinition)
             .toList();
     }
 
     private static MissionProviderDefinitionSnapshot missionDefinition(Map<?, ?> object) {
+        String kind = CoreJson.text(object, "kind");
         return new MissionProviderDefinitionSnapshot(
-            text(object, "providerId"),
-            text(object, "missionKey"),
-            text(object, "kind").isBlank() ? "MISSION" : text(object, "kind"),
-            text(object, "title"),
-            SimpleJson.number(object.get("goal")),
-            text(object, "reward"),
-            bool(object.get("enabled"), true),
-            instant(text(object, "updatedAt"))
+            CoreJson.text(object, "providerId"),
+            CoreJson.text(object, "missionKey"),
+            kind.isBlank() ? "MISSION" : kind,
+            CoreJson.text(object, "title"),
+            CoreJson.number(object, "goal"),
+            CoreJson.text(object, "reward"),
+            CoreJson.bool(object, "enabled", true),
+            instant(CoreJson.text(object, "updatedAt"))
         );
     }
 
@@ -187,14 +186,6 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
         if (id == null) {
             throw new IllegalArgumentException(name + " is required");
         }
-    }
-
-    private static String text(Map<?, ?> object, String key) {
-        return SimpleJson.text(object.get(key));
-    }
-
-    private static boolean bool(Object value, boolean fallback) {
-        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
     }
 
 }

@@ -5,7 +5,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     private final JdkCoreApiClient core;
@@ -108,7 +107,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
 
     static ProgressionBlockDetailsView blockDetailsView(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        Map<?, ?> summary = SimpleJson.object(root.get("summary"));
+        Map<?, ?> summary = CoreJson.objectValue(root, "summary");
         List<ProgressionBlockDetailView> blocks = CoreJson.objects(root, "blocks").stream()
             .map(block -> new ProgressionBlockDetailView(
                 CoreJson.text(block, "materialKey"),
@@ -142,7 +141,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
         return entries(body).stream()
             .map(object -> new ProgressionReviewRankingEntryView(
                 CoreJson.text(object, "islandId"),
-                doubleValue(object.get("averageRating")),
+                CoreJson.decimal(object, "averageRating"),
                 CoreJson.number(object, "reviewCount")
             ))
             .filter(entry -> !entry.islandId().isBlank())
@@ -181,7 +180,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
                     CoreJson.text(object, "title"),
                     CoreJson.number(object, "progress"),
                     CoreJson.number(object, "goal"),
-                    bool(object, "completed"),
+                    CoreJson.bool(object, "completed"),
                     CoreJson.text(object, "reward")
                 );
             })
@@ -235,22 +234,4 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
         return (int) CoreJson.number(object, key);
     }
 
-    private static boolean bool(Map<?, ?> object, String key) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
-    }
-
-    private static double doubleValue(Object value) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        if (value instanceof String text) {
-            try {
-                return Double.parseDouble(text);
-            } catch (NumberFormatException ignored) {
-                return 0D;
-            }
-        }
-        return 0D;
-    }
 }
