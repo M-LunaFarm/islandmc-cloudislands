@@ -3,10 +3,12 @@ package kr.lunaf.cloudislands.api.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.service.IslandCommandService;
 import org.junit.jupiter.api.Test;
 
 class RoleIdSnapshotTest {
@@ -81,5 +83,22 @@ class RoleIdSnapshotTest {
         assertEquals(List.of(true, true, true, true), defaults.stream().map(RoleDefinition::editable).toList());
         assertEquals(List.of(true, true, true, true), defaults.stream().map(RoleDefinition::memberRole).toList());
         assertEquals(4, defaults.stream().filter(definition -> definition.systemRole() == null).count());
+    }
+
+    @Test
+    void commandServiceExposesRoleIdMutationsAndKeepsEnumAsDeprecatedAdapter() throws Exception {
+        assertTrue(IslandRole.class.isAnnotationPresent(Deprecated.class));
+        assertEquals(RoleId.class, IslandCommandService.class
+            .getMethod("setRoleResult", UUID.class, UUID.class, UUID.class, RoleId.class)
+            .getParameterTypes()[3]);
+        assertEquals(String.class, IslandCommandService.class
+            .getMethod("setPermissionResult", UUID.class, UUID.class, String.class, IslandPermission.class, boolean.class)
+            .getParameterTypes()[2]);
+        assertEquals(RoleId.class, IslandCommandService.class
+            .getMethod("upsertRoleResult", UUID.class, UUID.class, RoleId.class, int.class, String.class)
+            .getParameterTypes()[2]);
+        assertEquals(String.class, IslandCommandService.class
+            .getMethod("resetRoleResult", UUID.class, UUID.class, String.class)
+            .getParameterTypes()[2]);
     }
 }

@@ -251,7 +251,7 @@ final class IslandSettingsCommandHandler {
 
     private void setPlayerLocale(Player player, String value) {
         String locale = PlayerIslandProfile.normalizeLocale(value);
-        coreApiClient.playerProfileCommands().setLocale(player.getUniqueId(), locale)
+        runtime.mutate("player.locale.set", () -> coreApiClient.playerProfileCommands().setLocale(player.getUniqueId(), locale))
             .thenAccept(profile -> {
                 String applied = profile.locale().isBlank() ? locale : PlayerIslandProfile.normalizeLocale(profile.locale());
                 if (locales != null) {

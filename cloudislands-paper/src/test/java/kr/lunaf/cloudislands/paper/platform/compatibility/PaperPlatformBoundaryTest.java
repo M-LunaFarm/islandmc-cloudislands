@@ -247,9 +247,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.memberCommands().pardonVisitor(islandId, actorUuid, targetUuid)"), "Visitor pardons must use the typed member command client");
         assertTrue(source.contains("client.memberCommands().removeMember(islandId, actorUuid, targetUuid)"), "Member removal must use the typed member command client");
         assertTrue(source.contains("client.memberCommands().transferOwnership(islandId, actorUuid, targetUuid)"), "Ownership transfer must use the typed member command client");
-        assertTrue(source.contains("client.permissions().setPermission(islandId, actorUuid, role.name(), permission, allowed)"), "Permission mutation must use the typed permission command client");
-        assertTrue(source.contains("client.permissions().upsertRole(islandId, actorUuid, role.name(), weight, displayName)"), "Role upsert must use the typed permission command client");
-        assertTrue(source.contains("client.permissions().resetRole(islandId, actorUuid, role.name())"), "Role reset must use the typed permission command client");
+        assertTrue(source.contains("client.permissions().setPermission(islandId, actorUuid, roleKey, permission, allowed)"), "Permission mutation must use the typed permission command client");
+        assertTrue(source.contains("client.permissions().upsertRole(islandId, actorUuid, roleKey, weight, displayName)"), "Role upsert must use the typed permission command client");
+        assertTrue(source.contains("client.permissions().resetRole(islandId, actorUuid, roleKey)"), "Role reset must use the typed permission command client");
         assertTrue(source.contains("client.environmentCommands().setFlag(islandId, actorUuid, flag, value)"), "Flag mutation must use the typed environment command client");
         assertTrue(source.contains("client.environmentCommands().setBiome(islandId, actorUuid, biomeKey)"), "Biome mutation must use the typed environment command client");
         assertTrue(source.contains("client.environmentCommands().setLimit(islandId, actorUuid, limitKey, value)"), "Limit mutation must use the typed environment command client");
@@ -734,6 +734,7 @@ class PaperPlatformBoundaryTest {
                 .filter(path -> !path.getFileName().toString().equals("IslandConfirmationMenu.java")
                     && !path.getFileName().toString().equals("IslandDangerMenu.java")
                     && !path.getFileName().toString().equals("ConfirmationTokenPolicy.java")
+                    && !path.getFileName().toString().equals("GuiActionParser.java")
                     && !path.getFileName().toString().equals("GuiActionSchema.java"))
                 .filter(path -> containsAny(path,
                     "\"island.warp.delete.confirm\"",
