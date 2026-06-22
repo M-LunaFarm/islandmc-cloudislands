@@ -156,11 +156,17 @@ public interface CoreApiClient {
     }
 
     default TemplateQueryClient templates() {
-        return new CoreTemplateQueryClient(this);
+        if (this instanceof TemplateQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed template queries");
     }
 
     default TemplateCommandClient templateCommands() {
-        return new CoreTemplateCommandClient(this);
+        if (this instanceof TemplateCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed template commands");
     }
 
     default BlockValueQueryClient blockValues() {
@@ -630,10 +636,6 @@ public interface CoreApiClient {
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<String> playerInfo(UUID playerUuid);
     CompletableFuture<String> playerInfoByName(String lastName);
-    CompletableFuture<String> listTemplates();
-    CompletableFuture<String> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion);
-    CompletableFuture<String> enableTemplate(String templateId);
-    CompletableFuture<String> disableTemplate(String templateId);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
     CompletableFuture<String> listJobs();
     CompletableFuture<String> retryJob(UUID jobId);

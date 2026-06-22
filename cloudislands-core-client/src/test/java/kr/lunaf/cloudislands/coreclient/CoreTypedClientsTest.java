@@ -61,8 +61,12 @@ class CoreTypedClientsTest {
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("progression").getDeclaringClass());
         assertTrue(PlayerProfileQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed player profile queries directly");
         assertTrue(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed player profile commands directly");
+        assertTrue(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template queries directly");
+        assertTrue(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template commands directly");
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("profile", UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("setPrimaryIsland", UUID.class, UUID.class).getDeclaringClass());
+        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("list").getDeclaringClass());
+        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("upsert", String.class, String.class, boolean.class, String.class).getDeclaringClass());
     }
 
     @Test
@@ -1804,37 +1808,29 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, TemplateQueryClient.class, TemplateCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "listTemplates" -> CompletableFuture.completedFuture("""
-                    {"templates":[
-                      {"id":"default","displayName":"Default","enabled":true,"minNodeVersion":""},
-                      {"id":"hard","displayName":"Hard","enabled":false,"minNodeVersion":"1.21.11"}
-                    ]}
-                    """);
-                case "upsertTemplate" -> {
+                case "list" -> CompletableFuture.completedFuture(List.of(
+                    new TemplateView("default", "Default", true, ""),
+                    new TemplateView("hard", "Hard", false, "1.21.11")
+                ));
+                case "upsert" -> {
                     calls.add("upsert:" + args[0] + ":" + args[1] + ":" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("""
-                        {"id":"%s","displayName":"%s","enabled":%s,"minNodeVersion":"%s"}
-                        """.formatted(args[0], args[1], args[2], args[3]));
+                    yield CompletableFuture.completedFuture(new TemplateView(args[0].toString(), args[1].toString(), Boolean.parseBoolean(args[2].toString()), args[3].toString()));
                 }
-                case "enableTemplate" -> {
+                case "enable" -> {
                     calls.add("enable:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"id":"%s","displayName":"Enabled","enabled":true,"minNodeVersion":""}
-                        """.formatted(args[0]));
+                    yield CompletableFuture.completedFuture(new TemplateView(args[0].toString(), "Enabled", true, ""));
                 }
-                case "disableTemplate" -> {
+                case "disable" -> {
                     calls.add("disable:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"id":"%s","displayName":"Disabled","enabled":false,"minNodeVersion":""}
-                        """.formatted(args[0]));
+                    yield CompletableFuture.completedFuture(new TemplateView(args[0].toString(), "Disabled", false, ""));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        TemplateQueryClient queries = new CoreTemplateQueryClient(raw);
-        TemplateCommandClient commands = new CoreTemplateCommandClient(raw);
+        TemplateQueryClient queries = (TemplateQueryClient) raw;
+        TemplateCommandClient commands = (TemplateCommandClient) raw;
 
         List<TemplateView> templates = queries.list().join();
         TemplateView upserted = commands.upsert(" hard ", "Hard", false, "1.21.11").join();

@@ -404,9 +404,9 @@ class CoreMutationContextTest {
             client.playerProfileCommands().setLocale(playerUuid, "en\"US").join();
             client.playerProfileCommands().setPrimaryIsland(playerUuid, islandId).join();
             client.playerProfileCommands().clearPrimaryIsland(playerUuid).join();
-            client.upsertTemplate("template\"one", "Template \"One\"", true, "1.21\"11").join();
-            client.enableTemplate("template\"one").join();
-            client.disableTemplate("template\"one").join();
+            client.templateCommands().upsert("template\"one", "Template \"One\"", true, "1.21\"11").join();
+            client.templateCommands().enable("template\"one").join();
+            client.templateCommands().disable("template\"one").join();
             client.claimJobs("node\"a", List.of(IslandJobType.CREATE_ISLAND, IslandJobType.SAVE_ISLAND), 3).join();
             client.retryJobResult(jobId).join();
             client.cancelJobResult(jobId).join();

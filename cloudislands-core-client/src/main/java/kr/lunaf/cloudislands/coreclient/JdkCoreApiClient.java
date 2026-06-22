@@ -43,7 +43,7 @@ import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQueryClient, PlayerProfileCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -77,8 +77,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     private final WarehouseCommandClient warehouseCommandClient;
     private final PlayerProfileQueryClient playerProfileQueryClient;
     private final PlayerProfileCommandClient playerProfileCommandClient;
-    private final TemplateQueryClient templateQueryClient;
-    private final TemplateCommandClient templateCommandClient;
     private final JobQueryClient jobQueryClient;
     private final JobCommandClient jobCommandClient;
     private final BlockValueQueryClient blockValueQueryClient;
@@ -134,8 +132,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
         this.warehouseCommandClient = new CoreWarehouseCommandClient(this);
         this.playerProfileQueryClient = this;
         this.playerProfileCommandClient = this;
-        this.templateQueryClient = new CoreTemplateQueryClient(this);
-        this.templateCommandClient = new CoreTemplateCommandClient(this);
         this.jobQueryClient = new CoreJobQueryClient(this);
         this.jobCommandClient = new CoreJobCommandClient(this);
         this.blockValueQueryClient = new CoreBlockValueQueryClient(this);
@@ -296,12 +292,12 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
 
     @Override
     public TemplateQueryClient templates() {
-        return templateQueryClient;
+        return this;
     }
 
     @Override
     public TemplateCommandClient templateCommands() {
-        return templateCommandClient;
+        return this;
     }
 
     @Override
@@ -1893,23 +1889,37 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     }
 
     @Override
-    public CompletableFuture<String> listTemplates() {
-        return postWithResultBody("/v1/admin/templates/list", "{}");
+    public CompletableFuture<List<TemplateView>> list() {
+        return postWithResultBody("/v1/admin/templates/list", "{}")
+            .thenApply(CoreTemplateJson::templates);
     }
 
     @Override
-    public CompletableFuture<String> upsertTemplate(String templateId, String displayName, boolean enabled, String minNodeVersion) {
-        return postWithResultBody("/v1/admin/templates/upsert", jsonObject("templateId", templateId, "displayName", displayName, "enabled", enabled, "minNodeVersion", minNodeVersion));
+    public CompletableFuture<TemplateView> upsert(String templateId, String displayName, boolean enabled, String minNodeVersion) {
+        return postWithResultBody(
+                "/v1/admin/templates/upsert",
+                jsonObject("templateId", requireTemplateId(templateId), "displayName", displayName == null ? "" : displayName, "enabled", enabled, "minNodeVersion", minNodeVersion == null ? "" : minNodeVersion)
+            )
+            .thenApply(CoreTemplateJson::template);
     }
 
     @Override
-    public CompletableFuture<String> enableTemplate(String templateId) {
-        return postWithResultBody("/v1/admin/templates/enable", jsonObject("templateId", templateId));
+    public CompletableFuture<TemplateView> enable(String templateId) {
+        return postWithResultBody("/v1/admin/templates/enable", jsonObject("templateId", requireTemplateId(templateId)))
+            .thenApply(CoreTemplateJson::template);
     }
 
     @Override
-    public CompletableFuture<String> disableTemplate(String templateId) {
-        return postWithResultBody("/v1/admin/templates/disable", jsonObject("templateId", templateId));
+    public CompletableFuture<TemplateView> disable(String templateId) {
+        return postWithResultBody("/v1/admin/templates/disable", jsonObject("templateId", requireTemplateId(templateId)))
+            .thenApply(CoreTemplateJson::template);
+    }
+
+    private static String requireTemplateId(String templateId) {
+        if (templateId == null || templateId.isBlank()) {
+            throw new IllegalArgumentException("templateId is required");
+        }
+        return templateId.trim();
     }
 
     @Override
