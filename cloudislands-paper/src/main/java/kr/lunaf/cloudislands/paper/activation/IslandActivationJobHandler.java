@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
 import kr.lunaf.cloudislands.paper.world.ShardWorldPreloader;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlan;
@@ -27,6 +28,7 @@ public final class IslandActivationJobHandler {
     private final ActiveIslandRegistry activeIslands;
     private final IslandSaveService saveService;
     private final int defaultIslandSize;
+    private final IntegrationLifecycleHooks integrationHooks;
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
         this(storage, shardWorldManager, protectionController, null, null, 0, null);
@@ -45,6 +47,10 @@ public final class IslandActivationJobHandler {
     }
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer, ActiveIslandRegistry activeIslands, IslandSaveService saveService, int defaultIslandSize) {
+        this(storage, shardWorldManager, protectionController, worldRestorer, preloader, preloadRadius, cellTransfer, activeIslands, saveService, defaultIslandSize, IntegrationLifecycleHooks.noop());
+    }
+
+    public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer, ActiveIslandRegistry activeIslands, IslandSaveService saveService, int defaultIslandSize, IntegrationLifecycleHooks integrationHooks) {
         this.storage = storage;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
@@ -55,6 +61,7 @@ public final class IslandActivationJobHandler {
         this.activeIslands = activeIslands;
         this.saveService = saveService;
         this.defaultIslandSize = Math.max(1, defaultIslandSize);
+        this.integrationHooks = integrationHooks == null ? IntegrationLifecycleHooks.noop() : integrationHooks;
     }
 
     public ActivationResult handle(IslandJob job) {
@@ -88,6 +95,8 @@ public final class IslandActivationJobHandler {
             }
             protectionController.registerIsland(islandId, cell.worldName(), cell.originX(), cell.originZ(), manifest.size(), cell.cellX(), cell.cellZ());
             IslandSaveService.SaveResult creationSnapshot = snapshotAfterCreate(job, cell, manifest);
+            ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), Instant.now());
+            integrationHooks.onIslandActivated(islandId, activeIsland).throwIfFailed();
             return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job), creationSnapshot == null ? 0L : creationSnapshot.snapshotNo(), creationSnapshot == null ? "" : creationSnapshot.checksum(), creationSnapshot == null ? 0L : creationSnapshot.sizeBytes(), placementSource);
         } catch (Exception exception) {
             if (cell != null && !hadCellBeforeActivation) {

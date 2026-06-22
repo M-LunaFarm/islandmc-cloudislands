@@ -69,13 +69,15 @@ final class PaperIslandNodeRuntime {
             new FileBackedCellTransfer(plugin.getServer().getWorldContainer().toPath()),
             plugin.activeIslands,
             saveService,
-            config.worker().defaultIslandSize()
+            config.worker().defaultIslandSize(),
+            integrationHooks
         );
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(
             plugin.activeIslands,
             shardWorldManager,
             plugin.agent.protection(),
-            saveService
+            saveService,
+            integrationHooks
         );
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(plugin, client, plugin.agent.permissionCache());
         plugin.jobWorker = new PaperIslandJobWorker(

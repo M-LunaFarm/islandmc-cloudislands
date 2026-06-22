@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.activation;
 import java.io.IOException;
 import java.util.UUID;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
 
 public final class IslandDeactivationHandler {
     private static final String DEACTIVATION_SNAPSHOT_REASON = "DEACTIVATION";
@@ -12,16 +13,22 @@ public final class IslandDeactivationHandler {
     private final ShardWorldManager shardWorldManager;
     private final ProtectionController protectionController;
     private final IslandSaveService saveService;
+    private final IntegrationLifecycleHooks integrationHooks;
 
     public IslandDeactivationHandler(ActiveIslandRegistry activeIslands, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
         this(activeIslands, shardWorldManager, protectionController, null);
     }
 
     public IslandDeactivationHandler(ActiveIslandRegistry activeIslands, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandSaveService saveService) {
+        this(activeIslands, shardWorldManager, protectionController, saveService, IntegrationLifecycleHooks.noop());
+    }
+
+    public IslandDeactivationHandler(ActiveIslandRegistry activeIslands, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandSaveService saveService, IntegrationLifecycleHooks integrationHooks) {
         this.activeIslands = activeIslands;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
         this.saveService = saveService;
+        this.integrationHooks = integrationHooks == null ? IntegrationLifecycleHooks.noop() : integrationHooks;
     }
 
     public DeactivationResult deactivate(UUID islandId) {
@@ -47,6 +54,7 @@ public final class IslandDeactivationHandler {
             }
             if (active != null && saveService != null) {
                 saveResult = deleteBackup ? saveService.backupBeforeDelete(islandId, active) : saveService.save(islandId, active, null, reason);
+                integrationHooks.onIslandDeactivated(islandId, active, saveResult.bundleFile()).throwIfFailed();
             }
             protectionController.unregisterIsland(islandId);
             activeIslands.deactivated(islandId);
