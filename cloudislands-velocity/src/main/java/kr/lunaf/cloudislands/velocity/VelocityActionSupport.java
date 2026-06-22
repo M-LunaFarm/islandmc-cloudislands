@@ -20,7 +20,6 @@ import kr.lunaf.cloudislands.velocity.message.VelocityEventMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityIslandMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMigrationMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityNodeJobMessageFormatter;
-import kr.lunaf.cloudislands.velocity.message.VelocityPlayerPayloadFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityRouteMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocitySnapshotMessageFormatter;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
@@ -42,7 +41,6 @@ abstract class VelocityActionSupport {
     protected final VelocityEventMessageFormatter eventMessages;
     protected final VelocityIslandMessageFormatter islandMessages;
     protected final VelocityNodeJobMessageFormatter nodeJobMessages;
-    protected final VelocityPlayerPayloadFormatter playerPayloads = new VelocityPlayerPayloadFormatter();
     protected final VelocityRouteMessageFormatter routeMessages;
     protected final VelocitySnapshotMessageFormatter snapshotMessages = new VelocitySnapshotMessageFormatter();
     protected final RouteFallbackService fallbackService;
@@ -75,15 +73,15 @@ abstract class VelocityActionSupport {
         });
     }
 
-    protected void sendBodyResult(Player player, CompletableFuture<String> future, String emptyMessage) {
-        future.thenAccept(body -> player.sendMessage(playerComponent(bodyResultMessage(body, emptyMessage)))).exceptionally(error -> {
+    protected void sendTextResult(Player player, CompletableFuture<String> future, String emptyMessage) {
+        future.thenAccept(message -> player.sendMessage(playerComponent(messageOrDefault(message, emptyMessage)))).exceptionally(error -> {
             player.sendMessage(playerComponent(emptyMessage));
             return null;
         });
     }
 
-    protected String bodyResultMessage(String body, String emptyMessage) {
-        return playerPayloads.bodyResultMessage(body, emptyMessage);
+    protected String messageOrDefault(String message, String emptyMessage) {
+        return message == null || message.isBlank() ? emptyMessage : message;
     }
 
     protected String routeDebugMessage(String body) {

@@ -53,6 +53,9 @@ class VelocityPluginRolePolicyTest {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityActionSupport.java"));
 
         assertFalse(source.contains("sendPlayerPayloadFuture("), "Velocity actions must not keep raw player payload futures");
+        assertFalse(source.contains("sendBodyResult("), "Velocity actions must not name message results as raw response bodies");
+        assertFalse(source.contains("bodyResultMessage("), "Velocity actions must not route typed client results through raw body formatters");
+        assertFalse(source.contains("VelocityPlayerPayloadFormatter"), "Velocity actions must not parse raw player payloads");
         assertFalse(source.contains("sendInviteActionResult("), "Velocity actions must not infer invite success from raw JSON bodies");
         assertFalse(source.contains("body.contains(\"\\\"accepted\\\":false\")"), "Velocity actions must not inspect raw JSON success flags");
     }
