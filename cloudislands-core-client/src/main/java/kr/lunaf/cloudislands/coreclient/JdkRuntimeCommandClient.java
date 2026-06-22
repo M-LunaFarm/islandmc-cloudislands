@@ -66,7 +66,7 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
 
     @Override
     public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
-        return core.postWithResultBody("/v1/jobs/complete", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "payload", CoreJsonPayload.raw(mapJson(payload == null ? Map.of() : payload))))
+        return core.postWithResultBody("/v1/jobs/complete", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "payload", CoreJsonPayload.raw(CoreJsonPayload.stringMap(payload == null ? Map.of() : payload))))
             .thenApply(body -> runtimeAction(body, "JOB_COMPLETED"));
     }
 
@@ -104,46 +104,6 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
             throw new IllegalArgumentException("jobId is required");
         }
         return jobId;
-    }
-
-    private static String mapJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
-        }
-        return builder.append('}').toString();
-    }
-
-    private static String escape(String value) {
-        StringBuilder builder = new StringBuilder();
-        for (int index = 0; index < value.length(); index++) {
-            char character = value.charAt(index);
-            switch (character) {
-                case '"' -> builder.append("\\\"");
-                case '\\' -> builder.append("\\\\");
-                case '\b' -> builder.append("\\b");
-                case '\f' -> builder.append("\\f");
-                case '\n' -> builder.append("\\n");
-                case '\r' -> builder.append("\\r");
-                case '\t' -> builder.append("\\t");
-                default -> {
-                    if (character < 0x20) {
-                        builder.append(String.format("\\u%04x", (int) character));
-                    } else {
-                        builder.append(character);
-                    }
-                }
-            }
-        }
-        return builder.toString();
     }
 
     private static String countsPayload(Map<String, Long> counts) {
