@@ -6,14 +6,14 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreIslandVisitorStatsQueryClient implements IslandVisitorStatsQueryClient {
-    private final CoreApiClient delegate;
+final class JdkIslandVisitorStatsQueryClient implements IslandVisitorStatsQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreIslandVisitorStatsQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkIslandVisitorStatsQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
@@ -21,7 +21,7 @@ public final class CoreIslandVisitorStatsQueryClient implements IslandVisitorSta
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
-        return delegate.islandVisitorStats(islandId, Math.max(1, Math.min(recentLimit, 100))).thenApply(CoreIslandVisitorStatsQueryClient::stats);
+        return core.postWithResultBody("/v1/islands/visitors/stats", JdkCoreApiClient.jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(recentLimit, 100)))).thenApply(JdkIslandVisitorStatsQueryClient::stats);
     }
 
     static IslandVisitorStatsView stats(String body) {

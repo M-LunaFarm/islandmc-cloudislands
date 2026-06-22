@@ -112,7 +112,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.progressionCommandClient = new CoreProgressionCommandClient(this);
         this.memberQueryClient = new CoreMemberQueryClient(this);
         this.memberCommandClient = new CoreMemberCommandClient(this);
-        this.visitorStatsClient = new CoreIslandVisitorStatsQueryClient(this);
+        this.visitorStatsClient = new JdkIslandVisitorStatsQueryClient(this);
         this.playerProfileQueryClient = this;
         this.playerProfileCommandClient = this;
         this.jobQueryClient = new JdkJobClient(this);
@@ -613,11 +613,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public CompletableFuture<String> kickIslandVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid) {
         return postWithResultBody("/v1/islands/visitors/kick", jsonObject("islandId", islandId, "actorUuid", actorUuid, "playerUuid", playerUuid));
-    }
-
-    @Override
-    public CompletableFuture<String> islandVisitorStats(UUID islandId, int limit) {
-        return postWithResultBody("/v1/islands/visitors/stats", jsonObject("islandId", islandId, "limit", Math.max(1, Math.min(limit, 100))));
     }
 
     @Override

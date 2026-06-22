@@ -823,7 +823,7 @@ class CoreMutationContextTest {
             client.banIslandVisitorResult(islandId, actorUuid, playerUuid, "bad \"visitor\"").join();
             client.pardonIslandVisitorResult(islandId, actorUuid, playerUuid).join();
             client.kickIslandVisitorResult(islandId, actorUuid, playerUuid).join();
-            client.islandVisitorStats(islandId, 500).join();
+            client.visitorStats().stats(islandId, 500).join();
             client.setIslandFlagResult(islandId, actorUuid, IslandFlag.PVP, "deny \"all\"").join();
             client.setIslandBiomeResult(islandId, actorUuid, "minecraft:plains\"warm").join();
             client.setIslandHomeResult(islandId, actorUuid, "home\"main", location).join();

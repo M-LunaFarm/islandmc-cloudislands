@@ -88,7 +88,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkSettingsClient"), "settings operations must use CoreIslandSettingsCommandClient");
         assertFalse(nestedClients.contains("JdkHomeWarpClient"), "home and warp operations must use CoreHomeWarp query and command clients");
         assertFalse(nestedClients.contains("JdkIslandClient"), "island queries must use CoreIslandQueryClient");
-        assertFalse(nestedClients.contains("JdkVisitorStatsClient"), "visitor stats must use CoreIslandVisitorStatsQueryClient");
+        assertFalse(nestedClients.contains("JdkVisitorStatsClient"), "visitor stats must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkPlayerProfileClient"), "player profiles must use CorePlayerProfile query and command clients");
         assertFalse(nestedClients.contains("JdkTemplateClient"), "templates must use CoreTemplate query and command clients");
         assertFalse(nestedClients.contains("JdkJobClient"), "jobs must use CoreJob query and command clients");
@@ -146,6 +146,7 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("adminIslandInfo"));
         assertFalse(names.contains("adminIslandWhere"));
         assertFalse(names.contains("listBlockValues"));
+        assertFalse(names.contains("islandVisitorStats"));
     }
 
     @Test
@@ -585,33 +586,18 @@ class CoreTypedClientsTest {
     @Test
     void visitorStatsClientReturnsTypedRecentVisitors() {
         UUID islandId = UUID.randomUUID();
-        List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "islandVisitorStats" -> {
-                    calls.add(args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("""
-                        {"islandId":"%s","totalVisits":12,"uniqueVisitors":3,"recentVisitors":[
-                          {"visitorUuid":"visitor-a","lastVisitedAt":"now"},
-                          {"visitorUuid":"visitor-b","lastVisitedAt":"later"}
-                        ]}
-                        """.formatted(args[0]));
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        IslandVisitorStatsQueryClient client = new CoreIslandVisitorStatsQueryClient(raw);
-
-        IslandVisitorStatsView stats = client.stats(islandId, 500).join();
+        IslandVisitorStatsView stats = JdkIslandVisitorStatsQueryClient.stats("""
+            {"islandId":"%s","totalVisits":12,"uniqueVisitors":3,"recentVisitors":[
+              {"visitorUuid":"visitor-a","lastVisitedAt":"now"},
+              {"visitorUuid":"visitor-b","lastVisitedAt":"later"}
+            ]}
+            """.formatted(islandId));
 
         assertEquals(islandId.toString(), stats.islandId());
         assertEquals(12L, stats.totalVisits());
         assertEquals(3L, stats.uniqueVisitors());
         assertEquals("visitor-a", stats.recentVisitors().get(0).visitorUuid());
         assertEquals("later", stats.recentVisitors().get(1).lastVisitedAt());
-        assertEquals(List.of(islandId + ":100"), calls);
     }
 
     @Test
