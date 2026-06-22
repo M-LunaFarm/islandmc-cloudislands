@@ -5,26 +5,27 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreAdminStorageQueryClient implements AdminStorageQueryClient {
-    private final CoreApiClient delegate;
+final class JdkAdminStorageClient implements AdminStorageQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreAdminStorageQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkAdminStorageClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<AdminStorageStatusView> status() {
-        return delegate.storageStatus().thenApply(CoreAdminStorageQueryClient::status);
+        return core.postWithResultBody("/v1/admin/storage", "{}")
+            .thenApply(JdkAdminStorageClient::status);
     }
 
     static AdminStorageStatusView status(String body) {
         Map<?, ?> root = CoreJson.object(body);
         List<AdminStorageStatusView.NodeView> nodes = SimpleJson.list(root.get("nodes")).stream()
             .map(SimpleJson::object)
-            .map(CoreAdminStorageQueryClient::node)
+            .map(JdkAdminStorageClient::node)
             .filter(node -> !node.nodeId().isBlank())
             .toList();
         return new AdminStorageStatusView(nodes);

@@ -232,7 +232,10 @@ public interface CoreApiClient {
     }
 
     default AdminStorageQueryClient adminStorage() {
-        return new CoreAdminStorageQueryClient(this);
+        if (this instanceof AdminStorageQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin storage queries");
     }
 
     default AdminMaintenanceCommandClient adminMaintenance() {
@@ -248,11 +251,17 @@ public interface CoreApiClient {
     }
 
     default AdminCoreConfigQueryClient adminCoreConfig() {
-        return new CoreAdminCoreConfigQueryClient(this);
+        if (this instanceof AdminCoreConfigQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin core config queries");
     }
 
     default AdminMetricsQueryClient adminMetrics() {
-        return new CoreAdminMetricsQueryClient(this);
+        if (this instanceof AdminMetricsQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin metrics queries");
     }
 
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
@@ -407,9 +416,6 @@ public interface CoreApiClient {
     CompletableFuture<String> listEventsSince(long sinceSeq, int limit);
     CompletableFuture<String> listAuditLogs();
     CompletableFuture<String> listAuditLogs(int limit);
-    CompletableFuture<String> metrics();
-    CompletableFuture<String> coreConfig();
-    CompletableFuture<String> storageStatus();
     CompletableFuture<String> clearCache();
     CompletableFuture<String> clearCacheResult();
     CompletableFuture<String> reload();

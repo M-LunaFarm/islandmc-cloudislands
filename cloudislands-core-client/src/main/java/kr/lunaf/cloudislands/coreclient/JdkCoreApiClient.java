@@ -117,9 +117,9 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.playerProfileCommandClient = this;
         this.jobQueryClient = new JdkJobClient(this);
         this.blockValueQueryClient = new CoreBlockValueQueryClient(this);
-        this.adminMetricsClient = new CoreAdminMetricsQueryClient(this);
-        this.adminCoreConfigClient = new CoreAdminCoreConfigQueryClient(this);
-        this.adminStorageClient = new CoreAdminStorageQueryClient(this);
+        this.adminMetricsClient = new JdkAdminMetricsClient(this);
+        this.adminCoreConfigClient = new JdkAdminCoreConfigClient(this);
+        this.adminStorageClient = new JdkAdminStorageClient(this);
         this.adminEventClient = new CoreAdminEventQueryClient(this);
         this.adminAuditClient = new CoreAdminAuditQueryClient(this);
         this.adminRouteClient = new CoreAdminRouteClient(this);
@@ -1387,21 +1387,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public CompletableFuture<String> listAuditLogs(int limit) {
         return postWithResultBody("/v1/admin/audit/list", jsonObject("limit", Math.max(1, Math.min(limit, 500))));
-    }
-
-    @Override
-    public CompletableFuture<String> metrics() {
-        return postWithResultBody("/metrics", "{}");
-    }
-
-    @Override
-    public CompletableFuture<String> coreConfig() {
-        return postWithResultBody("/v1/admin/config", "{}");
-    }
-
-    @Override
-    public CompletableFuture<String> storageStatus() {
-        return postWithResultBody("/v1/admin/storage", "{}");
     }
 
     @Override

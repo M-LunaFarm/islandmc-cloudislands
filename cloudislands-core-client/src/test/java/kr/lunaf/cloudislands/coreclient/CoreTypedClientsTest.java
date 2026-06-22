@@ -102,9 +102,9 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkMemberQueryClient"), "member queries must use CoreMemberQueryClient");
         assertFalse(nestedClients.contains("JdkMemberCommandClient"), "member commands must use CoreMemberCommandClient");
         assertFalse(nestedClients.contains("JdkPermissionClient"), "permissions must use CorePermission query and command clients");
-        assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use CoreAdminMetricsQueryClient");
-        assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use CoreAdminCoreConfigQueryClient");
-        assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use CoreAdminStorageQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use a standalone typed client");
+        assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use a standalone typed client");
+        assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminEventClient"), "admin events must use CoreAdminEventQueryClient");
         assertFalse(nestedClients.contains("JdkAdminAuditClient"), "admin audit must use CoreAdminAuditQueryClient");
         assertFalse(nestedClients.contains("JdkAdminRouteClient"), "admin routes must use CoreAdminRouteClient");
@@ -112,6 +112,17 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkAdminMaintenanceClient"), "admin maintenance must use CoreAdminMaintenanceCommandClient");
         assertFalse(nestedClients.contains("JdkAdminNodeClient"), "admin node operations must use CoreAdminNode query and command clients");
         assertFalse(nestedClients.contains("JdkAdminIslandClient"), "admin islands must use CoreAdminIslandQueryClient");
+    }
+
+    @Test
+    void coreApiClientDoesNotExposeRawAdminDiagnosticsMethods() {
+        List<String> names = Arrays.stream(CoreApiClient.class.getMethods())
+            .map(Method::getName)
+            .toList();
+
+        assertFalse(names.contains("metrics"));
+        assertFalse(names.contains("coreConfig"));
+        assertFalse(names.contains("storageStatus"));
     }
 
     @Test
@@ -653,22 +664,12 @@ class CoreTypedClientsTest {
 
     @Test
     void adminStorageClientReturnsTypedNodeStorageStatus() {
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "storageStatus" -> CompletableFuture.completedFuture("""
-                    {"nodes":[
-                      {"id":"paper-east","storageAvailable":true,"storage":{"backend":"minio","primaryDegraded":false,"uploadSeconds":1.25,"downloadSeconds":0.75,"healthCheckFailures":1,"uploadFailures":2,"downloadFailures":3,"operationFailures":4}},
-                      {"nodeId":"paper-west","storageAvailable":false,"storage":{"primaryDegraded":true}}
-                    ]}
-                    """);
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminStorageQueryClient client = new CoreAdminStorageQueryClient(raw);
-
-        AdminStorageStatusView status = client.status().join();
+        AdminStorageStatusView status = JdkAdminStorageClient.status("""
+            {"nodes":[
+              {"id":"paper-east","storageAvailable":true,"storage":{"backend":"minio","primaryDegraded":false,"uploadSeconds":1.25,"downloadSeconds":0.75,"healthCheckFailures":1,"uploadFailures":2,"downloadFailures":3,"operationFailures":4}},
+              {"nodeId":"paper-west","storageAvailable":false,"storage":{"primaryDegraded":true}}
+            ]}
+            """);
 
         assertEquals(2, status.nodes().size());
         assertEquals(1L, status.unavailableCount());
@@ -742,17 +743,9 @@ class CoreTypedClientsTest {
 
     @Test
     void adminCoreConfigClientReturnsTypedConfigView() {
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "coreConfig" -> CompletableFuture.completedFuture("""
-                    {"repositoryMode":"JDBC","jobQueueMode":"REDIS","eventBusMode":"REDIS","islandPortableBundle":true,"databasePoolSize":16,"addonStateBulkSaveGlobalEndpoint":"/v1/addons/state/bulk-save"}
-                    """);
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminCoreConfigView config = new CoreAdminCoreConfigQueryClient(raw).config().join();
+        AdminCoreConfigView config = AdminCoreConfigView.parse("""
+            {"repositoryMode":"JDBC","jobQueueMode":"REDIS","eventBusMode":"REDIS","islandPortableBundle":true,"databasePoolSize":16,"addonStateBulkSaveGlobalEndpoint":"/v1/addons/state/bulk-save"}
+            """);
 
         assertEquals("JDBC", config.text("repositoryMode"));
         assertEquals("REDIS", config.text("jobQueueMode"));
@@ -764,21 +757,13 @@ class CoreTypedClientsTest {
 
     @Test
     void adminMetricsClientReturnsTypedSummary() {
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "metrics" -> CompletableFuture.completedFuture("""
-                    # HELP cloudislands_jobs_total Jobs
-                    # TYPE cloudislands_jobs_total counter
-                    cloudislands_jobs_total{state="done"} 3
-                    cloudislands_jobs_total{state="failed"} 1
-                    cloudislands_nodes 2
-                    """);
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminMetricsSummaryView summary = new CoreAdminMetricsQueryClient(raw).summary().join();
+        AdminMetricsSummaryView summary = AdminMetricsSummaryView.parse("""
+            # HELP cloudislands_jobs_total Jobs
+            # TYPE cloudislands_jobs_total counter
+            cloudislands_jobs_total{state="done"} 3
+            cloudislands_jobs_total{state="failed"} 1
+            cloudislands_nodes 2
+            """);
 
         assertEquals(3L, summary.samples());
         assertEquals(List.of("cloudislands_jobs_total", "cloudislands_nodes"), summary.names());
