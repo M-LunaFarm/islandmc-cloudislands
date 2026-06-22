@@ -2764,14 +2764,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         return Optional.of(runtime(json));
     }
 
-    private static List<IslandRuntimeSnapshot> nodeIslands(String json) {
-        List<IslandRuntimeSnapshot> runtimes = new ArrayList<>();
-        for (String object : objects(json, "islands")) {
-            runtimes.add(runtime(object));
-        }
-        return runtimes;
-    }
-
     private static List<IslandRuntimeSnapshot> nodeIslands(List<AdminIslandRuntimeView> views) {
         return (views == null ? List.<AdminIslandRuntimeView>of() : views).stream()
             .map(PaperCloudIslandsApi::runtime)
@@ -3160,85 +3152,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             .toList();
     }
 
-    private static List<IslandNodeSnapshot> nodes(String json) {
-        List<IslandNodeSnapshot> nodes = new ArrayList<>();
-        for (String object : objects(json, "nodes")) {
-            node(object).ifPresent(nodes::add);
-        }
-        return nodes;
-    }
-
-    private static Optional<IslandNodeSnapshot> node(String json) {
-        if (json == null || json.isBlank() || json.contains("\"error\"")) {
-            return Optional.empty();
-        }
-        return Optional.of(new IslandNodeSnapshot(
-            text(json, "id", ""),
-            text(json, "pool", "island"),
-            text(json, "server", ""),
-            text(json, "nodeVersion", ""),
-            enumValue(NodeState.class, text(json, "state", "DOWN"), NodeState.DOWN),
-            integer(json, "players", 0),
-            integer(json, "softPlayerCap", 0),
-            integer(json, "hardPlayerCap", 0),
-            integer(json, "reservedSlots", 0),
-            integer(json, "activeIslands", 0),
-            integer(json, "maxActiveIslands", 0),
-            decimal(json, "mspt", 0.0D),
-            integer(json, "activationQueue", 0),
-            integer(json, "maxActivationQueue", 0),
-            decimal(json, "chunkLoadPressure", 0.0D),
-            longValue(json, "heapUsedMb", 0L),
-            longValue(json, "heapMaxMb", 0L),
-            integer(json, "recentFailurePenalty", 0),
-            bool(json, "storageAvailable", false),
-            text(json, "supportedTemplates", ""),
-            instant(text(json, "lastHeartbeat", Instant.EPOCH.toString())),
-            decimal(json, "score", 0.0D),
-            decimalMap(json, "scoreBreakdown"),
-            bool(json, "eligibleForNewActivation", false),
-            text(json, "allocationBlockReason", ""),
-            levelScan(objectValue(json, "levelScan")),
-            storage(objectValue(json, "storage"))
-        ));
-    }
-
-    private static NodeLevelScanSnapshot levelScan(String json) {
-        if (json == null || json.isBlank()) {
-            return NodeLevelScanSnapshot.empty();
-        }
-        return new NodeLevelScanSnapshot(
-            bool(json, "running", false),
-            text(json, "lastIsland", ""),
-            longValue(json, "startedAt", 0L),
-            longValue(json, "finishedAt", 0L),
-            longValue(json, "failedAt", 0L)
-        );
-    }
-
-    private static NodeStorageSnapshot storage(String json) {
-        if (json == null || json.isBlank()) {
-            return NodeStorageSnapshot.empty();
-        }
-        return new NodeStorageSnapshot(
-            bool(json, "primaryDegraded", false),
-            decimal(json, "uploadSeconds", 0.0D),
-            decimal(json, "downloadSeconds", 0.0D),
-            longValue(json, "healthCheckFailures", 0L),
-            longValue(json, "uploadFailures", 0L),
-            longValue(json, "downloadFailures", 0L),
-            longValue(json, "operationFailures", 0L)
-        );
-    }
-
-    private static List<IslandTemplateSnapshot> templates(String json) {
-        List<IslandTemplateSnapshot> templates = new ArrayList<>();
-        for (String object : objects(json, "templates")) {
-            templates.add(template(object));
-        }
-        return templates;
-    }
-
     private static List<IslandTemplateSnapshot> templates(List<TemplateView> views) {
         return (views == null ? List.<TemplateView>of() : views).stream()
             .map(view -> new IslandTemplateSnapshot(
@@ -3248,15 +3161,6 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 view.minNodeVersion()
             ))
             .toList();
-    }
-
-    private static IslandTemplateSnapshot template(String json) {
-        return new IslandTemplateSnapshot(
-            text(json, "id", ""),
-            text(json, "displayName", ""),
-            bool(json, "enabled", false),
-            text(json, "minNodeVersion", "")
-        );
     }
 
     private static IslandTemplateSnapshot template(TemplateView view) {

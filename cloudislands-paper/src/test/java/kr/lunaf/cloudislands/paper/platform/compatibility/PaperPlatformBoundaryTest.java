@@ -281,6 +281,11 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("private static RouteClearResult routeClear(String json)"), "Route clear results must not keep raw JSON converters");
         assertTrue(!source.contains("private static JobRecoveryResult jobRecovery(String json)"), "Job recovery results must not keep raw JSON converters");
         assertTrue(!source.contains("private static List<IslandJobSnapshot> jobs(String json)"), "Job lists must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<IslandRuntimeSnapshot> nodeIslands(String json)"), "Node island runtimes must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<IslandNodeSnapshot> nodes(String json)"), "Node lists must not keep raw JSON converters");
+        assertTrue(!source.contains("private static Optional<IslandNodeSnapshot> node(String json)"), "Node snapshots must not keep raw JSON converters");
+        assertTrue(!source.contains("private static List<IslandTemplateSnapshot> templates(String json)"), "Template lists must not keep raw JSON converters");
+        assertTrue(!source.contains("private static IslandTemplateSnapshot template(String json)"), "Template snapshots must not keep raw JSON converters");
         assertTrue(source.contains("client.routingCommands().publishRouteSessionResult(ticket)"), "Route session publish must use the typed routing command client");
         assertTrue(source.contains("client.lifecycle().repairIsland(islandId, reason)"), "Island repair must use the typed lifecycle command client");
         assertTrue(source.contains("client.progressionCommands().registerMissionProvider(providerId, definitions)"), "Mission provider registration must use the typed progression command client");
