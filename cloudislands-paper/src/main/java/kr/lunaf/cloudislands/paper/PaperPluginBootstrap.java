@@ -1,12 +1,12 @@
 package kr.lunaf.cloudislands.paper;
 
-import java.net.URI;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.JdkCoreApiClient;
+import kr.lunaf.cloudislands.paper.bootstrap.PaperCoreClientFactory;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperHeartbeatRuntime;
 import kr.lunaf.cloudislands.paper.bootstrap.LifecycleRegistry;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperHealthRuntime;
+import kr.lunaf.cloudislands.paper.bootstrap.PaperRouteSessionRuntimeFactory;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperRuntimeServices;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.command.PaperCommandRegistrar;
@@ -27,12 +27,10 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.message.TranslationManager;
 import kr.lunaf.cloudislands.paper.redis.PaperRedisClient;
-import kr.lunaf.cloudislands.paper.security.ProxySourceAllowlist;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
 import kr.lunaf.cloudislands.paper.session.PaperChatListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
 import kr.lunaf.cloudislands.paper.session.PaperScoreboardListener;
-import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
@@ -62,12 +60,7 @@ final class PaperPluginBootstrap {
             return;
         }
         warnIfDefaultNodeIdentity(role, nodeId, velocityServerName);
-        CoreApiClient client = new JdkCoreApiClient(
-            URI.create(config.coreApi().baseUrl()),
-            config.coreApi().token(),
-            config.coreApi().adminToken(),
-            config.coreApi().timeout()
-        );
+        CoreApiClient client = PaperCoreClientFactory.create(config.coreApi());
         plugin.agent = new CloudIslandsPaperAgent(plugin, role, client, nodeId);
         plugin.integrationRegistry = PaperIntegrationRegistry.discover(plugin.getServer());
         plugin.localCaches = new LocalCacheManager();
@@ -105,14 +98,9 @@ final class PaperPluginBootstrap {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandCropGrowthListener(plugin.agent.protection(), cropGrowthLevels));
         }
         String fallbackServerName = config.routing().fallbackServerName();
-        boolean enforceRouteSession = role == AgentRole.ISLAND_NODE && config.security().enforceRouteSession();
-        boolean requireRouteSession = role == AgentRole.ISLAND_NODE && (config.security().requireRouteSession() || enforceRouteSession);
-        boolean forwardingReady = role != AgentRole.ISLAND_NODE
-            || !config.security().requireVelocityForwarding()
-            || !config.security().forwardingSecret().isBlank();
-        plugin.proxySourceAllowlist = new ProxySourceAllowlist(config.security().proxySourceAllowlist());
-        boolean requireProxySourceAllowlist = role == AgentRole.ISLAND_NODE && config.security().requireProxySourceAllowlist();
-        plugin.routeSessionListener = new PaperRouteSessionListener(plugin, client, plugin.agent.routeTickets(), nodeId, requireRouteSession, forwardingReady, requireProxySourceAllowlist, fallbackServerName, plugin.proxySourceAllowlist, plugin.messages, plugin.playerLocales);
+        PaperRouteSessionRuntimeFactory.Runtime routeSessionRuntime = PaperRouteSessionRuntimeFactory.create(plugin, client, plugin.agent.routeTickets(), config, plugin.messages, plugin.playerLocales);
+        plugin.proxySourceAllowlist = routeSessionRuntime.proxySourceAllowlist();
+        plugin.routeSessionListener = routeSessionRuntime.listener();
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.routeSessionListener);
         int routeWaitSeconds = config.routing().waitForActivationTimeoutSeconds();
         GuiActionExecutor guiActions = new PaperCommandRegistrar(plugin).register(plugin.agent, client, nodeId, routeWaitSeconds, fallbackServerName, economyBridge, plugin.messages, plugin.localCaches, plugin.playerLocales, () -> plugin.activeIslands);

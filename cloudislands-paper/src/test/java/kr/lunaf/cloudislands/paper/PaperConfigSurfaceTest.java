@@ -71,8 +71,15 @@ class PaperConfigSurfaceTest {
         String admin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"), StandardCharsets.UTF_8);
         String adminConfig = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminConfigCommandHandler.java"), StandardCharsets.UTF_8);
         String islandNodeRuntime = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperIslandNodeRuntime.java"), StandardCharsets.UTF_8);
+        String coreClientFactory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperCoreClientFactory.java"), StandardCharsets.UTF_8);
+        String routeSessionFactory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperRouteSessionRuntimeFactory.java"), StandardCharsets.UTF_8);
 
         assertTrue(bootstrap.contains("PaperRuntimeConfigLoader.load"), "Paper bootstrap must create a runtime config snapshot");
+        assertTrue(bootstrap.contains("PaperCoreClientFactory.create"), "Paper bootstrap must delegate Core client construction to a factory");
+        assertTrue(bootstrap.contains("PaperRouteSessionRuntimeFactory.create"), "Paper bootstrap must delegate route-session security wiring to a factory");
+        assertTrue(coreClientFactory.contains("new JdkCoreApiClient"), "Core client factory must own JDK Core client construction");
+        assertTrue(routeSessionFactory.contains("new PaperRouteSessionListener"), "route-session factory must own listener construction");
+        assertTrue(routeSessionFactory.contains("requireProxySourceAllowlist"), "route-session factory must own proxy allowlist policy wiring");
         assertTrue(snapshot.contains("record PaperRuntimeConfig"), "Paper runtime config must be immutable snapshot data");
         assertTrue(snapshot.contains("ConfigSnapshot sourceConfig"), "Paper runtime config must retain the effective Config v2 snapshot");
         assertTrue(snapshot.contains("record Node"), "Paper runtime config must expose typed node settings");
