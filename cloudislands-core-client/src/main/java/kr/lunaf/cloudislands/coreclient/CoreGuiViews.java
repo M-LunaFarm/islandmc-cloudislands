@@ -126,11 +126,11 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<UpgradeView>> islandUpgrades(CoreApiClient client, UUID islandId) {
-        return new CoreProgressionQueryClient(client).upgrades(islandId);
+        return client.progression().upgrades(islandId);
     }
 
     public static CompletableFuture<List<MissionView>> islandMissions(CoreApiClient client, UUID islandId, String kind) {
-        return new CoreProgressionQueryClient(client).missions(islandId, kind);
+        return client.progression().missions(islandId, kind);
     }
 
     public static CompletableFuture<List<LimitView>> islandLimits(CoreApiClient client, UUID islandId) {

@@ -106,8 +106,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.navigationQueryClient = new JdkNavigationQueryClient(this);
         this.navigationCommandClient = new CoreNavigationCommandClient(this);
         this.islandClient = new JdkIslandQueryClient(this);
-        this.progressionQueryClient = new CoreProgressionQueryClient(this);
-        this.progressionCommandClient = new CoreProgressionCommandClient(this);
+        this.progressionQueryClient = new JdkProgressionQueryClient(this);
+        this.progressionCommandClient = new JdkProgressionCommandClient(this);
         this.memberQueryClient = new JdkMemberQueryClient(this);
         this.memberCommandClient = new JdkMemberCommandClient(this);
         this.visitorStatsClient = new JdkIslandVisitorStatsQueryClient(this);
@@ -448,11 +448,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<String> getIslandLevel(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/level");
-    }
-
-    @Override
     public CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment) {
         return postWithResultBody("/v1/islands/reviews/set", jsonObject("islandId", islandId, "reviewerUuid", reviewerUuid, "rating", rating, "comment", comment));
     }
@@ -533,26 +528,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<String> recalculateIslandLevel(UUID islandId, UUID actorUuid) {
-        return post("/v1/islands/level/recalculate", jsonObject("islandId", islandId, "actorUuid", actorUuid));
-    }
-
-    @Override
-    public CompletableFuture<String> topIslandsByLevel(int limit) {
-        return post("/v1/rankings/level", jsonObject("limit", limit));
-    }
-
-    @Override
-    public CompletableFuture<String> topIslandsByWorth(int limit) {
-        return post("/v1/rankings/worth", jsonObject("limit", limit));
-    }
-
-    @Override
-    public CompletableFuture<String> topIslandsByReviews(int limit) {
-        return post("/v1/rankings/reviews", jsonObject("limit", limit));
-    }
-
-    @Override
     public CompletableFuture<BlockValueActionView> set(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
         UUID safeActor = actorUuid == null ? new UUID(0L, 0L) : actorUuid;
         String safeMaterial = requireMaterialKey(materialKey);
@@ -565,47 +540,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
             throw new IllegalArgumentException("materialKey is required");
         }
         return materialKey.trim();
-    }
-
-    @Override
-    public CompletableFuture<String> listUpgradeRules() {
-        return post("/v1/upgrades/rules", "{}");
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandUpgrades(UUID islandId) {
-        return post("/v1/islands/upgrades", jsonObject("islandId", islandId));
-    }
-
-    @Override
-    public CompletableFuture<String> purchaseIslandUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) {
-        return postWithResultBody("/v1/islands/upgrades/purchase", jsonObject("islandId", islandId, "actorUuid", actorUuid, "upgradeKey", upgradeKey));
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandMissions(UUID islandId, String kind) {
-        return post("/v1/islands/missions", jsonObject("islandId", islandId, "kind", kind));
-    }
-
-    @Override
-    public CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey) {
-        return completeIslandMission(islandId, actorUuid, missionKey, "MISSION");
-    }
-
-    @Override
-    public CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
-        return postWithResultBody("/v1/islands/missions/complete", jsonObject("islandId", islandId, "actorUuid", actorUuid, "missionKey", missionKey, "kind", kind));
-    }
-
-    @Override
-    public CompletableFuture<String> progressIslandMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
-        return postWithResultBody("/v1/islands/missions/progress", jsonObject("islandId", islandId, "actorUuid", actorUuid, "missionKey", missionKey, "kind", kind, "amount", Math.max(0L, amount)));
-    }
-
-    @Override
-    public CompletableFuture<String> registerMissionProvider(String providerId, String definitionsJson) {
-        String definitions = definitionsJson == null || definitionsJson.isBlank() ? "[]" : definitionsJson;
-        return postWithResultBody("/v1/addons/missions/register", jsonObject("providerId", providerId, "missions", rawJson(definitions)));
     }
 
     @Override

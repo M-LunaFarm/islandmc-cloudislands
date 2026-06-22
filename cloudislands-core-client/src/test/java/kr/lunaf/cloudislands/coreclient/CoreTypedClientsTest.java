@@ -1154,60 +1154,70 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class, ProgressionQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "getIsland" -> {
+                case "islandInfo", "getIsland" -> {
                     calls.add("info");
                     yield CompletableFuture.completedFuture(CoreIslandJson.info("""
                         {"islandId":"%s","name":"Base","state":"ACTIVE","level":7,"worth":"12.50"}
                         """.formatted(islandId)));
                 }
-                case "islandBlockDetails" -> {
+                case "blockDetails" -> {
                     calls.add("blocks:" + args[1]);
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionQueryClient.blockDetailsView("""
                         {"blocks":[{"materialKey":"minecraft:diamond_block","count":2,"totalWorth":"2000.00","levelPoints":20}],"summary":{"totalWorth":"2000.00","totalLevelPoints":20}}
-                        """);
+                        """));
                 }
-                case "getIslandLevel" -> {
+                case "level" -> {
                     calls.add("level");
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionQueryClient.levelView("""
                         {"islandId":"%s","level":9,"worth":"42.50","calculatedAt":"2026-06-21T00:00:00Z"}
-                        """.formatted(islandId));
+                        """.formatted(islandId)));
                 }
-                case "topIslandsByWorth", "topIslandsByLevel" -> {
+                case "topWorth", "topLevel" -> {
                     calls.add(method.getName() + ":" + args[0]);
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionQueryClient.rankingViews("""
                         {"rankings":[{"islandId":"%s","name":"Base","level":7,"worth":"12.50"}]}
-                        """.formatted(islandId));
+                        """.formatted(islandId), method.getName().equals("topWorth") ? "worth" : "level"));
                 }
-                case "topIslandsByReviews" -> {
+                case "topReviews" -> {
                     calls.add("reviews:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionQueryClient.reviewRankingViews("""
                         {"rankings":[{"islandId":"%s","averageRating":4.5,"reviewCount":2}]}
-                        """.formatted(islandId));
+                        """.formatted(islandId)));
                 }
-                case "listIslandUpgrades" -> {
+                case "upgrades" -> {
                     calls.add("upgrades");
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionQueryClient.upgradeViews("""
                         {"upgrades":[{"upgradeKey":"generator","type":"GENERATOR","level":3,"generatorKey":"ore"}]}
-                        """);
+                        """));
                 }
-                case "listUpgradeRules" -> {
+                case "upgradeRules" -> {
                     calls.add("rules");
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionQueryClient.upgradeRuleViews("""
                         {"rules":[{"upgradeKey":"members","type":"MAX_MEMBERS","maxLevel":5,"baseCost":"7500","multiplier":"2"}]}
-                        """);
+                        """));
                 }
-                case "listIslandMissions" -> {
+                case "missions" -> {
                     calls.add("missions:" + args[1]);
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionQueryClient.missionViews("""
                         {"missions":[{"missionKey":"starter","title":"Starter","progress":1,"goal":2,"completed":false,"reward":"10"}]}
-                        """);
+                        """));
+                }
+                case "rankings" -> {
+                    calls.add("topLevel:" + args[0]);
+                    calls.add("topWorth:" + args[0]);
+                    calls.add("reviews:" + args[0]);
+                    yield CompletableFuture.completedFuture(new CoreGuiViews.RankingData(
+                        List.of(new CoreGuiViews.RankingView(1, "level", islandId.toString(), 7L, "12.50")),
+                        List.of(new CoreGuiViews.RankingView(1, "worth", islandId.toString(), 7L, "12.50")),
+                        List.of(new CoreGuiViews.RankingView(1, "reviews", islandId.toString(), 2L, "4.50"))
+                    ));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        ProgressionQueryClient client = new CoreProgressionQueryClient(raw);
+        ProgressionQueryClient client = (ProgressionQueryClient) raw;
 
         assertEquals(7L, client.islandInfo(islandId).join().level());
         LevelView level = client.level(islandId).join();
@@ -1232,16 +1242,16 @@ class CoreTypedClientsTest {
         assertEquals(List.of(
             "info",
             "level",
-            "blocks:100",
-            "topIslandsByWorth:100",
-            "topIslandsByLevel:1",
+            "blocks:500",
+            "topWorth:500",
+            "topLevel:0",
             "reviews:10",
-            "topIslandsByLevel:2",
-            "topIslandsByWorth:2",
+            "topLevel:2",
+            "topWorth:2",
             "reviews:2",
             "upgrades",
             "rules",
-            "missions:MISSION"
+            "missions:null"
         ), calls);
     }
 
@@ -1252,40 +1262,40 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, ProgressionCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "recalculateIslandLevel" -> {
+                case "recalculateLevel" -> {
                     calls.add("recalculate");
-                    yield CompletableFuture.completedFuture("{\"islandId\":\"%s\",\"level\":8,\"worth\":\"14.00\"}".formatted(islandId));
+                    yield CompletableFuture.completedFuture(JdkProgressionCommandClient.levelView("{\"islandId\":\"%s\",\"level\":8,\"worth\":\"14.00\"}".formatted(islandId)));
                 }
-                case "purchaseIslandUpgrade" -> {
+                case "purchaseUpgrade" -> {
                     calls.add("purchase:" + args[2]);
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionCommandClient.upgradePurchaseResult("""
                         {"accepted":true,"code":"UPGRADED","cost":"10.00","upgrade":{"islandId":"%s","upgradeKey":"generator:ore","type":"GENERATOR","level":3,"updatedAt":"2026-01-02T03:04:05Z"}}
-                        """.formatted(islandId));
+                        """.formatted(islandId), (String) args[2]));
                 }
-                case "progressIslandMission" -> {
+                case "progressMission" -> {
                     calls.add("progress:" + args[2] + ":" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionCommandClient.missionCompletionResult("""
                         {"accepted":true,"code":"MISSION_PROGRESS","islandId":"%s","missionKey":"starter","kind":"CHALLENGE","title":"Starter","progress":1,"goal":2,"completed":false,"reward":"10","updatedAt":"2026-01-02T03:04:05Z"}
-                        """.formatted(islandId));
+                        """.formatted(islandId), islandId, (String) args[2], (String) args[3]));
                 }
-                case "completeIslandMission" -> {
+                case "completeMission" -> {
                     calls.add("mission:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(JdkProgressionCommandClient.missionCompletionResult("""
                         {"accepted":true,"code":"MISSION_COMPLETED","islandId":"%s","missionKey":"starter","kind":"CHALLENGE","title":"Starter","progress":2,"goal":2,"completed":true,"reward":"10","updatedAt":"2026-01-02T03:04:05Z"}
-                        """.formatted(islandId));
+                        """.formatted(islandId), islandId, (String) args[2], (String) args[3]));
                 }
                 case "registerMissionProvider" -> {
-                    calls.add("register:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("""
+                    calls.add("register:" + args[0] + ":" + JdkProgressionCommandClient.missionDefinitionsJson((List<MissionProviderDefinitionSnapshot>) args[1]));
+                    yield CompletableFuture.completedFuture(JdkProgressionCommandClient.missionDefinitions("""
                         {"missions":[{"providerId":"addon-one","missionKey":"starter","kind":"MISSION","title":"Starter","goal":3,"reward":"money:5","enabled":true,"updatedAt":"2026-01-02T03:04:05Z"}]}
-                        """);
+                        """));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        ProgressionCommandClient client = new CoreProgressionCommandClient(raw);
+        ProgressionCommandClient client = (ProgressionCommandClient) raw;
         List<MissionProviderDefinitionSnapshot> definitions = List.of(new MissionProviderDefinitionSnapshot(
             "addon-one",
             "Starter",

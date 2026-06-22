@@ -7,32 +7,32 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreProgressionQueryClient implements ProgressionQueryClient {
-    private final CoreApiClient delegate;
+public final class JdkProgressionQueryClient implements ProgressionQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreProgressionQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkProgressionQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> islandInfo(UUID islandId) {
         requireIsland(islandId);
-        return islandQueries().getIsland(islandId);
+        return core.islands().getIsland(islandId);
     }
 
     @Override
     public CompletableFuture<LevelView> level(UUID islandId) {
         requireIsland(islandId);
-        return delegate.getIslandLevel(islandId).thenApply(CoreProgressionQueryClient::levelView);
+        return core.get("/v1/islands/" + islandId + "/level").thenApply(JdkProgressionQueryClient::levelView);
     }
 
     @Override
     public CompletableFuture<ProgressionBlockDetailsView> blockDetails(UUID islandId, int limit) {
         requireIsland(islandId);
-        return delegate.islandBlockDetails(islandId, boundedLimit(limit)).thenApply(CoreProgressionQueryClient::blockDetailsView);
+        return core.post("/v1/islands/blocks", JdkCoreApiClient.jsonObject("islandId", islandId, "limit", boundedLimit(limit))).thenApply(JdkProgressionQueryClient::blockDetailsView);
     }
 
     @Override
@@ -50,35 +50,35 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
 
     @Override
     public CompletableFuture<List<ProgressionRankingEntryView>> topWorth(int limit) {
-        return delegate.topIslandsByWorth(boundedLimit(limit)).thenApply(body -> rankingViews(body, "worth"));
+        return core.post("/v1/rankings/worth", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit))).thenApply(body -> rankingViews(body, "worth"));
     }
 
     @Override
     public CompletableFuture<List<ProgressionRankingEntryView>> topLevel(int limit) {
-        return delegate.topIslandsByLevel(boundedLimit(limit)).thenApply(body -> rankingViews(body, "level"));
+        return core.post("/v1/rankings/level", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit))).thenApply(body -> rankingViews(body, "level"));
     }
 
     @Override
     public CompletableFuture<List<ProgressionReviewRankingEntryView>> topReviews(int limit) {
-        return delegate.topIslandsByReviews(boundedLimit(limit)).thenApply(CoreProgressionQueryClient::reviewRankingViews);
+        return core.post("/v1/rankings/reviews", JdkCoreApiClient.jsonObject("limit", boundedLimit(limit))).thenApply(JdkProgressionQueryClient::reviewRankingViews);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.UpgradeView>> upgrades(UUID islandId) {
         requireIsland(islandId);
-        return delegate.listIslandUpgrades(islandId).thenApply(CoreProgressionQueryClient::upgradeViews);
+        return core.post("/v1/islands/upgrades", JdkCoreApiClient.jsonObject("islandId", islandId)).thenApply(JdkProgressionQueryClient::upgradeViews);
     }
 
     @Override
     public CompletableFuture<List<UpgradeRuleView>> upgradeRules() {
-        return delegate.listUpgradeRules().thenApply(CoreProgressionQueryClient::upgradeRuleViews);
+        return core.post("/v1/upgrades/rules", "{}").thenApply(JdkProgressionQueryClient::upgradeRuleViews);
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.MissionView>> missions(UUID islandId, String kind) {
         requireIsland(islandId);
-        return delegate.listIslandMissions(islandId, kind == null || kind.isBlank() ? "MISSION" : kind)
-            .thenApply(CoreProgressionQueryClient::missionViews);
+        return core.post("/v1/islands/missions", JdkCoreApiClient.jsonObject("islandId", islandId, "kind", kind == null || kind.isBlank() ? "MISSION" : kind))
+            .thenApply(JdkProgressionQueryClient::missionViews);
     }
 
     static LevelView levelView(String body) {
@@ -221,10 +221,6 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
-    }
-
-    private IslandQueryClient islandQueries() {
-        return delegate instanceof IslandQueryClient queries ? queries : delegate.islands();
     }
 
     private static String text(Map<?, ?> object, String key) {

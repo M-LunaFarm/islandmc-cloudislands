@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
@@ -238,12 +239,19 @@ class CoreMutationContextTest {
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
-            client.listIslandUpgrades(islandId).join();
-            client.purchaseIslandUpgrade(islandId, actorUuid, "generator\"speed").join();
-            client.listIslandMissions(islandId, "MISSION\"DAILY").join();
-            client.completeIslandMission(islandId, actorUuid, "starter\"mission", "CHALLENGE").join();
-            client.progressIslandMission(islandId, actorUuid, "starter\"mission", "CHALLENGE", -5L).join();
-            client.registerMissionProvider("provider\"one", "[{\"missionKey\":\"starter\"}]").join();
+            client.progression().upgrades(islandId).join();
+            client.progressionCommands().purchaseUpgrade(islandId, actorUuid, "generator\"speed").join();
+            client.progression().missions(islandId, "MISSION\"DAILY").join();
+            client.progressionCommands().completeMission(islandId, actorUuid, "starter\"mission", "CHALLENGE").join();
+            client.progressionCommands().progressMission(islandId, actorUuid, "starter\"mission", "CHALLENGE", -5L).join();
+            client.progressionCommands().registerMissionProvider("provider\"one", List.of(new MissionProviderDefinitionSnapshot(
+                "provider\"one",
+                "starter",
+                "MISSION",
+                "",
+                1L,
+                ""
+            ))).join();
             client.listIslandLimits(islandId).join();
             client.setIslandLimit(islandId, actorUuid, "HOPPER\"LIMIT", 64L).join();
             client.communicationCommands().sendChat(islandId, actorUuid, "team\"chat", "hello \"team\"").join();
@@ -262,7 +270,7 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"kind\":\"MISSION\\\"DAILY\"}", requestBodies.get("missions"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\"}", requestBodies.get("missionComplete"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\",\"amount\":0}", requestBodies.get("missionProgress"));
-            assertEquals("{\"providerId\":\"provider\\\"one\",\"missions\":[{\"missionKey\":\"starter\"}]}", requestBodies.get("missionRegister"));
+            assertEquals("{\"providerId\":\"provider\\\"one\",\"missions\":[{\"missionKey\":\"starter\",\"kind\":\"MISSION\",\"title\":\"starter\",\"goal\":1,\"reward\":\"\",\"enabled\":true}]}", requestBodies.get("missionRegister"));
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("limits"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"limitKey\":\"HOPPER\\\"LIMIT\",\"value\":64}", requestBodies.get("limitSet"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"channel\":\"TEAM\\\"CHAT\",\"message\":\"hello \\\"team\\\"\"}", requestBodies.get("chat"));
@@ -665,11 +673,11 @@ class CoreMutationContextTest {
 
             client.recordBlockDeltaResult(islandId, "minecraft:diamond\"block", 3L).join();
             client.replaceBlockCounts(islandId, counts).join();
-            client.islandBlockDetails(islandId, 25).join();
-            client.recalculateIslandLevel(islandId, actorUuid).join();
-            client.topIslandsByLevel(10).join();
-            client.topIslandsByWorth(11).join();
-            client.topIslandsByReviews(12).join();
+            client.progression().blockDetails(islandId, 25).join();
+            client.progressionCommands().recalculateLevel(islandId, actorUuid).join();
+            client.progression().topLevel(10).join();
+            client.progression().topWorth(11).join();
+            client.progression().topReviews(12).join();
             client.navigation().publicIslands(13).join();
             client.blockValueCommands().set(actorUuid, "minecraft:emerald\"block", "100.50", 20L, 64L).join();
 

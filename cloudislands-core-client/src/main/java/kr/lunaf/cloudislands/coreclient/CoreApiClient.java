@@ -163,11 +163,17 @@ public interface CoreApiClient {
     }
 
     default ProgressionQueryClient progression() {
-        return new CoreProgressionQueryClient(this);
+        if (this instanceof ProgressionQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed progression queries");
     }
 
     default ProgressionCommandClient progressionCommands() {
-        return new CoreProgressionCommandClient(this);
+        if (this instanceof ProgressionCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed progression commands");
     }
 
     default MemberQueryClient members() {
@@ -334,26 +340,11 @@ public interface CoreApiClient {
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
     CompletableFuture<String> getIslandRuntime(UUID islandId);
-    CompletableFuture<String> getIslandLevel(UUID islandId);
     CompletableFuture<String> setIslandReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
     CompletableFuture<String> deleteIslandReview(UUID islandId, UUID reviewerUuid);
     CompletableFuture<String> recordBlockDeltaResult(UUID islandId, String materialKey, long delta);
     CompletableFuture<String> replaceBlockCounts(UUID islandId, Map<String, Long> counts);
     CompletableFuture<String> islandBlockDetails(UUID islandId, int limit);
-    CompletableFuture<String> recalculateIslandLevel(UUID islandId, UUID actorUuid);
-    CompletableFuture<String> topIslandsByLevel(int limit);
-    CompletableFuture<String> topIslandsByWorth(int limit);
-    CompletableFuture<String> topIslandsByReviews(int limit);
-    CompletableFuture<String> listUpgradeRules();
-    CompletableFuture<String> listIslandUpgrades(UUID islandId);
-    CompletableFuture<String> purchaseIslandUpgrade(UUID islandId, UUID actorUuid, String upgradeKey);
-    CompletableFuture<String> listIslandMissions(UUID islandId, String kind);
-    default CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey) {
-        return completeIslandMission(islandId, actorUuid, missionKey, "MISSION");
-    }
-    CompletableFuture<String> completeIslandMission(UUID islandId, UUID actorUuid, String missionKey, String kind);
-    CompletableFuture<String> progressIslandMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);
-    CompletableFuture<String> registerMissionProvider(String providerId, String definitionsJson);
     CompletableFuture<String> listIslandLimits(UUID islandId);
     CompletableFuture<String> setIslandLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);

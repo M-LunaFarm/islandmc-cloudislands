@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.level;
 
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -10,12 +11,12 @@ import org.bukkit.plugin.Plugin;
 
 public final class BlockDeltaReporter {
     private final Plugin plugin;
-    private final CoreApiClient client;
+    private final ProgressionCommandClient progressionCommands;
     private final RuntimeCommandClient runtimeCommands;
 
     public BlockDeltaReporter(Plugin plugin, CoreApiClient client) {
         this.plugin = plugin;
-        this.client = client;
+        this.progressionCommands = client.progressionCommands();
         this.runtimeCommands = client.runtimeCommands();
     }
 
@@ -71,10 +72,10 @@ public final class BlockDeltaReporter {
             return;
         }
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runAsync(plugin, () -> {
-            client.progressIslandMission(islandId, actorUuid, "first_blocks", "MISSION", 1L).exceptionally(error -> null);
-            client.progressIslandMission(islandId, actorUuid, "daily_builder", "CHALLENGE", 1L).exceptionally(error -> null);
+            progressionCommands.progressMission(islandId, actorUuid, "first_blocks", "MISSION", 1L).exceptionally(error -> null);
+            progressionCommands.progressMission(islandId, actorUuid, "daily_builder", "CHALLENGE", 1L).exceptionally(error -> null);
             if (isFarmBlock(material)) {
-                client.progressIslandMission(islandId, actorUuid, "starter_farm", "MISSION", 1L).exceptionally(error -> null);
+                progressionCommands.progressMission(islandId, actorUuid, "starter_farm", "MISSION", 1L).exceptionally(error -> null);
             }
         });
     }
@@ -84,7 +85,7 @@ public final class BlockDeltaReporter {
             return;
         }
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runAsync(plugin, () ->
-            client.progressIslandMission(islandId, actorUuid, "daily_miner", "CHALLENGE", 1L).exceptionally(error -> null));
+            progressionCommands.progressMission(islandId, actorUuid, "daily_miner", "CHALLENGE", 1L).exceptionally(error -> null));
     }
 
     private boolean isFarmBlock(Material material) {

@@ -8,8 +8,16 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.coreclient.CoreProgressionCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreProgressionQueryClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.LevelView;
+import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailView;
+import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailsView;
+import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
+import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
+import kr.lunaf.cloudislands.coreclient.ProgressionQueryClient;
+import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.ProgressionReviewRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import org.junit.jupiter.api.Test;
 
 class IslandProgressionUseCaseTest {
@@ -33,66 +41,66 @@ class IslandProgressionUseCaseTest {
 
         assertEquals(List.of(
             "islandInfo",
-            "islandBlockDetails:100",
-            "topIslandsByWorth:100",
-            "topIslandsByLevel:1",
-            "topIslandsByReviews:10",
-            "recalculateIslandLevel",
+            "islandBlockDetails:500",
+            "topWorth:500",
+            "topLevel:0",
+            "topReviews:10",
+            "recalculateLevel",
             "listIslandUpgrades",
             "audit:island.upgrade.purchase",
-            "purchaseIslandUpgrade:generator",
+            "purchaseUpgrade:generator",
             "listIslandMissions:MISSION",
             "audit:island.mission.complete",
-            "completeIslandMission:starter:CHALLENGE"
+            "completeMission:starter:CHALLENGE"
         ), calls);
     }
 
     private static CoreApiClient client(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class},
+            new Class<?>[] {CoreApiClient.class, ProgressionQueryClient.class, ProgressionCommandClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
-                case "progression" -> new CoreProgressionQueryClient((CoreApiClient) _proxy);
-                case "progressionCommands" -> new CoreProgressionCommandClient((CoreApiClient) _proxy);
+                case "progression" -> (ProgressionQueryClient) _proxy;
+                case "progressionCommands" -> (ProgressionCommandClient) _proxy;
                 case "islandInfo" -> {
                     calls.add("islandInfo");
-                    yield CompletableFuture.completedFuture(islandInfoJson());
+                    yield CompletableFuture.completedFuture(new CoreGuiViews.IslandInfoView("Base", "ACTIVE", "00000000-0000-0000-0000-000000000080", 7L, "12.50", true, false, 100L, 100L, "00000000-0000-0000-0000-000000000001", "", ""));
                 }
-                case "islandBlockDetails" -> {
+                case "blockDetails" -> {
                     calls.add("islandBlockDetails:" + args[1]);
-                    yield CompletableFuture.completedFuture(blockDetailsJson());
+                    yield CompletableFuture.completedFuture(new ProgressionBlockDetailsView("2000.00", 20L, List.of(new ProgressionBlockDetailView("minecraft:diamond_block", 2L, "2000.00", 20L))));
                 }
-                case "topIslandsByWorth" -> {
-                    calls.add("topIslandsByWorth:" + args[0]);
-                    yield CompletableFuture.completedFuture(rankingsJson());
+                case "topWorth" -> {
+                    calls.add("topWorth:" + args[0]);
+                    yield CompletableFuture.completedFuture(List.of(new ProgressionRankingEntryView("00000000-0000-0000-0000-000000000080", "Base", 7L, "12.50", "worth")));
                 }
-                case "topIslandsByLevel" -> {
-                    calls.add("topIslandsByLevel:" + args[0]);
-                    yield CompletableFuture.completedFuture(rankingsJson());
+                case "topLevel" -> {
+                    calls.add("topLevel:" + args[0]);
+                    yield CompletableFuture.completedFuture(List.of(new ProgressionRankingEntryView("00000000-0000-0000-0000-000000000080", "Base", 7L, "12.50", "level")));
                 }
-                case "topIslandsByReviews" -> {
-                    calls.add("topIslandsByReviews:" + args[0]);
-                    yield CompletableFuture.completedFuture(reviewRankingsJson());
+                case "topReviews" -> {
+                    calls.add("topReviews:" + args[0]);
+                    yield CompletableFuture.completedFuture(List.of(new ProgressionReviewRankingEntryView("00000000-0000-0000-0000-000000000080", 4.5D, 2L)));
                 }
-                case "recalculateIslandLevel" -> {
-                    calls.add("recalculateIslandLevel");
-                    yield CompletableFuture.completedFuture("{\"islandId\":\"00000000-0000-0000-0000-000000000080\",\"level\":8,\"worth\":\"14.00\",\"calculatedAt\":\"2026-01-02T03:04:05Z\"}");
+                case "recalculateLevel" -> {
+                    calls.add("recalculateLevel");
+                    yield CompletableFuture.completedFuture(new LevelView("00000000-0000-0000-0000-000000000080", 8L, "14.00", "2026-01-02T03:04:05Z"));
                 }
-                case "listIslandUpgrades" -> {
+                case "upgrades" -> {
                     calls.add("listIslandUpgrades");
-                    yield CompletableFuture.completedFuture(upgradesJson());
+                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.UpgradeView("generator:ore", "GENERATOR", 3, "")));
                 }
-                case "purchaseIslandUpgrade" -> {
-                    calls.add("purchaseIslandUpgrade:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"code\":\"UPGRADED\",\"cost\":\"10.00\",\"upgrade\":{\"islandId\":\"00000000-0000-0000-0000-000000000080\",\"upgradeKey\":\"generator:ore\",\"type\":\"GENERATOR\",\"level\":3,\"updatedAt\":\"2026-01-02T03:04:05Z\"}}");
+                case "purchaseUpgrade" -> {
+                    calls.add("purchaseUpgrade:" + args[2]);
+                    yield CompletableFuture.completedFuture(new ProgressionUpgradePurchaseView(true, "UPGRADED", "00000000-0000-0000-0000-000000000080", "generator:ore", "GENERATOR", 3L, "10.00", "2026-01-02T03:04:05Z"));
                 }
-                case "listIslandMissions" -> {
+                case "missions" -> {
                     calls.add("listIslandMissions:" + args[1]);
-                    yield CompletableFuture.completedFuture(missionsJson());
+                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.MissionView("starter", "Starter", 1L, 2L, false, "10")));
                 }
-                case "completeIslandMission" -> {
-                    calls.add("completeIslandMission:" + args[2] + ":" + args[3]);
-                    yield CompletableFuture.completedFuture("{\"islandId\":\"00000000-0000-0000-0000-000000000080\",\"missionKey\":\"starter\",\"kind\":\"CHALLENGE\",\"title\":\"Starter\",\"progress\":2,\"goal\":2,\"completed\":true,\"reward\":\"10\"}");
+                case "completeMission" -> {
+                    calls.add("completeMission:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture(new ProgressionMissionCompletionView(true, "MISSION_COMPLETED", "00000000-0000-0000-0000-000000000080", "starter", "CHALLENGE", "Starter", 2L, 2L, true, "10", ""));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });

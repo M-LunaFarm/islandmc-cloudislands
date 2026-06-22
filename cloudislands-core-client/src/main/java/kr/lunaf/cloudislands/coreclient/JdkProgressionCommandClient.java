@@ -9,28 +9,28 @@ import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreProgressionCommandClient implements ProgressionCommandClient {
-    private final CoreApiClient delegate;
+public final class JdkProgressionCommandClient implements ProgressionCommandClient {
+    private final JdkCoreApiClient core;
 
-    public CoreProgressionCommandClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkProgressionCommandClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<LevelView> recalculateLevel(UUID islandId, UUID actorUuid) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return delegate.recalculateIslandLevel(islandId, actorUuid).thenApply(CoreProgressionCommandClient::levelView);
+        return core.post("/v1/islands/level/recalculate", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid)).thenApply(JdkProgressionCommandClient::levelView);
     }
 
     @Override
     public CompletableFuture<ProgressionUpgradePurchaseView> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
-        return delegate.purchaseIslandUpgrade(islandId, actorUuid, upgradeKey == null ? "" : upgradeKey)
+        return core.postWithResultBody("/v1/islands/upgrades/purchase", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "upgradeKey", upgradeKey == null ? "" : upgradeKey))
             .thenApply(body -> upgradePurchaseResult(body, upgradeKey));
     }
 
@@ -39,7 +39,7 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
-        return delegate.completeIslandMission(islandId, actorUuid, missionKey == null ? "" : missionKey, normalizedKind)
+        return core.postWithResultBody("/v1/islands/missions/complete", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "missionKey", missionKey == null ? "" : missionKey, "kind", normalizedKind))
             .thenApply(body -> missionCompletionResult(body, islandId, missionKey, normalizedKind));
     }
 
@@ -48,15 +48,15 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
         String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
-        return delegate.progressIslandMission(islandId, actorUuid, missionKey == null ? "" : missionKey, normalizedKind, amount)
+        return core.postWithResultBody("/v1/islands/missions/progress", JdkCoreApiClient.jsonObject("islandId", islandId, "actorUuid", actorUuid, "missionKey", missionKey == null ? "" : missionKey, "kind", normalizedKind, "amount", Math.max(0L, amount)))
             .thenApply(body -> missionCompletionResult(body, islandId, missionKey, normalizedKind));
     }
 
     @Override
     public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) {
         String normalizedProviderId = providerId == null || providerId.isBlank() ? "cloudislands" : providerId.trim();
-        return delegate.registerMissionProvider(normalizedProviderId, missionDefinitionsJson(definitions))
-            .thenApply(CoreProgressionCommandClient::missionDefinitions);
+        return core.postWithResultBody("/v1/addons/missions/register", JdkCoreApiClient.jsonObject("providerId", normalizedProviderId, "missions", JdkCoreApiClient.rawJson(missionDefinitionsJson(definitions))))
+            .thenApply(JdkProgressionCommandClient::missionDefinitions);
     }
 
     static ProgressionUpgradePurchaseView upgradePurchaseResult(String body, String fallbackKey) {
@@ -147,7 +147,7 @@ public final class CoreProgressionCommandClient implements ProgressionCommandCli
 
     static String missionDefinitionsJson(List<MissionProviderDefinitionSnapshot> definitions) {
         return SimpleJson.stringify((definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions).stream()
-            .map(CoreProgressionCommandClient::missionDefinitionJson)
+            .map(JdkProgressionCommandClient::missionDefinitionJson)
             .toList());
     }
 
