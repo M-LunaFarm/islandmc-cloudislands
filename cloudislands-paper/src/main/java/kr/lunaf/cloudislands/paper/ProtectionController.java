@@ -14,6 +14,10 @@ import kr.lunaf.cloudislands.paper.cache.LocalIslandPermissionCache;
 import org.bukkit.block.Block;
 
 public final class ProtectionController {
+    private static final String OWNER_ROLE_KEY = "OWNER";
+    private static final String VISITOR_ROLE_KEY = "VISITOR";
+    private static final String BANNED_ROLE_KEY = "BANNED";
+
     private final RegionIndex regionIndex;
     private final LocalIslandPermissionCache permissionCache;
     private final Set<UUID> migratingIslands = ConcurrentHashMap.newKeySet();
@@ -92,7 +96,7 @@ public final class ProtectionController {
 
     public boolean memberOrTrusted(UUID islandId, UUID playerUuid) {
         String roleKey = permissionCache.roleKey(islandId, playerUuid);
-        return !roleKey.equals(IslandRole.VISITOR.name()) && !roleKey.equals(IslandRole.BANNED.name());
+        return !roleKey.equals(VISITOR_ROLE_KEY) && !roleKey.equals(BANNED_ROLE_KEY);
     }
 
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission) {
@@ -105,15 +109,16 @@ public final class ProtectionController {
                 if (migratingIslands.contains(region.islandId())) {
                     return PermissionResult.deny("ISLAND_MIGRATING", IslandRole.VISITOR);
                 }
-                IslandRole role = adminBypass ? IslandRole.OWNER : permissionCache.role(region.islandId(), playerUuid);
+                String roleKey = adminBypass ? OWNER_ROLE_KEY : permissionCache.roleKey(region.islandId(), playerUuid);
+                IslandRole resultRole = legacyRole(roleKey);
                 if (permissionCache.allowed(region.islandId(), playerUuid, permission, adminBypass)) {
-                    return PermissionResult.allow(role);
+                    return PermissionResult.allow(resultRole);
                 }
                 IslandFlag visitorFlag = visitorFlag(permission);
-                if (role == IslandRole.VISITOR && visitorFlag != null && permissionCache.flagAllowed(region.islandId(), visitorFlag)) {
+                if (roleKey.equals(VISITOR_ROLE_KEY) && visitorFlag != null && permissionCache.flagAllowed(region.islandId(), visitorFlag)) {
                     return PermissionResult.allow(IslandRole.VISITOR);
                 }
-                return PermissionResult.deny("DEFAULT_DENY", role);
+                return PermissionResult.deny("DEFAULT_DENY", resultRole);
             })
             .orElseGet(() -> PermissionResult.deny("OUTSIDE_ISLAND", IslandRole.VISITOR));
     }
@@ -156,5 +161,13 @@ public final class ProtectionController {
             case ATTACK_PLAYER -> IslandFlag.VISITOR_PVP;
             default -> null;
         };
+    }
+
+    private IslandRole legacyRole(String roleKey) {
+        try {
+            return IslandRole.valueOf(roleKey);
+        } catch (IllegalArgumentException exception) {
+            return IslandRole.VISITOR;
+        }
     }
 }
