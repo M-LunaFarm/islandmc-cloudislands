@@ -174,7 +174,10 @@ public interface CoreApiClient {
     }
 
     default BlockValueCommandClient blockValueCommands() {
-        return new CoreBlockValueCommandClient(this);
+        if (this instanceof BlockValueCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed block value commands");
     }
 
     default AdminRouteClient adminRoutes() {
@@ -304,8 +307,6 @@ public interface CoreApiClient {
     CompletableFuture<String> topIslandsByWorth(int limit);
     CompletableFuture<String> topIslandsByReviews(int limit);
     CompletableFuture<String> listPublicIslands(int limit);
-    CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
-    CompletableFuture<String> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit);
     CompletableFuture<String> listBlockValues();
     CompletableFuture<String> listUpgradeRules();
     CompletableFuture<String> listIslandUpgrades(UUID islandId);

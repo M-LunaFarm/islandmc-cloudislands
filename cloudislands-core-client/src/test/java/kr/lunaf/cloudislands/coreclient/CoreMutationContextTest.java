@@ -707,7 +707,7 @@ class CoreMutationContextTest {
             client.topIslandsByWorth(11).join();
             client.topIslandsByReviews(12).join();
             client.listPublicIslands(13).join();
-            client.setBlockValueResult(actorUuid, "minecraft:emerald\"block", "100.50", 20L, 64L).join();
+            client.blockValueCommands().set(actorUuid, "minecraft:emerald\"block", "100.50", 20L, 64L).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"materialKey\":\"minecraft:diamond\\\"block\",\"delta\":3}", requestBodies.get("blockDelta"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"counts\":\"minecraft:stone\\\"block=3\"}", requestBodies.get("blockReplace"));

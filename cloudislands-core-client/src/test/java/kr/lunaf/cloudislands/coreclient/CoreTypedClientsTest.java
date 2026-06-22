@@ -63,10 +63,12 @@ class CoreTypedClientsTest {
         assertTrue(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed player profile commands directly");
         assertTrue(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template queries directly");
         assertTrue(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template commands directly");
+        assertTrue(BlockValueCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed block value commands directly");
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("profile", UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("setPrimaryIsland", UUID.class, UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("list").getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("upsert", String.class, String.class, boolean.class, String.class).getDeclaringClass());
+        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("set", UUID.class, String.class, String.class, long.class, long.class).getDeclaringClass());
     }
 
     @Test
@@ -1860,7 +1862,7 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, BlockValueCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listBlockValues" -> CompletableFuture.completedFuture("""
                     {"values":[
@@ -1868,15 +1870,15 @@ class CoreTypedClientsTest {
                       {"materialKey":"minecraft:emerald_block","worth":"80","levelPoints":10,"limit":32}
                     ]}
                     """);
-                case "setBlockValueResult" -> {
+                case "set" -> {
                     calls.add("set:" + args[0] + ":" + args[1] + ":" + args[2] + ":" + args[3] + ":" + args[4]);
-                    yield CompletableFuture.completedFuture("{\"ok\":true}");
+                    yield CompletableFuture.completedFuture(new BlockValueActionView(true, "BLOCK_VALUE_SET", args[1].toString()));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
         BlockValueQueryClient queries = new CoreBlockValueQueryClient(raw);
-        BlockValueCommandClient commands = new CoreBlockValueCommandClient(raw);
+        BlockValueCommandClient commands = (BlockValueCommandClient) raw;
 
         List<BlockValueView> values = queries.list().join();
         BlockValueActionView result = commands.set(actorUuid, " minecraft:diamond_block ", "100.50", 20L, 64L).join();

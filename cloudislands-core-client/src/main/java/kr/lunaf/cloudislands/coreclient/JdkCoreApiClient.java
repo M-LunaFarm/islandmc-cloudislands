@@ -43,7 +43,7 @@ import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, BlockValueCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -80,7 +80,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     private final JobQueryClient jobQueryClient;
     private final JobCommandClient jobCommandClient;
     private final BlockValueQueryClient blockValueQueryClient;
-    private final BlockValueCommandClient blockValueCommandClient;
     private final AdminMetricsQueryClient adminMetricsClient;
     private final AdminCoreConfigQueryClient adminCoreConfigClient;
     private final AdminStorageQueryClient adminStorageClient;
@@ -135,7 +134,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
         this.jobQueryClient = new CoreJobQueryClient(this);
         this.jobCommandClient = new CoreJobCommandClient(this);
         this.blockValueQueryClient = new CoreBlockValueQueryClient(this);
-        this.blockValueCommandClient = new CoreBlockValueCommandClient(this);
         this.adminMetricsClient = new CoreAdminMetricsQueryClient(this);
         this.adminCoreConfigClient = new CoreAdminCoreConfigQueryClient(this);
         this.adminStorageClient = new CoreAdminStorageQueryClient(this);
@@ -317,7 +315,7 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
 
     @Override
     public BlockValueCommandClient blockValueCommands() {
-        return blockValueCommandClient;
+        return this;
     }
 
     @Override
@@ -904,13 +902,18 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     }
 
     @Override
-    public CompletableFuture<Void> setBlockValue(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
-        return setBlockValueResult(actorUuid, materialKey, worth, levelPoints, limit).thenApply(_body -> null);
+    public CompletableFuture<BlockValueActionView> set(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
+        UUID safeActor = actorUuid == null ? new UUID(0L, 0L) : actorUuid;
+        String safeMaterial = requireMaterialKey(materialKey);
+        return postWithResultBody("/v1/admin/block-values", jsonObject("actorUuid", safeActor, "materialKey", safeMaterial, "worth", worth == null ? "0" : worth, "levelPoints", levelPoints, "limit", limit))
+            .thenApply(body -> CoreBlockValueJson.action(body, safeMaterial));
     }
 
-    @Override
-    public CompletableFuture<String> setBlockValueResult(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
-        return postWithResultBody("/v1/admin/block-values", jsonObject("actorUuid", actorUuid, "materialKey", materialKey, "worth", worth, "levelPoints", levelPoints, "limit", limit));
+    private static String requireMaterialKey(String materialKey) {
+        if (materialKey == null || materialKey.isBlank()) {
+            throw new IllegalArgumentException("materialKey is required");
+        }
+        return materialKey.trim();
     }
 
     @Override
