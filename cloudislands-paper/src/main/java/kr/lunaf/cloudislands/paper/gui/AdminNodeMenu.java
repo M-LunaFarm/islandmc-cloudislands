@@ -34,6 +34,7 @@ public final class AdminNodeMenu implements Listener {
         ))
     );
     private static final String MENU_ID = MENU.id();
+    private static final List<String> NODE_ACTION_SYMBOLS = List.of("L", "I", "A", "D", "U", "S", "W", "M", "K", "Q");
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -69,9 +70,10 @@ public final class AdminNodeMenu implements Listener {
     public static void open(Player player, String nodeId, NodeSummaryView summary, MessageRenderer messages) {
         Inventory inventory = GuiMenuRenderer.render(MENU, messages, TITLE, item -> true);
         setNodeSummaryItem(inventory, summary == null ? PaperGuiViews.nodeSummary(nodeId, "") : summary, messages);
-        for (int slot = 10; slot <= 19; slot++) {
-            final int currentSlot = slot;
-            MENU.itemAt(slot).ifPresent(item -> inventory.setItem(currentSlot, GuiMenuRenderer.item(MENU, item, messages, Map.of("nodeId", nodeId))));
+        for (String symbol : NODE_ACTION_SYMBOLS) {
+            for (int slot : GuiMenuRenderer.slots(MENU, symbol)) {
+                MENU.itemAt(slot).ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of("nodeId", nodeId))));
+            }
         }
         player.openInventory(inventory);
     }

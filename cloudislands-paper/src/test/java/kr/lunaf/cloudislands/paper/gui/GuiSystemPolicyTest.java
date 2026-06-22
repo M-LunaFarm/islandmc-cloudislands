@@ -406,6 +406,17 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void adminNodeActionSlotsRenderFromMenuDefinitionLayout() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminNodeMenu.java"));
+        String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/admin-node.yml"));
+
+        assertTrue(definition.contains("\".LIADUSWM\""), "admin node action row must live in config-v2 layout");
+        assertTrue(definition.contains("\"KQ..H.T.C\""), "admin node danger/help row must live in config-v2 layout");
+        assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, symbol)"), "admin node actions must use menu definition slots");
+        assertFalse(menu.contains("slot <= 19"), "admin node actions must not use a Java hard-coded slot range");
+    }
+
+    @Test
     void remainingDynamicItemMaterialsRenderFromMenuDefinitions() throws Exception {
         for (String[] menuCase : List.of(
                 new String[] {"IslandPermissionMenu", "permissions.yml", "ALLOW", "LIME_DYE"},
