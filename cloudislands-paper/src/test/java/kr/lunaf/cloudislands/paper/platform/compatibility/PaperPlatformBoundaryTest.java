@@ -759,15 +759,20 @@ class PaperPlatformBoundaryTest {
     }
 
     @Test
-    void velocityDefaultConfigDoesNotExposeDatabaseOwnership() throws Exception {
+    void velocityConfigV2DefaultsDoNotExposeDatabaseOwnership() throws Exception {
         Path root = repositoryRoot();
-        Path config = root.resolve("cloudislands-velocity/src/main/resources/config.yaml");
-        String source = Files.readString(config);
+        try (Stream<Path> files = yamlFiles(root.resolve("cloudislands-velocity/src/main/resources/config-v2"))) {
+            String source = files
+                .map(PaperPlatformBoundaryTest::readUnchecked)
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
 
-        assertTrue(!source.contains("database:"), "Velocity default config must not expose database ownership settings");
-        assertTrue(!source.contains("POSTGRESQL"), "Velocity default config must not mention Core database backends");
-        assertTrue(!source.contains("MYSQL"), "Velocity default config must not mention Core database backends");
-        assertTrue(!source.contains("MARIADB"), "Velocity default config must not mention Core database backends");
+            assertTrue(!source.contains("database:"), "Velocity config v2 must not expose database ownership settings");
+            assertTrue(!source.contains("storage:"), "Velocity config v2 must not expose island storage ownership settings");
+            assertTrue(!source.contains("POSTGRESQL"), "Velocity config v2 must not mention Core database backends");
+            assertTrue(!source.contains("MYSQL"), "Velocity config v2 must not mention Core database backends");
+            assertTrue(!source.contains("MARIADB"), "Velocity config v2 must not mention Core database backends");
+        }
     }
 
     @Test
@@ -1273,6 +1278,14 @@ class PaperPlatformBoundaryTest {
     private static boolean contains(Path path, String needle) {
         try {
             return Files.readString(path).contains(needle);
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static String readUnchecked(Path path) {
+        try {
+            return Files.readString(path);
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }

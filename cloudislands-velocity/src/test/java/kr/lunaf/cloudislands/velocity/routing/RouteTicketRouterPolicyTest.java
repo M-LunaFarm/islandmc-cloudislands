@@ -21,6 +21,9 @@ import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.RouteClearView;
+import kr.lunaf.cloudislands.coreclient.RoutePublishView;
+import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import net.kyori.adventure.text.Component;
@@ -130,16 +133,29 @@ class RouteTicketRouterPolicyTest {
     private static CoreApiClient coreClient(List<String> calls) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class},
-            (_proxy, method, args) -> {
+            new Class<?>[] {CoreApiClient.class, RoutingCommandClient.class},
+            (proxy, method, args) -> {
+                if (method.isDefault()) {
+                    return InvocationHandler.invokeDefault(proxy, method, args);
+                }
+                if (method.getName().equals("publishRouteSession")) {
+                    RouteTicket ticket = (RouteTicket) args[0];
+                    calls.add("publishRouteSession:" + ticket.ticketId());
+                    return CompletableFuture.completedFuture(null);
+                }
                 if (method.getName().equals("publishRouteSessionResult")) {
                     RouteTicket ticket = (RouteTicket) args[0];
                     calls.add("publishRouteSession:" + ticket.ticketId());
-                    return CompletableFuture.completedFuture("{\"ok\":true}");
+                    return CompletableFuture.completedFuture(new RoutePublishView(true, "OK"));
+                }
+                if (method.getName().equals("clearRoute") && args.length == 2) {
+                    RouteTicket ticket = (RouteTicket) args[0];
+                    calls.add("clearRoute:" + ticket.ticketId() + ":" + args[1]);
+                    return CompletableFuture.completedFuture(new RouteClearView(true, "OK"));
                 }
                 if (method.getName().equals("clearRoute") && args.length == 3) {
                     calls.add("clearRoute:" + args[1] + ":" + args[2]);
-                    return CompletableFuture.completedFuture("{\"cleared\":true}");
+                    return CompletableFuture.completedFuture(new RouteClearView(true, "OK"));
                 }
                 throw new UnsupportedOperationException(method.getName());
             }
