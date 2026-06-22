@@ -5,45 +5,45 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 
-public final class CoreIslandQueryClient implements IslandQueryClient {
-    private final CoreApiClient delegate;
+public final class JdkIslandQueryClient implements IslandQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreIslandQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    public JdkIslandQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
         requireIsland(islandId);
-        return delegate.islandInfo(islandId).thenApply(CoreIslandJson::info);
+        return core.post("/v1/islands/info", JdkCoreApiClient.jsonObject("islandId", islandId)).thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIslandByOwner(UUID ownerUuid) {
         requireIsland(ownerUuid);
-        return delegate.islandInfoByOwner(ownerUuid).thenApply(CoreIslandJson::info);
+        return core.post("/v1/islands/info", JdkCoreApiClient.jsonObject("ownerUuid", ownerUuid)).thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> findIslandByName(String islandName) {
         String normalizedIslandName = requireName(islandName);
-        return delegate.islandInfoByName(normalizedIslandName).thenApply(CoreIslandJson::info);
+        return core.post("/v1/islands/info", JdkCoreApiClient.jsonObject("name", normalizedIslandName)).thenApply(CoreIslandJson::info);
     }
 
     @Override
     public CompletableFuture<List<IslandMemberSnapshot>> memberSnapshots(UUID islandId) {
         requireIsland(islandId);
-        return delegate.listIslandMembers(islandId)
+        return core.get("/v1/islands/" + islandId + "/members")
             .thenApply(body -> CoreMemberJson.members(islandId, body));
     }
 
     @Override
     public CompletableFuture<List<CoreGuiViews.MemberView>> listMembers(UUID islandId) {
         requireIsland(islandId);
-        return delegate.listIslandMembers(islandId).thenApply(CoreMemberJson::memberViews);
+        return core.get("/v1/islands/" + islandId + "/members").thenApply(CoreMemberJson::memberViews);
     }
 
     @Override

@@ -20,7 +20,7 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> islandInfo(UUID islandId) {
         requireIsland(islandId);
-        return new CoreIslandQueryClient(delegate).getIsland(islandId);
+        return islandQueries().getIsland(islandId);
     }
 
     @Override
@@ -221,6 +221,10 @@ public final class CoreProgressionQueryClient implements ProgressionQueryClient 
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
+    }
+
+    private IslandQueryClient islandQueries() {
+        return delegate instanceof IslandQueryClient queries ? queries : delegate.islands();
     }
 
     private static String text(Map<?, ?> object, String key) {

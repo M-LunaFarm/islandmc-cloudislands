@@ -19,7 +19,10 @@ import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
 public interface CoreApiClient {
     default IslandQueryClient islands() {
-        return new CoreIslandQueryClient(this);
+        if (this instanceof IslandQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed island queries");
     }
 
     default IslandEnvironmentQueryClient environment() {
@@ -300,18 +303,11 @@ public interface CoreApiClient {
 
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID requesterUuid, UUID islandId);
-    CompletableFuture<String> islandInfo(UUID islandId);
-    CompletableFuture<String> islandInfoByOwner(UUID ownerUuid);
-    CompletableFuture<String> islandInfoByName(String name);
-    CompletableFuture<String> getIsland(UUID islandId);
-    CompletableFuture<String> getIslandByOwner(UUID ownerUuid);
-    CompletableFuture<String> getIslandMembers(UUID islandId);
     CompletableFuture<String> getIslandRuntime(UUID islandId);
     CompletableFuture<String> getIslandFlags(UUID islandId);
     CompletableFuture<String> getIslandLevel(UUID islandId);
     CompletableFuture<Void> setIslandName(UUID islandId, UUID actorUuid, String name);
     CompletableFuture<String> setIslandNameResult(UUID islandId, UUID actorUuid, String name);
-    CompletableFuture<String> listIslandMembers(UUID islandId);
     CompletableFuture<Void> setIslandMember(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role);
     CompletableFuture<String> setIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid, IslandRole role);
     CompletableFuture<String> setIslandMemberResult(UUID islandId, UUID actorUuid, UUID playerUuid, String roleKey);

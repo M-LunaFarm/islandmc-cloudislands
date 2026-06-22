@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -242,7 +243,7 @@ public final class JdkAddonStateClient implements AddonStateClient {
     }
 
     private static Map<String, String> safeValues(Map<String, String> values) {
-        return values == null ? Map.of() : Map.copyOf(values);
+        return values == null ? Map.of() : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(values));
     }
 
     private static Map<String, Map<String, String>> safeTables(Map<String, Map<String, String>> tables) {

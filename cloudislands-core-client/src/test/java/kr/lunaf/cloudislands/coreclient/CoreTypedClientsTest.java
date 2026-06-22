@@ -6,9 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.sun.net.httpserver.HttpServer;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -87,7 +90,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkEnvironmentClient"), "environment operations must use CoreIslandEnvironment query and command clients");
         assertFalse(nestedClients.contains("JdkSettingsClient"), "settings operations must use CoreIslandSettingsCommandClient");
         assertFalse(nestedClients.contains("JdkHomeWarpClient"), "home and warp operations must use CoreHomeWarp query and command clients");
-        assertFalse(nestedClients.contains("JdkIslandClient"), "island queries must use CoreIslandQueryClient");
+        assertFalse(nestedClients.contains("JdkIslandClient"), "island queries must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkVisitorStatsClient"), "visitor stats must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkPlayerProfileClient"), "player profiles must use CorePlayerProfile query and command clients");
         assertFalse(nestedClients.contains("JdkTemplateClient"), "templates must use CoreTemplate query and command clients");
@@ -148,6 +151,13 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("listBlockValues"));
         assertFalse(names.contains("islandVisitorStats"));
         assertFalse(names.contains("addonStateSummary"));
+        assertFalse(names.contains("islandInfo"));
+        assertFalse(names.contains("islandInfoByOwner"));
+        assertFalse(names.contains("islandInfoByName"));
+        assertFalse(names.contains("getIsland"));
+        assertFalse(names.contains("getIslandByOwner"));
+        assertFalse(names.contains("getIslandMembers"));
+        assertFalse(names.contains("listIslandMembers"));
     }
 
     @Test
@@ -232,61 +242,75 @@ class CoreTypedClientsTest {
     }
 
     @Test
-    void islandQueryClientReturnsTypedIslandAndMemberPages() {
+    void islandQueryClientReturnsTypedIslandAndMemberPages() throws Exception {
         UUID islandId = UUID.randomUUID();
+        UUID ownerUuid = UUID.randomUUID();
         UUID firstMemberUuid = UUID.randomUUID();
         UUID secondMemberUuid = UUID.randomUUID();
         UUID thirdMemberUuid = UUID.randomUUID();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "islandInfo" -> CompletableFuture.completedFuture("""
-                    {"islandId":"%s","name":"Spawn","state":"ACTIVE","level":12,"worth":"34.50","publicAccess":true,"locked":false,"size":300,"border":310,"ownerUuid":"owner","createdAt":"created","updatedAt":"updated"}
-                    """.formatted(islandId));
-                case "islandInfoByOwner" -> CompletableFuture.completedFuture("""
-                    {"islandId":"%s","name":"Owned","state":"ACTIVE","level":2,"createdAt":"owner-created","updatedAt":"owner-updated"}
-                    """.formatted(islandId));
-                case "islandInfoByName" -> CompletableFuture.completedFuture("""
-                    {"islandId":"%s","name":"Named","state":"ACTIVE","level":1}
-                    """.formatted(islandId));
-                case "listIslandMembers" -> CompletableFuture.completedFuture("""
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/islands/info", exchange -> {
+                String request = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                String body = request.contains("ownerUuid")
+                    ? """
+                        {"islandId":"%s","name":"Owned","state":"ACTIVE","level":2,"createdAt":"owner-created","updatedAt":"owner-updated"}
+                        """.formatted(islandId)
+                    : request.contains("name")
+                        ? """
+                            {"islandId":"%s","name":"Named","state":"ACTIVE","level":1}
+                            """.formatted(islandId)
+                        : """
+                            {"islandId":"%s","name":"Spawn","state":"ACTIVE","level":12,"worth":"34.50","publicAccess":true,"locked":false,"size":300,"border":310,"ownerUuid":"owner","createdAt":"created","updatedAt":"updated"}
+                            """.formatted(islandId);
+                byte[] response = body.getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.createContext("/v1/islands/" + islandId + "/members", exchange -> {
+                byte[] response = """
                     {"members":[
                       {"playerUuid":"%s","role":"OWNER","joinedAt":"2026-06-21T10:00:00Z","playerName":"Alice"},
                       {"playerUuid":"%s","role":"MEMBER","joinedAt":"2026-06-21T10:01:00Z","playerName":"Bob"},
                       {"playerUuid":"%s","role":"TRUSTED","joinedAt":"2026-06-21T10:02:00Z","playerName":"Carol"}
                     ]}
-                    """.formatted(firstMemberUuid, secondMemberUuid, thirdMemberUuid));
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        IslandQueryClient client = new CoreIslandQueryClient(raw);
+                    """.formatted(firstMemberUuid, secondMemberUuid, thirdMemberUuid).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.start();
+            IslandQueryClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).islands();
 
-        CoreGuiViews.IslandInfoView island = client.getIsland(islandId).join();
-        CoreGuiViews.IslandInfoView ownedIsland = client.getIslandByOwner(UUID.randomUUID()).join();
-        CoreGuiViews.IslandInfoView namedIsland = client.findIslandByName(" Named ").join();
-        List<CoreGuiViews.MemberView> members = client.listMembers(islandId).join();
-        IslandMemberSnapshot memberSnapshot = client.memberSnapshots(islandId).join().get(0);
-        MemberPage firstPage = client.listMembers(islandId, new MemberCursor(0, 2)).join();
-        MemberPage secondPage = client.listMembers(islandId, firstPage.nextCursor()).join();
+            CoreGuiViews.IslandInfoView island = client.getIsland(islandId).join();
+            CoreGuiViews.IslandInfoView ownedIsland = client.getIslandByOwner(ownerUuid).join();
+            CoreGuiViews.IslandInfoView namedIsland = client.findIslandByName(" Named ").join();
+            List<CoreGuiViews.MemberView> members = client.listMembers(islandId).join();
+            IslandMemberSnapshot memberSnapshot = client.memberSnapshots(islandId).join().get(0);
+            MemberPage firstPage = client.listMembers(islandId, new MemberCursor(0, 2)).join();
+            MemberPage secondPage = client.listMembers(islandId, firstPage.nextCursor()).join();
 
-        assertEquals("Spawn", island.name());
-        assertEquals("created", island.createdAt());
-        assertEquals("updated", island.updatedAt());
-        assertEquals("Owned", ownedIsland.name());
-        assertEquals("owner-created", ownedIsland.createdAt());
-        assertEquals("owner-updated", ownedIsland.updatedAt());
-        assertEquals("Named", namedIsland.name());
-        assertEquals(12L, island.level());
-        assertEquals(3, members.size());
-        assertEquals(firstMemberUuid, memberSnapshot.playerUuid());
-        assertEquals("OWNER", memberSnapshot.roleKey());
-        assertEquals(2, firstPage.members().size());
-        assertTrue(firstPage.hasNext());
-        assertEquals("Bob", firstPage.members().get(1).playerName());
-        assertEquals(1, secondPage.members().size());
-        assertFalse(secondPage.hasNext());
-        assertEquals("Carol", secondPage.members().get(0).playerName());
+            assertEquals("Spawn", island.name());
+            assertEquals("created", island.createdAt());
+            assertEquals("updated", island.updatedAt());
+            assertEquals("Owned", ownedIsland.name());
+            assertEquals("owner-created", ownedIsland.createdAt());
+            assertEquals("owner-updated", ownedIsland.updatedAt());
+            assertEquals("Named", namedIsland.name());
+            assertEquals(12L, island.level());
+            assertEquals(3, members.size());
+            assertEquals(firstMemberUuid, memberSnapshot.playerUuid());
+            assertEquals("OWNER", memberSnapshot.roleKey());
+            assertEquals(2, firstPage.members().size());
+            assertTrue(firstPage.hasNext());
+            assertEquals("Bob", firstPage.members().get(1).playerName());
+            assertEquals(1, secondPage.members().size());
+            assertFalse(secondPage.hasNext());
+            assertEquals("Carol", secondPage.members().get(0).playerName());
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
@@ -296,7 +320,7 @@ class CoreTypedClientsTest {
         List<String> expectedVersions = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
             (_proxy, method, args) -> {
                 if (method.getName().equals("setIslandPermissionResult")) {
                     expectedVersions.add((String) args[5]);
@@ -334,7 +358,7 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "setIslandPermissionResult" -> {
                     calls.add("set:" + args[2] + ":" + args[3] + ":" + args[4]);
@@ -361,7 +385,7 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listIslandPermissions" -> {
                     calls.add("permissions");
@@ -400,14 +424,14 @@ class CoreTypedClientsTest {
         UUID playerUuid = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "islandBiome" -> CompletableFuture.completedFuture("""
                     {"biomeKey":"minecraft:plains","updatedBy":"%s","updatedAt":"2026-06-21T00:00:00Z"}
                     """.formatted(playerUuid));
-                case "islandInfo" -> CompletableFuture.completedFuture("""
+                case "getIsland" -> CompletableFuture.completedFuture(CoreIslandJson.info("""
                     {"islandId":"%s","name":"Spawn","state":"ACTIVE","size":300,"border":310}
-                    """.formatted(islandId));
+                    """.formatted(islandId)));
                 case "listIslandFlags" -> CompletableFuture.completedFuture("{\"flags\":{\"BORDER_COLOR\":\"blue\"}}");
                 case "listIslandLimits" -> CompletableFuture.completedFuture("{\"limits\":[{\"limitKey\":\"HOPPER\",\"value\":64,\"updatedAt\":\"now\"}]}");
                 default -> throw new UnsupportedOperationException(method.getName());
@@ -440,7 +464,7 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "setIslandBiomeResult" -> {
                     calls.add("biome:" + args[2]);
@@ -480,7 +504,7 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "setIslandPublicAccessResult" -> {
                     calls.add("public:" + args[2]);
@@ -894,7 +918,7 @@ class CoreTypedClientsTest {
         UUID islandId = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listIslandHomes" -> CompletableFuture.completedFuture("""
                     {"homes":[{"islandId":"%s","name":"home","location":{"x":1.0,"y":2.0,"z":3.0},"createdBy":"00000000-0000-0000-0000-000000000001","createdAt":"now"}]}
@@ -902,9 +926,9 @@ class CoreTypedClientsTest {
                 case "listIslandWarps" -> CompletableFuture.completedFuture("""
                     {"warps":[{"islandId":"%s","name":"spawn","location":{"x":1.0,"y":2.0,"z":3.0},"publicAccess":true,"createdBy":"00000000-0000-0000-0000-000000000002","createdAt":"2026-01-02T03:04:05Z","category":"default"}]}
                     """.formatted(islandId));
-                case "islandInfo" -> CompletableFuture.completedFuture("""
+                case "getIsland" -> CompletableFuture.completedFuture(CoreIslandJson.info("""
                     {"islandId":"%s","name":"Island","state":"ACTIVE"}
-                    """.formatted(islandId));
+                    """.formatted(islandId)));
                 case "listPublicWarps" -> CompletableFuture.completedFuture("""
                     {"warps":[{"islandId":"%s","name":"market","location":{"x":4.0,"y":5.0,"z":6.0},"publicAccess":true,"category":"market"}]}
                     """.formatted(islandId));
@@ -942,7 +966,7 @@ class CoreTypedClientsTest {
         kr.lunaf.cloudislands.api.model.IslandLocation location = new kr.lunaf.cloudislands.api.model.IslandLocation("world", 1.0d, 2.0d, 3.0d, 0.0f, 0.0f);
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "setIslandHomeResult" -> {
                     calls.add("home:" + args[2]);
@@ -1090,13 +1114,13 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, IslandQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "islandInfo" -> {
+                case "getIsland" -> {
                     calls.add("info");
-                    yield CompletableFuture.completedFuture("""
+                    yield CompletableFuture.completedFuture(CoreIslandJson.info("""
                         {"islandId":"%s","name":"Base","state":"ACTIVE","level":7,"worth":"12.50"}
-                        """.formatted(islandId));
+                        """.formatted(islandId)));
                 }
                 case "islandBlockDetails" -> {
                     calls.add("blocks:" + args[1]);

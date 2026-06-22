@@ -15,7 +15,7 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<IslandInfoView> islandInfo(CoreApiClient client, UUID islandId) {
-        return new CoreIslandQueryClient(client).getIsland(islandId);
+        return client instanceof IslandQueryClient queries ? queries.getIsland(islandId) : client.islands().getIsland(islandId);
     }
 
     public static IslandInfoView islandInfoView(String body) {

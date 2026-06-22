@@ -105,7 +105,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.routingClient = new JdkRoutingClient(this);
         this.navigationQueryClient = new CoreNavigationQueryClient(this);
         this.navigationCommandClient = new CoreNavigationCommandClient(this);
-        this.islandClient = new CoreIslandQueryClient(this);
+        this.islandClient = new JdkIslandQueryClient(this);
         this.progressionQueryClient = new CoreProgressionQueryClient(this);
         this.progressionCommandClient = new CoreProgressionCommandClient(this);
         this.memberQueryClient = new CoreMemberQueryClient(this);
@@ -443,36 +443,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     }
 
     @Override
-    public CompletableFuture<String> islandInfo(UUID islandId) {
-        return post("/v1/islands/info", jsonObject("islandId", islandId));
-    }
-
-    @Override
-    public CompletableFuture<String> islandInfoByOwner(UUID ownerUuid) {
-        return post("/v1/islands/info", jsonObject("ownerUuid", ownerUuid));
-    }
-
-    @Override
-    public CompletableFuture<String> islandInfoByName(String name) {
-        return post("/v1/islands/info", jsonObject("name", name));
-    }
-
-    @Override
-    public CompletableFuture<String> getIsland(UUID islandId) {
-        return get("/v1/islands/" + islandId);
-    }
-
-    @Override
-    public CompletableFuture<String> getIslandByOwner(UUID ownerUuid) {
-        return get("/v1/islands/by-owner/" + ownerUuid);
-    }
-
-    @Override
-    public CompletableFuture<String> getIslandMembers(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/members");
-    }
-
-    @Override
     public CompletableFuture<String> getIslandRuntime(UUID islandId) {
         return get("/v1/islands/" + islandId + "/runtime");
     }
@@ -495,11 +465,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public CompletableFuture<String> setIslandNameResult(UUID islandId, UUID actorUuid, String name) {
         return postWithResultBody("/v1/islands/name", jsonObject("islandId", islandId, "actorUuid", actorUuid, "name", name));
-    }
-
-    @Override
-    public CompletableFuture<String> listIslandMembers(UUID islandId) {
-        return get("/v1/islands/" + islandId + "/members");
     }
 
     @Override
@@ -1427,7 +1392,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
             .thenApply(response -> response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : "");
     }
 
-    private CompletableFuture<String> get(String path) {
+    CompletableFuture<String> get(String path) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
             .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)

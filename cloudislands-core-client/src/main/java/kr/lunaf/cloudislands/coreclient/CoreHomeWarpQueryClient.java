@@ -31,7 +31,7 @@ public final class CoreHomeWarpQueryClient implements HomeWarpQueryClient {
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> islandInfo(UUID islandId) {
         requireIsland(islandId);
-        return new CoreIslandQueryClient(delegate).getIsland(islandId);
+        return islandQueries().getIsland(islandId);
     }
 
     @Override
@@ -45,5 +45,9 @@ public final class CoreHomeWarpQueryClient implements HomeWarpQueryClient {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
+    }
+
+    private IslandQueryClient islandQueries() {
+        return delegate instanceof IslandQueryClient queries ? queries : delegate.islands();
     }
 }

@@ -27,7 +27,7 @@ public final class CoreIslandEnvironmentQueryClient implements IslandEnvironment
     @Override
     public CompletableFuture<CoreGuiViews.IslandInfoView> getIsland(UUID islandId) {
         requireIsland(islandId);
-        return new CoreIslandQueryClient(delegate).getIsland(islandId);
+        return islandQueries().getIsland(islandId);
     }
 
     @Override
@@ -48,5 +48,9 @@ public final class CoreIslandEnvironmentQueryClient implements IslandEnvironment
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
+    }
+
+    private IslandQueryClient islandQueries() {
+        return delegate instanceof IslandQueryClient queries ? queries : delegate.islands();
     }
 }

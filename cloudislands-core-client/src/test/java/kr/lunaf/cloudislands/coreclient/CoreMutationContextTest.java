@@ -109,11 +109,11 @@ class CoreMutationContextTest {
             client.lifecycle().resetIsland(islandId, actorUuid, "reset \"reason\"").join();
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"reason\":\"reset \\\"reason\\\"\"}", requestBodies.get("reset"));
 
-            client.islandInfo(islandId).join();
+            client.islands().getIsland(islandId).join();
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("info"));
-            client.islandInfoByOwner(ownerUuid).join();
+            client.islands().getIslandByOwner(ownerUuid).join();
             assertEquals("{\"ownerUuid\":\"" + ownerUuid + "\"}", requestBodies.get("info"));
-            client.islandInfoByName("island \"name\"").join();
+            client.islands().findIslandByName("island \"name\"").join();
             assertEquals("{\"name\":\"island \\\"name\\\"\"}", requestBodies.get("info"));
         } finally {
             server.stop(0);

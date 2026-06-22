@@ -29,7 +29,7 @@ final class JdkAdminIslandQueryClient implements AdminIslandQueryClient {
         if (normalized.isBlank()) {
             throw new IllegalArgumentException("islandName is required");
         }
-        return core.islandInfoByName(normalized).thenApply(CoreGuiViews::islandInfoView);
+        return core.islands().findIslandByName(normalized);
     }
 
     @Override
