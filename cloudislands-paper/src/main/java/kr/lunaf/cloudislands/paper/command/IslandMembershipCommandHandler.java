@@ -262,6 +262,9 @@ final class IslandMembershipCommandHandler {
             runtime.message(player, "- " + runtime.routeMessage("member-detail-role", "역할: ") + memberDetail.role());
             runtime.message(player, "- " + runtime.routeMessage("member-detail-presence", "네트워크 상태: ") + memberDetail.presenceState());
             runtime.message(player, "- " + runtime.routeMessage("member-detail-last-seen", "마지막 활동: ") + (memberDetail.lastSeenAt().isBlank() ? runtime.routeMessage("member-detail-last-seen-empty", "기록 없음") : memberDetail.lastSeenAt()));
+            runtime.message(player, "- " + runtime.routeMessage("member-detail-permission-exception", "권한 예외: ") + permissionExceptionCommand(memberDetail.playerUuid().toString(), "<permission>", "<허용|거부>"));
+            runtime.message(player, "- " + runtime.routeMessage("member-detail-permission-build-example", "건축 허용 예: ") + permissionExceptionCommand(memberDetail.playerUuid().toString(), IslandPermission.BUILD.name(), "허용"));
+            runtime.message(player, "- " + runtime.routeMessage("member-detail-permission-container-example", "상자 거부 예: ") + permissionExceptionCommand(memberDetail.playerUuid().toString(), IslandPermission.OPEN_CONTAINER.name(), "거부"));
             return true;
         }
         if (action instanceof GuiAction.MemberRoleChange roleChange) {
@@ -485,6 +488,13 @@ final class IslandMembershipCommandHandler {
                     });
             });
         });
+    }
+
+    static String permissionExceptionCommand(String target, String permission, String allowedValue) {
+        String safeTarget = target == null || target.isBlank() ? "<player>" : target.trim();
+        String safePermission = permission == null || permission.isBlank() ? "<permission>" : permission.trim();
+        String safeAllowed = allowedValue == null || allowedValue.isBlank() ? "<허용|거부>" : allowedValue.trim();
+        return "/섬 권한예외 " + safeTarget + " " + safePermission + " " + safeAllowed;
     }
 
     private void trustIslandMemberTemporary(Player player, String target, String duration) {

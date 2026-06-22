@@ -464,6 +464,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("private void listIslandBans(Player player)"), "ban list execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void removeIslandMember(Player player, String target)"), "member removal execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage)"), "member role execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("permissionExceptionCommand(memberDetail.playerUuid().toString()"), "member detail must expose the individual permission exception entrypoint");
+        assertTrue(membershipHandler.contains("IslandPermission.BUILD.name()"), "member detail must show a concrete build permission exception example");
+        assertTrue(membershipHandler.contains("IslandPermission.OPEN_CONTAINER.name()"), "member detail must show a concrete container permission exception example");
+        assertTrue(membershipHandler.contains("static String permissionExceptionCommand"), "permission exception command formatting must be testable outside the GUI branch");
         assertTrue(membershipHandler.contains("private void trustIslandMemberTemporary(Player player, String target, String duration)"), "temporary trust execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void transferIslandOwnership(Player player, String target)"), "ownership transfer execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void banIslandVisitor(Player player, String target, String reason)"), "visitor ban execution belongs in IslandMembershipCommandHandler");

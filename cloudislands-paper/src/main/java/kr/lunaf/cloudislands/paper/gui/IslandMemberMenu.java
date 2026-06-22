@@ -155,7 +155,7 @@ public final class IslandMemberMenu implements Listener {
             statusLine(member, messages),
             lastSeenLine(member, messages),
             member.joinedAt().isBlank() ? message(messages, "member-menu-no-join-info", "가입 정보 없음") : message(messages, "member-menu-joined-at", "가입 시각: ") + member.joinedAt(),
-            message(messages, "member-menu-left-click", "좌클릭: 상세 관리"),
+            message(messages, "member-menu-left-click", "좌클릭: 상세 관리와 권한 예외 안내"),
             message(messages, "member-menu-right-click", "우클릭: 강등 확인"),
             message(messages, "member-menu-shift-left-click", "Shift+좌클릭: 승급 확인"),
             message(messages, "member-menu-shift-right-click", "Shift+우클릭: 추방 확인"),
