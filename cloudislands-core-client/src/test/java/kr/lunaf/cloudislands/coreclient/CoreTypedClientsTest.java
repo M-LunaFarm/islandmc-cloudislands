@@ -85,6 +85,8 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkWarehouseClient"), "warehouse operations must use CoreWarehouse query and command clients");
         assertFalse(nestedClients.contains("JdkLifecycleClient"), "lifecycle operations must use CoreIslandLifecycleCommandClient");
         assertFalse(nestedClients.contains("JdkProgressionClient"), "progression operations must use CoreProgression query and command clients");
+        assertFalse(nestedClients.contains("JdkMemberQueryClient"), "member queries must use CoreMemberQueryClient");
+        assertFalse(nestedClients.contains("JdkMemberCommandClient"), "member commands must use CoreMemberCommandClient");
         assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use CoreAdminMetricsQueryClient");
         assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use CoreAdminCoreConfigQueryClient");
         assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use CoreAdminStorageQueryClient");

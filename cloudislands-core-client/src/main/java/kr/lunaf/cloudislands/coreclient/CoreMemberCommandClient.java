@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
-import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class CoreMemberCommandClient implements MemberCommandClient {
@@ -45,7 +44,7 @@ public final class CoreMemberCommandClient implements MemberCommandClient {
     @Override
     public CompletableFuture<MemberActionView> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, String roleKey) {
         requireIds(islandId, actorUuid, targetUuid);
-        String normalizedRoleKey = RoleId.of(roleKey).value();
+        String normalizedRoleKey = normalizeRoleKey(roleKey);
         return delegate.setIslandMemberResult(islandId, actorUuid, targetUuid, normalizedRoleKey)
             .thenApply(body -> memberAction(body, "MEMBER_ROLE_SET"));
     }
@@ -105,6 +104,10 @@ public final class CoreMemberCommandClient implements MemberCommandClient {
     private static boolean bool(Map<?, ?> object, String key) {
         Object value = object.get(key);
         return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
+    }
+
+    private static String normalizeRoleKey(String roleKey) {
+        return roleKey == null ? "" : roleKey.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 
     private static void requireIds(UUID islandId, UUID actorUuid, UUID targetUuid) {
