@@ -39,7 +39,7 @@ final class CoreJson {
         }
     }
 
-    static List<Map<?, ?>> entries(String body) {
+    static List<Map<?, ?>> entries(String body, String... keys) {
         Object parsed = value(body);
         if (parsed instanceof List<?>) {
             return SimpleJson.list(parsed).stream()
@@ -48,6 +48,15 @@ final class CoreJson {
                 .toList();
         }
         Map<?, ?> root = SimpleJson.object(parsed);
+        if (keys != null && keys.length > 0) {
+            for (String key : keys) {
+                List<Map<?, ?>> entries = objects(root, key);
+                if (!entries.isEmpty()) {
+                    return entries;
+                }
+            }
+            return List.of();
+        }
         for (Object value : root.values()) {
             if (value instanceof List<?>) {
                 return SimpleJson.list(value).stream()

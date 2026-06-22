@@ -13,7 +13,7 @@ final class CoreSnapshotJson {
     }
 
     static List<IslandSnapshotRecord> records(String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "snapshots").stream()
             .map(CoreSnapshotJson::record)
             .filter(snapshot -> snapshot.snapshotNo() > 0L)
             .toList();

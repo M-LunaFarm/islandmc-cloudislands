@@ -301,14 +301,18 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
                 return Optional.empty();
             }
             List<IslandMemberSnapshot> members = new ArrayList<>();
+            Instant now = Instant.now();
             for (String object : objects(json)) {
-                members.add(new IslandMemberSnapshot(
+                IslandMemberSnapshot member = new IslandMemberSnapshot(
                     JsonFields.uuid(object, "islandId", islandId),
                     JsonFields.uuid(object, "playerUuid", new UUID(0L, 0L)),
                     roleKey(object),
                     instant(JsonFields.text(object, "joinedAt", "")),
                     nullableInstant(JsonFields.text(object, "expiresAt", ""))
-                ));
+                );
+                if (activeMember(member, now)) {
+                    members.add(member);
+                }
             }
             return Optional.of(List.copyOf(members));
         } catch (IOException | RuntimeException ignored) {
@@ -480,6 +484,11 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
             roleKey = JsonFields.text(object, "role", IslandRole.VISITOR.name());
         }
         return kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
+    }
+
+    static boolean activeMember(IslandMemberSnapshot member, Instant now) {
+        Instant expiresAt = member.expiresAt();
+        return expiresAt == null || expiresAt.isAfter(now);
     }
 
     private static String bansJson(List<IslandBanSnapshot> bans) {

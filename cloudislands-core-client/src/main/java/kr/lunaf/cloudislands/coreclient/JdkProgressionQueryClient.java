@@ -125,7 +125,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     }
 
     static List<ProgressionRankingEntryView> rankingViews(String body, String valueKey) {
-        return entries(body).stream()
+        return entries(body, "rankings", "islands").stream()
             .map(object -> new ProgressionRankingEntryView(
                 CoreJson.text(object, "islandId"),
                 CoreJson.text(object, "name"),
@@ -138,7 +138,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     }
 
     static List<ProgressionReviewRankingEntryView> reviewRankingViews(String body) {
-        return entries(body).stream()
+        return entries(body, "rankings", "reviews").stream()
             .map(object -> new ProgressionReviewRankingEntryView(
                 CoreJson.text(object, "islandId"),
                 CoreJson.decimal(object, "averageRating"),
@@ -149,7 +149,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     }
 
     static List<UpgradeRuleView> upgradeRuleViews(String body) {
-        return entries(body).stream()
+        return entries(body, "rules", "upgrades").stream()
             .map(object -> new UpgradeRuleView(
                 CoreJson.text(object, "upgradeKey"),
                 CoreJson.text(object, "type"),
@@ -162,7 +162,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     }
 
     static List<CoreGuiViews.UpgradeView> upgradeViews(String body) {
-        return entries(body).stream()
+        return entries(body, "upgrades").stream()
             .map(object -> {
                 String key = CoreJson.firstText(object, "key", "upgradeKey");
                 return new CoreGuiViews.UpgradeView(key, CoreJson.text(object, "type"), intValue(object, "level"), CoreJson.text(object, "generatorKey"));
@@ -172,7 +172,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     }
 
     static List<CoreGuiViews.MissionView> missionViews(String body) {
-        return entries(body).stream()
+        return entries(body, "missions").stream()
             .map(object -> {
                 String key = CoreJson.firstText(object, "key", "missionKey");
                 return new CoreGuiViews.MissionView(
@@ -216,8 +216,8 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
         return rankings;
     }
 
-    private static List<Map<?, ?>> entries(String body) {
-        return CoreJson.entries(body);
+    private static List<Map<?, ?>> entries(String body, String... keys) {
+        return CoreJson.entries(body, keys);
     }
 
     private static int boundedLimit(int limit) {

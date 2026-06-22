@@ -405,6 +405,7 @@ class GuiSystemPolicyTest {
         assertTrue(definition.contains("\"____C____\""), "biome menu must expose dynamic item slots in config-v2 layout");
         assertTrue(definition.contains("\"_________\""), "biome menu must expose enough YAML slots for biome entries");
         assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, \"_\")"), "biome entries must use menu definition slots");
+        assertFalse(menu.contains("GuiMenuRenderer.material(\"GRASS_BLOCK\")"), "biome entries must not use a Java material fallback when config-v2 is missing");
         assertFalse(menu.contains("int slot = 9"), "biome entries must not start from a Java hard-coded slot");
         assertFalse(menu.contains("slot++"), "biome entries must not advance through Java hard-coded slots");
     }
@@ -509,6 +510,18 @@ class GuiSystemPolicyTest {
                 || menu.contains("GuiMenuRenderer.symbolItem(MENU"), menuCase[0] + " must read materials from the menu definition");
             assertFalse(menu.contains("Material." + menuCase[3]), menuCase[0] + " must not hard-code dynamic item material");
         }
+        String create = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandCreateMenu.java"));
+        assertFalse(create.contains("GuiMenuRenderer.material(\"OAK_SAPLING\")"), "create menu must not use a Java material fallback when config-v2 is missing");
+    }
+
+    @Test
+    void menuRendererDoesNotHideMissingConfigMaterialsBehindStoneFallbacks() throws Exception {
+        String renderer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiMenuRenderer.java"));
+        String state = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiStateMenus.java"));
+
+        assertFalse(renderer.contains("return Material.STONE"), "invalid configured materials must fail fast instead of rendering STONE");
+        assertFalse(renderer.contains("new GuiMenuDefinition.MenuItem(symbol, \"STONE\""), "missing symbol items must fail fast instead of inventing STONE items");
+        assertFalse(state.contains("GuiMenuRenderer.material(\"BARRIER\")"), "state menus must not use Java material fallbacks when config-v2 is missing");
     }
 
     @Test

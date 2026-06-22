@@ -77,7 +77,7 @@ public final class GuiMenuRenderer {
         try {
             return Material.valueOf(key == null ? "STONE" : key);
         } catch (RuntimeException ignored) {
-            return Material.STONE;
+            throw new IllegalArgumentException("Invalid GUI material key " + key);
         }
     }
 
@@ -134,7 +134,7 @@ public final class GuiMenuRenderer {
     public static org.bukkit.inventory.ItemStack symbolItem(GuiMenuDefinition definition, String symbol, String fallbackSymbol, MessageRenderer messages, String displayName, Map<String, String> data, List<String> extraLore) {
         GuiMenuDefinition.MenuItem item = definition.item(symbol)
             .or(() -> definition.item(fallbackSymbol))
-            .orElseGet(() -> new GuiMenuDefinition.MenuItem(symbol, "STONE", "", displayName, "", "", List.of(), List.of(), Map.of(), ""));
+            .orElseThrow(() -> new IllegalStateException("Missing menu item symbol " + symbol + " and fallback " + fallbackSymbol));
         return item(definition, item, messages, displayName, data, extraLore);
     }
 

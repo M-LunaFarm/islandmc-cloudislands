@@ -524,8 +524,12 @@ class PaperIntegrationRegistryTest {
         assertTrue(runtimeSource.contains("details.put(\"externalApi\", plan.externalApi())"));
         assertTrue(runtimeSource.contains("details.put(\"artifactMode\", plan.stateChanging() ? \"state-transfer-manifest\" : \"observation\")"));
         assertTrue(runtimeSource.contains("apiProbe.method.getAPI"), "CoreProtect adapter must probe the Bukkit plugin API surface");
+        assertTrue(runtimeSource.contains("invokeNoArg(plugin, \"getAPI\")"), "CoreProtect adapter must invoke the Bukkit plugin API entrypoint when present");
         assertTrue(runtimeSource.contains("apiProbe.class.WorldEdit"), "WorldEdit adapter must probe WorldEdit API classes");
+        assertTrue(runtimeSource.contains("invokeStaticNoArg(\"com.sk89q.worldedit.WorldEdit\", \"getInstance\")"), "WorldEdit adapter must invoke the WorldEdit singleton entrypoint when present");
         assertTrue(runtimeSource.contains("apiProbe.bukkitService.LuckPerms"), "LuckPerms adapter must probe Bukkit services");
+        assertTrue(runtimeSource.contains("bukkitService(\"net.luckperms.api.LuckPerms\")"), "LuckPerms adapter must load the registered Bukkit service object");
+        assertTrue(runtimeSource.contains("invokeStaticNoArg(\"dev.rosewood.rosestacker.api.RoseStackerAPI\", \"getInstance\")"), "RoseStacker adapter must invoke the API singleton entrypoint when present");
     }
 
     private String readRegistrySource() {

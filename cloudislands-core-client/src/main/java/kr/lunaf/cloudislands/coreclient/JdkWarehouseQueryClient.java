@@ -25,7 +25,7 @@ final class JdkWarehouseQueryClient implements WarehouseQueryClient {
     }
 
     private static List<WarehouseItemView> warehouseItems(UUID islandId, String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "items").stream()
             .map(object -> new WarehouseItemView(
                 warehouseItemIslandId(islandId, object),
                 CoreJson.text(object, "materialKey"),

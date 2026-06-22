@@ -495,6 +495,9 @@ class CoreTypedClientsTest {
         assertEquals(List.of("paper-a"), CoreJson.strings(ok, "nodes"));
         assertEquals(2, CoreJson.entries("[{\"nodeId\":\"paper-a\"},{\"nodeId\":\"paper-b\"}]").size());
         assertEquals("paper-a", CoreJson.text(CoreJson.entries("{\"nodes\":[{\"nodeId\":\"paper-a\"}]}").get(0), "nodeId"));
+        assertEquals("paper-b", CoreJson.text(CoreJson.entries("{\"metadata\":[{\"nodeId\":\"wrong\"}],\"nodes\":[{\"nodeId\":\"paper-b\"}]}", "nodes").get(0), "nodeId"));
+        assertTrue(CoreJson.entries("{\"metadata\":[{\"nodeId\":\"wrong\"}],\"nodes\":[{\"nodeId\":\"paper-b\"}]}", "members").isEmpty());
+        assertEquals("paper-c", CoreJson.text(CoreJson.entries("[{\"nodeId\":\"paper-c\"}]", "nodes").get(0), "nodeId"));
         assertFalse(CoreJson.accepted(rejected));
         assertEquals("FAILED", CoreJson.code(rejected, "IGNORED"));
         assertFalse(CoreJson.accepted(failed));

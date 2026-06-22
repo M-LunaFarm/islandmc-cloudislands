@@ -12,7 +12,7 @@ final class CorePermissionJson {
         Map<?, ?> root = CoreJson.object(body);
         String version = CoreJson.text(root, "version");
         List<CoreGuiViews.PermissionRuleView> rules = new ArrayList<>();
-        for (Map<?, ?> object : CoreJson.entries(body)) {
+        for (Map<?, ?> object : CoreJson.entries(body, "rules", "permissions")) {
             String role = CoreJson.text(object, "role");
             String permission = CoreJson.text(object, "permission");
             if (!role.isBlank() && !permission.isBlank()) {
@@ -28,7 +28,7 @@ final class CorePermissionJson {
 
     static List<CoreGuiViews.RoleView> roleViews(String body) {
         List<CoreGuiViews.RoleView> roles = new ArrayList<>();
-        for (Map<?, ?> object : CoreJson.entries(body)) {
+        for (Map<?, ?> object : CoreJson.entries(body, "roles")) {
             CoreGuiViews.RoleView role = roleView(object);
             if (!role.role().isBlank()) {
                 roles.add(role);

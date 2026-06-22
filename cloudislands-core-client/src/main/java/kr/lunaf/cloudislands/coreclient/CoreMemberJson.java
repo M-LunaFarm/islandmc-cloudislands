@@ -16,28 +16,28 @@ final class CoreMemberJson {
     }
 
     static List<IslandMemberSnapshot> members(UUID islandId, String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "members").stream()
             .map(values -> member(islandId, values))
             .filter(member -> member.playerUuid() != null && !member.playerUuid().equals(EMPTY_UUID))
             .toList();
     }
 
     static List<CoreGuiViews.MemberView> memberViews(String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "members").stream()
             .map(CoreMemberJson::memberView)
             .filter(member -> !member.playerUuid().isBlank())
             .toList();
     }
 
     static List<IslandInviteSnapshot> invites(String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "invites").stream()
             .map(CoreMemberJson::invite)
             .filter(invite -> invite.inviteId() != null && !invite.inviteId().equals(EMPTY_UUID))
             .toList();
     }
 
     static List<CoreGuiViews.InviteView> inviteViews(String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "invites").stream()
             .map(CoreMemberJson::inviteView)
             .filter(invite -> !invite.inviteId().isBlank())
             .toList();
@@ -48,14 +48,14 @@ final class CoreMemberJson {
     }
 
     static List<IslandBanSnapshot> bans(UUID islandId, String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "bans").stream()
             .map(values -> ban(islandId, values))
             .filter(ban -> ban.bannedUuid() != null && !ban.bannedUuid().equals(EMPTY_UUID))
             .toList();
     }
 
     static List<CoreGuiViews.BanView> banViews(String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "bans").stream()
             .map(values -> banView(ban(null, values)))
             .filter(ban -> !ban.bannedUuid().isBlank())
             .toList();

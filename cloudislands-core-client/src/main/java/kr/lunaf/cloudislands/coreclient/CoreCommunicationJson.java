@@ -30,7 +30,7 @@ final class CoreCommunicationJson {
     }
 
     static List<IslandLogRecord> records(String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "logs").stream()
             .map(CoreCommunicationJson::record)
             .filter(log -> !log.action().isBlank())
             .toList();

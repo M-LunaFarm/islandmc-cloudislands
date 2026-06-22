@@ -161,9 +161,7 @@ public final class GuiStateMenus implements Listener {
     private static ItemStack stateItem(String symbol, MessageRenderer messages, String title, String detail) {
         GuiMenuDefinition.MenuItem item = MENU.items().get(symbol);
         if (item == null) {
-            String fallbackTitle = title == null || title.isBlank() ? "State" : title;
-            String fallbackDetail = detail == null || detail.isBlank() ? "" : detail;
-            return GuiItems.action(GuiMenuRenderer.material("BARRIER"), fallbackTitle, "", Map.of(), fallbackDetail);
+            throw new IllegalStateException("Missing state menu item symbol " + symbol);
         }
         String renderedTitle = title == null || title.isBlank()
             ? GuiMenuRenderer.message(messages, item.nameKey(), item.fallbackName())

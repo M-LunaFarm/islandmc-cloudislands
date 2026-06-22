@@ -43,7 +43,7 @@ final class CoreEnvironmentJson {
     }
 
     static List<IslandLimitSnapshot> limits(UUID islandId, String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "limits").stream()
             .map(values -> limit(islandId, values))
             .filter(limit -> !limit.limitKey().isBlank())
             .toList();

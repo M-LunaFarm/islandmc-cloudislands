@@ -15,14 +15,14 @@ final class CoreHomeWarpJson {
     }
 
     static List<IslandHomeSnapshot> homes(UUID islandId, String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "homes").stream()
             .map(values -> home(islandId, values))
             .filter(home -> !home.name().isBlank())
             .toList();
     }
 
     static List<IslandWarpSnapshot> warps(UUID islandId, String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "warps").stream()
             .map(values -> warp(islandId, values))
             .filter(warp -> !warp.name().isBlank())
             .toList();

@@ -98,7 +98,7 @@ public final class IslandCreateMenu implements Listener {
         lore.add(message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
         return MENU.item("_")
             .map(item -> GuiMenuRenderer.item(MENU, item, messages, displayName, java.util.Map.of("templateId", template.id()), lore))
-            .orElseGet(() -> GuiItems.action(GuiMenuRenderer.material("OAK_SAPLING"), displayName, "island.create", java.util.Map.of("templateId", template.id()), lore.toArray(String[]::new)));
+            .orElseThrow(() -> new IllegalStateException("Missing create menu template item symbol _"));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

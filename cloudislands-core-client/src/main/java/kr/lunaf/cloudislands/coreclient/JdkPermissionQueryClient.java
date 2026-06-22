@@ -64,7 +64,7 @@ public final class JdkPermissionQueryClient implements PermissionQueryClient {
             entries.addAll(CoreJson.objects(root, "permissions"));
         }
         entries.addAll(CoreJson.objects(root, "overrides"));
-        return entries.isEmpty() ? CoreJson.entries(body) : entries;
+        return entries.isEmpty() && CoreJson.value(body) instanceof List<?> ? CoreJson.entries(body) : entries;
     }
 
     private static void requireIsland(UUID islandId) {

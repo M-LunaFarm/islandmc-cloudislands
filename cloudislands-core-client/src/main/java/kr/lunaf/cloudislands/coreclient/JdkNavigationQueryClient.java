@@ -62,14 +62,14 @@ public final class JdkNavigationQueryClient implements NavigationQueryClient {
     }
 
     static List<CoreGuiViews.PlayerIslandView> playerIslandViews(String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "islands").stream()
             .map(JdkNavigationQueryClient::playerIslandView)
             .filter(view -> !view.islandId().isBlank())
             .toList();
     }
 
     static List<CoreGuiViews.PublicIslandView> publicIslandViews(String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "islands").stream()
             .map(JdkNavigationQueryClient::publicIslandView)
             .filter(view -> !view.islandId().isBlank())
             .toList();

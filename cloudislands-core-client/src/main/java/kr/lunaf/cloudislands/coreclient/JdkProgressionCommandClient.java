@@ -131,7 +131,7 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
     }
 
     static List<MissionProviderDefinitionSnapshot> missionDefinitions(String body) {
-        return CoreJson.entries(body).stream()
+        return CoreJson.entries(body, "definitions", "missions").stream()
             .map(JdkProgressionCommandClient::missionDefinition)
             .toList();
     }

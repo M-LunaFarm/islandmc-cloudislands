@@ -123,7 +123,7 @@ public final class IslandBiomeMenu implements Listener {
         String lore = selected ? message(messages, "biome-menu-selected", "현재 적용됨") : message(messages, "biome-menu-click-to-change", "클릭하면 이 바이옴으로 변경합니다.");
         return MENU.item(symbol)
             .map(item -> GuiMenuRenderer.item(MENU, item, messages, biome, Map.of("biomeKey", biome), List.of(lore)))
-            .orElseGet(() -> GuiItems.action(GuiMenuRenderer.material("GRASS_BLOCK"), biome, "island.biome.set", Map.of("biomeKey", biome), lore));
+            .orElseThrow(() -> new IllegalStateException("Missing biome menu item symbol " + symbol));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
