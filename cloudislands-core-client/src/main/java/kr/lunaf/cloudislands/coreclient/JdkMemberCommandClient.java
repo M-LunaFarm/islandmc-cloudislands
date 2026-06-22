@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandInviteActionResult;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
 
 public final class JdkMemberCommandClient implements MemberCommandClient {
     private final JdkCoreApiClient core;
@@ -105,21 +104,16 @@ public final class JdkMemberCommandClient implements MemberCommandClient {
 
     static IslandInviteActionResult inviteAction(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
-        boolean accepted = bool(root, "accepted");
+        boolean accepted = CoreJson.bool(root, "accepted");
         String code = CoreJson.text(root, "code");
         return new IslandInviteActionResult(accepted, accepted ? successCode : (code.isBlank() ? "FAILED" : code));
     }
 
     static MemberActionView memberAction(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
-        boolean accepted = bool(root, "accepted") && !root.containsKey("error");
+        boolean accepted = CoreJson.bool(root, "accepted") && !root.containsKey("error");
         String code = CoreJson.text(root, "code");
         return new MemberActionView(accepted, accepted ? successCode : (code.isBlank() ? "FAILED" : code), CoreJson.text(root, "expiresAt"));
-    }
-
-    private static boolean bool(Map<?, ?> object, String key) {
-        Object value = object.get(key);
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
     }
 
     private static String normalizeRoleKey(String roleKey) {

@@ -1791,6 +1791,7 @@ class CoreTypedClientsTest {
         UUID actorUuid = UUID.randomUUID();
         UUID targetUuid = UUID.randomUUID();
         UUID inviteId = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkMemberCommandClient.java")));
         List<String> calls = new ArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         try {
@@ -1829,6 +1830,8 @@ class CoreTypedClientsTest {
                 "pardon:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\"}",
                 "kick:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\"}"
             ), calls);
+            assertFalse(source.contains("private static boolean bool("), "member command parser must use shared CoreJson boolean helpers");
+            assertFalse(source.contains("SimpleJson.text(value)"), "member command parser must not parse boolean values directly");
         } finally {
             server.stop(0);
         }
@@ -2203,6 +2206,7 @@ class CoreTypedClientsTest {
     void lifecycleCommandClientReturnsTypedResetResult() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
+        String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkIslandLifecycleCommandClient.java")));
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
@@ -2305,6 +2309,9 @@ class CoreTypedClientsTest {
             "repair:repair",
             "adminDelete:" + islandId
         ), calls);
+        assertFalse(source.contains("private static boolean bool("), "lifecycle command parser must use shared CoreJson boolean helpers");
+        assertFalse(source.contains("SimpleJson.object(root.get(\"error\"))"), "lifecycle command parser must use shared CoreJson nested object helpers");
+        assertFalse(source.contains("SimpleJson.text(root.get("), "lifecycle command parser must use shared CoreJson text helpers");
     }
 
     @Test
