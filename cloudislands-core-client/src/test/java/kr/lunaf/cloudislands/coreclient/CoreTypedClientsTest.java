@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreclient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
@@ -40,6 +41,25 @@ import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import org.junit.jupiter.api.Test;
 
 class CoreTypedClientsTest {
+    @Test
+    void jdkCoreApiClientOverridesAllTypedDomainAccessors() throws Exception {
+        List<String> defaultAccessors = new ArrayList<>();
+        List<String> missingOverrides = new ArrayList<>();
+        for (Method method : CoreApiClient.class.getMethods()) {
+            if (method.isDefault() && method.getParameterCount() == 0) {
+                defaultAccessors.add(method.getName());
+                Method jdkMethod = JdkCoreApiClient.class.getMethod(method.getName());
+                if (jdkMethod.getDeclaringClass() != JdkCoreApiClient.class) {
+                    missingOverrides.add(method.getName());
+                }
+            }
+        }
+
+        assertFalse(defaultAccessors.isEmpty());
+        assertEquals(List.of(), missingOverrides);
+        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("progression").getDeclaringClass());
+    }
+
     @Test
     void jdkCoreApiClientJsonObjectEscapesRouteRequestFields() throws Exception {
         Method method = JdkCoreApiClient.class.getDeclaredMethod("jsonObject", Object[].class);
