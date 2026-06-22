@@ -578,7 +578,7 @@ class GuiMenuDefinitionTest {
         );
 
         assertEquals("island.settings", definition.id());
-        assertEquals(27, definition.size());
+        assertEquals(36, definition.size());
         assertEquals("menu.settings.title", definition.titleKey());
         assertEquals("P", definition.itemAt(10).orElseThrow().symbol());
         assertEquals("LIME_DYE", definition.itemAt(10).orElseThrow().materialKey(true));
@@ -594,8 +594,53 @@ class GuiMenuDefinitionTest {
         assertEquals("island.permissions.open", definition.action(definition.itemAt(13).orElseThrow().actionKey(), ""));
         assertEquals("R", definition.itemAt(17).orElseThrow().symbol());
         assertEquals("island.roles.open", definition.action(definition.itemAt(17).orElseThrow().actionKey(), ""));
+        assertEquals("Z", definition.itemAt(24).orElseThrow().symbol());
+        assertEquals("island.ranking.open", definition.action(definition.itemAt(24).orElseThrow().actionKey(), ""));
+        assertEquals("C", definition.itemAt(25).orElseThrow().symbol());
+        assertEquals("island.info.open", definition.action(definition.itemAt(25).orElseThrow().actionKey(), ""));
         assertEquals("D", definition.itemAt(26).orElseThrow().symbol());
         assertEquals("island.danger.open", definition.action(definition.itemAt(26).orElseThrow().actionKey(), ""));
+        assertEquals("Y", definition.itemAt(31).orElseThrow().symbol());
+        assertEquals("island.info.open", definition.action(definition.itemAt(31).orElseThrow().actionKey(), ""));
+    }
+
+    @Test
+    void bundledProductGapMenusExposeReviewWarehouseAndBorderSurfacesDeclaratively() {
+        GuiMenuDefinition reviews = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/reviews.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition warehouse = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/warehouse.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+        GuiMenuDefinition border = GuiMenuDefinition.bundled(
+            "config-v2/ui/menus/border.yml",
+            new GuiMenuDefinition("fallback", 1, "fallback.title", Map.of())
+        );
+
+        assertEquals("island.reviews", reviews.id());
+        assertEquals("_", reviews.itemAt(0).orElseThrow().symbol());
+        assertEquals("P", reviews.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.ranking.open", reviews.action(reviews.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("R", reviews.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.info.open", reviews.action(reviews.itemAt(49).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.warehouse", warehouse.id());
+        assertEquals("_", warehouse.itemAt(0).orElseThrow().symbol());
+        assertEquals("D", warehouse.itemAt(45).orElseThrow().symbol());
+        assertEquals("island.info.open", warehouse.action(warehouse.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("M", warehouse.itemAt(53).orElseThrow().symbol());
+        assertEquals("island.main.open", warehouse.action(warehouse.itemAt(53).orElseThrow().actionKey(), ""));
+
+        assertEquals("island.border", border.id());
+        assertEquals("S", border.itemAt(10).orElseThrow().symbol());
+        assertEquals("L", border.itemAt(11).orElseThrow().symbol());
+        assertEquals("B", border.itemAt(13).orElseThrow().symbol());
+        assertEquals("I", border.itemAt(14).orElseThrow().symbol());
+        assertEquals("island.info.open", border.action(border.itemAt(14).orElseThrow().actionKey(), ""));
+        assertEquals("M", border.itemAt(22).orElseThrow().symbol());
+        assertEquals("island.main.open", border.action(border.itemAt(22).orElseThrow().actionKey(), ""));
     }
 
     @Test

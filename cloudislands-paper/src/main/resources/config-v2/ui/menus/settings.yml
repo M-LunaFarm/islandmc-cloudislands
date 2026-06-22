@@ -1,10 +1,11 @@
 id: island.settings
-rows: 3
+rows: 4
 title-key: menu.settings.title
 layout:
   - "........."
   - ".PLMXFWBR"
-  - "KUGHSI..D"
+  - "KUGHSIZCD"
+  - "....Y...."
 items:
   P:
     material: LIME_DYE
@@ -140,6 +141,15 @@ items:
     fallback-lore:
       - "/섬 정보"
     action: info
+  C:
+    material: CHEST
+    name-key: settings-menu-warehouse-name
+    fallback-name: 공동 창고
+    lore-keys:
+      - settings-menu-warehouse-command
+    fallback-lore:
+      - "/섬 창고"
+    action: warehouse
   D:
     material: TNT
     name-key: settings-menu-danger-name
@@ -149,6 +159,24 @@ items:
     fallback-lore:
       - "/섬 위험작업"
     action: danger
+  Z:
+    material: WRITABLE_BOOK
+    name-key: settings-menu-review-name
+    fallback-name: 섬 후기
+    lore-keys:
+      - settings-menu-review-command
+    fallback-lore:
+      - "/섬 후기"
+    action: reviews
+  Y:
+    material: MAP
+    name-key: settings-menu-border-name
+    fallback-name: 보더 설정
+    lore-keys:
+      - settings-menu-border-command
+    fallback-lore:
+      - "/섬 보더"
+    action: border
 actions:
   open: island.settings.open
   public-toggle: island.public.toggle
@@ -165,5 +193,8 @@ actions:
   biome: island.biome.open
   snapshots: island.snapshots.open
   info: island.info.open
+  warehouse: island.info.open
+  reviews: island.ranking.open
+  border: island.info.open
   danger: island.danger.open
   back: island.main.open

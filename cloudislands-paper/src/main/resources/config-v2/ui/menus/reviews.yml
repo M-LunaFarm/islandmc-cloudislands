@@ -1,0 +1,54 @@
+id: island.reviews
+rows: 6
+title-key: menu.reviews.title
+layout:
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "........."
+  - "P...R...M"
+items:
+  _:
+    material: WRITABLE_BOOK
+    name-key: reviews-menu-entry-name
+    fallback-name: 섬 후기
+    lore-keys:
+      - reviews-menu-entry-rating
+      - reviews-menu-entry-comment
+    fallback-lore:
+      - "평점과 후기를 확인합니다."
+      - "후기는 Core 리뷰 API 기준입니다."
+    action: list
+  P:
+    material: GOLD_BLOCK
+    name-key: reviews-menu-ranking-name
+    fallback-name: 후기 랭킹
+    lore-keys:
+      - reviews-menu-ranking-command
+    fallback-lore:
+      - "/섬 랭킹"
+    action: ranking
+  R:
+    material: CLOCK
+    name-key: reviews-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - reviews-menu-refresh-command
+    fallback-lore:
+      - "/섬 후기"
+    action: open
+  M:
+    material: COMPASS
+    name-key: reviews-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - reviews-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: back
+actions:
+  open: island.info.open
+  list: island.info.open
+  ranking: island.ranking.open
+  back: island.main.open

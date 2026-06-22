@@ -1,0 +1,75 @@
+id: island.border
+rows: 3
+title-key: menu.border.title
+layout:
+  - "........."
+  - ".SLCBIR.."
+  - "....M...."
+items:
+  S:
+    material: MAP
+    name-key: border-menu-size-name
+    fallback-name: 현재 보더 크기
+    lore-keys:
+      - border-menu-size-lore
+    fallback-lore:
+      - "섬 정보의 size/border 값을 기준으로 표시합니다."
+    action: info
+  L:
+    material: LIME_DYE
+    name-key: border-menu-green-name
+    fallback-name: 초록 보더
+    lore-keys:
+      - border-menu-color-lore
+    fallback-lore:
+      - "운영자가 보더 색상 UX를 연결할 수 있는 메뉴 슬롯입니다."
+    action: info
+  C:
+    material: CYAN_DYE
+    name-key: border-menu-cyan-name
+    fallback-name: 청록 보더
+    lore-keys:
+      - border-menu-color-lore
+    fallback-lore:
+      - "운영자가 보더 색상 UX를 연결할 수 있는 메뉴 슬롯입니다."
+    action: info
+  B:
+    material: BLUE_DYE
+    name-key: border-menu-blue-name
+    fallback-name: 파랑 보더
+    lore-keys:
+      - border-menu-color-lore
+    fallback-lore:
+      - "운영자가 보더 색상 UX를 연결할 수 있는 메뉴 슬롯입니다."
+    action: info
+  I:
+    material: PLAYER_HEAD
+    name-key: border-menu-info-name
+    fallback-name: 섬 정보
+    lore-keys:
+      - border-menu-info-command
+    fallback-lore:
+      - "/섬 정보"
+    action: info
+  R:
+    material: CLOCK
+    name-key: border-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - border-menu-refresh-command
+    fallback-lore:
+      - "/섬 보더"
+    action: open
+  M:
+    material: COMPASS
+    name-key: border-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - border-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: back
+actions:
+  open: island.info.open
+  info: island.info.open
+  back: island.main.open

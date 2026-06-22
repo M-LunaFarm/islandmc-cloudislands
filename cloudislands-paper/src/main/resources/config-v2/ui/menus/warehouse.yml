@@ -1,0 +1,53 @@
+id: island.warehouse
+rows: 6
+title-key: menu.warehouse.title
+layout:
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "........."
+  - "D...R...M"
+items:
+  _:
+    material: CHEST
+    name-key: warehouse-menu-entry-name
+    fallback-name: 공동 창고 항목
+    lore-keys:
+      - warehouse-menu-entry-amount
+      - warehouse-menu-entry-updated
+    fallback-lore:
+      - "섬 UUID 기준으로 공유되는 창고 항목입니다."
+      - "Core 창고 API 기준으로 표시됩니다."
+    action: list
+  D:
+    material: HOPPER
+    name-key: warehouse-menu-deposit-name
+    fallback-name: 창고 입금
+    lore-keys:
+      - warehouse-menu-deposit-command
+    fallback-lore:
+      - "명령으로 보유 아이템을 공동 창고에 넣습니다."
+    action: open
+  R:
+    material: CLOCK
+    name-key: warehouse-menu-refresh-name
+    fallback-name: 새로고침
+    lore-keys:
+      - warehouse-menu-refresh-command
+    fallback-lore:
+      - "/섬 창고"
+    action: open
+  M:
+    material: COMPASS
+    name-key: warehouse-menu-main-menu-name
+    fallback-name: 메인 메뉴
+    lore-keys:
+      - warehouse-menu-main-menu-command
+    fallback-lore:
+      - "/섬 메뉴"
+    action: back
+actions:
+  open: island.info.open
+  list: island.info.open
+  back: island.main.open
