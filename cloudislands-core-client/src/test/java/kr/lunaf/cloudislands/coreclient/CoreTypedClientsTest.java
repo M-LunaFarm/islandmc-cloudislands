@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,6 +59,19 @@ class CoreTypedClientsTest {
         assertFalse(defaultAccessors.isEmpty());
         assertEquals(List.of(), missingOverrides);
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("progression").getDeclaringClass());
+    }
+
+    @Test
+    void jdkCoreApiClientReusesStandaloneAdminQueryClients() {
+        List<String> nestedClients = Arrays.stream(JdkCoreApiClient.class.getDeclaredClasses())
+            .map(Class::getSimpleName)
+            .toList();
+
+        assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use CoreAdminMetricsQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use CoreAdminCoreConfigQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use CoreAdminStorageQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminEventClient"), "admin events must use CoreAdminEventQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminAuditClient"), "admin audit must use CoreAdminAuditQueryClient");
     }
 
     @Test

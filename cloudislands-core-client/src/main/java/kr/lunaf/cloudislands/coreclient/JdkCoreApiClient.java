@@ -70,11 +70,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkTemplateClient templateClient;
     private final JdkJobClient jobClient;
     private final JdkBlockValueClient blockValueClient;
-    private final JdkAdminMetricsClient adminMetricsClient;
-    private final JdkAdminCoreConfigClient adminCoreConfigClient;
-    private final JdkAdminStorageClient adminStorageClient;
-    private final JdkAdminEventClient adminEventClient;
-    private final JdkAdminAuditClient adminAuditClient;
+    private final AdminMetricsQueryClient adminMetricsClient;
+    private final AdminCoreConfigQueryClient adminCoreConfigClient;
+    private final AdminStorageQueryClient adminStorageClient;
+    private final AdminEventQueryClient adminEventClient;
+    private final AdminAuditQueryClient adminAuditClient;
     private final JdkAdminRouteClient adminRouteClient;
     private final JdkAdminAddonStateClient adminAddonStateClient;
     private final JdkAdminMaintenanceClient adminMaintenanceClient;
@@ -112,11 +112,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.templateClient = new JdkTemplateClient();
         this.jobClient = new JdkJobClient();
         this.blockValueClient = new JdkBlockValueClient();
-        this.adminMetricsClient = new JdkAdminMetricsClient();
-        this.adminCoreConfigClient = new JdkAdminCoreConfigClient();
-        this.adminStorageClient = new JdkAdminStorageClient();
-        this.adminEventClient = new JdkAdminEventClient();
-        this.adminAuditClient = new JdkAdminAuditClient();
+        this.adminMetricsClient = new CoreAdminMetricsQueryClient(this);
+        this.adminCoreConfigClient = new CoreAdminCoreConfigQueryClient(this);
+        this.adminStorageClient = new CoreAdminStorageQueryClient(this);
+        this.adminEventClient = new CoreAdminEventQueryClient(this);
+        this.adminAuditClient = new CoreAdminAuditQueryClient(this);
         this.adminRouteClient = new JdkAdminRouteClient();
         this.adminAddonStateClient = new JdkAdminAddonStateClient();
         this.adminMaintenanceClient = new JdkAdminMaintenanceClient();
@@ -1785,52 +1785,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
                 throw new IllegalArgumentException("materialKey is required");
             }
             return normalized;
-        }
-    }
-
-    private final class JdkAdminMetricsClient implements AdminMetricsQueryClient {
-        @Override
-        public CompletableFuture<AdminMetricsSummaryView> summary() {
-            return postWithResultBody("/metrics", "{}")
-                .thenApply(AdminMetricsSummaryView::parse);
-        }
-    }
-
-    private final class JdkAdminCoreConfigClient implements AdminCoreConfigQueryClient {
-        @Override
-        public CompletableFuture<AdminCoreConfigView> config() {
-            return postWithResultBody("/v1/admin/config", "{}")
-                .thenApply(AdminCoreConfigView::parse);
-        }
-    }
-
-    private final class JdkAdminStorageClient implements AdminStorageQueryClient {
-        @Override
-        public CompletableFuture<AdminStorageStatusView> status() {
-            return postWithResultBody("/v1/admin/storage", "{}")
-                .thenApply(CoreAdminStorageQueryClient::status);
-        }
-    }
-
-    private final class JdkAdminEventClient implements AdminEventQueryClient {
-        @Override
-        public CompletableFuture<AdminEventStreamView> list(int limit) {
-            return postWithResultBody("/v1/events", jsonObject("limit", Math.max(1, Math.min(limit, 4096))))
-                .thenApply(CoreAdminEventQueryClient::stream);
-        }
-
-        @Override
-        public CompletableFuture<AdminEventStreamView> listSince(long sinceSeq, int limit) {
-            return postWithResultBody("/v1/events", jsonObject("sinceSeq", Math.max(0L, sinceSeq), "limit", Math.max(1, Math.min(limit, 4096))))
-                .thenApply(CoreAdminEventQueryClient::stream);
-        }
-    }
-
-    private final class JdkAdminAuditClient implements AdminAuditQueryClient {
-        @Override
-        public CompletableFuture<List<AdminAuditEntryView>> list(int limit) {
-            return postWithResultBody("/v1/admin/audit/list", jsonObject("limit", Math.max(1, Math.min(limit, 500))))
-                .thenApply(CoreAdminAuditQueryClient::entries);
         }
     }
 
