@@ -167,6 +167,10 @@ final class IslandHomeWarpCommandHandler {
             }
             return true;
         }
+        if (action instanceof GuiAction.PublicWarpCategory publicWarpCategory) {
+            IslandWarpMenu.openPublic(plugin, coreApiClient, player, runtime.messagesFor(player), publicWarpCategory.category(), publicWarpCategory.query());
+            return true;
+        }
         if (action instanceof GuiAction.WarpDelete warpDelete) {
             if (!warpDelete.confirmation()) {
                 runtime.openConfirmation(player,

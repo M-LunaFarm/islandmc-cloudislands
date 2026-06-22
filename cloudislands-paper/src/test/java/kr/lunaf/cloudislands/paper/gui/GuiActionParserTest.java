@@ -293,6 +293,7 @@ class GuiActionParserTest {
         GuiAction home = GuiActionParser.parse("island.home", Map.of("homeName", " default ")).orElseThrow();
         GuiAction homeSet = GuiActionParser.parse("island.home.set", Map.of("homeName", " farm ")).orElseThrow();
         GuiAction warp = GuiActionParser.parse("island.warp.teleport", Map.of("warpName", " shop ", "islandId", "00000000-0000-0000-0000-000000000000")).orElseThrow();
+        GuiAction category = GuiActionParser.parse("island.visit.public.category", Map.of("category", " shop ", "query", " market ")).orElseThrow();
         GuiAction toggle = GuiActionParser.parse("island.warp.public.toggle", Map.of("warpName", " shop ", "publicAccess", "false")).orElseThrow();
         GuiAction delete = GuiActionParser.parse("island.warp.delete.prepare", Map.of("warpName", " shop ")).orElseThrow();
         GuiAction confirm = GuiActionParser.parse("island.warp.delete.confirm", Map.of("warpName", " shop ", ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token("island.warp.delete.confirm"))).orElseThrow();
@@ -303,6 +304,8 @@ class GuiActionParserTest {
         assertEquals(Map.of("homeName", "farm"), homeSet.data());
         assertTrue(warp instanceof GuiAction.WarpTeleport);
         assertEquals(Map.of("warpName", "shop", "islandId", "00000000-0000-0000-0000-000000000000"), warp.data());
+        assertTrue(category instanceof GuiAction.PublicWarpCategory);
+        assertEquals(Map.of("category", "shop", "query", "market"), category.data());
         assertTrue(toggle instanceof GuiAction.WarpAccess);
         assertEquals(Map.of("warpName", "shop", "publicAccess", "false"), toggle.data());
         assertTrue(((GuiAction.WarpAccess) toggle).targetPublicAccess());
@@ -459,6 +462,7 @@ class GuiActionParserTest {
             );
             case "island.snapshot.restore.prepare" -> Map.of("snapshotNo", "1");
             case "island.upgrade.purchase" -> Map.of("upgradeKey", "max-members");
+            case "island.visit.public.category" -> Map.of("category", "shop");
             case "island.visit.target" -> Map.of("target", "00000000-0000-0000-0000-000000000000");
             case "island.warp.delete.confirm" -> Map.of(
                 "warpName", "shop",

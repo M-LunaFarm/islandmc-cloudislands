@@ -2,13 +2,57 @@ id: island.public-warps
 rows: 6
 title-key: menu.public-warps.title
 layout:
-  - "_________"
+  - "DQFG....."
   - "_________"
   - "_________"
   - "_________"
   - "_________"
   - "R...S...M"
 items:
+  D:
+    material: COMPASS
+    name-key: warp-menu-category-default-name
+    fallback-name: 기본 워프
+    lore-keys:
+      - warp-menu-category-default-command
+    fallback-lore:
+      - "기본 공개 워프만 표시합니다."
+    action: category
+    data:
+      category: default
+  Q:
+    material: EMERALD
+    name-key: warp-menu-category-shop-name
+    fallback-name: 상점 워프
+    lore-keys:
+      - warp-menu-category-shop-command
+    fallback-lore:
+      - "상점 카테고리 공개 워프만 표시합니다."
+    action: category
+    data:
+      category: shop
+  F:
+    material: WHEAT
+    name-key: warp-menu-category-farm-name
+    fallback-name: 농장 워프
+    lore-keys:
+      - warp-menu-category-farm-command
+    fallback-lore:
+      - "농장 카테고리 공개 워프만 표시합니다."
+    action: category
+    data:
+      category: farm
+  G:
+    material: SPAWNER
+    name-key: warp-menu-category-grinder-name
+    fallback-name: 사냥터 워프
+    lore-keys:
+      - warp-menu-category-grinder-command
+    fallback-lore:
+      - "사냥터 카테고리 공개 워프만 표시합니다."
+    action: category
+    data:
+      category: grinder
   _:
     material: ENDER_PEARL
     name-key: warp-menu-entry-name
@@ -53,6 +97,7 @@ items:
     action: back
 actions:
   open: island.visit.public.open
+  category: island.visit.public.category
   teleport: island.warp.teleport
   settings: island.settings.open
   back: island.main.open

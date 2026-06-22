@@ -104,6 +104,7 @@ public final class GuiActionParser {
         "island.upgrades.list",
         "island.upgrades.open",
         "island.visit.open",
+        "island.visit.public.category",
         "island.visit.public.open",
         "island.visit.random",
         "island.visit.target",
@@ -274,6 +275,10 @@ public final class GuiActionParser {
                 ));
                 case "island.visit.target" -> Optional.of(new GuiAction.VisitTarget(
                     required(safeData, "target")
+                ));
+                case "island.visit.public.category" -> Optional.of(new GuiAction.PublicWarpCategory(
+                    required(safeData, "category"),
+                    safeData.getOrDefault("query", "")
                 ));
                 case "island.home" -> Optional.of(new GuiAction.HomeTeleport(
                     required(safeData, "homeName")

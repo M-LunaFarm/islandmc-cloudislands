@@ -312,6 +312,8 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("teleportHome("), "home teleport logic belongs in IslandHomeWarpCommandHandler");
         assertFalse(backend.contains("teleportWarp("), "warp teleport logic belongs in IslandHomeWarpCommandHandler");
         assertFalse(backend.contains("listPublicWarps("), "public warp listing belongs in IslandHomeWarpCommandHandler");
+        assertTrue(homeWarpHandler.contains("action instanceof GuiAction.PublicWarpCategory"));
+        assertTrue(homeWarpHandler.contains("IslandWarpMenu.openPublic(plugin, coreApiClient, player, runtime.messagesFor(player), publicWarpCategory.category(), publicWarpCategory.query())"));
         assertTrue(homeWarpHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(homeWarpHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(homeWarpHandler.contains("IslandHomeWarpUseCase"));

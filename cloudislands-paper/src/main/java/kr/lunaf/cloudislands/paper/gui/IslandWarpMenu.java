@@ -36,6 +36,7 @@ public final class IslandWarpMenu implements Listener {
         "config-v2/ui/menus/public-warps.yml",
         new GuiMenuDefinition("island.public-warps", 6, "menu.public-warps.title", Map.of(
             "open", "island.visit.public.open",
+            "category", "island.visit.public.category",
             "teleport", "island.warp.teleport",
             "settings", "island.settings.open",
             "back", "island.main.open"
@@ -79,9 +80,13 @@ public final class IslandWarpMenu implements Listener {
     }
 
     public static void openPublic(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
+        openPublic(plugin, client, player, messages, "", "");
+    }
+
+    public static void openPublic(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages, String category, String query) {
         GuiSession session = GuiSessions.begin(player, PUBLIC_MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, PUBLIC_MENU.titleKey(), PUBLIC_TITLE));
-        PaperGuiViews.publicWarps(client, 45)
+        PaperGuiViews.publicWarps(client, 45, category, query)
             .thenAccept(warps -> openSync(plugin, player, session, PUBLIC_TITLE, warps, true, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, PUBLIC_MENU.titleKey(), PUBLIC_TITLE), message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다."), "island.visit.public.open", "island.visit.open");
