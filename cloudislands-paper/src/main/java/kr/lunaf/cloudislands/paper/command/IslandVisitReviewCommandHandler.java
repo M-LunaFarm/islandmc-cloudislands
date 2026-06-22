@@ -70,6 +70,10 @@ final class IslandVisitReviewCommandHandler {
             rateIslandReview(player, args[1], integer(args[2], 0), args.length > 3 ? joined(args, 3) : "");
             return true;
         }
+        if (subcommand.equals("delete-review") || subcommand.equals("review-delete") || subcommand.equals("reviewdel") || subcommand.equals("후기삭제") || subcommand.equals("평가삭제")) {
+            deleteIslandReview(player, args.length > 1 ? args[1] : "current");
+            return true;
+        }
         return false;
     }
 
@@ -181,6 +185,36 @@ final class IslandVisitReviewCommandHandler {
             })
             .exceptionally(error -> {
                 runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 평가를 저장하지 못했습니다."));
+                return null;
+            });
+    }
+
+    private void deleteIslandReview(Player player, String target) {
+        UUID islandId = uuid(target);
+        if (islandId == null && (target == null || target.isBlank() || target.equalsIgnoreCase("current") || target.equals("현재"))) {
+            runtime.currentIsland(player, "섬 안에서만 현재 섬 후기를 삭제할 수 있습니다.").ifPresent(current -> submitReviewDelete(player, current));
+            return;
+        }
+        if (islandId == null) {
+            runtime.message(player, runtime.routeMessage("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
+            return;
+        }
+        submitReviewDelete(player, islandId);
+    }
+
+    private void submitReviewDelete(Player player, UUID islandId) {
+        navigationUseCase.deleteReviewAction(islandId, player.getUniqueId(), runtime::mutateIdempotent)
+            .thenAccept(result -> {
+                if (!result.accepted()) {
+                    runtime.message(player, result.code().equals("REVIEW_NOT_FOUND")
+                        ? "삭제할 섬 후기가 없습니다."
+                        : runtime.playerCodeMessage(result.code(), "섬 후기를 삭제하지 못했습니다."));
+                    return;
+                }
+                runtime.message(player, "섬 후기 삭제 완료");
+            })
+            .exceptionally(error -> {
+                runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 후기를 삭제하지 못했습니다."));
                 return null;
             });
     }

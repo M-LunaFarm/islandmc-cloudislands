@@ -361,6 +361,7 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("listPublicIslands("), "public island listing belongs in IslandVisitReviewCommandHandler");
         assertFalse(backend.contains("listIslandReviews("), "review listing belongs in IslandVisitReviewCommandHandler");
         assertFalse(backend.contains("rateIslandReview("), "review mutation logic belongs in IslandVisitReviewCommandHandler");
+        assertFalse(backend.contains("deleteIslandReview("), "review delete logic belongs in IslandVisitReviewCommandHandler");
         assertTrue(visitReviewHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(visitReviewHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
         assertTrue(visitReviewHandler.contains("IslandNavigationUseCase"));
@@ -370,6 +371,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.contains("navigationUseCase.visitorStats"));
         assertTrue(visitReviewHandler.contains("IslandVisitorStatsMenu.open"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.setReviewAction"));
+        assertTrue(visitReviewHandler.contains("navigationUseCase.deleteReviewAction"));
         assertFalse(visitReviewHandler.contains("coreApiClient.createVisitTicket"));
         assertFalse(visitReviewHandler.contains("coreApiClient.createRandomVisitTicket"));
         assertFalse(visitReviewHandler.contains("coreApiClient.listPublicIslands"));
@@ -382,6 +384,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(navigationUseCase.contains("navigationQueries.publicIslands"), "public island list usecase must read through the typed navigation query client");
         assertTrue(navigationUseCase.contains("NavigationCommandClient navigationCommands"), "navigation mutations must stay behind a typed core-client command boundary");
         assertTrue(navigationUseCase.contains("navigationCommands.setReview"));
+        assertTrue(navigationUseCase.contains("navigationCommands.deleteReview"));
         assertFalse(navigationUseCase.contains("coreApiClient.setIslandReview"));
         assertFalse(navigationUseCase.contains("PaperGuiViews.publicIslands(coreApiClient"), "public island list usecase must not parse raw Core bodies in Paper");
         assertFalse(navigationUseCase.contains("public CompletableFuture<String> listPublicIslands("), "public island list usecase must expose typed views instead of raw JSON");

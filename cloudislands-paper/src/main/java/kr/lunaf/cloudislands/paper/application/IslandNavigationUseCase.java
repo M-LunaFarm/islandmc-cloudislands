@@ -133,6 +133,16 @@ public final class IslandNavigationUseCase {
         return setReviewResult(islandId, reviewerUuid, rating, comment, runner);
     }
 
+    public CompletableFuture<ReviewActionResult> deleteReviewAction(UUID islandId, UUID reviewerUuid, IdempotentMutationRunner runner) {
+        if (islandId == null) {
+            throw new IllegalArgumentException("islandId is required");
+        }
+        requirePlayer(reviewerUuid);
+        requireIdempotentRunner(runner);
+        return runner.mutateIdempotent("island.review.delete", () -> navigationCommands.deleteReview(islandId, reviewerUuid))
+            .thenApply(result -> new ReviewActionResult(result.accepted(), result.code()));
+    }
+
     private static PublicIslandView publicIslandView(CoreGuiViews.PublicIslandView view) {
         return new PublicIslandView(view.islandId(), view.ownerUuid(), view.name(), view.level(), view.worth());
     }

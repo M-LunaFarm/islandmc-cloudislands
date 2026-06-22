@@ -61,12 +61,15 @@ class IslandNavigationUseCaseTest {
         assertEquals("spawn", useCase.publicIslandViews(500).join().getFirst().name());
         assertEquals(1L, useCase.reviewViews(islandId, 0).join().count());
         assertEquals(true, useCase.setReviewAction(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join().accepted());
+        assertEquals(true, useCase.deleteReviewAction(islandId, reviewerUuid, idempotentRunner(calls)).join().accepted());
 
         assertEquals(List.of(
             "listPublicIslands:100",
             "listIslandReviews:1",
             "audit-idempotent:island.review.set",
-            "setIslandReview:5:nice"
+            "setIslandReview:5:nice",
+            "audit-idempotent:island.review.delete",
+            "deleteIslandReview"
         ), calls);
     }
 
@@ -116,6 +119,10 @@ class IslandNavigationUseCaseTest {
                 case "setReview" -> {
                     calls.add("setIslandReview:" + args[2] + ":" + args[3]);
                     yield CompletableFuture.completedFuture(new ReviewActionView(true, "REVIEW_SET"));
+                }
+                case "deleteReview" -> {
+                    calls.add("deleteIslandReview");
+                    yield CompletableFuture.completedFuture(new ReviewActionView(true, "REVIEW_DELETED"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });
