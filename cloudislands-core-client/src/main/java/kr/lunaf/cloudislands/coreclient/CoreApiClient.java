@@ -5,8 +5,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
-import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -280,7 +278,10 @@ public interface CoreApiClient {
     }
 
     default AddonStateClient addonStates() {
-        return new CoreAddonStateClient(this);
+        if (this instanceof AddonStateClient states) {
+            return states;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed addon state operations");
     }
 
     default AdminCoreConfigQueryClient adminCoreConfig() {
@@ -406,224 +407,6 @@ public interface CoreApiClient {
     CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
-    CompletableFuture<String> addonState(String addonId);
-    CompletableFuture<String> putAddonState(String addonId, String key, String value);
-    CompletableFuture<String> putAddonState(String addonId, Map<String, String> values);
-    CompletableFuture<String> putAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables);
-    default CompletableFuture<String> saveAddonState(String addonId, Map<String, String> values) {
-        return putAddonState(addonId, values);
-    }
-    default CompletableFuture<String> saveAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return putAddonState(addonId, values, tables);
-    }
-    default CompletableFuture<String> bulkSaveAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return saveAddonState(addonId, values, tables);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return bulkSaveAddonState(addonId, values, tables);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAddonState(AddonStateBulkSaveRequest request) {
-        if (request == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Addon state request is required"));
-        }
-        if (request.islandScoped()) {
-            return tableKeyValueBulkSaveAddonIslandState(request);
-        }
-        return putAddonState(request.addonId(), request.flattenedStateValues());
-    }
-    default CompletableFuture<String> bulkSaveAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonState(addonId, values, tables);
-    }
-    default CompletableFuture<String> saveAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonState(addonId, values, tables);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAliasAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonState(addonId, values, tables);
-    }
-    default CompletableFuture<String> tableKeyValueBulkAddonState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonState(addonId, values, tables);
-    }
-    default CompletableFuture<String> bulkAddonTableKeyValueState(String addonId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkAddonState(addonId, values, tables);
-    }
-    default CompletableFuture<String> tableBulkAddonState(String addonId, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonState(addonId, Map.of(), tables);
-    }
-    default CompletableFuture<String> bulkAddonTableState(String addonId, Map<String, Map<String, String>> tables) {
-        return tableBulkAddonState(addonId, tables);
-    }
-    default CompletableFuture<String> tableBulkSetAddonState(String addonId, Map<String, Map<String, String>> tables) {
-        return tableBulkAddonState(addonId, tables);
-    }
-    default CompletableFuture<String> bulkSetAddonTableState(String addonId, Map<String, Map<String, String>> tables) {
-        return tableBulkSetAddonState(addonId, tables);
-    }
-    CompletableFuture<String> addonTableState(String addonId, String table);
-    default CompletableFuture<String> tableKeyValueBulkLoadAddonState(String addonId, String table) {
-        return addonTableState(addonId, table);
-    }
-    default CompletableFuture<String> tableKeyValueBulkLoadAddonState(AddonStateBulkLoadRequest request) {
-        if (request == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Addon state request is required"));
-        }
-        if (request.islandScoped()) {
-            return tableKeyValueBulkLoadAddonIslandState(request);
-        }
-        return tableKeyValueBulkLoadAddonState(request.addonId(), request.table());
-    }
-    default CompletableFuture<String> bulkLoadAddonTableKeyValueState(String addonId, String table) {
-        return tableKeyValueBulkLoadAddonState(addonId, table);
-    }
-    default CompletableFuture<String> bulkLoadAddonTableKeyValueState(AddonStateBulkLoadRequest request) {
-        return tableKeyValueBulkLoadAddonState(request);
-    }
-    default CompletableFuture<String> tableLoadAddonState(String addonId, String table) {
-        return tableKeyValueBulkLoadAddonState(addonId, table);
-    }
-    default CompletableFuture<String> tableLoadAddonState(AddonStateBulkLoadRequest request) {
-        return tableKeyValueBulkLoadAddonState(request);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAddonState(String addonId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonState(addonId, Map.of(), table == null ? Map.of() : Map.of(table, values == null ? Map.of() : values));
-    }
-    default CompletableFuture<String> bulkSaveAddonTableKeyValueState(String addonId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonState(addonId, table, values);
-    }
-    default CompletableFuture<String> saveAddonTableKeyValueState(String addonId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonState(addonId, table, values);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAliasAddonState(String addonId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonState(addonId, table, values);
-    }
-    default CompletableFuture<String> tableKeyValueBulkAddonState(String addonId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonState(addonId, table, values);
-    }
-    default CompletableFuture<String> bulkAddonTableKeyValueState(String addonId, String table, Map<String, String> values) {
-        return tableKeyValueBulkAddonState(addonId, table, values);
-    }
-    default CompletableFuture<String> tableBulkSetAddonState(String addonId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonState(addonId, table, values);
-    }
-    default CompletableFuture<String> bulkSetAddonTableState(String addonId, String table, Map<String, String> values) {
-        return tableBulkSetAddonState(addonId, table, values);
-    }
-    CompletableFuture<String> putAddonTableState(String addonId, String table, Map<String, String> values);
-    default CompletableFuture<String> saveAddonTableState(String addonId, String table, Map<String, String> values) {
-        return putAddonTableState(addonId, table, values);
-    }
-    CompletableFuture<String> replaceAddonTableState(String addonId, String table, Map<String, String> values);
-    CompletableFuture<String> clearAddonTableState(String addonId, String table);
-    CompletableFuture<String> removeAddonState(String addonId, String key);
-    CompletableFuture<String> clearAddonState(String addonId);
-    CompletableFuture<String> addonIslandState(String addonId, UUID islandId);
-    CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, String key, String value);
-    CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, Map<String, String> values);
-    CompletableFuture<String> putAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables);
-    default CompletableFuture<String> saveAddonIslandState(String addonId, UUID islandId, Map<String, String> values) {
-        return putAddonIslandState(addonId, islandId, values);
-    }
-    default CompletableFuture<String> saveAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return putAddonIslandState(addonId, islandId, values, tables);
-    }
-    default CompletableFuture<String> bulkSaveAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return saveAddonIslandState(addonId, islandId, values, tables);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return bulkSaveAddonIslandState(addonId, islandId, values, tables);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAddonIslandState(AddonStateBulkSaveRequest request) {
-        if (request == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Addon state request is required"));
-        }
-        if (!request.islandScoped()) {
-            return tableKeyValueBulkSaveAddonState(request);
-        }
-        return putAddonIslandState(request.addonId(), request.islandId(), request.flattenedStateValues());
-    }
-    default CompletableFuture<String> bulkSaveAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
-    }
-    default CompletableFuture<String> saveAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAliasAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
-    }
-    default CompletableFuture<String> tableKeyValueBulkAddonIslandState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, values, tables);
-    }
-    default CompletableFuture<String> bulkAddonIslandTableKeyValueState(String addonId, UUID islandId, Map<String, String> values, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkAddonIslandState(addonId, islandId, values, tables);
-    }
-    default CompletableFuture<String> tableBulkAddonIslandState(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, Map.of(), tables);
-    }
-    default CompletableFuture<String> bulkAddonIslandTableState(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
-        return tableBulkAddonIslandState(addonId, islandId, tables);
-    }
-    default CompletableFuture<String> tableBulkSetAddonIslandState(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
-        return tableBulkAddonIslandState(addonId, islandId, tables);
-    }
-    default CompletableFuture<String> bulkSetAddonIslandTableState(String addonId, UUID islandId, Map<String, Map<String, String>> tables) {
-        return tableBulkSetAddonIslandState(addonId, islandId, tables);
-    }
-    CompletableFuture<String> addonIslandTableState(String addonId, UUID islandId, String table);
-    default CompletableFuture<String> tableKeyValueBulkLoadAddonIslandState(String addonId, UUID islandId, String table) {
-        return addonIslandTableState(addonId, islandId, table);
-    }
-    default CompletableFuture<String> tableKeyValueBulkLoadAddonIslandState(AddonStateBulkLoadRequest request) {
-        if (request == null) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("Addon state request is required"));
-        }
-        if (!request.islandScoped()) {
-            return tableKeyValueBulkLoadAddonState(request);
-        }
-        return tableKeyValueBulkLoadAddonIslandState(request.addonId(), request.islandId(), request.table());
-    }
-    default CompletableFuture<String> bulkLoadAddonIslandTableKeyValueState(String addonId, UUID islandId, String table) {
-        return tableKeyValueBulkLoadAddonIslandState(addonId, islandId, table);
-    }
-    default CompletableFuture<String> bulkLoadAddonIslandTableKeyValueState(AddonStateBulkLoadRequest request) {
-        return tableKeyValueBulkLoadAddonIslandState(request);
-    }
-    default CompletableFuture<String> tableLoadAddonIslandState(String addonId, UUID islandId, String table) {
-        return tableKeyValueBulkLoadAddonIslandState(addonId, islandId, table);
-    }
-    default CompletableFuture<String> tableLoadAddonIslandState(AddonStateBulkLoadRequest request) {
-        return tableKeyValueBulkLoadAddonIslandState(request);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAddonIslandState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, Map.of(), table == null ? Map.of() : Map.of(table, values == null ? Map.of() : values));
-    }
-    default CompletableFuture<String> bulkSaveAddonIslandTableKeyValueState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, table, values);
-    }
-    default CompletableFuture<String> saveAddonIslandTableKeyValueState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, table, values);
-    }
-    default CompletableFuture<String> tableKeyValueBulkSaveAliasAddonIslandState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, table, values);
-    }
-    default CompletableFuture<String> tableKeyValueBulkAddonIslandState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, table, values);
-    }
-    default CompletableFuture<String> bulkAddonIslandTableKeyValueState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return tableKeyValueBulkAddonIslandState(addonId, islandId, table, values);
-    }
-    default CompletableFuture<String> tableBulkSetAddonIslandState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return tableKeyValueBulkSaveAddonIslandState(addonId, islandId, table, values);
-    }
-    default CompletableFuture<String> bulkSetAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return tableBulkSetAddonIslandState(addonId, islandId, table, values);
-    }
-    CompletableFuture<String> putAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values);
-    default CompletableFuture<String> saveAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values) {
-        return putAddonIslandTableState(addonId, islandId, table, values);
-    }
-    CompletableFuture<String> replaceAddonIslandTableState(String addonId, UUID islandId, String table, Map<String, String> values);
-    CompletableFuture<String> clearAddonIslandTableState(String addonId, UUID islandId, String table);
-    CompletableFuture<String> removeAddonIslandState(String addonId, UUID islandId, String key);
-    CompletableFuture<String> clearAddonIslandState(String addonId, UUID islandId);
     CompletableFuture<String> migrateSuperiorSkyblock2(String action, String path);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
     CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload);
