@@ -186,7 +186,7 @@ class CoreTypedClientsTest {
     @Test
     void coreResponseBodyPreservesHttpStatusAndTypedErrorPayload() {
         CoreResponseBody body = new CoreResponseBody("""
-            {"error":{"code":"UPSTREAM_DOWN","message":"core unavailable"}}
+            {"error":{"code":"UPSTREAM_DOWN","message":"core unavailable","requestId":"req-123","details":{"nodeCount":"0","pool":"island"}}}
             """, 503, false);
 
         CoreApiException exception = assertThrows(CoreApiException.class, body::value);
@@ -194,6 +194,8 @@ class CoreTypedClientsTest {
         assertEquals("UPSTREAM_DOWN", exception.code());
         assertEquals("core unavailable", exception.getMessage());
         assertEquals(503, exception.status());
+        assertEquals("req-123", exception.requestId());
+        assertEquals(Map.of("nodeCount", "0", "pool", "island"), exception.details());
     }
 
     @Test
