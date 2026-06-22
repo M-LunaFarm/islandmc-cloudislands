@@ -13,7 +13,19 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-final class IslandCommandRuntimeServices {
+final class IslandCommandRuntimeServices implements
+    IslandRoutingCommandHandler.Runtime,
+    IslandBankCommandHandler.Runtime,
+    IslandSnapshotCommandHandler.Runtime,
+    IslandWarehouseCommandHandler.Runtime,
+    IslandChatLogCommandHandler.Runtime,
+    IslandProgressionCommandHandler.Runtime,
+    IslandEnvironmentCommandHandler.Runtime,
+    IslandSettingsCommandHandler.Runtime,
+    IslandLifecycleCommandHandler.Runtime,
+    IslandOverviewCommandHandler.Runtime,
+    IslandPermissionCommandHandler.Runtime,
+    IslandAdminNodeCommandHandler.Runtime {
     private final IslandCommandMessenger commandMessages;
     private final IslandCommandIslandContext islandContext;
     private final IslandCommandLocalTeleports localTeleports;
@@ -34,87 +46,91 @@ final class IslandCommandRuntimeServices {
         this.playerResolver = playerResolver;
     }
 
-    <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
+    public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
         return IslandCommandRuntimeSupport.mutate(auditAction, operation);
     }
 
-    <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
+    public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
         return IslandCommandRuntimeSupport.mutateIdempotent(auditAction, operation);
     }
 
-    void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
+    public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
         confirmations.open(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
     }
 
-    boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
+    public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
         return confirmations.accepted(player, action, click);
     }
 
-    String playerCodeMessage(String code, String fallback) {
+    public String playerCodeMessage(String code, String fallback) {
         return commandMessages.playerCodeMessage(code, fallback);
     }
 
-    MessageRenderer messagesFor(Player player) {
+    public MessageRenderer messagesFor(Player player) {
         return commandMessages.messagesFor(player);
     }
 
-    String routeMessage(String key, String fallback, String... variables) {
+    public String routeMessage(String key, String fallback, String... variables) {
         return commandMessages.routeMessage(key, fallback, variables);
     }
 
-    String routeMessage(Player player, String key, String fallback, String... variables) {
+    public String routeMessage(String key, String fallback) {
+        return commandMessages.routeMessage(key, fallback);
+    }
+
+    public String routeMessage(Player player, String key, String fallback, String... variables) {
         return commandMessages.routeMessage(player, key, fallback, variables);
     }
 
-    java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
+    public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
         return islandContext.currentIsland(player, missingMessage);
     }
 
-    boolean allowed(Player player, IslandPermission permission) {
+    public boolean allowed(Player player, IslandPermission permission) {
         return islandContext.allowed(player, permission);
     }
 
-    boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, boolean islandPublicAccess) {
+    public boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, boolean islandPublicAccess) {
         return islandContext.publicWarpAllowed(player, point, islandPublicAccess);
     }
 
-    IslandLocation location(Location location) {
+    public IslandLocation location(Location location) {
         return islandContext.location(location);
     }
 
-    String joined(String[] args, int start) {
+    public String joined(String[] args, int start) {
         return IslandCommandArgs.joined(args, start);
     }
 
-    int integer(String value, int fallback) {
+    public int integer(String value, int fallback) {
         return IslandCommandArgs.integer(value, fallback);
     }
 
-    long longValue(String value, long fallback) {
+    public long longValue(String value, long fallback) {
         return IslandCommandArgs.longValue(value, fallback);
     }
 
-    CompletableFuture<UUID> resolvePlayerUuid(String value) {
+    public CompletableFuture<UUID> resolvePlayerUuid(String value) {
         return playerResolver.resolvePlayerUuid(value);
     }
 
-    void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
+    public void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
         localTeleports.moveToPoint(player, point, missingMessage, successMessage);
     }
 
-    boolean teleportLocalDefaultHome(Player player) {
+    public boolean teleportLocalDefaultHome(Player player) {
         return localTeleports.teleportLocalDefaultHome(player);
     }
 
-    void message(Player player, String message) {
+    public void message(Player player, String message) {
         commandMessages.message(player, message);
     }
 
-    String playerMessage(String message) {
+    public String playerMessage(String message) {
         return commandMessages.playerMessage(message);
     }
 
-    String coreWriteFailureMessage(Throwable error, String fallback) {
+    public String coreWriteFailureMessage(Throwable error, String fallback) {
         return IslandCommandRuntimeSupport.coreWriteFailureMessage(
             coreUnavailable(error),
             routeMessage("core-service-maintenance", IslandCommandRuntimeSupport.maintenanceFallback()),
@@ -122,7 +138,7 @@ final class IslandCommandRuntimeServices {
         );
     }
 
-    boolean coreUnavailable(Throwable error) {
+    public boolean coreUnavailable(Throwable error) {
         return IslandCommandRuntimeSupport.coreUnavailable(error);
     }
 }
