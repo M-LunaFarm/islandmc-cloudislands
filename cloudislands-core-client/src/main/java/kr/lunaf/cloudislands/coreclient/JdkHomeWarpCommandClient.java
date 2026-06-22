@@ -50,7 +50,7 @@ public final class JdkHomeWarpCommandClient implements HomeWarpCommandClient {
     }
 
     private static HomeWarpActionView actionResult(String body, String successCode) {
-        Map<?, ?> root = CoreJson.object(body);
+        Map<?, ?> root = CoreJson.actionObject(body, successCode);
         return new HomeWarpActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
     }
 

@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreclient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -347,6 +348,14 @@ class CoreTypedClientsTest {
         assertFalse(CoreJson.accepted(failed));
         assertFalse(CoreJson.acceptedWithCode(wrongCode, "EXPECTED"));
         assertEquals("STALE_NODE", CoreJson.code(wrongCode, "EXPECTED", false));
+    }
+
+    @Test
+    void coreJsonRejectsNonJsonCoreApiBodiesWithTypedError() {
+        CoreApiException exception = assertThrows(CoreApiException.class, () -> CoreJson.object("upstream unavailable"));
+
+        assertEquals("INVALID_CORE_JSON", exception.code());
+        assertTrue(exception.getMessage().contains("JSON"));
     }
 
     @Test

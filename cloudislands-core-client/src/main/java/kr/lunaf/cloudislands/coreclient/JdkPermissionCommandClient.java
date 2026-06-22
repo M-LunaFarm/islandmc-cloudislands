@@ -107,7 +107,7 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
     }
 
     static PermissionActionView permissionAction(String body, String successCode) {
-        Map<?, ?> root = CoreJson.object(body);
+        Map<?, ?> root = CoreJson.actionObject(body, successCode);
         return new PermissionActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
     }
 

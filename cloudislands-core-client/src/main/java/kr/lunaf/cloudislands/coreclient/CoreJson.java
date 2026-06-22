@@ -12,8 +12,31 @@ final class CoreJson {
         return SimpleJson.object(value(body));
     }
 
+    static Map<?, ?> actionObject(String body, String successCode) {
+        String normalized = body == null ? "" : body.trim();
+        if (!normalized.isBlank()) {
+            char first = normalized.charAt(0);
+            if (first != '{' && first != '[') {
+                return Map.of("accepted", true, "code", successCode);
+            }
+        }
+        return object(body);
+    }
+
     static Object value(String body) {
-        return SimpleJson.parse(body == null || body.isBlank() ? "{}" : body);
+        String normalized = body == null ? "" : body.trim();
+        if (normalized.isBlank()) {
+            return SimpleJson.parse("{}");
+        }
+        char first = normalized.charAt(0);
+        if (first != '{' && first != '[') {
+            throw new CoreApiException("INVALID_CORE_JSON", "Core API response is not a JSON object or array");
+        }
+        try {
+            return SimpleJson.parse(normalized);
+        } catch (RuntimeException exception) {
+            throw new CoreApiException("INVALID_CORE_JSON", "Core API response could not be parsed as JSON");
+        }
     }
 
     static List<Map<?, ?>> entries(String body) {
