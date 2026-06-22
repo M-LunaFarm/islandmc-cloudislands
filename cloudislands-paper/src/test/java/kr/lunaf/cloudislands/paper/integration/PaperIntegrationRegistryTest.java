@@ -161,6 +161,45 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
+    void everyPriorityAdapterCanRouteApprovedHooksThroughExternalRuntime() {
+        List<String> calls = new ArrayList<>();
+        kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime runtime = (pluginName, category, operation, context, plan) -> {
+            calls.add(pluginName + ":" + operation);
+            return IntegrationResult.success("external called");
+        };
+        IntegrationContext context = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "integration:runtime:1", Map.ofEntries(
+            Map.entry("world", "islands"),
+            Map.entry("cell", "12,-4"),
+            Map.entry("region", "192,64,-64..255,319,-1"),
+            Map.entry("bundleKey", "bundles/island.tar.zst"),
+            Map.entry("activeOperationsDrained", "true"),
+            Map.entry("editSessionFlushed", "true"),
+            Map.entry("externalBlockIds", "itemsadder:ruby_ore"),
+            Map.entry("coreBlockValueKeys", "ruby_ore"),
+            Map.entry("entityCountKey", "limits.entities.effective"),
+            Map.entry("spawnerCountKey", "limits.spawners.effective"),
+            Map.entry("permissionNode", "cloudislands.island.member"),
+            Map.entry("bypassScope", "island"),
+            Map.entry("contextKey", "cloudislands:island"),
+            Map.entry("analyticsScope", "island-presence")
+        ));
+
+        assertEquals(IntegrationResult.Status.SUCCESS, new WorldEditIntegration("WorldEdit", runtime).exportState(context).status());
+        assertEquals(IntegrationResult.Status.SUCCESS, new CustomItemIntegration("ItemsAdder", runtime).exportState(context).status());
+        assertEquals(IntegrationResult.Status.SUCCESS, new StackerIntegration("RoseStacker", runtime).exportState(context).status());
+        assertEquals(IntegrationResult.Status.SUCCESS, new LuckPermsIntegration(runtime).exportState(context).status());
+        assertEquals(IntegrationResult.Status.SUCCESS, new PlanIntegration(runtime).exportState(context).status());
+
+        assertEquals(List.of(
+            "WorldEdit:schematic-export",
+            "ItemsAdder:custom-item-export",
+            "RoseStacker:effective-stack-export",
+            "LuckPerms:permission-context-export",
+            "Plan:analytics-export"
+        ), calls);
+    }
+
+    @Test
     void priorityStateAdaptersImplementFullIslandLifecycleContract() {
         IntegrationContext worldCell = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "lifecycle:1", Map.of(
             "world", "islands",
