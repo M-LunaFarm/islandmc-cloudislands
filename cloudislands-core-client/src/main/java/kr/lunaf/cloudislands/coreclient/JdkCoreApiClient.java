@@ -126,8 +126,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.adminAddonStateClient = new CoreAdminAddonStateQueryClient(this);
         this.addonStateClient = new CoreAddonStateClient(this);
         this.adminMaintenanceClient = new JdkAdminMaintenanceClient(this);
-        this.adminNodeQueryClient = new CoreAdminNodeQueryClient(this);
-        this.adminNodeCommandClient = new CoreAdminNodeCommandClient(this);
+        this.adminNodeQueryClient = new JdkAdminNodeQueryClient(this);
+        this.adminNodeCommandClient = new JdkAdminNodeCommandClient(this);
         this.adminIslandClient = new CoreAdminIslandQueryClient(this);
     }
 
@@ -1167,91 +1167,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {
         return post("/v1/routes/consume", jsonObject("ticketId", ticketId, "playerUuid", playerUuid, "nodeId", nodeId, "nonce", nonce)).thenApply(body -> body.isBlank() ? Optional.empty() : Optional.ofNullable(RouteTicketJson.parse(body)));
-    }
-
-    @Override
-    public CompletableFuture<String> listNodes() {
-        return postWithResultBody("/v1/admin/nodes/list", "{}");
-    }
-
-    @Override
-    public CompletableFuture<String> nodeInfo(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/info", jsonObject("nodeId", nodeId));
-    }
-
-    @Override
-    public CompletableFuture<String> nodeIslands(String nodeId, int limit) {
-        return postWithResultBody("/v1/admin/nodes/islands", jsonObject("nodeId", nodeId, "limit", Math.max(1, Math.min(limit, 200))));
-    }
-
-    @Override
-    public CompletableFuture<String> drainNode(String nodeId) {
-        return drainNodeResult(nodeId);
-    }
-
-    @Override
-    public CompletableFuture<String> drainNodeResult(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/drain", jsonObject("nodeId", nodeId));
-    }
-
-    @Override
-    public CompletableFuture<String> drainNodePath(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/drain", "{}");
-    }
-
-    @Override
-    public CompletableFuture<String> undrainNode(String nodeId) {
-        return undrainNodeResult(nodeId);
-    }
-
-    @Override
-    public CompletableFuture<String> undrainNodeResult(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/undrain", jsonObject("nodeId", nodeId));
-    }
-
-    @Override
-    public CompletableFuture<String> undrainNodePath(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/undrain", "{}");
-    }
-
-    @Override
-    public CompletableFuture<String> sweepNode(String nodeId) {
-        return sweepNodeResult(nodeId);
-    }
-
-    @Override
-    public CompletableFuture<String> sweepNodeResult(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/sweep", jsonObject("nodeId", nodeId));
-    }
-
-    @Override
-    public CompletableFuture<String> sweepNodePath(String nodeId) {
-        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/sweep", "{}");
-    }
-
-    @Override
-    public CompletableFuture<String> kickAllNode(String nodeId, String reason) {
-        return kickAllNodeResult(nodeId, reason);
-    }
-
-    @Override
-    public CompletableFuture<String> kickAllNodeResult(String nodeId, String reason) {
-        return postWithResultBody("/v1/admin/nodes/kickall", jsonObject("nodeId", nodeId, "reason", reason));
-    }
-
-    @Override
-    public CompletableFuture<String> shutdownNodeSafely(String nodeId, String reason) {
-        return shutdownNodeSafelyResult(nodeId, reason);
-    }
-
-    @Override
-    public CompletableFuture<String> shutdownNodeSafelyResult(String nodeId, String reason) {
-        return postWithResultBody("/v1/admin/nodes/shutdown-safe", jsonObject("nodeId", nodeId, "reason", reason));
-    }
-
-    @Override
-    public CompletableFuture<String> shutdownNodeSafelyPath(String nodeId, String reason) {
-        return postWithResultBody("/v1/admin/nodes/" + pathNodeId(nodeId) + "/shutdown-safe", jsonObject("reason", reason));
     }
 
     @Override

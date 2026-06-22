@@ -11,48 +11,48 @@ import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.NodeStorageSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreAdminNodeQueryClient implements AdminNodeQueryClient {
-    private final CoreApiClient delegate;
+final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreAdminNodeQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkAdminNodeQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<List<IslandNodeSnapshot>> nodes() {
-        return delegate.listNodes().thenApply(CoreAdminNodeQueryClient::nodes);
+        return core.postWithResultBody("/v1/admin/nodes/list", "{}").thenApply(JdkAdminNodeQueryClient::nodes);
     }
 
     @Override
     public CompletableFuture<AdminNodeSummaryView> listNodesSummary() {
-        return delegate.listNodes().thenApply(CoreAdminNodeQueryClient::summary);
+        return core.postWithResultBody("/v1/admin/nodes/list", "{}").thenApply(JdkAdminNodeQueryClient::summary);
     }
 
     @Override
     public CompletableFuture<Optional<IslandNodeSnapshot>> nodeSnapshot(String nodeId) {
         String normalizedNodeId = requireNode(nodeId);
-        return delegate.nodeInfo(normalizedNodeId).thenApply(body -> node(normalizedNodeId, body));
+        return core.postWithResultBody("/v1/admin/nodes/info", JdkCoreApiClient.jsonObject("nodeId", normalizedNodeId)).thenApply(body -> node(normalizedNodeId, body));
     }
 
     @Override
     public CompletableFuture<CoreGuiViews.NodeSummaryView> nodeInfo(String nodeId) {
         String normalizedNodeId = requireNode(nodeId);
-        return delegate.nodeInfo(normalizedNodeId).thenApply(body -> nodeSummary(normalizedNodeId, body));
+        return core.postWithResultBody("/v1/admin/nodes/info", JdkCoreApiClient.jsonObject("nodeId", normalizedNodeId)).thenApply(body -> nodeSummary(normalizedNodeId, body));
     }
 
     @Override
     public CompletableFuture<List<AdminIslandRuntimeView>> nodeIslandRuntimes(String nodeId, int limit) {
-        return delegate.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 100)))
-            .thenApply(CoreAdminNodeQueryClient::runtimes);
+        return core.postWithResultBody("/v1/admin/nodes/islands", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId), "limit", Math.max(1, Math.min(limit, 100))))
+            .thenApply(JdkAdminNodeQueryClient::runtimes);
     }
 
     @Override
     public CompletableFuture<AdminNodeSummaryView> nodeIslandsSummary(String nodeId, int limit) {
-        return delegate.nodeIslands(requireNode(nodeId), Math.max(1, Math.min(limit, 100)))
-            .thenApply(CoreAdminNodeQueryClient::summary);
+        return core.postWithResultBody("/v1/admin/nodes/islands", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId), "limit", Math.max(1, Math.min(limit, 100))))
+            .thenApply(JdkAdminNodeQueryClient::summary);
     }
 
     static List<IslandNodeSnapshot> nodes(String body) {

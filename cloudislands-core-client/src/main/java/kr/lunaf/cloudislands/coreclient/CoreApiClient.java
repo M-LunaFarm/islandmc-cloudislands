@@ -151,11 +151,17 @@ public interface CoreApiClient {
     }
 
     default AdminNodeQueryClient adminNodes() {
-        return new CoreAdminNodeQueryClient(this);
+        if (this instanceof AdminNodeQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin node queries");
     }
 
     default AdminNodeCommandClient adminNodeCommands() {
-        return new CoreAdminNodeCommandClient(this);
+        if (this instanceof AdminNodeCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin node commands");
     }
 
     default AdminIslandQueryClient adminIslands() {
@@ -389,31 +395,6 @@ public interface CoreApiClient {
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, UUID ticketId, String nonce, boolean reportMissing);
     CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
-    CompletableFuture<String> listNodes();
-    CompletableFuture<String> nodeInfo(String nodeId);
-    CompletableFuture<String> nodeIslands(String nodeId, int limit);
-    CompletableFuture<String> drainNode(String nodeId);
-    CompletableFuture<String> drainNodeResult(String nodeId);
-    default CompletableFuture<String> drainNodePath(String nodeId) {
-        return drainNodeResult(nodeId);
-    }
-    CompletableFuture<String> undrainNode(String nodeId);
-    CompletableFuture<String> undrainNodeResult(String nodeId);
-    default CompletableFuture<String> undrainNodePath(String nodeId) {
-        return undrainNodeResult(nodeId);
-    }
-    CompletableFuture<String> sweepNode(String nodeId);
-    CompletableFuture<String> sweepNodeResult(String nodeId);
-    default CompletableFuture<String> sweepNodePath(String nodeId) {
-        return sweepNodeResult(nodeId);
-    }
-    CompletableFuture<String> kickAllNode(String nodeId, String reason);
-    CompletableFuture<String> kickAllNodeResult(String nodeId, String reason);
-    CompletableFuture<String> shutdownNodeSafely(String nodeId, String reason);
-    CompletableFuture<String> shutdownNodeSafelyResult(String nodeId, String reason);
-    default CompletableFuture<String> shutdownNodeSafelyPath(String nodeId, String reason) {
-        return shutdownNodeSafelyResult(nodeId, reason);
-    }
     CompletableFuture<String> adminIslandInfo(UUID lookupUuid);
     CompletableFuture<String> adminIslandWhere(UUID islandId);
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);

@@ -160,7 +160,7 @@ public final class CoreGuiViews {
     }
 
     public static NodeSummaryView nodeSummary(String nodeId, String body) {
-        return CoreAdminNodeQueryClient.nodeSummary(nodeId, body);
+        return JdkAdminNodeQueryClient.nodeSummary(nodeId, body);
     }
 
     private static List<MemberView> members(String body) {

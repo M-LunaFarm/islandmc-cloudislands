@@ -5,17 +5,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.coreclient.CoreAdminNodeCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreAdminNodeQueryClient;
+import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
+import kr.lunaf.cloudislands.coreclient.AdminIslandRuntimeView;
+import kr.lunaf.cloudislands.coreclient.AdminNodeActionView;
+import kr.lunaf.cloudislands.coreclient.AdminNodeCommandClient;
+import kr.lunaf.cloudislands.coreclient.AdminNodeQueryClient;
+import kr.lunaf.cloudislands.coreclient.AdminNodeSummaryView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import org.junit.jupiter.api.Test;
 
 class IslandAdminNodeUseCaseTest {
     @Test
     void adminNodeOperationsRunBehindApplicationBoundary() {
         List<String> calls = new ArrayList<>();
-        IslandAdminNodeUseCase useCase = new IslandAdminNodeUseCase(client(calls));
+        IslandAdminNodeUseCase useCase = useCase(calls);
 
         assertEquals("nodes=2", useCase.listNodesSummary().join().text());
         assertEquals("READY", useCase.nodeInfoView(" node-a ").join().state());
@@ -43,47 +49,89 @@ class IslandAdminNodeUseCaseTest {
         ), calls);
     }
 
-    private static CoreApiClient client(List<String> calls) {
-        return (CoreApiClient) Proxy.newProxyInstance(
+    private static IslandAdminNodeUseCase useCase(List<String> calls) {
+        CoreApiClient core = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class},
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "adminNodes" -> new CoreAdminNodeQueryClient((CoreApiClient) _proxy);
-                case "adminNodeCommands" -> new CoreAdminNodeCommandClient((CoreApiClient) _proxy);
-                case "listNodes" -> {
-                    calls.add("listNodes");
-                    yield CompletableFuture.completedFuture("[\"node-a\",\"node-b\"]");
-                }
-                case "nodeInfo" -> {
-                    calls.add("nodeInfo:" + args[0]);
-                    yield CompletableFuture.completedFuture("{\"state\":\"READY\",\"pool\":\"island\",\"players\":3,\"softPlayerCap\":80,\"hardPlayerCap\":100,\"activeIslands\":4,\"maxActiveIslands\":20,\"activationQueue\":1,\"maxActivationQueue\":10,\"mspt\":\"12.5\"}");
-                }
-                case "nodeIslands" -> {
-                    calls.add("nodeIslands:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture(nodeIslandsJson());
-                }
-                case "drainNode" -> {
-                    calls.add("drainNode:" + args[0]);
-                    yield CompletableFuture.completedFuture(nodeLifecycleJson("DRAIN"));
-                }
-                case "undrainNode" -> {
-                    calls.add("undrainNode:" + args[0]);
-                    yield CompletableFuture.completedFuture(nodeLifecycleJson("UNDRAIN"));
-                }
-                case "sweepNode" -> {
-                    calls.add("sweepNode:" + args[0]);
-                    yield CompletableFuture.completedFuture(nodeLifecycleJson("SWEEP"));
-                }
-                case "kickAllNode" -> {
-                    calls.add("kickAllNode:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture(nodeLifecycleJson("KICKALL"));
-                }
-                case "shutdownNodeSafely" -> {
-                    calls.add("shutdownNodeSafely:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture(nodeLifecycleJson("SHUTDOWN_SAFE"));
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
+            (_proxy, method, args) -> {
+                throw new UnsupportedOperationException(method.getName());
             });
+        return new IslandAdminNodeUseCase(core, adminNodeQueries(calls), adminNodeCommands(calls));
+    }
+
+    private static AdminNodeQueryClient adminNodeQueries(List<String> calls) {
+        return new AdminNodeQueryClient() {
+            @Override
+            public CompletableFuture<List<IslandNodeSnapshot>> nodes() {
+                return CompletableFuture.completedFuture(List.of());
+            }
+
+            @Override
+            public CompletableFuture<AdminNodeSummaryView> listNodesSummary() {
+                calls.add("listNodes");
+                return CompletableFuture.completedFuture(new AdminNodeSummaryView("nodes=2"));
+            }
+
+            @Override
+            public CompletableFuture<Optional<IslandNodeSnapshot>> nodeSnapshot(String nodeId) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
+
+            @Override
+            public CompletableFuture<CoreGuiViews.NodeSummaryView> nodeInfo(String nodeId) {
+                calls.add("nodeInfo:" + nodeId);
+                return CompletableFuture.completedFuture(new CoreGuiViews.NodeSummaryView(nodeId, "READY", "island", 3L, 80L, 100L, 4L, 20L, 1L, 10L, "12.5"));
+            }
+
+            @Override
+            public CompletableFuture<List<AdminIslandRuntimeView>> nodeIslandRuntimes(String nodeId, int limit) {
+                return CompletableFuture.completedFuture(List.of());
+            }
+
+            @Override
+            public CompletableFuture<AdminNodeSummaryView> nodeIslandsSummary(String nodeId, int limit) {
+                calls.add("nodeIslands:" + nodeId + ":" + Math.max(1, Math.min(limit, 100)));
+                return CompletableFuture.completedFuture(new AdminNodeSummaryView("node=node-a count=2"));
+            }
+        };
+    }
+
+    private static AdminNodeCommandClient adminNodeCommands(List<String> calls) {
+        return new AdminNodeCommandClient() {
+            @Override
+            public CompletableFuture<AdminNodeActionView> drainNode(String nodeId) {
+                calls.add("drainNode:" + nodeId);
+                return CompletableFuture.completedFuture(nodeAction("DRAIN"));
+            }
+
+            @Override
+            public CompletableFuture<AdminNodeActionView> undrainNode(String nodeId) {
+                calls.add("undrainNode:" + nodeId);
+                return CompletableFuture.completedFuture(nodeAction("UNDRAIN"));
+            }
+
+            @Override
+            public CompletableFuture<AdminNodeActionView> sweepNode(String nodeId) {
+                calls.add("sweepNode:" + nodeId);
+                return CompletableFuture.completedFuture(nodeAction("SWEEP"));
+            }
+
+            @Override
+            public CompletableFuture<AdminNodeActionView> kickAllNode(String nodeId, String reason) {
+                calls.add("kickAllNode:" + nodeId + ":" + reason);
+                return CompletableFuture.completedFuture(nodeAction("KICKALL"));
+            }
+
+            @Override
+            public CompletableFuture<AdminNodeActionView> shutdownNodeSafely(String nodeId, String reason) {
+                calls.add("shutdownNodeSafely:" + nodeId + ":" + reason);
+                return CompletableFuture.completedFuture(nodeAction("SHUTDOWN_SAFE"));
+            }
+        };
+    }
+
+    private static AdminNodeActionView nodeAction(String operation) {
+        return new AdminNodeActionView(true, "", "node-a", operation);
     }
 
     private static IslandAdminNodeUseCase.MutationRunner mutationRunner(List<String> calls) {
@@ -100,11 +148,4 @@ class IslandAdminNodeUseCaseTest {
         };
     }
 
-    private static String nodeIslandsJson() {
-        return "{\"nodeId\":\"node-a\",\"count\":2,\"islands\":[]}";
-    }
-
-    private static String nodeLifecycleJson(String operation) {
-        return "{\"accepted\":true,\"nodeId\":\"node-a\",\"state\":\"DRAINING\",\"operation\":\"" + operation + "\"}";
-    }
 }

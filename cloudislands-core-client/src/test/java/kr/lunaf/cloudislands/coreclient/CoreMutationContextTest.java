@@ -294,7 +294,6 @@ class CoreMutationContextTest {
         server.createContext("/v1/admin/nodes/sweep", exchange -> respond(exchange, requestBodies, "nodeSweep", "{\"accepted\":true}"));
         server.createContext("/v1/admin/nodes/kickall", exchange -> respond(exchange, requestBodies, "nodeKickAll", "{\"accepted\":true}"));
         server.createContext("/v1/admin/nodes/shutdown-safe", exchange -> respond(exchange, requestBodies, "nodeShutdown", "{\"accepted\":true}"));
-        server.createContext("/v1/admin/nodes/node-path/shutdown-safe", exchange -> respond(exchange, requestBodies, "nodeShutdownPath", "{\"accepted\":true}"));
         server.createContext("/v1/admin/islands/activate", exchange -> respond(exchange, requestBodies, "islandActivate", "{\"accepted\":true}"));
         server.createContext("/v1/admin/islands/deactivate", exchange -> respond(exchange, requestBodies, "islandDeactivate", "{\"accepted\":true}"));
         server.createContext("/v1/admin/islands/migrate", exchange -> respond(exchange, requestBodies, "islandMigrate", "{\"accepted\":true}"));
@@ -312,14 +311,13 @@ class CoreMutationContextTest {
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
-            client.nodeInfo("node\"a").join();
-            client.nodeIslands("node\"a", 500).join();
-            client.drainNodeResult("node\"a").join();
-            client.undrainNodeResult("node\"a").join();
-            client.sweepNodeResult("node\"a").join();
-            client.kickAllNodeResult("node\"a", "kick \"all\"").join();
-            client.shutdownNodeSafelyResult("node\"a", "shutdown \"all\"").join();
-            client.shutdownNodeSafelyPath("node-path", "path \"reason\"").join();
+            client.adminNodes().nodeInfo("node\"a").join();
+            client.adminNodes().nodeIslandRuntimes("node\"a", 500).join();
+            client.adminNodeCommands().drainNode("node\"a").join();
+            client.adminNodeCommands().undrainNode("node\"a").join();
+            client.adminNodeCommands().sweepNode("node\"a").join();
+            client.adminNodeCommands().kickAllNode("node\"a", "kick \"all\"").join();
+            client.adminNodeCommands().shutdownNodeSafely("node\"a", "shutdown \"all\"").join();
             client.lifecycle().activateIsland(islandId).join();
             client.lifecycle().deactivateIsland(islandId).join();
             client.lifecycle().migrateIsland(islandId, "target\"node").join();
@@ -342,13 +340,12 @@ class CoreMutationContextTest {
             assertEquals("{\"limit\":500}", requestBodies.get("audit"));
 
             assertEquals("{\"nodeId\":\"node\\\"a\"}", requestBodies.get("nodeInfo"));
-            assertEquals("{\"nodeId\":\"node\\\"a\",\"limit\":200}", requestBodies.get("nodeIslands"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"limit\":100}", requestBodies.get("nodeIslands"));
             assertEquals("{\"nodeId\":\"node\\\"a\"}", requestBodies.get("nodeDrain"));
             assertEquals("{\"nodeId\":\"node\\\"a\"}", requestBodies.get("nodeUndrain"));
             assertEquals("{\"nodeId\":\"node\\\"a\"}", requestBodies.get("nodeSweep"));
             assertEquals("{\"nodeId\":\"node\\\"a\",\"reason\":\"kick \\\"all\\\"\"}", requestBodies.get("nodeKickAll"));
             assertEquals("{\"nodeId\":\"node\\\"a\",\"reason\":\"shutdown \\\"all\\\"\"}", requestBodies.get("nodeShutdown"));
-            assertEquals("{\"reason\":\"path \\\"reason\\\"\"}", requestBodies.get("nodeShutdownPath"));
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("islandActivate"));
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("islandDeactivate"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"targetNode\":\"target\\\"node\"}", requestBodies.get("islandMigrate"));

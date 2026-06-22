@@ -3,39 +3,39 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public final class CoreAdminNodeCommandClient implements AdminNodeCommandClient {
-    private final CoreApiClient delegate;
+final class JdkAdminNodeCommandClient implements AdminNodeCommandClient {
+    private final JdkCoreApiClient core;
 
-    public CoreAdminNodeCommandClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkAdminNodeCommandClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
     public CompletableFuture<AdminNodeActionView> drainNode(String nodeId) {
-        return delegate.drainNode(requireNode(nodeId)).thenApply(CoreAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/drain", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     @Override
     public CompletableFuture<AdminNodeActionView> undrainNode(String nodeId) {
-        return delegate.undrainNode(requireNode(nodeId)).thenApply(CoreAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/undrain", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     @Override
     public CompletableFuture<AdminNodeActionView> sweepNode(String nodeId) {
-        return delegate.sweepNode(requireNode(nodeId)).thenApply(CoreAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/sweep", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     @Override
     public CompletableFuture<AdminNodeActionView> kickAllNode(String nodeId, String reason) {
-        return delegate.kickAllNode(requireNode(nodeId), normalizeReason(reason)).thenApply(CoreAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/kickall", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId), "reason", normalizeReason(reason))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     @Override
     public CompletableFuture<AdminNodeActionView> shutdownNodeSafely(String nodeId, String reason) {
-        return delegate.shutdownNodeSafely(requireNode(nodeId), normalizeReason(reason)).thenApply(CoreAdminNodeCommandClient::actionResult);
+        return core.postWithResultBody("/v1/admin/nodes/shutdown-safe", JdkCoreApiClient.jsonObject("nodeId", requireNode(nodeId), "reason", normalizeReason(reason))).thenApply(JdkAdminNodeCommandClient::actionResult);
     }
 
     static AdminNodeActionView actionResult(String body) {

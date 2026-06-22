@@ -135,6 +135,14 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("publishRouteSessionResult"));
         assertFalse(names.contains("clearRoute"));
         assertFalse(names.contains("clearRouteResult"));
+        assertFalse(names.contains("listNodes"));
+        assertFalse(names.contains("nodeInfo"));
+        assertFalse(names.contains("nodeIslands"));
+        assertFalse(names.contains("drainNodeResult"));
+        assertFalse(names.contains("undrainNodeResult"));
+        assertFalse(names.contains("sweepNodeResult"));
+        assertFalse(names.contains("kickAllNodeResult"));
+        assertFalse(names.contains("shutdownNodeSafelyResult"));
     }
 
     @Test
@@ -1475,39 +1483,21 @@ class CoreTypedClientsTest {
     @Test
     void adminNodeQueryClientReturnsTypedSummariesAndNodeInfo() {
         UUID islandId = UUID.randomUUID();
-        List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "listNodes" -> {
-                    calls.add("nodes");
-                    yield CompletableFuture.completedFuture("""
-                        {"nodes":[
-                          {"nodeId":"node-a","pool":"default","serverName":"server-a","nodeVersion":"1.0.0","state":"READY","players":5,"softPlayerCap":50,"hardPlayerCap":80,"reservedSlots":2,"activeIslands":2,"maxActiveIslands":10,"mspt":"12.5","activationQueue":1,"maxActivationQueue":5,"chunkLoadPressure":"0.25","heapUsedMb":512,"heapMaxMb":2048,"recentFailurePenalty":3,"storageAvailable":true,"supportedTemplates":"default,nether","lastHeartbeat":"2026-06-21T00:00:00Z","score":"88.5","scoreBreakdown":{"load":"1.5"},"eligibleForNewActivation":true,"allocationBlockReason":"","levelScan":{"running":true,"lastIsland":"island-a","startedAt":10},"storage":{"primaryDegraded":true,"uploadSeconds":"0.4","downloadSeconds":"0.5","healthCheckFailures":1}},
-                          {"nodeId":"node-b","state":"DOWN"}
-                        ]}
-                        """);
-                }
-                case "nodeInfo" -> {
-                    calls.add("info:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"state":"READY","pool":"default","players":5,"softPlayerCap":50,"hardPlayerCap":80,"activeIslands":2,"maxActiveIslands":10,"activationQueue":1,"maxActivationQueue":5,"mspt":"12.5","lastHeartbeat":"2026-06-21T00:00:00Z"}
-                        """);
-                }
-                case "nodeIslands" -> {
-                    calls.add("islands:" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("""
-                        {"nodeId":"node-a","count":2,"islands":[{"islandId":"%s","state":"ACTIVE","activeNode":"node-a","activeWorld":"world-a","cellX":1,"cellZ":2,"fencingToken":9,"activatedAt":"2026-06-21T00:00:00Z"}]}
-                        """.formatted(islandId));
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminNodeQueryClient client = new CoreAdminNodeQueryClient(raw);
+        String nodesBody = """
+            {"nodes":[
+              {"nodeId":"node-a","pool":"default","serverName":"server-a","nodeVersion":"1.0.0","state":"READY","players":5,"softPlayerCap":50,"hardPlayerCap":80,"reservedSlots":2,"activeIslands":2,"maxActiveIslands":10,"mspt":"12.5","activationQueue":1,"maxActivationQueue":5,"chunkLoadPressure":"0.25","heapUsedMb":512,"heapMaxMb":2048,"recentFailurePenalty":3,"storageAvailable":true,"supportedTemplates":"default,nether","lastHeartbeat":"2026-06-21T00:00:00Z","score":"88.5","scoreBreakdown":{"load":"1.5"},"eligibleForNewActivation":true,"allocationBlockReason":"","levelScan":{"running":true,"lastIsland":"island-a","startedAt":10},"storage":{"primaryDegraded":true,"uploadSeconds":"0.4","downloadSeconds":"0.5","healthCheckFailures":1}},
+              {"nodeId":"node-b","state":"DOWN"}
+            ]}
+            """;
+        String nodeInfoBody = """
+            {"state":"READY","pool":"default","players":5,"softPlayerCap":50,"hardPlayerCap":80,"activeIslands":2,"maxActiveIslands":10,"activationQueue":1,"maxActivationQueue":5,"mspt":"12.5","lastHeartbeat":"2026-06-21T00:00:00Z"}
+            """;
+        String nodeIslandsBody = """
+            {"nodeId":"node-a","count":2,"islands":[{"islandId":"%s","state":"ACTIVE","activeNode":"node-a","activeWorld":"world-a","cellX":1,"cellZ":2,"fencingToken":9,"activatedAt":"2026-06-21T00:00:00Z"}]}
+            """.formatted(islandId);
 
-        assertEquals("nodes=2", client.listNodesSummary().join().text());
-        List<IslandNodeSnapshot> nodes = client.nodes().join();
+        assertEquals("nodes=2", JdkAdminNodeQueryClient.summary(nodesBody).text());
+        List<IslandNodeSnapshot> nodes = JdkAdminNodeQueryClient.nodes(nodesBody);
         assertEquals(2, nodes.size());
         assertEquals("node-a", nodes.get(0).nodeId());
         assertEquals("server-a", nodes.get(0).serverName());
@@ -1516,55 +1506,25 @@ class CoreTypedClientsTest {
         assertEquals(Map.of("load", 1.5D), nodes.get(0).scoreBreakdown());
         assertTrue(nodes.get(0).levelScan().running());
         assertTrue(nodes.get(0).storage().primaryDegraded());
-        assertEquals("READY", client.nodeInfo(" node-a ").join().state());
-        assertEquals("node-a", client.nodeSnapshot(" node-a ").join().orElseThrow().nodeId());
-        assertEquals("node=node-a count=2", client.nodeIslandsSummary("node-a", 500).join().text());
-        List<AdminIslandRuntimeView> runtimes = client.nodeIslandRuntimes("node-a", 50).join();
+        assertEquals("READY", JdkAdminNodeQueryClient.nodeSummary("node-a", nodeInfoBody).state());
+        assertEquals("node-a", JdkAdminNodeQueryClient.node("node-a", nodeInfoBody).orElseThrow().nodeId());
+        assertEquals("node=node-a count=2", JdkAdminNodeQueryClient.summary(nodeIslandsBody).text());
+        List<AdminIslandRuntimeView> runtimes = JdkAdminNodeQueryClient.runtimes(nodeIslandsBody);
         assertEquals(1, runtimes.size());
         assertEquals(islandId.toString(), runtimes.get(0).islandId());
         assertEquals("world-a", runtimes.get(0).activeWorld());
-        assertEquals(List.of("nodes", "nodes", "info:node-a", "info:node-a", "islands:node-a:100", "islands:node-a:50"), calls);
     }
 
     @Test
     void adminNodeCommandClientReturnsTypedActions() {
-        List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "drainNode", "undrainNode" -> {
-                    calls.add(method.getName() + ":" + args[0]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"" + method.getName() + "\"}");
-                }
-                case "sweepNode" -> {
-                    calls.add(method.getName() + ":" + args[0]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"sweepNode\",\"nodes\":[\"node-a\",\"node-b\"],\"recoveryRequired\":2}");
-                }
-                case "kickAllNode", "shutdownNodeSafely" -> {
-                    calls.add(method.getName() + ":" + args[0] + ":" + args[1]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"" + method.getName() + "\"}");
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminNodeCommandClient client = new CoreAdminNodeCommandClient(raw);
-
-        assertEquals("drainNode", client.drainNode(" node-a ").join().operation());
-        assertEquals("undrainNode", client.undrainNode("node-a").join().operation());
-        AdminNodeActionView sweep = client.sweepNode("node-a").join();
+        assertEquals("drainNode", JdkAdminNodeCommandClient.actionResult("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"drainNode\"}").operation());
+        assertEquals("undrainNode", JdkAdminNodeCommandClient.actionResult("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"undrainNode\"}").operation());
+        AdminNodeActionView sweep = JdkAdminNodeCommandClient.actionResult("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"sweepNode\",\"nodes\":[\"node-a\",\"node-b\"],\"recoveryRequired\":2}");
         assertEquals("sweepNode", sweep.operation());
         assertEquals(List.of("node-a", "node-b"), sweep.nodes());
         assertEquals(2, sweep.recoveryRequired());
-        assertEquals("kickAllNode", client.kickAllNode("node-a", "admin").join().operation());
-        assertEquals("shutdownNodeSafely", client.shutdownNodeSafely("node-a", "admin").join().operation());
-        assertEquals(List.of(
-            "drainNode:node-a",
-            "undrainNode:node-a",
-            "sweepNode:node-a",
-            "kickAllNode:node-a:admin",
-            "shutdownNodeSafely:node-a:admin"
-        ), calls);
+        assertEquals("kickAllNode", JdkAdminNodeCommandClient.actionResult("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"kickAllNode\"}").operation());
+        assertEquals("shutdownNodeSafely", JdkAdminNodeCommandClient.actionResult("{\"accepted\":true,\"nodeId\":\"node-a\",\"operation\":\"shutdownNodeSafely\"}").operation());
     }
 
     @Test
