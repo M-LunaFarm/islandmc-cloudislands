@@ -80,7 +80,7 @@ public final class IslandWarehouseMenu implements Listener {
                 int slot = slots.get(index);
                 MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of(), itemLore(itemView, messages))));
             }
-            if (entries.isEmpty()) {
+            if (entries.isEmpty() && !slots.isEmpty()) {
                 MENU.item("_").ifPresent(item -> inventory.setItem(slots.getFirst(), GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of(message(messages, "warehouse-menu-empty", "섬 창고가 비어 있습니다.")))));
             }
             player.openInventory(inventory);

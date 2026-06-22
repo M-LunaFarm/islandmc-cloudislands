@@ -81,7 +81,7 @@ public final class IslandReviewMenu implements Listener {
                 int slot = slots.get(index);
                 MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of(), reviewLore(review, messages))));
             }
-            if (entries.isEmpty()) {
+            if (entries.isEmpty() && !slots.isEmpty()) {
                 MENU.item("_").ifPresent(item -> inventory.setItem(slots.getFirst(), GuiMenuRenderer.item(MENU, item, messages, Map.of(), List.of(message(messages, "reviews-menu-empty", "아직 등록된 후기가 없습니다.")))));
             }
             player.openInventory(inventory);
