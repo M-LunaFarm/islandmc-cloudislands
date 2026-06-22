@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Locale;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
-import kr.lunaf.cloudislands.common.permission.IslandPermissionSystemPolicy;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import org.bukkit.command.Command;
@@ -175,10 +173,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
     }
 
     private List<String> memberRoleNames() {
-        return IslandPermissionSystemPolicy.baseRoles().stream()
-            .filter(role -> role.islandMemberRole() && role != IslandRole.OWNER)
-            .map(Enum::name)
-            .toList();
+        return IslandRoleKeyPolicy.memberRoleKeys();
     }
 
     private List<String> roleCatalog(CommandSender sender, boolean includeVisitor) {
@@ -190,7 +185,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
         }
         List<String> names = new ArrayList<>(memberRoleNames());
         if (includeVisitor) {
-            names.add(IslandRole.VISITOR.name());
+            names.add(IslandRoleKeyPolicy.visitorRoleKey());
         }
         return names;
     }

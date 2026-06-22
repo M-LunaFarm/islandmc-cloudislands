@@ -9,7 +9,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.RoleView;
 import kr.lunaf.cloudislands.coreclient.MutationResult;
@@ -232,28 +231,15 @@ final class IslandPermissionCommandHandler {
     }
 
     String roleKey(String value) {
-        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        return IslandRoleKeyPolicy.normalize(value);
     }
 
     boolean editableRoleKey(String roleKey) {
-        return !roleKey.isBlank()
-            && roleKey.matches("[A-Z0-9_]{1,32}")
-            && !roleKey.equals(IslandRole.OWNER.name())
-            && !roleKey.equals(IslandRole.VISITOR.name())
-            && !roleKey.equals(IslandRole.BANNED.name());
+        return IslandRoleKeyPolicy.editable(roleKey);
     }
 
     int defaultRoleWeight(String roleKey) {
-        IslandRole role = islandRole(roleKey);
-        return role == null ? 100 : role.ordinal();
-    }
-
-    private IslandRole islandRole(String value) {
-        try {
-            return IslandRole.valueOf(roleKey(value));
-        } catch (RuntimeException ignored) {
-            return null;
-        }
+        return IslandRoleKeyPolicy.defaultWeight(roleKey);
     }
 
     private IslandPermission islandPermission(String value) {

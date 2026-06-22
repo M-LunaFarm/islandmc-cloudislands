@@ -1062,6 +1062,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(!membershipHandler.contains("setIslandMemberRole(Player player, String target, IslandRole"), "Membership runtime boundary must not expose enum role identity");
         assertTrue(permissionHandler.contains("upsertIslandRole(player, roleKey, updatedWeight, displayName)"), "Role edit action must call the Core role mutation with dynamic role keys");
         assertTrue(permissionHandler.contains("resetIslandRole(player, roleKey)"), "Role edit action must support reset through the Core role mutation");
+        assertTrue(permissionHandler.contains("IslandRoleKeyPolicy.defaultWeight"), "Paper role editing must derive fallback weights from role keys");
+        assertTrue(!permissionHandler.contains("IslandRole."), "Permission command presentation must not depend on enum role identities");
         assertTrue(!menu.contains("역할편집"), "Role GUI must not print command syntax as its edit path");
         assertTrue(!translations.contains("role-menu-edit-prefix"), "Role translations must not keep command-hint edit text");
         assertTrue(!translations.contains("role-menu-list-command"), "Role controls must describe actions rather than command aliases");
@@ -1077,6 +1079,8 @@ class PaperPlatformBoundaryTest {
         String sync = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionCacheSyncService.java"));
 
         assertTrue(!completer.contains("IslandRole.values()"), "role tab completion must not be fixed to the enum role list");
+        assertTrue(!completer.contains("IslandRole."), "role tab completion must use role keys instead of enum identities");
+        assertTrue(completer.contains("IslandRoleKeyPolicy.memberRoleKeys()"), "role tab completion must use the Paper role key policy fallback");
         assertTrue(controller.contains("new IslandCommandTabCompleter(plugin, protection)"), "tab completion must receive the protection/cache boundary");
         assertTrue(completer.contains("protection.roleCatalog"), "tab completion must read the current island role catalog");
         assertTrue(protection.contains("roleCatalog(UUID islandId"), "ProtectionController must expose the cached role catalog");
