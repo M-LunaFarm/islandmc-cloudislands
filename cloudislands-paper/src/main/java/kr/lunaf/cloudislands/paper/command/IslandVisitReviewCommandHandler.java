@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewActionResult;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewListView;
@@ -53,6 +54,10 @@ final class IslandVisitReviewCommandHandler {
         }
         if (subcommand.equals("reviews") || subcommand.equals("review-list") || subcommand.equals("후기") || subcommand.equals("후기목록")) {
             listIslandReviews(player, args.length > 1 ? integer(args[1], 10) : 10);
+            return true;
+        }
+        if (subcommand.equals("visitor-stats") || subcommand.equals("visitorstats") || subcommand.equals("visitors") || subcommand.equals("방문통계") || subcommand.equals("방문자통계")) {
+            listVisitorStats(player, args.length > 1 ? integer(args[1], 10) : 10);
             return true;
         }
         if (subcommand.equals("rate") || subcommand.equals("review") || subcommand.equals("평가")) {
@@ -114,6 +119,17 @@ final class IslandVisitReviewCommandHandler {
                 .thenAccept(reviews -> runtime.message(player, reviewListMessage(reviews)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 후기를 불러오지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void listVisitorStats(Player player, int limit) {
+        runtime.currentIsland(player, "섬 안에서만 방문 통계를 확인할 수 있습니다.").ifPresent(islandId -> {
+            coreApiClient.visitorStats().stats(islandId, Math.max(1, Math.min(limit, 100)))
+                .thenAccept(stats -> runtime.message(player, visitorStatsMessage(stats)))
+                .exceptionally(error -> {
+                    runtime.message(player, "방문 통계를 불러오지 못했습니다.");
                     return null;
                 });
         });
@@ -192,6 +208,24 @@ final class IslandVisitReviewCommandHandler {
 
     private static String reviewEntry(ReviewView review) {
         return compactId(review.reviewerUuid()) + "=" + review.rating() + "/5" + (review.comment().isBlank() ? "" : " " + review.comment());
+    }
+
+    private static String visitorStatsMessage(IslandVisitorStatsView stats) {
+        if (stats == null) {
+            return "방문 통계를 불러오지 못했습니다.";
+        }
+        List<String> recent = stats.recentVisitors().stream()
+            .limit(10)
+            .filter(visitor -> !visitor.visitorUuid().isBlank())
+            .map(IslandVisitReviewCommandHandler::visitorEntry)
+            .toList();
+        return "방문 통계: 전체=" + stats.totalVisits()
+            + " 고유=" + stats.uniqueVisitors()
+            + (recent.isEmpty() ? "" : " 최근=" + String.join(", ", recent));
+    }
+
+    private static String visitorEntry(IslandVisitorStatsView.RecentVisitorView visitor) {
+        return compactId(visitor.visitorUuid()) + (visitor.lastVisitedAt().isBlank() ? "" : "@" + visitor.lastVisitedAt());
     }
 
     private static String joined(String[] args, int start) {

@@ -51,6 +51,9 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("reviews") || first.equals("review-list") || first.equals("후기") || first.equals("후기목록")) {
                 return literalMatches(List.of("5", "10", "20", "50"), args[1]);
             }
+            if (first.equals("visitor-stats") || first.equals("visitorstats") || first.equals("visitors") || first.equals("방문통계") || first.equals("방문자통계")) {
+                return literalMatches(List.of("5", "10", "20", "50"), args[1]);
+            }
             if (first.equals("rate") || first.equals("review") || first.equals("평가")) {
                 return literalMatches(List.of("current"), args[1]);
             }
