@@ -165,7 +165,10 @@ public interface CoreApiClient {
     }
 
     default AdminIslandQueryClient adminIslands() {
-        return new CoreAdminIslandQueryClient(this);
+        if (this instanceof AdminIslandQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin island queries");
     }
 
     default IslandLifecycleCommandClient lifecycle() {
@@ -395,8 +398,6 @@ public interface CoreApiClient {
     CompletableFuture<Optional<PlayerRouteSession>> consumeRouteSession(UUID playerUuid, String nodeId, UUID ticketId, String nonce, boolean reportMissing);
     CompletableFuture<Optional<RouteTicket>> routeTicketStatus(UUID ticketId, UUID playerUuid, String nonce);
     CompletableFuture<Optional<RouteTicket>> consumeTicket(UUID ticketId, UUID playerUuid, String nodeId, String nonce);
-    CompletableFuture<String> adminIslandInfo(UUID lookupUuid);
-    CompletableFuture<String> adminIslandWhere(UUID islandId);
     CompletableFuture<RouteTicket> adminIslandTeleport(UUID playerUuid, UUID islandId);
     CompletableFuture<String> addonStateSummary();
     CompletableFuture<String> addonState(String addonId);

@@ -322,8 +322,8 @@ class CoreMutationContextTest {
             client.lifecycle().deactivateIsland(islandId).join();
             client.lifecycle().migrateIsland(islandId, "target\"node").join();
             client.lifecycle().quarantineIsland(islandId, "bad \"state\"").join();
-            client.adminIslandInfo(lookupUuid).join();
-            client.adminIslandWhere(islandId).join();
+            client.adminIslands().info(lookupUuid).join();
+            client.adminIslands().runtime(islandId).join();
             client.adminIslandTeleport(playerUuid, islandId).join();
             client.lifecycle().repairIsland(islandId, "repair \"now\"").join();
             client.adminRoutes().debug(playerUuid).join();

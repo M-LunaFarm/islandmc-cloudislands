@@ -111,7 +111,7 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkAdminAddonStateClient"), "admin addon state must use CoreAdminAddonStateQueryClient");
         assertFalse(nestedClients.contains("JdkAdminMaintenanceClient"), "admin maintenance must use a standalone typed client");
         assertFalse(nestedClients.contains("JdkAdminNodeClient"), "admin node operations must use CoreAdminNode query and command clients");
-        assertFalse(nestedClients.contains("JdkAdminIslandClient"), "admin islands must use CoreAdminIslandQueryClient");
+        assertFalse(nestedClients.contains("JdkAdminIslandClient"), "admin islands must use a standalone typed client");
     }
 
     @Test
@@ -143,6 +143,8 @@ class CoreTypedClientsTest {
         assertFalse(names.contains("sweepNodeResult"));
         assertFalse(names.contains("kickAllNodeResult"));
         assertFalse(names.contains("shutdownNodeSafelyResult"));
+        assertFalse(names.contains("adminIslandInfo"));
+        assertFalse(names.contains("adminIslandWhere"));
     }
 
     @Test
@@ -615,37 +617,15 @@ class CoreTypedClientsTest {
     void adminIslandQueryClientReturnsTypedInfoAndRuntime() {
         UUID islandId = UUID.randomUUID();
         UUID ownerUuid = UUID.randomUUID();
-        List<String> calls = new ArrayList<>();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "adminIslandInfo" -> {
-                    calls.add("info:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"islandId":"%s","ownerUuid":"%s","name":"Spawn","state":"ACTIVE","size":300,"level":42,"worth":"100.25","publicAccess":true}
-                        """.formatted(islandId, ownerUuid));
-                }
-                case "islandInfoByName" -> {
-                    calls.add("name:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"islandId":"%s","ownerUuid":"%s","name":"Named","state":"ACTIVE"}
-                        """.formatted(islandId, ownerUuid));
-                }
-                case "adminIslandWhere" -> {
-                    calls.add("where:" + args[0]);
-                    yield CompletableFuture.completedFuture("""
-                        {"islandId":"%s","state":"ACTIVE","activeNode":"paper-a","activeWorld":"island_world","cellX":12,"cellZ":-3,"leaseOwner":"paper-a","fencingToken":9}
-                        """.formatted(islandId));
-                }
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminIslandQueryClient client = new CoreAdminIslandQueryClient(raw);
-
-        CoreGuiViews.IslandInfoView info = client.info(islandId).join();
-        CoreGuiViews.IslandInfoView named = client.infoByName(" Named ").join();
-        AdminIslandRuntimeView runtime = client.runtime(islandId).join();
+        CoreGuiViews.IslandInfoView info = CoreGuiViews.islandInfoView("""
+            {"islandId":"%s","ownerUuid":"%s","name":"Spawn","state":"ACTIVE","size":300,"level":42,"worth":"100.25","publicAccess":true}
+            """.formatted(islandId, ownerUuid));
+        CoreGuiViews.IslandInfoView named = CoreGuiViews.islandInfoView("""
+            {"islandId":"%s","ownerUuid":"%s","name":"Named","state":"ACTIVE"}
+            """.formatted(islandId, ownerUuid));
+        AdminIslandRuntimeView runtime = JdkAdminIslandQueryClient.runtime("""
+            {"islandId":"%s","state":"ACTIVE","activeNode":"paper-a","activeWorld":"island_world","cellX":12,"cellZ":-3,"leaseOwner":"paper-a","fencingToken":9}
+            """.formatted(islandId));
 
         assertEquals("Spawn", info.name());
         assertEquals(ownerUuid.toString(), info.ownerUuid());
@@ -655,23 +635,14 @@ class CoreTypedClientsTest {
         assertEquals(12L, runtime.cellX());
         assertEquals(-3L, runtime.cellZ());
         assertEquals(9L, runtime.fencingToken());
-        assertEquals(List.of("info:" + islandId, "name:Named", "where:" + islandId), calls);
     }
 
     @Test
     void adminIslandRuntimePreservesNullCellAsAbsent() {
         UUID islandId = UUID.randomUUID();
-        CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
-            CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
-            (_proxy, method, args) -> switch (method.getName()) {
-                case "adminIslandWhere" -> CompletableFuture.completedFuture("""
-                    {"islandId":"%s","state":"INACTIVE_READY","cellX":null,"cellZ":null,"fencingToken":3}
-                    """.formatted(islandId));
-                default -> throw new UnsupportedOperationException(method.getName());
-            }
-        );
-        AdminIslandRuntimeView runtime = new CoreAdminIslandQueryClient(raw).runtime(islandId).join();
+        AdminIslandRuntimeView runtime = JdkAdminIslandQueryClient.runtime("""
+            {"islandId":"%s","state":"INACTIVE_READY","cellX":null,"cellZ":null,"fencingToken":3}
+            """.formatted(islandId));
 
         assertFalse(runtime.hasCell());
         assertNull(runtime.activeNode());

@@ -5,14 +5,14 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-public final class CoreAdminIslandQueryClient implements AdminIslandQueryClient {
-    private final CoreApiClient delegate;
+final class JdkAdminIslandQueryClient implements AdminIslandQueryClient {
+    private final JdkCoreApiClient core;
 
-    public CoreAdminIslandQueryClient(CoreApiClient delegate) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+    JdkAdminIslandQueryClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
         }
-        this.delegate = delegate;
+        this.core = core;
     }
 
     @Override
@@ -20,7 +20,7 @@ public final class CoreAdminIslandQueryClient implements AdminIslandQueryClient 
         if (lookupUuid == null) {
             throw new IllegalArgumentException("lookupUuid is required");
         }
-        return delegate.adminIslandInfo(lookupUuid).thenApply(CoreGuiViews::islandInfoView);
+        return core.postWithResultBody("/v1/admin/islands/info", JdkCoreApiClient.jsonObject("lookupUuid", lookupUuid)).thenApply(CoreGuiViews::islandInfoView);
     }
 
     @Override
@@ -29,7 +29,7 @@ public final class CoreAdminIslandQueryClient implements AdminIslandQueryClient 
         if (normalized.isBlank()) {
             throw new IllegalArgumentException("islandName is required");
         }
-        return delegate.islandInfoByName(normalized).thenApply(CoreGuiViews::islandInfoView);
+        return core.islandInfoByName(normalized).thenApply(CoreGuiViews::islandInfoView);
     }
 
     @Override
@@ -37,7 +37,7 @@ public final class CoreAdminIslandQueryClient implements AdminIslandQueryClient 
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
-        return delegate.adminIslandWhere(islandId).thenApply(CoreAdminIslandQueryClient::runtime);
+        return core.postWithResultBody("/v1/admin/islands/where", JdkCoreApiClient.jsonObject("islandId", islandId)).thenApply(JdkAdminIslandQueryClient::runtime);
     }
 
     static AdminIslandRuntimeView runtime(String body) {

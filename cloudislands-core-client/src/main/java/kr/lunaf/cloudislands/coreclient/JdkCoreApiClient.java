@@ -128,7 +128,7 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.adminMaintenanceClient = new JdkAdminMaintenanceClient(this);
         this.adminNodeQueryClient = new JdkAdminNodeQueryClient(this);
         this.adminNodeCommandClient = new JdkAdminNodeCommandClient(this);
-        this.adminIslandClient = new CoreAdminIslandQueryClient(this);
+        this.adminIslandClient = new JdkAdminIslandQueryClient(this);
     }
 
     @Override
@@ -1195,16 +1195,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         requireId(islandId, "islandId");
         return postWithResultBody("/v1/admin/islands/" + islandId + "/quarantine", jsonObject("reason", lifecycleReason(reason, "admin")))
             .thenApply(body -> lifecycleAction(body, "QUARANTINED", islandId));
-    }
-
-    @Override
-    public CompletableFuture<String> adminIslandInfo(UUID lookupUuid) {
-        return postWithResultBody("/v1/admin/islands/info", jsonObject("lookupUuid", lookupUuid));
-    }
-
-    @Override
-    public CompletableFuture<String> adminIslandWhere(UUID islandId) {
-        return postWithResultBody("/v1/admin/islands/where", jsonObject("islandId", islandId));
     }
 
     @Override
