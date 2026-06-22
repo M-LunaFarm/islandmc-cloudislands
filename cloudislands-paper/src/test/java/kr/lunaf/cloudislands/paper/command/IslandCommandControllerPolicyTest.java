@@ -117,9 +117,12 @@ class IslandCommandControllerPolicyTest {
 
         assertTrue(backend.contains("private final IslandWarehouseCommandHandler warehouseCommands;"));
         assertTrue(routerSource().contains("warehouseCommands.handleCommand(player, subcommand, args)"));
+        assertTrue(routerSource().contains("warehouseCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("listIslandWarehouse("), "warehouse list logic belongs in IslandWarehouseCommandHandler");
         assertFalse(backend.contains("changeIslandWarehouse("), "warehouse mutation logic belongs in IslandWarehouseCommandHandler");
         assertTrue(warehouseHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
+        assertTrue(warehouseHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
+        assertTrue(warehouseHandler.contains("IslandWarehouseMenu.open"));
         assertTrue(warehouseHandler.contains("IslandWarehouseUseCase"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.listItems"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.deposit"));

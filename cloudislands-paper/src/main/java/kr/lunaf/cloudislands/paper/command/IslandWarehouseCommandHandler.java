@@ -9,13 +9,20 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase.WarehouseItemView;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
+import kr.lunaf.cloudislands.paper.gui.IslandWarehouseMenu;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 final class IslandWarehouseCommandHandler {
+    private final Plugin plugin;
+    private final CoreApiClient coreApiClient;
     private final IslandWarehouseUseCase warehouseUseCase;
     private final Runtime runtime;
 
-    IslandWarehouseCommandHandler(CoreApiClient coreApiClient, Runtime runtime) {
+    IslandWarehouseCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
+        this.plugin = plugin;
+        this.coreApiClient = coreApiClient;
         this.warehouseUseCase = new IslandWarehouseUseCase(coreApiClient);
         this.runtime = runtime;
     }
@@ -42,6 +49,18 @@ final class IslandWarehouseCommandHandler {
             return true;
         }
         return false;
+    }
+
+    boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.NoPayload noPayload && noPayload.type() == GuiAction.NoPayloadType.WAREHOUSE_OPEN) {
+            openWarehouseMenu(player);
+            return true;
+        }
+        return false;
+    }
+
+    private void openWarehouseMenu(Player player) {
+        runtime.currentIsland(player, "섬 안에서만 창고 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandWarehouseMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void listWarehouse(Player player, int limit) {
@@ -119,6 +138,8 @@ final class IslandWarehouseCommandHandler {
         String playerCodeMessage(String code, String fallback);
 
         String coreWriteFailureMessage(Throwable error, String fallback);
+
+        kr.lunaf.cloudislands.paper.message.MessageRenderer messagesFor(Player player);
 
         <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
     }

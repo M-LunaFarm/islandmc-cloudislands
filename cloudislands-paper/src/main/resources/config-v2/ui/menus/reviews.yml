@@ -48,7 +48,7 @@ items:
       - "/섬 메뉴"
     action: back
 actions:
-  open: island.info.open
-  list: island.info.open
+  open: island.reviews.open
+  list: island.reviews.open
   ranking: island.ranking.open
   back: island.main.open

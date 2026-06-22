@@ -32,6 +32,7 @@ public final class GuiActionParser {
         "island.bank.withdraw",
         "island.bans.list",
         "island.bans.open",
+        "island.border.open",
         "island.biome.open",
         "island.biome.set",
         "island.biome.show",
@@ -88,6 +89,7 @@ public final class GuiActionParser {
         "island.public.toggle",
         "island.ranking.list",
         "island.ranking.open",
+        "island.reviews.open",
         "island.role.weight.adjust",
         "island.roles.list",
         "island.roles.open",
@@ -104,6 +106,7 @@ public final class GuiActionParser {
         "island.visit.public.open",
         "island.visit.random",
         "island.visit.target",
+        "island.warehouse.open",
         "island.warp.delete.confirm",
         "island.warp.delete.prepare",
         "island.warp.private",
@@ -201,6 +204,7 @@ public final class GuiActionParser {
                 case "island.snapshots.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_OPEN));
                 case "island.snapshots.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_LIST));
                 case "island.ranking.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.RANKING_OPEN));
+                case "island.reviews.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.REVIEWS_OPEN));
                 case "island.level.recalculate" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LEVEL_RECALCULATE));
                 case "island.level.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LEVEL_SHOW));
                 case "island.worth.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.WORTH_SHOW));
@@ -208,6 +212,7 @@ public final class GuiActionParser {
                 case "island.upgrades.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.UPGRADES_LIST));
                 case "island.homes.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.HOMES_OPEN));
                 case "island.warps.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.WARPS_OPEN));
+                case "island.warehouse.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.WAREHOUSE_OPEN));
                 case "island.visit.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.VISIT_OPEN));
                 case "island.visit.random" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.VISIT_RANDOM));
                 case "island.visit.public.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.VISIT_PUBLIC_OPEN));
@@ -236,6 +241,7 @@ public final class GuiActionParser {
                 case "island.logs.open" -> Optional.of(new GuiAction.LogsOpen());
                 case "island.logs.list" -> Optional.of(new GuiAction.LogsList());
                 case "island.biome.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BIOME_OPEN));
+                case "island.border.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BORDER_OPEN));
                 case "island.biome.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BIOME_SHOW));
                 case "island.limits.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LIMITS_OPEN));
                 case "island.limits.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LIMITS_LIST));

@@ -48,6 +48,6 @@ items:
       - "/섬 메뉴"
     action: back
 actions:
-  open: island.info.open
-  list: island.info.open
+  open: island.warehouse.open
+  list: island.warehouse.open
   back: island.main.open

@@ -70,6 +70,6 @@ items:
       - "/섬 메뉴"
     action: back
 actions:
-  open: island.info.open
+  open: island.border.open
   info: island.info.open
   back: island.main.open

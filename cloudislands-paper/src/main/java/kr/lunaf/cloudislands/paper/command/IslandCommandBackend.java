@@ -95,7 +95,7 @@ final class IslandCommandBackend {
         this.memberPresentation = new IslandCommandMemberPresentation(plugin, coreApiClient, protection, commandMessages, islandContext, routingCommands);
         this.bankCommands = new IslandBankCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices);
         this.snapshotCommands = new IslandSnapshotCommandHandler(plugin, coreApiClient, runtimeServices);
-        this.warehouseCommands = new IslandWarehouseCommandHandler(coreApiClient, runtimeServices);
+        this.warehouseCommands = new IslandWarehouseCommandHandler(plugin, coreApiClient, runtimeServices);
         this.chatLogCommands = new IslandChatLogCommandHandler(plugin, coreApiClient, runtimeServices);
         this.progressionCommands = new IslandProgressionCommandHandler(plugin, coreApiClient, levelScanService, runtimeServices);
         this.environmentCommands = new IslandEnvironmentCommandHandler(plugin, coreApiClient, protection, runtimeServices);

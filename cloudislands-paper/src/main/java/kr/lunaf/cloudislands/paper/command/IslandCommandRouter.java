@@ -135,6 +135,9 @@ final class IslandCommandRouter {
         if (snapshotCommands.handleGuiAction(player, action, click)) {
             return;
         }
+        if (warehouseCommands.handleGuiAction(player, action)) {
+            return;
+        }
         if (chatLogCommands.handleGuiAction(player, action)) {
             return;
         }

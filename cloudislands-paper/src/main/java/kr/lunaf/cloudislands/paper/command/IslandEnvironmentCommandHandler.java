@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase.EnvironmentActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
+import kr.lunaf.cloudislands.paper.gui.IslandBorderMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -150,10 +151,18 @@ final class IslandEnvironmentCommandHandler {
                     listLimits(player);
                     yield true;
                 }
+                case BORDER_OPEN -> {
+                    openBorderMenu(player);
+                    yield true;
+                }
                 default -> false;
             };
         }
         return false;
+    }
+
+    private void openBorderMenu(Player player) {
+        runtime.currentIsland(player, "섬 안에서만 보더 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandBorderMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void showBiome(Player player) {

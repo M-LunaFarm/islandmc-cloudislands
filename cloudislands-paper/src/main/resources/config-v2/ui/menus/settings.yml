@@ -193,8 +193,8 @@ actions:
   biome: island.biome.open
   snapshots: island.snapshots.open
   info: island.info.open
-  warehouse: island.info.open
-  reviews: island.ranking.open
-  border: island.info.open
+  warehouse: island.warehouse.open
+  reviews: island.reviews.open
+  border: island.border.open
   danger: island.danger.open
   back: island.main.open

@@ -595,13 +595,13 @@ class GuiMenuDefinitionTest {
         assertEquals("R", definition.itemAt(17).orElseThrow().symbol());
         assertEquals("island.roles.open", definition.action(definition.itemAt(17).orElseThrow().actionKey(), ""));
         assertEquals("Z", definition.itemAt(24).orElseThrow().symbol());
-        assertEquals("island.ranking.open", definition.action(definition.itemAt(24).orElseThrow().actionKey(), ""));
+        assertEquals("island.reviews.open", definition.action(definition.itemAt(24).orElseThrow().actionKey(), ""));
         assertEquals("C", definition.itemAt(25).orElseThrow().symbol());
-        assertEquals("island.info.open", definition.action(definition.itemAt(25).orElseThrow().actionKey(), ""));
+        assertEquals("island.warehouse.open", definition.action(definition.itemAt(25).orElseThrow().actionKey(), ""));
         assertEquals("D", definition.itemAt(26).orElseThrow().symbol());
         assertEquals("island.danger.open", definition.action(definition.itemAt(26).orElseThrow().actionKey(), ""));
         assertEquals("Y", definition.itemAt(31).orElseThrow().symbol());
-        assertEquals("island.info.open", definition.action(definition.itemAt(31).orElseThrow().actionKey(), ""));
+        assertEquals("island.border.open", definition.action(definition.itemAt(31).orElseThrow().actionKey(), ""));
     }
 
     @Test
@@ -624,12 +624,14 @@ class GuiMenuDefinitionTest {
         assertEquals("P", reviews.itemAt(45).orElseThrow().symbol());
         assertEquals("island.ranking.open", reviews.action(reviews.itemAt(45).orElseThrow().actionKey(), ""));
         assertEquals("R", reviews.itemAt(49).orElseThrow().symbol());
-        assertEquals("island.info.open", reviews.action(reviews.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("island.reviews.open", reviews.action(reviews.itemAt(49).orElseThrow().actionKey(), ""));
 
         assertEquals("island.warehouse", warehouse.id());
         assertEquals("_", warehouse.itemAt(0).orElseThrow().symbol());
         assertEquals("D", warehouse.itemAt(45).orElseThrow().symbol());
-        assertEquals("island.info.open", warehouse.action(warehouse.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("island.warehouse.open", warehouse.action(warehouse.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("R", warehouse.itemAt(49).orElseThrow().symbol());
+        assertEquals("island.warehouse.open", warehouse.action(warehouse.itemAt(49).orElseThrow().actionKey(), ""));
         assertEquals("M", warehouse.itemAt(53).orElseThrow().symbol());
         assertEquals("island.main.open", warehouse.action(warehouse.itemAt(53).orElseThrow().actionKey(), ""));
 
@@ -639,6 +641,8 @@ class GuiMenuDefinitionTest {
         assertEquals("B", border.itemAt(13).orElseThrow().symbol());
         assertEquals("I", border.itemAt(14).orElseThrow().symbol());
         assertEquals("island.info.open", border.action(border.itemAt(14).orElseThrow().actionKey(), ""));
+        assertEquals("R", border.itemAt(15).orElseThrow().symbol());
+        assertEquals("island.border.open", border.action(border.itemAt(15).orElseThrow().actionKey(), ""));
         assertEquals("M", border.itemAt(22).orElseThrow().symbol());
         assertEquals("island.main.open", border.action(border.itemAt(22).orElseThrow().actionKey(), ""));
     }

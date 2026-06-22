@@ -70,6 +70,7 @@ class GuiActionParserTest {
     @Test
     void parsesEnvironmentAndSettingsNavigationIntoTypedActions() {
         assertNoPayloadType("island.biome.open", GuiAction.NoPayloadType.BIOME_OPEN);
+        assertNoPayloadType("island.border.open", GuiAction.NoPayloadType.BORDER_OPEN);
         assertNoPayloadType("island.biome.show", GuiAction.NoPayloadType.BIOME_SHOW);
         assertNoPayloadType("island.limits.open", GuiAction.NoPayloadType.LIMITS_OPEN);
         assertNoPayloadType("island.limits.list", GuiAction.NoPayloadType.LIMITS_LIST);
@@ -86,6 +87,7 @@ class GuiActionParserTest {
         assertNoPayloadType("island.snapshots.open", GuiAction.NoPayloadType.SNAPSHOTS_OPEN);
         assertNoPayloadType("island.snapshots.list", GuiAction.NoPayloadType.SNAPSHOTS_LIST);
         assertNoPayloadType("island.ranking.open", GuiAction.NoPayloadType.RANKING_OPEN);
+        assertNoPayloadType("island.reviews.open", GuiAction.NoPayloadType.REVIEWS_OPEN);
         assertNoPayloadType("island.level.recalculate", GuiAction.NoPayloadType.LEVEL_RECALCULATE);
         assertNoPayloadType("island.level.show", GuiAction.NoPayloadType.LEVEL_SHOW);
         assertNoPayloadType("island.worth.show", GuiAction.NoPayloadType.WORTH_SHOW);
@@ -97,6 +99,7 @@ class GuiActionParserTest {
     void parsesHomeWarpAndVisitNavigationIntoTypedActions() {
         assertNoPayloadType("island.homes.open", GuiAction.NoPayloadType.HOMES_OPEN);
         assertNoPayloadType("island.warps.open", GuiAction.NoPayloadType.WARPS_OPEN);
+        assertNoPayloadType("island.warehouse.open", GuiAction.NoPayloadType.WAREHOUSE_OPEN);
         assertNoPayloadType("island.visit.open", GuiAction.NoPayloadType.VISIT_OPEN);
         assertNoPayloadType("island.visit.random", GuiAction.NoPayloadType.VISIT_RANDOM);
         assertNoPayloadType("island.visit.public.open", GuiAction.NoPayloadType.VISIT_PUBLIC_OPEN);

@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewLis
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PublicIslandView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
+import kr.lunaf.cloudislands.paper.gui.IslandReviewMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.entity.Player;
@@ -90,10 +91,18 @@ final class IslandVisitReviewCommandHandler {
                     listPublicIslands(player, 10);
                     yield true;
                 }
+                case REVIEWS_OPEN -> {
+                    openReviewMenu(player);
+                    yield true;
+                }
                 default -> false;
             };
         }
         return false;
+    }
+
+    private void openReviewMenu(Player player) {
+        runtime.currentIsland(player, "섬 안에서만 후기 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandReviewMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void routeVisitTarget(Player player, String target) {

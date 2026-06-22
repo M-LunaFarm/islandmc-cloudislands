@@ -20,6 +20,7 @@ public final class IslandGuiMenuRegistrar {
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandBankMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandBanMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandBiomeMenu(messages, registry));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandBorderMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandChatMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandConfirmationMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandCreateMenu(messages, registry));
@@ -36,11 +37,13 @@ public final class IslandGuiMenuRegistrar {
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandMyIslandsMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandPermissionMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandRankingMenu(messages, registry));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandReviewMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandRoleMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandSettingsMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandSnapshotMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandUpgradeMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandVisitMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandWarpMenu(messages, registry));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandWarehouseMenu(messages, registry));
     }
 }
