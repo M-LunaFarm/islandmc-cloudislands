@@ -22,7 +22,7 @@ final class CoreHttpTransport {
         this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
     }
 
-    CompletableFuture<String> post(String path, String body) {
+    CompletableFuture<CoreResponseBody> post(String path, String body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
             .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)
@@ -30,20 +30,20 @@ final class CoreHttpTransport {
             .POST(HttpRequest.BodyPublishers.ofString(body));
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
-        return send(builder.build()).thenApply(response -> response.bodyOrEmpty(response.successBody()));
+        return send(builder.build()).thenApply(response -> new CoreResponseBody(response.bodyOrEmpty(response.successBody())));
     }
 
-    CompletableFuture<String> get(String path) {
+    CompletableFuture<CoreResponseBody> get(String path) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
             .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)
             .GET();
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
-        return send(builder.build()).thenApply(response -> response.bodyOrEmpty(response.successBody()));
+        return send(builder.build()).thenApply(response -> new CoreResponseBody(response.bodyOrEmpty(response.successBody())));
     }
 
-    CompletableFuture<String> postWithResultBody(String path, String body) {
+    CompletableFuture<CoreResponseBody> postWithResultBody(String path, String body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
             .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)
@@ -51,17 +51,17 @@ final class CoreHttpTransport {
             .POST(HttpRequest.BodyPublishers.ofString(body));
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
-        return send(builder.build()).thenApply(response -> response.bodyOrEmpty(response.resultBody()));
+        return send(builder.build()).thenApply(response -> new CoreResponseBody(response.bodyOrEmpty(response.resultBody())));
     }
 
-    CompletableFuture<String> deleteWithResultBody(String path) {
+    CompletableFuture<CoreResponseBody> deleteWithResultBody(String path) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(baseUri.resolve(path))
             .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)
             .DELETE();
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
-        return send(builder.build()).thenApply(response -> response.bodyOrEmpty(response.resultBody()));
+        return send(builder.build()).thenApply(response -> new CoreResponseBody(response.bodyOrEmpty(response.resultBody())));
     }
 
     private CompletableFuture<CoreHttpResponse> send(HttpRequest request) {

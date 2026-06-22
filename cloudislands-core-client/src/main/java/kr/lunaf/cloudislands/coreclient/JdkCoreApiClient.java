@@ -357,19 +357,19 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     CompletableFuture<String> post(String path, String body) {
-        return transport.post(path, body);
+        return transport.post(path, body).thenApply(CoreResponseBody::value);
     }
 
     CompletableFuture<String> get(String path) {
-        return transport.get(path);
+        return transport.get(path).thenApply(CoreResponseBody::value);
     }
 
     CompletableFuture<String> postWithResultBody(String path, String body) {
-        return transport.postWithResultBody(path, body);
+        return transport.postWithResultBody(path, body).thenApply(CoreResponseBody::value);
     }
 
     CompletableFuture<String> deleteWithResultBody(String path) {
-        return transport.deleteWithResultBody(path);
+        return transport.deleteWithResultBody(path).thenApply(CoreResponseBody::value);
     }
 
 }

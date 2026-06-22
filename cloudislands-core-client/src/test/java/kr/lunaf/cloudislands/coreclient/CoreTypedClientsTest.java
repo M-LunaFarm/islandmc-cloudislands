@@ -141,16 +141,20 @@ class CoreTypedClientsTest {
         String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
         String transport = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreHttpTransport.java"));
         String response = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreHttpResponse.java"));
+        String responseBody = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreResponseBody.java"));
 
         assertTrue(source.contains("private final CoreHttpTransport transport"), "JDK core client must delegate HTTP transport details");
-        assertTrue(source.contains("return transport.post(path, body);"), "JDK core client must not build POST requests inline");
+        assertTrue(source.contains("return transport.post(path, body).thenApply(CoreResponseBody::value);"), "JDK core client must only unwrap typed response bodies at the domain-client boundary");
         assertTrue(transport.contains("CompletableFuture<CoreHttpResponse> send(HttpRequest request)"), "transport boundary must return a typed HTTP response");
+        assertTrue(transport.contains("CompletableFuture<CoreResponseBody> post(String path, String body)"), "transport public package boundary must not expose raw String futures");
+        assertFalse(transport.contains("CompletableFuture<String>"), "transport must keep raw response bodies inside a value object");
         assertTrue(transport.contains("new CoreHttpResponse(response.statusCode(), response.body())"), "raw Java HTTP responses must be converted once");
-        assertTrue(transport.contains("response.bodyOrEmpty(response.successBody())"), "2xx body policy must be expressed on CoreHttpResponse");
-        assertTrue(transport.contains("response.bodyOrEmpty(response.resultBody())"), "mutation result body policy must be expressed on CoreHttpResponse");
+        assertTrue(transport.contains("new CoreResponseBody(response.bodyOrEmpty(response.successBody()))"), "2xx body policy must be expressed on CoreHttpResponse then wrapped");
+        assertTrue(transport.contains("new CoreResponseBody(response.bodyOrEmpty(response.resultBody()))"), "mutation result body policy must be expressed on CoreHttpResponse then wrapped");
         assertFalse(transport.contains("response.statusCode() >= 200 && response.statusCode() < 300 ? response.body() : \"\""), "transport code must not mix status policy and body fallback inline");
         assertFalse(transport.contains("response.statusCode() >= 200 && response.statusCode() < 500 ? response.body() : \"\""), "result-body policy must not be duplicated inline");
         assertTrue(response.contains("record CoreHttpResponse(int statusCode, String body)"), "HTTP status and body must stay paired before domain parsing");
+        assertTrue(responseBody.contains("record CoreResponseBody(String value)"), "accepted response body must be a typed value before domain parsing");
     }
 
     @Test
