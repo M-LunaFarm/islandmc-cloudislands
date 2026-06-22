@@ -8,14 +8,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.lang.reflect.RecordComponent;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
-import kr.lunaf.cloudislands.coreclient.CoreBankCommandClient;
-import kr.lunaf.cloudislands.coreclient.CoreBankQueryClient;
+import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
+import kr.lunaf.cloudislands.coreclient.BankCommandClient;
+import kr.lunaf.cloudislands.coreclient.BankQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +67,7 @@ class BankUseCaseTest {
         FakeEconomy economy = new FakeEconomy(true);
         economy.failWithdrawPayout = true;
         ScriptedCoreBank core = new ScriptedCoreBank();
-        core.withdrawBody = "{\"accepted\":true,\"balance\":\"40\"}";
+        core.withdrawResult = ScriptedCoreBank.bankChange(true, "", "40");
         BankUseCase useCase = new BankUseCase(coreApiClient(core), economy);
         List<String> auditActions = new ArrayList<>();
 
@@ -140,13 +143,28 @@ class BankUseCaseTest {
     private CoreApiClient coreApiClient(ScriptedCoreBank core) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, BankQueryClient.class, BankCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "bank" -> new CoreBankQueryClient((CoreApiClient) _proxy);
-                case "bankCommands" -> new CoreBankCommandClient((CoreApiClient) _proxy);
-                case "islandBank" -> CompletableFuture.completedFuture("{\"balance\":\"55\"}");
-                case "depositIslandBank" -> core.deposit((String) args[2]);
-                case "withdrawIslandBank" -> core.withdraw((String) args[2]);
+                case "bank" -> (BankQueryClient) _proxy;
+                case "bankCommands" -> (BankCommandClient) _proxy;
+                case "snapshot" -> CompletableFuture.completedFuture(new IslandBankSnapshot((UUID) args[0], "55", Instant.EPOCH));
+                case "islandBank" -> CompletableFuture.completedFuture(new kr.lunaf.cloudislands.coreclient.CoreGuiViews.BankView("55", Instant.EPOCH.toString()));
+                case "depositSnapshot" -> core.deposit((UUID) args[0], (String) args[2]);
+                case "withdrawSnapshot" -> core.withdraw((UUID) args[0], (String) args[2]);
+                case "deposit" -> core.deposit((UUID) args[0], (String) args[2]).thenApply(change -> new kr.lunaf.cloudislands.coreclient.BankMutationView(
+                    change.accepted(),
+                    change.code(),
+                    change.bank().islandId().toString(),
+                    change.bank().balance(),
+                    change.bank().updatedAt().toString()
+                ));
+                case "withdraw" -> core.withdraw((UUID) args[0], (String) args[2]).thenApply(change -> new kr.lunaf.cloudislands.coreclient.BankMutationView(
+                    change.accepted(),
+                    change.code(),
+                    change.bank().islandId().toString(),
+                    change.bank().balance(),
+                    change.bank().updatedAt().toString()
+                ));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
@@ -154,13 +172,13 @@ class BankUseCaseTest {
 
     private static final class ScriptedCoreBank {
         final List<String> calls = new ArrayList<>();
-        String depositBody = "{\"accepted\":false,\"code\":\"BANK_LIMIT_REACHED\",\"balance\":\"10\"}";
-        String withdrawBody = "{\"accepted\":true,\"balance\":\"90\"}";
+        IslandBankChangeSnapshot depositResult = bankChange(false, "BANK_LIMIT_REACHED", "10");
+        IslandBankChangeSnapshot withdrawResult = bankChange(true, "", "90");
         RuntimeException depositFailure;
         RuntimeException rollbackDepositFailure;
         int deposits;
 
-        CompletableFuture<String> deposit(String amount) {
+        CompletableFuture<IslandBankChangeSnapshot> deposit(UUID islandId, String amount) {
             calls.add("deposit:" + amount);
             deposits++;
             if (rollbackDepositFailure != null) {
@@ -170,14 +188,22 @@ class BankUseCaseTest {
                 return CompletableFuture.failedFuture(depositFailure);
             }
             if (deposits > 1) {
-                return CompletableFuture.completedFuture("{\"accepted\":true,\"balance\":\"99\"}");
+                return CompletableFuture.completedFuture(bankChange(islandId, true, "", "99"));
             }
-            return CompletableFuture.completedFuture(depositBody);
+            return CompletableFuture.completedFuture(bankChange(islandId, depositResult.accepted(), depositResult.code(), depositResult.bank().balance()));
         }
 
-        CompletableFuture<String> withdraw(String amount) {
+        CompletableFuture<IslandBankChangeSnapshot> withdraw(UUID islandId, String amount) {
             calls.add("withdraw:" + amount);
-            return CompletableFuture.completedFuture(withdrawBody);
+            return CompletableFuture.completedFuture(bankChange(islandId, withdrawResult.accepted(), withdrawResult.code(), withdrawResult.bank().balance()));
+        }
+
+        private static IslandBankChangeSnapshot bankChange(boolean accepted, String code, String balance) {
+            return bankChange(new UUID(0L, 0L), accepted, code, balance);
+        }
+
+        private static IslandBankChangeSnapshot bankChange(UUID islandId, boolean accepted, String code, String balance) {
+            return new IslandBankChangeSnapshot(accepted, code, new IslandBankSnapshot(islandId, balance, Instant.EPOCH));
         }
     }
 

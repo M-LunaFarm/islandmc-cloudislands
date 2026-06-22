@@ -18,6 +18,8 @@ import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
@@ -43,14 +45,12 @@ import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient, RuntimeCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, BankQueryClient, BankCommandClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient, RuntimeCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
     private final Duration timeout;
     private final HttpClient httpClient;
-    private final BankQueryClient bankQueryClient;
-    private final BankCommandClient bankCommandClient;
     private final SnapshotQueryClient snapshotQueryClient;
     private final SnapshotCommandClient snapshotCommandClient;
     private final CommunicationQueryClient communicationQueryClient;
@@ -101,8 +101,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
         this.adminToken = adminToken == null ? "" : adminToken;
         this.timeout = timeout == null || timeout.isNegative() || timeout.isZero() ? Duration.ofSeconds(5) : timeout;
         this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
-        this.bankQueryClient = new CoreBankQueryClient(this);
-        this.bankCommandClient = new CoreBankCommandClient(this);
         this.snapshotQueryClient = new CoreSnapshotQueryClient(this);
         this.snapshotCommandClient = new CoreSnapshotCommandClient(this);
         this.communicationQueryClient = new CoreCommunicationQueryClient(this);
@@ -146,12 +144,12 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
 
     @Override
     public BankQueryClient bank() {
-        return bankQueryClient;
+        return this;
     }
 
     @Override
     public BankCommandClient bankCommands() {
-        return bankCommandClient;
+        return this;
     }
 
     @Override
@@ -1031,18 +1029,27 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     }
 
     @Override
-    public CompletableFuture<String> islandBank(UUID islandId) {
-        return post("/v1/islands/bank", jsonObject("islandId", islandId));
+    public CompletableFuture<IslandBankSnapshot> snapshot(UUID islandId) {
+        if (islandId == null) {
+            throw new IllegalArgumentException("islandId is required");
+        }
+        return post("/v1/islands/bank", jsonObject("islandId", islandId)).thenApply(CoreBankJson::snapshot);
     }
 
     @Override
-    public CompletableFuture<String> depositIslandBank(UUID islandId, UUID actorUuid, String amount) {
-        return postWithResultBody("/v1/islands/bank/deposit", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount));
+    public CompletableFuture<IslandBankChangeSnapshot> depositSnapshot(UUID islandId, UUID actorUuid, String amount) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        return postWithResultBody("/v1/islands/bank/deposit", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
+            .thenApply(CoreBankJson::mutation);
     }
 
     @Override
-    public CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount) {
-        return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount));
+    public CompletableFuture<IslandBankChangeSnapshot> withdrawSnapshot(UUID islandId, UUID actorUuid, String amount) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        return postWithResultBody("/v1/islands/bank/withdraw", jsonObject("islandId", islandId, "actorUuid", actorUuid, "amount", amount == null ? "" : amount))
+            .thenApply(CoreBankJson::mutation);
     }
 
     @Override

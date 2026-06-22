@@ -877,13 +877,14 @@ class CoreTypedClientsTest {
         UUID islandId = UUID.randomUUID();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, BankQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "islandBank" -> CompletableFuture.completedFuture("{\"islandId\":\"%s\",\"balance\":\"55\",\"updatedAt\":\"2026-01-02T03:04:05Z\"}".formatted(islandId));
+                case "snapshot" -> CompletableFuture.completedFuture(new IslandBankSnapshot(islandId, "55", Instant.parse("2026-01-02T03:04:05Z")));
+                case "islandBank" -> CompletableFuture.completedFuture(new CoreGuiViews.BankView("55", "2026-01-02T03:04:05Z"));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        BankQueryClient client = new CoreBankQueryClient(raw);
+        BankQueryClient client = (BankQueryClient) raw;
 
         IslandBankSnapshot snapshot = client.snapshot(islandId).join();
         CoreGuiViews.BankView bank = client.islandBank(islandId).join();
@@ -902,20 +903,28 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, BankCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
-                case "depositIslandBank" -> {
+                case "depositSnapshot" -> {
                     calls.add("deposit:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"bank\":{\"islandId\":\"%s\",\"balance\":\"70\",\"updatedAt\":\"2026-01-02T03:04:05Z\"}}".formatted(islandId));
+                    yield CompletableFuture.completedFuture(new IslandBankChangeSnapshot(true, "", new IslandBankSnapshot(islandId, "70", Instant.parse("2026-01-02T03:04:05Z"))));
                 }
-                case "withdrawIslandBank" -> {
+                case "deposit" -> {
+                    calls.add("deposit:" + args[2]);
+                    yield CompletableFuture.completedFuture(new BankMutationView(true, "", islandId.toString(), "70", "2026-01-02T03:04:05Z"));
+                }
+                case "withdrawSnapshot" -> {
                     calls.add("withdraw:" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"NO_FUNDS\",\"islandId\":\"%s\",\"balance\":\"20\",\"updatedAt\":\"2026-01-02T04:04:05Z\"}".formatted(islandId));
+                    yield CompletableFuture.completedFuture(new IslandBankChangeSnapshot(false, "NO_FUNDS", new IslandBankSnapshot(islandId, "20", Instant.parse("2026-01-02T04:04:05Z"))));
+                }
+                case "withdraw" -> {
+                    calls.add("withdraw:" + args[2]);
+                    yield CompletableFuture.completedFuture(new BankMutationView(false, "NO_FUNDS", islandId.toString(), "20", "2026-01-02T04:04:05Z"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
-        BankCommandClient client = new CoreBankCommandClient(raw);
+        BankCommandClient client = (BankCommandClient) raw;
 
         IslandBankChangeSnapshot depositSnapshot = client.depositSnapshot(islandId, actorUuid, "15").join();
         BankMutationView deposit = client.deposit(islandId, actorUuid, "15").join();

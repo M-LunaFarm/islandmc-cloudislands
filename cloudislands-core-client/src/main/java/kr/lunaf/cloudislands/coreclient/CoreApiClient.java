@@ -61,11 +61,17 @@ public interface CoreApiClient {
     }
 
     default BankQueryClient bank() {
-        return new CoreBankQueryClient(this);
+        if (this instanceof BankQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed bank queries");
     }
 
     default BankCommandClient bankCommands() {
-        return new CoreBankCommandClient(this);
+        if (this instanceof BankCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed bank commands");
     }
 
     default WarehouseQueryClient warehouse() {
@@ -338,9 +344,6 @@ public interface CoreApiClient {
     CompletableFuture<String> restoreIslandSnapshotResult(UUID islandId, long snapshotNo);
     CompletableFuture<String> rollbackIslandSnapshotResult(UUID islandId, long snapshotNo);
     CompletableFuture<String> listIslandLogs(UUID islandId, int limit);
-    CompletableFuture<String> islandBank(UUID islandId);
-    CompletableFuture<String> depositIslandBank(UUID islandId, UUID actorUuid, String amount);
-    CompletableFuture<String> withdrawIslandBank(UUID islandId, UUID actorUuid, String amount);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid);
     CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName);
     CompletableFuture<RouteTicket> createVisitTicket(UUID visitorUuid, UUID targetIslandId);
