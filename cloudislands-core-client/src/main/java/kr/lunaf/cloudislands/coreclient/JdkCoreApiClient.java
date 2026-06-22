@@ -73,9 +73,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final JdkWarehouseClient warehouseClient;
     private final PlayerProfileQueryClient playerProfileQueryClient;
     private final PlayerProfileCommandClient playerProfileCommandClient;
-    private final JdkTemplateClient templateClient;
-    private final JdkJobClient jobClient;
-    private final JdkBlockValueClient blockValueClient;
+    private final TemplateQueryClient templateQueryClient;
+    private final TemplateCommandClient templateCommandClient;
+    private final JobQueryClient jobQueryClient;
+    private final JobCommandClient jobCommandClient;
+    private final BlockValueQueryClient blockValueQueryClient;
+    private final BlockValueCommandClient blockValueCommandClient;
     private final AdminMetricsQueryClient adminMetricsClient;
     private final AdminCoreConfigQueryClient adminCoreConfigClient;
     private final AdminStorageQueryClient adminStorageClient;
@@ -122,9 +125,12 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.warehouseClient = new JdkWarehouseClient();
         this.playerProfileQueryClient = new CorePlayerProfileQueryClient(this);
         this.playerProfileCommandClient = new CorePlayerProfileCommandClient(this);
-        this.templateClient = new JdkTemplateClient();
-        this.jobClient = new JdkJobClient();
-        this.blockValueClient = new JdkBlockValueClient();
+        this.templateQueryClient = new CoreTemplateQueryClient(this);
+        this.templateCommandClient = new CoreTemplateCommandClient(this);
+        this.jobQueryClient = new CoreJobQueryClient(this);
+        this.jobCommandClient = new CoreJobCommandClient(this);
+        this.blockValueQueryClient = new CoreBlockValueQueryClient(this);
+        this.blockValueCommandClient = new CoreBlockValueCommandClient(this);
         this.adminMetricsClient = new CoreAdminMetricsQueryClient(this);
         this.adminCoreConfigClient = new CoreAdminCoreConfigQueryClient(this);
         this.adminStorageClient = new CoreAdminStorageQueryClient(this);
@@ -280,32 +286,32 @@ public final class JdkCoreApiClient implements CoreApiClient {
 
     @Override
     public TemplateQueryClient templates() {
-        return templateClient;
+        return templateQueryClient;
     }
 
     @Override
     public TemplateCommandClient templateCommands() {
-        return templateClient;
+        return templateCommandClient;
     }
 
     @Override
     public JobQueryClient jobs() {
-        return jobClient;
+        return jobQueryClient;
     }
 
     @Override
     public JobCommandClient jobCommands() {
-        return jobClient;
+        return jobCommandClient;
     }
 
     @Override
     public BlockValueQueryClient blockValues() {
-        return blockValueClient;
+        return blockValueQueryClient;
     }
 
     @Override
     public BlockValueCommandClient blockValueCommands() {
-        return blockValueClient;
+        return blockValueCommandClient;
     }
 
     @Override
@@ -1230,115 +1236,6 @@ public final class JdkCoreApiClient implements CoreApiClient {
             if (id == null) {
                 throw new IllegalArgumentException(name + " is required");
             }
-        }
-    }
-
-    private final class JdkTemplateClient implements TemplateQueryClient, TemplateCommandClient {
-        @Override
-        public CompletableFuture<List<TemplateView>> list() {
-            return postWithResultBody("/v1/admin/templates/list", "{}")
-                .thenApply(CoreTemplateJson::templates);
-        }
-
-        @Override
-        public CompletableFuture<TemplateView> upsert(String templateId, String displayName, boolean enabled, String minNodeVersion) {
-            String safeTemplateId = requireTemplateId(templateId);
-            return postWithResultBody("/v1/admin/templates/upsert", jsonObject(
-                "templateId", safeTemplateId,
-                "displayName", displayName == null ? "" : displayName,
-                "enabled", enabled,
-                "minNodeVersion", minNodeVersion == null ? "" : minNodeVersion
-            )).thenApply(CoreTemplateJson::template);
-        }
-
-        @Override
-        public CompletableFuture<TemplateView> enable(String templateId) {
-            return postWithResultBody("/v1/admin/templates/enable", jsonObject("templateId", requireTemplateId(templateId)))
-                .thenApply(CoreTemplateJson::template);
-        }
-
-        @Override
-        public CompletableFuture<TemplateView> disable(String templateId) {
-            return postWithResultBody("/v1/admin/templates/disable", jsonObject("templateId", requireTemplateId(templateId)))
-                .thenApply(CoreTemplateJson::template);
-        }
-
-        private String requireTemplateId(String templateId) {
-            String normalized = templateId == null ? "" : templateId.trim();
-            if (normalized.isBlank()) {
-                throw new IllegalArgumentException("templateId is required");
-            }
-            return normalized;
-        }
-    }
-
-    private final class JdkJobClient implements JobQueryClient, JobCommandClient {
-        @Override
-        public CompletableFuture<List<JobView>> list() {
-            return postWithResultBody("/v1/admin/jobs/list", "{}")
-                .thenApply(CoreJobJson::jobs);
-        }
-
-        @Override
-        public CompletableFuture<JobActionView> retry(UUID jobId) {
-            requireId(jobId);
-            return postWithResultBody("/v1/admin/jobs/retry", jsonObject("jobId", jobId))
-                .thenApply(body -> CoreJobJson.action(body, "JOB_RETRIED"));
-        }
-
-        @Override
-        public CompletableFuture<JobActionView> cancel(UUID jobId) {
-            requireId(jobId);
-            return postWithResultBody("/v1/admin/jobs/cancel", jsonObject("jobId", jobId))
-                .thenApply(body -> CoreJobJson.action(body, "JOB_CANCELED"));
-        }
-
-        @Override
-        public CompletableFuture<JobRecoveryView> recover(String nodeId, long minIdleMillis, int maxJobs) {
-            String safeNodeId = nodeId == null ? "" : nodeId.trim();
-            if (safeNodeId.isBlank()) {
-                throw new IllegalArgumentException("nodeId is required");
-            }
-            return postWithResultBody("/v1/admin/jobs/recover", jsonObject(
-                "nodeId", safeNodeId,
-                "minIdleMillis", Math.max(0L, minIdleMillis),
-                "maxJobs", Math.max(1, maxJobs)
-            )).thenApply(CoreJobJson::recovery);
-        }
-
-        private void requireId(UUID jobId) {
-            if (jobId == null) {
-                throw new IllegalArgumentException("jobId is required");
-            }
-        }
-    }
-
-    private final class JdkBlockValueClient implements BlockValueQueryClient, BlockValueCommandClient {
-        @Override
-        public CompletableFuture<List<BlockValueView>> list() {
-            return postWithResultBody("/v1/admin/block-values/list", "{}")
-                .thenApply(CoreBlockValueJson::values);
-        }
-
-        @Override
-        public CompletableFuture<BlockValueActionView> set(UUID actorUuid, String materialKey, String worth, long levelPoints, long limit) {
-            UUID safeActor = actorUuid == null ? new UUID(0L, 0L) : actorUuid;
-            String safeMaterial = requireMaterial(materialKey);
-            return postWithResultBody("/v1/admin/block-values", jsonObject(
-                "actorUuid", safeActor,
-                "materialKey", safeMaterial,
-                "worth", worth == null ? "0" : worth,
-                "levelPoints", levelPoints,
-                "limit", limit
-            )).thenApply(body -> CoreBlockValueJson.action(body, safeMaterial));
-        }
-
-        private String requireMaterial(String materialKey) {
-            String normalized = materialKey == null ? "" : materialKey.trim();
-            if (normalized.isBlank()) {
-                throw new IllegalArgumentException("materialKey is required");
-            }
-            return normalized;
         }
     }
 

@@ -76,6 +76,9 @@ class CoreTypedClientsTest {
         assertFalse(nestedClients.contains("JdkIslandClient"), "island queries must use CoreIslandQueryClient");
         assertFalse(nestedClients.contains("JdkVisitorStatsClient"), "visitor stats must use CoreIslandVisitorStatsQueryClient");
         assertFalse(nestedClients.contains("JdkPlayerProfileClient"), "player profiles must use CorePlayerProfile query and command clients");
+        assertFalse(nestedClients.contains("JdkTemplateClient"), "templates must use CoreTemplate query and command clients");
+        assertFalse(nestedClients.contains("JdkJobClient"), "jobs must use CoreJob query and command clients");
+        assertFalse(nestedClients.contains("JdkBlockValueClient"), "block values must use CoreBlockValue query and command clients");
         assertFalse(nestedClients.contains("JdkAdminMetricsClient"), "admin metrics must use CoreAdminMetricsQueryClient");
         assertFalse(nestedClients.contains("JdkAdminCoreConfigClient"), "admin config must use CoreAdminCoreConfigQueryClient");
         assertFalse(nestedClients.contains("JdkAdminStorageClient"), "admin storage must use CoreAdminStorageQueryClient");
