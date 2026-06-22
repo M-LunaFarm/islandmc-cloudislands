@@ -53,7 +53,7 @@ public final class IslandChatMenu implements Listener {
             return;
         }
         int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 27) {
+        if (slot < 0 || slot >= MENU.size()) {
             return;
         }
         GuiMenuDefinition.MenuItem menuItem = MENU.itemAt(slot).orElse(null);

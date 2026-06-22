@@ -70,7 +70,7 @@ public final class IslandLimitMenu implements Listener {
             return;
         }
         int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 54) {
+        if (slot < 0 || slot >= MENU.size()) {
             return;
         }
         String actionId = GuiItems.actionId(event.getCurrentItem());

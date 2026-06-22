@@ -70,7 +70,7 @@ public final class IslandUpgradeMenu implements Listener {
             return;
         }
         int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 54) {
+        if (slot < 0 || slot >= MENU.size()) {
             return;
         }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());

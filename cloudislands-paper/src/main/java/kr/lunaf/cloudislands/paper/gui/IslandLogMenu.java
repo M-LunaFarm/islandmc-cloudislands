@@ -72,7 +72,7 @@ public final class IslandLogMenu implements Listener {
             return;
         }
         int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 36) {
+        if (slot < 0 || slot >= MENU.size()) {
             return;
         }
         String actionId = GuiItems.actionId(event.getCurrentItem());

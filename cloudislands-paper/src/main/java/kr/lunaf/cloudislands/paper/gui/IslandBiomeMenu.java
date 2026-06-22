@@ -80,7 +80,7 @@ public final class IslandBiomeMenu implements Listener {
             return;
         }
         int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 27) {
+        if (slot < 0 || slot >= MENU.size()) {
             return;
         }
         String actionId = GuiItems.actionId(event.getCurrentItem());

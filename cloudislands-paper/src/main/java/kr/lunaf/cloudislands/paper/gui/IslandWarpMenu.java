@@ -100,7 +100,7 @@ public final class IslandWarpMenu implements Listener {
             return;
         }
         int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 54) {
+        if (slot < 0 || slot >= (publicMenu ? PUBLIC_MENU : MENU).size()) {
             return;
         }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
