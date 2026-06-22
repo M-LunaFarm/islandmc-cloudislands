@@ -43,7 +43,7 @@ import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, BlockValueCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -78,7 +78,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     private final PlayerProfileQueryClient playerProfileQueryClient;
     private final PlayerProfileCommandClient playerProfileCommandClient;
     private final JobQueryClient jobQueryClient;
-    private final JobCommandClient jobCommandClient;
     private final BlockValueQueryClient blockValueQueryClient;
     private final AdminMetricsQueryClient adminMetricsClient;
     private final AdminCoreConfigQueryClient adminCoreConfigClient;
@@ -132,7 +131,6 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
         this.playerProfileQueryClient = this;
         this.playerProfileCommandClient = this;
         this.jobQueryClient = new CoreJobQueryClient(this);
-        this.jobCommandClient = new CoreJobCommandClient(this);
         this.blockValueQueryClient = new CoreBlockValueQueryClient(this);
         this.adminMetricsClient = new CoreAdminMetricsQueryClient(this);
         this.adminCoreConfigClient = new CoreAdminCoreConfigQueryClient(this);
@@ -305,7 +303,7 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
 
     @Override
     public JobCommandClient jobCommands() {
-        return jobCommandClient;
+        return this;
     }
 
     @Override
@@ -1937,33 +1935,30 @@ public final class JdkCoreApiClient implements CoreApiClient, PlayerProfileQuery
     }
 
     @Override
-    public CompletableFuture<String> retryJob(UUID jobId) {
-        return retryJobResult(jobId);
+    public CompletableFuture<JobActionView> retry(UUID jobId) {
+        requireId(jobId, "jobId");
+        return postWithResultBody("/v1/admin/jobs/retry", jsonObject("jobId", jobId))
+            .thenApply(body -> CoreJobJson.action(body, "JOB_RETRIED"));
     }
 
     @Override
-    public CompletableFuture<String> retryJobResult(UUID jobId) {
-        return postWithResultBody("/v1/admin/jobs/retry", jsonObject("jobId", jobId));
+    public CompletableFuture<JobActionView> cancel(UUID jobId) {
+        requireId(jobId, "jobId");
+        return postWithResultBody("/v1/admin/jobs/cancel", jsonObject("jobId", jobId))
+            .thenApply(body -> CoreJobJson.action(body, "JOB_CANCELED"));
     }
 
     @Override
-    public CompletableFuture<String> cancelJob(UUID jobId) {
-        return cancelJobResult(jobId);
+    public CompletableFuture<JobRecoveryView> recover(String nodeId, long minIdleMillis, int maxJobs) {
+        return postWithResultBody("/v1/admin/jobs/recover", jsonObject("nodeId", requireJobNode(nodeId), "minIdleMillis", Math.max(0L, minIdleMillis), "maxJobs", Math.max(1, maxJobs)))
+            .thenApply(CoreJobJson::recovery);
     }
 
-    @Override
-    public CompletableFuture<String> cancelJobResult(UUID jobId) {
-        return postWithResultBody("/v1/admin/jobs/cancel", jsonObject("jobId", jobId));
-    }
-
-    @Override
-    public CompletableFuture<String> recoverJobs(String nodeId, long minIdleMillis, int maxJobs) {
-        return recoverJobsResult(nodeId, minIdleMillis, maxJobs);
-    }
-
-    @Override
-    public CompletableFuture<String> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs) {
-        return postWithResultBody("/v1/admin/jobs/recover", jsonObject("nodeId", nodeId, "minIdleMillis", minIdleMillis, "maxJobs", maxJobs));
+    private static String requireJobNode(String nodeId) {
+        if (nodeId == null || nodeId.isBlank()) {
+            throw new IllegalArgumentException("nodeId is required");
+        }
+        return nodeId.trim();
     }
 
     @Override

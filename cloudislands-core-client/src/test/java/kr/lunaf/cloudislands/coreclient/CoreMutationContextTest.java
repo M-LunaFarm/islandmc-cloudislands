@@ -408,9 +408,9 @@ class CoreMutationContextTest {
             client.templateCommands().enable("template\"one").join();
             client.templateCommands().disable("template\"one").join();
             client.claimJobs("node\"a", List.of(IslandJobType.CREATE_ISLAND, IslandJobType.SAVE_ISLAND), 3).join();
-            client.retryJobResult(jobId).join();
-            client.cancelJobResult(jobId).join();
-            client.recoverJobsResult("node\"a", 50L, 2).join();
+            client.jobCommands().retry(jobId).join();
+            client.jobCommands().cancel(jobId).join();
+            client.jobCommands().recover("node\"a", 50L, 2).join();
             client.completeJobResult("node\"a", jobId, jobPayload).join();
             client.failJobResult("node\"a", jobId, "failed \"hard\"").join();
             client.publishHeartbeatResult(new NodeHeartbeatRequest(

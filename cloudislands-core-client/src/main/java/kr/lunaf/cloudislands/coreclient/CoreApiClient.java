@@ -152,7 +152,10 @@ public interface CoreApiClient {
     }
 
     default JobCommandClient jobCommands() {
-        return new CoreJobCommandClient(this);
+        if (this instanceof JobCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed job commands");
     }
 
     default TemplateQueryClient templates() {
@@ -639,12 +642,6 @@ public interface CoreApiClient {
     CompletableFuture<String> playerInfoByName(String lastName);
     CompletableFuture<List<IslandJob>> claimJobs(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
     CompletableFuture<String> listJobs();
-    CompletableFuture<String> retryJob(UUID jobId);
-    CompletableFuture<String> retryJobResult(UUID jobId);
-    CompletableFuture<String> cancelJob(UUID jobId);
-    CompletableFuture<String> cancelJobResult(UUID jobId);
-    CompletableFuture<String> recoverJobs(String nodeId, long minIdleMillis, int maxJobs);
-    CompletableFuture<String> recoverJobsResult(String nodeId, long minIdleMillis, int maxJobs);
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId);
     CompletableFuture<Void> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
     CompletableFuture<String> completeJobResult(String nodeId, UUID jobId, Map<String, String> payload);

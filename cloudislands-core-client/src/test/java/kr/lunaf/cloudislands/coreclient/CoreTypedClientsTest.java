@@ -63,11 +63,13 @@ class CoreTypedClientsTest {
         assertTrue(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed player profile commands directly");
         assertTrue(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template queries directly");
         assertTrue(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template commands directly");
+        assertTrue(JobCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed job commands directly");
         assertTrue(BlockValueCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed block value commands directly");
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("profile", UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("setPrimaryIsland", UUID.class, UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("list").getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("upsert", String.class, String.class, boolean.class, String.class).getDeclaringClass());
+        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("retry", UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("set", UUID.class, String.class, String.class, long.class, long.class).getDeclaringClass());
     }
 
@@ -1750,7 +1752,7 @@ class CoreTypedClientsTest {
         List<String> calls = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] { CoreApiClient.class },
+            new Class<?>[] { CoreApiClient.class, JobCommandClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "listJobs" -> CompletableFuture.completedFuture("""
                     {"jobs":[
@@ -1758,23 +1760,23 @@ class CoreTypedClientsTest {
                       {"jobId":"fallback-id","type":"RESTORE_ISLAND","state":"DONE","attempts":1}
                     ]}
                     """.formatted(jobId, islandId));
-                case "retryJobResult" -> {
+                case "retry" -> {
                     calls.add("retry:" + args[0]);
-                    yield CompletableFuture.completedFuture("{\"ok\":true}");
+                    yield CompletableFuture.completedFuture(new JobActionView(true, "JOB_RETRIED"));
                 }
-                case "cancelJobResult" -> {
+                case "cancel" -> {
                     calls.add("cancel:" + args[0]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":false,\"code\":\"JOB_LOCKED\"}");
+                    yield CompletableFuture.completedFuture(new JobActionView(false, "JOB_LOCKED"));
                 }
-                case "recoverJobsResult" -> {
+                case "recover" -> {
                     calls.add("recover:" + args[0] + ":" + args[1] + ":" + args[2]);
-                    yield CompletableFuture.completedFuture("{\"accepted\":true,\"recovered\":3}");
+                    yield CompletableFuture.completedFuture(new JobRecoveryView(true, "3", "RECOVERED"));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
         JobQueryClient queries = new CoreJobQueryClient(raw);
-        JobCommandClient commands = new CoreJobCommandClient(raw);
+        JobCommandClient commands = (JobCommandClient) raw;
 
         List<JobView> jobs = queries.list().join();
         JobActionView retried = commands.retry(jobId).join();
