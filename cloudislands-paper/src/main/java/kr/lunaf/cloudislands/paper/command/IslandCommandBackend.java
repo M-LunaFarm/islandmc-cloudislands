@@ -12,8 +12,6 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
-import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
-import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
@@ -35,7 +33,6 @@ import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -69,8 +66,7 @@ final class IslandCommandBackend {
     private final IslandCommandRouter router;
     private final IslandCommandMessenger commandMessages;
     private final IslandCommandIslandContext islandContext;
-    private final PaperPlayerGateway players;
-    private final PaperWorldGateway worlds;
+    private final IslandCommandLocalTeleports localTeleports;
     private final MemberManagementUseCase memberManagement;
     private final IslandCommandPlayerResolver playerResolver;
 
@@ -119,6 +115,7 @@ final class IslandCommandBackend {
         this.islandContext = new IslandCommandIslandContext(protection);
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
         this.playerResolver = new IslandCommandPlayerResolver(plugin, memberManagement);
+        this.localTeleports = new IslandCommandLocalTeleports(plugin, protection, players, worlds, commandMessages);
         this.routingCommands = new IslandRoutingCommandHandler(plugin, coreApiClient, routeWaitSeconds, fallbackServerName, new IslandRoutingCommandHandler.Runtime() {
             @Override
             public void message(Player player, String message) {
@@ -844,8 +841,6 @@ final class IslandCommandBackend {
                 return IslandCommandBackend.this.messagesFor(player);
             }
         });
-        this.players = players;
-        this.worlds = worlds;
         this.router = new IslandCommandRouter(
             bankCommands,
             snapshotCommands,
@@ -993,38 +988,11 @@ final class IslandCommandBackend {
     }
 
     private void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            if (point == null) {
-                player.sendMessage(missingMessage);
-                return;
-            }
-            java.util.Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
-            String worldName = region.map(IslandRegion::world).orElse(point.worldName());
-            World world = worlds.world(worldName);
-            if (world == null) {
-                message(player, routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."));
-                return;
-            }
-            double targetX = region.map(value -> value.originX() + point.x()).orElse(point.x());
-            double targetZ = region.map(value -> value.originZ() + point.z()).orElse(point.z());
-            players.teleport(player, new Location(world, targetX, point.y(), targetZ, point.yaw(), point.pitch()));
-            player.sendMessage(successMessage);
-        });
+        localTeleports.moveToPoint(player, point, missingMessage, successMessage);
     }
 
     private boolean teleportLocalDefaultHome(Player player) {
-        java.util.Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
-        if (region.isEmpty()) {
-            return false;
-        }
-        IslandRegion current = region.get();
-        moveToPoint(
-            player,
-            new IslandHomeWarpCommandHandler.Point(current.world(), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F, false),
-            routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."),
-            routeMessage("core-service-home-fallback", CoreApiDegradedModePolicy.HOME_FALLBACK_MESSAGE)
-        );
-        return true;
+        return localTeleports.teleportLocalDefaultHome(player);
     }
 
     private void message(Player player, String message) {
