@@ -86,10 +86,41 @@ public final class PaperRuntimeConfigLoader {
     }
 
     private static ConfigValidationResult validateV2Source(ConfigSource source) {
+        if (!knownPaperConfigV2Source(source.name())) {
+            return new ConfigValidationResult(List.of(new ConfigIssue(
+                "UNSUPPORTED_CONFIG_V2_SOURCE",
+                source.name(),
+                "Paper runtime loader does not consume this config-v2 yaml"
+            )));
+        }
         if (source.name().contains("/ui/menus/")) {
             return ConfigV2Validator.validateMenuYaml(source.name(), source.yaml(), GuiActionSchema.registeredActionIds());
         }
         return ConfigV2Validator.validateYaml(source.name(), source.yaml());
+    }
+
+    private static boolean knownPaperConfigV2Source(String sourceName) {
+        String name = configV2RelativeName(sourceName);
+        return Set.of(
+                "config.yml",
+                "runtime.yml",
+                "integrations.yml",
+                "security.yml",
+                "features.yml",
+                "gameplay.yml",
+                "migration.yml",
+                "addons.yml",
+                "ui/scoreboard.yml",
+                "ui/theme.yml"
+            ).contains(name)
+            || name.startsWith("ui/messages/")
+            || name.startsWith("ui/menus/");
+    }
+
+    private static String configV2RelativeName(String sourceName) {
+        String name = normalizeConfigV2ResourceName(sourceName);
+        int marker = name.lastIndexOf("config-v2/");
+        return marker < 0 ? name : name.substring(marker + "config-v2/".length());
     }
 
     private static void requireValidSnapshot(ConfigSnapshot snapshot) {
