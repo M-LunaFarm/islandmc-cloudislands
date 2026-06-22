@@ -43,7 +43,7 @@ import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 import kr.lunaf.cloudislands.protocol.session.PlayerRouteSession;
 
-public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, IslandLifecycleCommandClient, PlayerProfileQueryClient, PlayerProfileCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient {
+public final class JdkCoreApiClient implements CoreApiClient, CommunicationQueryClient, CommunicationCommandClient, BankQueryClient, BankCommandClient, IslandLifecycleCommandClient, TemplateQueryClient, TemplateCommandClient, JobCommandClient, BlockValueCommandClient {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
@@ -117,8 +117,8 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
         this.memberQueryClient = new JdkMemberQueryClient(this);
         this.memberCommandClient = new JdkMemberCommandClient(this);
         this.visitorStatsClient = new JdkIslandVisitorStatsQueryClient(this);
-        this.playerProfileQueryClient = this;
-        this.playerProfileCommandClient = this;
+        this.playerProfileQueryClient = new JdkPlayerProfileQueryClient(this);
+        this.playerProfileCommandClient = new JdkPlayerProfileCommandClient(this);
         this.jobQueryClient = new JdkJobClient(this);
         this.blockValueQueryClient = new JdkBlockValueQueryClient(this);
         this.adminMetricsClient = new JdkAdminMetricsClient(this);
@@ -369,59 +369,6 @@ public final class JdkCoreApiClient implements CoreApiClient, CommunicationQuery
     @Override
     public AdminIslandQueryClient adminIslands() {
         return adminIslandClient;
-    }
-
-    @Override
-    public CompletableFuture<PlayerProfileView> profile(UUID playerUuid) {
-        requireId(playerUuid, "playerUuid");
-        return postWithResultBody("/v1/admin/players/info", jsonObject("playerUuid", playerUuid))
-            .thenApply(CorePlayerProfileJson::profile);
-    }
-
-    @Override
-    public CompletableFuture<PlayerProfileView> findByName(String lastName) {
-        String normalized = lastName == null ? "" : lastName.trim();
-        if (normalized.isBlank()) {
-            throw new IllegalArgumentException("lastName is required");
-        }
-        return post("/v1/players/info", jsonObject("lastName", normalized))
-            .thenApply(CorePlayerProfileJson::profile);
-    }
-
-    @Override
-    public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName) {
-        requireId(playerUuid, "playerUuid");
-        return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName))
-            .thenApply(CorePlayerProfileJson::profile);
-    }
-
-    @Override
-    public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName, String locale) {
-        requireId(playerUuid, "playerUuid");
-        return postWithResultBody("/v1/players/touch", jsonObject("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName, "locale", locale == null ? "" : locale))
-            .thenApply(CorePlayerProfileJson::profile);
-    }
-
-    @Override
-    public CompletableFuture<PlayerProfileView> setLocale(UUID playerUuid, String locale) {
-        requireId(playerUuid, "playerUuid");
-        return postWithResultBody("/v1/players/locale", jsonObject("playerUuid", playerUuid, "locale", locale == null ? "" : locale))
-            .thenApply(CorePlayerProfileJson::profile);
-    }
-
-    @Override
-    public CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId) {
-        requireId(playerUuid, "playerUuid");
-        requireId(islandId, "islandId");
-        return postWithResultBody("/v1/admin/players/setisland", jsonObject("playerUuid", playerUuid, "islandId", islandId))
-            .thenApply(CorePlayerProfileJson::profile);
-    }
-
-    @Override
-    public CompletableFuture<PlayerProfileView> clearPrimaryIsland(UUID playerUuid) {
-        requireId(playerUuid, "playerUuid");
-        return postWithResultBody("/v1/admin/players/clearisland", jsonObject("playerUuid", playerUuid))
-            .thenApply(CorePlayerProfileJson::profile);
     }
 
     private static void requireId(UUID id, String name) {

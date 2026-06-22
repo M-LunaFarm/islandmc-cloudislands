@@ -64,8 +64,8 @@ class CoreTypedClientsTest {
         assertFalse(defaultAccessors.isEmpty());
         assertEquals(List.of(), missingOverrides);
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("progression").getDeclaringClass());
-        assertTrue(PlayerProfileQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed player profile queries directly");
-        assertTrue(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed player profile commands directly");
+        assertFalse(PlayerProfileQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile queries to a standalone client");
+        assertFalse(PlayerProfileCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate player profile commands to a standalone client");
         assertTrue(TemplateQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template queries directly");
         assertTrue(TemplateCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed template commands directly");
         assertTrue(JobCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must expose typed job commands directly");
@@ -73,10 +73,10 @@ class CoreTypedClientsTest {
         assertFalse(WarehouseQueryClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse queries to a standalone client");
         assertFalse(WarehouseCommandClient.class.isAssignableFrom(JdkCoreApiClient.class), "JDK Core API client must delegate warehouse commands to a standalone client");
         JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:1"), "token", Duration.ofSeconds(1));
+        assertSame(JdkPlayerProfileQueryClient.class, client.playerProfiles().getClass());
+        assertSame(JdkPlayerProfileCommandClient.class, client.playerProfileCommands().getClass());
         assertSame(JdkWarehouseQueryClient.class, client.warehouse().getClass());
         assertSame(JdkWarehouseCommandClient.class, client.warehouseCommands().getClass());
-        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("profile", UUID.class).getDeclaringClass());
-        assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("setPrimaryIsland", UUID.class, UUID.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("list").getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("upsert", String.class, String.class, boolean.class, String.class).getDeclaringClass());
         assertSame(JdkCoreApiClient.class, JdkCoreApiClient.class.getMethod("retry", UUID.class).getDeclaringClass());
@@ -146,6 +146,19 @@ class CoreTypedClientsTest {
         assertFalse(source.contains("warehouseMutation("), "warehouse mutation parsing must live in the warehouse command client");
         assertTrue(source.contains("this.warehouseQueryClient = new JdkWarehouseQueryClient(this);"));
         assertTrue(source.contains("this.warehouseCommandClient = new JdkWarehouseCommandClient(this);"));
+    }
+
+    @Test
+    void jdkCoreApiClientDelegatesPlayerProfileMethodsToStandaloneClients() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCoreApiClient.java"));
+
+        assertFalse(source.contains("public CompletableFuture<PlayerProfileView> profile("), "player profile queries must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<PlayerProfileView> findByName("), "player profile lookup must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<PlayerProfileView> touch("), "player profile touch must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<PlayerProfileView> setLocale("), "player profile locale mutation must not live on the core transport client");
+        assertFalse(source.contains("public CompletableFuture<PlayerProfileView> setPrimaryIsland("), "player profile primary-island mutation must not live on the core transport client");
+        assertTrue(source.contains("this.playerProfileQueryClient = new JdkPlayerProfileQueryClient(this);"));
+        assertTrue(source.contains("this.playerProfileCommandClient = new JdkPlayerProfileCommandClient(this);"));
     }
 
     @Test

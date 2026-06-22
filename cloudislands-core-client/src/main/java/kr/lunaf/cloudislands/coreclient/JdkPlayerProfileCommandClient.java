@@ -1,0 +1,57 @@
+package kr.lunaf.cloudislands.coreclient;
+
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient {
+    private final JdkCoreApiClient core;
+
+    JdkPlayerProfileCommandClient(JdkCoreApiClient core) {
+        if (core == null) {
+            throw new IllegalArgumentException("core is required");
+        }
+        this.core = core;
+    }
+
+    @Override
+    public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName) {
+        requireId(playerUuid, "playerUuid");
+        return core.postWithResultBody("/v1/players/touch", JdkCoreApiClient.jsonObject("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName))
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
+    public CompletableFuture<PlayerProfileView> touch(UUID playerUuid, String lastName, String locale) {
+        requireId(playerUuid, "playerUuid");
+        return core.postWithResultBody("/v1/players/touch", JdkCoreApiClient.jsonObject("playerUuid", playerUuid, "lastName", lastName == null ? "" : lastName, "locale", locale == null ? "" : locale))
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
+    public CompletableFuture<PlayerProfileView> setLocale(UUID playerUuid, String locale) {
+        requireId(playerUuid, "playerUuid");
+        return core.postWithResultBody("/v1/players/locale", JdkCoreApiClient.jsonObject("playerUuid", playerUuid, "locale", locale == null ? "" : locale))
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
+    public CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId) {
+        requireId(playerUuid, "playerUuid");
+        requireId(islandId, "islandId");
+        return core.postWithResultBody("/v1/admin/players/setisland", JdkCoreApiClient.jsonObject("playerUuid", playerUuid, "islandId", islandId))
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
+    public CompletableFuture<PlayerProfileView> clearPrimaryIsland(UUID playerUuid) {
+        requireId(playerUuid, "playerUuid");
+        return core.postWithResultBody("/v1/admin/players/clearisland", JdkCoreApiClient.jsonObject("playerUuid", playerUuid))
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    private static void requireId(UUID id, String name) {
+        if (id == null) {
+            throw new IllegalArgumentException(name + " is required");
+        }
+    }
+}
