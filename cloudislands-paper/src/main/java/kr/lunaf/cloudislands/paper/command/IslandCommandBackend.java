@@ -62,11 +62,9 @@ final class IslandCommandBackend {
     private final IslandCommandRouter router;
     private final IslandCommandMessenger commandMessages;
     private final IslandCommandIslandContext islandContext;
-    private final IslandCommandLocalTeleports localTeleports;
-    private final IslandCommandConfirmations confirmations;
     private final IslandCommandMemberPresentation memberPresentation;
+    private final IslandCommandRuntimeServices runtimeServices;
     private final MemberManagementUseCase memberManagement;
-    private final IslandCommandPlayerResolver playerResolver;
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection) {
         this(plugin, coreApiClient, protection, 20);
@@ -112,362 +110,363 @@ final class IslandCommandBackend {
         this.commandMessages = new IslandCommandMessenger(plugin, messages, locales);
         this.islandContext = new IslandCommandIslandContext(protection);
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
-        this.playerResolver = new IslandCommandPlayerResolver(plugin, memberManagement);
-        this.localTeleports = new IslandCommandLocalTeleports(plugin, protection, players, worlds, commandMessages);
-        this.confirmations = new IslandCommandConfirmations(commandMessages);
+        IslandCommandPlayerResolver playerResolver = new IslandCommandPlayerResolver(plugin, memberManagement);
+        IslandCommandLocalTeleports localTeleports = new IslandCommandLocalTeleports(plugin, protection, players, worlds, commandMessages);
+        IslandCommandConfirmations confirmations = new IslandCommandConfirmations(commandMessages);
+        this.runtimeServices = new IslandCommandRuntimeServices(commandMessages, islandContext, localTeleports, confirmations, playerResolver);
         this.routingCommands = new IslandRoutingCommandHandler(plugin, coreApiClient, routeWaitSeconds, fallbackServerName, new IslandRoutingCommandHandler.Runtime() {
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback, String... variables) {
-                return IslandCommandBackend.this.routeMessage(key, fallback, variables);
+                return runtimeServices.routeMessage(key, fallback, variables);
             }
 
             @Override
             public String routeMessage(Player player, String key, String fallback, String... variables) {
-                return IslandCommandBackend.this.routeMessage(player, key, fallback, variables);
+                return runtimeServices.routeMessage(player, key, fallback, variables);
             }
 
             @Override
             public String playerCodeMessage(String code, String fallback) {
-                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+                return runtimeServices.playerCodeMessage(code, fallback);
             }
 
             @Override
             public String playerMessage(String message) {
-                return IslandCommandBackend.this.playerMessage(message);
+                return runtimeServices.playerMessage(message);
             }
 
             @Override
             public boolean coreUnavailable(Throwable error) {
-                return IslandCommandBackend.this.coreUnavailable(error);
+                return runtimeServices.coreUnavailable(error);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
         });
         this.memberPresentation = new IslandCommandMemberPresentation(plugin, coreApiClient, protection, commandMessages, islandContext, routingCommands);
         this.bankCommands = new IslandBankCommandHandler(plugin, coreApiClient, economyBridge, new IslandBankCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public boolean allowed(Player player, IslandPermission permission) {
-                return IslandCommandBackend.this.allowed(player, permission);
+                return runtimeServices.allowed(player, permission);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public String playerCodeMessage(String code, String fallback) {
-                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+                return runtimeServices.playerCodeMessage(code, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
         });
         this.snapshotCommands = new IslandSnapshotCommandHandler(plugin, coreApiClient, new IslandSnapshotCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
 
             @Override
             public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
-                IslandCommandBackend.this.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
+                runtimeServices.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
             }
 
             @Override
             public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
-                return IslandCommandBackend.this.confirmationAccepted(player, action, click);
+                return runtimeServices.confirmationAccepted(player, action, click);
             }
         });
         this.warehouseCommands = new IslandWarehouseCommandHandler(coreApiClient, new IslandWarehouseCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public boolean allowed(Player player, IslandPermission permission) {
-                return IslandCommandBackend.this.allowed(player, permission);
+                return runtimeServices.allowed(player, permission);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public String playerCodeMessage(String code, String fallback) {
-                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+                return runtimeServices.playerCodeMessage(code, fallback);
             }
 
             @Override
             public String coreWriteFailureMessage(Throwable error, String fallback) {
-                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+                return runtimeServices.coreWriteFailureMessage(error, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
         });
         this.chatLogCommands = new IslandChatLogCommandHandler(plugin, coreApiClient, new IslandChatLogCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
         });
         this.progressionCommands = new IslandProgressionCommandHandler(plugin, coreApiClient, levelScanService, new IslandProgressionCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public boolean allowed(Player player, IslandPermission permission) {
-                return IslandCommandBackend.this.allowed(player, permission);
+                return runtimeServices.allowed(player, permission);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public String playerCodeMessage(String code, String fallback) {
-                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+                return runtimeServices.playerCodeMessage(code, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
         });
         this.environmentCommands = new IslandEnvironmentCommandHandler(plugin, coreApiClient, protection, new IslandEnvironmentCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public boolean allowed(Player player, IslandPermission permission) {
-                return IslandCommandBackend.this.allowed(player, permission);
+                return runtimeServices.allowed(player, permission);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public String playerCodeMessage(String code, String fallback) {
-                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+                return runtimeServices.playerCodeMessage(code, fallback);
             }
 
             @Override
             public String coreWriteFailureMessage(Throwable error, String fallback) {
-                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+                return runtimeServices.coreWriteFailureMessage(error, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
         });
         this.settingsCommands = new IslandSettingsCommandHandler(plugin, coreApiClient, new IslandSettingsCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public boolean allowed(Player player, IslandPermission permission) {
-                return IslandCommandBackend.this.allowed(player, permission);
+                return runtimeServices.allowed(player, permission);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public String coreWriteFailureMessage(Throwable error, String fallback) {
-                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+                return runtimeServices.coreWriteFailureMessage(error, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
         });
         this.homeWarpCommands = new IslandHomeWarpCommandHandler(plugin, coreApiClient, new IslandHomeWarpCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public boolean allowed(Player player, IslandPermission permission) {
-                return IslandCommandBackend.this.allowed(player, permission);
+                return runtimeServices.allowed(player, permission);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public String coreWriteFailureMessage(Throwable error, String fallback) {
-                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+                return runtimeServices.coreWriteFailureMessage(error, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
 
             @Override
             public IslandLocation location(Location location) {
-                return IslandCommandBackend.this.location(location);
+                return runtimeServices.location(location);
             }
 
             @Override
             public void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
-                IslandCommandBackend.this.moveToPoint(player, point, missingMessage, successMessage);
+                runtimeServices.moveToPoint(player, point, missingMessage, successMessage);
             }
 
             @Override
             public boolean teleportLocalDefaultHome(Player player) {
-                return IslandCommandBackend.this.teleportLocalDefaultHome(player);
+                return runtimeServices.teleportLocalDefaultHome(player);
             }
 
             @Override
             public boolean coreUnavailable(Throwable error) {
-                return IslandCommandBackend.this.coreUnavailable(error);
+                return runtimeServices.coreUnavailable(error);
             }
 
             @Override
             public boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, boolean islandPublicAccess) {
-                return IslandCommandBackend.this.publicWarpAllowed(player, point, islandPublicAccess);
+                return runtimeServices.publicWarpAllowed(player, point, islandPublicAccess);
             }
 
             @Override
@@ -477,53 +476,53 @@ final class IslandCommandBackend {
 
             @Override
             public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
-                IslandCommandBackend.this.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
+                runtimeServices.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
             }
 
             @Override
             public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
-                return IslandCommandBackend.this.confirmationAccepted(player, action, click);
+                return runtimeServices.confirmationAccepted(player, action, click);
             }
         });
         this.visitReviewCommands = new IslandVisitReviewCommandHandler(plugin, coreApiClient, new IslandVisitReviewCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public String playerCodeMessage(String code, String fallback) {
-                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+                return runtimeServices.playerCodeMessage(code, fallback);
             }
 
             @Override
             public String coreWriteFailureMessage(Throwable error, String fallback) {
-                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+                return runtimeServices.coreWriteFailureMessage(error, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
 
             @Override
@@ -534,130 +533,130 @@ final class IslandCommandBackend {
         this.lifecycleCommands = new IslandLifecycleCommandHandler(plugin, coreApiClient, new IslandLifecycleCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public String playerCodeMessage(String code, String fallback) {
-                return IslandCommandBackend.this.playerCodeMessage(code, fallback);
+                return runtimeServices.playerCodeMessage(code, fallback);
             }
 
             @Override
             public String coreWriteFailureMessage(Throwable error, String fallback) {
-                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+                return runtimeServices.coreWriteFailureMessage(error, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
         });
         this.overviewCommands = new IslandOverviewCommandHandler(plugin, coreApiClient, new IslandOverviewCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
         });
         this.permissionCommands = new IslandPermissionCommandHandler(plugin, coreApiClient, new IslandPermissionCommandHandler.Runtime() {
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public boolean allowed(Player player, IslandPermission permission) {
-                return IslandCommandBackend.this.allowed(player, permission);
+                return runtimeServices.allowed(player, permission);
             }
 
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
 
             @Override
             public CompletableFuture<UUID> resolvePlayerUuid(String value) {
-                return IslandCommandBackend.this.resolvePlayerUuid(value);
+                return runtimeServices.resolvePlayerUuid(value);
             }
 
             @Override
             public String coreWriteFailureMessage(Throwable error, String fallback) {
-                return IslandCommandBackend.this.coreWriteFailureMessage(error, fallback);
+                return runtimeServices.coreWriteFailureMessage(error, fallback);
             }
         });
         this.membershipCommands = new IslandMembershipCommandHandler(plugin, coreApiClient, new IslandMembershipCommandHandler.Runtime() {
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
 
             @Override
             public String joined(String[] args, int start) {
-                return IslandCommandBackend.this.joined(args, start);
+                return runtimeServices.joined(args, start);
             }
 
             @Override
             public int integer(String value, int fallback) {
-                return IslandCommandBackend.this.integer(value, fallback);
+                return runtimeServices.integer(value, fallback);
             }
 
             @Override
             public long longValue(String value, long fallback) {
-                return IslandCommandBackend.this.longValue(value, fallback);
+                return runtimeServices.longValue(value, fallback);
             }
 
             @Override
@@ -677,27 +676,27 @@ final class IslandCommandBackend {
 
             @Override
             public java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-                return IslandCommandBackend.this.currentIsland(player, missingMessage);
+                return runtimeServices.currentIsland(player, missingMessage);
             }
 
             @Override
             public boolean allowed(Player player, IslandPermission permission) {
-                return IslandCommandBackend.this.allowed(player, permission);
+                return runtimeServices.allowed(player, permission);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
 
             @Override
             public CompletableFuture<UUID> resolvePlayerUuid(String value) {
-                return IslandCommandBackend.this.resolvePlayerUuid(value);
+                return runtimeServices.resolvePlayerUuid(value);
             }
 
             @Override
@@ -707,7 +706,7 @@ final class IslandCommandBackend {
 
             @Override
             public String playerMessage(String message) {
-                return IslandCommandBackend.this.playerMessage(message);
+                return runtimeServices.playerMessage(message);
             }
 
             @Override
@@ -797,48 +796,48 @@ final class IslandCommandBackend {
 
             @Override
             public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
-                IslandCommandBackend.this.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
+                runtimeServices.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
             }
 
             @Override
             public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
-                return IslandCommandBackend.this.confirmationAccepted(player, action, click);
+                return runtimeServices.confirmationAccepted(player, action, click);
             }
         });
         this.adminCommands = new IslandAdminNodeCommandHandler(plugin, coreApiClient, configuredNodeId, new IslandAdminNodeCommandHandler.Runtime() {
             @Override
             public void message(Player player, String message) {
-                IslandCommandBackend.this.message(player, message);
+                runtimeServices.message(player, message);
             }
 
             @Override
             public String routeMessage(String key, String fallback) {
-                return IslandCommandBackend.this.routeMessage(key, fallback);
+                return runtimeServices.routeMessage(key, fallback);
             }
 
             @Override
             public <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutate(auditAction, operation);
+                return runtimeServices.mutate(auditAction, operation);
             }
 
             @Override
             public <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-                return IslandCommandBackend.this.mutateIdempotent(auditAction, operation);
+                return runtimeServices.mutateIdempotent(auditAction, operation);
             }
 
             @Override
             public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
-                IslandCommandBackend.this.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
+                runtimeServices.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
             }
 
             @Override
             public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
-                return IslandCommandBackend.this.confirmationAccepted(player, action, click);
+                return runtimeServices.confirmationAccepted(player, action, click);
             }
 
             @Override
             public MessageRenderer messagesFor(Player player) {
-                return IslandCommandBackend.this.messagesFor(player);
+                return runtimeServices.messagesFor(player);
             }
         });
         this.router = IslandCommandRouterFactory.create(
@@ -859,44 +858,12 @@ final class IslandCommandBackend {
         );
     }
 
-    private <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation) {
-        return IslandCommandRuntimeSupport.mutate(auditAction, operation);
-    }
-
-    private <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation) {
-        return IslandCommandRuntimeSupport.mutateIdempotent(auditAction, operation);
-    }
-
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         return router.handleCommand(sender, command, label, args);
     }
 
     void executeGuiAction(Player player, GuiAction action, GuiClick click) {
         router.handleGuiAction(player, action, click);
-    }
-
-    private void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
-        confirmations.open(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
-    }
-
-    private boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
-        return confirmations.accepted(player, action, click);
-    }
-
-    private String playerCodeMessage(String code, String fallback) {
-        return commandMessages.playerCodeMessage(code, fallback);
-    }
-
-    private MessageRenderer messagesFor(Player player) {
-        return commandMessages.messagesFor(player);
-    }
-
-    private String routeMessage(String key, String fallback, String... variables) {
-        return commandMessages.routeMessage(key, fallback, variables);
-    }
-
-    private String routeMessage(Player player, String key, String fallback, String... variables) {
-        return commandMessages.routeMessage(player, key, fallback, variables);
     }
 
     public void onQuit(PlayerQuitEvent event) {
@@ -923,63 +890,4 @@ final class IslandCommandBackend {
         memberPresentation.openBanMenu(player);
     }
 
-    private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-        return islandContext.currentIsland(player, missingMessage);
-    }
-
-    private boolean allowed(Player player, IslandPermission permission) {
-        return islandContext.allowed(player, permission);
-    }
-
-    private boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, boolean islandPublicAccess) {
-        return islandContext.publicWarpAllowed(player, point, islandPublicAccess);
-    }
-
-    private IslandLocation location(Location location) {
-        return islandContext.location(location);
-    }
-
-    private String joined(String[] args, int start) {
-        return IslandCommandArgs.joined(args, start);
-    }
-
-    private int integer(String value, int fallback) {
-        return IslandCommandArgs.integer(value, fallback);
-    }
-
-    private long longValue(String value, long fallback) {
-        return IslandCommandArgs.longValue(value, fallback);
-    }
-
-    private CompletableFuture<UUID> resolvePlayerUuid(String value) {
-        return playerResolver.resolvePlayerUuid(value);
-    }
-
-    private void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
-        localTeleports.moveToPoint(player, point, missingMessage, successMessage);
-    }
-
-    private boolean teleportLocalDefaultHome(Player player) {
-        return localTeleports.teleportLocalDefaultHome(player);
-    }
-
-    private void message(Player player, String message) {
-        commandMessages.message(player, message);
-    }
-
-    private String playerMessage(String message) {
-        return commandMessages.playerMessage(message);
-    }
-
-    private String coreWriteFailureMessage(Throwable error, String fallback) {
-        return IslandCommandRuntimeSupport.coreWriteFailureMessage(
-            coreUnavailable(error),
-            routeMessage("core-service-maintenance", IslandCommandRuntimeSupport.maintenanceFallback()),
-            fallback
-        );
-    }
-
-    private boolean coreUnavailable(Throwable error) {
-        return IslandCommandRuntimeSupport.coreUnavailable(error);
-    }
 }
