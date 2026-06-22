@@ -12,7 +12,7 @@ import kr.lunaf.cloudislands.common.observability.ProductionGaScenarioRequiremen
 
 public final class ClusterSmokeVerifier {
     public static final String CERTIFICATION_LEVEL = "cloudislands-production-ga-cluster-smoke-1";
-    public static final String MATRIX_POLICY = "certifies-two-core-velocity-lobby-two-paper-storage-route-fencing-event-chaos-and-restore-evidence";
+    public static final String MATRIX_POLICY = "certifies-two-core-velocity-lobby-two-paper-storage-player-protocol-client-route-fencing-event-chaos-and-restore-evidence";
 
     private ClusterSmokeVerifier() {
     }

@@ -21,7 +21,11 @@ public record ClusterSmokeEvidence(
         "island-paper-2",
         "postgres",
         "redis",
-        "object-storage"
+        "object-storage",
+        "player-protocol-client"
+    );
+    private static final Map<String, Set<String>> COMPONENT_ALIASES = Map.of(
+        "player-protocol-client", Set.of("protocol-client", "virtual-player", "virtual-player-client", "simulated-player", "bot-client")
     );
 
     public ClusterSmokeEvidence {
@@ -35,7 +39,14 @@ public record ClusterSmokeEvidence(
     }
 
     public boolean hasComponent(String component) {
-        return component != null && components.contains(component);
+        if (component == null || component.isBlank()) {
+            return false;
+        }
+        String normalized = component.trim();
+        if (components.contains(normalized)) {
+            return true;
+        }
+        return COMPONENT_ALIASES.getOrDefault(normalized, Set.of()).stream().anyMatch(components::contains);
     }
 
     public boolean hasEvidence(String gate, String evidence) {

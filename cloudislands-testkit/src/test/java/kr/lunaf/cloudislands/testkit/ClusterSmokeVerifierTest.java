@@ -38,7 +38,21 @@ class ClusterSmokeVerifierTest {
         assertTrue(report.missingComponents().contains("postgres"));
         assertTrue(report.missingComponents().contains("redis"));
         assertTrue(report.missingComponents().contains("object-storage"));
+        assertTrue(report.missingComponents().contains("player-protocol-client"));
         assertThrows(IllegalStateException.class, report::requireCertified);
+    }
+
+    @Test
+    void acceptsVirtualPlayerOrProtocolClientEvidenceForPlayerRouteCoverage() {
+        ClusterSmokeEvidence virtualPlayer = ClusterSmokeEvidence.builder()
+            .component("virtual-player")
+            .build();
+        ClusterSmokeEvidence protocolClient = ClusterSmokeEvidence.builder()
+            .component("protocol-client")
+            .build();
+
+        assertTrue(virtualPlayer.hasComponent("player-protocol-client"));
+        assertTrue(protocolClient.hasComponent("player-protocol-client"));
     }
 
     @Test
@@ -129,6 +143,7 @@ class ClusterSmokeVerifierTest {
         assertFalse(report.certified());
         assertTrue(parsed.hasComponent("island-paper-2"));
         assertTrue(report.missingComponents().contains("core-2"));
+        assertTrue(report.missingComponents().contains("player-protocol-client"));
         assertTrue(report.missingEvidenceByGate().get("multi-paper-failover").contains("node-drain"));
         assertTrue(report.missingScenarioEvidence().containsKey("paper-bundle-save-crash"));
         assertTrue(json.contains("missingScenarioEvidence"));
