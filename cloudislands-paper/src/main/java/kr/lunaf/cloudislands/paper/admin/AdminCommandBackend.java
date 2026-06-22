@@ -457,36 +457,36 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             sender.sendMessage(adminText("admin-command-diagnostics-usage", "사용법: /ciadmin diagnostics export"));
             return true;
         }
-        CompletableFuture<String> config = diagnosticSection("core-config", coreApiClient.adminCoreConfig().config().thenApply(this::coreConfigMessage));
-        CompletableFuture<String> metrics = diagnosticSection("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
-        CompletableFuture<String> storage = diagnosticSection("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
+        CompletableFuture<DiagnosticSection> config = diagnosticSection("core-config", coreApiClient.adminCoreConfig().config().thenApply(this::coreConfigMessage));
+        CompletableFuture<DiagnosticSection> metrics = diagnosticSection("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
+        CompletableFuture<DiagnosticSection> storage = diagnosticSection("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
         CompletableFuture<AdminNodeSummaryView> nodeSnapshot = coreApiClient.adminNodes().listNodesSummary();
-        CompletableFuture<String> nodes = diagnosticSection("nodes", nodeSnapshot.thenApply(summary -> adminNodeSummaryMessage("Nodes", summary)));
-        CompletableFuture<String> heartbeatLag = diagnosticSection("heartbeat-lag", nodeSnapshot.thenApply(this::heartbeatLagDiagnosticBody));
-        CompletableFuture<String> jobs = diagnosticSection("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
-        CompletableFuture<String> routes = diagnosticSection("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
-        CompletableFuture<String> audit = diagnosticSection("audit", coreApiClient.adminAudit().list(25).thenApply(this::auditListMessage));
-        CompletableFuture<String> configValidation = CompletableFuture.completedFuture(configHandler.validationDiagnosticSection());
-        CompletableFuture<String> effectiveConfig = CompletableFuture.completedFuture(configHandler.effectiveConfigDiagnosticSection());
+        CompletableFuture<DiagnosticSection> nodes = diagnosticSection("nodes", nodeSnapshot.thenApply(summary -> adminNodeSummaryMessage("Nodes", summary)));
+        CompletableFuture<DiagnosticSection> heartbeatLag = diagnosticSection("heartbeat-lag", nodeSnapshot.thenApply(this::heartbeatLagDiagnosticBody));
+        CompletableFuture<DiagnosticSection> jobs = diagnosticSection("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
+        CompletableFuture<DiagnosticSection> routes = diagnosticSection("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
+        CompletableFuture<DiagnosticSection> audit = diagnosticSection("audit", coreApiClient.adminAudit().list(25).thenApply(this::auditListMessage));
+        CompletableFuture<DiagnosticSection> configValidation = CompletableFuture.completedFuture(new DiagnosticSection(configHandler.validationDiagnosticSection()));
+        CompletableFuture<DiagnosticSection> effectiveConfig = CompletableFuture.completedFuture(new DiagnosticSection(configHandler.effectiveConfigDiagnosticSection()));
         run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, heartbeatLag, jobs, routes, audit, configValidation, effectiveConfig)
             .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), heartbeatLag.join(), jobs.join(), routes.join(), audit.join(), configValidation.join(), effectiveConfig.join(), integrationsDiagnosticSection()))));
         return true;
     }
 
-    private CompletableFuture<String> diagnosticSection(String name, CompletableFuture<String> future) {
+    private CompletableFuture<DiagnosticSection> diagnosticSection(String name, CompletableFuture<? extends CharSequence> future) {
         return future.handle((body, error) -> {
             StringBuilder builder = new StringBuilder();
             builder.append("## ").append(name).append('\n');
             if (error != null) {
                 builder.append("error=").append(error.getClass().getSimpleName()).append(':').append(error.getMessage()).append('\n');
             } else {
-                builder.append(redactDiagnostic(body)).append('\n');
+                builder.append(redactDiagnostic(body == null ? "" : body.toString())).append('\n');
             }
-            return builder.toString();
+            return new DiagnosticSection(builder.toString());
         });
     }
 
-    private String writeDiagnostics(List<String> sections) {
+    private String writeDiagnostics(List<DiagnosticSection> sections) {
         try {
             Path directory = agent.plugin().getDataFolder().toPath().resolve("diagnostics");
             Files.createDirectories(directory);
@@ -499,8 +499,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             builder.append("agentRole=").append(agent.role()).append('\n');
             builder.append("pluginVersion=").append(agent.plugin().getPluginMeta().getVersion()).append('\n');
             builder.append("onlinePlayers=").append(agent.plugin().getServer().getOnlinePlayers().size()).append("\n\n");
-            for (String section : sections) {
-                builder.append(section).append('\n');
+            for (DiagnosticSection section : sections) {
+                builder.append(section.content()).append('\n');
             }
             Files.writeString(report, builder.toString());
             return adminText("admin-command-diagnostics-exported-prefix", "Diagnostics exported: ") + report;
@@ -537,9 +537,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return adminText("admin-command-integrations-prefix", "Integrations: ") + String.join(", ", entries);
     }
 
-    private String integrationsDiagnosticSection() {
+    private DiagnosticSection integrationsDiagnosticSection() {
         if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
-            return plugin.integrationRegistry().diagnosticsSection();
+            return new DiagnosticSection(plugin.integrationRegistry().diagnosticsSection());
         }
         return diagnosticSection("integrations", CompletableFuture.completedFuture(integrationStatusMessage())).join();
     }
@@ -1104,12 +1104,21 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         coreApiClient.routingCommands().clearRoute(ticket, reason).exceptionally(error -> null);
     }
 
-    private void run(CommandSender sender, String action, CompletableFuture<String> future) {
-        future.thenAccept(body -> message(sender, action + adminText("admin-command-action-complete", " 완료") + (body == null || body.isBlank() ? "" : ": " + body)))
+    private void run(CommandSender sender, String action, CompletableFuture<? extends CharSequence> future) {
+        future.thenAccept(body -> {
+                String text = body == null ? "" : body.toString();
+                message(sender, action + adminText("admin-command-action-complete", " 완료") + (text.isBlank() ? "" : ": " + text));
+            })
             .exceptionally(error -> {
                 message(sender, action + adminText("admin-command-action-failed", " 실패"));
                 return null;
         });
+    }
+
+    private record DiagnosticSection(String content) {
+        private DiagnosticSection {
+            content = content == null ? "" : content;
+        }
     }
 
     private String storageStatusMessage(AdminStorageStatusView status) {

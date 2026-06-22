@@ -268,7 +268,7 @@ final class AdminConfigCommandHandler {
 
     @FunctionalInterface
     interface CommandRunner {
-        void run(CommandSender sender, String action, CompletableFuture<String> future);
+        void run(CommandSender sender, String action, CompletableFuture<? extends CharSequence> future);
     }
 
     @FunctionalInterface

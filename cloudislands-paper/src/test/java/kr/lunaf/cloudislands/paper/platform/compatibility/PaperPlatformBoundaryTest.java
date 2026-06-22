@@ -931,8 +931,13 @@ class PaperPlatformBoundaryTest {
     void paperAdminDiagnosticsDoNotParseRawCoreJson() throws Exception {
         Path root = repositoryRoot();
         String admin = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String config = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminConfigCommandHandler.java"));
+        String migration = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminMigrationCommandHandler.java"));
 
         assertTrue(!admin.contains("SimpleJson"), "Paper admin diagnostics must use typed Core client views");
+        assertTrue(!admin.contains("CompletableFuture<String>"), "Paper admin output must not expose raw String futures");
+        assertTrue(!config.contains("CompletableFuture<String>"), "Paper config admin runner must not expose raw String futures");
+        assertTrue(!migration.contains("CompletableFuture<String>"), "Paper migration admin runner must not expose raw String futures");
         assertTrue(!admin.contains("boolValue(String body"), "Paper admin diagnostics must not parse raw boolean JSON fields");
         assertTrue(!admin.contains("longValue(String body"), "Paper admin diagnostics must not parse raw numeric JSON fields");
         assertTrue(!admin.contains("textValue(String body"), "Paper admin diagnostics must not parse raw text JSON fields");

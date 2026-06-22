@@ -72,8 +72,8 @@ abstract class VelocityActionSupport {
         });
     }
 
-    protected void sendTextResult(Player player, CompletableFuture<String> future, String emptyMessage) {
-        future.thenAccept(message -> player.sendMessage(playerComponent(messageOrDefault(message, emptyMessage)))).exceptionally(error -> {
+    protected void sendTextResult(Player player, CompletableFuture<? extends CharSequence> future, String emptyMessage) {
+        future.thenAccept(message -> player.sendMessage(playerComponent(messageOrDefault(message == null ? "" : message.toString(), emptyMessage)))).exceptionally(error -> {
             player.sendMessage(playerComponent(emptyMessage));
             return null;
         });
