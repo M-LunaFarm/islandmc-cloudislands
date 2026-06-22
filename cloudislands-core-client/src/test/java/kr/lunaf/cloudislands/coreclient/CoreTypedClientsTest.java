@@ -146,8 +146,8 @@ class CoreTypedClientsTest {
         assertTrue(source.contains("private final CoreHttpTransport transport"), "JDK core client must delegate HTTP transport details");
         assertTrue(source.contains("CompletableFuture<CoreResponseBody> postBody(String path, String body)"), "JDK core client must expose typed body helpers for new domain clients");
         assertTrue(source.contains("CompletableFuture<CoreResponseBody> getBody(String path)"), "JDK core client must expose typed GET body helpers for new domain clients");
-        assertTrue(source.contains("return postBody(path, body).thenApply(CoreResponseBody::value);"), "JDK core client must only unwrap typed response bodies in deprecated compatibility adapters");
-        assertTrue(source.contains("return getBody(path).thenApply(CoreResponseBody::value);"), "JDK core client GET compatibility must unwrap typed response bodies in one adapter");
+        assertFalse(source.contains("CompletableFuture<String>"), "JDK core client must not expose raw response body helpers");
+        assertFalse(source.contains("thenApply(CoreResponseBody::value);"), "JDK core client must leave response unwrapping to typed domain clients");
         assertTrue(transport.contains("CompletableFuture<CoreHttpResponse> send(HttpRequest request)"), "transport boundary must return a typed HTTP response");
         assertTrue(transport.contains("CompletableFuture<CoreResponseBody> post(String path, String body)"), "transport public package boundary must not expose raw String futures");
         assertFalse(transport.contains("CompletableFuture<String>"), "transport must keep raw response bodies inside a value object");
