@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.common.permission;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
+import kr.lunaf.cloudislands.api.model.RoleId;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PermissionResolverTest {
@@ -51,14 +53,28 @@ class PermissionResolverTest {
         assertDenied(resolver.check(VISITOR, IslandPermission.INTERACT, false), IslandRole.VISITOR);
     }
 
+    @Test
+    void keepsCustomRoleKeyAsCanonicalPermissionResultIdentity() {
+        UUID builder = UUID.fromString("00000000-0000-0000-0000-000000000405");
+        PermissionResolver resolver = PermissionResolver.fromRoleKeys(new CachedPermissionSet(), Map.of(builder, "builder"));
+
+        PermissionResult result = resolver.check(builder, IslandPermission.BUILD, false);
+
+        assertFalse(result.allowed());
+        assertEquals(RoleId.of("BUILDER"), result.effectiveRoleId());
+        assertNull(result.effectiveRole());
+    }
+
     private void assertAllowed(PermissionResult result, IslandRole role) {
         assertTrue(result.allowed());
         assertEquals(role, result.effectiveRole());
+        assertEquals(RoleId.of(role, IslandRole.VISITOR.name()), result.effectiveRoleId());
     }
 
     private void assertDenied(PermissionResult result, IslandRole role) {
         assertFalse(result.allowed());
         assertEquals(role, result.effectiveRole());
+        assertEquals(RoleId.of(role, IslandRole.VISITOR.name()), result.effectiveRoleId());
         assertEquals("DEFAULT_DENY", result.reason());
     }
 }

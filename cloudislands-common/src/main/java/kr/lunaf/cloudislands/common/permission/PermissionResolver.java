@@ -5,6 +5,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
+import kr.lunaf.cloudislands.api.model.RoleId;
 
 public final class PermissionResolver {
     private static final String OWNER_ROLE_KEY = "OWNER";
@@ -39,24 +40,25 @@ public final class PermissionResolver {
 
     public PermissionResult check(UUID playerUuid, IslandPermission permission, boolean adminBypass) {
         if (adminBypass) {
-            return PermissionResult.allow(IslandRole.OWNER);
+            return PermissionResult.allow(RoleId.of(OWNER_ROLE_KEY));
         }
         String roleKey = cachedRoleKeys.getOrDefault(playerUuid, VISITOR_ROLE_KEY);
         if (roleKey.equals(OWNER_ROLE_KEY)) {
-            return PermissionResult.allow(IslandRole.OWNER);
+            return PermissionResult.allow(RoleId.of(OWNER_ROLE_KEY));
         }
-        IslandRole effectiveRole = legacyRole(roleKey);
+        RoleId roleId = RoleId.of(roleKey);
+        IslandRole effectiveRole = legacyRoleOrNull(roleKey);
         Boolean override = playerOverrides.getOrDefault(playerUuid, Map.of()).get(permission);
         if (override != null) {
-            return override ? PermissionResult.allow(effectiveRole) : PermissionResult.deny("PLAYER_PERMISSION_OVERRIDE", effectiveRole);
+            return override ? PermissionResult.allow(roleId) : PermissionResult.deny("PLAYER_PERMISSION_OVERRIDE", roleId);
         }
         if (roleKey.equals(BANNED_ROLE_KEY)) {
-            return PermissionResult.deny("DEFAULT_DENY", IslandRole.BANNED);
+            return PermissionResult.deny("DEFAULT_DENY", RoleId.of(BANNED_ROLE_KEY));
         }
         if (permissionSet.allowed(effectiveRole, permission)) {
-            return PermissionResult.allow(effectiveRole);
+            return PermissionResult.allow(roleId);
         }
-        return PermissionResult.deny("DEFAULT_DENY", effectiveRole);
+        return PermissionResult.deny("DEFAULT_DENY", roleId);
     }
 
     private static Map<UUID, String> legacyRoleKeys(Map<UUID, IslandRole> cachedRoles) {
@@ -83,11 +85,11 @@ public final class PermissionResolver {
         return value.toUpperCase(java.util.Locale.ROOT).replace('-', '_');
     }
 
-    private static IslandRole legacyRole(String roleKey) {
+    private static IslandRole legacyRoleOrNull(String roleKey) {
         try {
             return IslandRole.valueOf(roleKey);
         } catch (IllegalArgumentException exception) {
-            return IslandRole.VISITOR;
+            return null;
         }
     }
 }
