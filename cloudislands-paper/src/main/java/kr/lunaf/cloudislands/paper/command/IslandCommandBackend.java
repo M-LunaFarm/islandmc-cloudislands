@@ -68,6 +68,7 @@ final class IslandCommandBackend {
     private final IslandRoutingCommandHandler routingCommands;
     private final IslandCommandRouter router;
     private final IslandCommandMessenger commandMessages;
+    private final IslandCommandIslandContext islandContext;
     private final PaperPlayerGateway players;
     private final PaperWorldGateway worlds;
     private final MemberManagementUseCase memberManagement;
@@ -115,6 +116,7 @@ final class IslandCommandBackend {
         this.protection = protection;
         this.levelScanService = levelScanService;
         this.commandMessages = new IslandCommandMessenger(plugin, messages, locales);
+        this.islandContext = new IslandCommandIslandContext(protection);
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
         this.playerResolver = new IslandCommandPlayerResolver(plugin, memberManagement);
         this.routingCommands = new IslandRoutingCommandHandler(plugin, coreApiClient, routeWaitSeconds, fallbackServerName, new IslandRoutingCommandHandler.Runtime() {
@@ -959,42 +961,19 @@ final class IslandCommandBackend {
     }
 
     private java.util.Optional<UUID> currentIsland(Player player, String missingMessage) {
-        java.util.Optional<UUID> islandId = protection.islandAt(player.getLocation().getBlock());
-        if (islandId.isEmpty()) {
-            player.sendMessage(missingMessage);
-        }
-        return islandId;
+        return islandContext.currentIsland(player, missingMessage);
     }
 
     private boolean allowed(Player player, IslandPermission permission) {
-        Location location = player.getLocation();
-        return protection.checkBlock(
-            player.getUniqueId(),
-            location.getWorld().getName(),
-            location.getBlockX(),
-            location.getBlockY(),
-            location.getBlockZ(),
-            permission,
-            player.isOp()
-        ).allowed();
+        return islandContext.allowed(player, permission);
     }
 
     private boolean publicWarpAllowed(Player player, IslandHomeWarpCommandHandler.Point point, boolean islandPublicAccess) {
-        return point.publicAccess()
-            && islandPublicAccess
-            && protection.checkSystemFlag(player.getLocation().getBlock(), IslandFlag.PUBLIC_WARPS).allowed();
+        return islandContext.publicWarpAllowed(player, point, islandPublicAccess);
     }
 
     private IslandLocation location(Location location) {
-        java.util.Optional<IslandRegion> region = protection.regionAt(location.getBlock());
-        return new IslandLocation(
-            "",
-            region.map(value -> location.getX() - value.originX()).orElse(location.getX()),
-            location.getY(),
-            region.map(value -> location.getZ() - value.originZ()).orElse(location.getZ()),
-            location.getYaw(),
-            location.getPitch()
-        );
+        return islandContext.location(location);
     }
 
     private String joined(String[] args, int start) {
