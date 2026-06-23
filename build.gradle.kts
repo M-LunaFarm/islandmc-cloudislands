@@ -1024,6 +1024,19 @@ tasks.register<Test>("verifyApiRouteCoverage") {
     include("kr/lunaf/cloudislands/coreclient/CoreClientRouteCoverageTest.class")
 }
 
+tasks.register<Test>("verifyRouteDomainCoverage") {
+    group = "verification"
+    description = "Verifies Core HTTP routes are registered and wired to real domain services or repositories."
+    val coreServiceSourceSets = project(":cloudislands-core-service").extensions.getByType<SourceSetContainer>()
+    val coreServiceTest = coreServiceSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-core-service").tasks.named("testClasses"))
+    testClassesDirs = coreServiceTest.output.classesDirs
+    classpath = coreServiceTest.runtimeClasspath
+    workingDir = project(":cloudislands-core-service").projectDir
+    useJUnitPlatform()
+    include("kr/lunaf/cloudislands/coreservice/CoreRouteDomainCoverageTest.class")
+}
+
 tasks.register<Test>("verifyGuiActionCoverage") {
     group = "verification"
     description = "Verifies registered GUI actions parse to typed actions and route to executable handlers."
@@ -1575,6 +1588,7 @@ tasks.register("verifyReleaseGateCoverage") {
 tasks.named("check") {
     dependsOn(tasks.named("verifyCommandCoverage"))
     dependsOn(tasks.named("verifyApiRouteCoverage"))
+    dependsOn(tasks.named("verifyRouteDomainCoverage"))
     dependsOn(tasks.named("verifyGuiActionCoverage"))
     dependsOn(tasks.named("verifyPermissionCoverage"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))
