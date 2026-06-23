@@ -94,6 +94,25 @@ class CreateIslandWorkflowTest {
         assertTrue(events.contains("ROUTE_TICKET_FAILED", "reason", "ALREADY_HAS_ISLAND"));
     }
 
+    @Test
+    void createsDistinctDefaultIslandNamesForDifferentOwners() {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC));
+        CreateIslandWorkflow workflow = workflow(islands, runtimes, profiles, jobs, tickets);
+
+        CreateIslandResult first = workflow.create(OWNER, "default");
+        CreateIslandResult second = workflow.create(UUID.fromString("00000000-0000-0000-0000-000000000202"), "default");
+
+        assertTrue(first.accepted());
+        assertTrue(second.accepted());
+        assertTrue(first.island().name().startsWith("Island-"));
+        assertTrue(second.island().name().startsWith("Island-"));
+        assertFalse(first.island().name().equals(second.island().name()));
+    }
+
     private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, InMemoryIslandJobPublisher jobs, InMemoryRouteTicketStore tickets) {
         return workflow(islands, runtimes, profiles, jobs, tickets, new RecordingEvents());
     }

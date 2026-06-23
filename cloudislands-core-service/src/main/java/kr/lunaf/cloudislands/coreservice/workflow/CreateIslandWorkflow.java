@@ -110,7 +110,7 @@ public final class CreateIslandWorkflow {
             return new CreateIslandResult(false, code, null, null);
         }
         UUID islandId = UUID.randomUUID();
-        IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, "Island");
+        IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, defaultIslandName(islandId));
         metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
         playerProfiles.setPrimaryIsland(ownerUuid, islandId);
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime;
@@ -153,6 +153,11 @@ public final class CreateIslandWorkflow {
             releaseCreationLock(lease);
             throw exception;
         }
+    }
+
+    private static String defaultIslandName(UUID islandId) {
+        String value = islandId == null ? UUID.randomUUID().toString() : islandId.toString();
+        return "Island-" + value.substring(0, 8);
     }
 
     private void publishTicketFailure(UUID playerUuid, UUID islandId, String reason) {
