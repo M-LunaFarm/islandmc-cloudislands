@@ -52,13 +52,13 @@ public final class IslandSettingsRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/lock", this::setLock);
-        registry.route("/v1/islands/name", this::rename);
-        registry.route("/v1/islands/flags", this::flags);
-        registry.route("/v1/islands/biome", this::biome);
-        registry.route("/v1/islands/biome/set", this::setBiome);
-        registry.route("/v1/islands/flags/set", this::setFlag);
-        registry.route("/v1/islands/access", this::setAccess);
+        registry.routePost("/v1/islands/lock", this::setLock);
+        registry.routePost("/v1/islands/name", this::rename);
+        registry.routePost("/v1/islands/flags", this::flags);
+        registry.routePost("/v1/islands/biome", this::biome);
+        registry.routePost("/v1/islands/biome/set", this::setBiome);
+        registry.routePost("/v1/islands/flags/set", this::setFlag);
+        registry.routePost("/v1/islands/access", this::setAccess);
     }
 
     private void setLock(HttpExchange exchange) throws IOException {
