@@ -98,9 +98,10 @@ class CoreSecurityControlsTest {
 
     @Test
     void coreAuthModeMigratesRequireMtlsBooleanAndRejectsUnknownModes() {
-        assertEquals(CoreAuthMode.MTLS_OR_TOKEN, CoreAuthMode.fromConfig("", true));
+        assertEquals(CoreAuthMode.MTLS_REQUIRED, CoreAuthMode.fromConfig("", true));
         assertEquals(CoreAuthMode.TOKEN_REQUIRED, CoreAuthMode.fromConfig("", false));
         assertEquals(CoreAuthMode.MTLS_REQUIRED, CoreAuthMode.fromConfig("mtls-required", false));
+        assertEquals(CoreAuthMode.MTLS_OR_TOKEN, CoreAuthMode.fromConfig("mtls-or-token", true));
         assertThrows(IllegalArgumentException.class, () -> CoreAuthMode.fromConfig("optional", true));
     }
 

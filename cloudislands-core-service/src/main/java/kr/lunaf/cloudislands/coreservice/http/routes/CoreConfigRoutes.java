@@ -54,6 +54,7 @@ public final class CoreConfigRoutes implements RouteGroup {
 
     String configSummaryJson() {
         kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotPolicy = config.snapshotRetentionPolicy().normalized();
+        kr.lunaf.cloudislands.coreservice.security.CoreAuthMode authMode = config.authMode();
         LinkedHashMap<String, Object> summary = new LinkedHashMap<>();
         summary.put("repositoryMode", config.repositoryMode());
         summary.put("jobQueueMode", config.jobQueueMode());
@@ -472,9 +473,12 @@ public final class CoreConfigRoutes implements RouteGroup {
         summary.put("snapshotRestoringLockState", kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RESTORING_LOCK_STATE);
         summary.put("snapshotRuntimeResetPolicy", kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.RUNTIME_RESET_POLICY);
         summary.put("snapshotRollbackSteps", kr.lunaf.cloudislands.storage.snapshot.SnapshotOperationPolicy.rollbackStepSummary());
-        summary.put("coreApiAuthPolicy", "token-or-mtls-required");
+        summary.put("coreApiAuthMode", authMode.name());
+        summary.put("coreApiAuthPolicy", authMode.name().toLowerCase(java.util.Locale.ROOT).replace('_', '-'));
         summary.put("coreApiTokenConfigured", (config.coreToken() != null && !config.coreToken().isBlank()));
-        summary.put("coreApiMtlsRequired", config.requireMtls());
+        summary.put("coreApiMtlsRequired", authMode == kr.lunaf.cloudislands.coreservice.security.CoreAuthMode.MTLS_REQUIRED);
+        summary.put("coreApiMtlsAccepted", authMode.acceptsMtls());
+        summary.put("coreApiRequireMtlsFlag", config.requireMtls());
         summary.put("coreApiAuthConfigured", coreApiAuthConfigured(config));
         summary.put("coreApiAuthLockoutRisk", !coreApiAuthConfigured(config));
         summary.put("adminPermissionPolicy", "separate-admin-permission-per-endpoint");
@@ -537,6 +541,7 @@ public final class CoreConfigRoutes implements RouteGroup {
         summary.put("adminBind", config.adminBind());
         summary.put("adminPort", config.adminPort());
         summary.put("publicAdminApiEnabled", config.publicAdminApiEnabled());
+        summary.put("authMode", authMode.name());
         summary.put("requireMtls", config.requireMtls());
         summary.put("ipAllowlistEnabled", (config.ipAllowlist() != null && !config.ipAllowlist().isBlank()));
         summary.put("requiredSecurityControls", String.join(",", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.requiredSecurityControls()));

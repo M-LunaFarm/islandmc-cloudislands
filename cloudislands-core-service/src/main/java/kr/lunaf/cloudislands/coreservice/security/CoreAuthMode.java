@@ -9,7 +9,7 @@ public enum CoreAuthMode {
 
     public static CoreAuthMode fromConfig(String value, boolean legacyRequireMtls) {
         if (value == null || value.isBlank()) {
-            return legacyRequireMtls ? MTLS_OR_TOKEN : TOKEN_REQUIRED;
+            return legacyRequireMtls ? MTLS_REQUIRED : TOKEN_REQUIRED;
         }
         String normalized = value.trim().replace('-', '_').toUpperCase(Locale.ROOT);
         try {
