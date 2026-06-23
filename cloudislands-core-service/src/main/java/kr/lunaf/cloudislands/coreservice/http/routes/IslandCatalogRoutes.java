@@ -49,9 +49,9 @@ public final class IslandCatalogRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/info", this::info);
-        registry.route("/v1/islands/public", this::publicIslands);
-        registry.route("/v1/islands", this::create);
+        registry.routePost("/v1/islands/info", this::info);
+        registry.routePost("/v1/islands/public", this::publicIslands);
+        registry.routePost("/v1/islands", this::create);
     }
 
     private void info(HttpExchange exchange) throws IOException {
