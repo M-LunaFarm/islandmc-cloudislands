@@ -502,6 +502,23 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void coreJsonRejectsInvalidNumericResponseValues() {
+        Map<?, ?> valid = CoreJson.object("{\"count\":\"12\"}");
+
+        assertEquals(12L, CoreJson.number(valid, "count"));
+        assertEquals(0L, CoreJson.number(valid, "missing"));
+        assertEquals("INVALID_CORE_JSON", assertThrows(CoreApiException.class, () ->
+            CoreJson.number(CoreJson.object("{\"count\":\"x\"}"), "count")
+        ).code());
+        assertEquals("INVALID_CORE_JSON", assertThrows(CoreApiException.class, () ->
+            CoreJson.number(CoreJson.object("{\"count\":1.5}"), "count")
+        ).code());
+        assertEquals("INVALID_CORE_JSON", assertThrows(CoreApiException.class, () ->
+            CoreJson.number(CoreJson.object("{\"count\":9223372036854775808}"), "count")
+        ).code());
+    }
+
+    @Test
     void coreJsonRejectsNonJsonCoreApiBodiesWithTypedError() {
         CoreApiException exception = assertThrows(CoreApiException.class, () -> CoreJson.object("upstream unavailable"));
 

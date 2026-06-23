@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
@@ -137,7 +139,45 @@ final class CoreJson {
     }
 
     static long numberValue(Object value) {
-        return SimpleJson.number(value);
+        if (value == null) {
+            return 0L;
+        }
+        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
+            return ((Number) value).longValue();
+        }
+        if (value instanceof BigInteger integer) {
+            try {
+                return integer.longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalidNumber(value);
+            }
+        }
+        if (value instanceof BigDecimal decimal) {
+            try {
+                return decimal.toBigIntegerExact().longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalidNumber(value);
+            }
+        }
+        if (value instanceof Float || value instanceof Double) {
+            double number = ((Number) value).doubleValue();
+            long integer = ((Number) value).longValue();
+            if (!Double.isFinite(number) || number != integer) {
+                throw invalidNumber(value);
+            }
+            return integer;
+        }
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            try {
+                return Long.parseLong(text.trim());
+            } catch (NumberFormatException exception) {
+                throw invalidNumber(value);
+            }
+        }
+        throw invalidNumber(value);
     }
 
     static double decimal(Map<?, ?> root, String key) {
@@ -179,5 +219,9 @@ final class CoreJson {
             .map(SimpleJson::text)
             .filter(text -> !text.isBlank())
             .toList();
+    }
+
+    private static CoreApiException invalidNumber(Object value) {
+        return new CoreApiException("INVALID_CORE_JSON", "Core API numeric value is not an integer: " + SimpleJson.text(value));
     }
 }
