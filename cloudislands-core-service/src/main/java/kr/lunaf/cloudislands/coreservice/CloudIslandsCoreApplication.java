@@ -127,6 +127,7 @@ import kr.lunaf.cloudislands.coreservice.role.JdbcIslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
 import kr.lunaf.cloudislands.coreservice.security.CoreApiAuthGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
+import kr.lunaf.cloudislands.coreservice.security.ForwardedClientIpResolver;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
 import kr.lunaf.cloudislands.coreservice.security.MtlsHeaderGuard;
@@ -192,6 +193,7 @@ public final class CloudIslandsCoreApplication {
         CoreHttpRouteRegistrar routeRegistrar = new CoreHttpRouteRegistrar(
             new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis()),
             new CoreApiAuthGuard(authMode, new ApiTokenGuard(config.coreToken(), config.nodeCredentialBindings()), new MtlsHeaderGuard(authMode.acceptsMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies())),
+            new ForwardedClientIpResolver(config.mtlsTrustedProxies()),
             new IpAllowlist(config.ipAllowlist()),
             new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.adminPermissions())
         );

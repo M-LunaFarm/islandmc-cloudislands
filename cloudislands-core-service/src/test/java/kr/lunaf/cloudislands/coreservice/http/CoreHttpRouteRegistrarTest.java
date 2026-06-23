@@ -13,7 +13,9 @@ import java.time.Clock;
 import java.util.concurrent.Executors;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
+import kr.lunaf.cloudislands.coreservice.security.CoreApiAuthGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
+import kr.lunaf.cloudislands.coreservice.security.ForwardedClientIpResolver;
 import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
 import kr.lunaf.cloudislands.coreservice.security.MtlsHeaderGuard;
 import org.junit.jupiter.api.Test;
@@ -104,6 +106,42 @@ class CoreHttpRouteRegistrarTest {
         }
     }
 
+    @Test
+    void trustedForwardedClientIpDrivesIpAllowlist() throws Exception {
+        try (ServerFixture server = ServerFixture.start(new IpAllowlist("203.0.113.7"), new ForwardedClientIpResolver("127.0.0.1"))) {
+            server.registrar().route("/v1/jobs/claim", exchange -> CoreHttpResponses.write(exchange, 200, "{\"ok\":true}"));
+
+            HttpResponse<String> forwarded = server.request(
+                server.authorized(HttpRequest.newBuilder(server.uri("/v1/jobs/claim")))
+                    .header("X-Forwarded-For", "203.0.113.7")
+                    .GET()
+                    .build()
+            );
+            HttpResponse<String> direct = server.get("/v1/jobs/claim");
+
+            assertEquals(200, forwarded.statusCode());
+            assertEquals(403, direct.statusCode());
+            assertTrue(direct.body().contains("IP_NOT_ALLOWED"));
+        }
+    }
+
+    @Test
+    void untrustedForwardedHeadersAreRejected() throws Exception {
+        try (ServerFixture server = ServerFixture.start(new IpAllowlist(""), new ForwardedClientIpResolver("10.0.0.0/8"))) {
+            server.registrar().route("/v1/jobs/claim", exchange -> CoreHttpResponses.write(exchange, 200, "{\"ok\":true}"));
+
+            HttpResponse<String> response = server.request(
+                server.authorized(HttpRequest.newBuilder(server.uri("/v1/jobs/claim")))
+                    .header("X-Forwarded-For", "203.0.113.7")
+                    .GET()
+                    .build()
+            );
+
+            assertEquals(403, response.statusCode());
+            assertTrue(response.body().contains("FORWARDED_HEADER_UNTRUSTED"));
+        }
+    }
+
     private static final class ServerFixture implements AutoCloseable {
         private final HttpServer server;
         private final CoreHttpRouteRegistrar registrar;
@@ -115,12 +153,18 @@ class CoreHttpRouteRegistrarTest {
         }
 
         static ServerFixture start() throws Exception {
+            return start(new IpAllowlist(""), new ForwardedClientIpResolver("127.0.0.1,localhost,::1"));
+        }
+
+        static ServerFixture start(IpAllowlist ipAllowlist, ForwardedClientIpResolver clientIpResolver) throws Exception {
             HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+            ApiTokenGuard tokenGuard = new ApiTokenGuard("core-secret");
+            MtlsHeaderGuard mtlsGuard = new MtlsHeaderGuard(false, "", "");
             CoreHttpRouteRegistrar registrar = new CoreHttpRouteRegistrar(
                 new FixedWindowRateLimiter(Clock.systemUTC(), 100, 60_000L),
-                new ApiTokenGuard("core-secret"),
-                new MtlsHeaderGuard(false, "", ""),
-                new IpAllowlist(""),
+                CoreApiAuthGuard.mtlsOrToken(tokenGuard, mtlsGuard),
+                clientIpResolver,
+                ipAllowlist,
                 new AdminEndpointGuard("admin-secret", true, "*")
             );
             registrar.attach(server);

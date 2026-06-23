@@ -19,12 +19,14 @@ import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
 import kr.lunaf.cloudislands.coreservice.security.CoreApiAuthGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
+import kr.lunaf.cloudislands.coreservice.security.ForwardedClientIpResolver;
 import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
 import kr.lunaf.cloudislands.coreservice.security.MtlsHeaderGuard;
 
 public final class CoreHttpRouteRegistrar {
     private final FixedWindowRateLimiter rateLimiter;
     private final CoreApiAuthGuard authGuard;
+    private final ForwardedClientIpResolver clientIpResolver;
     private final IpAllowlist ipAllowlist;
     private final AdminEndpointGuard adminGuard;
     private final AtomicLong securityRejectsTotal = new AtomicLong();
@@ -52,8 +54,20 @@ public final class CoreHttpRouteRegistrar {
             CoreApiAuthGuard authGuard,
             IpAllowlist ipAllowlist,
             AdminEndpointGuard adminGuard) {
+        this(rateLimiter, authGuard, new ForwardedClientIpResolver("127.0.0.1,localhost,::1"), ipAllowlist, adminGuard);
+    }
+
+    public CoreHttpRouteRegistrar(
+            FixedWindowRateLimiter rateLimiter,
+            CoreApiAuthGuard authGuard,
+            ForwardedClientIpResolver clientIpResolver,
+            IpAllowlist ipAllowlist,
+            AdminEndpointGuard adminGuard) {
         this.rateLimiter = rateLimiter;
         this.authGuard = authGuard;
+        this.clientIpResolver = clientIpResolver == null
+            ? new ForwardedClientIpResolver("127.0.0.1,localhost,::1")
+            : clientIpResolver;
         this.ipAllowlist = ipAllowlist;
         this.adminGuard = adminGuard;
     }
@@ -146,25 +160,31 @@ public final class CoreHttpRouteRegistrar {
     }
 
     private boolean authorize(String requestPath, HttpExchange exchange) throws IOException {
-        String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
+        ForwardedClientIpResolver.ClientIpResolution clientIp = clientIpResolver.resolve(exchange);
+        if (!clientIp.accepted()) {
+            auditSecurityReject(clientIp.rejectCode(), requestPath, exchange, clientIp);
+            CoreHttpResponses.write(exchange, 403, ApiResponses.error(clientIp.rejectCode(), "Forwarded client IP headers are only accepted from trusted proxies"));
+            return false;
+        }
+        String key = clientIp.clientIp();
         if (!rateLimiter.allow(key)) {
-            auditSecurityReject("RATE_LIMITED", requestPath, exchange);
+            auditSecurityReject("RATE_LIMITED", requestPath, exchange, clientIp);
             CoreHttpResponses.write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
             return false;
         }
         if (!healthProbePath(requestPath) && !coreApiAuthenticated(exchange)) {
             String rejectCode = authGuard.rejectCode();
-            auditSecurityReject(rejectCode, requestPath, exchange);
+            auditSecurityReject(rejectCode, requestPath, exchange, clientIp);
             CoreHttpResponses.write(exchange, 401, ApiResponses.error(rejectCode, authGuard.rejectMessage()));
             return false;
         }
-        if (!ipAllowlist.allowed(exchange)) {
-            auditSecurityReject("IP_NOT_ALLOWED", requestPath, exchange);
+        if (!ipAllowlist.allowed(clientIp.clientIp())) {
+            auditSecurityReject("IP_NOT_ALLOWED", requestPath, exchange, clientIp);
             CoreHttpResponses.write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
             return false;
         }
         if (!adminGuard.allowed(requestPath, exchange)) {
-            auditSecurityReject("ADMIN_PERMISSION_DENIED", requestPath, exchange);
+            auditSecurityReject("ADMIN_PERMISSION_DENIED", requestPath, exchange, clientIp);
             CoreHttpResponses.write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
             return false;
         }
@@ -236,6 +256,14 @@ public final class CoreHttpRouteRegistrar {
     }
 
     private void auditSecurityReject(String reason, String path, HttpExchange exchange) {
+        auditSecurityReject(reason, path, exchange, clientIpResolver.resolve(exchange));
+    }
+
+    private void auditSecurityReject(
+            String reason,
+            String path,
+            HttpExchange exchange,
+            ForwardedClientIpResolver.ClientIpResolution clientIp) {
         recordSecurityReject(reason);
         if (audit == null) {
             return;
@@ -244,10 +272,14 @@ public final class CoreHttpRouteRegistrar {
             String remote = exchange.getRemoteAddress() == null || exchange.getRemoteAddress().getAddress() == null
                 ? "unknown"
                 : exchange.getRemoteAddress().getAddress().getHostAddress();
+            String resolvedClientIp = clientIp == null || clientIp.clientIp().isBlank() ? remote : clientIp.clientIp();
+            String proxyRemote = clientIp == null || clientIp.remoteIp().isBlank() ? remote : clientIp.remoteIp();
             audit.log(new UUID(0L, 0L), "SECURITY", "SECURITY_REJECT", "HTTP", path == null ? "" : path, Map.of(
                 "reason", reason == null ? "" : reason,
                 "method", exchange.getRequestMethod() == null ? "" : exchange.getRequestMethod(),
-                "remote", remote
+                "remote", remote,
+                "clientIp", resolvedClientIp,
+                "proxyRemote", proxyRemote
             ));
         } catch (RuntimeException ignored) {
             // Security rejection audit must not change the original response.
@@ -261,7 +293,7 @@ public final class CoreHttpRouteRegistrar {
             case "RATE_LIMITED" -> securityRejectsRateLimited.incrementAndGet();
             case "UNAUTHORIZED", "TOKEN_REQUIRED", "MTLS_OR_TOKEN_REQUIRED" -> securityRejectsUnauthorized.incrementAndGet();
             case "MTLS_REQUIRED" -> securityRejectsMtlsRequired.incrementAndGet();
-            case "IP_NOT_ALLOWED" -> securityRejectsIpNotAllowed.incrementAndGet();
+            case "IP_NOT_ALLOWED", "FORWARDED_HEADER_UNTRUSTED", "FORWARDED_HEADER_INVALID" -> securityRejectsIpNotAllowed.incrementAndGet();
             case "ADMIN_PERMISSION_DENIED" -> securityRejectsAdminPermissionDenied.incrementAndGet();
             default -> {
             }

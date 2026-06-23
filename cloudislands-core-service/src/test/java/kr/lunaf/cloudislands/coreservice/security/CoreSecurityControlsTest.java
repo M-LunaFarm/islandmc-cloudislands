@@ -111,7 +111,42 @@ class CoreSecurityControlsTest {
         assertTrue(allowlist.allowed(exchange("127.0.0.1")));
         assertTrue(allowlist.allowed(exchange("10.42.0.7")));
         assertFalse(allowlist.allowed(exchange("192.168.0.7")));
+        assertTrue(new IpAllowlist("203.0.113.0/24").allowed("203.0.113.7"));
+        assertFalse(new IpAllowlist("203.0.113.0/24").allowed("198.51.100.7"));
         assertTrue(new IpAllowlist("").allowed(exchange("192.168.0.7")));
+    }
+
+    @Test
+    void forwardedClientIpRequiresTrustedProxy() {
+        ForwardedClientIpResolver resolver = new ForwardedClientIpResolver("127.0.0.1");
+
+        ForwardedClientIpResolver.ClientIpResolution trusted = resolver.resolve(exchange(
+            "127.0.0.1",
+            "X-Forwarded-For", "203.0.113.7, 10.0.0.1"
+        ));
+        assertTrue(trusted.accepted());
+        assertEquals("203.0.113.7", trusted.clientIp());
+        assertEquals("127.0.0.1", trusted.remoteIp());
+        ForwardedClientIpResolver.ClientIpResolution standard = resolver.resolve(exchange(
+            "127.0.0.1",
+            "Forwarded", "for=\"198.51.100.7:443\";proto=https, for=10.0.0.1"
+        ));
+        assertTrue(standard.accepted());
+        assertEquals("198.51.100.7", standard.clientIp());
+
+        ForwardedClientIpResolver.ClientIpResolution untrusted = resolver.resolve(exchange(
+            "10.0.0.5",
+            "X-Forwarded-For", "203.0.113.7"
+        ));
+        assertFalse(untrusted.accepted());
+        assertEquals("FORWARDED_HEADER_UNTRUSTED", untrusted.rejectCode());
+
+        ForwardedClientIpResolver.ClientIpResolution invalid = resolver.resolve(exchange(
+            "127.0.0.1",
+            "X-Forwarded-For", "client.example.com"
+        ));
+        assertFalse(invalid.accepted());
+        assertEquals("FORWARDED_HEADER_INVALID", invalid.rejectCode());
     }
 
     @Test

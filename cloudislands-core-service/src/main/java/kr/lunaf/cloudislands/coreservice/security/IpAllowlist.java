@@ -44,6 +44,24 @@ public final class IpAllowlist {
             return false;
         }
         InetAddress address = exchange.getRemoteAddress().getAddress();
+        return allowed(address);
+    }
+
+    public boolean allowed(String ip) {
+        if (exactAddresses.isEmpty() && cidrBlocks.isEmpty()) {
+            return true;
+        }
+        if (ip == null || ip.isBlank() || "unknown".equals(ip)) {
+            return false;
+        }
+        try {
+            return allowed(InetAddress.getByName(stripBrackets(ip)));
+        } catch (UnknownHostException exception) {
+            return false;
+        }
+    }
+
+    private boolean allowed(InetAddress address) {
         String ip = address.getHostAddress();
         if (exactAddresses.contains(ip) || (address.isLoopbackAddress() && exactAddresses.contains("localhost"))) {
             return true;
