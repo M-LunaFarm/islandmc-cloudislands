@@ -188,13 +188,28 @@ final class CoreJson {
     }
 
     static double decimalValue(Object value) {
+        if (value == null) {
+            return 0.0D;
+        }
         if (value instanceof Number number) {
-            return number.doubleValue();
+            double decimal = number.doubleValue();
+            if (!Double.isFinite(decimal)) {
+                throw invalidDecimal(value);
+            }
+            return decimal;
+        }
+        String text = SimpleJson.text(value).trim();
+        if (text.isBlank()) {
+            return 0.0D;
         }
         try {
-            return Double.parseDouble(SimpleJson.text(value));
+            double decimal = Double.parseDouble(text);
+            if (!Double.isFinite(decimal)) {
+                throw invalidDecimal(value);
+            }
+            return decimal;
         } catch (NumberFormatException ignored) {
-            return 0.0D;
+            throw invalidDecimal(value);
         }
     }
 
@@ -223,5 +238,9 @@ final class CoreJson {
 
     private static CoreApiException invalidNumber(Object value) {
         return new CoreApiException("INVALID_CORE_JSON", "Core API numeric value is not an integer: " + SimpleJson.text(value));
+    }
+
+    private static CoreApiException invalidDecimal(Object value) {
+        return new CoreApiException("INVALID_CORE_JSON", "Core API numeric value is not decimal: " + SimpleJson.text(value));
     }
 }
