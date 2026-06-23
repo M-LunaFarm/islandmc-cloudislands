@@ -532,6 +532,11 @@ public final class CoreConfigRoutes implements RouteGroup {
         summary.put("infrastructureExposurePolicy", "redis-postgresql-object-storage-private-only");
         summary.put("publicBindRiskPolicy", "require-ip-allowlist-or-private-bind");
         summary.put("adminApiEnabled", config.adminApiEnabled());
+        summary.put("adminListenerEnabled", config.adminListenerEnabled());
+        summary.put("adminListenerActive", config.adminListenerActive());
+        summary.put("adminBind", config.adminBind());
+        summary.put("adminPort", config.adminPort());
+        summary.put("publicAdminApiEnabled", config.publicAdminApiEnabled());
         summary.put("requireMtls", config.requireMtls());
         summary.put("ipAllowlistEnabled", (config.ipAllowlist() != null && !config.ipAllowlist().isBlank()));
         summary.put("requiredSecurityControls", String.join(",", kr.lunaf.cloudislands.common.security.BackendAccessPolicy.requiredSecurityControls()));

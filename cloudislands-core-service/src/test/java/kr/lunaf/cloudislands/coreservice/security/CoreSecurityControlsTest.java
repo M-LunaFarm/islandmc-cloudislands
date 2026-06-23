@@ -188,6 +188,24 @@ class CoreSecurityControlsTest {
     }
 
     @Test
+    void publicAdminApiCanBeDisabledSeparatelyFromJobApi() {
+        AdminEndpointGuard publicGuard = new AdminEndpointGuard("admin-secret", true, false, "audit-read,job-manage");
+
+        assertFalse(publicGuard.allowed("/v1/admin/config", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret"
+        )));
+        assertFalse(publicGuard.allowed("/v1/audit", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret"
+        )));
+        assertTrue(publicGuard.allowed("/v1/jobs/claim", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret"
+        )));
+    }
+
+    @Test
     void pathStyleAdminEndpointsKeepSpecificPermissions() {
         AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true, "island-migrate,node-drain");
         AdminEndpointGuard auditOnly = new AdminEndpointGuard("admin-secret", true, "audit-read");

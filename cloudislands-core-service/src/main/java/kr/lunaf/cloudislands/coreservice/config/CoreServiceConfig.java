@@ -18,6 +18,8 @@ import java.util.Map;
 public record CoreServiceConfig(
     String bind,
     int port,
+    String adminBind,
+    int adminPort,
     String repositoryMode,
     String jobQueueMode,
     String eventBusMode,
@@ -70,6 +72,8 @@ public record CoreServiceConfig(
     int snapshotKeepLatest,
     kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy,
     boolean adminApiEnabled,
+    boolean adminListenerEnabled,
+    boolean publicAdminApiEnabled,
     boolean requireMtls,
     String mtlsVerifiedHeader,
     String mtlsVerifiedValue,
@@ -91,6 +95,8 @@ public record CoreServiceConfig(
         return new CoreServiceConfig(
             env("CI_BIND", setting(config, "server.bind", "0.0.0.0")),
             integer("CI_PORT", configInteger(config, "server.port", 8443)),
+            env("CI_ADMIN_BIND", setting(config, "server.admin-bind", "127.0.0.1")),
+            integer("CI_ADMIN_PORT", configInteger(config, "server.admin-port", 9443)),
             env("CI_REPOSITORY_MODE", setupRepositoryMode(config)),
             env("CI_JOB_QUEUE_MODE", setupSetting(config, "job-queue-mode", "REDIS")),
             env("CI_EVENT_BUS_MODE", setupSetting(config, "event-bus-mode", "REDIS")),
@@ -143,6 +149,8 @@ public record CoreServiceConfig(
             snapshotKeepLatest,
             snapshotRetentionPolicy,
             bool("CI_ADMIN_API_ENABLED", configBoolean(config, "security.admin-api-enabled", true)),
+            bool("CI_ADMIN_LISTENER_ENABLED", configBoolean(config, "server.admin-listener-enabled", true)),
+            bool("CI_PUBLIC_ADMIN_API_ENABLED", configBoolean(config, "security.public-admin-api-enabled", false)),
             bool("CI_REQUIRE_MTLS", configBoolean(config, "security.require-mtls", true)),
             env("CI_MTLS_VERIFIED_HEADER", setting(config, "security.mtls-verified-header", "X-SSL-Client-Verify")),
             env("CI_MTLS_VERIFIED_VALUE", setting(config, "security.mtls-verified-value", "SUCCESS")),
@@ -397,6 +405,10 @@ public record CoreServiceConfig(
         return productionMode() && CoreNetworkExposure.publicBind(bind) && !allowInsecurePublicHttp;
     }
 
+    public boolean adminListenerActive() {
+        return adminApiEnabled && adminListenerEnabled;
+    }
+
     public boolean productionMode() {
         return "production".equalsIgnoreCase(runtimeMode == null ? "" : runtimeMode.trim());
     }
@@ -440,7 +452,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, allowInsecurePublicHttp, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, nodeCredentials, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow, httpWorkerThreads, httpQueueCapacity, httpKeepAlive, httpShutdownGrace);
+        return new CoreServiceConfig(bind, overridePort, adminBind, adminPort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, allowInsecurePublicHttp, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, nodeCredentials, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, adminListenerEnabled, publicAdminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow, httpWorkerThreads, httpQueueCapacity, httpKeepAlive, httpShutdownGrace);
     }
 
     private static int defaultHttpWorkerThreads() {

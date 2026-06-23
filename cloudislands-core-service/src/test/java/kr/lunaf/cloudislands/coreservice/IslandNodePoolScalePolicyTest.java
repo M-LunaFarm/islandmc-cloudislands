@@ -41,6 +41,8 @@ class IslandNodePoolScalePolicyTest {
         return new CoreServiceConfig(
                 "127.0.0.1",
                 8443,
+                "127.0.0.1",
+                9443,
                 "JDBC",
                 "REDIS",
                 "REDIS",
@@ -93,6 +95,8 @@ class IslandNodePoolScalePolicyTest {
                 SnapshotRetentionPolicy.defaultPolicy().retainedSnapshotCount(),
                 SnapshotRetentionPolicy.defaultPolicy(),
                 true,
+                true,
+                false,
                 true,
                 "X-SSL-Client-Verify",
                 "SUCCESS",

@@ -1,6 +1,9 @@
 server:
   bind: "0.0.0.0"
   port: 8443
+  admin-bind: "127.0.0.1"
+  admin-port: 9443
+  admin-listener-enabled: true
 
 runtime:
   mode: "production"
@@ -154,6 +157,7 @@ security:
   mtls-verified-header: "X-SSL-Client-Verify"
   mtls-verified-value: "SUCCESS"
   admin-api-enabled: true
+  public-admin-api-enabled: false
   ip-allowlist: ""
   # The embedded Core listener is plain HTTP. Production public binds require an explicit insecure opt-in.
   # Env override: CI_ALLOW_INSECURE_PUBLIC_HTTP.

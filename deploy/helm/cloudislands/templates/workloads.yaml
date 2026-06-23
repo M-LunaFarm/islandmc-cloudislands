@@ -23,6 +23,14 @@ spec:
               value: "0.0.0.0"
             - name: CI_PORT
               value: "{{ .Values.core.port }}"
+            - name: CI_ADMIN_BIND
+              value: {{ .Values.core.adminBind | quote }}
+            - name: CI_ADMIN_PORT
+              value: "{{ .Values.core.adminPort }}"
+            - name: CI_ADMIN_LISTENER_ENABLED
+              value: {{ .Values.core.adminListenerEnabled | quote }}
+            - name: CI_PUBLIC_ADMIN_API_ENABLED
+              value: {{ .Values.core.publicAdminApiEnabled | quote }}
             - name: CI_ALLOW_INSECURE_PUBLIC_HTTP
               value: {{ .Values.core.allowInsecurePublicHttp | quote }}
             - name: CI_DATABASE_TYPE

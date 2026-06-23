@@ -36,6 +36,7 @@ import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRouteRegistrar;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRequestExecutor;
+import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminIslandLifecycleRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminRuntimeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.CoreConfigRoutes;
@@ -172,9 +173,12 @@ import kr.lunaf.cloudislands.coreservice.addon.JdbcAddonStateRepository;
 public final class CloudIslandsCoreApplication {
     private static final Logger LOGGER = Logger.getLogger(CloudIslandsCoreApplication.class.getName());
     private final HttpServer server;
+    private final HttpServer adminServer;
     private final CoreHttpRequestExecutor httpExecutor;
+    private final CoreHttpRequestExecutor adminHttpExecutor;
     private final Duration httpShutdownGrace;
     private final CoreHttpRouteRegistrar routeRegistrar;
+    private final CoreHttpRouteRegistrar adminRouteRegistrar;
     private final NodeFailureMonitor nodeFailureMonitor;
     private final RouteTicketExpiryMonitor routeTicketExpiryMonitor;
     private final JobRecoveryMonitor jobRecoveryMonitor;
@@ -190,13 +194,23 @@ public final class CloudIslandsCoreApplication {
     public CloudIslandsCoreApplication(CoreServiceConfig config) throws IOException {
         Clock clock = Clock.systemUTC();
         kr.lunaf.cloudislands.coreservice.security.CoreAuthMode authMode = config.authMode();
+        CoreApiAuthGuard authGuard = new CoreApiAuthGuard(authMode, new ApiTokenGuard(config.coreToken(), config.nodeCredentialBindings()), new MtlsHeaderGuard(authMode.acceptsMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies()));
         CoreHttpRouteRegistrar routeRegistrar = new CoreHttpRouteRegistrar(
             new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis()),
-            new CoreApiAuthGuard(authMode, new ApiTokenGuard(config.coreToken(), config.nodeCredentialBindings()), new MtlsHeaderGuard(authMode.acceptsMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies())),
+            authGuard,
             new ForwardedClientIpResolver(config.mtlsTrustedProxies()),
             new IpAllowlist(config.ipAllowlist()),
-            new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.adminPermissions())
+            new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.publicAdminApiEnabled(), config.adminPermissions())
         );
+        CoreHttpRouteRegistrar adminRouteRegistrar = config.adminListenerActive()
+            ? new CoreHttpRouteRegistrar(
+                new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis()),
+                authGuard,
+                new ForwardedClientIpResolver(config.mtlsTrustedProxies()),
+                new IpAllowlist(config.ipAllowlist()),
+                new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), true, config.adminPermissions())
+            )
+            : null;
         logSecurityPosture(LOGGER, config);
         config.validateStartupSecurity();
         IslandStorage deleteStorage = migrationRollbackStorage(config);
@@ -370,33 +384,54 @@ public final class CloudIslandsCoreApplication {
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         this.httpExecutor = new CoreHttpRequestExecutor(config.httpWorkerThreads(), config.httpQueueCapacity(), config.httpKeepAlive());
+        this.adminServer = adminRouteRegistrar == null ? null : HttpServer.create(new InetSocketAddress(config.adminBind(), config.adminPort()), 0);
+        this.adminHttpExecutor = adminRouteRegistrar == null ? null : new CoreHttpRequestExecutor(config.httpWorkerThreads(), config.httpQueueCapacity(), config.httpKeepAlive());
         this.httpShutdownGrace = config.httpShutdownGrace();
         this.server.setExecutor(httpExecutor);
+        if (adminServer != null) {
+            adminServer.setExecutor(adminHttpExecutor);
+        }
         this.routeRegistrar = routeRegistrar;
+        this.adminRouteRegistrar = adminRouteRegistrar;
         routeRegistrar.attach(server);
-        new HealthRoutes(config, metrics::render).register(routeRegistrar::route);
-        new CoreConfigRoutes(config, nodes).register(routeRegistrar::route);
-        new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(routeRegistrar::route);
-        new JobRoutes(jobs, jobCompletion, audit).register(routeRegistrar::route);
-        new EventRoutes(inMemoryEvents).register(routeRegistrar::route);
-        new AuditRoutes(audit).register(routeRegistrar::route);
-        new AddonRoutes(addonStates, audit, events).register(routeRegistrar::route);
-        new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
-        new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(routeRegistrar::route);
-        new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
-        new IslandBlockLevelRoutes(levelRepository, rankingRepository, levelRecalculation, islandRepository, metadataRepository, permissionRules, audit, events).register(routeRegistrar::route);
-        new IslandUpgradeRoutes(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
-        new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(routeRegistrar::route);
-        new IslandSnapshotRoutes(snapshotRepository, runtimeRepository, snapshotRetentionPolicy, events).register(routeRegistrar::route);
-        new IslandMemberRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, playerProfiles, islandLogs, audit, events).register(routeRegistrar::route);
-        new IslandVisitorRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
-        new IslandSettingsRoutes(islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
-        new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
-        new IslandReviewRoutes(reviewRepository, islandRepository, islandLogs, audit, events).register(routeRegistrar::route);
-        new IslandWarehouseRoutes(warehouseRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(routeRegistrar::route);
-        new IslandCatalogRoutes(islandRepository, metadataRepository, createIsland, islandLogs, audit).register(routeRegistrar::route);
+        if (adminRouteRegistrar != null) {
+            adminRouteRegistrar.attach(adminServer);
+        }
+        CoreRouteRegistry route = (path, handler) -> {
+            routeRegistrar.route(path, handler);
+            if (adminRouteRegistrar != null) {
+                adminRouteRegistrar.route(path, handler);
+            }
+        };
+        CoreRouteRegistry routePrefix = (path, handler) -> {
+            routeRegistrar.routePrefix(path, handler);
+            if (adminRouteRegistrar != null) {
+                adminRouteRegistrar.routePrefix(path, handler);
+            }
+        };
+        new HealthRoutes(config, metrics::render).register(route);
+        new CoreConfigRoutes(config, nodes).register(route);
+        new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(route);
+        new JobRoutes(jobs, jobCompletion, audit).register(route);
+        new EventRoutes(inMemoryEvents).register(route);
+        new AuditRoutes(audit).register(route);
+        new AddonRoutes(addonStates, audit, events).register(route);
+        new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
+        new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(route);
+        new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
+        new IslandBlockLevelRoutes(levelRepository, rankingRepository, levelRecalculation, islandRepository, metadataRepository, permissionRules, audit, events).register(route);
+        new IslandUpgradeRoutes(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
+        new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(route);
+        new IslandSnapshotRoutes(snapshotRepository, runtimeRepository, snapshotRetentionPolicy, events).register(route);
+        new IslandMemberRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, playerProfiles, islandLogs, audit, events).register(route);
+        new IslandVisitorRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(route);
+        new IslandSettingsRoutes(islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
+        new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(route);
+        new IslandReviewRoutes(reviewRepository, islandRepository, islandLogs, audit, events).register(route);
+        new IslandWarehouseRoutes(warehouseRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
+        new IslandCatalogRoutes(islandRepository, metadataRepository, createIsland, islandLogs, audit).register(route);
         this.islandDeleteService = new CoreIslandDeleteService(deleteStorage, islandRepository, playerProfiles, runtimeRepository, jobs, events, snapshotRepository, snapshotRetentionPolicy);
-        new IslandPlayerLifecycleRoutes(islandRepository, metadataRepository, permissionRules, lifecycle, islandDeleteService::requestIslandDelete, islandLogs, audit, events).register(routeRegistrar::route);
+        new IslandPlayerLifecycleRoutes(islandRepository, metadataRepository, permissionRules, lifecycle, islandDeleteService::requestIslandDelete, islandLogs, audit, events).register(route);
         new IslandQueryRoutes(
             islandRepository,
             metadataRepository,
@@ -414,15 +449,15 @@ public final class CloudIslandsCoreApplication {
             playerProfiles,
             audit,
             islandDeleteService::requestIslandDelete
-        ).register(routeRegistrar::routePrefix);
-        new RoutePreparationRoutes(routing).register(routeRegistrar::route);
-        new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(routeRegistrar::route);
-        new AdminRuntimeRoutes(sessions, tickets, redisCacheAdmin, audit, events).register(routeRegistrar::route);
-        new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), migrationAdmin, audit).register(routeRegistrar::route);
-        new PlayerProfileRoutes(playerProfiles, audit).register(routeRegistrar::route);
-        new TemplateRoutes(templateRepository, audit, events).register(routeRegistrar::route);
-        new ProtocolRoutes(nodes).register(routeRegistrar::route);
-        new AdminNodeRoutes(nodes, nodeFailureMonitor, config.heartbeatTimeout(), audit, events).register(routeRegistrar::route, routeRegistrar::routePrefix);
+        ).register(routePrefix);
+        new RoutePreparationRoutes(routing).register(route);
+        new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(route);
+        new AdminRuntimeRoutes(sessions, tickets, redisCacheAdmin, audit, events).register(route);
+        new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), migrationAdmin, audit).register(route);
+        new PlayerProfileRoutes(playerProfiles, audit).register(route);
+        new TemplateRoutes(templateRepository, audit, events).register(route);
+        new ProtocolRoutes(nodes).register(route);
+        new AdminNodeRoutes(nodes, nodeFailureMonitor, config.heartbeatTimeout(), audit, events).register(route, routePrefix);
         new AdminIslandLifecycleRoutes(
             lifecycle,
             islandRepository,
@@ -431,7 +466,7 @@ public final class CloudIslandsCoreApplication {
             audit,
             events,
             islandDeleteService::requestIslandDelete
-        ).register(routeRegistrar::route, routeRegistrar::routePrefix);
+        ).register(route, routePrefix);
     }
 
     private static RollbackTarget migrationRollbackTarget(CoreServiceConfig config, DataSource dataSource) {
@@ -465,6 +500,9 @@ public final class CloudIslandsCoreApplication {
 
     public void start() {
         server.start();
+        if (adminServer != null) {
+            adminServer.start();
+        }
         nodeFailureMonitor.start();
         routeTicketExpiryMonitor.start();
         jobRecoveryMonitor.start();
@@ -478,7 +516,13 @@ public final class CloudIslandsCoreApplication {
         jobRecoveryMonitor.stop();
         routeTicketExpiryMonitor.stop();
         nodeFailureMonitor.stop();
+        if (adminServer != null) {
+            adminServer.stop((int) Math.min(Integer.MAX_VALUE, Math.max(0L, httpShutdownGrace.toSeconds())));
+        }
         server.stop((int) Math.min(Integer.MAX_VALUE, Math.max(0L, httpShutdownGrace.toSeconds())));
+        if (adminHttpExecutor != null) {
+            adminHttpExecutor.shutdownGracefully(httpShutdownGrace);
+        }
         httpExecutor.shutdownGracefully(httpShutdownGrace);
     }
 

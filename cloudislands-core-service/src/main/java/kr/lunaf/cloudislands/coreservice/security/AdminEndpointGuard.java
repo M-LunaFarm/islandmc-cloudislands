@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.coreservice.security.permission.AdminPermissionPoli
 public final class AdminEndpointGuard {
     private final String adminToken;
     private final boolean adminApiEnabled;
+    private final boolean publicAdminApiEnabled;
     private final AdminPermissionPolicy tokenPolicy;
 
     public AdminEndpointGuard(String adminToken) {
@@ -23,12 +24,20 @@ public final class AdminEndpointGuard {
     }
 
     public AdminEndpointGuard(String adminToken, boolean adminApiEnabled, String serverSidePermissions) {
+        this(adminToken, adminApiEnabled, true, serverSidePermissions);
+    }
+
+    public AdminEndpointGuard(String adminToken, boolean adminApiEnabled, boolean publicAdminApiEnabled, String serverSidePermissions) {
         this.adminToken = adminToken == null ? "" : adminToken;
         this.adminApiEnabled = adminApiEnabled;
+        this.publicAdminApiEnabled = publicAdminApiEnabled;
         this.tokenPolicy = policy(serverSidePermissions);
     }
 
     public boolean allowed(String path, HttpExchange exchange) {
+        if (!publicAdminApiEnabled && publicAdminPath(path)) {
+            return false;
+        }
         AdminPermission required = permissionFor(path);
         if (required == null) {
             return !adminApiPath(path);
@@ -60,6 +69,13 @@ public final class AdminEndpointGuard {
             || path.equals("/v1/jobs/complete")
             || path.equals("/v1/jobs/fail")
             || path.equals("/v1/jobs/recover");
+    }
+
+    private boolean publicAdminPath(String path) {
+        return path.startsWith("/v1/admin")
+            || path.equals("/v1/audit")
+            || path.equals("/v1/events")
+            || path.equals("/metrics");
     }
 
     private AdminPermissionPolicy policy(String raw) {

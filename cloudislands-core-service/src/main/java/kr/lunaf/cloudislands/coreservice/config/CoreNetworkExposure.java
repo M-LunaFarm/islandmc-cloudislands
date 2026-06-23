@@ -23,6 +23,12 @@ public final class CoreNetworkExposure {
         if (config.adminApiEnabled() && (config.adminToken() == null || config.adminToken().isBlank())) {
             logger.warning("CloudIslands security: Admin API is enabled but admin token is empty; admin requests will be rejected");
         }
+        if (config.adminListenerActive()) {
+            logger.info("CloudIslands security: Admin listener is bound to " + config.adminBind() + ":" + config.adminPort());
+        }
+        if (!config.publicAdminApiEnabled()) {
+            logger.info("CloudIslands security: Public Core listener rejects admin API paths");
+        }
         if (!config.authMode().acceptsMtls()) {
             logger.warning("CloudIslands security: Core API mTLS verification is not accepted in auth mode " + config.authMode());
         }

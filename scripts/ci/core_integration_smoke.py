@@ -157,6 +157,10 @@ def start_core(core_bin: Path, instance_dir: Path, port: int, base_env: dict):
     log_path = instance_dir / "core.log"
     core_env = base_env.copy()
     core_env["CI_PORT"] = str(port)
+    core_env["CI_ADMIN_BIND"] = "127.0.0.1"
+    core_env["CI_ADMIN_PORT"] = str(port + 1000)
+    core_env["CI_ADMIN_LISTENER_ENABLED"] = "true"
+    core_env["CI_PUBLIC_ADMIN_API_ENABLED"] = "false"
     log = log_path.open("w", encoding="utf-8")
     process = subprocess.Popen(
         [str(core_bin), str(port)],
@@ -221,6 +225,8 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         raise RuntimeError("secondary Core port must differ from primary port")
     primary_url = f"http://127.0.0.1:{port}"
     secondary_url = f"http://127.0.0.1:{secondary_port}"
+    primary_admin_url = f"http://127.0.0.1:{port + 1000}"
+    secondary_admin_url = f"http://127.0.0.1:{secondary_port + 1000}"
     env = os.environ.copy()
     env.update(
         {
@@ -263,7 +269,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         wait_for_ready(primary_url, deadline)
         processes.append(start_core(core_bin, work_dir / "core-2", secondary_port, env))
         wait_for_ready(secondary_url, deadline)
-        for base_url in (primary_url, secondary_url):
+        for base_url in (primary_admin_url, secondary_admin_url):
             config = request(base_url, "POST", "/v1/admin/config", {}, admin=True, expect=(200,))
             assert_field(config, "effectiveRepositoryMode", "JDBC")
             assert_field(config, "effectiveJobQueueMode", "REDIS")
@@ -375,7 +381,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         )
         assert_field(consumed_ticket, "state", "CONSUMED")
 
-        where = request(secondary_url, "POST", "/v1/admin/islands/where", {"islandId": island_id}, admin=True, expect=(200,))
+        where = request(secondary_admin_url, "POST", "/v1/admin/islands/where", {"islandId": island_id}, admin=True, expect=(200,))
         assert_field(where, "state", "ACTIVE")
         assert_field(where, "activeNode", active_node)
         if int(where.get("fencingToken", 0)) <= 0:
@@ -384,7 +390,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         heartbeat(secondary_url, active_node, node_servers[active_node], state="DOWN", active_islands=1)
         heartbeat(primary_url, standby_node, node_servers[standby_node])
         sweep = request(
-            secondary_url,
+            secondary_admin_url,
             "POST",
             "/v1/admin/nodes/sweep",
             {"nodeId": active_node},
@@ -412,7 +418,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
                 "placementSource": "integration-smoke-recovery",
             },
         )
-        recovered = request(secondary_url, "POST", "/v1/admin/islands/where", {"islandId": island_id}, admin=True, expect=(200,))
+        recovered = request(secondary_admin_url, "POST", "/v1/admin/islands/where", {"islandId": island_id}, admin=True, expect=(200,))
         assert_field(recovered, "state", "ACTIVE")
         assert_field(recovered, "activeNode", standby_node)
 
@@ -423,15 +429,15 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             {"playerUuid": player_uuid},
             expect=(202,),
         )
-        reconnect_ticket = latest_ticket(primary_url, player_uuid)
+        reconnect_ticket = latest_ticket(primary_admin_url, player_uuid)
         assert_field(reconnect_ticket, "state", "READY")
         assert_field(reconnect_ticket, "targetNode", standby_node)
         assert_field(reconnect, "state", "READY")
         assert_field(reconnect, "targetNode", standby_node)
 
-        events = request(secondary_url, "POST", "/v1/events", {"limit": 100}, admin=True, expect=(200,))
+        events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 100}, admin=True, expect=(200,))
         assert_contains_event(events, "ROUTE_TICKET_CREATED")
-        audit = request(secondary_url, "POST", "/v1/audit", {"limit": 100}, admin=True, expect=(200,))
+        audit = request(secondary_admin_url, "POST", "/v1/audit", {"limit": 100}, admin=True, expect=(200,))
         assert_audit_entries(audit)
 
         print(
