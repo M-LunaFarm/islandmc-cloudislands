@@ -37,8 +37,8 @@ public final class IslandSnapshotRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/snapshots", this::list);
-        registry.route("/v1/islands/snapshots/record", this::record);
+        registry.routePost("/v1/islands/snapshots", this::list);
+        registry.routePost("/v1/islands/snapshots/record", this::record);
     }
 
     private void list(HttpExchange exchange) throws IOException {
