@@ -75,8 +75,8 @@ public final class IslandUpgradeRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/upgrades", this::upgrades);
-        registry.route("/v1/islands/upgrades/purchase", this::purchase);
+        registry.routePost("/v1/islands/upgrades", this::upgrades);
+        registry.routePost("/v1/islands/upgrades/purchase", this::purchase);
     }
 
     private void upgrades(HttpExchange exchange) throws IOException {
