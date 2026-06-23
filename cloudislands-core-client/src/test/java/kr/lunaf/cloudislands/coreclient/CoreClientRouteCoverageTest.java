@@ -19,8 +19,8 @@ import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import org.junit.jupiter.api.Test;
 
 class CoreClientRouteCoverageTest {
-    private static final Path CLIENT_SOURCE = Path.of("src/main/java/kr/lunaf/cloudislands/coreclient");
-    private static final Path ROUTE_SOURCE = Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes");
+    private static final Path CLIENT_SOURCE = sourcePath("cloudislands-core-client", "src/main/java/kr/lunaf/cloudislands/coreclient");
+    private static final Path ROUTE_SOURCE = sourcePath("cloudislands-core-service", "src/main/java/kr/lunaf/cloudislands/coreservice/http/routes");
     private static final Pattern STRING_CONSTANT = Pattern.compile("(?:public|private)?\\s*static\\s+final\\s+String\\s+(\\w+)\\s*=\\s*(.+);\\s*");
     private static final List<String> CORE_HELPERS = List.of("postBody", "postResultBody", "getBody", "deleteResultBody");
     private static final List<String> ROUTE_HELPERS = List.of("routePost", "routeGet", "routeMethods");
@@ -108,6 +108,23 @@ class CoreClientRouteCoverageTest {
             }
         }
         return constants;
+    }
+
+    private static Path sourcePath(String moduleName, String relativePath) {
+        Path workingDirectory = Path.of("").toAbsolutePath().normalize();
+        Path moduleDirectory = workingDirectory.resolve(relativePath);
+        if (Files.isDirectory(moduleDirectory)) {
+            return moduleDirectory;
+        }
+        Path rootRelative = workingDirectory.resolve(moduleName).resolve(relativePath);
+        if (Files.isDirectory(rootRelative)) {
+            return rootRelative;
+        }
+        Path siblingModule = workingDirectory.getParent() == null ? rootRelative : workingDirectory.getParent().resolve(moduleName).resolve(relativePath);
+        if (Files.isDirectory(siblingModule)) {
+            return siblingModule;
+        }
+        return rootRelative;
     }
 
     private static Map<String, String> externalConstants() {

@@ -1012,6 +1012,18 @@ tasks.register("verifyReleaseSecurityGate") {
 
 val apiCompatibilityReportFile = layout.buildDirectory.file("reports/api-compatibility/api-compatibility-report.json")
 
+tasks.register<Test>("verifyApiRouteCoverage") {
+    group = "verification"
+    description = "Verifies typed Core API client endpoints are registered by Core service routes."
+    val coreClientSourceSets = project(":cloudislands-core-client").extensions.getByType<SourceSetContainer>()
+    val coreClientTest = coreClientSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-core-client").tasks.named("testClasses"))
+    testClassesDirs = coreClientTest.output.classesDirs
+    classpath = coreClientTest.runtimeClasspath
+    useJUnitPlatform()
+    include("kr/lunaf/cloudislands/coreclient/CoreClientRouteCoverageTest.class")
+}
+
 tasks.register<JavaExec>("apiCompatibilityCheck") {
     group = "verification"
     description = "Verifies the CloudIslands API compatibility contract before release."
@@ -1493,6 +1505,7 @@ tasks.register("verifyReleaseGateCoverage") {
 }
 
 tasks.named("check") {
+    dependsOn(tasks.named("verifyApiRouteCoverage"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))
     dependsOn(tasks.named("verifyReleaseSecurityGate"))
 }
