@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.integration.spi.CloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationSupportState;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 
 public final class IntegrationLifecycleHooks {
@@ -51,7 +52,7 @@ public final class IntegrationLifecycleHooks {
         return new IntegrationLifecycleHooks(
             nodeId,
             capability -> registry.snapshot().stream()
-                .filter(PaperIntegrationRegistry.IntegrationStatus::enabled)
+                .filter(status -> status.adapterState() == IntegrationSupportState.ACTIVE)
                 .filter(status -> status.capabilities().contains(capability))
                 .map(PaperIntegrationRegistry.IntegrationStatus::pluginName)
                 .toList(),

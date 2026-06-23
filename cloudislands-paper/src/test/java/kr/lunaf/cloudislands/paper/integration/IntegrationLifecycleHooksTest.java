@@ -130,6 +130,14 @@ class IntegrationLifecycleHooksTest {
         assertEquals("ci_shard_001:1,2", SimpleJson.text(manifest.get("runtimeScope")));
     }
 
+    @Test
+    void registryBackedHooksOnlyInvokeActiveAdapters() throws IOException {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationLifecycleHooks.java"));
+
+        assertTrue(source.contains("status.adapterState() == IntegrationSupportState.ACTIVE"));
+        assertFalse(source.contains("filter(PaperIntegrationRegistry.IntegrationStatus::enabled)"));
+    }
+
     private IslandBundleManifest manifest(UUID islandId, int size) {
         Instant now = Instant.now();
         return new IslandBundleManifest(
