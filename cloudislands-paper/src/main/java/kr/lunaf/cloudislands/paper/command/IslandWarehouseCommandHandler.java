@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase.WarehouseItemView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandWarehouseMenu;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -110,9 +111,9 @@ final class IslandWarehouseCommandHandler {
             CompletableFuture<IslandWarehouseUseCase.WarehouseOperationResult> request = deposit
                 ? warehouseUseCase.deposit(islandId, player.getUniqueId(), material.name(), amount, runtime::mutateIdempotent)
                 : warehouseUseCase.withdraw(islandId, player.getUniqueId(), material.name(), amount, runtime::mutateIdempotent);
-            request.thenAccept(result -> plugin.getServer().getScheduler().runTask(plugin, () -> handleWarehouseResult(player, material, amount, deposit, result)))
+            request.thenAccept(result -> PaperSchedulers.run(plugin, () -> handleWarehouseResult(player, material, amount, deposit, result)))
                 .exceptionally(error -> {
-                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    PaperSchedulers.run(plugin, () -> {
                         if (deposit) {
                             giveMaterial(player, material, amount);
                         }

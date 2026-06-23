@@ -465,6 +465,12 @@ class GuiActionParserTest {
             case "island.permissions.page" -> Map.of("page", "0", "rolePage", "0");
             case "island.permissions.set" -> Map.of("role", "MEMBER", "permission", "BUILD");
             case "island.ranking.list" -> Map.of("kind", "LEVEL");
+            case "island.review.delete" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000");
+            case "island.review.set" -> Map.of(
+                "islandId", "00000000-0000-0000-0000-000000000000",
+                "rating", "5",
+                "comment", "good"
+            );
             case "island.role.weight.adjust" -> Map.of("role", "MEMBER", "weight", "1");
             case "island.snapshot.create" -> Map.of("reason", "manual");
             case "island.snapshot.restore.confirm" -> Map.of(

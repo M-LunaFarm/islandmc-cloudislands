@@ -300,13 +300,30 @@ Requires Java 21.
 
 ## Supported runtime matrix
 
-| Platform | Minecraft baseline | Java | Build check |
-|---|---:|---:|---|
-| Paper | `1.21.11` | `21` | `.github/workflows/build.yml` matrix `paper-1.21.11` |
-| Velocity | `3.5.0-SNAPSHOT` | `21` | `.github/workflows/build.yml` matrix `paper-1.21.11` |
+CloudIslands is not intended to stay a single-patch Paper project.
+The support direction starts with the Paper 1.21 family and is expected to add
+new stable families through explicit adapter and matrix entries.
 
-The Paper `plugin.yml` `api-version` and compile baseline both use `1.21.11`.
-The Velocity plugin version is generated from the Gradle project version.
+Current repository state:
+
+| Target | Compile status | Boot status | Integration status | Notes |
+|---|---|---|---|---|
+| Paper `1.21.11` | compile baseline | boot smoke task exists | Core integration smoke is separate | current `paper-api` and `plugin.yml` baseline |
+| Paper `1.21.x` family | not yet matrix-verified | not yet family-verified | not yet version-parity verified | needs adapter registry and per-version tasks |
+| Paper `26.1` | not defined | not verified | not verified | required by the roadmap, no matrix entry yet |
+| Paper `26.2` | not defined | not verified | not verified | required by the roadmap, no matrix entry yet |
+| Velocity `3.5.0-SNAPSHOT` | compile baseline | boot smoke task exists | routing integration is partial | plugin version comes from Gradle |
+
+Status terms:
+
+- `compile baseline`: the project compiles against this API.
+- `compile-only`: source compatibility is checked, but server boot is not proven.
+- `boot-verified`: a real Paper or Velocity process starts and loads the plugin.
+- `integration-verified`: real external services and multi-component behavior are exercised.
+
+The build currently exposes `paperBootSmoke`, `velocityBootSmoke`,
+`ciBootSmoke`, `coreIntegrationSmoke`, `ciIntegrationSmoke`, and `clusterSmokeVerify`.
+It does not yet expose the multi-version matrix tasks required for release certification.
 
 ## Release
 
@@ -359,15 +376,19 @@ That matters.
 
 ### Release blockers before production GA
 
-- Redis lock unlock must use atomic compare-and-delete, preferably Lua
-- Redis outage must not silently fall back to per-process local locks in multi-Core mode
-- Core API auth must not trust client-provided permission headers
-- mTLS-by-header only works behind a trusted proxy and blocked direct Core access
-- production mode should reject non-durable in-memory fallback
-- route failure cleanup should be one idempotent path
-- coordinate fallback should fail closed when runtime placement data is missing
-- Gradle Wrapper, CI, release binaries, checksums, SBOM
-- real Redis, SQL, MinIO, and multi-Core integration tests
+| Blocker | Status | Current read |
+|---|---|---|
+| Redis lock unlock must use atomic compare-and-delete | MITIGATED | activation and player creation locks use Lua compare-and-delete |
+| Redis outage must not silently fall back to per-process local locks in multi-Core mode | MITIGATED | local fallback is disabled by default, but multi-Core failure drills are still needed |
+| Core API auth must not trust client-provided permission headers | MITIGATED | admin permissions are configured server-side |
+| mTLS-by-header requires trusted proxy boundaries | MITIGATED | `MtlsHeaderGuard` checks a trusted proxy allowlist |
+| production mode must reject non-durable in-memory fallback | MITIGATED | startup validation blocks non-durable fallback by default in production |
+| route failure cleanup should be one idempotent path | OPEN | needs stronger cross-Core evidence |
+| coordinate fallback should fail closed when placement data is missing | OPEN | needs targeted runtime tests |
+| Gradle Wrapper, CI, release binaries, checksums | MITIGATED | wrapper, GitHub Actions, dist bundles, and SHA-256 checksums exist |
+| SBOM, provenance, vulnerability gate | OPEN | not wired as release gates |
+| real PostgreSQL, Redis, MinIO integration | MITIGATED | `ciIntegrationSmoke` runs with these services |
+| multi-Core, multi-version boot, API compatibility gate | OPEN | matrix and certification tasks are not present yet |
 
 ### If running now
 

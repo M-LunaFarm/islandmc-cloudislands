@@ -1918,6 +1918,7 @@ class PaperPlatformBoundaryTest {
             "NETHER_STAR",
             "OAK_DOOR",
             "OAK_SAPLING",
+            "ORANGE_DYE",
             "PAPER",
             "PLAYER_HEAD",
             "RED_BED",
@@ -1928,6 +1929,7 @@ class PaperPlatformBoundaryTest {
             "SPAWNER",
             "TNT",
             "WHEAT",
+            "YELLOW_DYE",
             "ZOMBIE_HEAD",
             "WRITABLE_BOOK"
         );
