@@ -33,6 +33,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
+import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JobCompletionService;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
@@ -178,6 +179,43 @@ class JobRoutesTest {
     }
 
     @Test
+    void completeRouteReplaysCommittedCompletionAfterQueueAckFailure() throws Exception {
+        String nodeId = "island-node-1";
+        UUID islandId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        InMemoryIslandJobPublisher backingJobs = new InMemoryIslandJobPublisher();
+        backingJobs.publish(new IslandJob(jobId, IslandJobType.SAVE_ISLAND, islandId, nodeId, 0, Map.of("fencingToken", "7"), Instant.EPOCH));
+        JobClaimLease lease = backingJobs.claim(nodeId, List.of(IslandJobType.SAVE_ISLAND), 1).getFirst().claimLease();
+        FlakyAckJobQueue jobs = new FlakyAckJobQueue(backingJobs);
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        runtimes.markActive(islandId, nodeId, "ci_shard_001", 0, 0, 7L);
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemorySnapshotRepository snapshots = new InMemorySnapshotRepository();
+        JobCompletionService completion = new JobCompletionService(
+            runtimes,
+            events,
+            snapshots,
+            new InMemoryRouteTicketStore(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC))
+        );
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new JobRoutes(jobs, completion, null).register(handlers::put);
+        String body = "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"claimLease\":" + claimLeaseJson(lease) + ",\"payload\":{\"snapshotNo\":\"12\",\"checksum\":\"sha256:test\",\"sizeBytes\":\"64\"}}";
+
+        TestExchange first = exchange(body);
+        handlers.get("/v1/jobs/complete").handle(first);
+        TestExchange replay = exchange(body);
+        handlers.get("/v1/jobs/complete").handle(replay);
+
+        assertEquals(409, first.status());
+        assertTrue(first.body().contains("\"code\":\"JOB_CLAIM_MISMATCH\""));
+        assertEquals(202, replay.status());
+        assertEquals(1, snapshots.list(islandId, 10).size());
+        assertEquals(1L, events.countByType("ISLAND_SNAPSHOT_CREATED"));
+        assertEquals(0L, backingJobs.countsByState().get("CLAIMED"));
+        assertEquals(1L, backingJobs.countsByState().get("COMPLETED"));
+    }
+
+    @Test
     void claimRouteRejectsInvalidTypedRequestFields() throws Exception {
         Map<String, HttpHandler> handlers = new HashMap<>();
         new JobRoutes(new InMemoryIslandJobPublisher(), null, null).register(handlers::put);
@@ -206,6 +244,69 @@ class JobRoutesTest {
             + "\"leaseExpiresAt\":\"" + lease.leaseExpiresAt() + "\","
             + "\"attempt\":" + lease.attempt()
             + "}";
+    }
+
+    private static final class FlakyAckJobQueue implements IslandJobQueue {
+        private final InMemoryIslandJobPublisher delegate;
+        private boolean failNextComplete = true;
+
+        private FlakyAckJobQueue(InMemoryIslandJobPublisher delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void publish(IslandJob job) {
+            delegate.publish(job);
+        }
+
+        @Override
+        public List<IslandJob> claim(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
+            return delegate.claim(nodeId, supportedTypes, maxJobs);
+        }
+
+        @Override
+        public Optional<IslandJob> findClaimed(UUID jobId) {
+            return delegate.findClaimed(jobId);
+        }
+
+        @Override
+        public Optional<IslandJob> findClaimed(UUID jobId, JobClaimLease claimLease) {
+            return delegate.findClaimed(jobId, claimLease);
+        }
+
+        @Override
+        public boolean complete(String nodeId, UUID jobId) {
+            return delegate.complete(nodeId, jobId);
+        }
+
+        @Override
+        public boolean complete(String nodeId, UUID jobId, JobClaimLease claimLease) {
+            if (failNextComplete) {
+                failNextComplete = false;
+                return false;
+            }
+            return delegate.complete(nodeId, jobId, claimLease);
+        }
+
+        @Override
+        public boolean fail(String nodeId, UUID jobId, String errorMessage) {
+            return delegate.fail(nodeId, jobId, errorMessage);
+        }
+
+        @Override
+        public boolean fail(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+            return delegate.fail(nodeId, jobId, claimLease, errorMessage);
+        }
+
+        @Override
+        public boolean retry(UUID jobId) {
+            return delegate.retry(jobId);
+        }
+
+        @Override
+        public boolean cancel(UUID jobId) {
+            return delegate.cancel(jobId);
+        }
     }
 
     private static final class FailingSnapshotRepository implements IslandSnapshotRepository {
