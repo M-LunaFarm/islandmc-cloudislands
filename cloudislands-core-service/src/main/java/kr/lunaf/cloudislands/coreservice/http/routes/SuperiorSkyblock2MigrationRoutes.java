@@ -25,13 +25,13 @@ public final class SuperiorSkyblock2MigrationRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/migrations/superiorskyblock2/scan", this::scan);
-        registry.route("/v1/admin/migrations/superiorskyblock2/status", this::status);
-        registry.route("/v1/admin/migrations/superiorskyblock2/dryrun", this::dryRun);
-        registry.route("/v1/admin/migrations/superiorskyblock2/extract", this::extract);
-        registry.route("/v1/admin/migrations/superiorskyblock2/import", this::importPlan);
-        registry.route("/v1/admin/migrations/superiorskyblock2/verify", this::verify);
-        registry.route("/v1/admin/migrations/superiorskyblock2/rollback", this::rollback);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/scan", this::scan);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/status", this::status);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/dryrun", this::dryRun);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/extract", this::extract);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/import", this::importPlan);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/verify", this::verify);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/rollback", this::rollback);
     }
 
     private void scan(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
