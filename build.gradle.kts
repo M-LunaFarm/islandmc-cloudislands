@@ -809,13 +809,44 @@ tasks.register("verifyMinecraftVersionMatrix") {
     group = "verification"
     description = "Validates the typed Minecraft version matrix and writes the external runtime matrix report."
     inputs.file(minecraftVersionMatrixFile)
+    inputs.file(layout.projectDirectory.file(".github/workflows/build.yml"))
     outputs.file(rootProject.layout.projectDirectory.dir("../codex-output").file("runtime-matrix.md"))
     doLast {
         minecraftVersionMatrix.validate(rootProject.projectDir, minecraftBaselineVersion)
+        verifyMinecraftCiCoverage(layout.projectDirectory.file(".github/workflows/build.yml").asFile.readText())
         val output = rootProject.layout.projectDirectory.dir("../codex-output").file("runtime-matrix.md").asFile
         output.parentFile.mkdirs()
         output.writeText(minecraftVersionMatrix.detailedReport())
         logger.lifecycle("Latest stable Minecraft matrix entry: ${minecraftVersionMatrix.latestStable.id}")
+    }
+}
+
+fun verifyMinecraftCiCoverage(workflow: String) {
+    val missingCompileTasks = minecraftVersionMatrix.compileEntries
+        .map { it.compileTaskName }
+        .filterNot(workflow::contains)
+    val missingBootTasks = minecraftVersionMatrix.stableBootEntries
+        .map { it.bootSmokeTaskName }
+        .filterNot(workflow::contains)
+    val missingAggregateTasks = listOf(
+        "verifyMinecraftVersionMatrix",
+        "compileAllMinecraftVersions",
+        "verifyAdapterPackaging",
+        "bootSmokeAllStableMinecraftVersions"
+    ).filterNot(workflow::contains)
+    val failures = buildList {
+        if (missingCompileTasks.isNotEmpty()) {
+            add("Build workflow does not compile matrix tasks: ${missingCompileTasks.joinToString(", ")}")
+        }
+        if (missingBootTasks.isNotEmpty()) {
+            add("Build workflow does not boot-smoke stable matrix tasks: ${missingBootTasks.joinToString(", ")}")
+        }
+        if (missingAggregateTasks.isNotEmpty()) {
+            add("Build workflow is missing aggregate release gates: ${missingAggregateTasks.joinToString(", ")}")
+        }
+    }
+    if (failures.isNotEmpty()) {
+        throw GradleException(failures.joinToString("\n"))
     }
 }
 

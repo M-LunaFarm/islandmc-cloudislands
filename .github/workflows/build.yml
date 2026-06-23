@@ -16,6 +16,21 @@ jobs:
           - platform: paper-1.21.11
             java: "21"
             minecraft-baseline: "1.21.11"
+            compile-task: paper121Compile
+            boot-task: paper121BootSmoke
+            boot-smoke: "true"
+          - platform: paper-26.1
+            java: "21"
+            minecraft-baseline: "26.1"
+            compile-task: paper261Compile
+            boot-task: ""
+            boot-smoke: "false"
+          - platform: paper-26.2
+            java: "21"
+            minecraft-baseline: "26.2"
+            compile-task: paper262Compile
+            boot-task: ""
+            boot-smoke: "false"
     env:
       CLOUDISLANDS_CI_PLATFORM: ${{ matrix.platform }}
       CLOUDISLANDS_MINECRAFT_BASELINE: ${{ matrix.minecraft-baseline }}
@@ -30,10 +45,17 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Build and test
-        run: ./gradlew build distBundle distAddonBundle distChecksums --no-daemon
+        run: ./gradlew clean build verifyMinecraftVersionMatrix compileAllMinecraftVersions verifyAdapterPackaging distBundle distAddonBundle distChecksums --no-daemon
+
+      - name: Matrix compile
+        run: ./gradlew ${{ matrix.compile-task }} --no-daemon
+
+      - name: Stable boot smoke aggregate
+        run: ./gradlew bootSmokeAllStableMinecraftVersions --no-daemon
 
       - name: Boot smoke
-        run: ./gradlew ciBootSmoke --no-daemon
+        if: matrix.boot-smoke == 'true'
+        run: ./gradlew ${{ matrix.boot-task }} velocityBootSmoke --no-daemon
 
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4
