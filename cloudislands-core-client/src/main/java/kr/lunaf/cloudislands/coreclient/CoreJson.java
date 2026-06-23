@@ -47,10 +47,9 @@ final class CoreJson {
 
     static List<Map<?, ?>> entries(String body, String... keys) {
         Object parsed = value(body);
-        if (parsed instanceof List<?>) {
-            return SimpleJson.list(parsed).stream()
-                .map(SimpleJson::object)
-                .filter(map -> !map.isEmpty())
+        if (parsed instanceof List<?> list) {
+            return list.stream()
+                .<Map<?, ?>>map(item -> objectEntry(item, "response item"))
                 .toList();
         }
         Map<?, ?> root = SimpleJson.object(parsed);
@@ -64,10 +63,9 @@ final class CoreJson {
             return List.of();
         }
         for (Object value : root.values()) {
-            if (value instanceof List<?>) {
-                return SimpleJson.list(value).stream()
-                    .map(SimpleJson::object)
-                    .filter(map -> !map.isEmpty())
+            if (value instanceof List<?> list) {
+                return list.stream()
+                    .<Map<?, ?>>map(item -> objectEntry(item, "response item"))
                     .toList();
             }
         }
@@ -75,14 +73,34 @@ final class CoreJson {
     }
 
     static List<Map<?, ?>> objects(Map<?, ?> root, String key) {
-        return SimpleJson.list(root == null ? null : root.get(key)).stream()
-            .map(SimpleJson::object)
-            .filter(map -> !map.isEmpty())
+        if (root == null || !root.containsKey(key) || root.get(key) == null) {
+            return List.of();
+        }
+        Object value = root.get(key);
+        if (!(value instanceof List<?> list)) {
+            throw invalidShape(key, "array");
+        }
+        return list.stream()
+            .<Map<?, ?>>map(item -> objectEntry(item, key + " item"))
             .toList();
     }
 
     static Map<?, ?> objectValue(Map<?, ?> root, String key) {
-        return SimpleJson.object(root == null ? null : root.get(key));
+        if (root == null || !root.containsKey(key) || root.get(key) == null) {
+            return Map.of();
+        }
+        Object value = root.get(key);
+        if (value instanceof Map<?, ?> object) {
+            return object;
+        }
+        throw invalidShape(key, "object");
+    }
+
+    private static Map<?, ?> objectEntry(Object value, String path) {
+        if (value instanceof Map<?, ?> object) {
+            return object;
+        }
+        throw invalidShape(path, "object");
     }
 
     static Map<String, String> stringMap(Map<?, ?> root) {
@@ -266,5 +284,9 @@ final class CoreJson {
 
     private static CoreApiException invalidDecimal(Object value) {
         return new CoreApiException("INVALID_CORE_JSON", "Core API numeric value is not decimal: " + SimpleJson.text(value));
+    }
+
+    private static CoreApiException invalidShape(String path, String expected) {
+        return new CoreApiException("INVALID_CORE_JSON", "Core API field " + path + " is not a JSON " + expected);
     }
 }

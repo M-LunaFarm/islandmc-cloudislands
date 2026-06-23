@@ -495,6 +495,9 @@ class CoreTypedClientsTest {
         assertTrue(CoreJson.entries("{\"metadata\":[{\"nodeId\":\"wrong\"}],\"nodes\":[{\"nodeId\":\"paper-b\"}]}", "members").isEmpty());
         assertEquals("paper-c", CoreJson.text(CoreJson.entries("[{\"nodeId\":\"paper-c\"}]", "nodes").get(0), "nodeId"));
         assertEquals("INVALID_CORE_JSON", assertThrows(CoreApiException.class, () -> CoreJson.object("[]")).code());
+        assertEquals("INVALID_CORE_JSON", assertThrows(CoreApiException.class, () -> CoreJson.entries("[\"bad\"]")).code());
+        assertEquals("INVALID_CORE_JSON", assertThrows(CoreApiException.class, () -> CoreJson.entries("{\"nodes\":{}}", "nodes")).code());
+        assertEquals("INVALID_CORE_JSON", assertThrows(CoreApiException.class, () -> CoreJson.objectValue(CoreJson.object("{\"payload\":[]}"), "payload")).code());
         assertFalse(CoreJson.accepted(rejected));
         assertEquals("FAILED", CoreJson.code(rejected, "IGNORED"));
         assertFalse(CoreJson.accepted(failed));
