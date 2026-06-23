@@ -54,23 +54,23 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/islands/activate", this::activate);
-        registry.route("/v1/admin/islands/deactivate", this::deactivate);
-        registry.route("/v1/admin/islands/migrate", this::migrate);
-        registry.route("/v1/admin/islands/save", this::save);
-        registry.route("/v1/admin/islands/snapshot", this::snapshot);
-        registry.route("/v1/admin/islands/restore", this::restore);
-        registry.route("/v1/admin/islands/rollback", this::rollback);
-        registry.route("/v1/admin/islands/quarantine", this::quarantine);
-        registry.route("/v1/admin/islands/info", this::info);
-        registry.route("/v1/admin/islands/where", this::where);
-        registry.route("/v1/admin/islands/delete", this::delete);
-        registry.route("/v1/admin/islands/repair", this::repair);
+        registry.routePost("/v1/admin/islands/activate", this::activate);
+        registry.routePost("/v1/admin/islands/deactivate", this::deactivate);
+        registry.routePost("/v1/admin/islands/migrate", this::migrate);
+        registry.routePost("/v1/admin/islands/save", this::save);
+        registry.routePost("/v1/admin/islands/snapshot", this::snapshot);
+        registry.routePost("/v1/admin/islands/restore", this::restore);
+        registry.routePost("/v1/admin/islands/rollback", this::rollback);
+        registry.routePost("/v1/admin/islands/quarantine", this::quarantine);
+        registry.routePost("/v1/admin/islands/info", this::info);
+        registry.routePost("/v1/admin/islands/where", this::where);
+        registry.routePost("/v1/admin/islands/delete", this::delete);
+        registry.routePost("/v1/admin/islands/repair", this::repair);
     }
 
     public void register(CoreRouteRegistry registry, CoreRouteRegistry prefixRegistry) {
         register(registry);
-        prefixRegistry.route(PREFIX, this::prefixRoute);
+        prefixRegistry.routePost(PREFIX, this::prefixRoute);
     }
 
     private void prefixRoute(HttpExchange exchange) throws IOException {
