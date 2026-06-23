@@ -244,7 +244,11 @@ public final class CoreHttpRouteRegistrar {
 
     private static boolean jsonContentType(HttpExchange exchange) {
         String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-        return contentType != null && contentType.toLowerCase(java.util.Locale.ROOT).startsWith("application/json");
+        if (contentType == null) {
+            return false;
+        }
+        String mediaType = contentType.split(";", 2)[0].trim();
+        return "application/json".equalsIgnoreCase(mediaType);
     }
 
     private boolean coreApiAuthenticated(HttpExchange exchange) {

@@ -78,6 +78,39 @@ class CoreHttpRouteRegistrarTest {
     }
 
     @Test
+    void postRequestsRejectJsonPrefixContentTypes() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            server.registrar().route("/v1/jobs/claim", exchange -> CoreHttpResponses.write(exchange, 200, "{\"ok\":true}"));
+
+            HttpResponse<String> response = server.request(
+                server.authorized(HttpRequest.newBuilder(server.uri("/v1/jobs/claim")))
+                    .POST(HttpRequest.BodyPublishers.ofString("{}"))
+                    .header("Content-Type", "application/jsonevil")
+                    .build()
+            );
+
+            assertEquals(415, response.statusCode());
+            assertTrue(response.body().contains("UNSUPPORTED_MEDIA_TYPE"));
+        }
+    }
+
+    @Test
+    void postRequestsAllowJsonContentTypeParameters() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            server.registrar().route("/v1/jobs/claim", exchange -> CoreHttpResponses.write(exchange, 200, "{\"ok\":true}"));
+
+            HttpResponse<String> response = server.request(
+                server.authorized(HttpRequest.newBuilder(server.uri("/v1/jobs/claim")))
+                    .POST(HttpRequest.BodyPublishers.ofString("{}"))
+                    .header("Content-Type", "application/json; charset=utf-8")
+                    .build()
+            );
+
+            assertEquals(200, response.statusCode());
+        }
+    }
+
+    @Test
     void readBodyRejectsOversizedPayloads() throws Exception {
         try (ServerFixture server = ServerFixture.start()) {
             server.registrar().route("/v1/body", exchange -> {
