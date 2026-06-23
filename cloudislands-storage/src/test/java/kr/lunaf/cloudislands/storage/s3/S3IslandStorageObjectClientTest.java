@@ -22,6 +22,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
+import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 import kr.lunaf.cloudislands.storage.object.ObjectStoragePutOptions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -123,6 +124,45 @@ class S3IslandStorageObjectClientTest {
         assertEquals(sha256(payload), stored.checksum());
         assertArrayEquals(payload, storage.openLatestBundle(islandId).readAllBytes());
         assertEquals(stored.checksum(), storage.readManifest(islandId).checksum());
+        assertEquals("*", fake.latestIfNoneMatch);
+    }
+
+    @Test
+    void promoteBundleStreamsSourceObjectAndRewritesManifestForNewSnapshot() throws Exception {
+        FakeS3 fake = new FakeS3();
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", fake::handle);
+        server.start();
+        S3IslandStorage storage = new S3IslandStorage(
+            URI.create("http://127.0.0.1:" + server.getAddress().getPort()),
+            "bucket",
+            "us-east-1",
+            "",
+            "",
+            "",
+            Duration.ofSeconds(5),
+            2,
+            4L,
+            4L
+        );
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000603");
+        String sourcePrefix = "islands/" + islandId + "/backups/delete-000001/";
+        String sourceBundleKey = sourcePrefix + "bundle.tar.zst";
+        byte[] sourceBundle = "promoted-bundle-stream".getBytes(StandardCharsets.UTF_8);
+        IslandBundleManifest sourceManifest = manifest(islandId).withStoredBundle("old-checksum", "SHA-256", "zstd", sourceBundleKey, sourceBundle.length);
+        fake.objects.put(sourceBundleKey, sourceBundle);
+        fake.objects.put(sourcePrefix + "manifest.json", IslandManifestJson.write(sourceManifest).getBytes(StandardCharsets.UTF_8));
+
+        storage.promoteBundle(islandId, 2L, sourceBundleKey);
+
+        String promotedBundleKey = "islands/" + islandId + "/snapshots/000002/bundle.tar.zst";
+        assertArrayEquals(sourceBundle, fake.objects.get(promotedBundleKey));
+        IslandBundleManifest promoted = storage.readManifest(islandId);
+        assertEquals(promotedBundleKey, promoted.storagePath());
+        assertEquals(sha256(sourceBundle), promoted.checksum());
+        assertEquals(sourceBundle.length, promoted.sizeBytes());
+        assertEquals(sourceBundle.length, storage.objectMetrics().uploadedBytes());
+        assertEquals(1L, storage.objectMetrics().multipartUploads());
         assertEquals("*", fake.latestIfNoneMatch);
     }
 

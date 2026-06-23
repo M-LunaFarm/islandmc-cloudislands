@@ -185,18 +185,52 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
         String snapshot = String.format("%06d", snapshotNo);
         String bundleKey = storedBundleKey(storagePath);
         String prefix = bundleKey.substring(0, bundleKey.lastIndexOf('/') + 1);
-        byte[] bundle = requestBytes("GET", bundleKey, null);
-        byte[] manifest = requestBytes("GET", prefix + "manifest.json", null);
-        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/bundle.tar.zst"), bundle);
-        requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/manifest.json"), manifest);
+        IslandBundleManifest sourceManifest = IslandManifestJson.read(request("GET", prefix + "manifest.json", null));
+        String compression = BundleCompressionPolicy.normalize(sourceManifest.compression());
+        String bundleFileName = BundleCompressionPolicy.bundleFileName(compression);
+        String snapshotPrefix = "snapshots/" + snapshot;
+        String snapshotBundleKey = key(islandId, snapshotPrefix + "/" + bundleFileName);
+        String snapshotManifestKey = key(islandId, snapshotPrefix + "/manifest.json");
+        String snapshotChecksumsKey = key(islandId, snapshotPrefix + "/checksums.sha256");
+        Optional<String> expectedLatestEtag = objectEtag(key(islandId, "latest"));
+        ObjectStoragePutOptions options = new ObjectStoragePutOptions(true, requestTimeout, maxAttempts, multipartThresholdBytes, multipartPartBytes);
+        ObjectStoragePutResult uploaded;
+        boolean bundleWritten = false;
+        boolean manifestWritten = false;
+        boolean checksumsWritten = false;
+        boolean compatibilityManifestWritten = false;
         try {
-            byte[] checksums = requestBytes("GET", prefix + "checksums.sha256", null);
-            requestBytes("PUT", key(islandId, "snapshots/" + snapshot + "/checksums.sha256"), checksums);
-        } catch (IOException ignored) {
-            // Older bundles may not have a checksum sidecar.
+            try (InputStream sourceBundle = openObject(bundleKey)) {
+                uploaded = putObject(snapshotBundleKey, sourceBundle, options);
+            }
+            bundleWritten = true;
+            IslandBundleManifest promoted = sourceManifest.withStoredBundle(uploaded.checksum(), uploaded.checksumAlgorithm(), compression, snapshotBundleKey, uploaded.sizeBytes());
+            byte[] promotedManifest = IslandManifestJson.write(promoted).getBytes(StandardCharsets.UTF_8);
+            requestBytes("PUT", snapshotManifestKey, promotedManifest);
+            manifestWritten = true;
+            requestBytes("PUT", snapshotChecksumsKey, (uploaded.checksum() + "  " + bundleFileName + "\n").getBytes(StandardCharsets.UTF_8));
+            checksumsWritten = true;
+            requestBytes("PUT", key(islandId, "manifest.json"), promotedManifest);
+            compatibilityManifestWritten = true;
+            putLatestCas(key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8), expectedLatestEtag);
+        } catch (IOException exception) {
+            if (checksumsWritten) {
+                deleteKeyQuietly(snapshotChecksumsKey);
+            }
+            if (manifestWritten) {
+                deleteKeyQuietly(snapshotManifestKey);
+            }
+            if (compatibilityManifestWritten) {
+                deleteKeyQuietly(key(islandId, "manifest.json"));
+            }
+            if (bundleWritten) {
+                deleteKeyQuietly(snapshotBundleKey);
+            }
+            if (bundleWritten || manifestWritten || checksumsWritten || compatibilityManifestWritten) {
+                metrics.recordOrphanCleanup();
+            }
+            throw exception;
         }
-        requestBytes("PUT", key(islandId, "manifest.json"), manifest);
-        requestBytes("PUT", key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8));
     }
 
     private StoredBundle writeBundle(UUID islandId, String prefix, InputStream bundle, IslandBundleManifest manifest, boolean updateLatest, String latestValue) throws IOException {
