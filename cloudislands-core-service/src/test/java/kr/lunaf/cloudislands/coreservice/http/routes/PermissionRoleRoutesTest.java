@@ -18,8 +18,10 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionOverrideSnapshot;
@@ -28,6 +30,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
+import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
@@ -50,6 +53,20 @@ class PermissionRoleRoutesTest {
         assertTrue(paths.contains("/v1/islands/roles"));
         assertTrue(paths.contains("/v1/islands/roles/upsert"));
         assertTrue(paths.contains("/v1/islands/roles/reset"));
+    }
+
+    @Test
+    void registersPermissionAndRoleEndpointsAsPostOnly() {
+        RecordingRegistry registry = new RecordingRegistry();
+
+        new PermissionRoleRoutes(null, null, null, null, null, null, null).register(registry);
+
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/permissions"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/permissions/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/permissions/overrides/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/roles"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/roles/upsert"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/roles/reset"));
     }
 
     @Test
@@ -113,6 +130,28 @@ class PermissionRoleRoutesTest {
 
     private TestExchange exchange(String body) {
         return new TestExchange(body);
+    }
+
+    private static final class RecordingRegistry implements CoreRouteRegistry {
+        private final Map<String, Set<String>> methods = new HashMap<>();
+
+        @Override
+        public void route(String path, HttpHandler handler) {
+            methods.put(path, Set.of("GET", "POST"));
+        }
+
+        @Override
+        public void routeMethods(String path, HttpHandler handler, String... routeMethods) {
+            LinkedHashSet<String> allowed = new LinkedHashSet<>();
+            for (String method : routeMethods) {
+                allowed.add(method);
+            }
+            methods.put(path, Set.copyOf(allowed));
+        }
+
+        Set<String> methods(String path) {
+            return methods.getOrDefault(path, Set.of());
+        }
     }
 
     private static final class TestExchange extends HttpExchange {

@@ -58,12 +58,12 @@ public final class PermissionRoleRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/permissions", this::permissions);
-        registry.route("/v1/islands/permissions/set", this::setPermission);
-        registry.route("/v1/islands/permissions/overrides/set", this::setPermissionOverride);
-        registry.route("/v1/islands/roles", this::roles);
-        registry.route("/v1/islands/roles/upsert", this::upsertRole);
-        registry.route("/v1/islands/roles/reset", this::resetRole);
+        registry.routePost("/v1/islands/permissions", this::permissions);
+        registry.routePost("/v1/islands/permissions/set", this::setPermission);
+        registry.routePost("/v1/islands/permissions/overrides/set", this::setPermissionOverride);
+        registry.routePost("/v1/islands/roles", this::roles);
+        registry.routePost("/v1/islands/roles/upsert", this::upsertRole);
+        registry.routePost("/v1/islands/roles/reset", this::resetRole);
     }
 
     private void permissions(HttpExchange exchange) throws IOException {
