@@ -426,6 +426,18 @@ tasks.register("ciBootSmoke") {
     dependsOn(tasks.named("velocityBootSmoke"))
 }
 
+tasks.register("verifyVersionAdapters") {
+    group = "verification"
+    description = "Verifies Paper version parsing, adapter registry selection, and fail-fast adapter errors."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+}
+
+tasks.register("verifyVersionIsolation") {
+    group = "verification"
+    description = "Verifies Minecraft/Paper runtime access remains isolated behind Paper platform adapters."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+}
+
 tasks.register<Exec>("coreIntegrationSmoke") {
     group = "verification"
     description = "Runs Core API integration smoke against PostgreSQL, Redis, and S3-compatible object storage."
