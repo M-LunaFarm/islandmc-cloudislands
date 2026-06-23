@@ -7,21 +7,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
+import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
+import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
+import kr.lunaf.cloudislands.paper.world.bundle.BundleExtractor;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
 import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
+import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
-import java.nio.file.Path;
 
 class IslandWorldRestorerTest {
     private static final UUID ISLAND_ID = UUID.fromString("00000000-0000-0000-0000-000000000301");
@@ -48,6 +53,62 @@ class IslandWorldRestorerTest {
         assertTrue(exception.getMessage().contains("incompatible island bundle restore"));
         assertTrue(exception.getMessage().contains("minecraftDataVersion"));
         assertFalse(extractorInvoked.get());
+    }
+
+    @Test
+    void stagePassesExtractedIntegrationStateRootToStackerRestoreHooks() throws IOException {
+        IslandBundleManifest manifest = compatibleManifest();
+        IslandWorldRestorer restorer = new IslandWorldRestorer(
+            new FixedManifestStorage(manifest),
+            stagingRoot,
+            new BundleRestorePlanner((bundleFile, targetDirectory) -> {
+                Files.createDirectories(targetDirectory.resolve("chunks"));
+                Files.createDirectories(targetDirectory.resolve("integrations/stacker/RoseStacker"));
+                Path manifestPath = targetDirectory.resolve("manifest.json");
+                Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
+                Files.writeString(targetDirectory.resolve("integrations/stacker/RoseStacker/effective-stack-export.json"), "{}", StandardCharsets.UTF_8);
+                return new BundleExtractor.ExtractedBundle(targetDirectory, manifestPath, targetDirectory.resolve("chunks"));
+            }),
+            IntegrationLifecycleHooks.direct("island-node-01", List.of(new StackerIntegration("RoseStacker")))
+        );
+
+        restorer.stage(ISLAND_ID, "ci_shard_001", 7, -3, 224, -96, 77L, 1234L, "snapshots/island.tar.zst");
+
+        Path restoreSummary = stagingRoot.resolve(ISLAND_ID.toString()).resolve("extracted/integrations/restore.json");
+        assertTrue(Files.isRegularFile(restoreSummary));
+        String summary = Files.readString(restoreSummary, StandardCharsets.UTF_8);
+        assertTrue(summary.contains("\"integrationStateRoot\""));
+        assertTrue(summary.contains("snapshot-state-artifact"));
+    }
+
+    private static IslandBundleManifest compatibleManifest() {
+        return new IslandBundleManifest(
+            ISLAND_ID,
+            OWNER_ID,
+            IslandBundleManifest.CURRENT_FORMAT_VERSION,
+            "1.21.11",
+            12,
+            300,
+            new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+            List.of("default"),
+            List.of("shop"),
+            List.of("minecraft:plains"),
+            NOW,
+            NOW,
+            "",
+            BundleRestorePolicy.CHECKSUM_ALGORITHM,
+            BundleRestorePolicy.COMPRESSION,
+            "islands/" + ISLAND_ID + "/snapshots/000001/bundle.tar.zst",
+            42L,
+            "CREATED",
+            true,
+            BundleRestorePolicy.PLACEMENT_POLICY,
+            BundleRestorePolicy.RESTORE_POLICY,
+            "1.0.1",
+            IslandBundleManifest.CURRENT_MINECRAFT_DATA_VERSION,
+            "1.21.11",
+            "skyblock-default@current"
+        );
     }
 
     private static IslandBundleManifest incompatibleManifest() {

@@ -458,13 +458,16 @@ class PaperIntegrationRegistryTest {
             "cell", "3,4",
             "entityCountKey", "limits.entities.effective",
             "spawnerCountKey", "limits.spawners.effective",
-            "bundleKey", "bundles/island.tar.zst"
+            "bundleKey", "bundles/island.tar.zst",
+            "integrationStateRoot", "/tmp/cloudislands/extracted/integrations"
         )));
         assertEquals(IntegrationResult.Status.SUCCESS, restored.status());
         assertEquals("stacker", restored.details().get("manifest.category"));
         assertEquals("limits.spawners.effective", restored.details().get("manifest.metadata.spawnerCountKey"));
+        assertEquals("/tmp/cloudislands/extracted/integrations", restored.details().get("manifest.metadata.integrationStateRoot"));
         assertEquals("RoseStacker API#restoreStackedEntitiesAndSpawners", restored.details().get("external.api"));
-        assertEquals("stacked-entity-state,stacked-spawner-state,restore-count-plan", restored.details().get("external.artifacts"));
+        assertEquals("stacked-entity-state,stacked-spawner-state,restore-count-plan,snapshot-state-artifact", restored.details().get("external.artifacts"));
+        assertEquals("world,cell,entityCountKey,spawnerCountKey,bundleKey,integrationStateRoot", restored.details().get("plan.requiredMetadata"));
     }
 
     @Test

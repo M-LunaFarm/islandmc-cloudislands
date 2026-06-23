@@ -58,7 +58,7 @@ public final class IslandWorldRestorer {
         RestorePlan restorePlan = new RestorePlan(islandId, worldName, originX, originZ, bundle);
         BundleRestorePlan plan = restorePlanner.plan(restorePlan);
         IslandBundleManifest manifest = validateExtractedManifest(islandId, plan.extractedRoot().resolve("manifest.json"));
-        IntegrationLifecycleHooks.LifecycleBatch integrations = integrationHooks.restoreState(islandId, worldName, cellX, cellZ, originX, originZ, fencingToken, snapshotNo, storagePath, bundle, manifest);
+        IntegrationLifecycleHooks.LifecycleBatch integrations = integrationHooks.restoreState(islandId, worldName, cellX, cellZ, originX, originZ, fencingToken, snapshotNo, storagePath, bundle, plan.extractedRoot(), manifest);
         integrations.throwIfFailed();
         integrations.writeIfPresent(plan.extractedRoot().resolve("integrations/restore.json"));
         return plan;

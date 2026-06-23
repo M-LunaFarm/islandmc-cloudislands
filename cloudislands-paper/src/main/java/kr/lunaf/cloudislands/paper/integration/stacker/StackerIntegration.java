@@ -41,7 +41,7 @@ public final class StackerIntegration extends PolicyBackedCloudIntegration {
 
     @Override
     public IntegrationResult restoreState(IntegrationContext context) {
-        return guardedStateHook("effective-stack-restore", context, "world", "cell", "entityCountKey", "spawnerCountKey", "bundleKey");
+        return guardedStateHook("effective-stack-restore", context, "world", "cell", "entityCountKey", "spawnerCountKey", "bundleKey", "integrationStateRoot");
     }
 
     @Override
@@ -60,7 +60,7 @@ public final class StackerIntegration extends PolicyBackedCloudIntegration {
             case "effective-stack-activate" -> "effective-entity-limit,effective-spawner-limit";
             case "effective-stack-deactivate", "effective-stack-export" ->
                 "stacked-entity-state,stacked-spawner-state,effective-limit-keys";
-            case "effective-stack-restore" -> "stacked-entity-state,stacked-spawner-state,restore-count-plan";
+            case "effective-stack-restore" -> "stacked-entity-state,stacked-spawner-state,restore-count-plan,snapshot-state-artifact";
             default -> "";
         };
     }

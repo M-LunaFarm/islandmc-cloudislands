@@ -75,7 +75,8 @@ class IntegrationLifecycleHooksTest {
         assertEquals("77", exportBatch.results().getFirst().details().get("fencingToken"));
 
         IslandBundleManifest manifest = manifest(islandId, 300);
-        IntegrationLifecycleHooks.LifecycleBatch restoreBatch = hooks.restoreState(islandId, "ci_shard_001", 12, -4, 192, -64, 77L, 1234L, "snapshots/island.tar.zst", Path.of("bundle.tar.zst"), manifest);
+        Path extractedRoot = tempDir.resolve("extracted");
+        IntegrationLifecycleHooks.LifecycleBatch restoreBatch = hooks.restoreState(islandId, "ci_shard_001", 12, -4, 192, -64, 77L, 1234L, "snapshots/island.tar.zst", Path.of("bundle.tar.zst"), extractedRoot, manifest);
         restoreBatch.throwIfFailed();
 
         assertEquals(6, restoreBatch.results().size());
@@ -84,6 +85,7 @@ class IntegrationLifecycleHooksTest {
         assertEquals("snapshots/island.tar.zst", restoreBatch.context().metadata().get("bundleKey"));
         assertEquals("bundle.tar.zst", restoreBatch.context().metadata().get("bundlePath"));
         assertEquals("snapshots/island.tar.zst", restoreBatch.context().metadata().get("storagePath"));
+        assertEquals(extractedRoot.resolve("integrations").toString(), restoreBatch.context().metadata().get("integrationStateRoot"));
 
         IntegrationLifecycleHooks.LifecycleBatch deactivationBatch = hooks.onIslandDeactivated(islandId, activeIsland, Path.of("1234-bundle.tar.zst"));
         deactivationBatch.throwIfFailed();

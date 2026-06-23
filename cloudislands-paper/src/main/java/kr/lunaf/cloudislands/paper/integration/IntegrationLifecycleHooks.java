@@ -65,7 +65,7 @@ public final class IntegrationLifecycleHooks {
         );
     }
 
-    static IntegrationLifecycleHooks direct(String nodeId, List<CloudIntegration> integrations) {
+    public static IntegrationLifecycleHooks direct(String nodeId, List<CloudIntegration> integrations) {
         List<CloudIntegration> safeIntegrations = integrations == null ? List.of() : List.copyOf(integrations);
         return new IntegrationLifecycleHooks(
             nodeId,
@@ -153,6 +153,23 @@ public final class IntegrationLifecycleHooks {
         Path bundlePath,
         IslandBundleManifest manifest
     ) {
+        return restoreState(islandId, worldName, cellX, cellZ, originX, originZ, fencingToken, snapshotNo, storagePath, bundlePath, null, manifest);
+    }
+
+    public LifecycleBatch restoreState(
+        UUID islandId,
+        String worldName,
+        int cellX,
+        int cellZ,
+        int originX,
+        int originZ,
+        long fencingToken,
+        long snapshotNo,
+        String storagePath,
+        Path bundlePath,
+        Path extractedRoot,
+        IslandBundleManifest manifest
+    ) {
         if (islandId == null || manifest == null) {
             return LifecycleBatch.empty("restore");
         }
@@ -167,6 +184,12 @@ public final class IntegrationLifecycleHooks {
             bundlePath,
             storagePath
         );
+        if (extractedRoot != null) {
+            Path integrationStateRoot = extractedRoot.resolve("integrations");
+            metadata.put("snapshotExtractedRoot", extractedRoot.toString());
+            metadata.put("integrationStateRoot", integrationStateRoot.toString());
+            metadata.put("integrationExportSummary", integrationStateRoot.resolve("export.json").toString());
+        }
         metadata.put("rollbackSeconds", "0");
         IntegrationContext context = new IntegrationContext(
             islandId,
