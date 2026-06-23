@@ -948,6 +948,8 @@ tasks.register<Exec>("coreIntegrationSmoke") {
 
 val clusterSmokeEvidenceFile = layout.buildDirectory.file("smoke/core-integration/cluster-evidence.json")
 val clusterSmokePartialReportFile = layout.buildDirectory.file("smoke/core-integration/cluster-smoke-report.json")
+val clusterSmokeReleaseEvidenceFile = layout.buildDirectory.file("smoke/cluster-smoke/cluster-evidence.json")
+val clusterSmokeReleaseReportFile = layout.buildDirectory.file("smoke/cluster-smoke/cluster-smoke-report.json")
 
 tasks.register<JavaExec>("clusterSmokePartialReport") {
     group = "verification"
@@ -966,15 +968,28 @@ tasks.register<JavaExec>("clusterSmokePartialReport") {
 
 tasks.register<JavaExec>("clusterSmokeVerify") {
     group = "verification"
-    description = "Verifies a full production GA cluster-smoke evidence JSON file. Pass -PclusterSmokeEvidence=/path/to/evidence.json."
+    description = "Verifies a full production GA cluster-smoke evidence JSON file. Pass -PclusterSmokeEvidence=/path/to/evidence.json or CI_CLUSTER_SMOKE_EVIDENCE_JSON."
     dependsOn(project(":cloudislands-testkit").tasks.named("classes"))
     val testkitSourceSets = project(":cloudislands-testkit").extensions.getByType<SourceSetContainer>()
     classpath = testkitSourceSets.named("main").get().runtimeClasspath
     mainClass.set("kr.lunaf.cloudislands.testkit.ClusterSmokeVerifierCli")
     doFirst {
-        val evidence = providers.gradleProperty("clusterSmokeEvidence").orElse(providers.environmentVariable("CI_CLUSTER_SMOKE_EVIDENCE")).orNull
-            ?: throw GradleException("clusterSmokeVerify requires -PclusterSmokeEvidence=/path/to/evidence.json or CI_CLUSTER_SMOKE_EVIDENCE")
-        args("--evidence", evidence)
+        val evidencePath = providers.gradleProperty("clusterSmokeEvidence").orElse(providers.environmentVariable("CI_CLUSTER_SMOKE_EVIDENCE")).orNull
+        val evidenceJson = providers.gradleProperty("clusterSmokeEvidenceJson").orElse(providers.environmentVariable("CI_CLUSTER_SMOKE_EVIDENCE_JSON")).orNull
+        val evidence = when {
+            !evidencePath.isNullOrBlank() -> file(evidencePath).absolutePath
+            !evidenceJson.isNullOrBlank() -> {
+                val output = clusterSmokeReleaseEvidenceFile.get().asFile
+                output.parentFile.mkdirs()
+                output.writeText(evidenceJson.trim() + System.lineSeparator())
+                output.absolutePath
+            }
+            else -> throw GradleException("clusterSmokeVerify requires -PclusterSmokeEvidence=/path/to/evidence.json, CI_CLUSTER_SMOKE_EVIDENCE, -PclusterSmokeEvidenceJson, or CI_CLUSTER_SMOKE_EVIDENCE_JSON")
+        }
+        args(
+            "--evidence", evidence,
+            "--report-out", clusterSmokeReleaseReportFile.get().asFile.absolutePath
+        )
     }
 }
 
@@ -983,4 +998,38 @@ tasks.register("ciIntegrationSmoke") {
     description = "Runs Core API real-infrastructure integration smoke tests."
     dependsOn(tasks.named("coreIntegrationSmoke"))
     dependsOn(tasks.named("clusterSmokePartialReport"))
+}
+
+tasks.register("releaseClusterSmokeGate") {
+    group = "verification"
+    description = "Requires complete production GA cluster-smoke evidence before release."
+    dependsOn(tasks.named("clusterSmokeVerify"))
+}
+
+tasks.register("verifyReleaseGateCoverage") {
+    group = "verification"
+    description = "Verifies CI workflows keep partial integration smoke separate from the full release cluster evidence gate."
+    inputs.file(layout.projectDirectory.file(".github/workflows/integration.yml"))
+    doLast {
+        val workflow = layout.projectDirectory.file(".github/workflows/integration.yml").asFile.readText()
+        val requiredSignals = listOf(
+            "postgres:",
+            "redis:",
+            "minio:",
+            "ciIntegrationSmoke",
+            "build/smoke/core-integration/cluster-evidence.json",
+            "build/smoke/core-integration/cluster-smoke-report.json",
+            "releaseClusterSmokeGate",
+            "CI_CLUSTER_SMOKE_EVIDENCE_JSON",
+            "build/smoke/cluster-smoke/cluster-smoke-report.json"
+        )
+        val missing = requiredSignals.filterNot(workflow::contains)
+        if (missing.isNotEmpty()) {
+            throw GradleException("Integration workflow is missing cluster evidence gate signals: ${missing.joinToString(", ")}")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("verifyReleaseGateCoverage"))
 }

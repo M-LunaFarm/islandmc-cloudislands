@@ -4,7 +4,16 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   pull_request:
+  workflow_dispatch:
+    inputs:
+      verify-cluster-evidence:
+        description: "Run the production cluster evidence release gate"
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   core-integration:
@@ -71,3 +80,33 @@ jobs:
           CI_STORAGE_ACCESS_KEY: minioadmin
           CI_STORAGE_SECRET_KEY: minioadmin
         run: ./gradlew ciIntegrationSmoke --no-daemon
+
+      - name: Upload integration smoke evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudislands-core-integration-evidence
+          path: |
+            build/smoke/core-integration/cluster-evidence.json
+            build/smoke/core-integration/cluster-smoke-report.json
+            build/smoke/core-integration/core-*/core.log
+          if-no-files-found: error
+
+      - name: Release cluster smoke gate
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs['verify-cluster-evidence'])
+        env:
+          CI_CLUSTER_SMOKE_EVIDENCE_JSON: ${{ secrets.CI_CLUSTER_SMOKE_EVIDENCE_JSON }}
+        run: |
+          if [ -z "$CI_CLUSTER_SMOKE_EVIDENCE_JSON" ]; then
+            echo "CI_CLUSTER_SMOKE_EVIDENCE_JSON is required for release cluster smoke certification."
+            exit 1
+          fi
+          ./gradlew releaseClusterSmokeGate --no-daemon
+
+      - name: Upload release cluster smoke report
+        if: always() && (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs['verify-cluster-evidence']))
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudislands-release-cluster-smoke-report
+          path: |
+            build/smoke/cluster-smoke/cluster-smoke-report.json
+          if-no-files-found: warn
