@@ -521,6 +521,7 @@ val verifyVersionPackaging = tasks.register("verifyVersionPackaging") {
             "kr/lunaf/cloudislands/paper/platform/compatibility/PaperVersionAdapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/PaperVersionAdapterRegistry.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/Paper121FamilyAdapter.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/AbstractPaper26Adapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/Paper261Adapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/Paper262Adapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/DefaultPaperVersionAdapter.class",

@@ -18,6 +18,7 @@ class PaperVersionPackagingPolicyTest {
         assertTrue(build.contains("PaperAdapterSelfTest.class"));
         assertTrue(build.contains("PaperVersionAdapterRegistry.class"));
         assertTrue(build.contains("Paper121FamilyAdapter.class"));
+        assertTrue(build.contains("AbstractPaper26Adapter.class"));
         assertTrue(build.contains("Paper261Adapter.class"));
         assertTrue(build.contains("Paper262Adapter.class"));
         assertTrue(build.contains("DefaultPaperVersionAdapter.class"));
