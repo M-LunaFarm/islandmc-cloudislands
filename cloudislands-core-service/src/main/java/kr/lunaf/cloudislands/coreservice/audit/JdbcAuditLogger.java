@@ -25,7 +25,7 @@ public final class JdbcAuditLogger implements AuditLogger {
             statement.setString(4, action);
             statement.setString(5, targetType);
             statement.setString(6, targetId);
-            statement.setString(7, toJson(payload));
+            statement.setString(7, AuditPayloadRedactor.payloadJson(payload));
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to write audit log", exception);
@@ -64,42 +64,8 @@ public final class JdbcAuditLogger implements AuditLogger {
         }
     }
 
-    private String toJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, String> entry : (payload == null ? Map.<String, String>of() : payload).entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
-        }
-        return builder.append('}').toString();
-    }
-
     private String escape(String value) {
-        if (value == null) {
-            return "";
-        }
-        StringBuilder builder = new StringBuilder(value.length());
-        for (int index = 0; index < value.length(); index++) {
-            char current = value.charAt(index);
-            switch (current) {
-                case '\\' -> builder.append("\\\\");
-                case '"' -> builder.append("\\\"");
-                case '\n' -> builder.append("\\n");
-                case '\r' -> builder.append("\\r");
-                case '\t' -> builder.append("\\t");
-                default -> {
-                    if (current < 0x20) {
-                        builder.append(String.format("\\u%04x", (int) current));
-                    } else {
-                        builder.append(current);
-                    }
-                }
-            }
-        }
-        return builder.toString();
+        return AuditPayloadRedactor.escape(value);
     }
 
     private String insertAuditSql(Connection connection) throws SQLException {

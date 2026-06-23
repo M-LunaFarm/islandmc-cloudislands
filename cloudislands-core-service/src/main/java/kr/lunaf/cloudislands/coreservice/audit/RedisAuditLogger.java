@@ -20,7 +20,8 @@ public final class RedisAuditLogger implements AuditLogger {
 
     @Override
     public void log(UUID actorUuid, String actorType, String action, String targetType, String targetId, Map<String, String> payload) {
-        delegate.log(actorUuid, actorType, action, targetType, targetId, payload);
+        Map<String, String> redactedPayload = AuditPayloadRedactor.redact(payload);
+        delegate.log(actorUuid, actorType, action, targetType, targetId, redactedPayload);
         try {
             writer.xadd(
                 stream,
@@ -29,7 +30,7 @@ public final class RedisAuditLogger implements AuditLogger {
                 "action", action == null ? "" : action,
                 "targetType", targetType == null ? "" : targetType,
                 "targetId", targetId == null ? "" : targetId,
-                "payload", payloadJson(payload),
+                "payload", AuditPayloadRedactor.payloadJson(redactedPayload),
                 "createdAt", Instant.now().toString()
             );
         } catch (RuntimeException ignored) {
@@ -46,20 +47,4 @@ public final class RedisAuditLogger implements AuditLogger {
         return failures.get();
     }
 
-    private static String payloadJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
-        }
-        return builder.append('}').toString();
-    }
-
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
 }
