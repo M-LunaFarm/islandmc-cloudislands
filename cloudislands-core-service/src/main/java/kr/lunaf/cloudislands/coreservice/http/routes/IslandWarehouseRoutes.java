@@ -47,9 +47,9 @@ public final class IslandWarehouseRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/warehouse", this::list);
-        registry.route("/v1/islands/warehouse/deposit", this::deposit);
-        registry.route("/v1/islands/warehouse/withdraw", this::withdraw);
+        registry.routePost("/v1/islands/warehouse", this::list);
+        registry.routePost("/v1/islands/warehouse/deposit", this::deposit);
+        registry.routePost("/v1/islands/warehouse/withdraw", this::withdraw);
     }
 
     private void list(HttpExchange exchange) throws IOException {
