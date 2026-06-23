@@ -248,16 +248,38 @@ public final class CloudIslandsCoreApplication {
             upgradeService,
             islandDeleteService
         );
-        CoreRouteRegistry route = (path, handler) -> {
-            routeRegistrar.route(path, handler);
-            if (adminRouteRegistrar != null) {
-                adminRouteRegistrar.route(path, handler);
+        CoreRouteRegistry route = new CoreRouteRegistry() {
+            @Override
+            public void route(String path, com.sun.net.httpserver.HttpHandler handler) {
+                routeRegistrar.route(path, handler);
+                if (adminRouteRegistrar != null) {
+                    adminRouteRegistrar.route(path, handler);
+                }
+            }
+
+            @Override
+            public void routeMethods(String path, com.sun.net.httpserver.HttpHandler handler, String... methods) {
+                routeRegistrar.routeMethods(path, handler, methods);
+                if (adminRouteRegistrar != null) {
+                    adminRouteRegistrar.routeMethods(path, handler, methods);
+                }
             }
         };
-        CoreRouteRegistry routePrefix = (path, handler) -> {
-            routeRegistrar.routePrefix(path, handler);
-            if (adminRouteRegistrar != null) {
-                adminRouteRegistrar.routePrefix(path, handler);
+        CoreRouteRegistry routePrefix = new CoreRouteRegistry() {
+            @Override
+            public void route(String path, com.sun.net.httpserver.HttpHandler handler) {
+                routeRegistrar.routePrefix(path, handler);
+                if (adminRouteRegistrar != null) {
+                    adminRouteRegistrar.routePrefix(path, handler);
+                }
+            }
+
+            @Override
+            public void routeMethods(String path, com.sun.net.httpserver.HttpHandler handler, String... methods) {
+                routeRegistrar.routePrefixMethods(path, handler, methods);
+                if (adminRouteRegistrar != null) {
+                    adminRouteRegistrar.routePrefixMethods(path, handler, methods);
+                }
             }
         };
         new HealthRoutes(config, domainServices.metrics()::render).register(route);

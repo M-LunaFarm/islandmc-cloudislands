@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +33,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
+import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JobCompletionService;
@@ -54,6 +56,19 @@ class JobRoutesTest {
         assertEquals(9, paths.size());
         assertTrue(paths.contains("/v1/jobs/claim"));
         assertTrue(paths.contains("/v1/admin/jobs/cancel"));
+    }
+
+    @Test
+    void registersJobEndpointsAsPostOnly() {
+        RecordingRegistry registry = new RecordingRegistry();
+
+        new JobRoutes(null, null, null).register(registry);
+
+        assertEquals(Set.of("POST"), registry.methods("/v1/jobs"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/jobs/claim"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/jobs/complete"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/jobs/list"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/jobs/cancel"));
     }
 
     @Test
@@ -271,6 +286,28 @@ class JobRoutesTest {
             + "\"leaseExpiresAt\":\"" + lease.leaseExpiresAt() + "\","
             + "\"attempt\":" + lease.attempt()
             + "}";
+    }
+
+    private static final class RecordingRegistry implements CoreRouteRegistry {
+        private final Map<String, Set<String>> methods = new HashMap<>();
+
+        @Override
+        public void route(String path, HttpHandler handler) {
+            methods.put(path, Set.of("GET", "POST"));
+        }
+
+        @Override
+        public void routeMethods(String path, HttpHandler handler, String... routeMethods) {
+            LinkedHashSet<String> allowed = new LinkedHashSet<>();
+            for (String method : routeMethods) {
+                allowed.add(method);
+            }
+            methods.put(path, Set.copyOf(allowed));
+        }
+
+        Set<String> methods(String path) {
+            return methods.getOrDefault(path, Set.of());
+        }
     }
 
     private static final class FlakyAckJobQueue implements IslandJobQueue {

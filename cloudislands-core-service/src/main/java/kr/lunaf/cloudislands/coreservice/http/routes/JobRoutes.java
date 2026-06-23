@@ -41,15 +41,15 @@ public final class JobRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/jobs", exchange -> CoreHttpResponses.write(exchange, 200, jobsJson(jobs)));
-        registry.route("/v1/jobs/claim", this::claim);
-        registry.route("/v1/jobs/complete", this::complete);
-        registry.route("/v1/jobs/fail", this::fail);
-        registry.route("/v1/jobs/recover", this::recover);
-        registry.route("/v1/admin/jobs/recover", this::recover);
-        registry.route("/v1/admin/jobs/list", exchange -> CoreHttpResponses.write(exchange, 200, jobsJson(jobs)));
-        registry.route("/v1/admin/jobs/retry", this::retry);
-        registry.route("/v1/admin/jobs/cancel", this::cancel);
+        registry.routePost("/v1/jobs", exchange -> CoreHttpResponses.write(exchange, 200, jobsJson(jobs)));
+        registry.routePost("/v1/jobs/claim", this::claim);
+        registry.routePost("/v1/jobs/complete", this::complete);
+        registry.routePost("/v1/jobs/fail", this::fail);
+        registry.routePost("/v1/jobs/recover", this::recover);
+        registry.routePost("/v1/admin/jobs/recover", this::recover);
+        registry.routePost("/v1/admin/jobs/list", exchange -> CoreHttpResponses.write(exchange, 200, jobsJson(jobs)));
+        registry.routePost("/v1/admin/jobs/retry", this::retry);
+        registry.routePost("/v1/admin/jobs/cancel", this::cancel);
     }
 
     private void claim(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

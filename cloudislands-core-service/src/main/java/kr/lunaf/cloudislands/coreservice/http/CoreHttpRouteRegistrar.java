@@ -82,13 +82,30 @@ public final class CoreHttpRouteRegistrar {
     }
 
     public void route(String path, HttpHandler handler) {
+        routeMethods(path, handler, "GET", "POST");
+    }
+
+    public void routeGet(String path, HttpHandler handler) {
+        routeMethods(path, handler, "GET");
+    }
+
+    public void routePost(String path, HttpHandler handler) {
+        routeMethods(path, handler, "POST");
+    }
+
+    public void routeMethods(String path, HttpHandler handler, String... methods) {
         requireServer();
-        exactRoutes.put(normalizeRegisteredPath(path), new RouteDefinition(normalizeRegisteredPath(path), false, allowedMethods(), handler));
+        String normalizedPath = normalizeRegisteredPath(path);
+        exactRoutes.put(normalizedPath, new RouteDefinition(normalizedPath, false, allowedMethods(methods), handler));
     }
 
     public void routePrefix(String path, HttpHandler handler) {
+        routePrefixMethods(path, handler, "GET", "POST");
+    }
+
+    public void routePrefixMethods(String path, HttpHandler handler, String... methods) {
         requireServer();
-        prefixRoutes.add(new RouteDefinition(normalizeRegisteredPath(path), true, allowedMethods(), handler));
+        prefixRoutes.add(new RouteDefinition(normalizeRegisteredPath(path), true, allowedMethods(methods), handler));
         prefixRoutes.sort(Comparator.comparingInt((RouteDefinition route) -> route.path().length()).reversed());
     }
 
@@ -234,8 +251,17 @@ public final class CoreHttpRouteRegistrar {
             : normalized;
     }
 
-    private static Set<String> allowedMethods() {
-        return new LinkedHashSet<>(List.of("GET", "POST"));
+    private static Set<String> allowedMethods(String... methods) {
+        LinkedHashSet<String> allowed = new LinkedHashSet<>();
+        if (methods != null) {
+            for (String method : methods) {
+                if (method == null || method.isBlank()) {
+                    continue;
+                }
+                allowed.add(method.trim().toUpperCase(java.util.Locale.ROOT));
+            }
+        }
+        return allowed.isEmpty() ? new LinkedHashSet<>(List.of("GET", "POST")) : allowed;
     }
 
     private static boolean bodyMethod(String method) {

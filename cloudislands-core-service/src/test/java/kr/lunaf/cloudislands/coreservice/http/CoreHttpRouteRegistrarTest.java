@@ -61,6 +61,26 @@ class CoreHttpRouteRegistrarTest {
     }
 
     @Test
+    void postOnlyRoutesRejectGetWithPostAllowHeader() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            server.registrar().routePost("/v1/jobs/claim", exchange -> CoreHttpResponses.write(exchange, 200, "{\"ok\":true}"));
+
+            HttpResponse<String> get = server.get("/v1/jobs/claim");
+            HttpResponse<String> post = server.request(
+                server.authorized(HttpRequest.newBuilder(server.uri("/v1/jobs/claim")))
+                    .POST(HttpRequest.BodyPublishers.ofString("{}"))
+                    .header("Content-Type", "application/json")
+                    .build()
+            );
+
+            assertEquals(405, get.statusCode());
+            assertEquals("POST", get.headers().firstValue("Allow").orElse(""));
+            assertTrue(get.body().contains("METHOD_NOT_ALLOWED"));
+            assertEquals(200, post.statusCode());
+        }
+    }
+
+    @Test
     void postRequestsRequireJsonContentType() throws Exception {
         try (ServerFixture server = ServerFixture.start()) {
             server.registrar().route("/v1/jobs/claim", exchange -> CoreHttpResponses.write(exchange, 200, "{\"ok\":true}"));
