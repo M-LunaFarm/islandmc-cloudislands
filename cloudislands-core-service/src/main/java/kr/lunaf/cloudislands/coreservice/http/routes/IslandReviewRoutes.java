@@ -42,10 +42,10 @@ public final class IslandReviewRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/reviews", this::listReviews);
-        registry.route("/v1/islands/reviews/set", this::setReview);
-        registry.route("/v1/islands/reviews/delete", this::deleteReview);
-        registry.route("/v1/rankings/reviews", this::reviewRankings);
+        registry.routePost("/v1/islands/reviews", this::listReviews);
+        registry.routePost("/v1/islands/reviews/set", this::setReview);
+        registry.routePost("/v1/islands/reviews/delete", this::deleteReview);
+        registry.routePost("/v1/rankings/reviews", this::reviewRankings);
     }
 
     private void reviewRankings(HttpExchange exchange) throws IOException {
