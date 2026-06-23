@@ -102,21 +102,25 @@ def latest_ticket(base_url: str, player_uuid: str):
 
 
 def claim_one(base_url: str, node_id: str, expected_type: str):
-    jobs = request(
-        base_url,
-        "POST",
-        "/v1/jobs/claim",
-        {"nodeId": node_id, "supportedTypes": expected_type, "maxJobs": 4},
-        admin=True,
-        expect=(200,),
-    )
-    job_list = jobs.get("jobs", jobs) if isinstance(jobs, dict) else jobs
-    if not isinstance(job_list, list) or not job_list:
-        raise RuntimeError(f"expected {expected_type} job for {node_id}, got {jobs}")
-    for job in job_list:
-        if job.get("type") == expected_type:
-            return job
-    raise RuntimeError(f"expected {expected_type} job for {node_id}, got {jobs}")
+    deadline = time.monotonic() + 10
+    last_jobs = None
+    while time.monotonic() < deadline:
+        jobs = request(
+            base_url,
+            "POST",
+            "/v1/jobs/claim",
+            {"nodeId": node_id, "supportedTypes": expected_type, "maxJobs": 4},
+            admin=True,
+            expect=(200,),
+        )
+        last_jobs = jobs
+        job_list = jobs.get("jobs", jobs) if isinstance(jobs, dict) else jobs
+        if isinstance(job_list, list):
+            for job in job_list:
+                if job.get("type") == expected_type:
+                    return job
+        time.sleep(0.25)
+    raise RuntimeError(f"expected {expected_type} job for {node_id}, got {last_jobs}")
 
 
 def complete_job(base_url: str, node_id: str, job: dict, payload: dict) -> None:
@@ -291,6 +295,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         if nodes.get("routeCandidateCount", 0) < 2:
             raise RuntimeError(f"expected two route candidates from secondary core, got {nodes}")
 
+        run_id = uuid.uuid4().hex[:12]
         player_uuid = str(uuid.uuid4())
         create = request(
             primary_url,
@@ -315,7 +320,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             active_node,
             create_job,
             {
-                "worldName": "ci_smoke_world",
+                "worldName": "ci_smoke_world_" + run_id,
                 "cellX": "1",
                 "cellZ": "2",
                 "snapshotNo": "1",
@@ -408,7 +413,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             standby_node,
             restore_job,
             {
-                "worldName": "ci_smoke_world_recovered",
+                "worldName": "ci_smoke_world_recovered_" + run_id,
                 "cellX": "3",
                 "cellZ": "4",
                 "preMutationSnapshotNo": "2",
