@@ -186,7 +186,7 @@ class IntegrationLifecycleHooksTest {
         IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
             new WorldEditIntegration("WorldEdit", (pluginName, category, operation, context, plan) -> {
                 operations.add(pluginName + ":" + operation);
-                return IntegrationResult.success("worldedit called");
+                return IntegrationResult.success("worldedit called", java.util.Map.of("roundTripVerified", "true"));
             })
         ));
         ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(
@@ -244,6 +244,9 @@ class IntegrationLifecycleHooksTest {
     }
 
     private static IntegrationExternalRuntime acceptingRuntime() {
-        return (_pluginName, _category, _operation, _context, _plan) -> IntegrationResult.success("external called");
+        return (_pluginName, _category, _operation, _context, _plan) -> IntegrationResult.success("external called", java.util.Map.of(
+            "roundTripVerified", "true",
+            "stateArtifact", "integration-runtime-proof"
+        ));
     }
 }

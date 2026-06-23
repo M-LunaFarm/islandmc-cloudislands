@@ -140,7 +140,10 @@ class PaperIntegrationRegistryTest {
         List<String> calls = new ArrayList<>();
         CoreProtectIntegration integration = new CoreProtectIntegration((pluginName, category, operation, context, plan) -> {
             calls.add(pluginName + ":" + category + ":" + operation + ":" + plan.externalApi());
-            return IntegrationResult.success("external called", Map.of("call", "ok"));
+            return IntegrationResult.success("external called", Map.of(
+                "call", "ok",
+                "roundTripVerified", "true"
+            ));
         });
 
         IntegrationResult denied = integration.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:export:missing", Map.of(
@@ -161,6 +164,7 @@ class PaperIntegrationRegistryTest {
         assertEquals("SUCCESS", allowed.details().get("external.result"));
         assertEquals("external called", allowed.details().get("external.message"));
         assertEquals("ok", allowed.details().get("external.runtime.call"));
+        assertEquals("true", allowed.details().get("external.runtime.roundTripVerified"));
     }
 
     @Test
@@ -180,6 +184,26 @@ class PaperIntegrationRegistryTest {
         assertTrue(result.message().contains("external hook skipped"));
         assertEquals("SKIPPED", result.details().get("external.result"));
         assertEquals("false", result.details().get("external.runtime.apiProbe.invoke.getAPI"));
+    }
+
+    @Test
+    void guardedIntegrationAdaptersRequireStateEvidenceBeforeReportingSuccess() {
+        CoreProtectIntegration integration = new CoreProtectIntegration((_pluginName, _category, _operation, _context, _plan) ->
+            IntegrationResult.success("external claimed success", Map.of("apiProbe.invoke.getAPI", "true"))
+        );
+
+        IntegrationResult result = integration.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:export:unevidenced", Map.of(
+            "world", "islands",
+            "cell", "12,-4",
+            "region", "192,64,-64..255,319,-1",
+            "bundleKey", "bundles/island.tar.zst"
+        )));
+
+        assertEquals(IntegrationResult.Status.FAILED, result.status());
+        assertTrue(result.message().contains("without state evidence"));
+        assertEquals("SUCCESS", result.details().get("external.result"));
+        assertEquals("state-artifact-or-round-trip", result.details().get("external.evidenceRequired"));
+        assertEquals("region-audit-cursor,coreprotect-lookup-events", result.details().get("external.artifactsExpected"));
     }
 
     @Test
@@ -203,7 +227,7 @@ class PaperIntegrationRegistryTest {
         List<String> calls = new ArrayList<>();
         kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime runtime = (pluginName, category, operation, context, plan) -> {
             calls.add(pluginName + ":" + operation);
-            return IntegrationResult.success("external called");
+            return IntegrationResult.success("external called", Map.of("roundTripVerified", "true"));
         };
         IntegrationContext context = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "integration:runtime:1", Map.ofEntries(
             Map.entry("world", "islands"),
@@ -647,6 +671,9 @@ class PaperIntegrationRegistryTest {
     }
 
     private static IntegrationExternalRuntime acceptingRuntime() {
-        return (_pluginName, _category, _operation, _context, _plan) -> IntegrationResult.success("external called");
+        return (_pluginName, _category, _operation, _context, _plan) -> IntegrationResult.success("external called", Map.of(
+            "roundTripVerified", "true",
+            "stateArtifact", "integration-runtime-proof"
+        ));
     }
 }

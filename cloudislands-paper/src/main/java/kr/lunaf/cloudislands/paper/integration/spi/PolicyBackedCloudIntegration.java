@@ -95,6 +95,11 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
         if (external.status() == IntegrationResult.Status.SKIPPED) {
             return IntegrationResult.skipped(pluginName + " " + operation + " external hook skipped: " + external.message(), details);
         }
+        if (requiresOperationEvidence(operation, stateChanging) && !hasOperationEvidence(external)) {
+            details.put("external.evidenceRequired", "state-artifact-or-round-trip");
+            details.put("external.artifactsExpected", externalStateArtifacts(operation));
+            return IntegrationResult.failed(pluginName + " " + operation + " external hook succeeded without state evidence", details);
+        }
         return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId(), details);
     }
 
@@ -159,6 +164,29 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
 
     protected String externalSafetyBarriers(String operation) {
         return "";
+    }
+
+    private boolean requiresOperationEvidence(String operation, boolean stateChanging) {
+        return stateChanging || !externalStateArtifacts(operation).isBlank();
+    }
+
+    private boolean hasOperationEvidence(IntegrationResult external) {
+        Map<String, String> details = external.details();
+        return truthy(details.get("roundTripVerified"))
+            || nonBlank(details.get("stateArtifact"))
+            || nonBlank(details.get("stateArtifactKey"))
+            || nonBlank(details.get("stateArtifactPath"))
+            || nonBlank(details.get("artifactKey"))
+            || nonBlank(details.get("artifactPath"))
+            || nonBlank(details.get("manifestHash"));
+    }
+
+    private boolean truthy(String value) {
+        return value != null && Set.of("true", "yes", "1", "verified").contains(value.trim().toLowerCase(java.util.Locale.ROOT));
+    }
+
+    private boolean nonBlank(String value) {
+        return value != null && !value.isBlank();
     }
 
     private static int compareVersions(String actual, String minimum) {
