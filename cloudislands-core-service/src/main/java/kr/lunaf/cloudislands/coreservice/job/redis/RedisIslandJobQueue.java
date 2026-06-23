@@ -122,12 +122,18 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
 
     @Override
     public boolean retry(UUID jobId) {
-        IslandJob job = claimedJobs.get(jobId);
-        if (job == null) {
-            return false;
-        }
-        String streamId = streamIdsByJobId.get(jobId);
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            IslandJob job = claimedJobs.get(jobId);
+            String streamId = streamIdsByJobId.get(jobId);
+            if (job == null) {
+                Map<String, String> storedLease = readClaimHash(redis, jobId);
+                java.util.Optional<IslandJob> storedJob = claimedJobFromHash(jobId, storedLease);
+                if (storedJob.isEmpty()) {
+                    return false;
+                }
+                job = storedJob.get();
+                streamId = storedLease.getOrDefault("streamId", "");
+            }
             redis.command("XADD", RedisKeys.jobsStream(), "*", "jobId", job.jobId().toString(), "type", job.type().name(), "islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "priority", Integer.toString(job.priority()), "createdAt", job.createdAt().toString(), "payload", encodePayload(job.payload()));
             if (streamId != null && !streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
@@ -149,10 +155,14 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     public boolean cancel(UUID jobId) {
         IslandJob job = claimedJobs.get(jobId);
         String streamId = streamIdsByJobId.get(jobId);
-        if (job == null && (streamId == null || streamId.isBlank())) {
-            return false;
-        }
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            if (job == null && (streamId == null || streamId.isBlank())) {
+                Map<String, String> storedLease = readClaimHash(redis, jobId);
+                streamId = storedLease.getOrDefault("streamId", "");
+                if (streamId.isBlank() && claimedJobFromHash(jobId, storedLease).isEmpty()) {
+                    return false;
+                }
+            }
             if (streamId != null && !streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
             }
