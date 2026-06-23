@@ -30,13 +30,13 @@ public final class NodeRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/storage", exchange -> CoreHttpResponses.write(exchange, 200, nodes.toJson(heartbeatTimeout)));
-        registry.route("/v1/nodes", exchange -> CoreHttpResponses.write(exchange, 200, nodes.toJson(heartbeatTimeout)));
-        registry.route("/v1/nodes/info", this::nodeInfo);
-        registry.route("/v1/nodes/islands", this::nodeIslands);
-        registry.route("/v1/admin/nodes/list", exchange -> CoreHttpResponses.write(exchange, 200, nodes.toJson(heartbeatTimeout)));
-        registry.route("/v1/admin/nodes/info", this::nodeInfo);
-        registry.route("/v1/admin/nodes/islands", this::nodeIslands);
+        registry.routePost("/v1/admin/storage", exchange -> CoreHttpResponses.write(exchange, 200, nodes.toJson(heartbeatTimeout)));
+        registry.routePost("/v1/nodes", exchange -> CoreHttpResponses.write(exchange, 200, nodes.toJson(heartbeatTimeout)));
+        registry.routePost("/v1/nodes/info", this::nodeInfo);
+        registry.routePost("/v1/nodes/islands", this::nodeIslands);
+        registry.routePost("/v1/admin/nodes/list", exchange -> CoreHttpResponses.write(exchange, 200, nodes.toJson(heartbeatTimeout)));
+        registry.routePost("/v1/admin/nodes/info", this::nodeInfo);
+        registry.routePost("/v1/admin/nodes/islands", this::nodeIslands);
     }
 
     private void nodeInfo(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

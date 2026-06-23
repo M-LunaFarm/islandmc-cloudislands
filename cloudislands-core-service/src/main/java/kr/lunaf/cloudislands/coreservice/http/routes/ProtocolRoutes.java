@@ -24,7 +24,7 @@ public final class ProtocolRoutes implements RouteGroup {
     @Override
     public void register(CoreRouteRegistry registry) {
         registry.routePost("/v1/nodes/heartbeat", this::heartbeat);
-        registry.route("/v1/admin/protocol", exchange -> CoreHttpResponses.write(exchange, 200, protocolStatusJson()));
+        registry.routeMethods("/v1/admin/protocol", exchange -> CoreHttpResponses.write(exchange, 200, protocolStatusJson()), "GET", "POST");
     }
 
     private void heartbeat(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

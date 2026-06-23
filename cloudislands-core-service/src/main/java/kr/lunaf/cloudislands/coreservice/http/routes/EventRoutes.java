@@ -17,13 +17,13 @@ public final class EventRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/events", exchange -> {
+        registry.routePost("/v1/events", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 512), 4096));
             long sinceSeq = Math.max(0L, JsonFields.longValue(body, "sinceSeq", 0L));
             CoreHttpResponses.write(exchange, 200, events.toJson(limit, sinceSeq));
         });
-        registry.route("/v1/islands/visitors/stats", exchange -> {
+        registry.routePost("/v1/islands/visitors/stats", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 10), 100));

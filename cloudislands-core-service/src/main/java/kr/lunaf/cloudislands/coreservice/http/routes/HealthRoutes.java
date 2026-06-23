@@ -23,10 +23,10 @@ public final class HealthRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/live", exchange -> CoreHttpResponses.write(exchange, 200, SimpleJson.stringify(Map.of("status", "UP"))));
-        registry.route("/ready", this::readiness);
-        registry.route("/health", this::readiness);
-        registry.route("/metrics", exchange -> CoreHttpResponses.write(exchange, 200, metrics.get(), METRICS_CONTENT_TYPE));
+        registry.routeGet("/live", exchange -> CoreHttpResponses.write(exchange, 200, SimpleJson.stringify(Map.of("status", "UP"))));
+        registry.routeGet("/ready", this::readiness);
+        registry.routeGet("/health", this::readiness);
+        registry.routeMethods("/metrics", exchange -> CoreHttpResponses.write(exchange, 200, metrics.get(), METRICS_CONTENT_TYPE), "GET", "POST");
     }
 
     private void readiness(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
