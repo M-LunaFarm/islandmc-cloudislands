@@ -127,6 +127,15 @@ class ExternalTarBundleExtractorTest {
         assertTrue(output.getMessage().contains("tar output exceeded"));
     }
 
+    @Test
+    void extractorSyncsValidatedStagingTreeBeforePublishing() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/world/bundle/ExternalTarBundleExtractor.java"), StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("syncExtractedTree(staging);"));
+        assertTrue(source.contains("Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE);"));
+        assertTrue(source.contains("fsyncDirectory(parent);"));
+    }
+
     private Path bundleFile(int bytes) throws IOException {
         Path bundle = root.resolve("bundle-" + bytes + ".tar.zst");
         byte[] content = new byte[Math.max(1, bytes)];

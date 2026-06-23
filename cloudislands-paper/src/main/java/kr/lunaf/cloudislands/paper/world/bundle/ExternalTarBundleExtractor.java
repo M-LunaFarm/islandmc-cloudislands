@@ -3,11 +3,13 @@ package kr.lunaf.cloudislands.paper.world.bundle;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -64,6 +66,7 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
             Path checksums = staging.resolve(BundleIntegrityPolicy.CHECKSUM_FILE);
             requireRestoredShape(staging, manifest, chunks, checksums);
             verifyChecksums(staging, checksums);
+            syncExtractedTree(staging);
             publishDirectoryAtomically(staging, target);
             return new ExtractedBundle(target, target.resolve(BundleIntegrityPolicy.MANIFEST_FILE), target.resolve(BundleIntegrityPolicy.CHUNKS_DIRECTORY));
         } catch (IOException | RuntimeException exception) {
@@ -361,21 +364,49 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
         if (Files.exists(target)) {
             oldTarget = parent.resolve(".previous-" + target.getFileName() + "-" + UUID.randomUUID());
             Files.move(target, oldTarget, StandardCopyOption.ATOMIC_MOVE);
+            fsyncDirectory(parent);
         }
         try {
             Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE);
+            fsyncDirectory(parent);
             if (oldTarget != null) {
                 deleteRecursively(oldTarget);
+                fsyncDirectory(parent);
             }
         } catch (IOException | RuntimeException exception) {
             if (oldTarget != null && !Files.exists(target)) {
                 try {
                     Files.move(oldTarget, target, StandardCopyOption.ATOMIC_MOVE);
+                    fsyncDirectory(parent);
                 } catch (IOException restoreFailure) {
                     exception.addSuppressed(restoreFailure);
                 }
             }
             throw exception;
+        }
+    }
+
+    private void syncExtractedTree(Path root) throws IOException {
+        try (java.util.stream.Stream<Path> paths = Files.walk(root)) {
+            for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
+                if (Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
+                    fsyncFile(path);
+                } else if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+                    fsyncDirectory(path);
+                }
+            }
+        }
+    }
+
+    private void fsyncFile(Path file) throws IOException {
+        try (FileChannel channel = FileChannel.open(file, StandardOpenOption.READ)) {
+            channel.force(true);
+        }
+    }
+
+    private void fsyncDirectory(Path directory) throws IOException {
+        try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
+            channel.force(true);
         }
     }
 
