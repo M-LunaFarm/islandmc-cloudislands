@@ -172,6 +172,119 @@ public record CoreServiceConfig(
         return Math.max(0, httpQueueCapacity);
     }
 
+    public CoreConfigSections sections() {
+        return new CoreConfigSections(
+            serverConfig(),
+            authConfig(),
+            databaseConfig(),
+            redisConfig(),
+            storageConfig(),
+            routingConfig(),
+            jobConfig(),
+            snapshotConfig(),
+            observabilityConfig(),
+            migrationConfig()
+        );
+    }
+
+    public ServerConfig serverConfig() {
+        return new ServerConfig(
+            bind,
+            port,
+            adminBind,
+            adminPort,
+            adminListenerEnabled,
+            allowInsecurePublicHttp,
+            httpWorkerThreads(),
+            httpQueueCapacity(),
+            httpKeepAlive(),
+            httpShutdownGrace()
+        );
+    }
+
+    public AuthConfig authConfig() {
+        return new AuthConfig(
+            coreToken,
+            nodeCredentials,
+            adminToken,
+            adminPermissions,
+            ipAllowlist,
+            adminApiEnabled,
+            publicAdminApiEnabled,
+            requireMtls,
+            mtlsVerifiedHeader,
+            mtlsVerifiedValue,
+            mtlsTrustedProxies
+        );
+    }
+
+    public DatabaseConfig databaseConfig() {
+        return new DatabaseConfig(
+            repositoryMode,
+            jdbcUrl,
+            configuredDatabaseType,
+            databaseUsername,
+            databasePassword,
+            databasePoolSize,
+            setupDatabaseAutoSchema,
+            setupDatabaseFallbackEnabled,
+            setupDatabaseFallbackOrder,
+            setupDatabaseFallbackRequireSharedBeforeLocal,
+            setupDatabaseFallbackLocalLast,
+            setupDatabaseFallbackProductionSafeOrder,
+            setupDatabaseAllowInMemoryFallback,
+            setupDatabaseCoreApiBaseUrl,
+            setupDatabaseCoreApiAuthTokenConfigured,
+            setupDatabaseCoreApiAdminTokenConfigured,
+            setupDatabaseCoreApiTimeoutMillis
+        );
+    }
+
+    public RedisConfig redisConfig() {
+        return new RedisConfig(redisUri, jobQueueMode, eventBusMode);
+    }
+
+    public StorageConfig storageConfig() {
+        return new StorageConfig(
+            storageType,
+            storageEndpoint,
+            storageBucket,
+            storageLocalPath,
+            storageRegion,
+            storageAccessKey,
+            storageSecretKey,
+            storageBearerToken
+        );
+    }
+
+    public RoutingConfig routingConfig() {
+        return new RoutingConfig(
+            islandPool,
+            softFullPolicy,
+            hardFullPolicy,
+            migrationPolicy,
+            routeTicketTtl,
+            routePreparingTicketTtl,
+            heartbeatTimeout
+        );
+    }
+
+    public JobConfig jobConfig() {
+        return new JobConfig(jobQueueMode, leaseDuration);
+    }
+
+    public SnapshotConfig snapshotConfig() {
+        return new SnapshotConfig(snapshotKeepLatest, snapshotRetentionPolicy);
+    }
+
+    public ObservabilityConfig observabilityConfig() {
+        return new ObservabilityConfig(rateLimitRequests, rateLimitWindow);
+    }
+
+    public MigrationConfig migrationConfig() {
+        return new MigrationConfig(migrationPolicy, superiorSkyblock2MigrationEnabled);
+    }
+
     public CoreAuthMode authMode() {
         Map<String, String> config = applicationConfig();
         return CoreAuthMode.fromConfig(env("CI_AUTH_MODE", setting(config, "security.auth-mode", "")), requireMtls);

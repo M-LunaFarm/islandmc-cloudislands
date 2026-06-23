@@ -260,6 +260,60 @@ class CoreServiceConfigTest {
         assertEquals(Duration.ofSeconds(10), clamped.httpShutdownGrace());
     }
 
+    @Test
+    void typedSectionsExposeExistingConfigWithoutChangingDefaults() {
+        CoreServiceConfig config = config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "POSTGRESQL", true);
+        CoreConfigSections sections = config.sections();
+
+        assertEquals("127.0.0.1", sections.server().bind());
+        assertEquals(8443, sections.server().port());
+        assertEquals("127.0.0.1", sections.server().adminBind());
+        assertEquals(9443, sections.server().adminPort());
+        assertTrue(sections.server().adminListenerEnabled());
+        assertFalse(sections.server().allowInsecurePublicHttp());
+        assertEquals(8, sections.server().httpWorkerThreads());
+        assertEquals(128, sections.server().httpQueueCapacity());
+        assertEquals(Duration.ofSeconds(30), sections.server().httpKeepAlive());
+        assertEquals(Duration.ofSeconds(10), sections.server().httpShutdownGrace());
+
+        assertEquals(config.coreToken(), sections.auth().coreToken());
+        assertEquals(config.nodeCredentials(), sections.auth().nodeCredentials());
+        assertEquals(config.adminToken(), sections.auth().adminToken());
+        assertTrue(sections.auth().adminApiEnabled());
+        assertFalse(sections.auth().publicAdminApiEnabled());
+        assertEquals("127.0.0.1,localhost,::1", sections.auth().mtlsTrustedProxies());
+
+        assertEquals("JDBC", sections.database().repositoryMode());
+        assertEquals("jdbc:postgresql://postgres.internal:5432/cloudislands", sections.database().jdbcUrl());
+        assertEquals("POSTGRESQL", sections.database().configuredDatabaseType());
+        assertEquals(20, sections.database().poolSize());
+        assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API,UNSUPPORTED_JDBC", sections.database().fallbackOrder());
+        assertTrue(sections.database().coreApiAuthTokenConfigured());
+
+        assertEquals(URI.create("redis://127.0.0.1:6379"), sections.redis().uri());
+        assertEquals("REDIS", sections.redis().jobQueueMode());
+        assertEquals("REDIS", sections.redis().eventBusMode());
+
+        assertEquals("S3", sections.storage().type());
+        assertEquals(URI.create("http://127.0.0.1:9000"), sections.storage().endpoint());
+        assertEquals("cloudislands", sections.storage().bucket());
+        assertEquals("us-east-1", sections.storage().region());
+
+        assertEquals("island", sections.routing().islandPool());
+        assertEquals("AVOID_NEW_ACTIVATIONS", sections.routing().softFullPolicy());
+        assertEquals("DENY_OR_QUEUE", sections.routing().hardFullPolicy());
+        assertEquals(Duration.ofSeconds(120), sections.routing().routePreparingTicketTtl());
+
+        assertEquals("REDIS", sections.job().queueMode());
+        assertEquals(Duration.ofSeconds(30), sections.job().leaseDuration());
+        assertEquals(config.snapshotKeepLatest(), sections.snapshot().keepLatest());
+        assertEquals(config.snapshotRetentionPolicy(), sections.snapshot().retentionPolicy());
+        assertEquals(240, sections.observability().rateLimitRequests());
+        assertEquals(Duration.ofSeconds(60), sections.observability().rateLimitWindow());
+        assertEquals("INACTIVE_ONLY_AUTOMATIC", sections.migration().policy());
+        assertTrue(sections.migration().superiorSkyblock2Enabled());
+    }
+
     private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled) {
         return config(repositoryMode, jdbcUrl, databaseType, fallbackEnabled, "production", false);
     }
