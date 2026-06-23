@@ -22,12 +22,12 @@ public final class RoutePreparationRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/routes/home", this::home);
-        registry.route("/v1/routes/visit", this::visit);
-        registry.route("/v1/routes/random", this::random);
-        registry.route("/v1/routes/warp", this::warp);
-        registry.route("/v1/routes/migration-return", this::migrationReturn);
-        registry.route("/v1/admin/islands/tp", this::adminTeleport);
+        registry.routePost("/v1/routes/home", this::home);
+        registry.routePost("/v1/routes/visit", this::visit);
+        registry.routePost("/v1/routes/random", this::random);
+        registry.routePost("/v1/routes/warp", this::warp);
+        registry.routePost("/v1/routes/migration-return", this::migrationReturn);
+        registry.routePost("/v1/admin/islands/tp", this::adminTeleport);
     }
 
     private void home(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
