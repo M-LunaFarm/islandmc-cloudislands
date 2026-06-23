@@ -623,6 +623,8 @@ class PaperIntegrationRegistryTest {
         assertTrue(runtimeSource.contains("invokeStaticNoArg(\"dev.rosewood.rosestacker.api.RoseStackerAPI\", \"getInstance\")"), "RoseStacker adapter must invoke the API singleton entrypoint when present");
         assertTrue(runtimeSource.contains("externalApiAvailable(pluginName, details, plan)"), "Bukkit runtime must fail operation plans when required API probes are missing");
         assertTrue(runtimeSource.contains("IntegrationResult.failed(pluginName + \" Bukkit adapter cannot execute \" + operation"), "Bukkit runtime must not report probe-only integrations as successful operations");
+        assertTrue(runtimeSource.contains("IntegrationResult.skipped(pluginName + \" Bukkit adapter verified API for \" + operation"), "Bukkit runtime must not promote API probes to completed integration operations");
+        assertFalse(runtimeSource.contains("IntegrationResult.success(pluginName + \" Bukkit adapter accepted \" + operation"), "Bukkit runtime must not report reflective probe acceptance as operation success");
         assertTrue(runtimeSource.contains("bool(details, \"apiProbe.invoke.getAPI\")"), "CoreProtect operations must require a real API object");
         assertTrue(runtimeSource.contains("bool(details, \"apiProbe.invoke.WorldEdit.getInstance\")"), "WorldEdit operations must require the singleton API");
         assertTrue(runtimeSource.contains("bool(details, \"apiProbe.bukkitService.LuckPerms\")"), "LuckPerms operations must require the Bukkit service");

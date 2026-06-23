@@ -34,7 +34,7 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
         if (!externalApiAvailable(pluginName, details, plan)) {
             return IntegrationResult.failed(pluginName + " Bukkit adapter cannot execute " + operation + ": external API unavailable", details);
         }
-        return IntegrationResult.success(pluginName + " Bukkit adapter accepted " + operation, details);
+        return IntegrationResult.skipped(pluginName + " Bukkit adapter verified API for " + operation + " but no operation executor is implemented", details);
     }
 
     private Map<String, String> details(String pluginName, Plugin plugin, String category, String operation, IntegrationOperationPlan plan) {
