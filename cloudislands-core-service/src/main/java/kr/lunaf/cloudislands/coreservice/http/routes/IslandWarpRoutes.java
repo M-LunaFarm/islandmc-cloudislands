@@ -59,13 +59,13 @@ public final class IslandWarpRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/warps", this::warps);
-        registry.route("/v1/islands/public-warps", this::publicWarps);
-        registry.route("/v1/islands/homes", this::homes);
-        registry.route("/v1/islands/homes/set", this::setHome);
-        registry.route("/v1/islands/warps/set", this::setWarp);
-        registry.route("/v1/islands/warps/delete", this::deleteWarp);
-        registry.route("/v1/islands/warps/access", this::setWarpAccess);
+        registry.routePost("/v1/islands/warps", this::warps);
+        registry.routePost("/v1/islands/public-warps", this::publicWarps);
+        registry.routePost("/v1/islands/homes", this::homes);
+        registry.routePost("/v1/islands/homes/set", this::setHome);
+        registry.routePost("/v1/islands/warps/set", this::setWarp);
+        registry.routePost("/v1/islands/warps/delete", this::deleteWarp);
+        registry.routePost("/v1/islands/warps/access", this::setWarpAccess);
     }
 
     private void warps(HttpExchange exchange) throws IOException {
