@@ -40,6 +40,10 @@ public final class JobRecoveryMonitor {
         executor.scheduleWithFixedDelay(this::sweep, delayMillis, delayMillis, TimeUnit.MILLISECONDS);
     }
 
+    public void stop() {
+        executor.shutdownNow();
+    }
+
     public void sweep() {
         try {
             String recovered = recover();

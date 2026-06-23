@@ -96,7 +96,11 @@ class IslandNodePoolScalePolicyTest {
                 "SUCCESS",
                 "127.0.0.1,localhost,::1",
                 240,
-                Duration.ofSeconds(60)
+                Duration.ofSeconds(60),
+                8,
+                128,
+                Duration.ofSeconds(30),
+                Duration.ofSeconds(10)
         );
     }
 }

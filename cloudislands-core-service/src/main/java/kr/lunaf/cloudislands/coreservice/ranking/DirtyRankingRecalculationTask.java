@@ -40,6 +40,10 @@ public final class DirtyRankingRecalculationTask {
         executor.scheduleWithFixedDelay(this::runOnce, INITIAL_DELAY_SECONDS, PERIOD_SECONDS, TimeUnit.SECONDS);
     }
 
+    public void stop() {
+        executor.shutdownNow();
+    }
+
     public void runOnce() {
         java.util.List<UUID> dirty = rankings.drainDirty(BATCH_LIMIT);
         lastBatchSize.set(dirty.size());

@@ -71,7 +71,11 @@ public record CoreServiceConfig(
     String mtlsVerifiedValue,
     String mtlsTrustedProxies,
     int rateLimitRequests,
-    Duration rateLimitWindow
+    Duration rateLimitWindow,
+    int httpWorkerThreads,
+    int httpQueueCapacity,
+    Duration httpKeepAlive,
+    Duration httpShutdownGrace
 ) {
     public static CoreServiceConfig fromEnvironment() {
         Map<String, String> config = applicationConfig();
@@ -138,8 +142,28 @@ public record CoreServiceConfig(
             env("CI_MTLS_VERIFIED_VALUE", setting(config, "security.mtls-verified-value", "SUCCESS")),
             env("CI_MTLS_TRUSTED_PROXIES", setting(config, "security.mtls-trusted-proxies", "127.0.0.1,localhost,::1")),
             integer("CI_RATE_LIMIT_REQUESTS", configInteger(config, "security.rate-limit-requests", 240)),
-            Duration.ofSeconds(integer("CI_RATE_LIMIT_WINDOW_SECONDS", configInteger(config, "security.rate-limit-window-seconds", 60)))
+            Duration.ofSeconds(integer("CI_RATE_LIMIT_WINDOW_SECONDS", configInteger(config, "security.rate-limit-window-seconds", 60))),
+            integer("CI_HTTP_WORKER_THREADS", configInteger(config, "server.http-worker-threads", defaultHttpWorkerThreads())),
+            integer("CI_HTTP_QUEUE_CAPACITY", configInteger(config, "server.http-queue-capacity", 128)),
+            Duration.ofSeconds(integer("CI_HTTP_KEEPALIVE_SECONDS", configInteger(config, "server.http-keepalive-seconds", 30))),
+            Duration.ofSeconds(integer("CI_HTTP_SHUTDOWN_GRACE_SECONDS", configInteger(config, "server.http-shutdown-grace-seconds", 10)))
         );
+    }
+
+    public int httpWorkerThreads() {
+        return Math.max(1, httpWorkerThreads);
+    }
+
+    public int httpQueueCapacity() {
+        return Math.max(0, httpQueueCapacity);
+    }
+
+    public Duration httpKeepAlive() {
+        return httpKeepAlive == null || httpKeepAlive.isNegative() || httpKeepAlive.isZero() ? Duration.ofSeconds(30) : httpKeepAlive;
+    }
+
+    public Duration httpShutdownGrace() {
+        return httpShutdownGrace == null || httpShutdownGrace.isNegative() ? Duration.ofSeconds(10) : httpShutdownGrace;
     }
 
     public boolean jdbcRepositories() {
@@ -386,7 +410,11 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow, httpWorkerThreads, httpQueueCapacity, httpKeepAlive, httpShutdownGrace);
+    }
+
+    private static int defaultHttpWorkerThreads() {
+        return Math.max(4, Runtime.getRuntime().availableProcessors());
     }
 
     public static String configuredDatabaseTypeSource() {

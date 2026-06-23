@@ -40,6 +40,10 @@ public final class RouteTicketExpiryMonitor {
         executor.scheduleWithFixedDelay(this::sweep, delayMillis, delayMillis, TimeUnit.MILLISECONDS);
     }
 
+    public void stop() {
+        executor.shutdownNow();
+    }
+
     public void sweep() {
         try {
             for (RouteTicket ticket : tickets.expireStale()) {

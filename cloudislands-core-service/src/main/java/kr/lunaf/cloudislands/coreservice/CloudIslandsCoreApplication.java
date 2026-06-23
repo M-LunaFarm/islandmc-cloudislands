@@ -35,6 +35,7 @@ import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRouteRegistrar;
+import kr.lunaf.cloudislands.coreservice.http.CoreHttpRequestExecutor;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminIslandLifecycleRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminRuntimeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.CoreConfigRoutes;
@@ -169,6 +170,8 @@ import kr.lunaf.cloudislands.coreservice.addon.JdbcAddonStateRepository;
 public final class CloudIslandsCoreApplication {
     private static final Logger LOGGER = Logger.getLogger(CloudIslandsCoreApplication.class.getName());
     private final HttpServer server;
+    private final CoreHttpRequestExecutor httpExecutor;
+    private final Duration httpShutdownGrace;
     private final CoreHttpRouteRegistrar routeRegistrar;
     private final NodeFailureMonitor nodeFailureMonitor;
     private final RouteTicketExpiryMonitor routeTicketExpiryMonitor;
@@ -355,6 +358,9 @@ public final class CloudIslandsCoreApplication {
         this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
         this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
+        this.httpExecutor = new CoreHttpRequestExecutor(config.httpWorkerThreads(), config.httpQueueCapacity(), config.httpKeepAlive());
+        this.httpShutdownGrace = config.httpShutdownGrace();
+        this.server.setExecutor(httpExecutor);
         this.routeRegistrar = routeRegistrar;
         routeRegistrar.attach(server);
         new HealthRoutes(config, metrics::render).register(routeRegistrar::route);
@@ -454,12 +460,23 @@ public final class CloudIslandsCoreApplication {
         rankingRecalculationTask.start();
     }
 
+    public void stop() {
+        rankingRecalculationTask.stop();
+        jobRecoveryMonitor.stop();
+        routeTicketExpiryMonitor.stop();
+        nodeFailureMonitor.stop();
+        server.stop((int) Math.min(Integer.MAX_VALUE, Math.max(0L, httpShutdownGrace.toSeconds())));
+        httpExecutor.shutdownGracefully(httpShutdownGrace);
+    }
+
     public static void main(String[] args) throws IOException {
         CoreServiceConfig config = CoreServiceConfig.fromEnvironment();
         if (args.length > 0) {
             config = config.withPort(Integer.parseInt(args[0]));
         }
-        new CloudIslandsCoreApplication(config).start();
+        CloudIslandsCoreApplication application = new CloudIslandsCoreApplication(config);
+        Runtime.getRuntime().addShutdownHook(new Thread(application::stop, "cloudislands-core-shutdown"));
+        application.start();
     }
 
 }

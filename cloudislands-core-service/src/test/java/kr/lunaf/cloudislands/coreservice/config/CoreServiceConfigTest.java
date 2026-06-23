@@ -159,6 +159,84 @@ class CoreServiceConfigTest {
         assertEquals("none", config.setupDatabaseFallbackSafetyMode());
     }
 
+    @Test
+    void httpExecutorSettingsAreTypedAndNormalized() {
+        CoreServiceConfig config = config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "POSTGRESQL", true);
+        CoreServiceConfig clamped = new CoreServiceConfig(
+                config.bind(),
+                config.port(),
+                config.repositoryMode(),
+                config.jobQueueMode(),
+                config.eventBusMode(),
+                config.jdbcUrl(),
+                config.configuredDatabaseType(),
+                config.databaseUsername(),
+                config.databasePassword(),
+                config.databasePoolSize(),
+                config.setupDatabaseAutoSchema(),
+                config.setupDatabaseFallbackEnabled(),
+                config.setupDatabaseFallbackOrder(),
+                config.setupDatabaseFallbackRequireSharedBeforeLocal(),
+                config.setupDatabaseFallbackLocalLast(),
+                config.setupDatabaseFallbackProductionSafeOrder(),
+                config.runtimeMode(),
+                config.setupDatabaseAllowInMemoryFallback(),
+                config.setupDatabaseCoreApiBaseUrl(),
+                config.setupDatabaseCoreApiAuthTokenConfigured(),
+                config.setupDatabaseCoreApiAdminTokenConfigured(),
+                config.setupDatabaseCoreApiTimeoutMillis(),
+                config.redisUri(),
+                config.storageType(),
+                config.storageEndpoint(),
+                config.storageBucket(),
+                config.storageLocalPath(),
+                config.storageRegion(),
+                config.storageAccessKey(),
+                config.storageSecretKey(),
+                config.storageBearerToken(),
+                config.coreToken(),
+                config.adminToken(),
+                config.adminPermissions(),
+                config.ipAllowlist(),
+                config.upgradesFile(),
+                config.blockValuesFile(),
+                config.levelFormulaType(),
+                config.levelFormulaExpression(),
+                config.worthFormulaType(),
+                config.islandPool(),
+                config.softFullPolicy(),
+                config.hardFullPolicy(),
+                config.migrationPolicy(),
+                config.superiorSkyblock2MigrationEnabled(),
+                config.routeTicketTtl(),
+                config.routePreparingTicketTtl(),
+                config.heartbeatTimeout(),
+                config.leaseDuration(),
+                config.snapshotKeepLatest(),
+                config.snapshotRetentionPolicy(),
+                config.adminApiEnabled(),
+                config.requireMtls(),
+                config.mtlsVerifiedHeader(),
+                config.mtlsVerifiedValue(),
+                config.mtlsTrustedProxies(),
+                config.rateLimitRequests(),
+                config.rateLimitWindow(),
+                0,
+                -1,
+                Duration.ZERO,
+                Duration.ofSeconds(-1)
+        );
+
+        assertEquals(8, config.httpWorkerThreads());
+        assertEquals(128, config.httpQueueCapacity());
+        assertEquals(Duration.ofSeconds(30), config.httpKeepAlive());
+        assertEquals(Duration.ofSeconds(10), config.httpShutdownGrace());
+        assertEquals(1, clamped.httpWorkerThreads());
+        assertEquals(0, clamped.httpQueueCapacity());
+        assertEquals(Duration.ofSeconds(30), clamped.httpKeepAlive());
+        assertEquals(Duration.ofSeconds(10), clamped.httpShutdownGrace());
+    }
+
     private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled) {
         return config(repositoryMode, jdbcUrl, databaseType, fallbackEnabled, "production", false);
     }
@@ -226,7 +304,11 @@ class CoreServiceConfigTest {
                 "SUCCESS",
                 "127.0.0.1,localhost,::1",
                 240,
-                Duration.ofSeconds(60)
+                Duration.ofSeconds(60),
+                8,
+                128,
+                Duration.ofSeconds(30),
+                Duration.ofSeconds(10)
         );
     }
 }

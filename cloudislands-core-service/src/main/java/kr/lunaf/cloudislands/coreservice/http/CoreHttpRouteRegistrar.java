@@ -52,6 +52,9 @@ public final class CoreHttpRouteRegistrar {
 
     public void route(String path, HttpHandler handler) {
         requireServer().createContext(path, exchange -> {
+            if (rejectBusy(exchange)) {
+                return;
+            }
             String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
             if (!rateLimiter.allow(key)) {
                 auditSecurityReject("RATE_LIMITED", path, exchange);
@@ -88,6 +91,9 @@ public final class CoreHttpRouteRegistrar {
 
     public void routePrefix(String path, HttpHandler handler) {
         requireServer().createContext(path, exchange -> {
+            if (rejectBusy(exchange)) {
+                return;
+            }
             String requestPath = exchange.getRequestURI().getPath();
             String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
             if (!rateLimiter.allow(key)) {
@@ -144,6 +150,14 @@ public final class CoreHttpRouteRegistrar {
             throw new IllegalStateException("Core HTTP server is not attached");
         }
         return server;
+    }
+
+    private boolean rejectBusy(HttpExchange exchange) throws IOException {
+        if (!CoreHttpRequestExecutor.saturatedRequest()) {
+            return false;
+        }
+        CoreHttpResponses.write(exchange, 503, ApiResponses.error("CORE_BUSY", "Core HTTP worker pool is saturated"));
+        return true;
     }
 
     private boolean coreApiAuthenticated(HttpExchange exchange) {
