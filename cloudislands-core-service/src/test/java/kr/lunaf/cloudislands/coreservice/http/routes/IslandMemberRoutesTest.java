@@ -5,16 +5,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.sun.net.httpserver.HttpHandler;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +38,20 @@ class IslandMemberRoutesTest {
         assertTrue(paths.contains("/v1/islands/members/trust-temporary"));
         assertTrue(paths.contains("/v1/islands/transfer"));
         assertTrue(paths.contains("/v1/islands/members/remove"));
+    }
+
+    @Test
+    void registersIslandMemberEndpointsAsPostOnly() {
+        RecordingRegistry registry = new RecordingRegistry();
+
+        new IslandMemberRoutes(null, null, null, null, null, null, null, null).register(registry);
+
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/members"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/islands"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/members/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/members/trust-temporary"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/transfer"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/members/remove"));
     }
 
     @Test
@@ -119,5 +138,27 @@ class IslandMemberRoutesTest {
         assertEquals(roleKey, SimpleJson.text(member.get("role")));
         assertEquals(roleKey, SimpleJson.text(member.get("roleKey")));
         assertTrue(!SimpleJson.text(member.get("joinedAt")).isBlank());
+    }
+
+    private static final class RecordingRegistry implements CoreRouteRegistry {
+        private final Map<String, Set<String>> methods = new HashMap<>();
+
+        @Override
+        public void route(String path, HttpHandler handler) {
+            methods.put(path, Set.of("GET", "POST"));
+        }
+
+        @Override
+        public void routeMethods(String path, HttpHandler handler, String... routeMethods) {
+            LinkedHashSet<String> allowed = new LinkedHashSet<>();
+            for (String method : routeMethods) {
+                allowed.add(method);
+            }
+            methods.put(path, Set.copyOf(allowed));
+        }
+
+        Set<String> methods(String path) {
+            return methods.getOrDefault(path, Set.of());
+        }
     }
 }

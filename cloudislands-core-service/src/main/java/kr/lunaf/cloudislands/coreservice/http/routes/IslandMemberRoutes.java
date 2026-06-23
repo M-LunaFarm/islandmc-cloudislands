@@ -63,12 +63,12 @@ public final class IslandMemberRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/members", this::members);
-        registry.route("/v1/players/islands", this::playerIslands);
-        registry.route("/v1/islands/members/set", this::setMember);
-        registry.route("/v1/islands/members/trust-temporary", this::trustTemporary);
-        registry.route("/v1/islands/transfer", this::transferOwnership);
-        registry.route("/v1/islands/members/remove", this::removeMember);
+        registry.routePost("/v1/islands/members", this::members);
+        registry.routePost("/v1/players/islands", this::playerIslands);
+        registry.routePost("/v1/islands/members/set", this::setMember);
+        registry.routePost("/v1/islands/members/trust-temporary", this::trustTemporary);
+        registry.routePost("/v1/islands/transfer", this::transferOwnership);
+        registry.routePost("/v1/islands/members/remove", this::removeMember);
     }
 
     private void members(HttpExchange exchange) throws IOException {
