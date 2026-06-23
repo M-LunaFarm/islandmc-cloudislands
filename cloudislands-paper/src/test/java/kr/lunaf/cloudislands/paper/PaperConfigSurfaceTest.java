@@ -1,11 +1,13 @@
 package kr.lunaf.cloudislands.paper;
 
+import kr.lunaf.cloudislands.common.config.ConfigSurfacePolicy;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,8 +23,12 @@ class PaperConfigSurfaceTest {
         String security = Files.readString(Path.of("src/main/resources/config-v2/security.yml"), StandardCharsets.UTF_8);
         String gameplay = Files.readString(Path.of("src/main/resources/config-v2/gameplay.yml"), StandardCharsets.UTF_8);
         String features = Files.readString(Path.of("src/main/resources/config-v2/features.yml"), StandardCharsets.UTF_8);
+        String config = String.join("\n", runtime, integrations, security, gameplay, features);
 
         assertFalse(Files.exists(Path.of("src/main/resources/config.yml")), "Paper plugin must not bundle legacy config.yml alongside authoritative config-v2 files");
+        for (String key : ConfigSurfacePolicy.paperRequiredKeys()) {
+            assertTrue(containsPath(config, key), key);
+        }
         assertTrue(runtime.contains("id: island-node-01"));
         assertTrue(runtime.contains("role: ISLAND_NODE"));
         assertTrue(runtime.contains("pool: island"));
@@ -157,6 +163,50 @@ class PaperConfigSurfaceTest {
         assertTrue(plugin.contains("${file:"), "Paper runtime config resolver must recognize Config v2 file secret references");
     }
 
+    @Test
+    void goalPaperConfigKeysAreLoadedAndConsumedByRuntimeCode() throws Exception {
+        String loader = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfigLoader.java"), StandardCharsets.UTF_8);
+        String runtime = String.join("\n",
+            Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"), StandardCharsets.UTF_8),
+            Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperIslandNodeRuntime.java"), StandardCharsets.UTF_8),
+            Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperCoreClientFactory.java"), StandardCharsets.UTF_8),
+            Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperHeartbeatRuntime.java"), StandardCharsets.UTF_8),
+            Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/storage/PaperStorageFactory.java"), StandardCharsets.UTF_8)
+        );
+        Map<String, ConfigPathCoverage> coverage = Map.ofEntries(
+            Map.entry("node.id", new ConfigPathCoverage("\"node.id\"", List.of("config.node().id()"))),
+            Map.entry("node.role", new ConfigPathCoverage("\"node.role\"", List.of("config.node().role()"))),
+            Map.entry("node.pool", new ConfigPathCoverage("\"node.pool\"", List.of("config.node().pool()"))),
+            Map.entry("core-api.base-url", new ConfigPathCoverage("\"setup.core-api.base-url\"", List.of("safeConfig.baseUrl()"))),
+            Map.entry("core-api.auth-token", new ConfigPathCoverage("\"setup.core-api.auth-token\"", List.of("safeConfig.token()"))),
+            Map.entry("redis.uri", new ConfigPathCoverage("\"redis.uri\"", List.of("config.redis().uri()"))),
+            Map.entry("storage.type", new ConfigPathCoverage("PRIMARY_STORAGE_TYPE_PATH", List.of("config.primary()"))),
+            Map.entry("storage.endpoint", new ConfigPathCoverage("\"setup.storage.endpoint\"", List.of("config.endpoint()"))),
+            Map.entry("storage.bucket", new ConfigPathCoverage("\"setup.storage.bucket\"", List.of("config.bucket()"))),
+            Map.entry("storage.access-key", new ConfigPathCoverage("\"setup.storage.access-key\"", List.of("config.accessKey()"))),
+            Map.entry("storage.secret-key", new ConfigPathCoverage("\"setup.storage.secret-key\"", List.of("config.secretKey()"))),
+            Map.entry("island-node.shard-world-prefix", new ConfigPathCoverage("\"island-node.shard-world-prefix\"", List.of("config.worker().shardWorldPrefix()"))),
+            Map.entry("island-node.shard-count", new ConfigPathCoverage("\"island-node.shard-count\"", List.of("config.worker().shardCount()"))),
+            Map.entry("island-node.cell-size", new ConfigPathCoverage("\"island-node.cell-size\"", List.of("config.worker().cellSize()"))),
+            Map.entry("island-node.default-island-size", new ConfigPathCoverage("\"island-node.default-island-size\"", List.of("config.worker().defaultIslandSize()"))),
+            Map.entry("capacity.max-activation-queue", new ConfigPathCoverage("\"capacity.max-activation-queue\"", List.of("config.node().maxActivationQueue()"))),
+            Map.entry("island-node.activation.preload-radius", new ConfigPathCoverage("\"island-node.activation.preload-radius\"", List.of("config.worker().activationPreloadRadius()"))),
+            Map.entry("island-node.activation.save-on-empty-after", new ConfigPathCoverage("\"island-node.activation.save-on-empty-after\"", List.of("config.worker().saveOnEmptyAfterSeconds()"))),
+            Map.entry("island-node.activation.periodic-save", new ConfigPathCoverage("\"island-node.activation.periodic-save\"", List.of("config.worker().periodicSaveSeconds()"))),
+            Map.entry("protection.cache-event-poll-ticks", new ConfigPathCoverage("\"protection.cache-event-poll-ticks\"", List.of("config.protection().cacheEventPollTicks()"))),
+            Map.entry("protection.deny-message-cooldown-ms", new ConfigPathCoverage("\"protection.deny-message-cooldown-ms\"", List.of("config.protection().denyMessageCooldownMs()"))),
+            Map.entry("heartbeat.interval", new ConfigPathCoverage("\"heartbeat.interval\"", List.of("config.heartbeat().intervalTicks()")))
+        );
+
+        assertTrue(coverage.keySet().containsAll(ConfigSurfacePolicy.paperRequiredKeys()), "Paper config coverage must include every required key");
+        assertTrue(ConfigSurfacePolicy.paperRequiredKeys().containsAll(coverage.keySet()), "Paper config coverage must not keep stale key mappings");
+        for (String key : ConfigSurfacePolicy.paperRequiredKeys()) {
+            ConfigPathCoverage keyCoverage = coverage.get(key);
+            assertTrue(loader.contains(keyCoverage.loaderSignal()), key + " must be loaded by PaperRuntimeConfigLoader");
+            assertTrue(keyCoverage.consumerSignals().stream().anyMatch(runtime::contains), key + " must be consumed by runtime code");
+        }
+    }
+
     private int countOccurrences(String text, String pattern) {
         int count = 0;
         int offset = 0;
@@ -215,5 +265,13 @@ class PaperConfigSurfaceTest {
             return value.substring(1, value.length() - 1);
         }
         return value;
+    }
+
+    private boolean containsPath(String config, String path) {
+        String[] parts = path.split("\\.");
+        return config.contains(parts[parts.length - 1] + ":");
+    }
+
+    private record ConfigPathCoverage(String loaderSignal, List<String> consumerSignals) {
     }
 }

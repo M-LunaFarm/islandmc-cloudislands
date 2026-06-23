@@ -2,6 +2,8 @@ protection:
   outside-island-build: false
   explosion-policy: OWNER_ONLY
   void-rescue: true
+  cache-event-poll-ticks: 100
+  deny-message-cooldown-ms: 1000
 island-node:
   shard-world-prefix: "ci_shard_"
   shard-count: 16

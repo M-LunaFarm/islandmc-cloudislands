@@ -43,14 +43,13 @@ public final class ConfigSurfacePolicy {
             "island-node.shard-count",
             "island-node.cell-size",
             "island-node.default-island-size",
-            "island-node.activation.max-concurrent",
+            "capacity.max-activation-queue",
             "island-node.activation.preload-radius",
-            "island-node.activation.save-on-empty-after-seconds",
-            "island-node.activation.periodic-save-seconds",
-            "protection.cache-permissions",
+            "island-node.activation.save-on-empty-after",
+            "island-node.activation.periodic-save",
+            "protection.cache-event-poll-ticks",
             "protection.deny-message-cooldown-ms",
-            "heartbeat.interval-ticks",
-            "heartbeat.timeout-seconds"
+            "heartbeat.interval"
     );
 
     private static final List<String> CORE_REQUIRED_KEYS = List.of(

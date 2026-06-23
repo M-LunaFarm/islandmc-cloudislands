@@ -1082,6 +1082,39 @@ tasks.register<Test>("verifyPermissionCoverage") {
     include("kr/lunaf/cloudislands/paper/admin/AdminCommandBackendPolicyTest.class")
 }
 
+val verifyCoreConfigCoverage = tasks.register<Test>("verifyCoreConfigCoverage") {
+    group = "verification"
+    description = "Verifies Core config keys are loaded and consumed by runtime code."
+    val coreServiceSourceSets = project(":cloudislands-core-service").extensions.getByType<SourceSetContainer>()
+    val coreServiceTest = coreServiceSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-core-service").tasks.named("testClasses"))
+    testClassesDirs = coreServiceTest.output.classesDirs
+    classpath = coreServiceTest.runtimeClasspath
+    workingDir = project(":cloudislands-core-service").projectDir
+    useJUnitPlatform()
+    include("kr/lunaf/cloudislands/coreservice/config/CoreConfigSurfaceTest.class")
+}
+
+val verifyPaperConfigCoverage = tasks.register<Test>("verifyPaperConfigCoverage") {
+    group = "verification"
+    description = "Verifies Paper config keys are loaded and consumed by runtime code."
+    val paperSourceSets = project(":cloudislands-paper").extensions.getByType<SourceSetContainer>()
+    val paperTest = paperSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-paper").tasks.named("testClasses"))
+    testClassesDirs = paperTest.output.classesDirs
+    classpath = paperTest.runtimeClasspath
+    workingDir = project(":cloudislands-paper").projectDir
+    useJUnitPlatform()
+    include("kr/lunaf/cloudislands/paper/PaperConfigSurfaceTest.class")
+}
+
+tasks.register("verifyConfigCoverage") {
+    group = "verification"
+    description = "Verifies goal config keys map to runtime loaders and real consumers."
+    dependsOn(verifyCoreConfigCoverage)
+    dependsOn(verifyPaperConfigCoverage)
+}
+
 val verifyPaperCommandCoverage = tasks.register<Test>("verifyPaperCommandCoverage") {
     group = "verification"
     description = "Verifies Paper command catalog, help, and handler routing coverage."
@@ -1608,6 +1641,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyEventCoverage"))
     dependsOn(tasks.named("verifyGuiActionCoverage"))
     dependsOn(tasks.named("verifyPermissionCoverage"))
+    dependsOn(tasks.named("verifyConfigCoverage"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))
     dependsOn(tasks.named("verifyReleaseSecurityGate"))
 }
