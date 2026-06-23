@@ -392,7 +392,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "public API, events, addon metadata, and compatibility contract are tested",
         "Paper API bridge has unit coverage",
         "version-neutral API with runtime metadata compatibility check",
-        "apiCompatibilityCheck verifies release contract metadata",
+        "apiCompatibilityCheck verifies release contract metadata and the public API signature baseline",
         "not recovery-specific",
         listOf(
             "cloudislands-testkit/src/main/java/kr/lunaf/cloudislands/testkit/ApiCompatibilityCheckCli.java",

@@ -26,12 +26,34 @@ class ApiContractVerifierTest {
     @Test
     void apiCompatibilityCliReportCarriesReleaseGateDecision() {
         ApiContractVerification verification = ApiContractVerifier.verifyRuntimeMetadata(CloudIslandsApiContract.metadata());
-        String report = ApiCompatibilityCheckCli.reportJson(verification);
+        PublicApiSignatureReport signatureReport = new PublicApiSignatureReport("test-baseline", 1, 100, java.util.List.of());
+        String report = ApiCompatibilityCheckCli.reportJson(verification, signatureReport);
 
         assertTrue(report.contains("\"passed\":true"));
         assertTrue(report.contains("\"apiCompatibilityStatus\":\"compatible\""));
+        assertTrue(report.contains("\"publicApiSignatureStatus\":\"compatible\""));
         assertTrue(report.contains(CloudIslandsApiContract.SEMANTIC_VERSION_POLICY));
         assertTrue(report.contains(CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY));
+    }
+
+    @Test
+    void publicApiSignatureBaselineAcceptsCurrentRuntimeSurface() {
+        PublicApiSignatureReport report = PublicApiSignatureVerifier.verifyBaseline();
+
+        assertTrue(report.compatible(), report.missingSignatures().toString());
+        assertTrue(report.baselineSignatureCount() > 0);
+        assertTrue(report.currentSignatureCount() >= report.baselineSignatureCount());
+    }
+
+    @Test
+    void publicApiSignatureVerifierReportsRemovedBaselineMethods() {
+        PublicApiSignatureReport report = PublicApiSignatureVerifier.verifyBaseline(
+            "test-baseline",
+            java.util.List.of("method kr.lunaf.cloudislands.api.CloudIslandsApi#removed():void")
+        );
+
+        assertFalse(report.compatible());
+        assertTrue(report.missingSignatures().contains("method kr.lunaf.cloudislands.api.CloudIslandsApi#removed():void"));
     }
 
     @Test

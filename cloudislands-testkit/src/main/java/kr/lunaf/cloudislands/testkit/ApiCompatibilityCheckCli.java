@@ -15,19 +15,28 @@ public final class ApiCompatibilityCheckCli {
     public static void main(String[] args) throws IOException {
         CliOptions options = CliOptions.parse(args);
         ApiContractVerification verification = ApiContractVerifier.verifyRuntimeMetadata(CloudIslandsApiContract.metadata());
-        String json = reportJson(verification);
+        PublicApiSignatureReport signatureReport = PublicApiSignatureVerifier.verifyBaseline();
+        String json = reportJson(verification, signatureReport);
         System.out.println(json);
         if (options.reportOut() != null) {
             Files.createDirectories(options.reportOut().toAbsolutePath().getParent());
             Files.writeString(options.reportOut(), json + System.lineSeparator(), StandardCharsets.UTF_8);
         }
         verification.requirePassed();
+        if (!signatureReport.compatible()) {
+            throw new IllegalStateException("CloudIslands public API signature verification failed: " + signatureReport.missingSignatures());
+        }
     }
 
     static String reportJson(ApiContractVerification verification) {
+        return reportJson(verification, PublicApiSignatureVerifier.verifyBaseline());
+    }
+
+    static String reportJson(ApiContractVerification verification, PublicApiSignatureReport signatureReport) {
         LinkedHashMap<String, Object> root = new LinkedHashMap<>();
+        boolean signatureCompatible = signatureReport != null && signatureReport.compatible();
         root.put("subject", verification.subject());
-        root.put("passed", verification.passed());
+        root.put("passed", verification.passed() && signatureCompatible);
         root.put("requestedApiVersion", verification.requestedApiVersion());
         root.put("runtimeApiVersion", verification.runtimeApiVersion());
         root.put("apiCompatibilityStatus", verification.apiCompatibility().status().code());
@@ -35,7 +44,16 @@ public final class ApiCompatibilityCheckCli {
         root.put("contractMetadataStatus", verification.contractMetadataStatus());
         root.put("missingContractMetadataKeys", verification.missingContractMetadataKeys());
         root.put("missingAddonMetadataKeys", verification.missingAddonMetadataKeys());
-        root.put("failures", verification.failures());
+        root.put("publicApiSignatureStatus", signatureReport == null ? "missing-signature-report" : signatureReport.status());
+        root.put("publicApiSignatureBaseline", signatureReport == null ? "" : signatureReport.baselineResource());
+        root.put("publicApiBaselineSignatureCount", signatureReport == null ? 0 : signatureReport.baselineSignatureCount());
+        root.put("publicApiCurrentSignatureCount", signatureReport == null ? 0 : signatureReport.currentSignatureCount());
+        root.put("missingPublicApiSignatures", signatureReport == null ? java.util.List.of("missing-signature-report") : signatureReport.missingSignatures());
+        java.util.ArrayList<String> failures = new java.util.ArrayList<>(verification.failures());
+        if (!signatureCompatible) {
+            failures.add("public-api-signatures:" + (signatureReport == null ? "missing-signature-report" : String.join(",", signatureReport.missingSignatures())));
+        }
+        root.put("failures", java.util.List.copyOf(failures));
         LinkedHashMap<String, Object> policy = new LinkedHashMap<>();
         policy.put("semanticVersionPolicy", CloudIslandsApiContract.SEMANTIC_VERSION_POLICY);
         policy.put("deprecationPolicy", CloudIslandsApiContract.DEPRECATION_POLICY);
