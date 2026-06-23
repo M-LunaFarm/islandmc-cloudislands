@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.job;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import kr.lunaf.cloudislands.protocol.job.IslandJob;
 
 final class PaperJobCompletionReporter {
     private final String nodeId;
@@ -16,18 +17,22 @@ final class PaperJobCompletionReporter {
     }
 
     void report(UUID jobId, Map<String, String> payload) {
+        report(new IslandJob(jobId, null, null, "", 0, Map.of(), java.time.Instant.EPOCH), payload);
+    }
+
+    void report(IslandJob job, Map<String, String> payload) {
         try {
-            sink.complete(nodeId, jobId, payload);
+            sink.complete(nodeId, job, payload);
         } catch (RuntimeException exception) {
             warnings.accept("CloudIslands job completion report failed; leaving claimed job for retry: "
-                + jobId + " " + exception.getMessage());
+                + job.jobId() + " " + exception.getMessage());
             throw new CompletionReportFailedException(exception);
         }
     }
 
     @FunctionalInterface
     interface CompletionSink {
-        void complete(String nodeId, UUID jobId, Map<String, String> payload);
+        void complete(String nodeId, IslandJob job, Map<String, String> payload);
     }
 
     static final class CompletionReportFailedException extends RuntimeException {

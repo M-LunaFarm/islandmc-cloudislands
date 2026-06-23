@@ -115,24 +115,24 @@ public final class PaperIslandJobWorker {
                 IslandPreCreateEvent preCreate = new IslandPreCreateEvent(job.islandId(), job.jobId(), nodeId);
                 kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(preCreate);
                 if (preCreate.isCancelled()) {
-                    jobSource.fail(nodeId, job.jobId(), "CREATE_CANCELLED");
+                    jobSource.fail(nodeId, job, "CREATE_CANCELLED");
                     return;
                 }
             }
             IslandPreActivateEvent preEvent = new IslandPreActivateEvent(job.islandId(), job.jobId(), job.type(), nodeId);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(preEvent);
             if (preEvent.isCancelled()) {
-                jobSource.fail(nodeId, job.jobId(), "ACTIVATION_CANCELLED");
+                jobSource.fail(nodeId, job, "ACTIVATION_CANCELLED");
                 return;
             }
             if (!activeIslands.acceptsActivation(job.islandId(), IslandJobCompletionPolicy.fencingToken(job.payload()))) {
-                jobSource.fail(nodeId, job.jobId(), IslandJobCompletionPolicy.STALE_FENCING_TOKEN);
+                jobSource.fail(nodeId, job, IslandJobCompletionPolicy.STALE_FENCING_TOKEN);
                 return;
             }
             IslandActivationJobHandler.ActivationResult result = activationHandler.handle(job);
             if (result.success()) {
                 if (!activeIslands.activated(result)) {
-                    jobSource.fail(nodeId, job.jobId(), IslandJobCompletionPolicy.STALE_FENCING_TOKEN);
+                    jobSource.fail(nodeId, job, IslandJobCompletionPolicy.STALE_FENCING_TOKEN);
                     return;
                 }
                 if (job.type() == IslandJobType.CREATE_ISLAND) {
@@ -149,18 +149,18 @@ public final class PaperIslandJobWorker {
                     .withSnapshot(result.creationSnapshotNo(), "CREATED", result.creationSnapshotChecksum(), result.creationSnapshotSizeBytes());
                 reportComplete(job, completePayload(job, payload));
             } else {
-                jobSource.fail(nodeId, job.jobId(), result.state());
+                jobSource.fail(nodeId, job, result.state());
             }
         } catch (PaperJobCompletionReporter.CompletionReportFailedException ignored) {
             return;
         } catch (RuntimeException exception) {
-            jobSource.fail(nodeId, job.jobId(), exception.getMessage());
+            jobSource.fail(nodeId, job, exception.getMessage());
         }
     }
 
     private void handleDeactivation(IslandJob job) {
         if (deactivationHandler == null) {
-            jobSource.fail(nodeId, job.jobId(), "DEACTIVATION_UNAVAILABLE");
+            jobSource.fail(nodeId, job, "DEACTIVATION_UNAVAILABLE");
             return;
         }
         String reason = job.payload().getOrDefault("reason", defaultSnapshotReason(job.type()));
@@ -176,13 +176,13 @@ public final class PaperIslandJobWorker {
             }
             reportComplete(job, completePayload(job, payload));
         } else {
-            jobSource.fail(nodeId, job.jobId(), result.errorMessage());
+            jobSource.fail(nodeId, job, result.errorMessage());
         }
     }
 
     private void handleSave(IslandJob job) {
         if (deactivationHandler == null) {
-            jobSource.fail(nodeId, job.jobId(), "SAVE_UNAVAILABLE");
+            jobSource.fail(nodeId, job, "SAVE_UNAVAILABLE");
             return;
         }
         String reason = job.payload().getOrDefault("reason", defaultSnapshotReason(job.type()));
@@ -190,7 +190,7 @@ public final class PaperIslandJobWorker {
         if (result.success()) {
             reportComplete(job, completePayload(job, IslandJobCompletionPayload.snapshot(result.snapshotNo(), reason, result.checksum(), result.sizeBytes())));
         } else {
-            jobSource.fail(nodeId, job.jobId(), result.errorMessage());
+            jobSource.fail(nodeId, job, result.errorMessage());
         }
     }
 
@@ -211,7 +211,13 @@ public final class PaperIslandJobWorker {
         List<IslandJob> claim(String nodeId, List<IslandJobType> supportedTypes, int maxJobs);
         void complete(String nodeId, java.util.UUID jobId);
         void complete(String nodeId, java.util.UUID jobId, Map<String, String> payload);
+        default void complete(String nodeId, IslandJob job, Map<String, String> payload) {
+            complete(nodeId, job.jobId(), payload);
+        }
         void fail(String nodeId, java.util.UUID jobId, String errorMessage);
+        default void fail(String nodeId, IslandJob job, String errorMessage) {
+            fail(nodeId, job.jobId(), errorMessage);
+        }
     }
 
     public int activationQueue() {
@@ -227,6 +233,6 @@ public final class PaperIslandJobWorker {
     }
 
     private void reportComplete(IslandJob job, Map<String, String> payload) {
-        completionReporter.report(job.jobId(), payload);
+        completionReporter.report(job, payload);
     }
 }

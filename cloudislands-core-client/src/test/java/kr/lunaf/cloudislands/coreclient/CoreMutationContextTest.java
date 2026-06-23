@@ -11,6 +11,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import org.junit.jupiter.api.Test;
 
@@ -455,9 +457,12 @@ class CoreMutationContextTest {
             assertEquals("{\"jobId\":\"" + jobId + "\"}", requestBodies.get("jobRetry"));
             assertEquals("{\"jobId\":\"" + jobId + "\"}", requestBodies.get("jobCancel"));
             assertEquals("{\"nodeId\":\"node\\\"a\",\"minIdleMillis\":50,\"maxJobs\":2}", requestBodies.get("jobRecover"));
-            assertEquals("{\"nodeId\":\"node\\\"a\",\"jobId\":\"" + jobId + "\",\"payload\":{\"path\":\"jobs/one\\\"two\",\"note\":\"done\"}}", requestBodies.get("jobComplete"));
-            assertEquals("{\"nodeId\":\"node\\\"a\",\"jobId\":\"" + jobId + "\",\"error\":\"failed \\\"hard\\\"\"}", requestBodies.get("jobFail"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"jobId\":\"" + jobId + "\",\"claimLease\":{},\"payload\":{\"path\":\"jobs/one\\\"two\",\"note\":\"done\"}}", requestBodies.get("jobComplete"));
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"jobId\":\"" + jobId + "\",\"claimLease\":{},\"error\":\"failed \\\"hard\\\"\"}", requestBodies.get("jobFail"));
             assertEquals("{\"protocolVersion\":1,\"nodeId\":\"node\\\"a\",\"pool\":\"default\\\"pool\",\"velocityServerName\":\"island-a\",\"nodeVersion\":\"1.0\\\"rc\",\"state\":\"READY\",\"players\":10,\"softPlayerCap\":20,\"hardPlayerCap\":30,\"reservedSlots\":2,\"activeIslands\":5,\"maxActiveIslands\":15,\"mspt\":19.5,\"activationQueue\":1,\"maxActivationQueue\":4,\"chunkLoadPressure\":0.25,\"heapUsedMb\":512,\"heapMaxMb\":2048,\"recentFailurePenalty\":3,\"storageAvailable\":true,\"supportedTemplates\":\"default,nether\\\"template\"}", requestBodies.get("heartbeat"));
+            JobClaimLease lease = new JobClaimLease(jobId, "1730000000000-0", "node\"a", "token\"1", 2L, Instant.parse("2026-06-23T01:02:03Z"), 1);
+            client.runtimeCommands().completeJob("node\"a", jobId, lease, Map.of()).join();
+            assertEquals("{\"nodeId\":\"node\\\"a\",\"jobId\":\"" + jobId + "\",\"claimLease\":{\"jobId\":\"" + jobId + "\",\"streamId\":\"1730000000000-0\",\"claimedByNode\":\"node\\\"a\",\"claimToken\":\"token\\\"1\",\"claimEpoch\":2,\"leaseExpiresAt\":\"2026-06-23T01:02:03Z\",\"attempt\":1},\"payload\":{}}", requestBodies.get("jobComplete"));
         } finally {
             server.stop(0);
         }

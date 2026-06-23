@@ -16,6 +16,7 @@ import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 
 public final class JdbcIslandJobQueue implements IslandJobQueue {
     private final DataSource dataSource;
@@ -64,8 +65,11 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
                 try (ResultSet rs = statement.executeQuery()) {
                     while (rs.next()) {
                         IslandJob job = map(rs);
-                        markClaimed(connection, job.jobId(), nodeId);
-                        claimed.add(job);
+                        String claimToken = UUID.randomUUID().toString();
+                        long claimEpoch = rs.getLong("claim_epoch") + 1L;
+                        Instant leaseExpiresAt = clock.instant().plus(leaseDuration);
+                        markClaimed(connection, job.jobId(), nodeId, claimToken, claimEpoch, leaseExpiresAt);
+                        claimed.add(job.withClaimLease(new JobClaimLease(job.jobId(), "", nodeId, claimToken, claimEpoch, leaseExpiresAt, rs.getInt("retry_count") + 1)));
                     }
                 }
             }
@@ -97,7 +101,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     @Override
     public boolean fail(String nodeId, UUID jobId, String errorMessage) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = CASE WHEN retry_count + 1 < max_retries THEN 'PENDING' ELSE 'FAILED' END, retry_count = retry_count + 1, error_message = ?, locked_by = CASE WHEN retry_count + 1 < max_retries THEN NULL ELSE locked_by END, locked_until = NULL, updated_at = now() WHERE id = ? AND locked_by = ? AND state = 'CLAIMED'")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = CASE WHEN retry_count + 1 < max_retries THEN 'PENDING' ELSE 'FAILED' END, retry_count = retry_count + 1, error_message = ?, locked_by = CASE WHEN retry_count + 1 < max_retries THEN NULL ELSE locked_by END, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, updated_at = now() WHERE id = ? AND locked_by = ? AND state = 'CLAIMED'")) {
             statement.setString(1, errorMessage == null ? "unknown" : errorMessage);
             statement.setObject(2, jobId);
             statement.setString(3, nodeId);
@@ -124,7 +128,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
                     }
                 }
             }
-            try (PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', locked_by = NULL, locked_until = NULL, error_message = NULL, updated_at = now() WHERE id = ?")) {
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', locked_by = NULL, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, error_message = NULL, updated_at = now() WHERE id = ?")) {
                 for (String jobId : recovered) {
                     statement.setObject(1, UUID.fromString(jobId));
                     statement.addBatch();
@@ -141,7 +145,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     @Override
     public boolean retry(UUID jobId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', locked_by = NULL, locked_until = NULL, error_message = NULL, updated_at = now() WHERE id = ? AND state IN ('FAILED', 'CLAIMED')")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', locked_by = NULL, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, error_message = NULL, updated_at = now() WHERE id = ? AND state IN ('FAILED', 'CLAIMED')")) {
             statement.setObject(1, jobId);
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
@@ -152,7 +156,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     @Override
     public boolean cancel(UUID jobId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'CANCELED', locked_until = NULL, updated_at = now() WHERE id = ? AND state IN ('PENDING', 'CLAIMED', 'FAILED')")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'CANCELED', locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, updated_at = now() WHERE id = ? AND state IN ('PENDING', 'CLAIMED', 'FAILED')")) {
             statement.setObject(1, jobId);
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
@@ -206,6 +210,9 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
                     .append("\"state\":\"").append(rs.getString("state")).append("\",")
                     .append("\"attempts\":").append(rs.getInt("retry_count")).append(',')
                     .append("\"lockedBy\":\"").append(rs.getString("locked_by") == null ? "" : rs.getString("locked_by")).append("\",")
+                    .append("\"claimToken\":\"").append(rs.getString("claim_token") == null ? "" : rs.getString("claim_token")).append("\",")
+                    .append("\"claimEpoch\":").append(rs.getLong("claim_epoch")).append(',')
+                    .append("\"streamId\":\"").append(rs.getString("claim_stream_id") == null ? "" : rs.getString("claim_stream_id")).append("\",")
                     .append("\"error\":\"").append(rs.getString("error_message") == null ? "" : rs.getString("error_message").replace("\"", "'")).append("\"")
                     .append('}');
             }
@@ -215,11 +222,13 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         }
     }
 
-    private void markClaimed(Connection connection, UUID jobId, String nodeId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'CLAIMED', locked_by = ?, locked_until = ?, updated_at = now() WHERE id = ?")) {
+    private void markClaimed(Connection connection, UUID jobId, String nodeId, String claimToken, long claimEpoch, Instant leaseExpiresAt) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'CLAIMED', locked_by = ?, locked_until = ?, claim_token = ?, claim_epoch = ?, claim_stream_id = '', updated_at = now() WHERE id = ?")) {
             statement.setString(1, nodeId);
-            statement.setObject(2, java.sql.Timestamp.from(clock.instant().plus(leaseDuration)));
-            statement.setObject(3, jobId);
+            statement.setObject(2, java.sql.Timestamp.from(leaseExpiresAt));
+            statement.setString(3, claimToken);
+            statement.setLong(4, claimEpoch);
+            statement.setObject(5, jobId);
             statement.executeUpdate();
         }
     }
@@ -246,7 +255,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
 
     private boolean updateState(String nodeId, UUID jobId, String state, String errorMessage) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = ?, locked_until = NULL, error_message = ?, updated_at = now() WHERE id = ? AND locked_by = ? AND state = 'CLAIMED'")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = ?, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, error_message = ?, updated_at = now() WHERE id = ? AND locked_by = ? AND state = 'CLAIMED'")) {
             statement.setString(1, state);
             statement.setString(2, errorMessage);
             statement.setObject(3, jobId);
@@ -258,7 +267,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     }
 
     private IslandJob map(ResultSet rs) throws SQLException {
-        return new IslandJob(
+        IslandJob job = new IslandJob(
             (UUID) rs.getObject("id"),
             IslandJobType.valueOf(rs.getString("job_type")),
             (UUID) rs.getObject("island_id"),
@@ -267,6 +276,21 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
             payload(rs.getString("payload")),
             rs.getTimestamp("created_at").toInstant()
         );
+        String lockedBy = rs.getString("locked_by");
+        String claimToken = rs.getString("claim_token");
+        java.sql.Timestamp lockedUntil = rs.getTimestamp("locked_until");
+        if (lockedBy == null || claimToken == null || lockedUntil == null) {
+            return job;
+        }
+        return job.withClaimLease(new JobClaimLease(
+            job.jobId(),
+            rs.getString("claim_stream_id") == null ? "" : rs.getString("claim_stream_id"),
+            lockedBy,
+            claimToken,
+            rs.getLong("claim_epoch"),
+            lockedUntil.toInstant(),
+            rs.getInt("retry_count")
+        ));
     }
 
     private Map<String, String> payload(String json) {

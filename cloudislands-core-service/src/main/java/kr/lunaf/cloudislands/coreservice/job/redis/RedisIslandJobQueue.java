@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.job.redis;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,10 +16,13 @@ import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 
 public final class RedisIslandJobQueue implements IslandJobQueue {
     private static final String GROUP = "cloudislands-agents";
+    private static final Duration DEFAULT_LEASE_DURATION = Duration.ofSeconds(30L);
     private final URI redisUri;
+    private final Duration leaseDuration;
     private final Map<UUID, String> streamIdsByJobId = new ConcurrentHashMap<>();
     private final Map<UUID, kr.lunaf.cloudislands.protocol.job.IslandJob> claimedJobs = new ConcurrentHashMap<>();
     private final Map<UUID, String> claimedNodesByJobId = new ConcurrentHashMap<>();
@@ -27,7 +31,12 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     private final AtomicLong redisFailuresTotal = new AtomicLong();
 
     public RedisIslandJobQueue(URI redisUri) {
+        this(redisUri, DEFAULT_LEASE_DURATION);
+    }
+
+    public RedisIslandJobQueue(URI redisUri, Duration leaseDuration) {
         this.redisUri = redisUri;
+        this.leaseDuration = leaseDuration == null || leaseDuration.isNegative() || leaseDuration.isZero() ? DEFAULT_LEASE_DURATION : leaseDuration;
         ensureGroup();
     }
 
@@ -97,6 +106,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             claimedJobs.remove(jobId);
             streamIdsByJobId.remove(jobId);
             claimedNodesByJobId.remove(jobId);
+            redis.command("DEL", RedisKeys.jobClaim(jobId));
             retryAttemptsTotal.incrementAndGet();
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_RETRIED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
             return true;
@@ -120,6 +130,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             claimedJobs.remove(jobId);
             streamIdsByJobId.remove(jobId);
             claimedNodesByJobId.remove(jobId);
+            redis.command("DEL", RedisKeys.jobClaim(jobId));
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_CANCELED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
             return true;
         } catch (IOException | RuntimeException exception) {
@@ -185,6 +196,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             if (streamId != null && !streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
             }
+            redis.command("DEL", RedisKeys.jobClaim(jobId));
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_" + state.toUpperCase(), "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", errorMessage == null ? "" : errorMessage);
             return true;
         } catch (IOException | RuntimeException exception) {
@@ -236,7 +248,8 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             try {
                 UUID jobId = UUID.fromString(current.get("jobId"));
                 streamIdsByJobId.put(jobId, streamId);
-                IslandJob claimedJob = new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt")));
+                JobClaimLease claimLease = writeClaimLease(redis, jobId, streamId, nodeId);
+                IslandJob claimedJob = new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt")), claimLease);
                 claimedJobs.put(jobId, claimedJob);
                 claimedNodesByJobId.put(jobId, nodeId);
                 jobs.add(claimedJob);
@@ -249,6 +262,26 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_SKIPPED_UNSUPPORTED", "jobId", current.getOrDefault("jobId", ""), "streamId", streamId, "nodeId", nodeId, "jobType", current.getOrDefault("type", ""));
         }
+    }
+
+    private JobClaimLease writeClaimLease(RedisRespConnection redis, UUID jobId, String streamId, String nodeId) throws IOException {
+        String key = RedisKeys.jobClaim(jobId);
+        long claimEpoch = parseLong(redis.command("HINCRBY", key, "claimEpoch", "1"), 1L);
+        String claimToken = UUID.randomUUID().toString();
+        Instant leaseExpiresAt = Instant.now().plus(leaseDuration);
+        int attempt = (int) Math.min(Integer.MAX_VALUE, claimEpoch);
+        redis.command(
+            "HSET",
+            key,
+            "jobId", jobId.toString(),
+            "streamId", streamId == null ? "" : streamId,
+            "claimedByNode", nodeId,
+            "claimToken", claimToken,
+            "leaseExpiresAt", leaseExpiresAt.toString(),
+            "attempt", Integer.toString(attempt)
+        );
+        redis.command("PEXPIRE", key, Long.toString(Math.max(leaseDuration.toMillis() * 4L, 60_000L)));
+        return new JobClaimLease(jobId, streamId, nodeId, claimToken, claimEpoch, leaseExpiresAt, attempt);
     }
 
     private void skipMalformedJob(RedisRespConnection redis, String streamId, Map<String, String> job, String nodeId, RuntimeException exception) throws IOException {
@@ -330,6 +363,14 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     private int parseInt(String value, int fallback) {
         try {
             return Integer.parseInt(value);
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private long parseLong(String value, long fallback) {
+        try {
+            return Long.parseLong(value);
         } catch (RuntimeException ignored) {
             return fallback;
         }

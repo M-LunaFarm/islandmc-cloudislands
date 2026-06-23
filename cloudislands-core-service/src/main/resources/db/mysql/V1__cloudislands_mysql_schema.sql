@@ -387,6 +387,9 @@ CREATE TABLE IF NOT EXISTS island_jobs (
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     locked_by VARCHAR(64),
     locked_until DATETIME(6),
+    claim_token VARCHAR(64),
+    claim_epoch BIGINT NOT NULL DEFAULT 0,
+    claim_stream_id VARCHAR(128),
     CONSTRAINT fk_island_jobs_island FOREIGN KEY (island_id) REFERENCES islands(id),
     CONSTRAINT chk_island_jobs_type_not_blank CHECK (trim(job_type) <> ''),
     CONSTRAINT chk_island_jobs_type_known CHECK (job_type IN ('CREATE_ISLAND', 'ACTIVATE_ISLAND', 'DEACTIVATE_ISLAND', 'SAVE_ISLAND', 'SNAPSHOT_ISLAND', 'MIGRATE_ISLAND', 'DELETE_ISLAND', 'RESET_ISLAND', 'RESTORE_ISLAND')),
@@ -398,6 +401,9 @@ CREATE TABLE IF NOT EXISTS island_jobs (
     CONSTRAINT chk_island_jobs_target_node_trimmed CHECK (target_node IS NULL OR target_node = trim(target_node)),
     CONSTRAINT chk_island_jobs_locked_by_trimmed CHECK (locked_by IS NULL OR locked_by = trim(locked_by)),
     CONSTRAINT chk_island_jobs_locked_by_not_blank CHECK (locked_by IS NULL OR trim(locked_by) <> ''),
+    CONSTRAINT chk_island_jobs_claim_token_trimmed CHECK (claim_token IS NULL OR claim_token = trim(claim_token)),
+    CONSTRAINT chk_island_jobs_claim_token_not_blank CHECK (claim_token IS NULL OR trim(claim_token) <> ''),
+    CONSTRAINT chk_island_jobs_claim_epoch_non_negative CHECK (claim_epoch >= 0),
     CONSTRAINT chk_island_jobs_claimed_has_lock CHECK (state <> 'CLAIMED' OR (locked_by IS NOT NULL AND locked_until IS NOT NULL)),
     CONSTRAINT chk_island_jobs_lock_requires_claimed CHECK (locked_by IS NULL OR state = 'CLAIMED')
 );

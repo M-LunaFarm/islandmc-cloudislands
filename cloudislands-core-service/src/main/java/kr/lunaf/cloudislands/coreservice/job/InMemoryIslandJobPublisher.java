@@ -7,8 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 
 public final class InMemoryIslandJobPublisher implements IslandJobQueue {
     private static final int MAX_ATTEMPTS = 3;
@@ -16,7 +18,7 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
 
     @Override
     public synchronized void publish(IslandJob job) {
-        jobs.add(new JobRecord(job, JobState.PENDING, null, null, 0, null, Instant.now()));
+        jobs.add(new JobRecord(job, JobState.PENDING, null, null, null, 0L, 0, null, Instant.now()));
     }
 
     @Override
@@ -41,7 +43,7 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
         return jobs.stream()
             .filter(record -> record.job().jobId().equals(jobId))
             .filter(record -> record.state() == JobState.CLAIMED)
-            .map(JobRecord::job)
+            .map(JobRecord::claimedJob)
             .findFirst();
     }
 
@@ -141,6 +143,9 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
                 .append("\"state\":\"").append(record.state()).append("\",")
                 .append("\"attempts\":").append(record.attempts()).append(',')
                 .append("\"lockedBy\":\"").append(record.lockedBy() == null ? "" : record.lockedBy()).append("\",")
+                .append("\"claimToken\":\"").append(record.claimToken() == null ? "" : record.claimToken()).append("\",")
+                .append("\"claimEpoch\":").append(record.claimEpoch()).append(',')
+                .append("\"leaseExpiresAt\":\"").append(record.lockedUntil() == null ? "" : record.lockedUntil()).append("\",")
                 .append("\"error\":\"").append(record.errorMessage() == null ? "" : record.errorMessage()).append("\"")
                 .append('}');
         }
@@ -165,21 +170,25 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
         CANCELED
     }
 
-    private record JobRecord(IslandJob job, JobState state, String lockedBy, Instant lockedAt, int attempts, String errorMessage, Instant updatedAt) {
+    private record JobRecord(IslandJob job, JobState state, String lockedBy, Instant lockedUntil, String claimToken, long claimEpoch, int attempts, String errorMessage, Instant updatedAt) {
         private JobRecord pending() {
-            return new JobRecord(job, JobState.PENDING, null, null, attempts, null, Instant.now());
+            return new JobRecord(job.withClaimLease(JobClaimLease.unclaimed(job.jobId())), JobState.PENDING, null, null, null, claimEpoch, attempts, null, Instant.now());
         }
 
         private JobRecord canceled() {
-            return new JobRecord(job, JobState.CANCELED, lockedBy, lockedAt, attempts, errorMessage, Instant.now());
+            return new JobRecord(job.withClaimLease(JobClaimLease.unclaimed(job.jobId())), JobState.CANCELED, lockedBy, null, null, claimEpoch, attempts, errorMessage, Instant.now());
         }
 
         private JobRecord locked(String nodeId) {
-            return new JobRecord(job, JobState.CLAIMED, nodeId, Instant.now(), attempts + 1, null, Instant.now());
+            Instant expiresAt = Instant.now().plusSeconds(30L);
+            long nextEpoch = claimEpoch + 1L;
+            String token = UUID.randomUUID() + "-" + Long.toUnsignedString(ThreadLocalRandom.current().nextLong(), 36);
+            JobClaimLease lease = new JobClaimLease(job.jobId(), "", nodeId, token, nextEpoch, expiresAt, attempts + 1);
+            return new JobRecord(job.withClaimLease(lease), JobState.CLAIMED, nodeId, expiresAt, token, nextEpoch, attempts + 1, null, Instant.now());
         }
 
         private JobRecord completed() {
-            return new JobRecord(job, JobState.COMPLETED, lockedBy, lockedAt, attempts, null, Instant.now());
+            return new JobRecord(job.withClaimLease(JobClaimLease.unclaimed(job.jobId())), JobState.COMPLETED, lockedBy, null, null, claimEpoch, attempts, null, Instant.now());
         }
 
         private JobRecord failed(String error) {
@@ -189,7 +198,14 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
             IslandJob failedJob = new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(payload), job.createdAt());
             JobState nextState = attempts < MAX_ATTEMPTS ? JobState.PENDING : JobState.FAILED;
             String nextLockedBy = nextState == JobState.PENDING ? null : lockedBy;
-            return new JobRecord(failedJob, nextState, nextLockedBy, null, attempts, error, Instant.now());
+            return new JobRecord(failedJob, nextState, nextLockedBy, null, null, claimEpoch, attempts, error, Instant.now());
+        }
+
+        private IslandJob claimedJob() {
+            if (state != JobState.CLAIMED || claimToken == null || lockedBy == null || lockedUntil == null) {
+                return job;
+            }
+            return job.withClaimLease(new JobClaimLease(job.jobId(), "", lockedBy, claimToken, claimEpoch, lockedUntil, attempts));
         }
     }
 }

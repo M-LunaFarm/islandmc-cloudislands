@@ -214,7 +214,7 @@ public final class CloudIslandsCoreApplication {
         RouteSessionStore sessions = config.redisEvents() || config.redisJobs()
             ? new RedisRouteSessionStore(config.redisUri())
             : new InMemoryRouteSessionStore(clock);
-        IslandJobQueue jobs = config.jdbcJobs() ? new JdbcIslandJobQueue(dataSource, clock, config.leaseDuration()) : config.redisJobs() ? new RedisIslandJobQueue(config.redisUri()) : new InMemoryIslandJobPublisher();
+        IslandJobQueue jobs = config.jdbcJobs() ? new JdbcIslandJobQueue(dataSource, clock, config.leaseDuration()) : config.redisJobs() ? new RedisIslandJobQueue(config.redisUri(), config.leaseDuration()) : new InMemoryIslandJobPublisher();
         InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();
         RedisStreamWriterAdapter redisEventWriter = config.redisEvents() ? new RedisStreamWriterAdapter(config.redisUri()) : null;
         RedisStreamEventPublisher redisEventPublisher = redisEventWriter == null ? null : new RedisStreamEventPublisher(redisEventWriter);

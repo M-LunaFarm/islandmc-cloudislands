@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.LinkedHashMap;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 
 public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
@@ -69,14 +71,24 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
 
     @Override
     public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload) {
-        return core.postResultBody("/v1/jobs/complete", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "payload", CoreJsonPayload.stringMap(payload == null ? Map.of() : payload)))
+        return completeJob(nodeId, jobId, JobClaimLease.unclaimed(jobId), payload);
+    }
+
+    @Override
+    public CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, JobClaimLease claimLease, Map<String, String> payload) {
+        return core.postResultBody("/v1/jobs/complete", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "claimLease", claimLeasePayload(claimLease, jobId, nodeId), "payload", CoreJsonPayload.stringMap(payload == null ? Map.of() : payload)))
             .thenApply(CoreResponseBody::value)
             .thenApply(body -> runtimeAction(body, "JOB_COMPLETED"));
     }
 
     @Override
     public CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, String errorMessage) {
-        return core.postResultBody("/v1/jobs/fail", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "error", errorMessage == null ? "" : errorMessage))
+        return failJob(nodeId, jobId, JobClaimLease.unclaimed(jobId), errorMessage);
+    }
+
+    @Override
+    public CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+        return core.postResultBody("/v1/jobs/fail", CoreJsonPayload.object("nodeId", requireJobNode(nodeId), "jobId", requireJobId(jobId), "claimLease", claimLeasePayload(claimLease, jobId, nodeId), "error", errorMessage == null ? "" : errorMessage))
             .thenApply(CoreResponseBody::value)
             .thenApply(body -> runtimeAction(body, "JOB_FAILED"));
     }
@@ -109,6 +121,21 @@ public final class JdkRuntimeCommandClient implements RuntimeCommandClient {
             throw new IllegalArgumentException("jobId is required");
         }
         return jobId;
+    }
+
+    private static Map<String, Object> claimLeasePayload(JobClaimLease claimLease, UUID jobId, String nodeId) {
+        if (claimLease == null || !claimLease.claimed()) {
+            return Map.of();
+        }
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("jobId", claimLease.jobId() == null ? jobId : claimLease.jobId());
+        values.put("streamId", claimLease.streamId());
+        values.put("claimedByNode", claimLease.claimedByNode().isBlank() ? nodeId : claimLease.claimedByNode());
+        values.put("claimToken", claimLease.claimToken());
+        values.put("claimEpoch", claimLease.claimEpoch());
+        values.put("leaseExpiresAt", claimLease.leaseExpiresAt().toString());
+        values.put("attempt", claimLease.attempt());
+        return values;
     }
 
 }

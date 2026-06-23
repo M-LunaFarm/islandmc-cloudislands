@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreclient;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 
 public interface RuntimeCommandClient {
@@ -14,5 +15,13 @@ public interface RuntimeCommandClient {
 
     CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, Map<String, String> payload);
 
+    default CompletableFuture<RuntimeActionView> completeJob(String nodeId, UUID jobId, JobClaimLease claimLease, Map<String, String> payload) {
+        return completeJob(nodeId, jobId, payload);
+    }
+
     CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, String errorMessage);
+
+    default CompletableFuture<RuntimeActionView> failJob(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+        return failJob(nodeId, jobId, errorMessage);
+    }
 }

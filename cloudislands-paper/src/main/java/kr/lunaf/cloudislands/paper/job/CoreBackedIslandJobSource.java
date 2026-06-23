@@ -33,7 +33,17 @@ public final class CoreBackedIslandJobSource implements PaperIslandJobWorker.Loc
     }
 
     @Override
+    public void complete(String nodeId, IslandJob job, Map<String, String> payload) {
+        runtimeCommands.completeJob(nodeId, job.jobId(), job.claimLease(), payload);
+    }
+
+    @Override
     public void fail(String nodeId, UUID jobId, String errorMessage) {
         runtimeCommands.failJob(nodeId, jobId, errorMessage);
+    }
+
+    @Override
+    public void fail(String nodeId, IslandJob job, String errorMessage) {
+        runtimeCommands.failJob(nodeId, job.jobId(), job.claimLease(), errorMessage);
     }
 }

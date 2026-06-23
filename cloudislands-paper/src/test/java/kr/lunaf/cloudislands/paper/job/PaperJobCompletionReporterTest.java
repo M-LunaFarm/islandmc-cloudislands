@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import org.junit.jupiter.api.Test;
 
 class PaperJobCompletionReporterTest {
@@ -17,7 +19,7 @@ class PaperJobCompletionReporterTest {
         List<String> warnings = new ArrayList<>();
         PaperJobCompletionReporter reporter = new PaperJobCompletionReporter(
             "island-node-1",
-            (_nodeId, _jobId, _payload) -> {
+            (_nodeId, _job, _payload) -> {
                 throw new IllegalStateException("core unavailable");
             },
             warnings::add
@@ -40,12 +42,28 @@ class PaperJobCompletionReporterTest {
         List<String> calls = new ArrayList<>();
         PaperJobCompletionReporter reporter = new PaperJobCompletionReporter(
             "island-node-1",
-            (nodeId, completedJobId, payload) -> calls.add(nodeId + ":" + completedJobId + ":" + payload.get("snapshotNo")),
+            (nodeId, completedJob, payload) -> calls.add(nodeId + ":" + completedJob.jobId() + ":" + payload.get("snapshotNo")),
             ignored -> { }
         );
 
         reporter.report(jobId, Map.of("snapshotNo", "18"));
 
         assertEquals(List.of("island-node-1:" + jobId + ":18"), calls);
+    }
+
+    @Test
+    void successfulCompletionPassesClaimedJobToSink() {
+        UUID jobId = UUID.randomUUID();
+        IslandJob job = new IslandJob(jobId, IslandJobType.SAVE_ISLAND, UUID.randomUUID(), "island-node-1", 0, Map.of(), java.time.Instant.EPOCH);
+        List<IslandJob> completed = new ArrayList<>();
+        PaperJobCompletionReporter reporter = new PaperJobCompletionReporter(
+            "island-node-1",
+            (_nodeId, completedJob, _payload) -> completed.add(completedJob),
+            ignored -> { }
+        );
+
+        reporter.report(job, Map.of("snapshotNo", "19"));
+
+        assertEquals(List.of(job), completed);
     }
 }

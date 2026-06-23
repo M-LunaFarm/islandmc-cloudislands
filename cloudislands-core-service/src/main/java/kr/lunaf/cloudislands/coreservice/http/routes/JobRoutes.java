@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.coreservice.job.JobCompletionService;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 import kr.lunaf.cloudislands.protocol.job.json.IslandJobJson;
 
 public final class JobRoutes implements RouteGroup {
@@ -62,7 +63,7 @@ public final class JobRoutes implements RouteGroup {
             Map<String, String> merged = new HashMap<>();
             merged.putAll(job.payload());
             merged.putAll(request.payload());
-            return new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(merged), job.createdAt());
+            return new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(merged), job.createdAt(), request.claimLease().claimed() ? request.claimLease() : job.claimLease());
         });
         if (claimed.isEmpty()) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
@@ -188,33 +189,41 @@ public final class JobRoutes implements RouteGroup {
         }
     }
 
-    private record CompleteJobRequest(UUID jobId, String nodeId, Map<String, String> payload) {
+    private record CompleteJobRequest(UUID jobId, String nodeId, JobClaimLease claimLease, Map<String, String> payload) {
         private CompleteJobRequest {
             jobId = required(jobId, "jobId");
             nodeId = required(nodeId, "nodeId");
+            claimLease = claimLease == null ? JobClaimLease.unclaimed(jobId) : claimLease;
             payload = payload == null ? Map.of() : Map.copyOf(payload);
         }
 
         private static CompleteJobRequest read(String body) {
+            UUID jobId = JsonFields.uuid(body, "jobId", SYSTEM_ACTOR);
+            String nodeId = JsonFields.text(body, "nodeId", "");
             return new CompleteJobRequest(
-                JsonFields.uuid(body, "jobId", SYSTEM_ACTOR),
-                JsonFields.text(body, "nodeId", ""),
+                jobId,
+                nodeId,
+                claimLeaseFrom(body, jobId, nodeId),
                 JsonFields.object(body, "payload")
             );
         }
     }
 
-    private record FailJobRequest(UUID jobId, String nodeId, String error) {
+    private record FailJobRequest(UUID jobId, String nodeId, JobClaimLease claimLease, String error) {
         private FailJobRequest {
             jobId = required(jobId, "jobId");
             nodeId = required(nodeId, "nodeId");
+            claimLease = claimLease == null ? JobClaimLease.unclaimed(jobId) : claimLease;
             error = error == null || error.isBlank() ? "unknown" : error;
         }
 
         private static FailJobRequest read(String body) {
+            UUID jobId = JsonFields.uuid(body, "jobId", SYSTEM_ACTOR);
+            String nodeId = JsonFields.text(body, "nodeId", "");
             return new FailJobRequest(
-                JsonFields.uuid(body, "jobId", SYSTEM_ACTOR),
-                JsonFields.text(body, "nodeId", ""),
+                jobId,
+                nodeId,
+                claimLeaseFrom(body, jobId, nodeId),
                 JsonFields.text(body, "error", "unknown")
             );
         }
@@ -262,6 +271,66 @@ public final class JobRoutes implements RouteGroup {
             throw invalidRequest("Field '" + field + "' is required");
         }
         return value;
+    }
+
+    private static JobClaimLease claimLeaseFrom(String body, UUID jobId, String nodeId) {
+        Map<String, String> lease = JsonFields.object(body, "claimLease");
+        if (lease.isEmpty()) {
+            return JobClaimLease.unclaimed(jobId);
+        }
+        return new JobClaimLease(
+            parseUuid(lease.get("jobId"), jobId),
+            lease.getOrDefault("streamId", ""),
+            lease.getOrDefault("claimedByNode", nodeId),
+            lease.getOrDefault("claimToken", ""),
+            parseLong(lease.get("claimEpoch"), 0L),
+            parseInstant(lease.get("leaseExpiresAt"), java.time.Instant.EPOCH),
+            parseInt(lease.get("attempt"), 0)
+        );
+    }
+
+    private static UUID parseUuid(String value, UUID fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException exception) {
+            throw invalidRequest("Field 'claimLease.jobId' must be a valid UUID");
+        }
+    }
+
+    private static long parseLong(String value, long fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException exception) {
+            throw invalidRequest("Field 'claimLease.claimEpoch' must be a long");
+        }
+    }
+
+    private static int parseInt(String value, int fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            throw invalidRequest("Field 'claimLease.attempt' must be an integer");
+        }
+    }
+
+    private static java.time.Instant parseInstant(String value, java.time.Instant fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return java.time.Instant.parse(value);
+        } catch (RuntimeException exception) {
+            throw invalidRequest("Field 'claimLease.leaseExpiresAt' must be an instant");
+        }
     }
 
     private static CoreHttpException invalidRequest(String message) {

@@ -5,7 +5,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public record IslandJob(UUID jobId, IslandJobType type, UUID islandId, String targetNode, int priority, Map<String, String> payload, Instant createdAt) {
+public record IslandJob(UUID jobId, IslandJobType type, UUID islandId, String targetNode, int priority, Map<String, String> payload, Instant createdAt, JobClaimLease claimLease) {
+    public IslandJob(UUID jobId, IslandJobType type, UUID islandId, String targetNode, int priority, Map<String, String> payload, Instant createdAt) {
+        this(jobId, type, islandId, targetNode, priority, payload, createdAt, JobClaimLease.unclaimed(jobId));
+    }
+
     public IslandJob {
         if (payload == null || payload.isEmpty()) {
             payload = Map.of();
@@ -20,5 +24,10 @@ public record IslandJob(UUID jobId, IslandJobType type, UUID islandId, String ta
             }
             payload = safePayload.isEmpty() ? Map.of() : Map.copyOf(safePayload);
         }
+        claimLease = claimLease == null ? JobClaimLease.unclaimed(jobId) : claimLease;
+    }
+
+    public IslandJob withClaimLease(JobClaimLease claimLease) {
+        return new IslandJob(jobId, type, islandId, targetNode, priority, payload, createdAt, claimLease);
     }
 }

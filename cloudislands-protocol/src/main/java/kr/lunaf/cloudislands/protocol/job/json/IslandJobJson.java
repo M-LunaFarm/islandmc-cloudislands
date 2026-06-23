@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 
 public final class IslandJobJson {
     private IslandJobJson() {}
@@ -20,7 +21,8 @@ public final class IslandJobJson {
             + "\"targetNode\":\"" + escape(nullSafe(job.targetNode())) + "\","
             + "\"priority\":" + job.priority() + ","
             + "\"payload\":" + writeMap(job.payload()) + ","
-            + "\"createdAt\":\"" + job.createdAt() + "\""
+            + "\"createdAt\":\"" + job.createdAt() + "\","
+            + "\"claimLease\":" + writeClaimLease(job.claimLease())
             + "}";
     }
 
@@ -72,7 +74,40 @@ public final class IslandJobJson {
             text(json, "targetNode", ""),
             integer(json, "priority", 0),
             readPayload(json),
-            instant(json, "createdAt", Instant.now())
+            instant(json, "createdAt", Instant.now()),
+            readClaimLease(json, uuid(json, "jobId", new UUID(0L, 0L)))
+        );
+    }
+
+    private static String writeClaimLease(JobClaimLease lease) {
+        if (lease == null || !lease.claimed()) {
+            return "{}";
+        }
+        return "{"
+            + "\"jobId\":\"" + lease.jobId() + "\","
+            + "\"streamId\":\"" + escape(lease.streamId()) + "\","
+            + "\"claimedByNode\":\"" + escape(lease.claimedByNode()) + "\","
+            + "\"claimToken\":\"" + escape(lease.claimToken()) + "\","
+            + "\"claimEpoch\":" + lease.claimEpoch() + ","
+            + "\"leaseExpiresAt\":\"" + lease.leaseExpiresAt() + "\","
+            + "\"attempt\":" + lease.attempt()
+            + "}";
+    }
+
+    private static JobClaimLease readClaimLease(String json, UUID fallbackJobId) {
+        String leaseJson = objectJson(json, "claimLease");
+        if (leaseJson.isBlank()) {
+            return JobClaimLease.unclaimed(fallbackJobId);
+        }
+        UUID jobId = uuid(leaseJson, "jobId", fallbackJobId);
+        return new JobClaimLease(
+            jobId,
+            text(leaseJson, "streamId", ""),
+            text(leaseJson, "claimedByNode", ""),
+            text(leaseJson, "claimToken", ""),
+            longValue(leaseJson, "claimEpoch", 0L),
+            instant(leaseJson, "leaseExpiresAt", Instant.EPOCH),
+            integer(leaseJson, "attempt", 0)
         );
     }
 
@@ -129,6 +164,30 @@ public final class IslandJobJson {
         return Map.copyOf(values);
     }
 
+    private static String objectJson(String json, String field) {
+        int fieldStart = json.indexOf("\"" + field + "\":");
+        if (fieldStart < 0) {
+            return "";
+        }
+        int objectStart = json.indexOf('{', fieldStart);
+        if (objectStart < 0) {
+            return "";
+        }
+        int depth = 0;
+        for (int i = objectStart; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    return json.substring(objectStart, i + 1);
+                }
+            }
+        }
+        return "";
+    }
+
     private static String unquote(String value) {
         String trimmed = value.trim();
         if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
@@ -169,6 +228,24 @@ public final class IslandJobJson {
         }
         try {
             return Integer.parseInt(json.substring(valueStart, end));
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private static long longValue(String json, String field, long fallback) {
+        String needle = "\"" + field + "\":";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return fallback;
+        }
+        int valueStart = start + needle.length();
+        int end = valueStart;
+        while (end < json.length() && Character.isDigit(json.charAt(end))) {
+            end++;
+        }
+        try {
+            return Long.parseLong(json.substring(valueStart, end));
         } catch (RuntimeException ignored) {
             return fallback;
         }
