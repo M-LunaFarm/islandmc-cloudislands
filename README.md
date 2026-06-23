@@ -311,7 +311,7 @@ Current repository state:
 | Paper `1.21.11` | compile baseline | boot smoke task exists | Core integration smoke is separate | current `paper-api` and `plugin.yml` baseline |
 | Paper `1.21.x` family | family adapter compile-verified | baseline boot smoke task exists | adapter self-test diagnostics | common 1.21 adapter; patch-specific APIs stay optional |
 | Paper `26.1` | adapter compile task exists | pending official Paper build | not verified | 26.1 adapter separated; no boot-verified release yet |
-| Paper `26.2` | not defined | not verified | not verified | required by the roadmap, no matrix entry yet |
+| Paper `26.2` | adapter compile task exists | pending official Paper build | not verified | 26.2 adapter separated; no boot-verified release yet |
 | Velocity `3.5.0-SNAPSHOT` | compile baseline | boot smoke task exists | routing integration is partial | plugin version comes from Gradle |
 
 Status terms:

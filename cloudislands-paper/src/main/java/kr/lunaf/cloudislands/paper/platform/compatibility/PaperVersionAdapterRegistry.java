@@ -19,11 +19,10 @@ public final class PaperVersionAdapterRegistry {
     }
 
     public static PaperVersionAdapterRegistry defaults() {
-        RuntimeCapabilities baseline = RuntimeCapabilities.baseline();
         return new PaperVersionAdapterRegistry(List.of(
             new Paper121FamilyAdapter(),
             new Paper261Adapter(),
-            new DefaultPaperVersionAdapter("paper-26.2", VersionRange.majorMinor("paper-26.2", 26, 2), baseline)
+            new Paper262Adapter()
         ));
     }
 

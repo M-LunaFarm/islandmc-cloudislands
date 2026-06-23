@@ -442,6 +442,33 @@ tasks.register<Exec>("paper261BootSmoke") {
     }
 }
 
+tasks.register("paper262Compile") {
+    group = "verification"
+    description = "Compiles the CloudIslands Paper plugin with the Paper 26.2 adapter included."
+    dependsOn(project(":cloudislands-paper").tasks.named("compileJava"))
+    dependsOn(project(":cloudislands-paper").tasks.named("processResources"))
+}
+
+tasks.register<Exec>("paper262BootSmoke") {
+    group = "verification"
+    description = "Boots a Paper 26.2 server when an official stable build is available."
+    val paperJar = project(":cloudislands-paper").tasks.named<Jar>("shadowJar")
+    dependsOn(tasks.named("paper262Compile"))
+    dependsOn(paperJar)
+    doFirst {
+        commandLine(
+            "python3",
+            file("scripts/ci/papermc_smoke.py").absolutePath,
+            "--project", "paper",
+            "--version", "26.2",
+            "--plugin", paperJar.get().archiveFile.get().asFile.absolutePath,
+            "--work-dir", layout.buildDirectory.dir("smoke/paper-26.2").get().asFile.absolutePath,
+            "--cache-dir", layout.buildDirectory.dir("smoke/cache").get().asFile.absolutePath,
+            "--timeout", "240"
+        )
+    }
+}
+
 tasks.register<Exec>("velocityBootSmoke") {
     group = "verification"
     description = "Boots a supported Velocity proxy and verifies the CloudIslands Velocity plugin loads."
@@ -495,6 +522,7 @@ val verifyVersionPackaging = tasks.register("verifyVersionPackaging") {
             "kr/lunaf/cloudislands/paper/platform/compatibility/PaperVersionAdapterRegistry.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/Paper121FamilyAdapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/Paper261Adapter.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/Paper262Adapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/DefaultPaperVersionAdapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/RuntimeCapabilities.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/ServerVersion.class",
