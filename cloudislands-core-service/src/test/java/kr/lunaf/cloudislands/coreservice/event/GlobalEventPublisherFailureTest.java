@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.coreservice.job.InMemoryJobCompletionOutboxStore;
+import kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxDispatcher;
 import kr.lunaf.cloudislands.coreservice.job.RedisStreamJobPublisher.RedisStreamWriter;
 import org.junit.jupiter.api.Test;
 
@@ -91,5 +93,27 @@ class GlobalEventPublisherFailureTest {
 
         assertEquals(1, durableCalls.get());
         assertEquals(1L, inMemory.countByType(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name()));
+    }
+
+    @Test
+    void outboxPublisherPersistsNormalEventsBeforeDispatch() {
+        InMemoryJobCompletionOutboxStore outbox = new InMemoryJobCompletionOutboxStore();
+        InMemoryGlobalEventPublisher inMemory = new InMemoryGlobalEventPublisher();
+        OutboxGlobalEventPublisher publisher = new OutboxGlobalEventPublisher(outbox);
+        JobCompletionOutboxDispatcher dispatcher = new JobCompletionOutboxDispatcher(outbox, inMemory);
+
+        publisher.publish(
+            CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(),
+            Map.of("islandId", "00000000-0000-0000-0000-000000000005")
+        );
+
+        assertEquals(1L, outbox.pendingCount());
+        assertEquals(0L, inMemory.countByType(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name()));
+
+        dispatcher.dispatchDue();
+
+        assertEquals(0L, outbox.pendingCount());
+        assertEquals(1L, inMemory.countByType(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name()));
+        assertTrue(inMemory.toJson().contains("\"aggregateId\":\"00000000-0000-0000-0000-000000000005\""));
     }
 }

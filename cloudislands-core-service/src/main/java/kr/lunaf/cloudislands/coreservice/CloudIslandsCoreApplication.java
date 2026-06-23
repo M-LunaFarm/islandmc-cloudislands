@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.coreservice.db.MeteredDataSource;
 import kr.lunaf.cloudislands.coreservice.event.FailFastGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.event.OutboxGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRequestExecutor;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRouteRegistrar;
@@ -122,7 +123,7 @@ public final class CloudIslandsCoreApplication {
         RouteSessionStore sessions = repositories.sessions();
         IslandJobQueue jobs = repositories.jobs();
         InMemoryGlobalEventPublisher inMemoryEvents = repositories.inMemoryEvents();
-        GlobalEventPublisher events = repositories.events();
+        GlobalEventPublisher immediateEvents = repositories.events();
         IslandRepository islandRepository = repositories.islandRepository();
         IslandMetadataRepository metadataRepository = repositories.metadataRepository();
         PlayerProfileRepository playerProfiles = repositories.playerProfiles();
@@ -146,6 +147,19 @@ public final class CloudIslandsCoreApplication {
         this.snapshotKeepLatest = Math.max(1, config.snapshotKeepLatest());
         kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy = config.snapshotRetentionPolicy();
         kr.lunaf.cloudislands.coreservice.ranking.ConfigBlockValues.load(config.blockValuesFile()).forEach(levelRepository::putBlockValue);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionReceiptStore completionReceipts = config.jdbcRepositories()
+            ? new kr.lunaf.cloudislands.coreservice.job.JdbcJobCompletionReceiptStore(dataSource)
+            : new kr.lunaf.cloudislands.coreservice.job.InMemoryJobCompletionReceiptStore();
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxStore completionOutbox = config.jdbcRepositories()
+            ? new kr.lunaf.cloudislands.coreservice.job.JdbcJobCompletionOutboxStore(dataSource)
+            : new kr.lunaf.cloudislands.coreservice.job.InMemoryJobCompletionOutboxStore();
+        GlobalEventPublisher completionEvents = redisEventPublisher == null
+            ? immediateEvents
+            : new FailFastGlobalEventPublisher(List.of(redisEventPublisher.rethrowingPublisher(), inMemoryEvents));
+        JobCompletionOutboxDispatcher completionOutboxDispatcher = new JobCompletionOutboxDispatcher(completionOutbox, completionEvents);
+        GlobalEventPublisher events = config.jdbcRepositories()
+            ? new OutboxGlobalEventPublisher(completionOutbox)
+            : immediateEvents;
         RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events, config.levelFormulaExpression(), config.worthFormulaType());
         DirtyRankingRecalculationTask rankingRecalculationTask = new DirtyRankingRecalculationTask(rankingRepository, levelRepository, metadataRepository, levelRecalculation);
         UpgradePolicy upgradePolicy = ConfigUpgradePolicy.load(config.upgradesFile());
@@ -169,16 +183,6 @@ public final class CloudIslandsCoreApplication {
             Path.of(config.storageLocalPath()),
             lifecycle
         );
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionReceiptStore completionReceipts = config.jdbcRepositories()
-            ? new kr.lunaf.cloudislands.coreservice.job.JdbcJobCompletionReceiptStore(dataSource)
-            : new kr.lunaf.cloudislands.coreservice.job.InMemoryJobCompletionReceiptStore();
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxStore completionOutbox = config.jdbcRepositories()
-            ? new kr.lunaf.cloudislands.coreservice.job.JdbcJobCompletionOutboxStore(dataSource)
-            : new kr.lunaf.cloudislands.coreservice.job.InMemoryJobCompletionOutboxStore();
-        GlobalEventPublisher completionEvents = redisEventPublisher == null
-            ? events
-            : new FailFastGlobalEventPublisher(List.of(redisEventPublisher.rethrowingPublisher(), inMemoryEvents));
-        JobCompletionOutboxDispatcher completionOutboxDispatcher = new JobCompletionOutboxDispatcher(completionOutbox, completionEvents);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, completionEvents, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts, completionOutbox);
         PrometheusMetricsRenderer metrics = CoreMetricsFactory.create(
             config,
