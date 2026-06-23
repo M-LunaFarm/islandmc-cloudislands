@@ -1,15 +1,38 @@
 package kr.lunaf.cloudislands.paper.admin;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
 class AdminCommandBackendPolicyTest {
+    @Test
+    void pluginPermissionNodesAreBackedByCommandOrRuntimeChecks() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String boundaryListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandBoundaryListener.java"));
+        String mainMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMainMenu.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String runtimeSources = backend + "\n" + boundaryListener + "\n" + mainMenu;
+
+        Set<String> declaredPermissions = declaredPermissionNodes(plugin);
+        Set<String> backedPermissions = new TreeSet<>();
+        backedPermissions.addAll(commandPermissionNodes(plugin));
+        backedPermissions.addAll(explicitHasPermissionNodes(runtimeSources));
+        backedPermissions.addAll(mappedAdminPermissionNodes(backend));
+
+        assertTrue(backend.contains("if (!hasAdminAccess(sender, args))"), "Admin commands must pass through the runtime permission gate");
+        assertTrue(backend.contains("return !permission.isBlank() && sender.hasPermission(permission);"), "Admin sub-permissions must be checked before routing");
+        assertEquals(declaredPermissions, backedPermissions, "Every plugin.yml permission node must be backed by a command descriptor or runtime permission check");
+    }
+
     @Test
     void diagnosticsExportIsAFirstClassAdminCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
@@ -205,5 +228,40 @@ class AdminCommandBackendPolicyTest {
         assertTrue(handler.contains("coreApiClient.migrations().migrateSuperiorSkyblock2"), "Migration handler must use the typed migration client");
         assertTrue(formatter.contains("String format(MigrationRunSnapshot snapshot)"), "Migration formatter must accept typed migration snapshots");
         assertTrue(!formatter.contains("String format(String body)"), "Migration formatter must not reparse Core JSON after the typed client boundary");
+    }
+
+    private static Set<String> declaredPermissionNodes(String plugin) {
+        return Arrays.stream(plugin.split("\\R"))
+            .map(String::trim)
+            .filter(line -> line.startsWith("cloudislands."))
+            .map(line -> line.substring(0, line.indexOf(':')))
+            .collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    private static Set<String> commandPermissionNodes(String plugin) {
+        return Arrays.stream(plugin.split("\\R"))
+            .map(String::trim)
+            .filter(line -> line.startsWith("permission: cloudislands."))
+            .map(line -> line.substring("permission: ".length()))
+            .collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    private static Set<String> explicitHasPermissionNodes(String source) {
+        Matcher matcher = Pattern.compile("hasPermission\\(\"([^\"]+)\"\\)").matcher(source);
+        Set<String> permissions = new TreeSet<>();
+        while (matcher.find()) {
+            permissions.add(matcher.group(1));
+        }
+        return permissions;
+    }
+
+    private static Set<String> mappedAdminPermissionNodes(String backend) {
+        Matcher matcher = Pattern.compile("case ([^;]+?) -> \"cloudislands\\.admin\\.\" \\+ root;").matcher(backend);
+        assertTrue(matcher.find(), "Admin permission mapping switch must be present");
+        return Arrays.stream(matcher.group(1).split(","))
+            .map(String::trim)
+            .map(root -> root.replace("\"", ""))
+            .map(root -> "cloudislands.admin." + root)
+            .collect(Collectors.toCollection(TreeSet::new));
     }
 }

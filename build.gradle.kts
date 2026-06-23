@@ -1040,6 +1040,19 @@ tasks.register<Test>("verifyGuiActionCoverage") {
     )
 }
 
+tasks.register<Test>("verifyPermissionCoverage") {
+    group = "verification"
+    description = "Verifies plugin.yml permission nodes are backed by command descriptors or runtime checks."
+    val paperSourceSets = project(":cloudislands-paper").extensions.getByType<SourceSetContainer>()
+    val paperTest = paperSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-paper").tasks.named("testClasses"))
+    testClassesDirs = paperTest.output.classesDirs
+    classpath = paperTest.runtimeClasspath
+    workingDir = project(":cloudislands-paper").projectDir
+    useJUnitPlatform()
+    include("kr/lunaf/cloudislands/paper/admin/AdminCommandBackendPolicyTest.class")
+}
+
 val verifyPaperCommandCoverage = tasks.register<Test>("verifyPaperCommandCoverage") {
     group = "verification"
     description = "Verifies Paper command catalog, help, and handler routing coverage."
@@ -1563,6 +1576,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyCommandCoverage"))
     dependsOn(tasks.named("verifyApiRouteCoverage"))
     dependsOn(tasks.named("verifyGuiActionCoverage"))
+    dependsOn(tasks.named("verifyPermissionCoverage"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))
     dependsOn(tasks.named("verifyReleaseSecurityGate"))
 }
