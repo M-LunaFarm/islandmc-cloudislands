@@ -1,8 +1,10 @@
 package kr.lunaf.cloudislands.paper.storage;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -138,31 +140,45 @@ public final class FallbackIslandStorage implements IslandStorage {
 
     @Override
     public StoredBundle writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
-        byte[] bytes = bundle.readAllBytes();
+        Path spool = spoolBundle(bundle);
         try {
-            StoredBundle stored = primary.writeSnapshot(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
+            StoredBundle stored;
+            try (InputStream input = Files.newInputStream(spool)) {
+                stored = primary.writeSnapshot(islandId, snapshotNo, input, manifest);
+            }
             markPrimarySuccess();
-            mirrorSnapshot(islandId, snapshotNo, bytes, manifest);
+            mirrorSnapshot(islandId, snapshotNo, spool, manifest);
             return stored;
         } catch (IOException exception) {
             markFallback("Primary island snapshot write failed for " + islandId + " #" + snapshotNo, FallbackUse.WRITE);
             warn("Primary island snapshot write failed, using fallback for " + islandId + " #" + snapshotNo, exception);
-            return fallback.writeSnapshot(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
+            try (InputStream input = Files.newInputStream(spool)) {
+                return fallback.writeSnapshot(islandId, snapshotNo, input, manifest);
+            }
+        } finally {
+            Files.deleteIfExists(spool);
         }
     }
 
     @Override
     public StoredBundle writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) throws IOException {
-        byte[] bytes = bundle.readAllBytes();
+        Path spool = spoolBundle(bundle);
         try {
-            StoredBundle stored = primary.writeDeleteBackup(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
+            StoredBundle stored;
+            try (InputStream input = Files.newInputStream(spool)) {
+                stored = primary.writeDeleteBackup(islandId, snapshotNo, input, manifest);
+            }
             markPrimarySuccess();
-            mirrorDeleteBackup(islandId, snapshotNo, bytes, manifest);
+            mirrorDeleteBackup(islandId, snapshotNo, spool, manifest);
             return stored;
         } catch (IOException exception) {
             markFallback("Primary island delete backup write failed for " + islandId + " #" + snapshotNo, FallbackUse.WRITE);
             warn("Primary island delete backup write failed, using fallback for " + islandId + " #" + snapshotNo, exception);
-            return fallback.writeDeleteBackup(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
+            try (InputStream input = Files.newInputStream(spool)) {
+                return fallback.writeDeleteBackup(islandId, snapshotNo, input, manifest);
+            }
+        } finally {
+            Files.deleteIfExists(spool);
         }
     }
 
@@ -287,17 +303,32 @@ public final class FallbackIslandStorage implements IslandStorage {
         return lastFallbackReason;
     }
 
-    private void mirrorSnapshot(UUID islandId, long snapshotNo, byte[] bytes, IslandBundleManifest manifest) {
+    private Path spoolBundle(InputStream bundle) throws IOException {
+        Path spool = Files.createTempFile("cloudislands-fallback-bundle-", ".tmp");
         try {
-            fallback.writeSnapshot(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
+            Files.copy(bundle, spool, StandardCopyOption.REPLACE_EXISTING);
+            return spool;
+        } catch (IOException | RuntimeException exception) {
+            Files.deleteIfExists(spool);
+            throw exception;
+        }
+    }
+
+    private void mirrorSnapshot(UUID islandId, long snapshotNo, Path spool, IslandBundleManifest manifest) {
+        try {
+            try (InputStream input = Files.newInputStream(spool)) {
+                fallback.writeSnapshot(islandId, snapshotNo, input, manifest);
+            }
         } catch (IOException exception) {
             warn("Fallback island snapshot mirror failed for " + islandId + " #" + snapshotNo, exception);
         }
     }
 
-    private void mirrorDeleteBackup(UUID islandId, long snapshotNo, byte[] bytes, IslandBundleManifest manifest) {
+    private void mirrorDeleteBackup(UUID islandId, long snapshotNo, Path spool, IslandBundleManifest manifest) {
         try {
-            fallback.writeDeleteBackup(islandId, snapshotNo, new ByteArrayInputStream(bytes), manifest);
+            try (InputStream input = Files.newInputStream(spool)) {
+                fallback.writeDeleteBackup(islandId, snapshotNo, input, manifest);
+            }
         } catch (IOException exception) {
             warn("Fallback island delete backup mirror failed for " + islandId + " #" + snapshotNo, exception);
         }
