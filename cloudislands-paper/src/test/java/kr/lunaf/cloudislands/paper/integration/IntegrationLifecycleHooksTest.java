@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
@@ -173,6 +174,46 @@ class IntegrationLifecycleHooksTest {
         assertEquals("RoseStacker", SimpleJson.text(stackerManifest.get("plugin")));
         assertEquals("effective-stack-export", SimpleJson.text(stackerManifest.get("operation")));
         assertEquals("stacked-entity-state,stacked-spawner-state,effective-limit-keys", SimpleJson.text(stackerDetails.get("external.artifacts")));
+    }
+
+    @Test
+    void worldEditLifecycleHooksRunForIslandActivationExportRestoreAndDeactivation() throws IOException {
+        UUID islandId = UUID.randomUUID();
+        List<String> operations = new ArrayList<>();
+        IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
+            new WorldEditIntegration("WorldEdit", (pluginName, category, operation, context, plan) -> {
+                operations.add(pluginName + ":" + operation);
+                return IntegrationResult.success("worldedit called");
+            })
+        ));
+        ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(
+            islandId,
+            "ci_shard_001",
+            1,
+            2,
+            10,
+            20,
+            100,
+            12L,
+            99L,
+            Instant.now()
+        );
+        IslandBundleManifest manifest = manifest(islandId, 100);
+
+        hooks.onIslandActivated(islandId, activeIsland).throwIfFailed();
+        IntegrationLifecycleHooks.LifecycleBatch exportBatch = hooks.exportState(islandId, activeIsland, 777L, Path.of("777-bundle.tar.zst"));
+        exportBatch.throwIfFailed();
+        exportBatch.writeIfPresent(tempDir.resolve("integrations/export.json"));
+        hooks.restoreState(islandId, "ci_shard_001", 1, 2, 10, 20, 99L, 777L, "snapshots/island.tar.zst", Path.of("bundle.tar.zst"), tempDir.resolve("extracted"), manifest).throwIfFailed();
+        hooks.onIslandDeactivated(islandId, activeIsland, Path.of("777-bundle.tar.zst")).throwIfFailed();
+
+        assertEquals(List.of(
+            "WorldEdit:clipboard-activate",
+            "WorldEdit:schematic-export",
+            "WorldEdit:schematic-restore",
+            "WorldEdit:edit-session-deactivate"
+        ), operations);
+        assertTrue(Files.isRegularFile(tempDir.resolve("integrations/world-edit/WorldEdit/schematic-export.json")));
     }
 
     @Test
