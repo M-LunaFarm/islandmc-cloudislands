@@ -26,6 +26,8 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.message.TranslationManager;
+import kr.lunaf.cloudislands.paper.platform.compatibility.PaperRuntimeCompatibility;
+import kr.lunaf.cloudislands.paper.platform.compatibility.PaperVersionAdapterRegistry;
 import kr.lunaf.cloudislands.paper.redis.PaperRedisClient;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
 import kr.lunaf.cloudislands.paper.session.PaperChatListener;
@@ -46,6 +48,16 @@ final class PaperPluginBootstrap {
 
     void enable() {
         plugin.lifecycle = new LifecycleRegistry(plugin.getLogger());
+        PaperRuntimeCompatibility.RuntimeSelection runtimeCompatibility;
+        try {
+            runtimeCompatibility = PaperRuntimeCompatibility.selectCurrent(PaperVersionAdapterRegistry.defaults());
+        } catch (RuntimeException exception) {
+            plugin.getLogger().severe("CloudIslands Paper refused to start because this server version is unsupported: " + exception.getMessage());
+            plugin.getServer().getPluginManager().disablePlugin(plugin);
+            return;
+        }
+        plugin.runtimeCompatibility = runtimeCompatibility;
+        plugin.getLogger().info("CloudIslands selected Paper adapter " + runtimeCompatibility.adapterId() + " for Minecraft " + runtimeCompatibility.version().normalized());
         PaperRuntimeConfig config = PaperRuntimeConfigLoader.load(plugin, plugin::resolveEnv);
         plugin.runtimeConfig = config;
         logSecurityPosture(config);

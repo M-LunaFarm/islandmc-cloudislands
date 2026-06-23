@@ -45,6 +45,7 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.message.TranslationManager;
+import kr.lunaf.cloudislands.paper.platform.compatibility.PaperRuntimeCompatibility;
 import kr.lunaf.cloudislands.paper.redis.PaperRedisClient;
 import kr.lunaf.cloudislands.paper.security.ProxySourceAllowlist;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
@@ -86,6 +87,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     LifecycleRegistry lifecycle;
     PlayerLocaleCache playerLocales;
     PaperRuntimeConfig runtimeConfig;
+    PaperRuntimeCompatibility.RuntimeSelection runtimeCompatibility;
 
     @Override
     public void onEnable() {
@@ -121,6 +123,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
         GuiSessions.clear();
         runtimeConfig = null;
+        runtimeCompatibility = null;
     }
 
     public CloudIslandsPaperAgent agent() {
@@ -188,6 +191,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public PaperRuntimeConfig runtimeConfig() {
         return runtimeConfig == null ? PaperRuntimeConfig.defaults() : runtimeConfig;
+    }
+
+    public PaperRuntimeCompatibility.RuntimeSelection runtimeCompatibility() {
+        return runtimeCompatibility;
     }
 
     public PaperRuntimeConfig reloadRuntimeConfig() {

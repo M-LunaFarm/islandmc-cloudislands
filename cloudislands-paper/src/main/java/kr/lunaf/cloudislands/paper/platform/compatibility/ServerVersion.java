@@ -1,8 +1,6 @@
 package kr.lunaf.cloudislands.paper.platform.compatibility;
 
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public record ServerVersion(
     int major,
@@ -12,9 +10,6 @@ public record ServerVersion(
     String buildMetadata,
     String original
 ) implements Comparable<ServerVersion> {
-    private static final Pattern MC_VERSION = Pattern.compile("MC:\\s*([0-9A-Za-z.+-]+)");
-    private static final Pattern VERSION = Pattern.compile("^(\\d+)\\.(\\d+)(?:\\.(\\d+))?(?:-([0-9A-Za-z.-]+))?(?:\\+([0-9A-Za-z.-]+))?.*$");
-
     public ServerVersion {
         if (major < 0 || minor < 0 || patch < 0) {
             throw new IllegalArgumentException("version components must be non-negative");
@@ -27,21 +22,68 @@ public record ServerVersion(
     public static ServerVersion parse(String rawVersion) {
         String original = rawVersion == null ? "" : rawVersion.trim();
         String value = extractMinecraftVersion(original);
-        Matcher matcher = VERSION.matcher(value);
-        if (!matcher.matches()) {
-            throw new IllegalArgumentException("Unsupported Paper version format: " + original);
-        }
-        int major = Integer.parseInt(matcher.group(1));
-        int minor = Integer.parseInt(matcher.group(2));
-        int patch = matcher.group(3) == null ? 0 : Integer.parseInt(matcher.group(3));
+        ParsedVersion parsed = parseValue(value, original);
         return new ServerVersion(
-            major,
-            minor,
-            patch,
-            Objects.toString(matcher.group(4), ""),
-            Objects.toString(matcher.group(5), ""),
+            parsed.major(),
+            parsed.minor(),
+            parsed.patch(),
+            parsed.preRelease(),
+            parsed.buildMetadata(),
             original
         );
+    }
+
+    private static ParsedVersion parseValue(String value, String original) {
+        NumberPart major = readNumber(value, 0, original);
+        int offset = major.nextOffset();
+        if (offset >= value.length() || value.charAt(offset) != '.') {
+            throw new IllegalArgumentException("Unsupported Paper version format: " + original);
+        }
+        NumberPart minor = readNumber(value, offset + 1, original);
+        offset = minor.nextOffset();
+        int patch = 0;
+        if (offset < value.length() && value.charAt(offset) == '.') {
+            NumberPart patchPart = readNumber(value, offset + 1, original);
+            patch = patchPart.value();
+            offset = patchPart.nextOffset();
+        }
+
+        String preRelease = "";
+        String buildMetadata = "";
+        if (offset < value.length() && value.charAt(offset) == '-') {
+            int start = offset + 1;
+            offset = readIdentifier(value, start);
+            preRelease = value.substring(start, offset);
+        }
+        if (offset < value.length() && value.charAt(offset) == '+') {
+            int start = offset + 1;
+            offset = readIdentifier(value, start);
+            buildMetadata = value.substring(start, offset);
+        }
+        return new ParsedVersion(major.value(), minor.value(), patch, preRelease, buildMetadata);
+    }
+
+    private static NumberPart readNumber(String value, int offset, String original) {
+        int cursor = offset;
+        while (cursor < value.length() && Character.isDigit(value.charAt(cursor))) {
+            cursor++;
+        }
+        if (cursor == offset) {
+            throw new IllegalArgumentException("Unsupported Paper version format: " + original);
+        }
+        return new NumberPart(Integer.parseInt(value.substring(offset, cursor)), cursor);
+    }
+
+    private static int readIdentifier(String value, int offset) {
+        int cursor = offset;
+        while (cursor < value.length() && versionIdentifierCharacter(value.charAt(cursor))) {
+            cursor++;
+        }
+        return cursor;
+    }
+
+    private static boolean versionIdentifierCharacter(char value) {
+        return Character.isLetterOrDigit(value) || value == '.' || value == '-';
     }
 
     public String normalized() {
@@ -88,10 +130,32 @@ public record ServerVersion(
     }
 
     private static String extractMinecraftVersion(String rawVersion) {
-        Matcher mcVersion = MC_VERSION.matcher(rawVersion);
-        if (mcVersion.find()) {
-            return mcVersion.group(1);
+        int marker = rawVersion.indexOf("MC:");
+        if (marker >= 0) {
+            int offset = marker + 3;
+            while (offset < rawVersion.length() && Character.isWhitespace(rawVersion.charAt(offset))) {
+                offset++;
+            }
+            int end = offset;
+            while (end < rawVersion.length() && minecraftVersionCharacter(rawVersion.charAt(end))) {
+                end++;
+            }
+            return rawVersion.substring(offset, end);
         }
         return rawVersion;
+    }
+
+    private static boolean minecraftVersionCharacter(char value) {
+        return Character.isLetterOrDigit(value) || value == '.' || value == '+' || value == '-';
+    }
+
+    private record NumberPart(int value, int nextOffset) {
+    }
+
+    private record ParsedVersion(int major, int minor, int patch, String preRelease, String buildMetadata) {
+        private ParsedVersion {
+            preRelease = Objects.toString(preRelease, "");
+            buildMetadata = Objects.toString(buildMetadata, "");
+        }
     }
 }

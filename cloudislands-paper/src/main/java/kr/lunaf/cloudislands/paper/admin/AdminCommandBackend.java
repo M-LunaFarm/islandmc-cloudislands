@@ -469,7 +469,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<DiagnosticSection> configValidation = CompletableFuture.completedFuture(new DiagnosticSection(configHandler.validationDiagnosticSection()));
         CompletableFuture<DiagnosticSection> effectiveConfig = CompletableFuture.completedFuture(new DiagnosticSection(configHandler.effectiveConfigDiagnosticSection()));
         run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, heartbeatLag, jobs, routes, audit, configValidation, effectiveConfig)
-            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), heartbeatLag.join(), jobs.join(), routes.join(), audit.join(), configValidation.join(), effectiveConfig.join(), integrationsDiagnosticSection()))));
+            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), heartbeatLag.join(), jobs.join(), routes.join(), audit.join(), configValidation.join(), effectiveConfig.join(), runtimeCompatibilityDiagnosticSection(), integrationsDiagnosticSection()))));
         return true;
     }
 
@@ -542,6 +542,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return new DiagnosticSection(plugin.integrationRegistry().diagnosticsSection());
         }
         return diagnosticSection("integrations", CompletableFuture.completedFuture(integrationStatusMessage())).join();
+    }
+
+    private DiagnosticSection runtimeCompatibilityDiagnosticSection() {
+        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin && plugin.runtimeCompatibility() != null) {
+            return new DiagnosticSection(plugin.runtimeCompatibility().diagnosticsSection());
+        }
+        return new DiagnosticSection("## runtime-compatibility\npaperAdapterId=unavailable\n");
     }
 
     private boolean handleNode(CommandSender sender, String[] args) {

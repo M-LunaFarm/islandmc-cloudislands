@@ -6,6 +6,7 @@ import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
 import kr.lunaf.cloudislands.paper.level.PeriodicIslandLevelScanTask;
+import kr.lunaf.cloudislands.paper.platform.compatibility.PaperRuntimeCompatibility;
 import kr.lunaf.cloudislands.paper.redis.PaperRedisClient;
 import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
 import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
@@ -48,6 +49,7 @@ final class PaperObservabilityFormatter {
         ProtectionController protection = plugin.agent() == null ? null : plugin.agent().protection();
         IslandBoundaryListener boundary = plugin.boundaryListener();
         MeteredIslandStorage storage = plugin.islandStorage();
+        PaperRuntimeCompatibility.RuntimeSelection compatibility = plugin.runtimeCompatibility();
         boolean storageFallbackEnabled = config.storage().fallbackEnabled();
         int storageSaveRetryQueueTotal = (saver == null ? 0 : saver.retryQueueSize()) + (emptySaver == null ? 0 : emptySaver.retryQueueSize());
         String storageLastFallbackReason = storage == null ? "" : storage.lastFallbackReason();
@@ -64,6 +66,13 @@ final class PaperObservabilityFormatter {
             + "\"roleIslandSaveTasksEnabled\":" + islandSaveTasksEnabled + ","
             + "\"roleGuiMenusEnabled\":" + guiMenusEnabled + ","
             + "\"roleGuiMenuPolicy\":\"configurable-paper-gui-role-gate\","
+            + "\"paperVersionOriginal\":\"" + jsonText(compatibility == null ? "" : compatibility.version().original()) + "\","
+            + "\"paperVersionNormalized\":\"" + jsonText(compatibility == null ? "" : compatibility.version().normalized()) + "\","
+            + "\"paperVersionStable\":" + (compatibility != null && compatibility.version().stable()) + ","
+            + "\"paperAdapterId\":\"" + jsonText(compatibility == null ? "" : compatibility.adapterId()) + "\","
+            + "\"paperAdapterRange\":\"" + jsonText(compatibility == null ? "" : compatibility.adapter().supportedRange().summary()) + "\","
+            + "\"paperAdapterCapabilities\":\"" + jsonText(compatibility == null ? "" : compatibility.capabilities().summary()) + "\","
+            + "\"paperSupportedRanges\":\"" + jsonText(compatibility == null ? "" : compatibility.supportedRanges()) + "\","
             + "\"protectionDecisionPolicy\":\"" + (protection == null ? "unavailable" : protection.synchronousDecisionPolicy()) + "\","
             + "\"protectionSynchronousEventsUseRemoteCalls\":false,"
             + "\"protectionIndexedChunks\":" + (protection == null ? 0 : protection.indexedChunkCount()) + ","
@@ -217,9 +226,12 @@ final class PaperObservabilityFormatter {
         PermissionEventPoller events = plugin.permissionEventPoller();
         ProtectionController protection = plugin.agent().protection();
         IslandBoundaryListener boundary = plugin.boundaryListener();
+        PaperRuntimeCompatibility.RuntimeSelection compatibility = plugin.runtimeCompatibility();
         return ""
             + "cloudislands_paper_online_players " + plugin.getServer().getOnlinePlayers().size() + "\n"
             + "cloudislands_paper_online_mode " + (plugin.getServer().getOnlineMode() ? 1 : 0) + "\n"
+            + "cloudislands_paper_version_adapter{node=\"" + labelText(nodeId) + "\",adapter=\"" + labelText(compatibility == null ? "" : compatibility.adapterId()) + "\",version=\"" + labelText(compatibility == null ? "" : compatibility.version().normalized()) + "\",range=\"" + labelText(compatibility == null ? "" : compatibility.adapter().supportedRange().summary()) + "\"} " + (compatibility == null ? 0 : 1) + "\n"
+            + "cloudislands_paper_version_stable{node=\"" + labelText(nodeId) + "\"} " + (compatibility != null && compatibility.version().stable() ? 1 : 0) + "\n"
             + "cloudislands_paper_gui_menus_enabled{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + (guiMenusEnabled ? 1 : 0) + "\n"
             + "cloudislands_paper_active_islands{node=\"" + nodeId + "\",role=\"" + role.name() + "\"} " + active + "\n"
             + "cloudislands_paper_activation_queue{node=\"" + nodeId + "\"} " + queue + "\n"
@@ -318,6 +330,10 @@ final class PaperObservabilityFormatter {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
+    private static String labelText(String value) {
+        return jsonText(value).replace("\n", "").replace("\r", "");
+    }
+
     private String levelScanStatus(String supportedTemplates) {
         PeriodicIslandLevelScanTask scanner = plugin.periodicLevelScanTask();
         if (scanner == null) {
@@ -334,7 +350,13 @@ final class PaperObservabilityFormatter {
 
     String heartbeatMetadata(String supportedTemplates, MeteredIslandStorage storage) {
         PaperRedisClient.PingResult redis = plugin.redisClient() == null ? PaperRedisClient.PingResult.disabled() : plugin.redisClient().ping();
+        PaperRuntimeCompatibility.RuntimeSelection compatibility = plugin.runtimeCompatibility();
         return levelScanStatus(supportedTemplates)
+            + ";paperVersionOriginal=" + (compatibility == null ? "" : compatibility.version().original())
+            + ";paperVersionNormalized=" + (compatibility == null ? "" : compatibility.version().normalized())
+            + ";paperAdapterId=" + (compatibility == null ? "" : compatibility.adapterId())
+            + ";paperAdapterRange=" + (compatibility == null ? "" : compatibility.adapter().supportedRange().summary())
+            + ";paperAdapterCapabilities=" + (compatibility == null ? "" : compatibility.capabilities().summary())
             + ";localCaches=" + (plugin.localCaches() == null ? "" : plugin.localCaches().namesCsv())
             + ";localCacheInvalidations=" + (plugin.localCaches() == null ? 0L : plugin.localCaches().invalidationsTotal())
             + ";cacheEventInvalidations=" + (plugin.permissionEventPoller() == null ? 0L : plugin.permissionEventPoller().cacheEventInvalidations())

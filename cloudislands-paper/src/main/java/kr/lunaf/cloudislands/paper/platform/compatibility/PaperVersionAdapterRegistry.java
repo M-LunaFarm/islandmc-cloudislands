@@ -29,6 +29,10 @@ public final class PaperVersionAdapterRegistry {
 
     public PaperVersionAdapter select(String rawVersion) {
         ServerVersion version = ServerVersion.parse(rawVersion);
+        return select(version);
+    }
+
+    public PaperVersionAdapter select(ServerVersion version) {
         List<PaperVersionAdapter> matches = adapters.stream()
             .filter(adapter -> adapter.supports(version))
             .toList();

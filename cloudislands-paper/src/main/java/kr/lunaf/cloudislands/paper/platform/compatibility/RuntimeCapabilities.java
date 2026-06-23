@@ -15,4 +15,13 @@ public record RuntimeCapabilities(
     public boolean completeForIslandNode() {
         return scheduler && worldLifecycle && registryAccess && playerTransfer && pluginMessaging && bundleRestore;
     }
+
+    public String summary() {
+        return "scheduler=" + scheduler
+            + ",worldLifecycle=" + worldLifecycle
+            + ",registryAccess=" + registryAccess
+            + ",playerTransfer=" + playerTransfer
+            + ",pluginMessaging=" + pluginMessaging
+            + ",bundleRestore=" + bundleRestore;
+    }
 }
