@@ -27,12 +27,12 @@ public final class PlayerProfileRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/players/info", this::adminInfo);
-        registry.route("/v1/players/info", this::info);
-        registry.route("/v1/players/touch", this::touch);
-        registry.route("/v1/players/locale", this::locale);
-        registry.route("/v1/admin/players/setisland", this::setIsland);
-        registry.route("/v1/admin/players/clearisland", this::clearIsland);
+        registry.routePost("/v1/admin/players/info", this::adminInfo);
+        registry.routePost("/v1/players/info", this::info);
+        registry.routePost("/v1/players/touch", this::touch);
+        registry.routePost("/v1/players/locale", this::locale);
+        registry.routePost("/v1/admin/players/setisland", this::setIsland);
+        registry.routePost("/v1/admin/players/clearisland", this::clearIsland);
     }
 
     private void adminInfo(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
