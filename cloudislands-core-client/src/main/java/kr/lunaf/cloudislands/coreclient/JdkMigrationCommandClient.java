@@ -6,6 +6,14 @@ import kr.lunaf.cloudislands.api.model.MigrationIssueSnapshot;
 import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 
 public final class JdkMigrationCommandClient implements MigrationCommandClient {
+    private static final String SUPERIOR_SKYBLOCK2_SCAN = "/v1/admin/migrations/superiorskyblock2/scan";
+    private static final String SUPERIOR_SKYBLOCK2_STATUS = "/v1/admin/migrations/superiorskyblock2/status";
+    private static final String SUPERIOR_SKYBLOCK2_DRYRUN = "/v1/admin/migrations/superiorskyblock2/dryrun";
+    private static final String SUPERIOR_SKYBLOCK2_EXTRACT = "/v1/admin/migrations/superiorskyblock2/extract";
+    private static final String SUPERIOR_SKYBLOCK2_IMPORT = "/v1/admin/migrations/superiorskyblock2/import";
+    private static final String SUPERIOR_SKYBLOCK2_VERIFY = "/v1/admin/migrations/superiorskyblock2/verify";
+    private static final String SUPERIOR_SKYBLOCK2_ROLLBACK = "/v1/admin/migrations/superiorskyblock2/rollback";
+
     private final JdkCoreApiClient core;
 
     public JdkMigrationCommandClient(JdkCoreApiClient core) {
@@ -18,18 +26,16 @@ public final class JdkMigrationCommandClient implements MigrationCommandClient {
     @Override
     public CompletableFuture<MigrationRunSnapshot> migrateSuperiorSkyblock2(String action, String path) {
         String normalizedAction = action == null || action.isBlank() ? "scan" : action.toLowerCase();
-        String endpoint = switch (normalizedAction) {
-            case "scan" -> "scan";
-            case "status" -> "status";
-            case "dryrun", "dry-run" -> "dryrun";
-            case "extract", "extract-worlds", "world-extract" -> "extract";
-            case "import" -> "import";
-            case "verify" -> "verify";
-            case "rollback" -> "rollback";
-            default -> "";
-        };
-        if (endpoint.isBlank()) {
-            return CompletableFuture.completedFuture(new MigrationRunSnapshot(
+        String value = path == null ? "" : path;
+        return switch (normalizedAction) {
+            case "scan" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_SCAN, CoreJsonPayload.object("path", value)));
+            case "status" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_STATUS, "{}"));
+            case "dryrun", "dry-run" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_DRYRUN, CoreJsonPayload.object("path", value)));
+            case "extract", "extract-worlds", "world-extract" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_EXTRACT, CoreJsonPayload.object("path", value)));
+            case "import" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_IMPORT, CoreJsonPayload.object("approval", value)));
+            case "verify" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_VERIFY, CoreJsonPayload.object("path", value)));
+            case "rollback" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_ROLLBACK, "{}"));
+            default -> CompletableFuture.completedFuture(new MigrationRunSnapshot(
                 "INVALID_MIGRATION_ACTION",
                 path == null ? "" : path,
                 0,
@@ -42,12 +48,11 @@ public final class JdkMigrationCommandClient implements MigrationCommandClient {
                 0,
                 List.of(new MigrationIssueSnapshot("INVALID_MIGRATION_ACTION", "Unknown SuperiorSkyblock2 migration action: " + normalizedAction, true))
             ));
-        }
-        String value = path == null ? "" : path;
-        String payload = endpoint.equals("import")
-            ? CoreJsonPayload.object("approval", value)
-            : (endpoint.equals("rollback") || endpoint.equals("status")) ? "{}" : CoreJsonPayload.object("path", value);
-        return core.postResultBody("/v1/admin/migrations/superiorskyblock2/" + endpoint, payload)
+        };
+    }
+
+    private CompletableFuture<MigrationRunSnapshot> run(CompletableFuture<CoreResponseBody> response) {
+        return response
             .thenApply(CoreResponseBody::value)
             .thenApply(CoreMigrationJson::run);
     }
