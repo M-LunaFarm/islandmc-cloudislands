@@ -1040,6 +1040,45 @@ tasks.register<Test>("verifyGuiActionCoverage") {
     )
 }
 
+val verifyPaperCommandCoverage = tasks.register<Test>("verifyPaperCommandCoverage") {
+    group = "verification"
+    description = "Verifies Paper command catalog, help, and handler routing coverage."
+    val paperSourceSets = project(":cloudislands-paper").extensions.getByType<SourceSetContainer>()
+    val paperTest = paperSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-paper").tasks.named("testClasses"))
+    testClassesDirs = paperTest.output.classesDirs
+    classpath = paperTest.runtimeClasspath
+    workingDir = project(":cloudislands-paper").projectDir
+    useJUnitPlatform()
+    include(
+        "kr/lunaf/cloudislands/paper/command/IslandCommandCatalogTest.class",
+        "kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.class"
+    )
+}
+
+val verifyVelocityCommandCoverage = tasks.register<Test>("verifyVelocityCommandCoverage") {
+    group = "verification"
+    description = "Verifies Velocity command catalog and alias registration coverage."
+    val velocitySourceSets = project(":cloudislands-velocity").extensions.getByType<SourceSetContainer>()
+    val velocityTest = velocitySourceSets.named("test").get()
+    dependsOn(project(":cloudislands-velocity").tasks.named("testClasses"))
+    testClassesDirs = velocityTest.output.classesDirs
+    classpath = velocityTest.runtimeClasspath
+    workingDir = project(":cloudislands-velocity").projectDir
+    useJUnitPlatform()
+    include(
+        "kr/lunaf/cloudislands/velocity/command/IslandCommandCatalogTest.class",
+        "kr/lunaf/cloudislands/velocity/command/VelocityCommandRegistrarTest.class"
+    )
+}
+
+tasks.register("verifyCommandCoverage") {
+    group = "verification"
+    description = "Verifies command catalogs, help entries, aliases, and handler routing are covered by executable tests."
+    dependsOn(verifyPaperCommandCoverage)
+    dependsOn(verifyVelocityCommandCoverage)
+}
+
 tasks.register<JavaExec>("apiCompatibilityCheck") {
     group = "verification"
     description = "Verifies the CloudIslands API compatibility contract before release."
@@ -1521,6 +1560,7 @@ tasks.register("verifyReleaseGateCoverage") {
 }
 
 tasks.named("check") {
+    dependsOn(tasks.named("verifyCommandCoverage"))
     dependsOn(tasks.named("verifyApiRouteCoverage"))
     dependsOn(tasks.named("verifyGuiActionCoverage"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))

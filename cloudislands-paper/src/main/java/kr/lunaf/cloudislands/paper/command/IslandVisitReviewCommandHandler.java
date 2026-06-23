@@ -54,7 +54,7 @@ final class IslandVisitReviewCommandHandler {
             listPublicIslands(player, rankingLimit(args, 1));
             return true;
         }
-        if (subcommand.equals("reviews") || subcommand.equals("review-list") || subcommand.equals("후기") || subcommand.equals("후기목록")) {
+        if (subcommand.equals("reviews") || subcommand.equals("review-list") || subcommand.equals("후기") || subcommand.equals("후기목록") || subcommand.equals("평가목록")) {
             listIslandReviews(player, args.length > 1 ? integer(args[1], 10) : 10);
             return true;
         }
