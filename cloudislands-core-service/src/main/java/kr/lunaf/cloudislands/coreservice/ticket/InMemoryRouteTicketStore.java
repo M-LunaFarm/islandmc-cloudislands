@@ -92,26 +92,19 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
     @Override
     public List<RouteTicket> markFailedForIsland(UUID islandId, String targetNode, String reason) {
         List<RouteTicket> failedTickets = new ArrayList<>();
-        for (RouteTicket ticket : tickets.values()) {
-            if (ticket.state() != RouteTicketState.PREPARING || !ticket.islandId().equals(islandId) || !ticket.targetNode().equals(targetNode)) {
-                continue;
+        for (UUID ticketId : List.copyOf(tickets.keySet())) {
+            java.util.concurrent.atomic.AtomicReference<RouteTicket> changed = new java.util.concurrent.atomic.AtomicReference<>();
+            tickets.computeIfPresent(ticketId, (_id, ticket) -> {
+                if (ticket.state() != RouteTicketState.PREPARING || !ticket.islandId().equals(islandId) || !ticket.targetNode().equals(targetNode)) {
+                    return ticket;
+                }
+                RouteTicket failed = failedTicket(ticket, reason);
+                changed.set(failed);
+                return failed;
+            });
+            if (changed.get() != null) {
+                failedTickets.add(changed.get());
             }
-            java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>(ticket.payload());
-            payload.put("failureReason", reason == null ? "" : reason);
-            RouteTicket failed = new RouteTicket(
-                ticket.ticketId(),
-                ticket.playerUuid(),
-                ticket.action(),
-                ticket.islandId(),
-                ticket.targetNode(),
-                ticket.targetWorld(),
-                RouteTicketState.FAILED,
-                ticket.expiresAt(),
-                ticket.nonce(),
-                Map.copyOf(payload)
-            );
-            tickets.put(ticket.ticketId(), failed);
-            failedTickets.add(failed);
         }
         return failedTickets;
     }
@@ -119,28 +112,38 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
     @Override
     public List<RouteTicket> markFailedForNode(String targetNode, String reason) {
         List<RouteTicket> failedTickets = new ArrayList<>();
-        for (RouteTicket ticket : tickets.values()) {
-            if ((ticket.state() != RouteTicketState.PREPARING && ticket.state() != RouteTicketState.READY) || !ticket.targetNode().equals(targetNode)) {
-                continue;
+        for (UUID ticketId : List.copyOf(tickets.keySet())) {
+            java.util.concurrent.atomic.AtomicReference<RouteTicket> changed = new java.util.concurrent.atomic.AtomicReference<>();
+            tickets.computeIfPresent(ticketId, (_id, ticket) -> {
+                if ((ticket.state() != RouteTicketState.PREPARING && ticket.state() != RouteTicketState.READY) || !ticket.targetNode().equals(targetNode)) {
+                    return ticket;
+                }
+                RouteTicket failed = failedTicket(ticket, reason);
+                changed.set(failed);
+                return failed;
+            });
+            if (changed.get() != null) {
+                failedTickets.add(changed.get());
             }
-            java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>(ticket.payload());
-            payload.put("failureReason", reason == null ? "" : reason);
-            RouteTicket failed = new RouteTicket(
-                ticket.ticketId(),
-                ticket.playerUuid(),
-                ticket.action(),
-                ticket.islandId(),
-                ticket.targetNode(),
-                ticket.targetWorld(),
-                RouteTicketState.FAILED,
-                ticket.expiresAt(),
-                ticket.nonce(),
-                Map.copyOf(payload)
-            );
-            tickets.put(ticket.ticketId(), failed);
-            failedTickets.add(failed);
         }
         return failedTickets;
+    }
+
+    private RouteTicket failedTicket(RouteTicket ticket, String reason) {
+        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>(ticket.payload());
+        payload.put("failureReason", reason == null ? "" : reason);
+        return new RouteTicket(
+            ticket.ticketId(),
+            ticket.playerUuid(),
+            ticket.action(),
+            ticket.islandId(),
+            ticket.targetNode(),
+            ticket.targetWorld(),
+            RouteTicketState.FAILED,
+            ticket.expiresAt(),
+            ticket.nonce(),
+            Map.copyOf(payload)
+        );
     }
 
     public Optional<RouteTicket> consume(UUID ticketId, UUID playerUuid, String nodeId, String nonce) {

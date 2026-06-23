@@ -132,22 +132,8 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
             try (ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) {
                     RouteTicket ticket = map(rs);
-                    LinkedHashMap<String, String> payload = new LinkedHashMap<>(ticket.payload());
-                    payload.put("failureReason", reason == null ? "" : reason);
-                    RouteTicket failed = new RouteTicket(
-                        ticket.ticketId(),
-                        ticket.playerUuid(),
-                        ticket.action(),
-                        ticket.islandId(),
-                        ticket.targetNode(),
-                        ticket.targetWorld(),
-                        RouteTicketState.FAILED,
-                        ticket.expiresAt(),
-                        ticket.nonce(),
-                        Map.copyOf(payload)
-                    );
-                    save(failed);
-                    failedTickets.add(failed);
+                    markFailedIfStillActive(connection, ticket, reason, List.of(RouteTicketState.PREPARING))
+                        .ifPresent(failedTickets::add);
                 }
             }
             return failedTickets;
@@ -165,27 +151,41 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
             try (ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) {
                     RouteTicket ticket = map(rs);
-                    LinkedHashMap<String, String> payload = new LinkedHashMap<>(ticket.payload());
-                    payload.put("failureReason", reason == null ? "" : reason);
-                    RouteTicket failed = new RouteTicket(
-                        ticket.ticketId(),
-                        ticket.playerUuid(),
-                        ticket.action(),
-                        ticket.islandId(),
-                        ticket.targetNode(),
-                        ticket.targetWorld(),
-                        RouteTicketState.FAILED,
-                        ticket.expiresAt(),
-                        ticket.nonce(),
-                        Map.copyOf(payload)
-                    );
-                    save(failed);
-                    failedTickets.add(failed);
+                    markFailedIfStillActive(connection, ticket, reason, List.of(RouteTicketState.PREPARING, RouteTicketState.READY))
+                        .ifPresent(failedTickets::add);
                 }
             }
             return failedTickets;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to mark node route tickets failed", exception);
+        }
+    }
+
+    private Optional<RouteTicket> markFailedIfStillActive(Connection connection, RouteTicket ticket, String reason, List<RouteTicketState> expectedStates) throws SQLException {
+        LinkedHashMap<String, String> payload = new LinkedHashMap<>(ticket.payload());
+        payload.put("failureReason", reason == null ? "" : reason);
+        RouteTicket failed = new RouteTicket(
+            ticket.ticketId(),
+            ticket.playerUuid(),
+            ticket.action(),
+            ticket.islandId(),
+            ticket.targetNode(),
+            ticket.targetWorld(),
+            RouteTicketState.FAILED,
+            ticket.expiresAt(),
+            ticket.nonce(),
+            Map.copyOf(payload)
+        );
+        String payloadValue = mysqlLike(connection) ? "?" : "CAST(? AS jsonb)";
+        String expected = expectedStates.stream().map(_state -> "?").collect(java.util.stream.Collectors.joining(", "));
+        try (PreparedStatement statement = connection.prepareStatement("UPDATE route_tickets SET state = 'FAILED', payload = " + payloadValue + " WHERE id = ? AND state IN (" + expected + ")")) {
+            statement.setString(1, RouteTicketJson.payload(failed.payload()));
+            statement.setObject(2, ticket.ticketId());
+            int index = 3;
+            for (RouteTicketState state : expectedStates) {
+                statement.setString(index++, state.name());
+            }
+            return statement.executeUpdate() == 1 ? Optional.of(failed) : Optional.empty();
         }
     }
 

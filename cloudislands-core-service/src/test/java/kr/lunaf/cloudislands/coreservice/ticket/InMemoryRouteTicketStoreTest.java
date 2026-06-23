@@ -12,6 +12,10 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -84,6 +88,40 @@ class InMemoryRouteTicketStoreTest {
         assertEquals("NODE_DOWN_AFTER_READY", failed.getFirst().payload().get("failureReason"));
         assertEquals(RouteTicketState.FAILED, store.find(ticket.ticketId()).orElseThrow().state());
         assertFalse(store.consume(ticket.ticketId(), PLAYER, "island-2", "nonce-6").isPresent());
+    }
+
+    @Test
+    void islandFailureCleanupIsIdempotent() {
+        InMemoryRouteTicketStore store = new InMemoryRouteTicketStore(CLOCK);
+        RouteTicket ticket = store.save(ticket(RouteTicketState.PREPARING, NOW.plusSeconds(120), "island-2", "nonce-7"));
+
+        List<RouteTicket> first = store.markFailedForIsland(ISLAND, "island-2", "ACTIVATION_FAILED");
+        List<RouteTicket> replay = store.markFailedForIsland(ISLAND, "island-2", "ACTIVATION_FAILED");
+
+        assertEquals(1, first.size());
+        assertEquals(ticket.ticketId(), first.getFirst().ticketId());
+        assertEquals(0, replay.size());
+        assertEquals(RouteTicketState.FAILED, store.find(ticket.ticketId()).orElseThrow().state());
+        assertEquals("ACTIVATION_FAILED", store.find(ticket.ticketId()).orElseThrow().payload().get("failureReason"));
+    }
+
+    @Test
+    void concurrentNodeFailureCleanupReturnsTicketOnce() throws Exception {
+        InMemoryRouteTicketStore store = new InMemoryRouteTicketStore(CLOCK);
+        RouteTicket ticket = store.save(ticket(RouteTicketState.READY, NOW.plusSeconds(30), "island-2", "nonce-8"));
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<List<RouteTicket>> first = executor.submit(() -> store.markFailedForNode("island-2", "NODE_DOWN"));
+            Future<List<RouteTicket>> second = executor.submit(() -> store.markFailedForNode("island-2", "NODE_DOWN"));
+
+            int changed = first.get(5, TimeUnit.SECONDS).size() + second.get(5, TimeUnit.SECONDS).size();
+
+            assertEquals(1, changed);
+            assertEquals(RouteTicketState.FAILED, store.find(ticket.ticketId()).orElseThrow().state());
+            assertEquals("NODE_DOWN", store.find(ticket.ticketId()).orElseThrow().payload().get("failureReason"));
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
