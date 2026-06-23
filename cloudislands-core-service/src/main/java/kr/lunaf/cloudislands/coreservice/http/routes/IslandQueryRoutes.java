@@ -88,8 +88,8 @@ public final class IslandQueryRoutes {
     }
 
     public void register(CoreRouteRegistry prefixRegistry) {
-        prefixRegistry.route(ISLAND_PREFIX, this::islandPrefix);
-        prefixRegistry.route(PLAYER_PREFIX, this::playerPrefix);
+        prefixRegistry.routeMethods(ISLAND_PREFIX, this::islandPrefix, "GET", "DELETE");
+        prefixRegistry.routeGet(PLAYER_PREFIX, this::playerPrefix);
     }
 
     private void islandPrefix(HttpExchange exchange) throws IOException {
