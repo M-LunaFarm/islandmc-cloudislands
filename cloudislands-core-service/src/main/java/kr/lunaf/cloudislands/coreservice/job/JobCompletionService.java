@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.job;
 
 import java.time.Duration;
+import java.util.Map;
 import kr.lunaf.cloudislands.coreservice.RedisActivationLock;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
@@ -14,38 +15,48 @@ import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 public final class JobCompletionService {
     static final String ACTIVATION_LOCK_TOKEN_KEY = JobCompletionBackend.ACTIVATION_LOCK_TOKEN_KEY;
 
+    private final JobCompletionCoordinator coordinator;
     private final JobCompletionBackend backend;
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
-        this.backend = new JobCompletionBackend(runtimes, events, snapshots, tickets);
+        this(runtimes, events, snapshots, tickets, null);
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs) {
-        this.backend = new JobCompletionBackend(runtimes, events, snapshots, tickets, jobs);
+        this(runtimes, events, snapshots, tickets, jobs, null, null);
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles) {
-        this.backend = new JobCompletionBackend(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles);
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, Duration.ofSeconds(30));
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl) {
-        this.backend = new JobCompletionBackend(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl);
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, 85);
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, int snapshotKeepLatest) {
-        this.backend = new JobCompletionBackend(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotKeepLatest);
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotKeepLatest, null);
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, int snapshotKeepLatest, RedisActivationLock activationLock) {
-        this.backend = new JobCompletionBackend(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotKeepLatest, activationLock);
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, new SnapshotRetentionPolicy(snapshotKeepLatest, 0, 0, 0, true, "SHA-256"), activationLock);
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock) {
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, new InMemoryJobCompletionReceiptStore());
+    }
+
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock, JobCompletionReceiptStore receipts) {
         this.backend = new JobCompletionBackend(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock);
+        this.coordinator = new JobCompletionCoordinator(backend, receipts == null ? new InMemoryJobCompletionReceiptStore() : receipts);
     }
 
     public void completed(IslandJob job) {
-        backend.completed(job);
+        coordinator.completed(job, Map.of());
+    }
+
+    public JobCompletionResult completed(IslandJob job, Map<String, String> completionPayload) {
+        return coordinator.completed(job, completionPayload);
     }
 
     public void failed(IslandJob job, String errorMessage) {

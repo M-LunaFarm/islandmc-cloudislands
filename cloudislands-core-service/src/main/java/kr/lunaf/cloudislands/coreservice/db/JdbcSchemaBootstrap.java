@@ -83,7 +83,8 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V62__dynamic_role_keys.sql",
         "/db/migration/V63__dynamic_member_role_keys.sql",
         "/db/migration/V64__job_claim_leases.sql",
-        "/db/migration/V65__job_completion_receipts.sql"
+        "/db/migration/V65__job_completion_receipts.sql",
+        "/db/migration/V66__job_completion_receipt_queue_mode.sql"
     };
 
     private enum Dialect {

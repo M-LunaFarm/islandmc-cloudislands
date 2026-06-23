@@ -430,7 +430,6 @@ CREATE TABLE IF NOT EXISTS job_completion_receipts (
     committed_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     acked_at DATETIME(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    CONSTRAINT fk_job_completion_receipts_job FOREIGN KEY (job_id) REFERENCES island_jobs(id) ON DELETE CASCADE,
     CONSTRAINT fk_job_completion_receipts_island FOREIGN KEY (island_id) REFERENCES islands(id),
     CONSTRAINT chk_job_completion_receipts_type_known CHECK (job_type IN ('CREATE_ISLAND', 'ACTIVATE_ISLAND', 'DEACTIVATE_ISLAND', 'SAVE_ISLAND', 'SNAPSHOT_ISLAND', 'MIGRATE_ISLAND', 'DELETE_ISLAND', 'RESET_ISLAND', 'RESTORE_ISLAND')),
     CONSTRAINT chk_job_completion_receipts_target_node_trimmed CHECK (target_node IS NULL OR target_node = trim(target_node)),

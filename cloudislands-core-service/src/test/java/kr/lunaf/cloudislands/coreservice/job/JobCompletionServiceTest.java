@@ -25,6 +25,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JobCompletionServiceTest {
@@ -139,6 +140,37 @@ class JobCompletionServiceTest {
 
         assertEquals("saved-before-event-failure", snapshots.find(ISLAND, 13L).orElseThrow().checksum());
         assertEquals(IslandState.ACTIVE, runtimes.find(ISLAND).orElseThrow().state());
+    }
+
+    @Test
+    void duplicateCompletionPayloadReplaysAndDifferentPayloadConflicts() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        JobCompletionService service = service(runtimes, events, snapshots);
+        runtimes.markActive(ISLAND, "island-1", "ci_shard_001", 1, 2, 9L);
+        IslandJob claimed = job(IslandJobType.SAVE_ISLAND, "island-1", Map.of("fencingToken", "9"));
+        Map<String, String> payload = Map.of(
+            "snapshotNo", "21",
+            "reason", "MANUAL",
+            "checksum", "first",
+            "sizeBytes", "512"
+        );
+
+        JobCompletionResult first = service.completed(claimed, payload);
+        JobCompletionResult replay = service.completed(claimed, payload);
+
+        assertFalse(first.replayed());
+        assertTrue(replay.replayed());
+        assertEquals(first.requestHash(), replay.requestHash());
+        assertEquals(1, snapshots.list(ISLAND, 10).size());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name()));
+        assertThrows(JobCompletionConflictException.class, () -> service.completed(claimed, Map.of(
+            "snapshotNo", "22",
+            "reason", "MANUAL",
+            "checksum", "different",
+            "sizeBytes", "512"
+        )));
     }
 
     @Test

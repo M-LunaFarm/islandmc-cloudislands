@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +17,7 @@ import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.job.JobCompletionConflictException;
 import kr.lunaf.cloudislands.coreservice.job.JobCompletionService;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
@@ -59,18 +59,19 @@ public final class JobRoutes implements RouteGroup {
 
     private void complete(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         CompleteJobRequest request = CompleteJobRequest.read(CoreHttpResponses.readBody(exchange));
-        java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId(), request.claimLease()).map(job -> {
-            Map<String, String> merged = new HashMap<>();
-            merged.putAll(job.payload());
-            merged.putAll(request.payload());
-            return new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(merged), job.createdAt(), request.claimLease().claimed() ? request.claimLease() : job.claimLease());
-        });
+        java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId(), request.claimLease());
         if (claimed.isEmpty()) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
             return;
         }
         try {
-            completion.completed(claimed.get());
+            completion.completed(claimed.get(), request.payload());
+        } catch (JobCompletionConflictException exception) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_COMPLETION_CONFLICT", "Job completion payload differs from the committed receipt"));
+            return;
+        } catch (IllegalArgumentException exception) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_JOB_COMPLETION_PAYLOAD", exception.getMessage()));
+            return;
         } catch (RuntimeException exception) {
             CoreHttpResponses.write(exchange, 500, ApiResponses.error("JOB_COMPLETION_FAILED", "Job completion was not committed; retry the claimed job"));
             return;

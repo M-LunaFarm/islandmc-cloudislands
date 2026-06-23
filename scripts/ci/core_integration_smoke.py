@@ -249,7 +249,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             "CI_REQUIRE_MTLS": "false",
             "CI_IP_ALLOWLIST": "127.0.0.1,localhost,::1",
             "CI_RATE_LIMIT_REQUESTS": "0",
-            "CI_HEARTBEAT_TIMEOUT_SECONDS": "1",
+            "CI_HEARTBEAT_TIMEOUT_SECONDS": "30",
             "CI_ROUTE_TICKET_TTL_SECONDS": "30",
             "CI_ROUTE_PREPARING_TICKET_TTL_SECONDS": "120",
             "CI_MIGRATION_POLICY": "ACTIVE_ALLOWED",

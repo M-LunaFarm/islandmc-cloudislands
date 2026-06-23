@@ -73,12 +73,13 @@ class JobRoutesTest {
     @Test
     void completeRouteCommitsCompletionBeforeAcknowledgingClaimedJob() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/JobRoutes.java"));
-        int completionIndex = source.indexOf("completion.completed(claimed.get())");
+        int completionIndex = source.indexOf("completion.completed(claimed.get(), request.payload())");
         int ackIndex = source.indexOf("jobs.complete(request.nodeId(), request.jobId(), request.claimLease())");
 
         assertTrue(completionIndex > 0, "completion must be explicitly committed");
         assertTrue(ackIndex > completionIndex, "job queue ack must happen only after completion state is committed");
         assertTrue(source.contains("\"JOB_COMPLETION_FAILED\""), "completion commit failure must keep the job claimed for retry");
+        assertTrue(!source.contains("merged.putAll(request.payload())"), "worker completion payload must be typed before it reaches the domain mutation");
     }
 
     @Test
@@ -149,6 +150,34 @@ class JobRoutesTest {
     }
 
     @Test
+    void completeRouteRejectsUnknownCompletionPayloadBeforeAcknowledgement() throws Exception {
+        String nodeId = "island-node-1";
+        UUID islandId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        jobs.publish(new IslandJob(jobId, IslandJobType.SAVE_ISLAND, islandId, nodeId, 0, Map.of("fencingToken", "7"), Instant.EPOCH));
+        JobClaimLease lease = jobs.claim(nodeId, List.of(IslandJobType.SAVE_ISLAND), 1).getFirst().claimLease();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        runtimes.markActive(islandId, nodeId, "ci_shard_001", 0, 0, 7L);
+        JobCompletionService completion = new JobCompletionService(
+            runtimes,
+            new InMemoryGlobalEventPublisher(),
+            new InMemorySnapshotRepository(),
+            new InMemoryRouteTicketStore(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC))
+        );
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new JobRoutes(jobs, completion, null).register(handlers::put);
+
+        TestExchange exchange = exchange("{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"claimLease\":" + claimLeaseJson(lease) + ",\"payload\":{\"snapshotNo\":\"12\",\"unexpected\":\"value\"}}");
+        handlers.get("/v1/jobs/complete").handle(exchange);
+
+        assertEquals(400, exchange.status());
+        assertTrue(exchange.body().contains("\"code\":\"INVALID_JOB_COMPLETION_PAYLOAD\""));
+        assertTrue(jobs.findClaimed(jobId, lease).isPresent());
+        assertEquals(1L, jobs.countsByState().get("CLAIMED"));
+    }
+
+    @Test
     void claimRouteRejectsInvalidTypedRequestFields() throws Exception {
         Map<String, HttpHandler> handlers = new HashMap<>();
         new JobRoutes(new InMemoryIslandJobPublisher(), null, null).register(handlers::put);
@@ -193,6 +222,37 @@ class JobRoutesTest {
         @Override
         public Optional<IslandSnapshotRecord> find(UUID islandId, long snapshotNo) {
             return Optional.empty();
+        }
+
+        @Override
+        public int prune(UUID islandId, int keepLatest) {
+            return 0;
+        }
+
+        @Override
+        public int pruneRetaining(UUID islandId, Set<Long> retainedSnapshotNos) {
+            return 0;
+        }
+    }
+
+    private static final class InMemorySnapshotRepository implements IslandSnapshotRepository {
+        private final List<IslandSnapshotRecord> records = new ArrayList<>();
+
+        @Override
+        public IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes) {
+            IslandSnapshotRecord record = new IslandSnapshotRecord(UUID.randomUUID(), islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes, Instant.EPOCH);
+            records.add(record);
+            return record;
+        }
+
+        @Override
+        public List<IslandSnapshotRecord> list(UUID islandId, int limit) {
+            return records.stream().filter(record -> record.islandId().equals(islandId)).limit(limit).toList();
+        }
+
+        @Override
+        public Optional<IslandSnapshotRecord> find(UUID islandId, long snapshotNo) {
+            return records.stream().filter(record -> record.islandId().equals(islandId) && record.snapshotNo() == snapshotNo).findFirst();
         }
 
         @Override
