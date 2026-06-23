@@ -6,17 +6,48 @@ import java.security.MessageDigest;
 
 public final class ApiTokenGuard {
     private final String expectedToken;
+    private final NodeCredentialBindings nodeCredentials;
 
     public ApiTokenGuard(String expectedToken) {
+        this(expectedToken, new NodeCredentialBindings(java.util.Map.of()));
+    }
+
+    public ApiTokenGuard(String expectedToken, NodeCredentialBindings nodeCredentials) {
         this.expectedToken = expectedToken == null ? "" : expectedToken;
+        this.nodeCredentials = nodeCredentials == null ? new NodeCredentialBindings(java.util.Map.of()) : nodeCredentials;
     }
 
     public boolean allowed(HttpExchange exchange) {
-        if (expectedToken.isBlank()) {
-            return false;
-        }
+        return authenticate(exchange).allowed();
+    }
+
+    CoreApiAuthentication authenticate(HttpExchange exchange) {
         String header = exchange.getRequestHeaders().getFirst("Authorization");
-        return constantTimeEquals(header, "Bearer " + expectedToken);
+        String token = bearerToken(header);
+        if (token.isBlank()) {
+            return CoreApiAuthentication.denied(nodeCredentials.configured());
+        }
+        String nodeId = NodeCredentialBindings.normalizeNodeId(exchange.getRequestHeaders().getFirst(CoreApiIdentity.NODE_ID_HEADER));
+        if (!nodeId.isBlank()) {
+            if (nodeCredentials.configured()) {
+                return nodeCredentials.tokenMatches(nodeId, token)
+                    ? CoreApiAuthentication.allowed(nodeId, true)
+                    : CoreApiAuthentication.denied(true);
+            }
+            return constantTimeEquals(token, expectedToken)
+                ? CoreApiAuthentication.allowed(nodeId, false)
+                : CoreApiAuthentication.denied(false);
+        }
+        return constantTimeEquals(token, expectedToken)
+            ? CoreApiAuthentication.allowed("", nodeCredentials.configured())
+            : CoreApiAuthentication.denied(nodeCredentials.configured());
+    }
+
+    private static String bearerToken(String header) {
+        if (header == null || !header.startsWith("Bearer ")) {
+            return "";
+        }
+        return header.substring("Bearer ".length());
     }
 
     private boolean constantTimeEquals(String actual, String expected) {

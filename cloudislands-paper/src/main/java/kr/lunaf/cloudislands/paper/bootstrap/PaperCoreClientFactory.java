@@ -10,11 +10,16 @@ public final class PaperCoreClientFactory {
     }
 
     public static CoreApiClient create(PaperRuntimeConfig.CoreApi config) {
+        return create(config, "");
+    }
+
+    public static CoreApiClient create(PaperRuntimeConfig.CoreApi config, String nodeId) {
         PaperRuntimeConfig.CoreApi safeConfig = config == null ? PaperRuntimeConfig.CoreApi.defaults() : config;
         return new JdkCoreApiClient(
             URI.create(safeConfig.baseUrl()),
             safeConfig.token(),
             safeConfig.adminToken(),
+            nodeId,
             safeConfig.timeout()
         );
     }

@@ -60,7 +60,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     }
 
     public JdkCoreApiClient(URI baseUri, String authToken, String adminToken, Duration timeout) {
-        this.transport = new CoreHttpTransport(baseUri, authToken, adminToken, timeout);
+        this(baseUri, authToken, adminToken, "", timeout);
+    }
+
+    public JdkCoreApiClient(URI baseUri, String authToken, String adminToken, String nodeId, Duration timeout) {
+        this.transport = new CoreHttpTransport(baseUri, authToken, adminToken, nodeId, timeout);
         this.bankQueryClient = new JdkBankQueryClient(this);
         this.bankCommandClient = new JdkBankCommandClient(this);
         this.communicationQueryClient = new JdkCommunicationQueryClient(this);

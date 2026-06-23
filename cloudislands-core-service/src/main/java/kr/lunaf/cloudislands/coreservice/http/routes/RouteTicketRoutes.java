@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.http.NodeScopedRequestGuard;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.session.InMemoryRouteSessionStore;
 import kr.lunaf.cloudislands.coreservice.session.RedisRouteSessionStore;
@@ -55,7 +56,7 @@ public final class RouteTicketRoutes implements RouteGroup {
         registry.route("/v1/routes/session/find-any", this::findAnySession);
         registry.route("/v1/routes/session/consume", this::consumeSession);
         registry.route("/v1/routes/ticket-status", this::ticketStatus);
-        registry.route("/v1/routes/consume", exchange -> CoreHttpResponses.write(exchange, 200, routing.consumeTicketJson(CoreHttpResponses.readBody(exchange))));
+        registry.route("/v1/routes/consume", this::consumeTicket);
         registry.route("/v1/admin/routes/debug", this::debug);
         registry.route("/v1/admin/routes/ticket", this::ticket);
         registry.route("/v1/admin/routes/clear", this::clear);
@@ -67,6 +68,9 @@ public final class RouteTicketRoutes implements RouteGroup {
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         String targetNode = JsonFields.text(body, "targetNode", "");
         String nonce = JsonFields.text(body, "nonce", "");
+        if (!NodeScopedRequestGuard.allowNode(exchange, targetNode)) {
+            return;
+        }
         RouteTicket ticket = tickets.find(ticketId).orElse(null);
         if (ticket == null) {
             events.publish(CloudIslandEventType.ROUTE_TICKET_FAILED.name(), Map.of(
@@ -122,6 +126,9 @@ public final class RouteTicketRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         String nodeId = JsonFields.text(body, "nodeId", "");
+        if (!NodeScopedRequestGuard.allowNode(exchange, nodeId)) {
+            return;
+        }
         PlayerRouteSession session = sessions.find(playerUuid, nodeId).orElse(null);
         if (session == null) {
             PlayerRouteSession existing = sessions.findAny(playerUuid).orElse(null);
@@ -143,6 +150,9 @@ public final class RouteTicketRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         String nodeId = JsonFields.text(body, "nodeId", "");
+        if (!NodeScopedRequestGuard.allowNode(exchange, nodeId)) {
+            return;
+        }
         String ticketIdText = JsonFields.text(body, "ticketId", "");
         String nonce = JsonFields.text(body, "nonce", "");
         boolean reportMissing = JsonFields.bool(body, "reportMissing", true);
@@ -166,6 +176,14 @@ public final class RouteTicketRoutes implements RouteGroup {
                 : Map.of("targetNode", existing.targetNode(), "requestedNode", nodeId, "reason", reason));
         }
         CoreHttpResponses.write(exchange, session == null ? 404 : 200, session == null ? "" : sessionJson(session));
+    }
+
+    private void consumeTicket(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        if (!NodeScopedRequestGuard.allowNode(exchange, JsonFields.text(body, "nodeId", ""))) {
+            return;
+        }
+        CoreHttpResponses.write(exchange, 200, routing.consumeTicketJson(body));
     }
 
     private void ticketStatus(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

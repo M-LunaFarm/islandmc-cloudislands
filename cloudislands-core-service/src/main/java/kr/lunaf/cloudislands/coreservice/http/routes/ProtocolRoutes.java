@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.http.NodeScopedRequestGuard;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.protocol.ProtocolVersion;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
@@ -28,6 +29,9 @@ public final class ProtocolRoutes implements RouteGroup {
 
     private void heartbeat(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         NodeHeartbeatRequest heartbeat = parseHeartbeat(CoreHttpResponses.readBody(exchange));
+        if (!NodeScopedRequestGuard.allowNode(exchange, heartbeat.nodeId())) {
+            return;
+        }
         ProtocolVersion.NegotiationResult negotiation = ProtocolVersion.negotiate(heartbeat.protocolVersion());
         if (!negotiation.accepted()) {
             CoreHttpResponses.write(exchange, 426, protocolNegotiationJson(negotiation));

@@ -159,6 +159,8 @@ security:
   # Env overrides: CI_RATE_LIMIT_REQUESTS, CI_RATE_LIMIT_WINDOW_SECONDS.
   rate-limit-requests: 240
   rate-limit-window-seconds: 60
-  core-token: "${CI_CORE_TOKEN}"
-  admin-token: "${CI_ADMIN_TOKEN}"
+    core-token: "${CI_CORE_TOKEN}"
+    # Env override: CI_NODE_CREDENTIALS. Format: node-a:token-a,node-b:token-b.
+    node-credentials: "${CI_NODE_CREDENTIALS}"
+    admin-token: "${CI_ADMIN_TOKEN}"
   admin-permissions: "audit-read"

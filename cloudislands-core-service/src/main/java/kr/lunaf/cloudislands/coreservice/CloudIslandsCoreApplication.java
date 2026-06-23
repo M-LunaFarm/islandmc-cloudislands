@@ -191,7 +191,7 @@ public final class CloudIslandsCoreApplication {
         kr.lunaf.cloudislands.coreservice.security.CoreAuthMode authMode = config.authMode();
         CoreHttpRouteRegistrar routeRegistrar = new CoreHttpRouteRegistrar(
             new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis()),
-            new CoreApiAuthGuard(authMode, new ApiTokenGuard(config.coreToken()), new MtlsHeaderGuard(authMode.acceptsMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies())),
+            new CoreApiAuthGuard(authMode, new ApiTokenGuard(config.coreToken(), config.nodeCredentialBindings()), new MtlsHeaderGuard(authMode.acceptsMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies())),
             new IpAllowlist(config.ipAllowlist()),
             new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.adminPermissions())
         );

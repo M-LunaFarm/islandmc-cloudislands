@@ -230,6 +230,33 @@ class JobRoutesTest {
         assertEquals("INVALID_REQUEST", exception.code());
     }
 
+    @Test
+    void jobRoutesRejectMismatchedAuthenticatedNodeIdentity() throws Exception {
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new JobRoutes(new InMemoryIslandJobPublisher(), null, null).register(handlers::put);
+        TestExchange exchange = exchange("{\"nodeId\":\"node-b\",\"supportedTypes\":\"CREATE_ISLAND\",\"maxJobs\":1}");
+        exchange.setAttribute("cloudislands.authenticatedNodeId", "node-a");
+        exchange.setAttribute("cloudislands.nodeCredentialBindingConfigured", true);
+
+        handlers.get("/v1/jobs/claim").handle(exchange);
+
+        assertEquals(403, exchange.status());
+        assertTrue(exchange.body().contains("\"code\":\"NODE_ID_MISMATCH\""));
+    }
+
+    @Test
+    void jobRoutesRequireAuthenticatedNodeWhenBindingsAreConfigured() throws Exception {
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new JobRoutes(new InMemoryIslandJobPublisher(), null, null).register(handlers::put);
+        TestExchange exchange = exchange("{\"nodeId\":\"node-a\",\"supportedTypes\":\"CREATE_ISLAND\",\"maxJobs\":1}");
+        exchange.setAttribute("cloudislands.nodeCredentialBindingConfigured", true);
+
+        handlers.get("/v1/jobs/claim").handle(exchange);
+
+        assertEquals(403, exchange.status());
+        assertTrue(exchange.body().contains("\"code\":\"NODE_CREDENTIAL_REQUIRED\""));
+    }
+
     private TestExchange exchange(String body) {
         return new TestExchange(body);
     }
@@ -372,6 +399,7 @@ class JobRoutesTest {
         private final Headers responseHeaders = new Headers();
         private final ByteArrayInputStream requestBody;
         private final ByteArrayOutputStream responseBody = new ByteArrayOutputStream();
+        private final Map<String, Object> attributes = new HashMap<>();
         private int status;
 
         private TestExchange(String body) {
@@ -444,11 +472,12 @@ class JobRoutesTest {
 
         @Override
         public Object getAttribute(String name) {
-            return null;
+            return attributes.get(name);
         }
 
         @Override
         public void setAttribute(String name, Object value) {
+            attributes.put(name, value);
         }
 
         @Override

@@ -33,6 +33,37 @@ class CoreSecurityControlsTest {
     }
 
     @Test
+    void nodeCredentialsBindBearerTokensToNodeIdentity() {
+        ApiTokenGuard guard = new ApiTokenGuard("core-secret", NodeCredentialBindings.parse("node-a:token-a,node-b:token-b"));
+        CoreApiAuthGuard auth = new CoreApiAuthGuard(CoreAuthMode.TOKEN_REQUIRED, guard, new MtlsHeaderGuard(false, "", ""));
+        TestExchange nodeA = exchange(
+            "127.0.0.1",
+            "Authorization", "Bearer token-a",
+            CoreApiIdentity.NODE_ID_HEADER, "node-a"
+        );
+        TestExchange wrongNode = exchange(
+            "127.0.0.1",
+            "Authorization", "Bearer token-a",
+            CoreApiIdentity.NODE_ID_HEADER, "node-b"
+        );
+        TestExchange global = exchange("127.0.0.1", "Authorization", "Bearer core-secret");
+
+        assertTrue(auth.allowed(nodeA));
+        assertEquals("node-a", CoreApiIdentity.authenticatedNodeId(nodeA));
+        assertTrue(CoreApiIdentity.nodeCredentialBindingConfigured(nodeA));
+        assertFalse(auth.allowed(wrongNode));
+        assertTrue(auth.allowed(global), "global token remains available for non-node Core clients");
+        assertEquals("", CoreApiIdentity.authenticatedNodeId(global));
+        assertTrue(CoreApiIdentity.nodeCredentialBindingConfigured(global));
+    }
+
+    @Test
+    void nodeCredentialParserRejectsMalformedEntries() {
+        assertThrows(IllegalArgumentException.class, () -> NodeCredentialBindings.parse("node-a"));
+        assertThrows(IllegalArgumentException.class, () -> NodeCredentialBindings.parse("node-a:one,node-a:two"));
+    }
+
+    @Test
     void mtlsHeaderIsRequiredWhenEnabled() {
         MtlsHeaderGuard guard = new MtlsHeaderGuard(true, "X-SSL-Client-Verify", "SUCCESS");
 
@@ -211,6 +242,7 @@ class CoreSecurityControlsTest {
     private static final class TestExchange extends HttpExchange {
         private final Headers requestHeaders = new Headers();
         private final InetSocketAddress remoteAddress;
+        private final Map<String, Object> attributes = new java.util.HashMap<>();
 
         private TestExchange(String remoteAddress) {
             this.remoteAddress = new InetSocketAddress(remoteAddress, 25565);
@@ -281,11 +313,12 @@ class CoreSecurityControlsTest {
 
         @Override
         public Object getAttribute(String name) {
-            return null;
+            return attributes.get(name);
         }
 
         @Override
         public void setAttribute(String name, Object value) {
+            attributes.put(name, value);
         }
 
         @Override

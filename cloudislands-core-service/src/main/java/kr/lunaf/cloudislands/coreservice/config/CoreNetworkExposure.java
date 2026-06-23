@@ -17,6 +17,9 @@ public final class CoreNetworkExposure {
             }
         }
         logger.info("CloudIslands security: Core API auth mode is " + config.authMode());
+        if (config.nodeCredentials() == null || config.nodeCredentials().isBlank()) {
+            logger.warning("CloudIslands security: node credential bindings are not configured; node-scoped operations can only use legacy global-token compatibility");
+        }
         if (config.adminApiEnabled() && (config.adminToken() == null || config.adminToken().isBlank())) {
             logger.warning("CloudIslands security: Admin API is enabled but admin token is empty; admin requests will be rejected");
         }

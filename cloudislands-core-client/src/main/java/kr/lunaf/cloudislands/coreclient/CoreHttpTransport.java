@@ -11,13 +11,19 @@ final class CoreHttpTransport {
     private final URI baseUri;
     private final String authToken;
     private final String adminToken;
+    private final String nodeId;
     private final Duration timeout;
     private final HttpClient httpClient;
 
     CoreHttpTransport(URI baseUri, String authToken, String adminToken, Duration timeout) {
+        this(baseUri, authToken, adminToken, "", timeout);
+    }
+
+    CoreHttpTransport(URI baseUri, String authToken, String adminToken, String nodeId, Duration timeout) {
         this.baseUri = baseUri;
         this.authToken = authToken == null ? "" : authToken;
         this.adminToken = adminToken == null ? "" : adminToken;
+        this.nodeId = nodeId == null ? "" : nodeId.trim();
         this.timeout = timeout == null || timeout.isNegative() || timeout.isZero() ? Duration.ofSeconds(5) : timeout;
         this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
     }
@@ -28,6 +34,7 @@ final class CoreHttpTransport {
             .header("Authorization", "Bearer " + authToken)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
+        addNodeHeader(builder);
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
         return send(builder.build()).thenApply(response -> response.responseBody(response.successBody()));
@@ -38,6 +45,7 @@ final class CoreHttpTransport {
             .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)
             .GET();
+        addNodeHeader(builder);
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
         return send(builder.build()).thenApply(response -> response.responseBody(response.successBody()));
@@ -49,6 +57,7 @@ final class CoreHttpTransport {
             .header("Authorization", "Bearer " + authToken)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body));
+        addNodeHeader(builder);
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
         return send(builder.build()).thenApply(response -> response.responseBody(response.resultBody()));
@@ -59,6 +68,7 @@ final class CoreHttpTransport {
             .timeout(timeout)
             .header("Authorization", "Bearer " + authToken)
             .DELETE();
+        addNodeHeader(builder);
         addAdminHeaders(builder, path);
         CoreMutationContext.apply(builder);
         return send(builder.build()).thenApply(response -> response.responseBody(response.resultBody()));
@@ -89,6 +99,12 @@ final class CoreHttpTransport {
         String permission = adminPermission(path);
         if (!permission.isBlank()) {
             builder.header("X-CloudIslands-Admin-Permissions", permission);
+        }
+    }
+
+    private void addNodeHeader(HttpRequest.Builder builder) {
+        if (!nodeId.isBlank()) {
+            builder.header("X-CloudIslands-Node-Id", nodeId);
         }
     }
 

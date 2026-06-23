@@ -18,11 +18,12 @@ public final class CoreApiAuthGuard {
     }
 
     public boolean allowed(HttpExchange exchange) {
-        return switch (mode) {
+        boolean allowed = switch (mode) {
             case MTLS_REQUIRED -> mtlsAllowed(exchange);
             case TOKEN_REQUIRED -> tokenAllowed(exchange);
             case MTLS_OR_TOKEN -> mtlsAllowed(exchange) || tokenAllowed(exchange);
         };
+        return allowed;
     }
 
     public String rejectCode() {
@@ -46,7 +47,14 @@ public final class CoreApiAuthGuard {
     }
 
     private boolean tokenAllowed(HttpExchange exchange) {
-        return tokenGuard != null && tokenGuard.allowed(exchange);
+        if (tokenGuard == null) {
+            return false;
+        }
+        CoreApiAuthentication authentication = tokenGuard.authenticate(exchange);
+        if (authentication.allowed()) {
+            CoreApiIdentity.apply(exchange, authentication);
+        }
+        return authentication.allowed();
     }
 
     private boolean mtlsAllowed(HttpExchange exchange) {

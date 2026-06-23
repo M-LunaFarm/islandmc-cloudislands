@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.config;
 
 import kr.lunaf.cloudislands.common.failure.SetupBackendFallbackPolicy;
 import kr.lunaf.cloudislands.coreservice.security.CoreAuthMode;
+import kr.lunaf.cloudislands.coreservice.security.NodeCredentialBindings;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -47,6 +48,7 @@ public record CoreServiceConfig(
     String storageSecretKey,
     String storageBearerToken,
     String coreToken,
+    String nodeCredentials,
     String adminToken,
     String adminPermissions,
     String ipAllowlist,
@@ -118,6 +120,7 @@ public record CoreServiceConfig(
             env("CI_STORAGE_SECRET_KEY", setting(config, "storage.secret-key", env("S3_SECRET_KEY", ""))),
             env("CI_STORAGE_BEARER_TOKEN", setting(config, "storage.auth-token", env("S3_BEARER_TOKEN", ""))),
             env("CI_CORE_TOKEN", setting(config, "security.core-token", "")),
+            env("CI_NODE_CREDENTIALS", setting(config, "security.node-credentials", "")),
             env("CI_ADMIN_TOKEN", setting(config, "security.admin-token", "")),
             env("CI_ADMIN_PERMISSIONS", setting(config, "security.admin-permissions", "")),
             env("CI_IP_ALLOWLIST", setting(config, "security.ip-allowlist", "")),
@@ -162,6 +165,10 @@ public record CoreServiceConfig(
     public CoreAuthMode authMode() {
         Map<String, String> config = applicationConfig();
         return CoreAuthMode.fromConfig(env("CI_AUTH_MODE", setting(config, "security.auth-mode", "")), requireMtls);
+    }
+
+    public NodeCredentialBindings nodeCredentialBindings() {
+        return NodeCredentialBindings.parse(nodeCredentials);
     }
 
     public Duration httpKeepAlive() {
@@ -416,7 +423,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow, httpWorkerThreads, httpQueueCapacity, httpKeepAlive, httpShutdownGrace);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, nodeCredentials, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow, httpWorkerThreads, httpQueueCapacity, httpKeepAlive, httpShutdownGrace);
     }
 
     private static int defaultHttpWorkerThreads() {

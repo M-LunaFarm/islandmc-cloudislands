@@ -27,6 +27,7 @@ class CoreConfigSurfaceTest {
             assertTrue(config.contains("hard-full-policy: \"DENY_OR_QUEUE\""));
             assertTrue(config.contains("migration-policy: \"INACTIVE_ONLY_AUTOMATIC\""));
             assertTrue(config.contains("auth-mode: \"${CI_AUTH_MODE}\""));
+            assertTrue(config.contains("node-credentials: \"${CI_NODE_CREDENTIALS}\""));
             assertTrue(config.contains("require-mtls: true"));
             assertTrue(config.contains("admin-api-enabled: true"));
             assertFalse(config.contains("database: \"\""), "Core default config must not expose setup.database.database aliases next to setup.database.name");

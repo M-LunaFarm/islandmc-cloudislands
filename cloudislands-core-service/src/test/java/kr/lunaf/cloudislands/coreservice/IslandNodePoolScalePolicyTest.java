@@ -76,6 +76,7 @@ class IslandNodePoolScalePolicyTest {
                 "",
                 "",
                 "",
+                "",
                 "EXPRESSION",
                 "floor(total_level_points / 1000)",
                 "SUM_BLOCK_VALUES",

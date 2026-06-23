@@ -31,6 +31,48 @@ import org.junit.jupiter.api.Test;
 
 class CoreMutationContextTest {
     @Test
+    void nodeAwareClientSendsNodeIdentityHeader() throws Exception {
+        ConcurrentMap<String, String> headers = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/nodes/heartbeat", exchange -> {
+            headers.put("node", exchange.getRequestHeaders().getFirst("X-CloudIslands-Node-Id"));
+            respond(exchange, new ConcurrentHashMap<>(), "heartbeat", "{\"success\":true,\"accepted\":true}");
+        });
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token-a", "", "node-a", Duration.ofSeconds(2));
+
+            client.runtimeCommands().publishHeartbeat(new NodeHeartbeatRequest(
+                1,
+                "node-a",
+                "island",
+                "server-a",
+                "1.0.0",
+                NodeState.READY,
+                0,
+                90,
+                110,
+                0,
+                0,
+                600,
+                20.0D,
+                0,
+                20,
+                0.0D,
+                0,
+                1,
+                0,
+                true,
+                "*"
+            )).join();
+
+            assertEquals("node-a", headers.get("node"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void jdkClientPropagatesMutationRequestIdIdempotencyKeyAndAuditAction() throws Exception {
         ConcurrentMap<String, List<String>> headers = new ConcurrentHashMap<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);

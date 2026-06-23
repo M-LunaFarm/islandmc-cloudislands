@@ -72,7 +72,7 @@ final class PaperPluginBootstrap {
             return;
         }
         warnIfDefaultNodeIdentity(role, nodeId, velocityServerName);
-        CoreApiClient client = PaperCoreClientFactory.create(config.coreApi());
+        CoreApiClient client = PaperCoreClientFactory.create(config.coreApi(), nodeId);
         plugin.agent = new CloudIslandsPaperAgent(plugin, role, client, nodeId);
         plugin.integrationRegistry = PaperIntegrationRegistry.discover(plugin.getServer());
         plugin.localCaches = new LocalCacheManager();

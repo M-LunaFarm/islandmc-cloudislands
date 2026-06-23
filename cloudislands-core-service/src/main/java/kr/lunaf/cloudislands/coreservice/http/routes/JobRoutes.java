@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.http.NodeScopedRequestGuard;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
@@ -53,12 +54,18 @@ public final class JobRoutes implements RouteGroup {
 
     private void claim(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         ClaimJobsRequest request = ClaimJobsRequest.read(CoreHttpResponses.readBody(exchange));
+        if (!NodeScopedRequestGuard.allowNode(exchange, request.nodeId())) {
+            return;
+        }
         List<IslandJob> claimed = jobs.claim(request.nodeId(), request.supportedTypes(), request.maxJobs());
         CoreHttpResponses.write(exchange, 200, IslandJobJson.writeArray(claimed));
     }
 
     private void complete(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         CompleteJobRequest request = CompleteJobRequest.read(CoreHttpResponses.readBody(exchange));
+        if (!NodeScopedRequestGuard.allowNode(exchange, request.nodeId())) {
+            return;
+        }
         java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId(), request.claimLease());
         if (claimed.isEmpty()) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
@@ -85,6 +92,9 @@ public final class JobRoutes implements RouteGroup {
 
     private void fail(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         FailJobRequest request = FailJobRequest.read(CoreHttpResponses.readBody(exchange));
+        if (!NodeScopedRequestGuard.allowNode(exchange, request.nodeId())) {
+            return;
+        }
         java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId(), request.claimLease());
         if (claimed.isEmpty() || !jobs.fail(request.nodeId(), request.jobId(), request.claimLease(), request.error())) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
