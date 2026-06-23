@@ -57,9 +57,9 @@ class IslandReviewRoutesTest {
         assertReview(islandId, reviewerUuid, SimpleJson.object(accepted.get("review")));
         assertReview(islandId, reviewerUuid, listedReview);
         assertEquals(1, ((Number) summary.get("count")).intValue());
-        assertEquals("5.0", SimpleJson.text(summary.get("average")));
+        assertEquals("5.00", SimpleJson.text(summary.get("average")));
         assertEquals(islandId.toString(), SimpleJson.text(ranking.get("islandId")));
-        assertEquals("4.5", SimpleJson.text(ranking.get("averageRating")));
+        assertEquals("4.50", SimpleJson.text(ranking.get("averageRating")));
         assertEquals(2, ((Number) ranking.get("reviewCount")).intValue());
         assertEquals("2026-01-03T04:05:06Z", SimpleJson.text(ranking.get("updatedAt")));
     }

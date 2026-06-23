@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.common.json;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,6 +9,13 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class SimpleJsonTest {
+    @Test
+    void parseRejectsMalformedTrailingAndOverNestedJson() {
+        assertThrows(JsonCodecException.class, () -> SimpleJson.parse("{\"name\""));
+        assertThrows(JsonCodecException.class, () -> SimpleJson.parse("{\"value\":1} true"));
+        assertThrows(JsonCodecException.class, () -> SimpleJson.parse("[".repeat(JsonCodec.MAX_NESTING_DEPTH + 2) + "0" + "]".repeat(JsonCodec.MAX_NESTING_DEPTH + 2)));
+    }
+
     @Test
     void stringifiesObjectsListsAndEscapedText() {
         Map<String, Object> root = new LinkedHashMap<>();

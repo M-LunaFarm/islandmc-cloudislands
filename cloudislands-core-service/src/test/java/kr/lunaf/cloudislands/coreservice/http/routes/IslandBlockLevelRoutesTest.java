@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
 import kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
 import org.junit.jupiter.api.Test;
@@ -36,11 +38,9 @@ class IslandBlockLevelRoutesTest {
     void parsesCountsAndRendersLevelContract() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
-        assertEquals(2L, IslandBlockLevelRoutes.parseCountsPayload("minecraft:stone=2,bad=x").get("minecraft:stone"));
-        assertEquals(0L, IslandBlockLevelRoutes.parseCountsPayload("minecraft:stone=2,bad=x").get("bad"));
-        assertEquals(4L, IslandBlockLevelRoutes.parseCountsBody("{\"counts\":{\"minecraft:diamond_block\":4,\"bad\":\"x\"}}").get("minecraft:diamond_block"));
-        assertEquals(0L, IslandBlockLevelRoutes.parseCountsBody("{\"counts\":{\"minecraft:diamond_block\":4,\"bad\":\"x\"}}").get("bad"));
-        assertEquals(2L, IslandBlockLevelRoutes.parseCountsBody("{\"counts\":\"minecraft:stone=2,bad=x\"}").get("minecraft:stone"));
+        assertEquals(2L, IslandBlockLevelRoutes.parseCountsPayload("minecraft:stone=2").get("minecraft:stone"));
+        assertEquals(4L, IslandBlockLevelRoutes.parseCountsBody("{\"counts\":{\"minecraft:diamond_block\":4}}").get("minecraft:diamond_block"));
+        assertEquals(2L, IslandBlockLevelRoutes.parseCountsBody("{\"counts\":\"minecraft:stone=2\"}").get("minecraft:stone"));
         Map<?, ?> level = SimpleJson.object(SimpleJson.parse(
             IslandBlockLevelRoutes.levelJson(new IslandRankSnapshot(islandId, 7L, new BigDecimal("12.50"), 2, Instant.parse("2026-01-02T03:04:05Z")))
         ));
@@ -49,6 +49,26 @@ class IslandBlockLevelRoutesTest {
         assertEquals(7L, ((Number) level.get("level")).longValue());
         assertEquals("12.50", SimpleJson.text(level.get("worth")));
         assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(level.get("calculatedAt")));
+    }
+
+    @Test
+    void rejectsInvalidCountNumbersInsteadOfCoercingToZero() {
+        CoreHttpException mapException = assertThrows(CoreHttpException.class, () ->
+            IslandBlockLevelRoutes.parseCountsBody("{\"counts\":{\"minecraft:diamond_block\":\"x\"}}")
+        );
+        CoreHttpException decimalException = assertThrows(CoreHttpException.class, () ->
+            IslandBlockLevelRoutes.parseCountsBody("{\"counts\":{\"minecraft:diamond_block\":1.5}}")
+        );
+        CoreHttpException payloadException = assertThrows(CoreHttpException.class, () ->
+            IslandBlockLevelRoutes.parseCountsPayload("minecraft:stone=x")
+        );
+
+        assertEquals(400, mapException.status());
+        assertEquals("INVALID_REQUEST", mapException.code());
+        assertEquals(400, decimalException.status());
+        assertEquals("INVALID_REQUEST", decimalException.code());
+        assertEquals(400, payloadException.status());
+        assertEquals("INVALID_REQUEST", payloadException.code());
     }
 
     @Test

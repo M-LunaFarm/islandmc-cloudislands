@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,10 +11,12 @@ import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.JsonCodecException;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
+import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
@@ -144,14 +147,19 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
     }
 
     static Map<String, Long> parseCountsBody(String body) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(body));
+        Map<?, ?> root;
+        try {
+            root = SimpleJson.object(SimpleJson.parse(body));
+        } catch (JsonCodecException exception) {
+            throw new CoreHttpException(400, "INVALID_JSON", exception.getMessage());
+        }
         Object countsValue = root.get("counts");
         if (countsValue instanceof Map<?, ?> map) {
             Map<String, Long> counts = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : map.entrySet()) {
                 String key = SimpleJson.text(entry.getKey()).trim();
                 if (!key.isBlank()) {
-                    counts.put(key, SimpleJson.number(entry.getValue()));
+                    counts.put(key, countValue(entry.getValue(), key));
                 }
             }
             return counts;
@@ -171,11 +179,36 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
             }
             try {
                 counts.put(parts[0].trim(), Long.parseLong(parts[1].trim()));
-            } catch (NumberFormatException ignored) {
-                counts.put(parts[0].trim(), 0L);
+            } catch (NumberFormatException exception) {
+                throw invalidCount(parts[0].trim());
             }
         }
         return counts;
+    }
+
+    private static long countValue(Object value, String key) {
+        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
+            return ((Number) value).longValue();
+        }
+        if (value instanceof BigInteger bigInteger) {
+            try {
+                return bigInteger.longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalidCount(key);
+            }
+        }
+        if (value instanceof BigDecimal bigDecimal) {
+            try {
+                return bigDecimal.toBigIntegerExact().longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalidCount(key);
+            }
+        }
+        throw invalidCount(key);
+    }
+
+    private static CoreHttpException invalidCount(String key) {
+        return new CoreHttpException(400, "INVALID_REQUEST", "Count for '" + key + "' must be an integer number");
     }
 
     static String levelJson(IslandRankSnapshot snapshot) {
