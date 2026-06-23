@@ -11,6 +11,7 @@ import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import java.security.MessageDigest
+import java.util.zip.ZipFile
 
 plugins {
     `java-library`
@@ -436,6 +437,45 @@ tasks.register("verifyVersionIsolation") {
     group = "verification"
     description = "Verifies Minecraft/Paper runtime access remains isolated behind Paper platform adapters."
     dependsOn(project(":cloudislands-paper").tasks.named("test"))
+}
+
+val verifyVersionPackaging = tasks.register("verifyVersionPackaging") {
+    group = "verification"
+    description = "Verifies the final Paper artifact contains all Paper version adapters without duplicate entries."
+    val paperJar = project(":cloudislands-paper").tasks.named<Jar>("shadowJar")
+    dependsOn(paperJar)
+    inputs.file(paperJar.flatMap { it.archiveFile })
+    doLast {
+        val requiredEntries = listOf(
+            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperRuntimeCompatibility.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperRuntimeCompatibility\$RuntimeSelection.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperVersionAdapter.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperVersionAdapterRegistry.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/DefaultPaperVersionAdapter.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/RuntimeCapabilities.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/ServerVersion.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/VersionRange.class"
+        )
+        ZipFile(paperJar.get().archiveFile.get().asFile).use { zip ->
+            val entries = zip.entries().asSequence().map { it.name }.toList()
+            val missing = requiredEntries.filterNot(entries::contains)
+            if (missing.isNotEmpty()) {
+                throw GradleException("Paper adapter classes missing from final artifact: ${missing.joinToString(", ")}")
+            }
+            val duplicates = entries.groupingBy { it }.eachCount().filterValues { it > 1 }.keys.sorted()
+            if (duplicates.isNotEmpty()) {
+                throw GradleException("Duplicate class/resource entries in final Paper artifact: ${duplicates.joinToString(", ")}")
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(verifyVersionPackaging)
+}
+
+tasks.named("distBundle") {
+    dependsOn(verifyVersionPackaging)
 }
 
 tasks.register<Exec>("coreIntegrationSmoke") {
