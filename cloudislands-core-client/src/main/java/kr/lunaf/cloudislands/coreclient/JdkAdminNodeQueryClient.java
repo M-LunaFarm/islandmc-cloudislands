@@ -85,6 +85,9 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
     }
 
     private static Optional<IslandNodeSnapshot> node(String fallbackNodeId, Map<?, ?> root) {
+        if (root.isEmpty() || !hasNodeSnapshotFields(root)) {
+            return Optional.empty();
+        }
         String nodeId = CoreJson.firstText(root, "nodeId", "id");
         if (nodeId.isBlank()) {
             nodeId = fallbackNodeId == null ? "" : fallbackNodeId;
@@ -121,6 +124,13 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
             levelScan(CoreJson.objectValue(root, "levelScan")),
             storage(CoreJson.objectValue(root, "storage"))
         ));
+    }
+
+    private static boolean hasNodeSnapshotFields(Map<?, ?> root) {
+        return !CoreJson.firstText(root, "nodeId", "id", "state", "pool", "serverName", "server", "nodeVersion").isBlank()
+            || root.containsKey("players")
+            || root.containsKey("activeIslands")
+            || root.containsKey("lastHeartbeat");
     }
 
     static List<AdminIslandRuntimeView> runtimes(String body) {
@@ -240,11 +250,7 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         if (value == null || value.isBlank()) {
             return NodeState.DOWN;
         }
-        try {
-            return NodeState.valueOf(value);
-        } catch (IllegalArgumentException ignored) {
-            return NodeState.DOWN;
-        }
+        return NodeState.valueOf(value);
     }
 
     private static Map<String, Double> decimalMap(Map<?, ?> object) {
