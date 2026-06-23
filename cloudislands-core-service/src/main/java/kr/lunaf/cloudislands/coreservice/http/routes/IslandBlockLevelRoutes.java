@@ -62,12 +62,12 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/block-values", this::setBlockValue);
-        registry.route("/v1/admin/block-values/list", this::blockValues);
-        registry.route("/v1/islands/blocks", this::blocks);
-        registry.route("/v1/islands/blocks/delta", this::blockDelta);
-        registry.route("/v1/islands/blocks/replace", this::replaceBlocks);
-        registry.route("/v1/islands/level/recalculate", this::recalculateLevel);
+        registry.routePost("/v1/admin/block-values", this::setBlockValue);
+        registry.routePost("/v1/admin/block-values/list", this::blockValues);
+        registry.routePost("/v1/islands/blocks", this::blocks);
+        registry.routePost("/v1/islands/blocks/delta", this::blockDelta);
+        registry.routePost("/v1/islands/blocks/replace", this::replaceBlocks);
+        registry.routePost("/v1/islands/level/recalculate", this::recalculateLevel);
     }
 
     private void setBlockValue(HttpExchange exchange) throws IOException {
