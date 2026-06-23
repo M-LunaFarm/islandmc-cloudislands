@@ -1,281 +1,201 @@
 package kr.lunaf.cloudislands.coreservice.http;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.common.json.JsonCodec;
+import kr.lunaf.cloudislands.common.json.JsonCodecException;
 
 public final class JsonFields {
-    private JsonFields() {}
+    private JsonFields() {
+    }
 
     public static String text(String json, String field, String fallback) {
-        String needle = "\"" + field + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        Object value = field(json, field);
+        if (value == null) {
             return fallback;
         }
-        int valueStart = start + needle.length();
-        int end = json.indexOf('"', valueStart);
-        return end < 0 ? fallback : json.substring(valueStart, end);
+        if (value instanceof String text) {
+            return text;
+        }
+        throw invalidRequest("Field '" + field + "' must be a string");
     }
 
     public static Map<String, String> object(String json, String field) {
-        String body = objectBody(json, field);
-        if (body.isBlank()) {
+        Object value = field(json, field);
+        if (value == null) {
             return Map.of();
         }
+        if (!(value instanceof Map<?, ?> map)) {
+            throw invalidRequest("Field '" + field + "' must be an object");
+        }
         Map<String, String> values = new LinkedHashMap<>();
-        for (String pair : splitTopLevelPairs(body)) {
-            int colon = pair.indexOf(':');
-            if (colon > 0) {
-                values.put(unquote(pair.substring(0, colon)), unquote(pair.substring(colon + 1)));
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            Object item = entry.getValue();
+            if (item instanceof Map<?, ?> || item instanceof List<?>) {
+                throw invalidRequest("Field '" + field + "' must contain scalar values");
             }
+            values.put(String.valueOf(entry.getKey()), item == null ? "" : String.valueOf(item));
         }
         return Map.copyOf(values);
     }
 
     public static Map<String, Map<String, String>> objectMap(String json, String field) {
-        String body = objectBody(json, field);
-        if (body.isBlank()) {
+        Object value = field(json, field);
+        if (value == null) {
             return Map.of();
         }
+        if (!(value instanceof Map<?, ?> map)) {
+            throw invalidRequest("Field '" + field + "' must be an object");
+        }
         Map<String, Map<String, String>> values = new LinkedHashMap<>();
-        for (String pair : splitTopLevelPairs(body)) {
-            int colon = pair.indexOf(':');
-            if (colon <= 0) {
-                continue;
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            if (!(entry.getValue() instanceof Map<?, ?> nested)) {
+                throw invalidRequest("Field '" + field + "' must contain nested objects");
             }
-            String key = unquote(pair.substring(0, colon));
-            Map<String, String> nested = object("{\"value\":" + pair.substring(colon + 1) + "}", "value");
-            if (!key.isBlank() && !nested.isEmpty()) {
-                values.put(key, nested);
+            Map<String, String> nestedValues = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> nestedEntry : nested.entrySet()) {
+                Object item = nestedEntry.getValue();
+                if (item instanceof Map<?, ?> || item instanceof List<?>) {
+                    throw invalidRequest("Field '" + field + "' nested objects must contain scalar values");
+                }
+                nestedValues.put(String.valueOf(nestedEntry.getKey()), item == null ? "" : String.valueOf(item));
             }
+            values.put(String.valueOf(entry.getKey()), Map.copyOf(nestedValues));
         }
         return Map.copyOf(values);
     }
 
-    public static java.util.List<String> objects(String json, String field) {
-        String body = arrayBody(json, field);
-        if (body.isBlank()) {
-            return java.util.List.of();
+    public static List<String> objects(String json, String field) {
+        Object value = field(json, field);
+        if (value == null) {
+            return List.of();
         }
-        java.util.List<String> objects = new java.util.ArrayList<>();
-        for (String part : splitTopLevelPairs(body)) {
-            String trimmed = part.trim();
-            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-                objects.add(trimmed);
-            }
+        if (!(value instanceof List<?> list)) {
+            throw invalidRequest("Field '" + field + "' must be an array");
         }
-        return java.util.List.copyOf(objects);
-    }
-
-    private static String arrayBody(String json, String field) {
-        int fieldStart = json.indexOf("\"" + field + "\":");
-        if (fieldStart < 0) {
-            return "";
-        }
-        int arrayStart = json.indexOf('[', fieldStart);
-        if (arrayStart < 0) {
-            return "";
-        }
-        int depth = 0;
-        boolean quoted = false;
-        boolean escaped = false;
-        int arrayEnd = -1;
-        for (int i = arrayStart; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (c == '"') {
-                quoted = !quoted;
-                continue;
-            }
-            if (!quoted && c == '[') depth++;
-            if (!quoted && c == ']') depth--;
-            if (!quoted && depth == 0) {
-                arrayEnd = i;
-                break;
-            }
-        }
-        if (arrayEnd < 0) {
-            return "";
-        }
-        return json.substring(arrayStart + 1, arrayEnd).trim();
-    }
-
-    private static String objectBody(String json, String field) {
-        int fieldStart = json.indexOf("\"" + field + "\":");
-        if (fieldStart < 0) {
-            return "";
-        }
-        int objectStart = json.indexOf('{', fieldStart);
-        if (objectStart < 0) {
-            return "";
-        }
-        int depth = 0;
-        boolean quoted = false;
-        boolean escaped = false;
-        int objectEnd = -1;
-        for (int i = objectStart; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (c == '"') {
-                quoted = !quoted;
-                continue;
-            }
-            if (!quoted && c == '{') depth++;
-            if (!quoted && c == '}') depth--;
-            if (!quoted && depth == 0) {
-                objectEnd = i;
-                break;
-            }
-        }
-        if (objectEnd < 0) {
-            return "";
-        }
-        return json.substring(objectStart + 1, objectEnd).trim();
-    }
-
-    private static java.util.List<String> splitTopLevelPairs(String body) {
-        java.util.List<String> pairs = new java.util.ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean quoted = false;
-        boolean escaped = false;
-        int depth = 0;
-        for (int index = 0; index < body.length(); index++) {
-            char value = body.charAt(index);
-            if (escaped) {
-                current.append(value);
-                escaped = false;
-                continue;
-            }
-            if (value == '\\') {
-                current.append(value);
-                escaped = true;
-                continue;
-            }
-            if (value == '"') {
-                quoted = !quoted;
-            }
-            if (!quoted && (value == '{' || value == '[')) {
-                depth++;
-            }
-            if (!quoted && (value == '}' || value == ']')) {
-                depth--;
-            }
-            if (value == ',' && !quoted && depth == 0) {
-                pairs.add(current.toString());
-                current.setLength(0);
-                continue;
-            }
-            current.append(value);
-        }
-        if (!current.isEmpty()) {
-            pairs.add(current.toString());
-        }
-        return pairs;
+        return list.stream()
+            .map(item -> {
+                if (!(item instanceof Map<?, ?>)) {
+                    throw invalidRequest("Field '" + field + "' must contain objects");
+                }
+                return JsonCodec.write(item);
+            })
+            .toList();
     }
 
     public static int integer(String json, String field, int fallback) {
-        String value = scalar(json, field);
+        Object value = field(json, field);
         if (value == null) {
             return fallback;
         }
+        Number number = number(value, field);
         try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException ignored) {
-            return fallback;
+            return Math.toIntExact(number.longValue());
+        } catch (ArithmeticException exception) {
+            throw invalidRequest("Field '" + field + "' is outside the integer range");
         }
     }
 
     public static long longValue(String json, String field, long fallback) {
-        String value = scalar(json, field);
+        Object value = field(json, field);
         if (value == null) {
             return fallback;
         }
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException ignored) {
-            return fallback;
+        Number number = number(value, field);
+        if (number instanceof BigInteger bigInteger) {
+            try {
+                return bigInteger.longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalidRequest("Field '" + field + "' is outside the long range");
+            }
         }
+        if (number instanceof BigDecimal bigDecimal) {
+            try {
+                return bigDecimal.toBigIntegerExact().longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalidRequest("Field '" + field + "' must be an integer");
+            }
+        }
+        return number.longValue();
     }
 
     public static double decimal(String json, String field, double fallback) {
-        String value = scalar(json, field);
+        Object value = field(json, field);
         if (value == null) {
             return fallback;
         }
-        try {
-            return Double.parseDouble(value);
-        } catch (NumberFormatException ignored) {
-            return fallback;
+        Number number = number(value, field);
+        double decimal = number.doubleValue();
+        if (!Double.isFinite(decimal)) {
+            throw invalidRequest("Field '" + field + "' must be a finite number");
         }
+        return decimal;
     }
 
     public static boolean bool(String json, String field, boolean fallback) {
-        String needle = "\"" + field + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        Object value = field(json, field);
+        if (value == null) {
             return fallback;
         }
-        int valueStart = start + needle.length();
-        String tail = json.substring(valueStart).trim();
-        if (tail.startsWith("true")) {
-            return true;
+        if (value instanceof Boolean bool) {
+            return bool;
         }
-        if (tail.startsWith("false")) {
-            return false;
-        }
-        return Boolean.parseBoolean(text(json, field, Boolean.toString(fallback)));
+        throw invalidRequest("Field '" + field + "' must be a boolean");
     }
 
     public static UUID uuid(String json, String field, UUID fallback) {
-        try {
-            return UUID.fromString(text(json, field, fallback.toString()));
-        } catch (IllegalArgumentException ignored) {
+        Object value = field(json, field);
+        if (value == null) {
             return fallback;
+        }
+        if (!(value instanceof String text)) {
+            throw invalidRequest("Field '" + field + "' must be a UUID string");
+        }
+        try {
+            return UUID.fromString(text);
+        } catch (IllegalArgumentException exception) {
+            throw invalidRequest("Field '" + field + "' must be a valid UUID");
         }
     }
 
     public static <E extends Enum<E>> E enumValue(Class<E> type, String json, String field, E fallback) {
-        try {
-            return Enum.valueOf(type, text(json, field, fallback.name()));
-        } catch (IllegalArgumentException ignored) {
+        Object value = field(json, field);
+        if (value == null) {
             return fallback;
         }
+        if (!(value instanceof String text)) {
+            throw invalidRequest("Field '" + field + "' must be a string enum value");
+        }
+        try {
+            return Enum.valueOf(type, text);
+        } catch (IllegalArgumentException exception) {
+            throw invalidRequest("Field '" + field + "' is not a valid " + type.getSimpleName());
+        }
     }
 
-    private static String scalar(String json, String field) {
-        String needle = "\"" + field + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
-            return null;
+    private static Object field(String json, String field) {
+        try {
+            return JsonCodec.readObject(json).get(field);
+        } catch (JsonCodecException exception) {
+            if (exception.kind() == JsonCodecException.Kind.INVALID_JSON) {
+                throw new CoreHttpException(400, "INVALID_JSON", exception.getMessage());
+            }
+            throw new CoreHttpException(400, "INVALID_REQUEST", exception.getMessage());
         }
-        int valueStart = start + needle.length();
-        int end = valueStart;
-        while (end < json.length() && "0123456789.-".indexOf(json.charAt(end)) >= 0) {
-            end++;
-        }
-        return end == valueStart ? null : json.substring(valueStart, end);
     }
 
-    private static String unquote(String value) {
-        String trimmed = value.trim();
-        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
-            trimmed = trimmed.substring(1, trimmed.length() - 1);
+    private static Number number(Object value, String field) {
+        if (value instanceof Number number) {
+            return number;
         }
-        return trimmed.replace("\\\"", "\"").replace("\\\\", "\\");
+        throw invalidRequest("Field '" + field + "' must be a number");
+    }
+
+    private static CoreHttpException invalidRequest(String message) {
+        return new CoreHttpException(400, "INVALID_REQUEST", message);
     }
 }

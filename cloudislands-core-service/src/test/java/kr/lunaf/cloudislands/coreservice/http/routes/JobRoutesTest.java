@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.JobCompletionService;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
@@ -72,7 +73,7 @@ class JobRoutesTest {
     void completeRouteCommitsCompletionBeforeAcknowledgingClaimedJob() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/JobRoutes.java"));
         int completionIndex = source.indexOf("completion.completed(claimed.get())");
-        int ackIndex = source.indexOf("jobs.complete(nodeId, jobId)");
+        int ackIndex = source.indexOf("jobs.complete(request.nodeId(), request.jobId())");
 
         assertTrue(completionIndex > 0, "completion must be explicitly committed");
         assertTrue(ackIndex > completionIndex, "job queue ack must happen only after completion state is committed");
@@ -107,6 +108,21 @@ class JobRoutesTest {
         assertTrue(jobs.findClaimed(jobId).isPresent(), "claimed job must remain retryable until completion state is committed");
         assertEquals(1L, jobs.countsByState().get("CLAIMED"));
         assertEquals(0L, jobs.countsByState().get("COMPLETED"));
+    }
+
+    @Test
+    void claimRouteRejectsInvalidTypedRequestFields() throws Exception {
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new JobRoutes(new InMemoryIslandJobPublisher(), null, null).register(handlers::put);
+        TestExchange exchange = exchange("{\"nodeId\":\"worker-1\",\"maxJobs\":\"many\"}");
+
+        CoreHttpException exception = org.junit.jupiter.api.Assertions.assertThrows(
+            CoreHttpException.class,
+            () -> handlers.get("/v1/jobs/claim").handle(exchange)
+        );
+
+        assertEquals(400, exception.status());
+        assertEquals("INVALID_REQUEST", exception.code());
     }
 
     private TestExchange exchange(String body) {

@@ -10,6 +10,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
+import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
@@ -50,21 +51,17 @@ public final class JobRoutes implements RouteGroup {
     }
 
     private void claim(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
-        String body = CoreHttpResponses.readBody(exchange);
-        String nodeId = JsonFields.text(body, "nodeId", "");
-        List<IslandJob> claimed = jobs.claim(nodeId, supportedJobTypes(JsonFields.text(body, "supportedTypes", "")), JsonFields.integer(body, "maxJobs", 4));
+        ClaimJobsRequest request = ClaimJobsRequest.read(CoreHttpResponses.readBody(exchange));
+        List<IslandJob> claimed = jobs.claim(request.nodeId(), request.supportedTypes(), request.maxJobs());
         CoreHttpResponses.write(exchange, 200, IslandJobJson.writeArray(claimed));
     }
 
     private void complete(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
-        String body = CoreHttpResponses.readBody(exchange);
-        UUID jobId = JsonFields.uuid(body, "jobId", SYSTEM_ACTOR);
-        String nodeId = JsonFields.text(body, "nodeId", "");
-        Map<String, String> payload = JsonFields.object(body, "payload");
-        java.util.Optional<IslandJob> claimed = jobs.findClaimed(jobId).map(job -> {
+        CompleteJobRequest request = CompleteJobRequest.read(CoreHttpResponses.readBody(exchange));
+        java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId()).map(job -> {
             Map<String, String> merged = new HashMap<>();
             merged.putAll(job.payload());
-            merged.putAll(payload);
+            merged.putAll(request.payload());
             return new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(merged), job.createdAt());
         });
         if (claimed.isEmpty()) {
@@ -77,7 +74,7 @@ public final class JobRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 500, ApiResponses.error("JOB_COMPLETION_FAILED", "Job completion was not committed; retry the claimed job"));
             return;
         }
-        if (!jobs.complete(nodeId, jobId)) {
+        if (!jobs.complete(request.nodeId(), request.jobId())) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
             return;
         }
@@ -85,49 +82,43 @@ public final class JobRoutes implements RouteGroup {
     }
 
     private void fail(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
-        String body = CoreHttpResponses.readBody(exchange);
-        UUID jobId = JsonFields.uuid(body, "jobId", SYSTEM_ACTOR);
-        String nodeId = JsonFields.text(body, "nodeId", "");
-        String error = JsonFields.text(body, "error", "unknown");
-        java.util.Optional<IslandJob> claimed = jobs.findClaimed(jobId);
-        if (claimed.isEmpty() || !jobs.fail(nodeId, jobId, error)) {
+        FailJobRequest request = FailJobRequest.read(CoreHttpResponses.readBody(exchange));
+        java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId());
+        if (claimed.isEmpty() || !jobs.fail(request.nodeId(), request.jobId(), request.error())) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
             return;
         }
-        claimed.ifPresent(job -> completion.failed(job, error));
+        claimed.ifPresent(job -> completion.failed(job, request.error()));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 
     private void recover(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
-        String body = CoreHttpResponses.readBody(exchange);
-        String nodeId = JsonFields.text(body, "nodeId", "recovery");
-        long minIdleMillis = JsonFields.longValue(body, "minIdleMillis", 60000L);
-        int maxJobs = JsonFields.integer(body, "maxJobs", 16);
+        RecoverJobsRequest request = RecoverJobsRequest.read(CoreHttpResponses.readBody(exchange));
         if (jobs instanceof RedisIslandJobQueue redisJobs) {
-            String recovered = redisJobs.recoverPending(nodeId, minIdleMillis, maxJobs);
-            audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "REDIS", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
+            String recovered = redisJobs.recoverPending(request.nodeId(), request.minIdleMillis(), request.maxJobs());
+            audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_RECOVER", "JOB", request.nodeId(), Map.of("backend", "REDIS", "minIdleMillis", Long.toString(request.minIdleMillis()), "maxJobs", Integer.toString(request.maxJobs()), "result", recovered));
             CoreHttpResponses.write(exchange, 202, "{\"recovered\":\"" + recovered.replace("\"", "'") + "\"}");
         } else if (jobs instanceof JdbcIslandJobQueue jdbcJobs) {
-            String recovered = jdbcJobs.recoverPending(nodeId, minIdleMillis, maxJobs);
-            audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "JDBC", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs), "result", recovered));
+            String recovered = jdbcJobs.recoverPending(request.nodeId(), request.minIdleMillis(), request.maxJobs());
+            audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_RECOVER", "JOB", request.nodeId(), Map.of("backend", "JDBC", "minIdleMillis", Long.toString(request.minIdleMillis()), "maxJobs", Integer.toString(request.maxJobs()), "result", recovered));
             CoreHttpResponses.write(exchange, 202, "{\"recovered\":" + recovered + "}");
         } else {
-            audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_RECOVER", "JOB", nodeId, Map.of("backend", "UNAVAILABLE", "minIdleMillis", Long.toString(minIdleMillis), "maxJobs", Integer.toString(maxJobs)));
+            audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_RECOVER", "JOB", request.nodeId(), Map.of("backend", "UNAVAILABLE", "minIdleMillis", Long.toString(request.minIdleMillis()), "maxJobs", Integer.toString(request.maxJobs())));
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("RECOVERY_UNAVAILABLE", "Job recovery is only available when CI_JOB_QUEUE_MODE=REDIS or JDBC"));
         }
     }
 
     private void retry(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
-        String body = CoreHttpResponses.readBody(exchange);
-        UUID jobId = JsonFields.uuid(body, "jobId", SYSTEM_ACTOR);
+        JobIdRequest request = JobIdRequest.read(CoreHttpResponses.readBody(exchange));
+        UUID jobId = request.jobId();
         boolean retried = jobs.retry(jobId);
         audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_RETRY", "JOB", jobId.toString(), Map.of("retried", Boolean.toString(retried)));
         CoreHttpResponses.write(exchange, retried ? 202 : 404, retried ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
     }
 
     private void cancel(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
-        String body = CoreHttpResponses.readBody(exchange);
-        UUID jobId = JsonFields.uuid(body, "jobId", SYSTEM_ACTOR);
+        JobIdRequest request = JobIdRequest.read(CoreHttpResponses.readBody(exchange));
+        UUID jobId = request.jobId();
         boolean canceled = jobs.cancel(jobId);
         audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_CANCEL", "JOB", jobId.toString(), Map.of("canceled", Boolean.toString(canceled)));
         CoreHttpResponses.write(exchange, canceled ? 202 : 404, canceled ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
@@ -177,5 +168,103 @@ public final class JobRoutes implements RouteGroup {
             }
         }
         return result.isEmpty() ? supportedJobTypes("") : List.copyOf(result);
+    }
+
+    private record ClaimJobsRequest(String nodeId, List<IslandJobType> supportedTypes, int maxJobs) {
+        private ClaimJobsRequest {
+            nodeId = required(nodeId, "nodeId");
+            supportedTypes = supportedTypes == null ? supportedJobTypes("") : List.copyOf(supportedTypes);
+            if (maxJobs < 1 || maxJobs > 128) {
+                throw invalidRequest("Field 'maxJobs' must be between 1 and 128");
+            }
+        }
+
+        private static ClaimJobsRequest read(String body) {
+            return new ClaimJobsRequest(
+                JsonFields.text(body, "nodeId", ""),
+                supportedJobTypes(JsonFields.text(body, "supportedTypes", "")),
+                JsonFields.integer(body, "maxJobs", 4)
+            );
+        }
+    }
+
+    private record CompleteJobRequest(UUID jobId, String nodeId, Map<String, String> payload) {
+        private CompleteJobRequest {
+            jobId = required(jobId, "jobId");
+            nodeId = required(nodeId, "nodeId");
+            payload = payload == null ? Map.of() : Map.copyOf(payload);
+        }
+
+        private static CompleteJobRequest read(String body) {
+            return new CompleteJobRequest(
+                JsonFields.uuid(body, "jobId", SYSTEM_ACTOR),
+                JsonFields.text(body, "nodeId", ""),
+                JsonFields.object(body, "payload")
+            );
+        }
+    }
+
+    private record FailJobRequest(UUID jobId, String nodeId, String error) {
+        private FailJobRequest {
+            jobId = required(jobId, "jobId");
+            nodeId = required(nodeId, "nodeId");
+            error = error == null || error.isBlank() ? "unknown" : error;
+        }
+
+        private static FailJobRequest read(String body) {
+            return new FailJobRequest(
+                JsonFields.uuid(body, "jobId", SYSTEM_ACTOR),
+                JsonFields.text(body, "nodeId", ""),
+                JsonFields.text(body, "error", "unknown")
+            );
+        }
+    }
+
+    private record RecoverJobsRequest(String nodeId, long minIdleMillis, int maxJobs) {
+        private RecoverJobsRequest {
+            nodeId = nodeId == null || nodeId.isBlank() ? "recovery" : nodeId;
+            if (minIdleMillis < 0L) {
+                throw invalidRequest("Field 'minIdleMillis' must be zero or greater");
+            }
+            if (maxJobs < 1 || maxJobs > 1024) {
+                throw invalidRequest("Field 'maxJobs' must be between 1 and 1024");
+            }
+        }
+
+        private static RecoverJobsRequest read(String body) {
+            return new RecoverJobsRequest(
+                JsonFields.text(body, "nodeId", "recovery"),
+                JsonFields.longValue(body, "minIdleMillis", 60000L),
+                JsonFields.integer(body, "maxJobs", 16)
+            );
+        }
+    }
+
+    private record JobIdRequest(UUID jobId) {
+        private JobIdRequest {
+            jobId = required(jobId, "jobId");
+        }
+
+        private static JobIdRequest read(String body) {
+            return new JobIdRequest(JsonFields.uuid(body, "jobId", SYSTEM_ACTOR));
+        }
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw invalidRequest("Field '" + field + "' is required");
+        }
+        return value;
+    }
+
+    private static UUID required(UUID value, String field) {
+        if (value == null || SYSTEM_ACTOR.equals(value)) {
+            throw invalidRequest("Field '" + field + "' is required");
+        }
+        return value;
+    }
+
+    private static CoreHttpException invalidRequest(String message) {
+        return new CoreHttpException(400, "INVALID_REQUEST", message);
     }
 }

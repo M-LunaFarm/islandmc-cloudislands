@@ -2,6 +2,8 @@
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
 aopalliance:aopalliance:1.0=annotationProcessor,compileClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-core:2.22.0=runtimeClasspath,testRuntimeClasspath
+com.fasterxml.jackson:jackson-bom:2.22.0=runtimeClasspath,testRuntimeClasspath
 com.github.ben-manes.caffeine:caffeine:3.2.3=annotationProcessor,compileClasspath,testCompileClasspath,testRuntimeClasspath
 com.google.auto.service:auto-service-annotations:1.1.1=compileClasspath,testCompileClasspath
 com.google.code.gson:gson:2.13.2=annotationProcessor,compileClasspath,testCompileClasspath,testRuntimeClasspath
@@ -49,4 +51,4 @@ org.spongepowered:configurate-gson:4.2.0=annotationProcessor,compileClasspath,te
 org.spongepowered:configurate-hocon:4.2.0=annotationProcessor,compileClasspath,testCompileClasspath,testRuntimeClasspath
 org.spongepowered:configurate-yaml:4.2.0=annotationProcessor,compileClasspath,testCompileClasspath,testRuntimeClasspath
 org.yaml:snakeyaml:2.5=annotationProcessor,compileClasspath,testCompileClasspath,testRuntimeClasspath
-empty=runtimeClasspath,shadow,testAnnotationProcessor
+empty=shadow,testAnnotationProcessor

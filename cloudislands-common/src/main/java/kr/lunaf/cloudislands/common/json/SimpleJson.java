@@ -125,6 +125,7 @@ public final class SimpleJson {
             index++;
             skipWhitespace();
             while (index < json.length() && json.charAt(index) != '}') {
+                int previous = index;
                 String key = readString();
                 skipWhitespace();
                 if (index < json.length() && json.charAt(index) == ':') {
@@ -136,6 +137,7 @@ public final class SimpleJson {
                     index++;
                     skipWhitespace();
                 }
+                ensureProgress(previous);
             }
             if (index < json.length() && json.charAt(index) == '}') {
                 index++;
@@ -148,12 +150,14 @@ public final class SimpleJson {
             index++;
             skipWhitespace();
             while (index < json.length() && json.charAt(index) != ']') {
+                int previous = index;
                 result.add(readValue());
                 skipWhitespace();
                 if (index < json.length() && json.charAt(index) == ',') {
                     index++;
                     skipWhitespace();
                 }
+                ensureProgress(previous);
             }
             if (index < json.length() && json.charAt(index) == ']') {
                 index++;
@@ -247,6 +251,12 @@ public final class SimpleJson {
                     continue;
                 }
                 break;
+            }
+        }
+
+        private void ensureProgress(int previous) {
+            if (index <= previous) {
+                throw new IllegalArgumentException("JSON parser made no progress at offset " + index);
             }
         }
     }
