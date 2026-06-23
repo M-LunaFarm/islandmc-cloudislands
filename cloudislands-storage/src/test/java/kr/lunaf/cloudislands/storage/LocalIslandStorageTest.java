@@ -97,6 +97,19 @@ class LocalIslandStorageTest {
     }
 
     @Test
+    void readManifestUsesLatestSnapshotWhenCompatibilityManifestIsStale() throws Exception {
+        LocalIslandStorage storage = new LocalIslandStorage(root);
+        storage.writeSnapshot(ISLAND_ID, 1L, input("old-bundle".getBytes(StandardCharsets.UTF_8)), manifest("OLD"));
+        Path islandRoot = root.resolve("islands").resolve(ISLAND_ID.toString());
+        Path latestSnapshot = islandRoot.resolve("snapshots").resolve("000002");
+        Files.createDirectories(latestSnapshot);
+        Files.writeString(latestSnapshot.resolve("manifest.json"), IslandManifestJson.write(manifest("LATEST")), StandardCharsets.UTF_8);
+        Files.writeString(islandRoot.resolve("latest"), "000002", StandardCharsets.UTF_8);
+
+        assertEquals("LATEST", storage.readManifest(ISLAND_ID).snapshotReason());
+    }
+
+    @Test
     void deleteBackupDoesNotReplaceLatestLiveSnapshot() throws Exception {
         LocalIslandStorage storage = new LocalIslandStorage(root);
         byte[] liveBundle = "live-state".getBytes(StandardCharsets.UTF_8);

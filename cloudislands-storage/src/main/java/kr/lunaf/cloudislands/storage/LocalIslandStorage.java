@@ -49,11 +49,22 @@ public final class LocalIslandStorage implements IslandStorage {
     @Override
     public IslandBundleManifest readManifest(UUID islandId) throws IOException {
         ensureRecovered();
-        Path manifest = islandRoot(islandId).resolve("manifest.json");
-        if (!Files.exists(manifest)) {
+        Path islandRoot = islandRoot(islandId);
+        Path latest = islandRoot.resolve("latest");
+        if (Files.exists(latest)) {
+            String latestSnapshot = Files.readString(latest, StandardCharsets.UTF_8).trim();
+            if (!latestSnapshot.isBlank()) {
+                Path snapshotManifest = islandRoot.resolve("snapshots").resolve(latestSnapshot).resolve("manifest.json");
+                if (Files.exists(snapshotManifest)) {
+                    return IslandManifestJson.read(Files.readString(snapshotManifest, StandardCharsets.UTF_8));
+                }
+            }
+        }
+        Path compatibilityManifest = islandRoot.resolve("manifest.json");
+        if (!Files.exists(compatibilityManifest)) {
             throw new IOException("missing island manifest: " + islandId);
         }
-        return IslandManifestJson.read(Files.readString(manifest, StandardCharsets.UTF_8));
+        return IslandManifestJson.read(Files.readString(compatibilityManifest, StandardCharsets.UTF_8));
     }
 
     @Override
