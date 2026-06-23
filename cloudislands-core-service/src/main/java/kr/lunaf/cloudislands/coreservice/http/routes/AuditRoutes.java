@@ -16,9 +16,9 @@ public final class AuditRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/audit", this::list);
-        registry.route("/v1/admin/audit", this::list);
-        registry.route("/v1/admin/audit/list", this::list);
+        registry.routePost("/v1/audit", this::list);
+        registry.routePost("/v1/admin/audit", this::list);
+        registry.routePost("/v1/admin/audit/list", this::list);
     }
 
     private void list(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
