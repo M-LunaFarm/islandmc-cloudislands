@@ -217,6 +217,9 @@ public final class PaperIntegrationRegistry {
         if (operationState == IntegrationSupportState.OPERATION_FAILED || operationState == IntegrationSupportState.OPERATION_SUCCEEDED) {
             return operationState;
         }
+        if (operationState == IntegrationSupportState.ADAPTER_INACTIVE) {
+            return IntegrationSupportState.ADAPTER_INACTIVE;
+        }
         if (discoveryState == IntegrationSupportState.NOT_INSTALLED) {
             return IntegrationSupportState.NOT_INSTALLED;
         }

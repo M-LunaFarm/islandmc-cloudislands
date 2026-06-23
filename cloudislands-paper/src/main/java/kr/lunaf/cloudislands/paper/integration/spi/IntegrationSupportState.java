@@ -15,8 +15,10 @@ public enum IntegrationSupportState {
         if (result == null) {
             return OPERATION_FAILED;
         }
-        return result.status() == IntegrationResult.Status.SUCCESS
-            ? OPERATION_SUCCEEDED
-            : OPERATION_FAILED;
+        return switch (result.status()) {
+            case SUCCESS -> OPERATION_SUCCEEDED;
+            case SKIPPED -> ADAPTER_INACTIVE;
+            case FAILED -> OPERATION_FAILED;
+        };
     }
 }

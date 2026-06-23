@@ -354,7 +354,7 @@ class PaperIntegrationRegistryTest {
 
         assertEquals(IntegrationSupportState.OPERATION_SUCCEEDED, PaperIntegrationRegistry.operationState(IntegrationResult.success("ok")));
         assertEquals(IntegrationSupportState.OPERATION_FAILED, PaperIntegrationRegistry.operationState(IntegrationResult.failed("bad")));
-        assertEquals(IntegrationSupportState.OPERATION_FAILED, PaperIntegrationRegistry.operationState(IntegrationResult.skipped("probe only")));
+        assertEquals(IntegrationSupportState.ADAPTER_INACTIVE, PaperIntegrationRegistry.operationState(IntegrationResult.skipped("probe only")));
     }
 
     @Test
