@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.integration.permission.LuckPermsIntegration;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationSupportState;
 import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
@@ -55,7 +56,7 @@ class PaperIntegrationRegistryTest {
 
     @Test
     void coreProtectAdapterPublishesRuntimeAuthorityAndStateCapabilities() {
-        CoreProtectIntegration integration = new CoreProtectIntegration();
+        CoreProtectIntegration integration = new CoreProtectIntegration(acceptingRuntime());
         assertTrue(integration.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
         assertTrue(integration.capabilities().contains(IntegrationCapability.STATE_EXPORT));
         assertTrue(integration.capabilities().contains(IntegrationCapability.STATE_RESTORE));
@@ -71,7 +72,7 @@ class PaperIntegrationRegistryTest {
 
     @Test
     void coreProtectAdapterRequiresDistributedExportAndRollbackContext() {
-        CoreProtectIntegration integration = new CoreProtectIntegration();
+        CoreProtectIntegration integration = new CoreProtectIntegration(acceptingRuntime());
         IntegrationContext missing = new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:export:1", Map.of("world", "islands"));
 
         IntegrationResult missingResult = integration.exportState(missing);
@@ -182,6 +183,22 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
+    void defaultExternalRuntimeDoesNotReportProbeOnlySuccess() {
+        CoreProtectIntegration integration = new CoreProtectIntegration();
+
+        IntegrationResult result = integration.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:export:noop", Map.of(
+            "world", "islands",
+            "cell", "12,-4",
+            "region", "192,64,-64..255,319,-1",
+            "bundleKey", "bundles/island.tar.zst"
+        )));
+
+        assertEquals(IntegrationResult.Status.SKIPPED, result.status());
+        assertEquals("SKIPPED", result.details().get("external.result"));
+        assertEquals("none", result.details().get("external.runtime.runtime"));
+    }
+
+    @Test
     void everyPriorityAdapterCanRouteApprovedHooksThroughExternalRuntime() {
         List<String> calls = new ArrayList<>();
         kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime runtime = (pluginName, category, operation, context, plan) -> {
@@ -232,18 +249,18 @@ class PaperIntegrationRegistryTest {
             "bundleKey", "bundles/island.tar.zst"
         ));
 
-        CoreProtectIntegration coreProtect = new CoreProtectIntegration();
+        CoreProtectIntegration coreProtect = new CoreProtectIntegration(acceptingRuntime());
         assertTrue(coreProtect.capabilities().contains(IntegrationCapability.ISLAND_ACTIVATE));
         assertTrue(coreProtect.capabilities().contains(IntegrationCapability.ISLAND_DEACTIVATE));
         assertEquals(IntegrationResult.Status.SUCCESS, coreProtect.onIslandActivate(worldCell).status());
         assertEquals(IntegrationResult.Status.SUCCESS, coreProtect.onIslandDeactivate(worldCell).status());
 
-        CustomItemIntegration customItems = new CustomItemIntegration("ItemsAdder");
+        CustomItemIntegration customItems = new CustomItemIntegration("ItemsAdder", acceptingRuntime());
         assertTrue(customItems.capabilities().contains(IntegrationCapability.ISLAND_DEACTIVATE));
         assertEquals(IntegrationResult.Status.SUCCESS, customItems.onIslandActivate(worldCell).status());
         assertEquals(IntegrationResult.Status.SUCCESS, customItems.onIslandDeactivate(worldCell).status());
 
-        StackerIntegration stacker = new StackerIntegration("RoseStacker");
+        StackerIntegration stacker = new StackerIntegration("RoseStacker", acceptingRuntime());
         assertTrue(stacker.capabilities().contains(IntegrationCapability.ISLAND_ACTIVATE));
         assertTrue(stacker.capabilities().contains(IntegrationCapability.ISLAND_DEACTIVATE));
         assertEquals(IntegrationResult.Status.SUCCESS, stacker.onIslandActivate(worldCell).status());
@@ -352,7 +369,7 @@ class PaperIntegrationRegistryTest {
 
     @Test
     void worldEditAdapterRequiresRuntimeAuthorityBeforeWorldStateHooks() {
-        WorldEditIntegration integration = new WorldEditIntegration("FastAsyncWorldEdit");
+        WorldEditIntegration integration = new WorldEditIntegration("FastAsyncWorldEdit", acceptingRuntime());
         IntegrationContext context = new IntegrationContext(UUID.randomUUID(), "island-node-01", 99L, true, "fawe:restore:1", Map.of(
             "world", "islands",
             "cell", "0,0",
@@ -377,7 +394,7 @@ class PaperIntegrationRegistryTest {
 
     @Test
     void worldEditAdapterRequiresOperationDrainBeforeDeactivation() {
-        WorldEditIntegration integration = new WorldEditIntegration("WorldEdit");
+        WorldEditIntegration integration = new WorldEditIntegration("WorldEdit", acceptingRuntime());
         IntegrationContext context = new IntegrationContext(UUID.randomUUID(), "island-node-01", 99L, true, "worldedit:deactivate:1", Map.of(
             "world", "islands",
             "cell", "0,0",
@@ -412,7 +429,7 @@ class PaperIntegrationRegistryTest {
 
     @Test
     void customItemAdaptersRequireExternalIdMappingsBeforeStateExport() {
-        CustomItemIntegration integration = new CustomItemIntegration("ItemsAdder");
+        CustomItemIntegration integration = new CustomItemIntegration("ItemsAdder", acceptingRuntime());
 
         assertTrue(integration.capabilities().contains(IntegrationCapability.STATE_EXPORT));
         assertTrue(integration.capabilities().contains(IntegrationCapability.STATE_RESTORE));
@@ -445,7 +462,7 @@ class PaperIntegrationRegistryTest {
 
     @Test
     void stackerAdaptersRequireEffectiveEntityAndSpawnerCountKeys() {
-        StackerIntegration integration = new StackerIntegration("RoseStacker");
+        StackerIntegration integration = new StackerIntegration("RoseStacker", acceptingRuntime());
 
         assertTrue(integration.capabilities().contains(IntegrationCapability.STATE_EXPORT));
         assertTrue(integration.capabilities().contains(IntegrationCapability.STATE_RESTORE));
@@ -491,8 +508,8 @@ class PaperIntegrationRegistryTest {
 
     @Test
     void luckPermsAndPlanAdaptersDeclareCorrectAuthorityBoundaries() {
-        LuckPermsIntegration luckPerms = new LuckPermsIntegration();
-        PlanIntegration plan = new PlanIntegration();
+        LuckPermsIntegration luckPerms = new LuckPermsIntegration(acceptingRuntime());
+        PlanIntegration plan = new PlanIntegration(acceptingRuntime());
         IntegrationContext luckPermsContext = new IntegrationContext(UUID.randomUUID(), "island-node-01", 42L, true, "luckperms:activate:1", Map.of(
             "permissionNode", "cloudislands.admin.bypass",
             "bypassScope", "network"
@@ -625,5 +642,9 @@ class PaperIntegrationRegistryTest {
         } catch (java.io.IOException exception) {
             throw new java.io.UncheckedIOException(exception);
         }
+    }
+
+    private static IntegrationExternalRuntime acceptingRuntime() {
+        return (_pluginName, _category, _operation, _context, _plan) -> IntegrationResult.success("external called");
     }
 }

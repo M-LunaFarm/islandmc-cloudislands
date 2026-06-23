@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.paper.integration.analytics.PlanIntegration;
 import kr.lunaf.cloudislands.paper.integration.coreprotect.CoreProtectIntegration;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomItemIntegration;
 import kr.lunaf.cloudislands.paper.integration.permission.LuckPermsIntegration;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
 import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
@@ -32,13 +33,14 @@ class IntegrationLifecycleHooksTest {
     @Test
     void lifecycleHooksSupplyBundleMetadataToPriorityAdapters() throws IOException {
         UUID islandId = UUID.randomUUID();
+        IntegrationExternalRuntime runtime = acceptingRuntime();
         IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
-            new CoreProtectIntegration(),
-            new WorldEditIntegration("WorldEdit"),
-            new CustomItemIntegration("ItemsAdder"),
-            new StackerIntegration("RoseStacker"),
-            new LuckPermsIntegration(),
-            new PlanIntegration()
+            new CoreProtectIntegration(runtime),
+            new WorldEditIntegration("WorldEdit", runtime),
+            new CustomItemIntegration("ItemsAdder", runtime),
+            new StackerIntegration("RoseStacker", runtime),
+            new LuckPermsIntegration(runtime),
+            new PlanIntegration(runtime)
         ));
         ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(
             islandId,
@@ -101,7 +103,7 @@ class IntegrationLifecycleHooksTest {
     @Test
     void lifecycleBatchWritesAuditableJsonWhenPluginsRan() throws IOException {
         UUID islandId = UUID.randomUUID();
-        IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(new CoreProtectIntegration()));
+        IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(new CoreProtectIntegration(acceptingRuntime())));
         ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(
             islandId,
             "ci_shard_001",
@@ -136,9 +138,10 @@ class IntegrationLifecycleHooksTest {
     @Test
     void lifecycleBatchWritesCustomItemAndStackerStateArtifactsIntoBundleRoot() throws IOException {
         UUID islandId = UUID.randomUUID();
+        IntegrationExternalRuntime runtime = acceptingRuntime();
         IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
-            new CustomItemIntegration("ItemsAdder"),
-            new StackerIntegration("RoseStacker")
+            new CustomItemIntegration("ItemsAdder", runtime),
+            new StackerIntegration("RoseStacker", runtime)
         ));
         ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(
             islandId,
@@ -238,5 +241,9 @@ class IntegrationLifecycleHooksTest {
             now,
             ""
         );
+    }
+
+    private static IntegrationExternalRuntime acceptingRuntime() {
+        return (_pluginName, _category, _operation, _context, _plan) -> IntegrationResult.success("external called");
     }
 }

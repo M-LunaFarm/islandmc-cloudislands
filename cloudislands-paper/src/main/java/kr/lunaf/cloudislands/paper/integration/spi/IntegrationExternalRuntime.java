@@ -13,7 +13,7 @@ public interface IntegrationExternalRuntime {
     );
 
     static IntegrationExternalRuntime noop() {
-        return (pluginName, category, operation, context, plan) -> IntegrationResult.success(
+        return (pluginName, category, operation, context, plan) -> IntegrationResult.skipped(
             "External runtime not configured for " + pluginName,
             Map.of("runtime", "none")
         );
