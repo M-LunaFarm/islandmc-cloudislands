@@ -10,12 +10,15 @@ class Paper262BuildWiringPolicyTest {
     @Test
     void gradleExposesPaperTwentySixTwoCompileAndBootTasks() throws Exception {
         String build = Files.readString(Path.of("../build.gradle.kts"));
+        String matrix = Files.readString(Path.of("../gradle/minecraft-versions.toml"));
 
-        assertTrue(build.contains("tasks.register(\"paper262Compile\")"));
-        assertTrue(build.contains("Compiles the CloudIslands Paper plugin with the Paper 26.2 adapter included."));
-        assertTrue(build.contains("tasks.register<Exec>(\"paper262BootSmoke\")"));
-        assertTrue(build.contains("Boots a Paper 26.2 server when an official stable build is available."));
-        assertTrue(build.contains("--version\", \"26.2\""));
-        assertTrue(build.contains("paper-26.2"));
+        assertTrue(build.contains("tasks.register(entry.compileTaskName)"));
+        assertTrue(build.contains("tasks.register<Exec>(entry.bootSmokeTaskName)"));
+        assertTrue(build.contains("--version\", entry.bootVersion"));
+        assertTrue(matrix.contains("id = \"paper-26.2\""));
+        assertTrue(matrix.contains("normalizedRange = \"26.2.x\""));
+        assertTrue(matrix.contains("adapterClass = \"kr.lunaf.cloudislands.paper.platform.compatibility.Paper262Adapter\""));
+        assertTrue(matrix.contains("bootSmokeEnabled = false"));
+        assertTrue(matrix.contains("experimental = true"));
     }
 }

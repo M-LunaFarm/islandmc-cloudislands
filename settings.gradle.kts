@@ -17,6 +17,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "cloudislands"
 
+extensions.extraProperties["cloudislandsVersionMatrixFile"] = file("gradle/minecraft-versions.toml")
+
 include(
     "cloudislands-api",
     "cloudislands-common",

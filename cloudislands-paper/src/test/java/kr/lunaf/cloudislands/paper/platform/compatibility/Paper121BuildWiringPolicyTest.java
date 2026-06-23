@@ -10,11 +10,15 @@ class Paper121BuildWiringPolicyTest {
     @Test
     void gradleExposesPaperOneTwentyOneCompileAndBootSmokeTasks() throws Exception {
         String build = Files.readString(Path.of("../build.gradle.kts"));
+        String matrix = Files.readString(Path.of("../gradle/minecraft-versions.toml"));
 
-        assertTrue(build.contains("tasks.register(\"paper121Compile\")"));
-        assertTrue(build.contains("Compiles the CloudIslands Paper plugin against the Paper 1.21 API baseline."));
-        assertTrue(build.contains("tasks.register(\"paper121BootSmoke\")"));
-        assertTrue(build.contains("Boots the Paper 1.21 baseline server and verifies the 1.21 family adapter loads."));
-        assertTrue(build.contains("dependsOn(tasks.named(\"paperBootSmoke\"))"));
+        assertTrue(build.contains("val paperVersionCompileTasks = minecraftVersionMatrix.compileEntries.associateWith"));
+        assertTrue(build.contains("tasks.register(entry.compileTaskName)"));
+        assertTrue(build.contains("tasks.register<Exec>(entry.bootSmokeTaskName)"));
+        assertTrue(build.contains("tasks.register(\"paperBootSmoke\")"));
+        assertTrue(build.contains("minecraftVersionMatrix.latestStable.bootSmokeTaskName"));
+        assertTrue(matrix.contains("id = \"paper-1.21\""));
+        assertTrue(matrix.contains("bootSmokeEnabled = true"));
+        assertTrue(matrix.contains("releaseSupported = true"));
     }
 }

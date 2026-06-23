@@ -12,6 +12,7 @@ class SupportedRuntimeMatrixTest {
     void readmeAndCiMatrixPublishTheCentralSupportedRuntimeBaseline() throws IOException {
         Path root = repositoryRoot();
         String versionCatalog = Files.readString(root.resolve("gradle/libs.versions.toml"));
+        String minecraftMatrix = Files.readString(root.resolve("gradle/minecraft-versions.toml"));
         String readme = Files.readString(root.resolve("README.md"));
         String workflow = Files.readString(root.resolve(".github/workflows/build.yml"));
 
@@ -22,14 +23,19 @@ class SupportedRuntimeMatrixTest {
 
         assertTrue(readme.contains("Version: `1.0.1`"));
         assertTrue(readme.contains("Current release: `v1.0.1`"));
-        assertTrue(readme.contains("| Paper `1.21.11` | compile baseline | boot smoke task exists | Core integration smoke is separate |"));
-        assertTrue(readme.contains("| Paper `1.21.x` family | family adapter compile-verified | baseline boot smoke task exists | adapter self-test diagnostics |"));
-        assertTrue(readme.contains("| Paper `26.1` | adapter compile task exists | pending official Paper build | not verified |"));
-        assertTrue(readme.contains("| Paper `26.2` | adapter compile task exists | pending official Paper build | not verified |"));
-        assertTrue(readme.contains("| Velocity `3.5.0-SNAPSHOT` | compile baseline | boot smoke task exists | routing integration is partial |"));
+        assertTrue(minecraftMatrix.contains("id = \"paper-1.21\""));
+        assertTrue(minecraftMatrix.contains("id = \"paper-26.1\""));
+        assertTrue(minecraftMatrix.contains("id = \"paper-26.2\""));
+        assertTrue(readme.contains("<!-- minecraft-version-matrix:start -->"));
+        assertTrue(readme.contains("| Paper `1.21.x` | `paper121Compile` | `paper121BootSmoke` | release-supported |"));
+        assertTrue(readme.contains("| Paper `26.1.x` | `paper261Compile` | pending official Paper build | experimental compile-only |"));
+        assertTrue(readme.contains("| Paper `26.2.x` | `paper262Compile` | pending official Paper build | experimental compile-only |"));
+        assertTrue(readme.contains("Velocity `3.5.0-SNAPSHOT` remains the proxy compile baseline"));
         assertTrue(readme.contains("paper121Compile"));
         assertTrue(readme.contains("paper121BootSmoke"));
-        assertTrue(readme.contains("It does not yet expose every 1.21.x patch task required for release certification."));
+        assertTrue(readme.contains("compileAllMinecraftVersions"));
+        assertTrue(readme.contains("bootSmokeAllStableMinecraftVersions"));
+        assertTrue(readme.contains("verifyReadmeVersionTable"));
 
         assertTrue(workflow.contains("platform: paper-1.21.11"));
         assertTrue(workflow.contains("java: \"21\""));

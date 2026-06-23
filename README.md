@@ -306,13 +306,16 @@ new stable families through explicit adapter and matrix entries.
 
 Current repository state:
 
-| Target | Compile status | Boot status | Integration status | Notes |
+<!-- minecraft-version-matrix:start -->
+| Target | Compile | Boot smoke | Release | Notes |
 |---|---|---|---|---|
-| Paper `1.21.11` | compile baseline | boot smoke task exists | Core integration smoke is separate | current `paper-api` and `plugin.yml` baseline |
-| Paper `1.21.x` family | family adapter compile-verified | baseline boot smoke task exists | adapter self-test diagnostics | common 1.21 adapter; patch-specific APIs stay optional |
-| Paper `26.1` | adapter compile task exists | pending official Paper build | not verified | 26.1 adapter separated; no boot-verified release yet |
-| Paper `26.2` | adapter compile task exists | pending official Paper build | not verified | 26.2 adapter separated; no boot-verified release yet |
-| Velocity `3.5.0-SNAPSHOT` | compile baseline | boot smoke task exists | routing integration is partial | plugin version comes from Gradle |
+| Paper `1.21.x` | `paper121Compile` | `paper121BootSmoke` | release-supported | current paper-api and plugin.yml baseline |
+| Paper `26.1.x` | `paper261Compile` | pending official Paper build | experimental compile-only | adapter compile-verified; boot smoke waits for official Paper build |
+| Paper `26.2.x` | `paper262Compile` | pending official Paper build | experimental compile-only | adapter compile-verified; boot smoke waits for official Paper build |
+<!-- minecraft-version-matrix:end -->
+
+Velocity `3.5.0-SNAPSHOT` remains the proxy compile baseline with a boot smoke
+task; routing integration is tracked separately from the Minecraft matrix.
 
 Status terms:
 
@@ -321,10 +324,10 @@ Status terms:
 - `boot-verified`: a real Paper or Velocity process starts and loads the plugin.
 - `integration-verified`: real external services and multi-component behavior are exercised.
 
-The build currently exposes `paper121Compile`, `paper121BootSmoke`,
-`paperBootSmoke`, `velocityBootSmoke`,
-`ciBootSmoke`, `coreIntegrationSmoke`, `ciIntegrationSmoke`, and `clusterSmokeVerify`.
-It does not yet expose every 1.21.x patch task required for release certification.
+The build generates Paper compile and boot smoke tasks from
+`gradle/minecraft-versions.toml`, including `compileAllMinecraftVersions`,
+`bootSmokeAllStableMinecraftVersions`, `verifyMinecraftVersionMatrix`,
+`verifyAdapterPackaging`, and `verifyReadmeVersionTable`.
 
 ## Release
 

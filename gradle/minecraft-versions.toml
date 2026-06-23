@@ -1,0 +1,50 @@
+[[versions]]
+id = "paper-1.21"
+normalizedRange = "1.21.x"
+paperApiVersion = "1.21.11-R0.1-SNAPSHOT"
+javaVersion = 21
+adapterProject = "cloudislands-paper"
+adapterClass = "kr.lunaf.cloudislands.paper.platform.compatibility.Paper121FamilyAdapter"
+descriptorApiVersion = "1.21.11"
+compileEnabled = true
+bootSmokeEnabled = true
+releaseSupported = true
+experimental = false
+minimumProtocolVersion = 767
+bootVersion = "1.21.11"
+artifactPolicy = "universal"
+notes = "current paper-api and plugin.yml baseline"
+
+[[versions]]
+id = "paper-26.1"
+normalizedRange = "26.1.x"
+paperApiVersion = "26.1-R0.1-SNAPSHOT"
+javaVersion = 21
+adapterProject = "cloudislands-paper"
+adapterClass = "kr.lunaf.cloudislands.paper.platform.compatibility.Paper261Adapter"
+descriptorApiVersion = "1.21.11"
+compileEnabled = true
+bootSmokeEnabled = false
+releaseSupported = false
+experimental = true
+minimumProtocolVersion = 2601
+bootVersion = "26.1"
+artifactPolicy = "universal"
+notes = "adapter compile-verified; boot smoke waits for official Paper build"
+
+[[versions]]
+id = "paper-26.2"
+normalizedRange = "26.2.x"
+paperApiVersion = "26.2-R0.1-SNAPSHOT"
+javaVersion = 21
+adapterProject = "cloudislands-paper"
+adapterClass = "kr.lunaf.cloudislands.paper.platform.compatibility.Paper262Adapter"
+descriptorApiVersion = "1.21.11"
+compileEnabled = true
+bootSmokeEnabled = false
+releaseSupported = false
+experimental = true
+minimumProtocolVersion = 2602
+bootVersion = "26.2"
+artifactPolicy = "universal"
+notes = "adapter compile-verified; boot smoke waits for official Paper build"
