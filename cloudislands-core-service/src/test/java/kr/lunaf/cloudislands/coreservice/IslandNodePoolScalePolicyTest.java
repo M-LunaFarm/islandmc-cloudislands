@@ -57,6 +57,7 @@ class IslandNodePoolScalePolicyTest {
                 "POSTGRESQL,MYSQL,MARIADB,CORE_API",
                 "production",
                 false,
+                false,
                 "http://127.0.0.1:8443",
                 true,
                 true,

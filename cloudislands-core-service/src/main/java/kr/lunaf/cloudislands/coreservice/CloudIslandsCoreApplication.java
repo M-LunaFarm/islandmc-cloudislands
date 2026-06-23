@@ -198,7 +198,7 @@ public final class CloudIslandsCoreApplication {
             new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.adminPermissions())
         );
         logSecurityPosture(LOGGER, config);
-        config.validateStartupStorage();
+        config.validateStartupSecurity();
         IslandStorage deleteStorage = migrationRollbackStorage(config);
         MeteredDataSource meteredDataSource = new MeteredDataSource(new BoundedDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()), config.databasePoolSize()));
         DataSource dataSource = new JdbcDialectDataSource(meteredDataSource);

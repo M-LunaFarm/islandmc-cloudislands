@@ -155,6 +155,9 @@ security:
   mtls-verified-value: "SUCCESS"
   admin-api-enabled: true
   ip-allowlist: ""
+  # The embedded Core listener is plain HTTP. Production public binds require an explicit insecure opt-in.
+  # Env override: CI_ALLOW_INSECURE_PUBLIC_HTTP.
+  allow-insecure-public-http: false
   # Fixed-window limit per remote address. Set requests <= 0 or window <= 0 to disable.
   # Env overrides: CI_RATE_LIMIT_REQUESTS, CI_RATE_LIMIT_WINDOW_SECONDS.
   rate-limit-requests: 240

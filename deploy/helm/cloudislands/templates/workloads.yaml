@@ -23,6 +23,8 @@ spec:
               value: "0.0.0.0"
             - name: CI_PORT
               value: "{{ .Values.core.port }}"
+            - name: CI_ALLOW_INSECURE_PUBLIC_HTTP
+              value: {{ .Values.core.allowInsecurePublicHttp | quote }}
             - name: CI_DATABASE_TYPE
               value: POSTGRESQL
             - name: CI_JDBC_URL

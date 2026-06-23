@@ -29,6 +29,9 @@ public final class CoreNetworkExposure {
         if ((config.ipAllowlist() == null || config.ipAllowlist().isBlank()) && publicBind(config.bind())) {
             logger.warning("CloudIslands security: Core API is bound to " + config.bind() + " without an IP allowlist");
         }
+        if (publicBind(config.bind()) && config.allowInsecurePublicHttp()) {
+            logger.warning("CloudIslands security: Core API plain HTTP public bind is explicitly allowed by insecure opt-in");
+        }
         String jdbcFallbackReason = coreJdbcFallbackReason(config);
         if (jdbcFallbackReason != null && !jdbcFallbackReason.isBlank()) {
             logger.warning("CloudIslands setup: Core JDBC repositories are disabled: " + jdbcFallbackReason

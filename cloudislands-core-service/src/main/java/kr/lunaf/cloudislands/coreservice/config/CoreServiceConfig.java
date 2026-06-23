@@ -34,6 +34,7 @@ public record CoreServiceConfig(
     String setupDatabaseFallbackProductionSafeOrder,
     String runtimeMode,
     boolean setupDatabaseAllowInMemoryFallback,
+    boolean allowInsecurePublicHttp,
     String setupDatabaseCoreApiBaseUrl,
     boolean setupDatabaseCoreApiAuthTokenConfigured,
     boolean setupDatabaseCoreApiAdminTokenConfigured,
@@ -106,6 +107,7 @@ public record CoreServiceConfig(
             env("CI_DB_FALLBACK_PRODUCTION_SAFE_ORDER", setting(config, "setup.database.fallback.production-safe-order", setupDatabaseFallbackProductionSafeOrder(config))),
             env("CI_RUNTIME_MODE", setting(config, "runtime.mode", "production")),
             bool("CI_ALLOW_IN_MEMORY_FALLBACK", configBoolean(config, "setup.database.allow-in-memory-fallback", false)),
+            bool("CI_ALLOW_INSECURE_PUBLIC_HTTP", configBoolean(config, "security.allow-insecure-public-http", configBoolean(config, "server.allow-insecure-public-http", false))),
             env("CI_SETUP_CORE_API_BASE_URL", setupDatabaseCoreApiSetting(config, "base-url", setupDatabaseCoreApiSetting(config, "url", setting(config, "core-api.base-url", "")))),
             !env("CI_SETUP_CORE_API_AUTH_TOKEN", setupDatabaseCoreApiSetting(config, "auth-token", setting(config, "core-api.auth-token", env("CI_CORE_TOKEN", "")))).isBlank(),
             !env("CI_SETUP_CORE_API_ADMIN_TOKEN", setupDatabaseCoreApiSetting(config, "admin-token", setting(config, "core-api.admin-token", env("CI_ADMIN_TOKEN", "")))).isBlank(),
@@ -380,7 +382,22 @@ public record CoreServiceConfig(
         }
     }
 
-    private boolean productionMode() {
+    public void validateStartupSecurity() {
+        validateStartupStorage();
+        validateStartupNetworkExposure();
+    }
+
+    public void validateStartupNetworkExposure() {
+        if (productionPublicPlainHttpBlocked()) {
+            throw new IllegalStateException("Production Core plain HTTP public bind is blocked; bind Core to loopback or set CI_ALLOW_INSECURE_PUBLIC_HTTP=true after terminating TLS at a trusted proxy");
+        }
+    }
+
+    public boolean productionPublicPlainHttpBlocked() {
+        return productionMode() && CoreNetworkExposure.publicBind(bind) && !allowInsecurePublicHttp;
+    }
+
+    public boolean productionMode() {
         return "production".equalsIgnoreCase(runtimeMode == null ? "" : runtimeMode.trim());
     }
 
@@ -423,7 +440,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, nodeCredentials, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow, httpWorkerThreads, httpQueueCapacity, httpKeepAlive, httpShutdownGrace);
+        return new CoreServiceConfig(bind, overridePort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, allowInsecurePublicHttp, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, nodeCredentials, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow, httpWorkerThreads, httpQueueCapacity, httpKeepAlive, httpShutdownGrace);
     }
 
     private static int defaultHttpWorkerThreads() {

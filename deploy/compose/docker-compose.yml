@@ -59,6 +59,7 @@ services:
     environment:
       CI_BIND: 0.0.0.0
       CI_PORT: "8443"
+      CI_ALLOW_INSECURE_PUBLIC_HTTP: ${CI_ALLOW_INSECURE_PUBLIC_HTTP:-false}
       CI_REPOSITORY_MODE: JDBC
       CI_DATABASE_TYPE: POSTGRESQL
       CI_JDBC_URL: jdbc:postgresql://postgres:5432/cloudislands

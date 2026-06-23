@@ -140,6 +140,23 @@ class CoreServiceConfigTest {
     }
 
     @Test
+    void productionPublicPlainHttpBindRequiresExplicitInsecureOptIn() {
+        CoreServiceConfig blocked = config("0.0.0.0", "production", false);
+        CoreServiceConfig loopback = config("127.0.0.1", "production", false);
+        CoreServiceConfig explicitOptIn = config("0.0.0.0", "production", true);
+        CoreServiceConfig developmentPublic = config("0.0.0.0", "development", false);
+
+        assertTrue(blocked.productionPublicPlainHttpBlocked());
+        assertThrows(IllegalStateException.class, blocked::validateStartupNetworkExposure);
+        assertFalse(loopback.productionPublicPlainHttpBlocked());
+        loopback.validateStartupNetworkExposure();
+        assertFalse(explicitOptIn.productionPublicPlainHttpBlocked());
+        explicitOptIn.validateStartupNetworkExposure();
+        assertFalse(developmentPublic.productionPublicPlainHttpBlocked());
+        developmentPublic.validateStartupNetworkExposure();
+    }
+
+    @Test
     void mariadbSetupUsesNativeCoreJdbcAuthority() {
         CoreServiceConfig config = config("JDBC", "jdbc:mariadb://mariadb.internal:3306/cloudislands", "MARIADB", true);
 
@@ -181,6 +198,7 @@ class CoreServiceConfigTest {
                 config.setupDatabaseFallbackProductionSafeOrder(),
                 config.runtimeMode(),
                 config.setupDatabaseAllowInMemoryFallback(),
+                config.allowInsecurePublicHttp(),
                 config.setupDatabaseCoreApiBaseUrl(),
                 config.setupDatabaseCoreApiAuthTokenConfigured(),
                 config.setupDatabaseCoreApiAdminTokenConfigured(),
@@ -247,8 +265,16 @@ class CoreServiceConfigTest {
     }
 
     private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled, String runtimeMode, boolean allowInMemoryFallback, boolean coreApiReady) {
+        return config(repositoryMode, jdbcUrl, databaseType, fallbackEnabled, runtimeMode, allowInMemoryFallback, coreApiReady, "127.0.0.1", false);
+    }
+
+    private CoreServiceConfig config(String bind, String runtimeMode, boolean allowInsecurePublicHttp) {
+        return config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "POSTGRESQL", true, runtimeMode, false, true, bind, allowInsecurePublicHttp);
+    }
+
+    private CoreServiceConfig config(String repositoryMode, String jdbcUrl, String databaseType, boolean fallbackEnabled, String runtimeMode, boolean allowInMemoryFallback, boolean coreApiReady, String bind, boolean allowInsecurePublicHttp) {
         return new CoreServiceConfig(
-                "127.0.0.1",
+                bind,
                 8443,
                 repositoryMode,
                 "REDIS",
@@ -266,6 +292,7 @@ class CoreServiceConfigTest {
                 "POSTGRESQL,MYSQL,MARIADB,CORE_API",
                 runtimeMode,
                 allowInMemoryFallback,
+                allowInsecurePublicHttp,
                 coreApiReady ? "http://127.0.0.1:8443" : "",
                 coreApiReady,
                 coreApiReady,
