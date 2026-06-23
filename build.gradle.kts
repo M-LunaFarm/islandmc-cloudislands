@@ -401,6 +401,20 @@ tasks.register<Exec>("paperBootSmoke") {
     }
 }
 
+tasks.register("paper121Compile") {
+    group = "verification"
+    description = "Compiles the CloudIslands Paper plugin against the Paper 1.21 API baseline."
+    dependsOn(project(":cloudislands-paper").tasks.named("compileJava"))
+    dependsOn(project(":cloudislands-paper").tasks.named("processResources"))
+}
+
+tasks.register("paper121BootSmoke") {
+    group = "verification"
+    description = "Boots the Paper 1.21 baseline server and verifies the 1.21 family adapter loads."
+    dependsOn(tasks.named("paper121Compile"))
+    dependsOn(tasks.named("paperBootSmoke"))
+}
+
 tasks.register<Exec>("velocityBootSmoke") {
     group = "verification"
     description = "Boots a supported Velocity proxy and verifies the CloudIslands Velocity plugin loads."
@@ -449,8 +463,10 @@ val verifyVersionPackaging = tasks.register("verifyVersionPackaging") {
         val requiredEntries = listOf(
             "kr/lunaf/cloudislands/paper/platform/compatibility/PaperRuntimeCompatibility.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/PaperRuntimeCompatibility\$RuntimeSelection.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperAdapterSelfTest.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/PaperVersionAdapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/PaperVersionAdapterRegistry.class",
+            "kr/lunaf/cloudislands/paper/platform/compatibility/Paper121FamilyAdapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/DefaultPaperVersionAdapter.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/RuntimeCapabilities.class",
             "kr/lunaf/cloudislands/paper/platform/compatibility/ServerVersion.class",

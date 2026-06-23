@@ -309,7 +309,7 @@ Current repository state:
 | Target | Compile status | Boot status | Integration status | Notes |
 |---|---|---|---|---|
 | Paper `1.21.11` | compile baseline | boot smoke task exists | Core integration smoke is separate | current `paper-api` and `plugin.yml` baseline |
-| Paper `1.21.x` family | not yet matrix-verified | not yet family-verified | not yet version-parity verified | needs adapter registry and per-version tasks |
+| Paper `1.21.x` family | family adapter compile-verified | baseline boot smoke task exists | adapter self-test diagnostics | common 1.21 adapter; patch-specific APIs stay optional |
 | Paper `26.1` | not defined | not verified | not verified | required by the roadmap, no matrix entry yet |
 | Paper `26.2` | not defined | not verified | not verified | required by the roadmap, no matrix entry yet |
 | Velocity `3.5.0-SNAPSHOT` | compile baseline | boot smoke task exists | routing integration is partial | plugin version comes from Gradle |
@@ -321,9 +321,10 @@ Status terms:
 - `boot-verified`: a real Paper or Velocity process starts and loads the plugin.
 - `integration-verified`: real external services and multi-component behavior are exercised.
 
-The build currently exposes `paperBootSmoke`, `velocityBootSmoke`,
+The build currently exposes `paper121Compile`, `paper121BootSmoke`,
+`paperBootSmoke`, `velocityBootSmoke`,
 `ciBootSmoke`, `coreIntegrationSmoke`, `ciIntegrationSmoke`, and `clusterSmokeVerify`.
-It does not yet expose the multi-version matrix tasks required for release certification.
+It does not yet expose every 1.21.x patch task required for release certification.
 
 ## Release
 

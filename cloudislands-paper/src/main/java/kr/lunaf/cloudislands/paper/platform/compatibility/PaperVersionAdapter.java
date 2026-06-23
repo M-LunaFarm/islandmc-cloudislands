@@ -7,6 +7,10 @@ public interface PaperVersionAdapter {
 
     RuntimeCapabilities capabilities();
 
+    default PaperAdapterSelfTest startupSelfTest(PaperCapabilities detectedCapabilities) {
+        return PaperAdapterSelfTest.passed(adapterId());
+    }
+
     default boolean supports(ServerVersion version) {
         return supportedRange().includes(version);
     }

@@ -11,13 +11,31 @@ public final class PaperRuntimeCompatibility {
     }
 
     public static RuntimeSelection select(String minecraftVersion, String serverVersion, PaperVersionAdapterRegistry registry) {
+        return select(minecraftVersion, serverVersion, registry, new DetectedPaperCapabilities());
+    }
+
+    static RuntimeSelection select(
+        String minecraftVersion,
+        String serverVersion,
+        PaperVersionAdapterRegistry registry,
+        PaperCapabilities detectedCapabilities
+    ) {
         if (registry == null) {
             throw new IllegalArgumentException("Paper adapter registry is required");
         }
         String rawVersion = preferredRuntimeVersion(minecraftVersion, serverVersion);
         ServerVersion version = ServerVersion.parse(rawVersion);
         PaperVersionAdapter adapter = registry.select(version);
-        return new RuntimeSelection(version, adapter, registry.supportedRangeSummary());
+        PaperAdapterSelfTest selfTest = adapter.startupSelfTest(detectedCapabilities);
+        if (!selfTest.passed()) {
+            throw new IllegalStateException(
+                "Paper adapter startup self-test failed original=" + version.original()
+                    + " normalized=" + version.normalized()
+                    + " adapter=" + adapter.adapterId()
+                    + " requiredFailures=" + String.join(",", selfTest.requiredFailures())
+            );
+        }
+        return new RuntimeSelection(version, adapter, registry.supportedRangeSummary(), selfTest);
     }
 
     private static String preferredRuntimeVersion(String minecraftVersion, String serverVersion) {
@@ -35,7 +53,8 @@ public final class PaperRuntimeCompatibility {
     public record RuntimeSelection(
         ServerVersion version,
         PaperVersionAdapter adapter,
-        String supportedRanges
+        String supportedRanges,
+        PaperAdapterSelfTest selfTest
     ) {
         public RuntimeSelection {
             if (version == null) {
@@ -45,6 +64,7 @@ public final class PaperRuntimeCompatibility {
                 throw new IllegalArgumentException("Paper adapter is required");
             }
             supportedRanges = supportedRanges == null ? "" : supportedRanges;
+            selfTest = selfTest == null ? PaperAdapterSelfTest.passed(adapter.adapterId()) : selfTest;
         }
 
         public String adapterId() {
@@ -63,7 +83,8 @@ public final class PaperRuntimeCompatibility {
                 + "paperAdapterId=" + adapter.adapterId() + '\n'
                 + "paperAdapterRange=" + adapter.supportedRange().summary() + '\n'
                 + "paperSupportedRanges=" + supportedRanges + '\n'
-                + "paperAdapterCapabilities=" + adapter.capabilities().summary() + '\n';
+                + "paperAdapterCapabilities=" + adapter.capabilities().summary() + '\n'
+                + "paperAdapterSelfTest=" + selfTest.summary() + '\n';
         }
     }
 }

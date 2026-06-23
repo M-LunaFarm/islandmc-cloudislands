@@ -15,7 +15,9 @@ class PaperVersionPackagingPolicyTest {
         assertTrue(build.contains("ZipFile(paperJar.get().archiveFile.get().asFile)"));
         assertTrue(build.contains("PaperRuntimeCompatibility.class"));
         assertTrue(build.contains("PaperRuntimeCompatibility\\$RuntimeSelection.class"));
+        assertTrue(build.contains("PaperAdapterSelfTest.class"));
         assertTrue(build.contains("PaperVersionAdapterRegistry.class"));
+        assertTrue(build.contains("Paper121FamilyAdapter.class"));
         assertTrue(build.contains("DefaultPaperVersionAdapter.class"));
         assertTrue(build.contains("RuntimeCapabilities.class"));
         assertTrue(build.contains("ServerVersion.class"));

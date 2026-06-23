@@ -62,5 +62,75 @@ class PaperRuntimeCompatibilityTest {
         assertTrue(diagnostics.contains("paperAdapterRange=paper-26.1=26.1.x"));
         assertTrue(diagnostics.contains("scheduler=true"));
         assertTrue(diagnostics.contains("bundleRestore=true"));
+        assertTrue(diagnostics.contains("paperAdapterSelfTest=passed=true"));
+    }
+
+    @Test
+    void oneTwentyOneFamilySelfTestFailsFastOnRequiredCapabilityGaps() {
+        IllegalStateException failure = assertThrows(
+            IllegalStateException.class,
+            () -> PaperRuntimeCompatibility.select(
+                "1.21.4",
+                "",
+                PaperVersionAdapterRegistry.defaults(),
+                capabilities(false, true, true, true, true)
+            )
+        );
+
+        assertTrue(failure.getMessage().contains("Paper adapter startup self-test failed"));
+        assertTrue(failure.getMessage().contains("adapter=paper-1.21"));
+        assertTrue(failure.getMessage().contains("paper-minor-api-version"));
+    }
+
+    @Test
+    void oneTwentyOneFamilySelfTestKeepsOptionalCapabilityDiagnostics() {
+        PaperRuntimeCompatibility.RuntimeSelection selection = PaperRuntimeCompatibility.select(
+            "1.21.11",
+            "",
+            PaperVersionAdapterRegistry.defaults(),
+            capabilities(true, false, false, false, false)
+        );
+
+        String diagnostics = selection.diagnosticsSection();
+
+        assertEquals("paper-1.21", selection.adapterId());
+        assertTrue(selection.selfTest().passed());
+        assertTrue(diagnostics.contains("paperAdapterSelfTest=passed=true"));
+        assertTrue(diagnostics.contains("optionalWarnings=region-scheduler|data-components|dialog-api|registry-mutation"));
+    }
+
+    private static PaperCapabilities capabilities(
+        boolean minorApi,
+        boolean regionScheduler,
+        boolean dataComponents,
+        boolean dialogApi,
+        boolean registryMutation
+    ) {
+        return new PaperCapabilities() {
+            @Override
+            public boolean supportsRegionScheduler() {
+                return regionScheduler;
+            }
+
+            @Override
+            public boolean supportsDataComponents() {
+                return dataComponents;
+            }
+
+            @Override
+            public boolean supportsMinorApiVersion() {
+                return minorApi;
+            }
+
+            @Override
+            public boolean supportsDialogApi() {
+                return dialogApi;
+            }
+
+            @Override
+            public boolean supportsRegistryMutation() {
+                return registryMutation;
+            }
+        };
     }
 }
