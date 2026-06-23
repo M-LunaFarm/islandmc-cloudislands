@@ -163,6 +163,25 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
+    void guardedIntegrationAdaptersDoNotPromoteSkippedExternalRuntimeToSuccess() {
+        CoreProtectIntegration integration = new CoreProtectIntegration((_pluginName, _category, _operation, _context, _plan) ->
+            IntegrationResult.skipped("external API not available", Map.of("apiProbe.invoke.getAPI", "false"))
+        );
+
+        IntegrationResult result = integration.exportState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:export:skipped", Map.of(
+            "world", "islands",
+            "cell", "12,-4",
+            "region", "192,64,-64..255,319,-1",
+            "bundleKey", "bundles/island.tar.zst"
+        )));
+
+        assertEquals(IntegrationResult.Status.SKIPPED, result.status());
+        assertTrue(result.message().contains("external hook skipped"));
+        assertEquals("SKIPPED", result.details().get("external.result"));
+        assertEquals("false", result.details().get("external.runtime.apiProbe.invoke.getAPI"));
+    }
+
+    @Test
     void everyPriorityAdapterCanRouteApprovedHooksThroughExternalRuntime() {
         List<String> calls = new ArrayList<>();
         kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime runtime = (pluginName, category, operation, context, plan) -> {
@@ -585,6 +604,11 @@ class PaperIntegrationRegistryTest {
         assertTrue(runtimeSource.contains("apiProbe.bukkitService.LuckPerms"), "LuckPerms adapter must probe Bukkit services");
         assertTrue(runtimeSource.contains("bukkitService(\"net.luckperms.api.LuckPerms\")"), "LuckPerms adapter must load the registered Bukkit service object");
         assertTrue(runtimeSource.contains("invokeStaticNoArg(\"dev.rosewood.rosestacker.api.RoseStackerAPI\", \"getInstance\")"), "RoseStacker adapter must invoke the API singleton entrypoint when present");
+        assertTrue(runtimeSource.contains("externalApiAvailable(pluginName, details, plan)"), "Bukkit runtime must fail operation plans when required API probes are missing");
+        assertTrue(runtimeSource.contains("IntegrationResult.failed(pluginName + \" Bukkit adapter cannot execute \" + operation"), "Bukkit runtime must not report probe-only integrations as successful operations");
+        assertTrue(runtimeSource.contains("bool(details, \"apiProbe.invoke.getAPI\")"), "CoreProtect operations must require a real API object");
+        assertTrue(runtimeSource.contains("bool(details, \"apiProbe.invoke.WorldEdit.getInstance\")"), "WorldEdit operations must require the singleton API");
+        assertTrue(runtimeSource.contains("bool(details, \"apiProbe.bukkitService.LuckPerms\")"), "LuckPerms operations must require the Bukkit service");
     }
 
     private String readRegistrySource() {

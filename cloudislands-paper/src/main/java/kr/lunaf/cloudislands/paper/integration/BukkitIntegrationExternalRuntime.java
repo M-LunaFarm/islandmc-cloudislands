@@ -30,7 +30,11 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
         if (plugin == null || !server.getPluginManager().isPluginEnabled(pluginName)) {
             return IntegrationResult.skipped(pluginName + " is not enabled in Bukkit");
         }
-        return IntegrationResult.success(pluginName + " Bukkit adapter accepted " + operation, details(pluginName, plugin, category, operation, plan));
+        Map<String, String> details = details(pluginName, plugin, category, operation, plan);
+        if (!externalApiAvailable(pluginName, details, plan)) {
+            return IntegrationResult.failed(pluginName + " Bukkit adapter cannot execute " + operation + ": external API unavailable", details);
+        }
+        return IntegrationResult.success(pluginName + " Bukkit adapter accepted " + operation, details);
     }
 
     private Map<String, String> details(String pluginName, Plugin plugin, String category, String operation, IntegrationOperationPlan plan) {
@@ -88,6 +92,35 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
             default -> details.put("apiProbe.pluginClass", plugin.getClass().getName());
         }
         return details;
+    }
+
+    private boolean externalApiAvailable(String pluginName, Map<String, String> details, IntegrationOperationPlan plan) {
+        if (plan == null || plan.externalApi().isBlank()) {
+            return true;
+        }
+        return switch (pluginName) {
+            case "CoreProtect" ->
+                bool(details, "apiProbe.method.getAPI")
+                    && bool(details, "apiProbe.invoke.getAPI")
+                    && bool(details, "apiProbe.class.CoreProtectAPI");
+            case "WorldEdit", "FastAsyncWorldEdit" ->
+                bool(details, "apiProbe.class.WorldEdit")
+                    && bool(details, "apiProbe.class.EditSession")
+                    && bool(details, "apiProbe.invoke.WorldEdit.getInstance");
+            case "ItemsAdder" -> bool(details, "apiProbe.class.CustomBlock");
+            case "Oraxen" -> bool(details, "apiProbe.class.OraxenItems");
+            case "Nexo" -> bool(details, "apiProbe.class.NexoItems");
+            case "RoseStacker" ->
+                bool(details, "apiProbe.class.RoseStackerAPI")
+                    && bool(details, "apiProbe.invoke.RoseStackerAPI.getInstance");
+            case "LuckPerms" -> bool(details, "apiProbe.bukkitService.LuckPerms");
+            case "Plan" -> bool(details, "apiProbe.class.ExtensionService");
+            default -> true;
+        };
+    }
+
+    private boolean bool(Map<String, String> details, String key) {
+        return Boolean.parseBoolean(details.getOrDefault(key, "false"));
     }
 
     private static boolean hasMethod(Plugin plugin, String methodName) {

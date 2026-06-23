@@ -92,6 +92,9 @@ public class PolicyBackedCloudIntegration implements CloudIntegration {
         if (external.status() == IntegrationResult.Status.FAILED) {
             return IntegrationResult.failed(pluginName + " " + operation + " external hook failed: " + external.message(), details);
         }
+        if (external.status() == IntegrationResult.Status.SKIPPED) {
+            return IntegrationResult.skipped(pluginName + " " + operation + " external hook skipped: " + external.message(), details);
+        }
         return IntegrationResult.success(pluginName + " " + operation + " accepted for island " + context.islandId(), details);
     }
 
