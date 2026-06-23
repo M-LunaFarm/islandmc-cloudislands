@@ -8,6 +8,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -55,6 +57,43 @@ class LocalIslandStorageTest {
 
         Path checksums = root.resolve("islands").resolve(ISLAND_ID.toString()).resolve("snapshots").resolve("000007").resolve("checksums.sha256");
         assertEquals(stored.checksum() + "  bundle.tar.zst\n", Files.readString(checksums, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void failedLocalWriteLeavesNoPublishedSnapshotOrLatestPointer() {
+        LocalIslandStorage storage = new LocalIslandStorage(root);
+        byte[] bundle = "partial-bundle".getBytes(StandardCharsets.UTF_8);
+
+        assertThrows(IOException.class, () -> storage.writeSnapshot(ISLAND_ID, 8L, failingInput(bundle, 4), manifest("AUTO_HOURLY")));
+
+        Path islandRoot = root.resolve("islands").resolve(ISLAND_ID.toString());
+        assertFalse(Files.exists(islandRoot.resolve("snapshots").resolve("000008")));
+        assertFalse(Files.exists(islandRoot.resolve("latest")));
+        assertFalse(Files.exists(islandRoot.resolve("manifest.json")));
+    }
+
+    @Test
+    void startupRecoveryRemovesAbandonedLocalWriteArtifactsAndRepairsLiveManifest() throws Exception {
+        Path islandRoot = root.resolve("islands").resolve(ISLAND_ID.toString());
+        Path snapshotsRoot = islandRoot.resolve("snapshots");
+        Files.createDirectories(snapshotsRoot.resolve(".staging-000009-crash"));
+        Files.writeString(snapshotsRoot.resolve(".latest-" + UUID.randomUUID() + ".tmp"), "000009", StandardCharsets.UTF_8);
+        Files.createDirectories(snapshotsRoot.resolve(".old-000007-crash"));
+
+        Path snapshotDir = snapshotsRoot.resolve("000009");
+        Files.createDirectories(snapshotDir);
+        Files.writeString(snapshotDir.resolve("manifest.json"), IslandManifestJson.write(manifest("RECOVERY")), StandardCharsets.UTF_8);
+        Files.writeString(islandRoot.resolve("latest"), "000009", StandardCharsets.UTF_8);
+
+        LocalIslandStorage storage = new LocalIslandStorage(root);
+
+        assertTrue(storage.available());
+        assertFalse(Files.exists(snapshotsRoot.resolve(".staging-000009-crash")));
+        assertFalse(Files.exists(snapshotsRoot.resolve(".old-000007-crash")));
+        try (var stream = Files.list(snapshotsRoot)) {
+            assertFalse(stream.anyMatch(path -> path.getFileName().toString().endsWith(".tmp")));
+        }
+        assertEquals("RECOVERY", storage.readManifest(ISLAND_ID).snapshotReason());
     }
 
     @Test
@@ -226,6 +265,23 @@ class LocalIslandStorageTest {
 
     private static ByteArrayInputStream input(byte[] bytes) {
         return new ByteArrayInputStream(bytes);
+    }
+
+    private static InputStream failingInput(byte[] bytes, int failAfterBytes) {
+        return new InputStream() {
+            private int offset;
+
+            @Override
+            public int read() throws IOException {
+                if (offset >= failAfterBytes) {
+                    throw new IOException("simulated local write failure");
+                }
+                if (offset >= bytes.length) {
+                    return -1;
+                }
+                return bytes[offset++] & 0xff;
+            }
+        };
     }
 
     private static String checksum(byte[] bytes) throws IOException {
