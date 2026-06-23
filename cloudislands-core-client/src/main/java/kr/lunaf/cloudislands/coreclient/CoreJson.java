@@ -218,7 +218,7 @@ final class CoreJson {
             return false;
         }
         Object value = root.get(key);
-        return value instanceof Boolean bool ? bool : Boolean.parseBoolean(SimpleJson.text(value));
+        return boolValue(value, false);
     }
 
     static boolean bool(Map<?, ?> root, String key, boolean fallback) {
@@ -226,7 +226,27 @@ final class CoreJson {
             return fallback;
         }
         Object value = root.get(key);
-        return value instanceof Boolean bool ? bool : (value == null ? fallback : Boolean.parseBoolean(SimpleJson.text(value)));
+        return boolValue(value, fallback);
+    }
+
+    private static boolean boolValue(Object value, boolean fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        String text = SimpleJson.text(value).trim();
+        if (text.isBlank()) {
+            return fallback;
+        }
+        if ("true".equalsIgnoreCase(text)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(text)) {
+            return false;
+        }
+        throw new CoreApiException("INVALID_CORE_JSON", "Core API boolean value is not true or false: " + SimpleJson.text(value));
     }
 
     static List<String> strings(Map<?, ?> root, String key) {

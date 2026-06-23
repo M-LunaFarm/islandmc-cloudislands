@@ -1918,6 +1918,7 @@ class CoreTypedClientsTest {
         assertTrue(JdkAdminNodeQueryClient.node("node-a", "[]").isEmpty());
         assertThrows(IllegalArgumentException.class, () -> JdkAdminNodeQueryClient.node("node-a", "{\"state\":\"BROKEN\"}"));
         assertThrows(CoreApiException.class, () -> JdkAdminNodeQueryClient.node("node-a", "{\"state\":\"READY\",\"mspt\":\"bad\"}"));
+        assertThrows(CoreApiException.class, () -> JdkAdminNodeQueryClient.node("node-a", "{\"state\":\"READY\",\"storageAvailable\":\"maybe\"}"));
         assertEquals("node=node-a count=2", JdkAdminNodeQueryClient.summary(nodeIslandsBody).text());
         List<AdminIslandRuntimeView> runtimes = JdkAdminNodeQueryClient.runtimes(nodeIslandsBody);
         assertEquals(1, runtimes.size());
