@@ -16,7 +16,9 @@ import java.time.Clock;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CoreSecurityControlsTest {
@@ -39,6 +41,36 @@ class CoreSecurityControlsTest {
         assertTrue(guard.allowed(exchange("127.0.0.1", "X-SSL-Client-Verify", "success")));
         assertFalse(guard.allowed(exchange("10.0.0.5", "X-SSL-Client-Verify", "success")));
         assertTrue(new MtlsHeaderGuard(false, "", "").allowed(exchange("127.0.0.1")));
+    }
+
+    @Test
+    void coreAuthModeSeparatesMtlsTokenAndEitherMode() {
+        ApiTokenGuard tokenGuard = new ApiTokenGuard("core-secret");
+        MtlsHeaderGuard mtlsGuard = new MtlsHeaderGuard(true, "X-SSL-Client-Verify", "SUCCESS");
+        CoreApiAuthGuard mtlsRequired = new CoreApiAuthGuard(CoreAuthMode.MTLS_REQUIRED, tokenGuard, mtlsGuard);
+        CoreApiAuthGuard tokenRequired = new CoreApiAuthGuard(CoreAuthMode.TOKEN_REQUIRED, tokenGuard, mtlsGuard);
+        CoreApiAuthGuard either = new CoreApiAuthGuard(CoreAuthMode.MTLS_OR_TOKEN, tokenGuard, mtlsGuard);
+
+        assertTrue(mtlsRequired.allowed(exchange("127.0.0.1", "X-SSL-Client-Verify", "SUCCESS")));
+        assertFalse(mtlsRequired.allowed(exchange("127.0.0.1", "Authorization", "Bearer core-secret")));
+        assertEquals("MTLS_REQUIRED", mtlsRequired.rejectCode());
+
+        assertTrue(tokenRequired.allowed(exchange("127.0.0.1", "Authorization", "Bearer core-secret")));
+        assertFalse(tokenRequired.allowed(exchange("127.0.0.1", "X-SSL-Client-Verify", "SUCCESS")));
+        assertEquals("TOKEN_REQUIRED", tokenRequired.rejectCode());
+
+        assertTrue(either.allowed(exchange("127.0.0.1", "Authorization", "Bearer core-secret")));
+        assertTrue(either.allowed(exchange("127.0.0.1", "X-SSL-Client-Verify", "SUCCESS")));
+        assertFalse(either.allowed(exchange("127.0.0.1")));
+        assertEquals("MTLS_OR_TOKEN_REQUIRED", either.rejectCode());
+    }
+
+    @Test
+    void coreAuthModeMigratesRequireMtlsBooleanAndRejectsUnknownModes() {
+        assertEquals(CoreAuthMode.MTLS_OR_TOKEN, CoreAuthMode.fromConfig("", true));
+        assertEquals(CoreAuthMode.TOKEN_REQUIRED, CoreAuthMode.fromConfig("", false));
+        assertEquals(CoreAuthMode.MTLS_REQUIRED, CoreAuthMode.fromConfig("mtls-required", false));
+        assertThrows(IllegalArgumentException.class, () -> CoreAuthMode.fromConfig("optional", true));
     }
 
     @Test

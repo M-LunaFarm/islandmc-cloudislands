@@ -17,14 +17,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
+import kr.lunaf.cloudislands.coreservice.security.CoreApiAuthGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
 import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
 import kr.lunaf.cloudislands.coreservice.security.MtlsHeaderGuard;
 
 public final class CoreHttpRouteRegistrar {
     private final FixedWindowRateLimiter rateLimiter;
-    private final ApiTokenGuard tokenGuard;
-    private final MtlsHeaderGuard mtlsGuard;
+    private final CoreApiAuthGuard authGuard;
     private final IpAllowlist ipAllowlist;
     private final AdminEndpointGuard adminGuard;
     private final AtomicLong securityRejectsTotal = new AtomicLong();
@@ -44,9 +44,16 @@ public final class CoreHttpRouteRegistrar {
             MtlsHeaderGuard mtlsGuard,
             IpAllowlist ipAllowlist,
             AdminEndpointGuard adminGuard) {
+        this(rateLimiter, CoreApiAuthGuard.mtlsOrToken(tokenGuard, mtlsGuard), ipAllowlist, adminGuard);
+    }
+
+    public CoreHttpRouteRegistrar(
+            FixedWindowRateLimiter rateLimiter,
+            CoreApiAuthGuard authGuard,
+            IpAllowlist ipAllowlist,
+            AdminEndpointGuard adminGuard) {
         this.rateLimiter = rateLimiter;
-        this.tokenGuard = tokenGuard;
-        this.mtlsGuard = mtlsGuard;
+        this.authGuard = authGuard;
         this.ipAllowlist = ipAllowlist;
         this.adminGuard = adminGuard;
     }
@@ -146,9 +153,9 @@ public final class CoreHttpRouteRegistrar {
             return false;
         }
         if (!healthProbePath(requestPath) && !coreApiAuthenticated(exchange)) {
-            String rejectCode = coreApiAuthRejectCode();
+            String rejectCode = authGuard.rejectCode();
             auditSecurityReject(rejectCode, requestPath, exchange);
-            CoreHttpResponses.write(exchange, 401, ApiResponses.error(rejectCode, coreApiAuthRejectMessage(rejectCode)));
+            CoreHttpResponses.write(exchange, 401, ApiResponses.error(rejectCode, authGuard.rejectMessage()));
             return false;
         }
         if (!ipAllowlist.allowed(exchange)) {
@@ -221,21 +228,11 @@ public final class CoreHttpRouteRegistrar {
     }
 
     private boolean coreApiAuthenticated(HttpExchange exchange) {
-        return tokenGuard.allowed(exchange) || mtlsGuard.verified(exchange);
+        return authGuard.allowed(exchange);
     }
 
     private static boolean healthProbePath(String path) {
         return "/live".equals(path) || "/ready".equals(path) || "/health".equals(path);
-    }
-
-    private String coreApiAuthRejectCode() {
-        return mtlsGuard.required() ? "MTLS_REQUIRED" : "UNAUTHORIZED";
-    }
-
-    private String coreApiAuthRejectMessage(String rejectCode) {
-        return "MTLS_REQUIRED".equals(rejectCode)
-            ? "mTLS verification or API token authentication is required"
-            : "Missing or invalid API token";
     }
 
     private void auditSecurityReject(String reason, String path, HttpExchange exchange) {
@@ -262,7 +259,7 @@ public final class CoreHttpRouteRegistrar {
         String normalized = reason == null ? "" : reason;
         switch (normalized) {
             case "RATE_LIMITED" -> securityRejectsRateLimited.incrementAndGet();
-            case "UNAUTHORIZED" -> securityRejectsUnauthorized.incrementAndGet();
+            case "UNAUTHORIZED", "TOKEN_REQUIRED", "MTLS_OR_TOKEN_REQUIRED" -> securityRejectsUnauthorized.incrementAndGet();
             case "MTLS_REQUIRED" -> securityRejectsMtlsRequired.incrementAndGet();
             case "IP_NOT_ALLOWED" -> securityRejectsIpNotAllowed.incrementAndGet();
             case "ADMIN_PERMISSION_DENIED" -> securityRejectsAdminPermissionDenied.incrementAndGet();

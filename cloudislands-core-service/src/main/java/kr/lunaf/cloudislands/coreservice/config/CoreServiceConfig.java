@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.config;
 
 import kr.lunaf.cloudislands.common.failure.SetupBackendFallbackPolicy;
+import kr.lunaf.cloudislands.coreservice.security.CoreAuthMode;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -156,6 +157,11 @@ public record CoreServiceConfig(
 
     public int httpQueueCapacity() {
         return Math.max(0, httpQueueCapacity);
+    }
+
+    public CoreAuthMode authMode() {
+        Map<String, String> config = applicationConfig();
+        return CoreAuthMode.fromConfig(env("CI_AUTH_MODE", setting(config, "security.auth-mode", "")), requireMtls);
     }
 
     public Duration httpKeepAlive() {

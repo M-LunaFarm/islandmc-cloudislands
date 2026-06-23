@@ -12,17 +12,16 @@ public final class CoreNetworkExposure {
 
     public static void logSecurityPosture(Logger logger, CoreServiceConfig config) {
         if (config.coreToken() == null || config.coreToken().isBlank()) {
-            if (config.requireMtls()) {
-                logger.warning("CloudIslands security: Core API token is empty; non-health requests require mTLS verification");
-            } else {
-                logger.warning("CloudIslands security: Core API token is empty and mTLS verification is disabled; non-health requests will be rejected");
+            if (config.authMode().acceptsToken()) {
+                logger.warning("CloudIslands security: Core API token is empty; token-authenticated requests will be rejected in mode " + config.authMode());
             }
         }
+        logger.info("CloudIslands security: Core API auth mode is " + config.authMode());
         if (config.adminApiEnabled() && (config.adminToken() == null || config.adminToken().isBlank())) {
             logger.warning("CloudIslands security: Admin API is enabled but admin token is empty; admin requests will be rejected");
         }
-        if (!config.requireMtls()) {
-            logger.warning("CloudIslands security: Core API mTLS verification is disabled");
+        if (!config.authMode().acceptsMtls()) {
+            logger.warning("CloudIslands security: Core API mTLS verification is not accepted in auth mode " + config.authMode());
         }
         if ((config.ipAllowlist() == null || config.ipAllowlist().isBlank()) && publicBind(config.bind())) {
             logger.warning("CloudIslands security: Core API is bound to " + config.bind() + " without an IP allowlist");
@@ -47,7 +46,7 @@ public final class CoreNetworkExposure {
     }
 
     public static boolean coreApiAuthConfigured(CoreServiceConfig config) {
-        return (config.coreToken() != null && !config.coreToken().isBlank()) || config.requireMtls();
+        return (config.authMode().acceptsToken() && config.coreToken() != null && !config.coreToken().isBlank()) || config.authMode().acceptsMtls();
     }
 
     public static boolean publicBind(String bind) {

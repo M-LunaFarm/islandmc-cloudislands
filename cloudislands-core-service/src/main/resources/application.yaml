@@ -148,6 +148,8 @@ snapshots:
   checksum: "SHA-256"
 
 security:
+  # Env override: CI_AUTH_MODE. Values: MTLS_REQUIRED, TOKEN_REQUIRED, MTLS_OR_TOKEN.
+  auth-mode: "${CI_AUTH_MODE}"
   require-mtls: true
   mtls-verified-header: "X-SSL-Client-Verify"
   mtls-verified-value: "SUCCESS"

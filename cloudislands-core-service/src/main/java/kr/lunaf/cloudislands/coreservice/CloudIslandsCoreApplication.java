@@ -125,6 +125,7 @@ import kr.lunaf.cloudislands.coreservice.role.InMemoryIslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.role.JdbcIslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
+import kr.lunaf.cloudislands.coreservice.security.CoreApiAuthGuard;
 import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
@@ -187,10 +188,10 @@ public final class CloudIslandsCoreApplication {
 
     public CloudIslandsCoreApplication(CoreServiceConfig config) throws IOException {
         Clock clock = Clock.systemUTC();
+        kr.lunaf.cloudislands.coreservice.security.CoreAuthMode authMode = config.authMode();
         CoreHttpRouteRegistrar routeRegistrar = new CoreHttpRouteRegistrar(
             new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis()),
-            new ApiTokenGuard(config.coreToken()),
-            new MtlsHeaderGuard(config.requireMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies()),
+            new CoreApiAuthGuard(authMode, new ApiTokenGuard(config.coreToken()), new MtlsHeaderGuard(authMode.acceptsMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies())),
             new IpAllowlist(config.ipAllowlist()),
             new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.adminPermissions())
         );
