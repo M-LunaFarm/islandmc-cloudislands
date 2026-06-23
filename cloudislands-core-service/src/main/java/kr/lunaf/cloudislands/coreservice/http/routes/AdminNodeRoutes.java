@@ -39,22 +39,22 @@ public final class AdminNodeRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/nodes/drain", exchange -> drain(exchange, bodyNodeId(exchange)));
-        registry.route("/v1/admin/nodes/undrain", exchange -> undrain(exchange, bodyNodeId(exchange)));
-        registry.route("/v1/admin/nodes/kickall", exchange -> {
+        registry.routePost("/v1/admin/nodes/drain", exchange -> drain(exchange, bodyNodeId(exchange)));
+        registry.routePost("/v1/admin/nodes/undrain", exchange -> undrain(exchange, bodyNodeId(exchange)));
+        registry.routePost("/v1/admin/nodes/kickall", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             kickAll(exchange, JsonFields.text(body, "nodeId", ""), JsonFields.text(body, "reason", "admin-request"));
         });
-        registry.route("/v1/admin/nodes/shutdown-safe", exchange -> {
+        registry.routePost("/v1/admin/nodes/shutdown-safe", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             shutdownSafe(exchange, JsonFields.text(body, "nodeId", ""), JsonFields.text(body, "reason", "admin-request"));
         });
-        registry.route("/v1/admin/nodes/sweep", this::sweep);
+        registry.routePost("/v1/admin/nodes/sweep", this::sweep);
     }
 
     public void register(CoreRouteRegistry registry, CoreRouteRegistry prefixRegistry) {
         register(registry);
-        prefixRegistry.route(PREFIX, this::prefixRoute);
+        prefixRegistry.routePost(PREFIX, this::prefixRoute);
     }
 
     private void prefixRoute(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
