@@ -1024,6 +1024,22 @@ tasks.register<Test>("verifyApiRouteCoverage") {
     include("kr/lunaf/cloudislands/coreclient/CoreClientRouteCoverageTest.class")
 }
 
+tasks.register<Test>("verifyGuiActionCoverage") {
+    group = "verification"
+    description = "Verifies registered GUI actions parse to typed actions and route to executable handlers."
+    val paperSourceSets = project(":cloudislands-paper").extensions.getByType<SourceSetContainer>()
+    val paperTest = paperSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-paper").tasks.named("testClasses"))
+    testClassesDirs = paperTest.output.classesDirs
+    classpath = paperTest.runtimeClasspath
+    workingDir = project(":cloudislands-paper").projectDir
+    useJUnitPlatform()
+    include(
+        "kr/lunaf/cloudislands/paper/gui/GuiActionParserTest.class",
+        "kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.class"
+    )
+}
+
 tasks.register<JavaExec>("apiCompatibilityCheck") {
     group = "verification"
     description = "Verifies the CloudIslands API compatibility contract before release."
@@ -1506,6 +1522,7 @@ tasks.register("verifyReleaseGateCoverage") {
 
 tasks.named("check") {
     dependsOn(tasks.named("verifyApiRouteCoverage"))
+    dependsOn(tasks.named("verifyGuiActionCoverage"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))
     dependsOn(tasks.named("verifyReleaseSecurityGate"))
 }
