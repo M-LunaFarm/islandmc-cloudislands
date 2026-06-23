@@ -329,6 +329,27 @@ The build generates Paper compile and boot smoke tasks from
 `bootSmokeAllStableMinecraftVersions`, `verifyMinecraftVersionMatrix`,
 `verifyAdapterPackaging`, and `verifyReadmeVersionTable`.
 
+## Feature parity by evidence
+
+Status values are intentionally conservative. `IMPLEMENTED_VERIFIED` requires
+tests or generated release evidence. Compile-only 26.x adapter coverage is not
+reported as boot or integration verification.
+
+<!-- feature-parity:start -->
+| Area | Status | Verified evidence | Limit |
+|---|---|---|---|
+| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume | 26.1 and 26.2 stay compile-only until official bootable Paper builds are available |
+| access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
+| flags/protection | IMPLEMENTED_VERIFIED | unit verified; real-player destructive-action smoke is not part of CI | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
+| ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
+| upgrades/size/border/biome | PARTIAL | not covered by multi-service smoke | full upgrade economy and live biome/border interaction tests are still needed |
+| bank/economy/missions/challenges/generators/limits | PARTIAL | unit verified; external economy/provider runtime coverage is integration-status only | provider-backed economy and mission parity are not fully production-certified |
+| chat/logs/reviews | PARTIAL | unit/static verified only | review/moderation parity remains partial |
+| snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | full backup/restore drill remains a release cluster evidence gate |
+| Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata | external addon certification depends on testkit evidence supplied by the addon |
+| integrations/localization/GUI | IMPLEMENTED_UNVERIFIED | verifyIntegrationMatrix proves inventory and state reporting, not third-party boot behavior | third-party plugin runtime certification is pending per-plugin boot fixtures |
+<!-- feature-parity:end -->
+
 ## Release
 
 Current release: `v1.0.1`
@@ -392,7 +413,7 @@ That matters.
 | Gradle Wrapper, CI, release binaries, checksums | MITIGATED | wrapper, GitHub Actions, dist bundles, and SHA-256 checksums exist |
 | SBOM, provenance, vulnerability gate | OPEN | not wired as release gates |
 | real PostgreSQL, Redis, MinIO integration | MITIGATED | `ciIntegrationSmoke` runs with these services |
-| multi-Core, multi-version boot, API compatibility gate | OPEN | matrix and certification tasks are not present yet |
+| multi-Core, multi-version boot, API compatibility gate | MITIGATED | matrix tasks, `ciIntegrationSmoke`, release cluster evidence, and `apiCompatibilityCheck` are wired |
 
 ### If running now
 
