@@ -11,6 +11,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlan;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
+import kr.lunaf.cloudislands.storage.BundleCompatibilityPolicy;
 import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
@@ -105,6 +106,7 @@ public final class IslandWorldRestorer {
         if (!supportedCompression(manifest.compression())) {
             throw new IOException("unsupported island bundle compression: " + manifest.compression());
         }
+        BundleCompatibilityPolicy.requireCompatible(manifest);
     }
 
     private boolean supportedChecksumAlgorithm(String algorithm) {

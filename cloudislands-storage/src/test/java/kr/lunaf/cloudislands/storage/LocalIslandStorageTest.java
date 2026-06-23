@@ -160,10 +160,41 @@ class LocalIslandStorageTest {
         assertTrue(json.contains("\"manifestSchemaVersion\":" + IslandManifestJson.CURRENT_MANIFEST_SCHEMA_VERSION));
         assertTrue(json.contains("\"pluginVersion\":\"1.0.1\""));
         assertTrue(json.contains("\"minecraftDataVersion\":4435"));
+        assertTrue(json.contains("\"sourceMinecraftVersion\":\"1.21.11\""));
+        assertTrue(json.contains("\"sourceAdapterId\":\"1.21.11\""));
+        assertTrue(json.contains("\"bundleSchemaVersion\":3"));
+        assertTrue(json.contains("\"worldDataVersion\":4435"));
+        assertTrue(json.contains("\"minimumReaderVersion\":3"));
+        assertTrue(json.contains("\"featureCapabilities\""));
+        assertTrue(json.contains("\"restoreCompatibilitySummary\":\"compatible-current\""));
+        assertTrue(json.contains("\"restoreMigrationAdapter\":\"" + BundleCompatibilityPolicy.TARGET_ADAPTER_ID + "\""));
         assertEquals("1.0.1", parsed.pluginVersion());
         assertEquals(4435, parsed.minecraftDataVersion());
         assertEquals("1.21.11", parsed.paperApiBaseline());
         assertEquals("skyblock-default@4", parsed.templateVersion());
+        assertEquals("compatible-current", parsed.restoreCompatibilitySummary());
+    }
+
+    @Test
+    void manifestJsonReadsCompatibilityAliasFields() {
+        String json = IslandManifestJson.write(manifest("ALIAS"))
+                .replace("\"formatVersion\":3", "\"formatVersion\":3")
+                .replace("\"bundleSchemaVersion\":3", "\"bundleSchemaVersion\":2")
+                .replace("\"minimumReaderVersion\":3", "\"minimumReaderVersion\":2")
+                .replace("\"minecraftVersion\":\"1.21.11\"", "\"minecraftVersion\":\"1.21.11\"")
+                .replace("\"sourceMinecraftVersion\":\"1.21.11\"", "\"sourceMinecraftVersion\":\"1.20.6\"")
+                .replace("\"minecraftDataVersion\":0", "\"minecraftDataVersion\":0")
+                .replace("\"worldDataVersion\":0", "\"worldDataVersion\":3839")
+                .replace("\"paperApiBaseline\":\"1.21.11\"", "\"paperApiBaseline\":\"1.21.11\"")
+                .replace("\"sourceAdapterId\":\"1.21.11\"", "\"sourceAdapterId\":\"1.20.6\"");
+
+        IslandBundleManifest parsed = IslandManifestJson.read(json);
+
+        assertEquals(2, parsed.formatVersion());
+        assertEquals("1.20.6", parsed.minecraftVersion());
+        assertEquals(3839, parsed.minecraftDataVersion());
+        assertEquals("1.20.6", parsed.paperApiBaseline());
+        assertEquals("compatible-upgrade:" + BundleCompatibilityPolicy.UPGRADE_ADAPTER_ID, parsed.restoreCompatibilitySummary());
     }
 
     @Test

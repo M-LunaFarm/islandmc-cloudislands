@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.activation;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.paper.ProtectionController;
@@ -14,6 +15,7 @@ import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
 import kr.lunaf.cloudislands.paper.world.cell.ShardCellTransferPlanner;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 
@@ -123,9 +125,24 @@ public final class IslandActivationJobHandler {
                 12,
                 Math.max(1, size),
                 new IslandLocation(job.payload().getOrDefault("worldName", "ci_shard_001"), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+                List.of(),
+                List.of(),
+                List.of(),
                 now,
                 now,
-                ""
+                "",
+                BundleRestorePolicy.CHECKSUM_ALGORITHM,
+                BundleRestorePolicy.COMPRESSION,
+                "",
+                0L,
+                "",
+                true,
+                BundleRestorePolicy.PLACEMENT_POLICY,
+                BundleRestorePolicy.RESTORE_POLICY,
+                IslandBundleManifest.DEFAULT_PLUGIN_VERSION,
+                IslandBundleManifest.CURRENT_MINECRAFT_DATA_VERSION,
+                IslandBundleManifest.DEFAULT_PAPER_API_BASELINE,
+                IslandBundleManifest.DEFAULT_TEMPLATE_VERSION
             );
         }
     }

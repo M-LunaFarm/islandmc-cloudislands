@@ -100,7 +100,11 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
             source == null ? "" : source.snapshotReason(),
             source == null || source.portable(),
             source == null ? "node-agnostic-shard-cell-remap" : source.placementPolicy(),
-            source == null ? "verify-checksum-then-restore-to-current-active-node" : source.restorePolicy()
+            source == null ? "verify-checksum-then-restore-to-current-active-node" : source.restorePolicy(),
+            source == null ? IslandBundleManifest.DEFAULT_PLUGIN_VERSION : source.pluginVersion(),
+            source == null ? IslandBundleManifest.CURRENT_MINECRAFT_DATA_VERSION : source.minecraftDataVersion(),
+            source == null ? IslandBundleManifest.DEFAULT_PAPER_API_BASELINE : source.paperApiBaseline(),
+            source == null ? IslandBundleManifest.DEFAULT_TEMPLATE_VERSION : source.templateVersion()
         );
         Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
     }

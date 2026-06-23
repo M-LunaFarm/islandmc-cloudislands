@@ -100,7 +100,11 @@ public final class IslandSaveService {
             reason,
             previous.portable(),
             previous.placementPolicy(),
-            previous.restorePolicy()
+            previous.restorePolicy(),
+            previous.pluginVersion(),
+            previous.minecraftDataVersion(),
+            previous.paperApiBaseline(),
+            previous.templateVersion()
         );
         IslandStorage.StoredBundle storedBundle;
         try (InputStream input = Files.newInputStream(exported.bundleFile())) {

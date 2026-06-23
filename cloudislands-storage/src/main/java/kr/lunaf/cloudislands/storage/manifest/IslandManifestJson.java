@@ -11,7 +11,7 @@ import kr.lunaf.cloudislands.storage.MinecraftKeyMigrations;
 
 public final class IslandManifestJson {
     public static final int LEGACY_MANIFEST_SCHEMA_VERSION = 1;
-    public static final int CURRENT_MANIFEST_SCHEMA_VERSION = 2;
+    public static final int CURRENT_MANIFEST_SCHEMA_VERSION = 3;
 
     private IslandManifestJson() {}
 
@@ -22,11 +22,17 @@ public final class IslandManifestJson {
             + "\"islandId\":\"" + manifest.islandId() + "\","
             + "\"ownerUuid\":\"" + manifest.ownerUuid() + "\","
             + "\"formatVersion\":" + manifest.formatVersion() + ","
+            + "\"bundleSchemaVersion\":" + manifest.bundleSchemaVersion() + ","
+            + "\"minimumReaderVersion\":" + manifest.minimumReaderVersion() + ","
             + "\"minecraftVersion\":\"" + escape(manifest.minecraftVersion()) + "\","
+            + "\"sourceMinecraftVersion\":\"" + escape(manifest.sourceMinecraftVersion()) + "\","
             + "\"pluginVersion\":\"" + escape(manifest.pluginVersion()) + "\","
             + "\"minecraftDataVersion\":" + manifest.minecraftDataVersion() + ","
+            + "\"worldDataVersion\":" + manifest.worldDataVersion() + ","
             + "\"paperApiBaseline\":\"" + escape(manifest.paperApiBaseline()) + "\","
+            + "\"sourceAdapterId\":\"" + escape(manifest.sourceAdapterId()) + "\","
             + "\"templateVersion\":\"" + escape(manifest.templateVersion()) + "\","
+            + "\"featureCapabilities\":" + stringArray(manifest.featureCapabilities()) + ","
             + "\"schemaVersion\":" + manifest.schemaVersion() + ","
             + "\"size\":" + manifest.size() + ","
             + "\"spawn\":{"
@@ -53,6 +59,8 @@ public final class IslandManifestJson {
             + "\"portableBundleLayout\":\"" + escape(kr.lunaf.cloudislands.storage.BundleRestorePolicy.PORTABLE_BUNDLE_LAYOUT) + "\","
             + "\"restorePreflightReady\":" + manifest.restorePreflightReady() + ","
             + "\"restorePreflightSummary\":\"" + escape(manifest.restorePreflightSummary()) + "\","
+            + "\"restoreCompatibilitySummary\":\"" + escape(manifest.restoreCompatibilitySummary()) + "\","
+            + "\"restoreMigrationAdapter\":\"" + escape(manifest.restoreMigrationAdapter()) + "\","
             + "\"restoreRequirements\":\"" + escape(kr.lunaf.cloudislands.storage.BundleRestorePolicy.RESTORE_REQUIREMENTS) + "\","
             + "\"restoreMissingRequirements\":" + stringArray(manifest.restoreMissingRequirements())
             + "}";
@@ -66,11 +74,12 @@ public final class IslandManifestJson {
         }
         UUID islandId = uuid(root, "islandId", new UUID(0L, 0L));
         UUID ownerUuid = uuid(root, "ownerUuid", new UUID(0L, 0L));
-        int formatVersion = integer(root, "formatVersion", 3);
-        String minecraftVersion = text(root, "minecraftVersion", "unknown");
+        int bundleSchemaVersion = integer(root, "bundleSchemaVersion", integer(root, "formatVersion", 3));
+        int formatVersion = Math.max(bundleSchemaVersion, integer(root, "minimumReaderVersion", bundleSchemaVersion));
+        String minecraftVersion = text(root, "sourceMinecraftVersion", text(root, "minecraftVersion", "unknown"));
         String pluginVersion = text(root, "pluginVersion", IslandBundleManifest.DEFAULT_PLUGIN_VERSION);
-        int minecraftDataVersion = integer(root, "minecraftDataVersion", IslandBundleManifest.DEFAULT_MINECRAFT_DATA_VERSION);
-        String paperApiBaseline = text(root, "paperApiBaseline", IslandBundleManifest.DEFAULT_PAPER_API_BASELINE);
+        int minecraftDataVersion = integer(root, "worldDataVersion", integer(root, "minecraftDataVersion", IslandBundleManifest.DEFAULT_MINECRAFT_DATA_VERSION));
+        String paperApiBaseline = text(root, "sourceAdapterId", text(root, "paperApiBaseline", IslandBundleManifest.DEFAULT_PAPER_API_BASELINE));
         String templateVersion = text(root, "templateVersion", IslandBundleManifest.DEFAULT_TEMPLATE_VERSION);
         int schemaVersion = integer(root, "schemaVersion", 12);
         int size = integer(root, "size", 300);

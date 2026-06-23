@@ -152,6 +152,52 @@ public record IslandBundleManifest(
         return restoreMissingRequirements().isEmpty();
     }
 
+    public String sourceMinecraftVersion() {
+        return minecraftVersion;
+    }
+
+    public String sourceAdapterId() {
+        return paperApiBaseline;
+    }
+
+    public int bundleSchemaVersion() {
+        return formatVersion;
+    }
+
+    public int worldDataVersion() {
+        return minecraftDataVersion;
+    }
+
+    public int minimumReaderVersion() {
+        return formatVersion;
+    }
+
+    public List<String> featureCapabilities() {
+        List<String> capabilities = new ArrayList<>();
+        if (portable) {
+            capabilities.add("portable");
+        }
+        if (!checksumAlgorithm.isBlank()) {
+            capabilities.add("checksum:" + checksumAlgorithm);
+        }
+        if (!compression.isBlank()) {
+            capabilities.add("compression:" + compression);
+        }
+        capabilities.add("node-agnostic");
+        if (minecraftDataVersion < CURRENT_MINECRAFT_DATA_VERSION) {
+            capabilities.add("datafixer-upgrade");
+        }
+        return List.copyOf(capabilities);
+    }
+
+    public String restoreCompatibilitySummary() {
+        return BundleCompatibilityPolicy.evaluate(this).summary();
+    }
+
+    public String restoreMigrationAdapter() {
+        return BundleCompatibilityPolicy.evaluate(this).migrationAdapterId();
+    }
+
     public List<String> restoreMissingRequirements() {
         List<String> missing = new ArrayList<>();
         if (!portable) {
@@ -177,6 +223,11 @@ public record IslandBundleManifest(
         }
         if (minecraftDataVersion > CURRENT_MINECRAFT_DATA_VERSION) {
             missing.add("minecraftDataVersion");
+        }
+        for (String requirement : BundleCompatibilityPolicy.evaluate(this).missingRequirements()) {
+            if (!missing.contains(requirement)) {
+                missing.add(requirement);
+            }
         }
         return List.copyOf(missing);
     }
