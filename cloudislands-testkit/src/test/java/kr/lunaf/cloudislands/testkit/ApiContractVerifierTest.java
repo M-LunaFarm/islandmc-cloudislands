@@ -24,6 +24,17 @@ class ApiContractVerifierTest {
     }
 
     @Test
+    void apiCompatibilityCliReportCarriesReleaseGateDecision() {
+        ApiContractVerification verification = ApiContractVerifier.verifyRuntimeMetadata(CloudIslandsApiContract.metadata());
+        String report = ApiCompatibilityCheckCli.reportJson(verification);
+
+        assertTrue(report.contains("\"passed\":true"));
+        assertTrue(report.contains("\"apiCompatibilityStatus\":\"compatible\""));
+        assertTrue(report.contains(CloudIslandsApiContract.SEMANTIC_VERSION_POLICY));
+        assertTrue(report.contains(CloudIslandsApiContract.COMPATIBILITY_TESTKIT_POLICY));
+    }
+
+    @Test
     void runtimeContractReportsMissingKeys() {
         Map<String, String> metadata = new HashMap<>(CloudIslandsApiContract.metadata());
         metadata.remove("event-delivery-policy");

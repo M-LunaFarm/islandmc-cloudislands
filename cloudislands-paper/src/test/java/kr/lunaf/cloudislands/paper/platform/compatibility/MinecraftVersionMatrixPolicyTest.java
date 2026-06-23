@@ -22,6 +22,7 @@ class MinecraftVersionMatrixPolicyTest {
         Path root = repositoryRoot();
         Matrix matrix = Matrix.parse(Files.readString(root.resolve("gradle/minecraft-versions.toml")));
         String build = Files.readString(root.resolve("build.gradle.kts"));
+        String buildWorkflow = Files.readString(root.resolve(".github/workflows/build.yml"));
         String integrationWorkflow = Files.readString(root.resolve(".github/workflows/integration.yml"));
         String settings = Files.readString(root.resolve("settings.gradle.kts"));
         String readme = Files.readString(root.resolve("README.md"));
@@ -38,6 +39,9 @@ class MinecraftVersionMatrixPolicyTest {
         assertTrue(build.contains("verifyReadmeVersionTable"));
         assertTrue(build.contains("releaseClusterSmokeGate"));
         assertTrue(build.contains("verifyReleaseGateCoverage"));
+        assertTrue(build.contains("apiCompatibilityCheck"));
+        assertTrue(buildWorkflow.contains("apiCompatibilityCheck"));
+        assertTrue(buildWorkflow.contains("distChecksums"));
         assertTrue(integrationWorkflow.contains("ciIntegrationSmoke"));
         assertTrue(integrationWorkflow.contains("build/smoke/core-integration/cluster-evidence.json"));
         assertTrue(integrationWorkflow.contains("releaseClusterSmokeGate"));

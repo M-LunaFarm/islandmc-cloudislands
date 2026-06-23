@@ -615,6 +615,18 @@ tasks.register("distChecksums") {
     }
 }
 
+val apiCompatibilityReportFile = layout.buildDirectory.file("reports/api-compatibility/api-compatibility-report.json")
+
+tasks.register<JavaExec>("apiCompatibilityCheck") {
+    group = "verification"
+    description = "Verifies the CloudIslands API compatibility contract before release."
+    dependsOn(project(":cloudislands-testkit").tasks.named("classes"))
+    val testkitSourceSets = project(":cloudislands-testkit").extensions.getByType<SourceSetContainer>()
+    classpath = testkitSourceSets.named("main").get().runtimeClasspath
+    mainClass.set("kr.lunaf.cloudislands.testkit.ApiCompatibilityCheckCli")
+    args("--report-out", apiCompatibilityReportFile.get().asFile.absolutePath)
+}
+
 private val paperVersionCompileTasks = minecraftVersionMatrix.compileEntries.associateWith { entry ->
     tasks.register(entry.compileTaskName) {
         group = "verification"
@@ -832,7 +844,9 @@ fun verifyMinecraftCiCoverage(workflow: String) {
         "verifyMinecraftVersionMatrix",
         "compileAllMinecraftVersions",
         "verifyAdapterPackaging",
-        "bootSmokeAllStableMinecraftVersions"
+        "bootSmokeAllStableMinecraftVersions",
+        "apiCompatibilityCheck",
+        "distChecksums"
     ).filterNot(workflow::contains)
     val failures = buildList {
         if (missingCompileTasks.isNotEmpty()) {
@@ -915,6 +929,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyMinecraftVersionMatrix"))
     dependsOn(tasks.named("verifyReadmeVersionTable"))
     dependsOn(tasks.named("verifyIntegrationMatrix"))
+    dependsOn(tasks.named("apiCompatibilityCheck"))
     dependsOn(verifyAdapterPackaging)
 }
 
