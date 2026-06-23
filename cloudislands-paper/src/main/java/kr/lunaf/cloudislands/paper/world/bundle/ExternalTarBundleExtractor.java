@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -274,37 +275,51 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
         return slash < 0 ? value : value.substring(0, slash);
     }
 
-    private void verifyChecksums(Path root, Path checksumsFile) throws IOException {
+    void verifyChecksums(Path root, Path checksumsFile) throws IOException {
         Set<String> listed = new HashSet<>();
-        for (String line : Files.readAllLines(checksumsFile, StandardCharsets.UTF_8)) {
-            if (line == null || line.isBlank()) {
-                continue;
+        int checksumLines = 0;
+        try (java.util.stream.Stream<String> lines = Files.lines(checksumsFile, StandardCharsets.UTF_8)) {
+            Iterator<String> iterator = lines.iterator();
+            while (iterator.hasNext()) {
+                String line = iterator.next();
+                if (line == null || line.isBlank()) {
+                    continue;
+                }
+                checksumLines++;
+                if (checksumLines > MAX_ARCHIVE_ENTRIES) {
+                    throw new IOException("bundle checksum sidecar has too many entries");
+                }
+                String[] parts = line.trim().split("\\s+", 2);
+                if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+                    throw new IOException("invalid checksum line: " + line);
+                }
+                String expected = parts[0].trim();
+                if (!validSha256Hex(expected)) {
+                    throw new IOException("invalid checksum digest for bundle entry: " + parts[1].trim());
+                }
+                String relativeName = parts[1].trim().replace('\\', '/');
+                if (unsafeEntry(relativeName)) {
+                    throw new IOException("unsafe checksum entry: " + relativeName);
+                }
+                requirePathLength(relativeName, "checksum entry");
+                if (!listed.add(relativeName)) {
+                    throw new IOException("duplicate checksum entry: " + relativeName);
+                }
+                Path file = root.resolve(relativeName).normalize();
+                if (!file.startsWith(root.toAbsolutePath().normalize()) && !file.startsWith(root.normalize())) {
+                    throw new IOException("checksum entry escapes bundle root: " + relativeName);
+                }
+                if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(file)) {
+                    throw new IOException("checksum entry is not a regular file: " + relativeName);
+                }
+                String actual;
+                try (InputStream input = Files.newInputStream(file)) {
+                    actual = Sha256Checksums.of(input);
+                }
+                if (!expected.equalsIgnoreCase(actual)) {
+                    throw new IOException("bundle checksum mismatch: " + relativeName);
+                }
             }
-            String[] parts = line.trim().split("\\s+", 2);
-            if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
-                throw new IOException("invalid checksum line: " + line);
-            }
-            String expected = parts[0].trim();
-            String relativeName = parts[1].trim().replace('\\', '/');
-            if (unsafeEntry(relativeName)) {
-                throw new IOException("unsafe checksum entry: " + relativeName);
-            }
-            requirePathLength(relativeName, "checksum entry");
-            Path file = root.resolve(relativeName).normalize();
-            if (!file.startsWith(root.toAbsolutePath().normalize()) && !file.startsWith(root.normalize())) {
-                throw new IOException("checksum entry escapes bundle root: " + relativeName);
-            }
-            if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(file)) {
-                throw new IOException("checksum entry is not a regular file: " + relativeName);
-            }
-            String actual;
-            try (InputStream input = Files.newInputStream(file)) {
-                actual = Sha256Checksums.of(input);
-            }
-            if (!expected.equalsIgnoreCase(actual)) {
-                throw new IOException("bundle checksum mismatch: " + relativeName);
-            }
-            listed.add(relativeName);
         }
         List<String> unlisted = new ArrayList<>();
         try (java.util.stream.Stream<Path> paths = Files.walk(root)) {
@@ -321,6 +336,22 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
         if (!unlisted.isEmpty()) {
             throw new IOException("bundle files missing checksums: " + String.join(",", unlisted));
         }
+    }
+
+    private boolean validSha256Hex(String value) {
+        if (value == null || value.length() != 64) {
+            return false;
+        }
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            boolean digit = character >= '0' && character <= '9';
+            boolean lower = character >= 'a' && character <= 'f';
+            boolean upper = character >= 'A' && character <= 'F';
+            if (!digit && !lower && !upper) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void publishDirectoryAtomically(Path staging, Path target) throws IOException {

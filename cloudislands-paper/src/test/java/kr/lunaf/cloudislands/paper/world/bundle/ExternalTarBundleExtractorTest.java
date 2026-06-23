@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,6 +77,32 @@ class ExternalTarBundleExtractorTest {
     }
 
     @Test
+    void checksumVerificationRejectsDuplicateChecksumEntries() throws Exception {
+        ExternalTarBundleExtractor extractor = new ExternalTarBundleExtractor(Duration.ofSeconds(5));
+        Path source = root.resolve("source");
+        Path chunks = source.resolve("chunks");
+        Files.createDirectories(chunks);
+        Files.createDirectories(source.resolve("entities"));
+        Files.createDirectories(source.resolve("block-entities"));
+        Path manifest = source.resolve("manifest.json");
+        Path chunk = chunks.resolve("r.0.0.mca");
+        Files.writeString(manifest, "{}", StandardCharsets.UTF_8);
+        Files.writeString(chunk, "chunk-data", StandardCharsets.UTF_8);
+        Path checksums = source.resolve("checksums.sha256");
+        Files.writeString(
+            checksums,
+            sha256(manifest) + "  manifest.json\n"
+                + sha256(chunk) + "  chunks/r.0.0.mca\n"
+                + sha256(chunk) + "  chunks/r.0.0.mca\n",
+            StandardCharsets.UTF_8
+        );
+
+        IOException exception = assertThrows(IOException.class, () -> extractor.verifyChecksums(source, checksums));
+
+        assertTrue(exception.getMessage().contains("duplicate checksum entry"));
+    }
+
+    @Test
     void verboseTarListingParserKeepsEntryTypeAndName() throws Exception {
         ExternalTarBundleExtractor extractor = new ExternalTarBundleExtractor();
 
@@ -115,5 +143,14 @@ class ExternalTarBundleExtractorTest {
         entries.add(new ExternalTarBundleExtractor.ArchiveEntry("entities", 'd', 0L));
         entries.add(new ExternalTarBundleExtractor.ArchiveEntry("block-entities", 'd', 0L));
         return entries;
+    }
+
+    private String sha256(Path file) throws Exception {
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file));
+        StringBuilder builder = new StringBuilder(digest.length * 2);
+        for (byte value : digest) {
+            builder.append(String.format("%02x", value & 0xff));
+        }
+        return builder.toString();
     }
 }
