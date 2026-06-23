@@ -4,7 +4,14 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
@@ -26,6 +33,8 @@ public final class CoreHttpRouteRegistrar {
     private final AtomicLong securityRejectsMtlsRequired = new AtomicLong();
     private final AtomicLong securityRejectsIpNotAllowed = new AtomicLong();
     private final AtomicLong securityRejectsAdminPermissionDenied = new AtomicLong();
+    private final Map<String, RouteDefinition> exactRoutes = new LinkedHashMap<>();
+    private final List<RouteDefinition> prefixRoutes = new ArrayList<>();
     private HttpServer server;
     private AuditLogger audit;
 
@@ -44,6 +53,7 @@ public final class CoreHttpRouteRegistrar {
 
     public void attach(HttpServer server) {
         this.server = server;
+        this.server.createContext("/", this::dispatch);
     }
 
     public void setAudit(AuditLogger audit) {
@@ -51,74 +61,14 @@ public final class CoreHttpRouteRegistrar {
     }
 
     public void route(String path, HttpHandler handler) {
-        requireServer().createContext(path, exchange -> {
-            if (rejectBusy(exchange)) {
-                return;
-            }
-            String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
-            if (!rateLimiter.allow(key)) {
-                auditSecurityReject("RATE_LIMITED", path, exchange);
-                CoreHttpResponses.write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
-                return;
-            }
-            if (!healthProbePath(path) && !coreApiAuthenticated(exchange)) {
-                String rejectCode = coreApiAuthRejectCode();
-                auditSecurityReject(rejectCode, path, exchange);
-                CoreHttpResponses.write(exchange, 401, ApiResponses.error(rejectCode, coreApiAuthRejectMessage(rejectCode)));
-                return;
-            }
-            if (!ipAllowlist.allowed(exchange)) {
-                auditSecurityReject("IP_NOT_ALLOWED", path, exchange);
-                CoreHttpResponses.write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
-                return;
-            }
-            if (!adminGuard.allowed(path, exchange)) {
-                auditSecurityReject("ADMIN_PERMISSION_DENIED", path, exchange);
-                CoreHttpResponses.write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
-                return;
-            }
-            try {
-                handler.handle(exchange);
-            } catch (IllegalStateException exception) {
-                if (path.startsWith("/v1/addons/")) {
-                    CoreHttpResponses.write(exchange, 503, ApiResponses.error("ADDON_STATE_UNAVAILABLE", "Addon state storage is temporarily unavailable"));
-                    return;
-                }
-                throw exception;
-            }
-        });
+        requireServer();
+        exactRoutes.put(normalizeRegisteredPath(path), new RouteDefinition(normalizeRegisteredPath(path), false, allowedMethods(), handler));
     }
 
     public void routePrefix(String path, HttpHandler handler) {
-        requireServer().createContext(path, exchange -> {
-            if (rejectBusy(exchange)) {
-                return;
-            }
-            String requestPath = exchange.getRequestURI().getPath();
-            String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
-            if (!rateLimiter.allow(key)) {
-                auditSecurityReject("RATE_LIMITED", requestPath, exchange);
-                CoreHttpResponses.write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
-                return;
-            }
-            if (!coreApiAuthenticated(exchange)) {
-                String rejectCode = coreApiAuthRejectCode();
-                auditSecurityReject(rejectCode, requestPath, exchange);
-                CoreHttpResponses.write(exchange, 401, ApiResponses.error(rejectCode, coreApiAuthRejectMessage(rejectCode)));
-                return;
-            }
-            if (!ipAllowlist.allowed(exchange)) {
-                auditSecurityReject("IP_NOT_ALLOWED", requestPath, exchange);
-                CoreHttpResponses.write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
-                return;
-            }
-            if (!adminGuard.allowed(requestPath, exchange)) {
-                auditSecurityReject("ADMIN_PERMISSION_DENIED", requestPath, exchange);
-                CoreHttpResponses.write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
-                return;
-            }
-            handler.handle(exchange);
-        });
+        requireServer();
+        prefixRoutes.add(new RouteDefinition(normalizeRegisteredPath(path), true, allowedMethods(), handler));
+        prefixRoutes.sort(Comparator.comparingInt((RouteDefinition route) -> route.path().length()).reversed());
     }
 
     public long securityRejectsTotal() {
@@ -152,12 +102,122 @@ public final class CoreHttpRouteRegistrar {
         return server;
     }
 
+    private void dispatch(HttpExchange exchange) throws IOException {
+        if (rejectBusy(exchange)) {
+            return;
+        }
+        String requestPath = normalizedRequestPath(exchange);
+        RouteDefinition route = route(requestPath);
+        if (route == null) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("NOT_FOUND", "No Core API route matches this path"));
+            return;
+        }
+        String method = exchange.getRequestMethod() == null ? "" : exchange.getRequestMethod().toUpperCase(java.util.Locale.ROOT);
+        if (!route.allowedMethods().contains(method)) {
+            exchange.getResponseHeaders().set("Allow", String.join(", ", route.allowedMethods()));
+            CoreHttpResponses.write(exchange, 405, ApiResponses.error("METHOD_NOT_ALLOWED", "HTTP method is not allowed for this route"));
+            return;
+        }
+        if (!authorize(requestPath, exchange)) {
+            return;
+        }
+        if (bodyMethod(method) && !jsonContentType(exchange)) {
+            CoreHttpResponses.write(exchange, 415, ApiResponses.error("UNSUPPORTED_MEDIA_TYPE", "Content-Type must be application/json"));
+            return;
+        }
+        try {
+            route.handler().handle(exchange);
+        } catch (CoreHttpException exception) {
+            CoreHttpResponses.write(exchange, exception.status(), ApiResponses.error(exception.code(), exception.getMessage()));
+        } catch (IllegalStateException exception) {
+            if (requestPath.startsWith("/v1/addons/")) {
+                CoreHttpResponses.write(exchange, 503, ApiResponses.error("ADDON_STATE_UNAVAILABLE", "Addon state storage is temporarily unavailable"));
+                return;
+            }
+            throw exception;
+        }
+    }
+
+    private boolean authorize(String requestPath, HttpExchange exchange) throws IOException {
+        String key = exchange.getRemoteAddress() == null ? "unknown" : exchange.getRemoteAddress().getAddress().getHostAddress();
+        if (!rateLimiter.allow(key)) {
+            auditSecurityReject("RATE_LIMITED", requestPath, exchange);
+            CoreHttpResponses.write(exchange, 429, ApiResponses.error("RATE_LIMITED", "Too many requests"));
+            return false;
+        }
+        if (!healthProbePath(requestPath) && !coreApiAuthenticated(exchange)) {
+            String rejectCode = coreApiAuthRejectCode();
+            auditSecurityReject(rejectCode, requestPath, exchange);
+            CoreHttpResponses.write(exchange, 401, ApiResponses.error(rejectCode, coreApiAuthRejectMessage(rejectCode)));
+            return false;
+        }
+        if (!ipAllowlist.allowed(exchange)) {
+            auditSecurityReject("IP_NOT_ALLOWED", requestPath, exchange);
+            CoreHttpResponses.write(exchange, 403, ApiResponses.error("IP_NOT_ALLOWED", "Remote address is not allowed"));
+            return false;
+        }
+        if (!adminGuard.allowed(requestPath, exchange)) {
+            auditSecurityReject("ADMIN_PERMISSION_DENIED", requestPath, exchange);
+            CoreHttpResponses.write(exchange, 403, ApiResponses.error("ADMIN_PERMISSION_DENIED", "Admin permission is required"));
+            return false;
+        }
+        return true;
+    }
+
+    private RouteDefinition route(String requestPath) {
+        RouteDefinition exact = exactRoutes.get(requestPath);
+        if (exact != null) {
+            return exact;
+        }
+        for (RouteDefinition route : prefixRoutes) {
+            if (requestPath.equals(route.path()) || requestPath.startsWith(route.path() + "/")) {
+                return route;
+            }
+        }
+        return null;
+    }
+
     private boolean rejectBusy(HttpExchange exchange) throws IOException {
         if (!CoreHttpRequestExecutor.saturatedRequest()) {
             return false;
         }
         CoreHttpResponses.write(exchange, 503, ApiResponses.error("CORE_BUSY", "Core HTTP worker pool is saturated"));
         return true;
+    }
+
+    private static String normalizedRequestPath(HttpExchange exchange) {
+        String path = exchange.getRequestURI() == null ? "/" : exchange.getRequestURI().getPath();
+        if (path == null || path.isBlank()) {
+            return "/";
+        }
+        String normalized = URI.create(path).normalize().getPath();
+        if (normalized.length() > 1 && normalized.endsWith("/")) {
+            return normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
+    private static String normalizeRegisteredPath(String path) {
+        if (path == null || path.isBlank() || path.charAt(0) != '/') {
+            throw new IllegalArgumentException("Core HTTP route path must start with /");
+        }
+        String normalized = URI.create(path).normalize().getPath();
+        return normalized.length() > 1 && normalized.endsWith("/")
+            ? normalized.substring(0, normalized.length() - 1)
+            : normalized;
+    }
+
+    private static Set<String> allowedMethods() {
+        return new LinkedHashSet<>(List.of("GET", "POST"));
+    }
+
+    private static boolean bodyMethod(String method) {
+        return "POST".equals(method) || "PUT".equals(method) || "PATCH".equals(method);
+    }
+
+    private static boolean jsonContentType(HttpExchange exchange) {
+        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+        return contentType != null && contentType.toLowerCase(java.util.Locale.ROOT).startsWith("application/json");
     }
 
     private boolean coreApiAuthenticated(HttpExchange exchange) {
@@ -209,5 +269,8 @@ public final class CoreHttpRouteRegistrar {
             default -> {
             }
         }
+    }
+
+    private record RouteDefinition(String path, boolean prefix, Set<String> allowedMethods, HttpHandler handler) {
     }
 }

@@ -1,17 +1,41 @@
 package kr.lunaf.cloudislands.coreservice.http;
 
 import com.sun.net.httpserver.HttpExchange;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public final class CoreHttpResponses {
+    public static final int MAX_REQUEST_BODY_BYTES = 1_048_576;
+
     private CoreHttpResponses() {
     }
 
     public static String readBody(HttpExchange exchange) throws IOException {
-        return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        return readBody(exchange, MAX_REQUEST_BODY_BYTES);
+    }
+
+    public static String readBody(HttpExchange exchange, int maxBytes) throws IOException {
+        int limit = Math.max(1, maxBytes);
+        ByteArrayOutputStream output = new ByteArrayOutputStream(Math.min(limit, 8192));
+        byte[] buffer = new byte[8192];
+        int total = 0;
+        InputStream input = exchange.getRequestBody();
+        while (true) {
+            int read = input.read(buffer);
+            if (read < 0) {
+                break;
+            }
+            total += read;
+            if (total > limit) {
+                throw new CoreHttpException(413, "REQUEST_BODY_TOO_LARGE", "Request body exceeds " + limit + " bytes");
+            }
+            output.write(buffer, 0, read);
+        }
+        return output.toString(StandardCharsets.UTF_8);
     }
 
     public static void write(HttpExchange exchange, int status, String body) throws IOException {
