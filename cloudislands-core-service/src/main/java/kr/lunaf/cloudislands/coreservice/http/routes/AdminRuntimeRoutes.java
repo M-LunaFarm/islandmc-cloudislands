@@ -34,8 +34,8 @@ public final class AdminRuntimeRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/cache/clear", this::clearCache);
-        registry.route("/v1/admin/reload", this::reload);
+        registry.routePost("/v1/admin/cache/clear", this::clearCache);
+        registry.routePost("/v1/admin/reload", this::reload);
     }
 
     private void clearCache(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
