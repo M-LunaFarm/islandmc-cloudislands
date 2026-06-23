@@ -11,7 +11,11 @@ final class CoreJson {
     }
 
     static Map<?, ?> object(String body) {
-        return SimpleJson.object(value(body));
+        Object parsed = value(body);
+        if (parsed instanceof Map<?, ?> object) {
+            return object;
+        }
+        throw new CoreApiException("INVALID_CORE_JSON", "Core API response is not a JSON object");
     }
 
     static Map<?, ?> actionObject(String body, String successCode) {

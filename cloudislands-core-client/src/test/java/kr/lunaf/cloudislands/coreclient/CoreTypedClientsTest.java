@@ -494,6 +494,7 @@ class CoreTypedClientsTest {
         assertEquals("paper-b", CoreJson.text(CoreJson.entries("{\"metadata\":[{\"nodeId\":\"wrong\"}],\"nodes\":[{\"nodeId\":\"paper-b\"}]}", "nodes").get(0), "nodeId"));
         assertTrue(CoreJson.entries("{\"metadata\":[{\"nodeId\":\"wrong\"}],\"nodes\":[{\"nodeId\":\"paper-b\"}]}", "members").isEmpty());
         assertEquals("paper-c", CoreJson.text(CoreJson.entries("[{\"nodeId\":\"paper-c\"}]", "nodes").get(0), "nodeId"));
+        assertEquals("INVALID_CORE_JSON", assertThrows(CoreApiException.class, () -> CoreJson.object("[]")).code());
         assertFalse(CoreJson.accepted(rejected));
         assertEquals("FAILED", CoreJson.code(rejected, "IGNORED"));
         assertFalse(CoreJson.accepted(failed));
@@ -1915,7 +1916,7 @@ class CoreTypedClientsTest {
         assertEquals("READY", JdkAdminNodeQueryClient.nodeSummary("node-a", nodeInfoBody).state());
         assertEquals("node-a", JdkAdminNodeQueryClient.node("node-a", nodeInfoBody).orElseThrow().nodeId());
         assertTrue(JdkAdminNodeQueryClient.node("node-a", "{}").isEmpty());
-        assertTrue(JdkAdminNodeQueryClient.node("node-a", "[]").isEmpty());
+        assertThrows(CoreApiException.class, () -> JdkAdminNodeQueryClient.node("node-a", "[]"));
         assertThrows(IllegalArgumentException.class, () -> JdkAdminNodeQueryClient.node("node-a", "{\"state\":\"BROKEN\"}"));
         assertThrows(CoreApiException.class, () -> JdkAdminNodeQueryClient.node("node-a", "{\"state\":\"READY\",\"mspt\":\"bad\"}"));
         assertThrows(CoreApiException.class, () -> JdkAdminNodeQueryClient.node("node-a", "{\"state\":\"READY\",\"storageAvailable\":\"maybe\"}"));
