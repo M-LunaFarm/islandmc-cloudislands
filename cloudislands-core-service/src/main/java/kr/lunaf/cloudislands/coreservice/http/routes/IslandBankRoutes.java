@@ -58,9 +58,9 @@ public final class IslandBankRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/bank", this::bank);
-        registry.route("/v1/islands/bank/deposit", this::deposit);
-        registry.route("/v1/islands/bank/withdraw", this::withdraw);
+        registry.routePost("/v1/islands/bank", this::bank);
+        registry.routePost("/v1/islands/bank/deposit", this::deposit);
+        registry.routePost("/v1/islands/bank/withdraw", this::withdraw);
     }
 
     private void bank(HttpExchange exchange) throws IOException {
