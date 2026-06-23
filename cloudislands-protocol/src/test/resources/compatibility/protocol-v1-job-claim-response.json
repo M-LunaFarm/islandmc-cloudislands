@@ -1,0 +1,17 @@
+{
+  "protocolVersion": 1,
+  "jobs": [
+    {
+      "jobId": "00000000-0000-0000-0000-000000000101",
+      "type": "SAVE_ISLAND",
+      "islandId": "00000000-0000-0000-0000-000000000202",
+      "targetNode": "island-node-1",
+      "priority": 7,
+      "payload": {
+        "snapshotNo": "42",
+        "reason": "scheduled-backup"
+      },
+      "createdAt": "2026-06-23T00:00:00Z"
+    }
+  ]
+}

@@ -1022,6 +1022,12 @@ tasks.register<JavaExec>("apiCompatibilityCheck") {
     args("--report-out", apiCompatibilityReportFile.get().asFile.absolutePath)
 }
 
+tasks.register("protocolCompatibilityCheck") {
+    group = "verification"
+    description = "Verifies previous CloudIslands protocol payloads decode on the current runtime."
+    dependsOn(project(":cloudislands-protocol").tasks.named("test"))
+}
+
 private val paperVersionCompileTasks = minecraftVersionMatrix.compileEntries.associateWith { entry ->
     tasks.register(entry.compileTaskName) {
         group = "verification"
@@ -1241,6 +1247,7 @@ fun verifyMinecraftCiCoverage(workflow: String) {
         "verifyAdapterPackaging",
         "bootSmokeAllStableMinecraftVersions",
         "apiCompatibilityCheck",
+        "protocolCompatibilityCheck",
         "distChecksums",
         "distSbom",
         "distProvenance",
@@ -1369,6 +1376,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyFeatureParityEvidence"))
     dependsOn(tasks.named("verifyIntegrationMatrix"))
     dependsOn(tasks.named("apiCompatibilityCheck"))
+    dependsOn(tasks.named("protocolCompatibilityCheck"))
     dependsOn(verifyAdapterPackaging)
 }
 

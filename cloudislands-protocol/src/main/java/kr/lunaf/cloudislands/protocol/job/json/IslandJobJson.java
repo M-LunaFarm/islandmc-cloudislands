@@ -125,12 +125,8 @@ public final class IslandJobJson {
     }
 
     private static Map<String, String> readPayload(String json) {
-        int fieldStart = json.indexOf("\"payload\":");
-        if (fieldStart < 0) {
-            return Map.of();
-        }
-        int objectStart = json.indexOf('{', fieldStart);
-        if (objectStart < 0) {
+        int objectStart = valueStart(json, "payload");
+        if (objectStart < 0 || json.charAt(objectStart) != '{') {
             return Map.of();
         }
         int depth = 0;
@@ -165,12 +161,8 @@ public final class IslandJobJson {
     }
 
     private static String objectJson(String json, String field) {
-        int fieldStart = json.indexOf("\"" + field + "\":");
-        if (fieldStart < 0) {
-            return "";
-        }
-        int objectStart = json.indexOf('{', fieldStart);
-        if (objectStart < 0) {
+        int objectStart = valueStart(json, field);
+        if (objectStart < 0 || json.charAt(objectStart) != '{') {
             return "";
         }
         int depth = 0;
@@ -205,23 +197,29 @@ public final class IslandJobJson {
     }
 
     private static String text(String json, String field, String fallback) {
-        String needle = "\"" + field + "\":\"";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        int valueStart = valueStart(json, field);
+        if (valueStart < 0 || json.charAt(valueStart) != '"') {
             return fallback;
         }
-        int valueStart = start + needle.length();
-        int end = json.indexOf('"', valueStart);
-        return end < 0 ? fallback : json.substring(valueStart, end);
+        boolean escaped = false;
+        for (int end = valueStart + 1; end < json.length(); end++) {
+            char value = json.charAt(end);
+            if (escaped) {
+                escaped = false;
+            } else if (value == '\\') {
+                escaped = true;
+            } else if (value == '"') {
+                return unquote(json.substring(valueStart, end + 1));
+            }
+        }
+        return fallback;
     }
 
     private static int integer(String json, String field, int fallback) {
-        String needle = "\"" + field + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        int valueStart = valueStart(json, field);
+        if (valueStart < 0) {
             return fallback;
         }
-        int valueStart = start + needle.length();
         int end = valueStart;
         while (end < json.length() && Character.isDigit(json.charAt(end))) {
             end++;
@@ -234,12 +232,10 @@ public final class IslandJobJson {
     }
 
     private static long longValue(String json, String field, long fallback) {
-        String needle = "\"" + field + "\":";
-        int start = json.indexOf(needle);
-        if (start < 0) {
+        int valueStart = valueStart(json, field);
+        if (valueStart < 0) {
             return fallback;
         }
-        int valueStart = start + needle.length();
         int end = valueStart;
         while (end < json.length() && Character.isDigit(json.charAt(end))) {
             end++;
@@ -249,6 +245,23 @@ public final class IslandJobJson {
         } catch (RuntimeException ignored) {
             return fallback;
         }
+    }
+
+    private static int valueStart(String json, String field) {
+        String needle = "\"" + field + "\"";
+        int fieldStart = json.indexOf(needle);
+        if (fieldStart < 0) {
+            return -1;
+        }
+        int colon = json.indexOf(':', fieldStart + needle.length());
+        if (colon < 0) {
+            return -1;
+        }
+        int valueStart = colon + 1;
+        while (valueStart < json.length() && Character.isWhitespace(json.charAt(valueStart))) {
+            valueStart++;
+        }
+        return valueStart < json.length() ? valueStart : -1;
     }
 
     private static UUID uuid(String json, String field, UUID fallback) {

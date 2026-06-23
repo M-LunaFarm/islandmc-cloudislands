@@ -61,7 +61,7 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Build and test
-        run: ./gradlew clean build verifyMinecraftVersionMatrix compileAllMinecraftVersions verifyAdapterPackaging apiCompatibilityCheck distBundle distAddonBundle distChecksums distSbom distProvenance verifyReleaseSecurityGate --no-daemon
+        run: ./gradlew clean build verifyMinecraftVersionMatrix compileAllMinecraftVersions verifyAdapterPackaging apiCompatibilityCheck protocolCompatibilityCheck distBundle distAddonBundle distChecksums distSbom distProvenance verifyReleaseSecurityGate --no-daemon
 
       - name: Matrix compile
         run: ./gradlew ${{ matrix.compile-task }} --no-daemon
