@@ -173,6 +173,20 @@ class CoreServiceConfigTest {
     }
 
     @Test
+    void tokenAuthModeRequiresGlobalTokenOrNodeCredentialBindings() {
+        CoreServiceConfig tokenModeWithoutCredentials = withAuth(config("127.0.0.1", "production", false), "", "", false);
+        CoreServiceConfig tokenModeWithNodeCredentials = withAuth(config("127.0.0.1", "production", false), "", "node-a:token-a", false);
+        CoreServiceConfig mtlsModeWithoutToken = withAuth(config("127.0.0.1", "production", false), "", "", true);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, tokenModeWithoutCredentials::validateStartupAuthentication);
+        assertTrue(exception.getMessage().contains("requires CI_CORE_TOKEN or CI_NODE_CREDENTIALS"));
+        assertFalse(CoreNetworkExposure.coreApiAuthConfigured(tokenModeWithoutCredentials));
+        assertTrue(CoreNetworkExposure.coreApiAuthConfigured(tokenModeWithNodeCredentials));
+        tokenModeWithNodeCredentials.validateStartupAuthentication();
+        mtlsModeWithoutToken.validateStartupAuthentication();
+    }
+
+    @Test
     void mariadbSetupUsesNativeCoreJdbcAuthority() {
         CoreServiceConfig config = config("JDBC", "jdbc:mariadb://mariadb.internal:3306/cloudislands", "MARIADB", true);
 
@@ -416,6 +430,79 @@ class CoreServiceConfigTest {
                 128,
                 Duration.ofSeconds(30),
                 Duration.ofSeconds(10)
+        );
+    }
+
+    private CoreServiceConfig withAuth(CoreServiceConfig config, String coreToken, String nodeCredentials, boolean requireMtls) {
+        return new CoreServiceConfig(
+                config.bind(),
+                config.port(),
+                config.adminBind(),
+                config.adminPort(),
+                config.repositoryMode(),
+                config.jobQueueMode(),
+                config.eventBusMode(),
+                config.jdbcUrl(),
+                config.configuredDatabaseType(),
+                config.databaseUsername(),
+                config.databasePassword(),
+                config.databasePoolSize(),
+                config.setupDatabaseAutoSchema(),
+                config.setupDatabaseFallbackEnabled(),
+                config.setupDatabaseFallbackOrder(),
+                config.setupDatabaseFallbackRequireSharedBeforeLocal(),
+                config.setupDatabaseFallbackLocalLast(),
+                config.setupDatabaseFallbackProductionSafeOrder(),
+                config.runtimeMode(),
+                config.setupDatabaseAllowInMemoryFallback(),
+                config.allowInsecurePublicHttp(),
+                config.setupDatabaseCoreApiBaseUrl(),
+                config.setupDatabaseCoreApiAuthTokenConfigured(),
+                config.setupDatabaseCoreApiAdminTokenConfigured(),
+                config.setupDatabaseCoreApiTimeoutMillis(),
+                config.redisUri(),
+                config.storageType(),
+                config.storageEndpoint(),
+                config.storageBucket(),
+                config.storageLocalPath(),
+                config.storageRegion(),
+                config.storageAccessKey(),
+                config.storageSecretKey(),
+                config.storageBearerToken(),
+                coreToken,
+                nodeCredentials,
+                config.adminToken(),
+                config.adminPermissions(),
+                config.ipAllowlist(),
+                config.upgradesFile(),
+                config.blockValuesFile(),
+                config.levelFormulaType(),
+                config.levelFormulaExpression(),
+                config.worthFormulaType(),
+                config.islandPool(),
+                config.softFullPolicy(),
+                config.hardFullPolicy(),
+                config.migrationPolicy(),
+                config.superiorSkyblock2MigrationEnabled(),
+                config.routeTicketTtl(),
+                config.routePreparingTicketTtl(),
+                config.heartbeatTimeout(),
+                config.leaseDuration(),
+                config.snapshotKeepLatest(),
+                config.snapshotRetentionPolicy(),
+                config.adminApiEnabled(),
+                config.adminListenerEnabled(),
+                config.publicAdminApiEnabled(),
+                requireMtls,
+                config.mtlsVerifiedHeader(),
+                config.mtlsVerifiedValue(),
+                config.mtlsTrustedProxies(),
+                config.rateLimitRequests(),
+                config.rateLimitWindow(),
+                config.httpWorkerThreads(),
+                config.httpQueueCapacity(),
+                config.httpKeepAlive(),
+                config.httpShutdownGrace()
         );
     }
 }

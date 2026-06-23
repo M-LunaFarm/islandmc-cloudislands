@@ -504,8 +504,15 @@ public record CoreServiceConfig(
     }
 
     public void validateStartupSecurity() {
+        validateStartupAuthentication();
         validateStartupStorage();
         validateStartupNetworkExposure();
+    }
+
+    public void validateStartupAuthentication() {
+        if (!CoreNetworkExposure.coreApiAuthConfigured(this)) {
+            throw new IllegalStateException("Core API auth mode " + authMode() + " requires CI_CORE_TOKEN or CI_NODE_CREDENTIALS");
+        }
     }
 
     public void validateStartupNetworkExposure() {

@@ -58,7 +58,15 @@ public final class CoreNetworkExposure {
     }
 
     public static boolean coreApiAuthConfigured(CoreServiceConfig config) {
-        return (config.authMode().acceptsToken() && config.coreToken() != null && !config.coreToken().isBlank()) || config.authMode().acceptsMtls();
+        return tokenAuthConfigured(config) || config.authMode().acceptsMtls();
+    }
+
+    public static boolean tokenAuthConfigured(CoreServiceConfig config) {
+        if (!config.authMode().acceptsToken()) {
+            return false;
+        }
+        return (config.coreToken() != null && !config.coreToken().isBlank())
+            || (config.nodeCredentials() != null && !config.nodeCredentials().isBlank());
     }
 
     public static boolean publicBind(String bind) {
