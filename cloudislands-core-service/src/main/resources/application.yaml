@@ -38,7 +38,7 @@ setup:
     # Explicit opt-in schema bootstrap for first PostgreSQL/MySQL/MariaDB Core JDBC setup.
     # Env override: CI_DB_AUTO_SCHEMA.
     auto-schema: false
-    # Production mode refuses non-durable in-memory Core state unless this is explicitly enabled.
+    # Non-production rescue mode only; production always refuses non-durable in-memory Core state.
     # Env override: CI_ALLOW_IN_MEMORY_FALLBACK.
     allow-in-memory-fallback: false
     postgresql:

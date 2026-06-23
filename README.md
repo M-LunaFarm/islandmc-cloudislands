@@ -407,7 +407,7 @@ That matters.
 | Redis outage must not silently fall back to per-process local locks in multi-Core mode | MITIGATED | local fallback is disabled by default, but multi-Core failure drills are still needed |
 | Core API auth must not trust client-provided permission headers | MITIGATED | admin permissions are configured server-side |
 | mTLS-by-header requires trusted proxy boundaries | MITIGATED | `MtlsHeaderGuard` checks a trusted proxy allowlist |
-| production mode must reject non-durable in-memory fallback | MITIGATED | startup validation blocks non-durable fallback by default in production |
+| production mode must reject non-durable in-memory fallback | MITIGATED | startup validation always blocks non-durable fallback in production |
 | route failure cleanup should be one idempotent path | OPEN | needs stronger cross-Core evidence |
 | coordinate fallback should fail closed when placement data is missing | OPEN | needs targeted runtime tests |
 | Gradle Wrapper, CI, release binaries, checksums | MITIGATED | wrapper, GitHub Actions, dist bundles, and SHA-256 checksums exist |

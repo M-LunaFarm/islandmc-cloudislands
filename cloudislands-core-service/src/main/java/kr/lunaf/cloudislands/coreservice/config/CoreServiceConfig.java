@@ -532,12 +532,12 @@ public record CoreServiceConfig(
 
     private boolean setupDatabaseInMemoryFallbackBlocked() {
         return setupDatabaseInMemoryFallbackSelected()
-            && (!setupDatabaseFallbackEnabled || (productionMode() && !setupDatabaseAllowInMemoryFallback));
+            && (!setupDatabaseFallbackEnabled || productionMode());
     }
 
     private boolean setupDatabaseNonDurableStorageBlocked() {
         return !setupDatabaseProductionDurable()
-            && (!setupDatabaseFallbackEnabled || (productionMode() && !setupDatabaseAllowInMemoryFallback));
+            && (!setupDatabaseFallbackEnabled || productionMode());
     }
 
     private boolean setupDatabaseInMemoryFallbackSelected() {

@@ -124,6 +124,22 @@ class CoreServiceConfigTest {
     }
 
     @Test
+    void productionModeBlocksExplicitInMemoryFallbackOptIn() {
+        CoreServiceConfig config = config("JDBC", "jdbc:sqlserver://mssql.internal:1433/cloudislands", "UNSUPPORTED_JDBC", true, "production", true, false);
+
+        assertFalse(config.jdbcRepositories());
+        assertFalse(config.setupDatabaseProductionDurable());
+        assertTrue(config.setupDatabaseFallbackActive());
+        assertEquals("UNAVAILABLE_NON_DURABLE", config.setupDatabaseEffectiveBackend());
+        assertEquals("BLOCKED_NON_DURABLE_CORE_FALLBACK", config.setupDatabaseEffectiveAuthority());
+        assertEquals("IN_MEMORY", config.setupDatabaseFallbackTarget());
+        assertTrue(config.setupDatabaseAllowInMemoryFallback());
+        assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackReadiness());
+        assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackSafetyMode());
+        assertThrows(IllegalStateException.class, config::validateStartupStorage);
+    }
+
+    @Test
     void developmentModeCanExplicitlyUseNonDurableInMemoryFallbackButIsNotReady() {
         CoreServiceConfig config = config("JDBC", "jdbc:sqlserver://mssql.internal:1433/cloudislands", "UNSUPPORTED_JDBC", true, "development", true, false);
 
