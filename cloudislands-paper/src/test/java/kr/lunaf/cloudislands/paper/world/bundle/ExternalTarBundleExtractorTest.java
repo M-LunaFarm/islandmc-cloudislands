@@ -51,6 +51,17 @@ class ExternalTarBundleExtractorTest {
     }
 
     @Test
+    void archiveValidationRejectsOverlongEntryPathsBeforeExtraction() throws Exception {
+        ExternalTarBundleExtractor extractor = new ExternalTarBundleExtractor();
+        List<ExternalTarBundleExtractor.ArchiveEntry> entries = safeEntries();
+        entries.add(new ExternalTarBundleExtractor.ArchiveEntry("chunks/" + "a".repeat(4097) + ".mca", '-', 1L));
+
+        IOException exception = assertThrows(IOException.class, () -> extractor.validateArchiveEntries(bundleFile(4096), entries));
+
+        assertTrue(exception.getMessage().contains("path exceeds"));
+    }
+
+    @Test
     void failedPreExtractionValidationKeepsExistingTargetDirectory() throws Exception {
         ExternalTarBundleExtractor extractor = new ExternalTarBundleExtractor(Duration.ofSeconds(2));
         Path invalidBundle = bundleFile(128);

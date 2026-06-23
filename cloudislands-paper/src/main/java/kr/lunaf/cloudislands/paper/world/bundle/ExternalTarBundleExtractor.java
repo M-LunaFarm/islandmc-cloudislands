@@ -28,6 +28,7 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
     private static final Duration DEFAULT_PROCESS_TIMEOUT = Duration.ofSeconds(30);
     private static final int MAX_PROCESS_OUTPUT_BYTES = 64 * 1024;
     private static final int MAX_ARCHIVE_ENTRIES = 1_000_000;
+    private static final int MAX_ARCHIVE_PATH_BYTES = 4096;
     private static final long MAX_ARCHIVE_FILE_BYTES = 8L * 1024L * 1024L * 1024L;
     private static final long MAX_ARCHIVE_TOTAL_BYTES = 64L * 1024L * 1024L * 1024L;
     private static final long MAX_COMPRESSION_RATIO = 1_000L;
@@ -138,6 +139,7 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
             if (unsafeEntry(entry.name())) {
                 throw new IOException("unsafe bundle entry: " + entry.name());
             }
+            requirePathLength(entry.name(), "bundle archive entry");
             if (!allowedArchiveType(entry.type())) {
                 throw new IOException("unsupported bundle archive entry type: " + entry.name());
             }
@@ -188,6 +190,7 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
                 if (!normalized.startsWith(root)) {
                     throw new IOException("extracted bundle entry escapes target: " + normalized);
                 }
+                requirePathLength(relativeName(root, normalized), "extracted bundle entry");
                 if (Files.isSymbolicLink(path)) {
                     throw new IOException("symbolic links are not allowed in island bundles: " + relativeName(root, normalized));
                 }
@@ -286,6 +289,7 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
             if (unsafeEntry(relativeName)) {
                 throw new IOException("unsafe checksum entry: " + relativeName);
             }
+            requirePathLength(relativeName, "checksum entry");
             Path file = root.resolve(relativeName).normalize();
             if (!file.startsWith(root.toAbsolutePath().normalize()) && !file.startsWith(root.normalize())) {
                 throw new IOException("checksum entry escapes bundle root: " + relativeName);
@@ -431,6 +435,12 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
             output.write(buffer, 0, read);
         }
         return output.toString(StandardCharsets.UTF_8);
+    }
+
+    private void requirePathLength(String path, String label) throws IOException {
+        if (path != null && path.getBytes(StandardCharsets.UTF_8).length > MAX_ARCHIVE_PATH_BYTES) {
+            throw new IOException(label + " path exceeds " + MAX_ARCHIVE_PATH_BYTES + " bytes: " + path.substring(0, Math.min(path.length(), 64)));
+        }
     }
 
     record ArchiveEntry(String name, char type, long sizeBytes) {
