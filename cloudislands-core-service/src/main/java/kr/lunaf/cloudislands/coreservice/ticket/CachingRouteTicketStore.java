@@ -324,13 +324,57 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         }
     }
 
-    private static Map<String, Long> countsFromJson(String json) {
+    static Map<String, Long> countsFromJson(String json) {
         java.util.LinkedHashMap<String, Long> counts = zeroCounts();
         Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
         for (RouteTicketState state : RouteTicketState.values()) {
-            counts.put(state.name(), SimpleJson.number(root.get(state.name())));
+            counts.put(state.name(), routeTicketCount(root.get(state.name()), state));
         }
         return Map.copyOf(counts);
+    }
+
+    private static long routeTicketCount(Object value, RouteTicketState state) {
+        if (value == null) {
+            return 0L;
+        }
+        long count;
+        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
+            count = ((Number) value).longValue();
+        } else if (value instanceof java.math.BigInteger integer) {
+            try {
+                count = integer.longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalidRouteTicketCount(state, value);
+            }
+        } else if (value instanceof java.math.BigDecimal decimal) {
+            try {
+                count = decimal.toBigIntegerExact().longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalidRouteTicketCount(state, value);
+            }
+        } else if (value instanceof Number number) {
+            double decimal = number.doubleValue();
+            count = number.longValue();
+            if (!Double.isFinite(decimal) || decimal != count) {
+                throw invalidRouteTicketCount(state, value);
+            }
+        } else if (value instanceof String text && !text.isBlank()) {
+            try {
+                count = Long.parseLong(text.trim());
+            } catch (NumberFormatException exception) {
+                throw invalidRouteTicketCount(state, value);
+            }
+        } else {
+            throw invalidRouteTicketCount(state, value);
+        }
+        if (count < 0L) {
+            throw invalidRouteTicketCount(state, value);
+        }
+        return count;
+    }
+
+    private static IllegalArgumentException invalidRouteTicketCount(RouteTicketState state, Object value) {
+        return new IllegalArgumentException("invalid cached route ticket count for " + state.name() + ": " + SimpleJson.text(value));
     }
 
     private static String countsJson(Map<String, Long> counts) {
