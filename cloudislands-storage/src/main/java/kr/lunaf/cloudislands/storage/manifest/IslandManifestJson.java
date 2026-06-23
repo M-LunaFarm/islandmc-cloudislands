@@ -5,16 +5,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
-import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.common.json.JsonCodec;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.MinecraftKeyMigrations;
 
 public final class IslandManifestJson {
+    public static final int LEGACY_MANIFEST_SCHEMA_VERSION = 1;
+    public static final int CURRENT_MANIFEST_SCHEMA_VERSION = 2;
+
     private IslandManifestJson() {}
 
     public static String write(IslandBundleManifest manifest) {
         IslandLocation spawn = manifest.spawn();
         return "{"
+            + "\"manifestSchemaVersion\":" + CURRENT_MANIFEST_SCHEMA_VERSION + ","
             + "\"islandId\":\"" + manifest.islandId() + "\","
             + "\"ownerUuid\":\"" + manifest.ownerUuid() + "\","
             + "\"formatVersion\":" + manifest.formatVersion() + ","
@@ -55,7 +59,11 @@ public final class IslandManifestJson {
     }
 
     public static IslandBundleManifest read(String json) {
-        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
+        Map<String, Object> root = JsonCodec.readObject(json);
+        int manifestSchemaVersion = integer(root, "manifestSchemaVersion", LEGACY_MANIFEST_SCHEMA_VERSION);
+        if (manifestSchemaVersion > CURRENT_MANIFEST_SCHEMA_VERSION) {
+            throw new IllegalArgumentException("Unsupported island bundle manifest schema version " + manifestSchemaVersion);
+        }
         UUID islandId = uuid(root, "islandId", new UUID(0L, 0L));
         UUID ownerUuid = uuid(root, "ownerUuid", new UUID(0L, 0L));
         int formatVersion = integer(root, "formatVersion", 3);
@@ -66,7 +74,7 @@ public final class IslandManifestJson {
         String templateVersion = text(root, "templateVersion", IslandBundleManifest.DEFAULT_TEMPLATE_VERSION);
         int schemaVersion = integer(root, "schemaVersion", 12);
         int size = integer(root, "size", 300);
-        Map<?, ?> spawnJson = SimpleJson.object(root.get("spawn"));
+        Map<?, ?> spawnJson = object(root, "spawn");
         IslandLocation spawn = new IslandLocation(
             text(spawnJson, "world", "ci_shard_001"),
             decimal(spawnJson, "x", 0.5D),
@@ -100,8 +108,14 @@ public final class IslandManifestJson {
     }
 
     private static String text(Map<?, ?> object, String field, String fallback) {
-        String value = SimpleJson.text(object.get(field));
-        return value.isBlank() ? fallback : value;
+        Object value = object.get(field);
+        if (value == null) {
+            return fallback;
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            return text;
+        }
+        return fallback;
     }
 
     private static UUID uuid(Map<?, ?> object, String field, UUID fallback) {
@@ -114,12 +128,32 @@ public final class IslandManifestJson {
 
     private static int integer(Map<?, ?> object, String field, int fallback) {
         Object value = object.get(field);
-        return value == null ? fallback : (int) SimpleJson.number(value);
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            try {
+                return Integer.parseInt(text);
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 
     private static long number(Map<?, ?> object, String field, long fallback) {
         Object value = object.get(field);
-        return value == null ? fallback : SimpleJson.number(value);
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            try {
+                return Long.parseLong(text);
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 
     private static boolean bool(Map<?, ?> object, String field, boolean fallback) {
@@ -127,8 +161,7 @@ public final class IslandManifestJson {
         if (value instanceof Boolean booleanValue) {
             return booleanValue;
         }
-        String text = SimpleJson.text(value);
-        return text.isBlank() ? fallback : Boolean.parseBoolean(text);
+        return value instanceof String text && !text.isBlank() ? Boolean.parseBoolean(text) : fallback;
     }
 
     private static double decimal(Map<?, ?> object, String field, double fallback) {
@@ -137,8 +170,7 @@ public final class IslandManifestJson {
             return number.doubleValue();
         }
         try {
-            String text = SimpleJson.text(value);
-            return text.isBlank() ? fallback : Double.parseDouble(text);
+            return value instanceof String text && !text.isBlank() ? Double.parseDouble(text) : fallback;
         } catch (NumberFormatException ignored) {
             return fallback;
         }
@@ -153,7 +185,18 @@ public final class IslandManifestJson {
     }
 
     private static List<String> stringArray(Object value) {
-        return SimpleJson.list(value).stream().map(SimpleJson::text).toList();
+        if (!(value instanceof List<?> list)) {
+            return List.of();
+        }
+        return list.stream()
+            .filter(String.class::isInstance)
+            .map(String.class::cast)
+            .toList();
+    }
+
+    private static Map<?, ?> object(Map<?, ?> object, String field) {
+        Object value = object.get(field);
+        return value instanceof Map<?, ?> map ? map : Map.of();
     }
 
     private static String stringArray(List<String> values) {

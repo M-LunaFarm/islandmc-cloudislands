@@ -118,12 +118,43 @@ class LocalIslandStorageTest {
         String json = IslandManifestJson.write(manifest);
         IslandBundleManifest parsed = IslandManifestJson.read(json);
 
+        assertTrue(json.contains("\"manifestSchemaVersion\":" + IslandManifestJson.CURRENT_MANIFEST_SCHEMA_VERSION));
         assertTrue(json.contains("\"pluginVersion\":\"1.0.1\""));
         assertTrue(json.contains("\"minecraftDataVersion\":4435"));
         assertEquals("1.0.1", parsed.pluginVersion());
         assertEquals(4435, parsed.minecraftDataVersion());
         assertEquals("1.21.11", parsed.paperApiBaseline());
         assertEquals("skyblock-default@4", parsed.templateVersion());
+    }
+
+    @Test
+    void manifestJsonReadsLegacyManifestsWithoutSchemaVersion() {
+        String legacyJson = IslandManifestJson.write(manifest("LEGACY"))
+                .replace("\"manifestSchemaVersion\":" + IslandManifestJson.CURRENT_MANIFEST_SCHEMA_VERSION + ",", "");
+
+        IslandBundleManifest parsed = IslandManifestJson.read(legacyJson);
+
+        assertEquals(ISLAND_ID, parsed.islandId());
+        assertEquals("LEGACY", parsed.snapshotReason());
+    }
+
+    @Test
+    void manifestJsonRejectsFutureManifestSchemaVersion() {
+        String futureJson = IslandManifestJson.write(manifest("FUTURE"))
+                .replace(
+                        "\"manifestSchemaVersion\":" + IslandManifestJson.CURRENT_MANIFEST_SCHEMA_VERSION,
+                        "\"manifestSchemaVersion\":" + (IslandManifestJson.CURRENT_MANIFEST_SCHEMA_VERSION + 1)
+                );
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> IslandManifestJson.read(futureJson));
+
+        assertTrue(exception.getMessage().contains("Unsupported island bundle manifest schema version"));
+    }
+
+    @Test
+    void manifestJsonRejectsMalformedOrTrailingJson() {
+        assertThrows(RuntimeException.class, () -> IslandManifestJson.read("{\"islandId\""));
+        assertThrows(RuntimeException.class, () -> IslandManifestJson.read(IslandManifestJson.write(manifest("TRAILING")) + " true"));
     }
 
     @Test
