@@ -4,15 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.sun.net.httpserver.HttpHandler;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import org.junit.jupiter.api.Test;
 
 class ProgressionRoutesTest {
@@ -30,6 +35,23 @@ class ProgressionRoutesTest {
         assertTrue(paths.contains("/v1/addons/missions/register"));
         assertTrue(paths.contains("/v1/islands/missions/complete"));
         assertTrue(paths.contains("/v1/islands/limits/set"));
+    }
+
+    @Test
+    void registersProgressionEndpointsAsPostOnly() {
+        RecordingRegistry registry = new RecordingRegistry();
+
+        new ProgressionRoutes(null, null, null, null, null, null, null, null, null, null, null).register(registry);
+
+        assertEquals(Set.of("POST"), registry.methods("/v1/rankings/level"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/rankings/worth"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/upgrades/rules"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/missions"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/addons/missions/register"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/missions/complete"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/missions/progress"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/limits"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/limits/set"));
     }
 
     @Test
@@ -97,5 +119,27 @@ class ProgressionRoutesTest {
         assertEquals(50L, ((Number) limit.get("value")).longValue());
         assertEquals(actorUuid.toString(), SimpleJson.text(limit.get("updatedBy")));
         assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(limit.get("updatedAt")));
+    }
+
+    private static final class RecordingRegistry implements CoreRouteRegistry {
+        private final Map<String, Set<String>> methods = new HashMap<>();
+
+        @Override
+        public void route(String path, HttpHandler handler) {
+            methods.put(path, Set.of("GET", "POST"));
+        }
+
+        @Override
+        public void routeMethods(String path, HttpHandler handler, String... routeMethods) {
+            LinkedHashSet<String> allowed = new LinkedHashSet<>();
+            for (String method : routeMethods) {
+                allowed.add(method);
+            }
+            methods.put(path, Set.copyOf(allowed));
+        }
+
+        Set<String> methods(String path) {
+            return methods.getOrDefault(path, Set.of());
+        }
     }
 }

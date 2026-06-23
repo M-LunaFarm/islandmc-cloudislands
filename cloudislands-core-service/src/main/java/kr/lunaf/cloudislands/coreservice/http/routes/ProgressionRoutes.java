@@ -71,20 +71,20 @@ public final class ProgressionRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/rankings/level", exchange -> {
+        registry.routePost("/v1/rankings/level", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             CoreHttpResponses.write(exchange, 200, rankingsJson(rankingRepository.topByLevel(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
         });
-        registry.route("/v1/rankings/worth", exchange -> {
+        registry.routePost("/v1/rankings/worth", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             CoreHttpResponses.write(exchange, 200, rankingsJson(rankingRepository.topByWorth(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
         });
-        registry.route("/v1/upgrades/rules", exchange -> CoreHttpResponses.write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
-        registry.route("/v1/islands/missions", exchange -> {
+        registry.routePost("/v1/upgrades/rules", exchange -> CoreHttpResponses.write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
+        registry.routePost("/v1/islands/missions", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             CoreHttpResponses.write(exchange, 200, missionsJson(missionRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)), JsonFields.text(body, "kind", "MISSION"))));
         });
-        registry.route("/v1/addons/missions/register", exchange -> {
+        registry.routePost("/v1/addons/missions/register", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String providerId = JsonFields.text(body, "providerId", "");
             java.util.List<MissionProviderDefinitionSnapshot> definitions = missionDefinitions(body, providerId);
@@ -97,7 +97,7 @@ public final class ProgressionRoutes implements RouteGroup {
             events.publish(CloudIslandEventType.CORE_CACHE_CLEARED.name(), Map.of("cacheTargets", "ISLAND_MISSIONS", "providerId", providerId));
             CoreHttpResponses.write(exchange, 202, missionDefinitionsJson(registered));
         });
-        registry.route("/v1/islands/missions/complete", exchange -> {
+        registry.routePost("/v1/islands/missions/complete", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
@@ -114,7 +114,7 @@ public final class ProgressionRoutes implements RouteGroup {
             });
             CoreHttpResponses.write(exchange, completed.isPresent() ? 202 : 404, completed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
-        registry.route("/v1/islands/missions/progress", exchange -> {
+        registry.routePost("/v1/islands/missions/progress", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
@@ -141,11 +141,11 @@ public final class ProgressionRoutes implements RouteGroup {
             });
             CoreHttpResponses.write(exchange, progressed.isPresent() ? 202 : 404, progressed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
-        registry.route("/v1/islands/limits", exchange -> {
+        registry.routePost("/v1/islands/limits", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             CoreHttpResponses.write(exchange, 200, limitsJson(limitRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
         });
-        registry.route("/v1/islands/limits/set", exchange -> {
+        registry.routePost("/v1/islands/limits/set", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
             UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
