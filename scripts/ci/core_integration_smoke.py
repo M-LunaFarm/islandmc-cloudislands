@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -177,16 +178,34 @@ def start_core(core_bin: Path, instance_dir: Path, port: int, base_env: dict):
     return process, log, log_path
 
 
-def write_cluster_evidence(path: Path | None) -> None:
+def log_artifacts(processes: list[tuple[subprocess.Popen, object, Path]]) -> list[dict]:
+    artifacts = []
+    for _process, log, log_path in processes:
+        log.flush()
+        if not log_path.exists():
+            continue
+        content = log_path.read_bytes()
+        line_count = len(content.decode("utf-8", errors="replace").splitlines())
+        artifacts.append(
+            {
+                "path": str(log_path),
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "lineStart": 1 if line_count else 0,
+                "lineEnd": line_count,
+            }
+        )
+    return artifacts
+
+
+def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     evidence = {
+        "certificationScope": "partial-core-integration-smoke",
         "components": [
             "core-1",
             "core-2",
-            "island-paper-1",
-            "island-paper-2",
             "postgres",
             "redis",
             "object-storage",
@@ -198,20 +217,29 @@ def write_cluster_evidence(path: Path | None) -> None:
                 "audit-log-check",
                 "event-replay-check",
             ],
-            "multi-paper-failover": [
-                "two-island-paper-nodes",
-                "save-interruption",
-            ],
             "backup-restore-drill": [
                 "restore-activation",
                 "route-recovery",
             ],
-            "chaos-test": [
-                "fault-list",
-                "data-loss-check",
-            ],
         },
-        "failureInjections": [
+        "failureInjections": [],
+        "assertions": [
+            {"name": "primary-core-ready", "result": "passed"},
+            {"name": "secondary-core-ready", "result": "passed"},
+            {"name": "shared-postgresql-authority", "result": "passed"},
+            {"name": "shared-redis-job-and-event-mode", "result": "passed"},
+            {"name": "shared-s3-storage-mode", "result": "passed"},
+            {"name": "cross-core-create-job-complete", "result": "passed"},
+            {"name": "route-session-consume-round-trip", "result": "passed"},
+            {"name": "fencing-token-positive", "result": "passed"},
+            {"name": "event-replay-visible-on-secondary-core", "result": "passed"},
+            {"name": "audit-entries-visible-on-secondary-core", "result": "passed"},
+            {"name": "node-down-recovery-restore", "result": "passed"},
+            {"name": "post-recovery-route-targets-standby-node", "result": "passed"},
+        ],
+        "artifacts": artifacts,
+        "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "player-protocol-client"],
+        "uncertifiedFailureInjections": [
             "paper-save-kill",
             "snapshot-restore-node-failure",
             "object-storage-upload-after-db-commit-failure",
@@ -449,7 +477,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             "Core integration smoke passed: two Core services, PostgreSQL+Redis+MinIO config, "
             "cross-core create/job/route/session/consume, node-down recovery restore, reconnect"
         )
-        write_cluster_evidence(evidence_out)
+        write_cluster_evidence(evidence_out, log_artifacts(processes))
     finally:
         failures = []
         for process, log, log_path in processes:

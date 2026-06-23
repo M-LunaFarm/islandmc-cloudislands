@@ -43,6 +43,31 @@ class ClusterSmokeVerifierTest {
     }
 
     @Test
+    void coreOnlyIntegrationEvidenceRemainsPartialUntilRealClusterSignalsExist() {
+        ClusterSmokeReport report = ClusterSmokeVerifier.verify(
+            ClusterSmokeEvidence.builder()
+                .component("core-1")
+                .component("core-2")
+                .component("postgres")
+                .component("redis")
+                .component("object-storage")
+                .evidence("multi-core-e2e", java.util.List.of("two-core-instances", "fencing-token-check", "audit-log-check", "event-replay-check"))
+                .evidence("backup-restore-drill", java.util.List.of("restore-activation", "route-recovery"))
+                .build()
+        );
+
+        assertFalse(report.certified());
+        assertTrue(report.missingComponents().contains("velocity"));
+        assertTrue(report.missingComponents().contains("lobby-paper"));
+        assertTrue(report.missingComponents().contains("island-paper-1"));
+        assertTrue(report.missingComponents().contains("island-paper-2"));
+        assertTrue(report.missingComponents().contains("player-protocol-client"));
+        assertTrue(report.missingEvidenceByGate().get("multi-core-e2e").contains("idempotency-key-check"));
+        assertTrue(report.missingEvidenceByGate().get("multi-paper-failover").contains("two-island-paper-nodes"));
+        assertTrue(report.missingFailureInjections().contains("paper-save-kill"));
+    }
+
+    @Test
     void acceptsVirtualPlayerOrProtocolClientEvidenceForPlayerRouteCoverage() {
         ClusterSmokeEvidence virtualPlayer = ClusterSmokeEvidence.builder()
             .component("virtual-player")
