@@ -79,10 +79,17 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
 
     @Override
     public java.util.Optional<IslandJob> findClaimed(UUID jobId, JobClaimLease claimLease) {
-        if (!storedLeaseMatches(jobId, claimLease)) {
-            return java.util.Optional.empty();
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            Map<String, String> storedLease = readClaimHash(redis, jobId);
+            if (!storedLeaseMatches(jobId, claimLease, storedLease)) {
+                return java.util.Optional.empty();
+            }
+            IslandJob localJob = claimedJobs.get(jobId);
+            return localJob == null ? claimedJobFromHash(jobId, storedLease) : java.util.Optional.of(localJob);
+        } catch (IOException | RuntimeException exception) {
+            recordRedisFailure();
+            throw new IllegalStateException("failed to read redis job claim", exception);
         }
-        return java.util.Optional.ofNullable(claimedJobs.get(jobId));
     }
 
     @Override
@@ -254,15 +261,6 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         }
     }
 
-    private boolean storedLeaseMatches(UUID jobId, JobClaimLease claimLease) {
-        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            return storedLeaseMatches(jobId, claimLease, readClaimHash(redis, jobId));
-        } catch (IOException | RuntimeException exception) {
-            recordRedisFailure();
-            throw new IllegalStateException("failed to read redis job claim", exception);
-        }
-    }
-
     private Map<String, String> readClaimHash(RedisRespConnection redis, UUID jobId) throws IOException {
         String reply = redis.command("HGETALL", RedisKeys.jobClaim(jobId));
         if (reply == null || reply.isBlank()) {
@@ -289,6 +287,37 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             && token.equals(claimLease.claimToken())
             && epoch == claimLease.claimEpoch()
             && expiresAt.isAfter(Instant.now());
+    }
+
+    private java.util.Optional<IslandJob> claimedJobFromHash(UUID jobId, Map<String, String> storedLease) {
+        try {
+            IslandJobType type = safeType(storedLease.get("type"));
+            if (type == null) {
+                return java.util.Optional.empty();
+            }
+            JobClaimLease claimLease = new JobClaimLease(
+                jobId,
+                storedLease.getOrDefault("streamId", ""),
+                storedLease.getOrDefault("claimedByNode", ""),
+                storedLease.getOrDefault("claimToken", ""),
+                parseLong(storedLease.get("claimEpoch"), 0L),
+                parseInstant(storedLease.get("leaseExpiresAt")),
+                parseInt(storedLease.get("attempt"), 0)
+            );
+            IslandJob job = new IslandJob(
+                jobId,
+                type,
+                UUID.fromString(storedLease.get("islandId")),
+                storedLease.getOrDefault("targetNode", ""),
+                parseInt(storedLease.get("priority"), 0),
+                decodePayload(storedLease.getOrDefault("payload", "")),
+                parseInstant(storedLease.get("createdAt")),
+                claimLease
+            );
+            return java.util.Optional.of(job);
+        } catch (RuntimeException exception) {
+            return java.util.Optional.empty();
+        }
     }
 
     private void recordRedisFailure() {
@@ -334,8 +363,9 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             try {
                 UUID jobId = UUID.fromString(current.get("jobId"));
                 streamIdsByJobId.put(jobId, streamId);
-                JobClaimLease claimLease = writeClaimLease(redis, jobId, streamId, nodeId);
-                IslandJob claimedJob = new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt")), claimLease);
+                IslandJob job = new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt")));
+                JobClaimLease claimLease = writeClaimLease(redis, job, streamId, nodeId);
+                IslandJob claimedJob = job.withClaimLease(claimLease);
                 claimedJobs.put(jobId, claimedJob);
                 claimedNodesByJobId.put(jobId, nodeId);
                 jobs.add(claimedJob);
@@ -350,7 +380,8 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         }
     }
 
-    private JobClaimLease writeClaimLease(RedisRespConnection redis, UUID jobId, String streamId, String nodeId) throws IOException {
+    private JobClaimLease writeClaimLease(RedisRespConnection redis, IslandJob job, String streamId, String nodeId) throws IOException {
+        UUID jobId = job.jobId();
         String key = RedisKeys.jobClaim(jobId);
         long claimEpoch = parseLong(redis.command("HINCRBY", key, "claimEpoch", "1"), 1L);
         String claimToken = UUID.randomUUID().toString();
@@ -364,7 +395,13 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             "claimedByNode", nodeId,
             "claimToken", claimToken,
             "leaseExpiresAt", leaseExpiresAt.toString(),
-            "attempt", Integer.toString(attempt)
+            "attempt", Integer.toString(attempt),
+            "type", job.type().name(),
+            "islandId", job.islandId().toString(),
+            "targetNode", job.targetNode() == null ? "" : job.targetNode(),
+            "priority", Integer.toString(job.priority()),
+            "createdAt", job.createdAt().toString(),
+            "payload", encodePayload(job.payload())
         );
         redis.command("PEXPIRE", key, Long.toString(Math.max(leaseDuration.toMillis() * 4L, 60_000L)));
         return new JobClaimLease(jobId, streamId, nodeId, claimToken, claimEpoch, leaseExpiresAt, attempt);

@@ -301,7 +301,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             raise RuntimeError(f"unexpected create target node {active_node}")
         standby_node = node_b if active_node == node_a else node_a
 
-        create_job = claim_one(secondary_url, active_node, "CREATE_ISLAND")
+        create_job = claim_one(primary_url, active_node, "CREATE_ISLAND")
         if int(create_job.get("payload", {}).get("fencingToken", "0")) <= 0:
             raise RuntimeError(f"expected create job fencing token, got {create_job}")
         complete_job(
@@ -394,7 +394,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         if sweep.get("recoveryRequired") < 1 or sweep.get("recoveryQueued") < 1:
             raise RuntimeError(f"expected node sweep to queue recovery, got {sweep}")
 
-        restore_job = claim_one(primary_url, standby_node, "RESTORE_ISLAND")
+        restore_job = claim_one(secondary_url, standby_node, "RESTORE_ISLAND")
         if int(restore_job.get("payload", {}).get("fencingToken", "0")) <= 0:
             raise RuntimeError(f"expected restore job fencing token, got {restore_job}")
         complete_job(
