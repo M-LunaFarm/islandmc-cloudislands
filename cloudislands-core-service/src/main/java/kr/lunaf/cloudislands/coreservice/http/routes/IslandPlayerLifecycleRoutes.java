@@ -55,8 +55,8 @@ public final class IslandPlayerLifecycleRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/delete", this::delete);
-        registry.route("/v1/islands/reset", this::reset);
+        registry.routePost("/v1/islands/delete", this::delete);
+        registry.routePost("/v1/islands/reset", this::reset);
     }
 
     private void delete(HttpExchange exchange) throws IOException {
