@@ -5,7 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class EventApiSurfacePolicyTest {
@@ -86,5 +90,44 @@ class EventApiSurfacePolicyTest {
         assertEquals("core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events", EventApiSurfacePolicy.ADDON_DELIVERY_POLICY);
         assertTrue(EventApiSurfacePolicy.globalEventSummary().contains("ISLAND_SNAPSHOT_CREATED"));
         assertTrue(EventApiSurfacePolicy.localEventSummary().contains("IslandPermissionCheckEvent"));
+    }
+
+    @Test
+    void requiredGlobalEventsHavePublisherAndConsumerCoverage() throws Exception {
+        Path root = workspaceRoot();
+        String corePublishers = sourceTree(root.resolve("cloudislands-core-service/src/main/java"), path -> !path.toString().contains("/metrics/"));
+        String paperPoller = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java"));
+
+        assertTrue(paperPoller.contains("new CloudIslandsGlobalEvent"), "Paper poller must publish the generic addon-visible event");
+        for (CloudIslandEventType eventType : EventApiSurfacePolicy.requiredGlobalEvents()) {
+            assertTrue(
+                corePublishers.contains("CloudIslandEventType." + eventType.name()),
+                eventType + " must be referenced by a Core publisher source"
+            );
+            assertTrue(
+                paperPoller.contains("CloudIslandEventType." + eventType.name() + ".name()"),
+                eventType + " must be consumed by the Paper event poller"
+            );
+        }
+    }
+
+    private static Path workspaceRoot() {
+        Path current = Path.of("").toAbsolutePath();
+        for (Path candidate : List.of(current, current.getParent())) {
+            if (candidate != null && Files.isDirectory(candidate.resolve("cloudislands-core-service/src/main/java"))) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("Cannot locate CloudIslands workspace root from " + current);
+    }
+
+    private static String sourceTree(Path root, java.util.function.Predicate<Path> include) throws IOException {
+        StringBuilder source = new StringBuilder();
+        try (Stream<Path> files = Files.walk(root)) {
+            for (Path file : files.filter(path -> path.getFileName().toString().endsWith(".java")).filter(include).toList()) {
+                source.append(Files.readString(file)).append('\n');
+            }
+        }
+        return source.toString();
     }
 }

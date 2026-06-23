@@ -1037,6 +1037,22 @@ tasks.register<Test>("verifyRouteDomainCoverage") {
     include("kr/lunaf/cloudislands/coreservice/CoreRouteDomainCoverageTest.class")
 }
 
+tasks.register<Test>("verifyEventCoverage") {
+    group = "verification"
+    description = "Verifies canonical event types have explicit cache consumers and required global delivery coverage."
+    val commonSourceSets = project(":cloudislands-common").extensions.getByType<SourceSetContainer>()
+    val commonTest = commonSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-common").tasks.named("testClasses"))
+    testClassesDirs = commonTest.output.classesDirs
+    classpath = commonTest.runtimeClasspath
+    workingDir = rootProject.projectDir
+    useJUnitPlatform()
+    include(
+        "kr/lunaf/cloudislands/common/event/CacheInvalidationPlanTest.class",
+        "kr/lunaf/cloudislands/common/event/EventApiSurfacePolicyTest.class"
+    )
+}
+
 tasks.register<Test>("verifyGuiActionCoverage") {
     group = "verification"
     description = "Verifies registered GUI actions parse to typed actions and route to executable handlers."
@@ -1589,6 +1605,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyCommandCoverage"))
     dependsOn(tasks.named("verifyApiRouteCoverage"))
     dependsOn(tasks.named("verifyRouteDomainCoverage"))
+    dependsOn(tasks.named("verifyEventCoverage"))
     dependsOn(tasks.named("verifyGuiActionCoverage"))
     dependsOn(tasks.named("verifyPermissionCoverage"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))

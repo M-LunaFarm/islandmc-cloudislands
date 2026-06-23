@@ -67,4 +67,10 @@ class CacheInvalidationPlanTest {
         ), keys);
         assertTrue(CacheInvalidationPlan.nodeRedisKeysFor(CloudIslandEventType.ISLAND_MEMBER_CHANGED, "island-2").isEmpty());
     }
+
+    @Test
+    void reviewAndWarehouseEventsHaveExplicitSummaryInvalidationPlans() {
+        assertEquals(Set.of(CacheInvalidationPlan.CacheTarget.SUMMARY), CacheInvalidationPlan.targetsFor(CloudIslandEventType.ISLAND_REVIEW_CHANGED));
+        assertEquals(Set.of(CacheInvalidationPlan.CacheTarget.SUMMARY), CacheInvalidationPlan.targetsFor(CloudIslandEventType.ISLAND_WAREHOUSE_CHANGED));
+    }
 }

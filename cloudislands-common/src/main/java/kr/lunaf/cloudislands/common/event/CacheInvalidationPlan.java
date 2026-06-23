@@ -24,6 +24,7 @@ public final class CacheInvalidationPlan {
             case ISLAND_BIOME_CHANGED -> EnumSet.of(CacheTarget.BIOME, CacheTarget.SUMMARY);
             case ISLAND_HOME_CHANGED -> EnumSet.of(CacheTarget.HOMES, CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_WARP_CREATED, ISLAND_WARP_DELETED, ISLAND_WARP_CHANGED -> EnumSet.of(CacheTarget.WARPS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
+            case ISLAND_REVIEW_CHANGED, ISLAND_WAREHOUSE_CHANGED -> EnumSet.of(CacheTarget.SUMMARY);
             case ISLAND_BANK_CHANGED -> EnumSet.of(CacheTarget.BANK, CacheTarget.SUMMARY);
             case ISLAND_CHAT_SENT -> EnumSet.of(CacheTarget.CHAT);
             case ISLAND_MISSION_PROGRESS, ISLAND_MISSION_COMPLETED -> EnumSet.of(CacheTarget.MISSIONS, CacheTarget.SUMMARY, CacheTarget.LEVEL);
@@ -41,7 +42,6 @@ public final class CacheInvalidationPlan {
             case CORE_CACHE_CLEARED, CORE_RELOADED -> EnumSet.allOf(CacheTarget.class);
             case ISLAND_PRE_VISIT, ISLAND_VISITED, ISLAND_VISITOR_KICKED, ROUTE_TICKET_CREATED, ROUTE_SESSION_PUBLISHED, ROUTE_TICKET_CONSUMED, ROUTE_TICKET_FAILED, ROUTE_TICKET_CLEARED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.ROUTE_TICKETS, CacheTarget.SUMMARY);
             case ISLAND_DELETED -> EnumSet.allOf(CacheTarget.class);
-            default -> EnumSet.of(CacheTarget.SUMMARY);
         };
     }
 
