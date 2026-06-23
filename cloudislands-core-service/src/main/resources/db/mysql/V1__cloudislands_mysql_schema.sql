@@ -447,6 +447,27 @@ CREATE TABLE IF NOT EXISTS job_completion_receipts (
 CREATE INDEX idx_job_completion_receipts_island ON job_completion_receipts(island_id, committed_at DESC);
 CREATE INDEX idx_job_completion_receipts_request_hash ON job_completion_receipts(request_hash);
 
+CREATE TABLE IF NOT EXISTS core_event_outbox (
+    event_id CHAR(36) PRIMARY KEY,
+    aggregate_id CHAR(36) NOT NULL,
+    aggregate_version BIGINT NOT NULL,
+    event_type VARCHAR(128) NOT NULL,
+    payload JSON NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    last_error TEXT,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    dispatched_at DATETIME(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT chk_core_event_outbox_version_non_negative CHECK (aggregate_version >= 0),
+    CONSTRAINT chk_core_event_outbox_attempts_non_negative CHECK (attempts >= 0),
+    CONSTRAINT chk_core_event_outbox_status_known CHECK (status IN ('PENDING', 'DISPATCHING', 'DISPATCHED', 'FAILED'))
+);
+
+CREATE INDEX idx_core_event_outbox_due ON core_event_outbox(status, next_attempt_at, created_at);
+CREATE INDEX idx_core_event_outbox_aggregate ON core_event_outbox(aggregate_id, aggregate_version);
+
 CREATE TABLE IF NOT EXISTS server_nodes (
     id VARCHAR(64) PRIMARY KEY,
     pool VARCHAR(64) NOT NULL,

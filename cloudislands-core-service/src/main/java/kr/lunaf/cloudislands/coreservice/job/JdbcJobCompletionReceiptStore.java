@@ -18,16 +18,22 @@ public final class JdbcJobCompletionReceiptStore implements JobCompletionReceipt
     }
 
     @Override
-    public RecordResult record(JobCompletionRequest request) {
+    public RecordOutcome record(JobCompletionRequest request) {
         try (Connection connection = dataSource.getConnection()) {
-            if (insert(connection, request)) {
-                return RecordResult.NEW;
+            connection.setAutoCommit(false);
+            long aggregateVersion = nextAggregateVersion(connection, request);
+            if (insert(connection, request, aggregateVersion)) {
+                connection.commit();
+                return new RecordOutcome(RecordResult.NEW, aggregateVersion);
             }
-            String existingHash = readHash(connection, request.job().jobId());
-            if (existingHash == null) {
+            ExistingReceipt existing = readExisting(connection, request.job().jobId());
+            if (existing == null) {
+                connection.rollback();
                 throw new IllegalStateException("job completion receipt insert was ignored but no receipt exists");
             }
-            return existingHash.equals(request.requestHash()) ? RecordResult.REPLAY : RecordResult.CONFLICT;
+            connection.commit();
+            RecordResult result = existing.requestHash().equals(request.requestHash()) ? RecordResult.REPLAY : RecordResult.CONFLICT;
+            return new RecordOutcome(result, existing.aggregateVersion());
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to record job completion receipt", exception);
         }
@@ -45,11 +51,11 @@ public final class JdbcJobCompletionReceiptStore implements JobCompletionReceipt
         }
     }
 
-    private boolean insert(Connection connection, JobCompletionRequest request) throws SQLException {
+    private boolean insert(Connection connection, JobCompletionRequest request, long aggregateVersion) throws SQLException {
         boolean mysqlLike = mysqlLike(connection);
         String payloadValue = mysqlLike ? "?" : "CAST(? AS jsonb)";
         String receiptValue = mysqlLike ? "?" : "CAST(? AS jsonb)";
-        String insert = "INSERT INTO job_completion_receipts(job_id, receipt_id, job_type, island_id, target_node, claimant_node, claim_token, claim_epoch, request_hash, request_payload, receipt_payload, completion_status, aggregate_version, committed_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, " + payloadValue + ", " + receiptValue + ", 'COMPLETED', 0, ?, ?)";
+        String insert = "INSERT INTO job_completion_receipts(job_id, receipt_id, job_type, island_id, target_node, claimant_node, claim_token, claim_epoch, request_hash, request_payload, receipt_payload, completion_status, aggregate_version, committed_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, " + payloadValue + ", " + receiptValue + ", 'COMPLETED', ?, ?, ?)";
         String sql = mysqlLike
             ? insert.replace("INSERT INTO", "INSERT IGNORE INTO")
             : insert + " ON CONFLICT (job_id) DO NOTHING";
@@ -66,17 +72,27 @@ public final class JdbcJobCompletionReceiptStore implements JobCompletionReceipt
             statement.setString(10, request.requestPayloadJson());
             statement.setString(11, request.receiptPayloadJson());
             Timestamp now = Timestamp.from(Instant.now());
-            statement.setObject(12, now);
+            statement.setLong(12, aggregateVersion);
             statement.setObject(13, now);
+            statement.setObject(14, now);
             return statement.executeUpdate() > 0;
         }
     }
 
-    private String readHash(Connection connection, UUID jobId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT request_hash FROM job_completion_receipts WHERE job_id = ?")) {
+    private long nextAggregateVersion(Connection connection, JobCompletionRequest request) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT COALESCE(MAX(aggregate_version), 0) + 1 FROM job_completion_receipts WHERE island_id = ?")) {
+            statement.setObject(1, request.job().islandId());
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Math.max(1L, rs.getLong(1)) : 1L;
+            }
+        }
+    }
+
+    private ExistingReceipt readExisting(Connection connection, UUID jobId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT request_hash, aggregate_version FROM job_completion_receipts WHERE job_id = ?")) {
             statement.setObject(1, jobId);
             try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? rs.getString("request_hash") : null;
+                return rs.next() ? new ExistingReceipt(rs.getString("request_hash"), rs.getLong("aggregate_version")) : null;
             }
         }
     }
@@ -98,5 +114,8 @@ public final class JdbcJobCompletionReceiptStore implements JobCompletionReceipt
         String product = connection.getMetaData().getDatabaseProductName();
         String normalized = product == null ? "" : product.toLowerCase(Locale.ROOT);
         return normalized.contains("mysql") || normalized.contains("mariadb");
+    }
+
+    private record ExistingReceipt(String requestHash, long aggregateVersion) {
     }
 }

@@ -165,6 +165,8 @@ class JobCompletionServiceTest {
         assertEquals(first.requestHash(), replay.requestHash());
         assertEquals(1, snapshots.list(ISLAND, 10).size());
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name()));
+        assertEquals(1, events.countsByField(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), "eventId").size());
+        assertEquals(Map.of("1", 1L), events.countsByField(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), "aggregateVersion"));
         assertThrows(JobCompletionConflictException.class, () -> service.completed(claimed, Map.of(
             "snapshotNo", "22",
             "reason", "MANUAL",

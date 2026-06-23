@@ -9,7 +9,10 @@ public interface JobCompletionReceiptStore {
         CONFLICT
     }
 
-    RecordResult record(JobCompletionRequest request);
+    record RecordOutcome(RecordResult result, long aggregateVersion) {
+    }
+
+    RecordOutcome record(JobCompletionRequest request);
 
     void forget(UUID jobId, String requestHash);
 }

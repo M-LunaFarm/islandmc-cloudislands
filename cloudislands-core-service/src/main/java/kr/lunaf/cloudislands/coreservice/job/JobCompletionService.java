@@ -43,12 +43,19 @@ public final class JobCompletionService {
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock) {
-        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, new InMemoryJobCompletionReceiptStore());
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, new InMemoryJobCompletionReceiptStore(), new InMemoryJobCompletionOutboxStore());
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock, JobCompletionReceiptStore receipts) {
-        this.backend = new JobCompletionBackend(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock);
-        this.coordinator = new JobCompletionCoordinator(backend, receipts == null ? new InMemoryJobCompletionReceiptStore() : receipts);
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, receipts, new InMemoryJobCompletionOutboxStore());
+    }
+
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock, JobCompletionReceiptStore receipts, JobCompletionOutboxStore outbox) {
+        JobCompletionEventBuffer eventBuffer = new JobCompletionEventBuffer();
+        JobCompletionOutboxStore safeOutbox = outbox == null ? new InMemoryJobCompletionOutboxStore() : outbox;
+        JobCompletionOutboxDispatcher dispatcher = new JobCompletionOutboxDispatcher(safeOutbox, events);
+        this.backend = new JobCompletionBackend(runtimes, eventBuffer, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock);
+        this.coordinator = new JobCompletionCoordinator(backend, eventBuffer, receipts == null ? new InMemoryJobCompletionReceiptStore() : receipts, safeOutbox, dispatcher);
     }
 
     public void completed(IslandJob job) {

@@ -176,6 +176,7 @@ public final class CloudIslandsCoreApplication {
     private final NodeFailureMonitor nodeFailureMonitor;
     private final RouteTicketExpiryMonitor routeTicketExpiryMonitor;
     private final JobRecoveryMonitor jobRecoveryMonitor;
+    private final kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxDispatcher completionOutboxDispatcher;
     private final CoreIslandDeleteService islandDeleteService;
     private final DirtyRankingRecalculationTask rankingRecalculationTask;
     private final int snapshotKeepLatest;
@@ -319,7 +320,11 @@ public final class CloudIslandsCoreApplication {
         kr.lunaf.cloudislands.coreservice.job.JobCompletionReceiptStore completionReceipts = config.jdbcRepositories()
             ? new kr.lunaf.cloudislands.coreservice.job.JdbcJobCompletionReceiptStore(dataSource)
             : new kr.lunaf.cloudislands.coreservice.job.InMemoryJobCompletionReceiptStore();
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxStore completionOutbox = config.jdbcRepositories()
+            ? new kr.lunaf.cloudislands.coreservice.job.JdbcJobCompletionOutboxStore(dataSource)
+            : new kr.lunaf.cloudislands.coreservice.job.InMemoryJobCompletionOutboxStore();
+        this.completionOutboxDispatcher = new kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxDispatcher(completionOutbox, events);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts, completionOutbox);
         PrometheusMetricsRenderer metrics = CoreMetricsFactory.create(
             config,
             coreJdbcActive,
@@ -460,11 +465,13 @@ public final class CloudIslandsCoreApplication {
         nodeFailureMonitor.start();
         routeTicketExpiryMonitor.start();
         jobRecoveryMonitor.start();
+        completionOutboxDispatcher.start();
         rankingRecalculationTask.start();
     }
 
     public void stop() {
         rankingRecalculationTask.stop();
+        completionOutboxDispatcher.stop();
         jobRecoveryMonitor.stop();
         routeTicketExpiryMonitor.stop();
         nodeFailureMonitor.stop();
