@@ -46,8 +46,8 @@ public final class IslandCommunicationRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/logs", this::logs);
-        registry.route("/v1/islands/chat", this::chat);
+        registry.routePost("/v1/islands/logs", this::logs);
+        registry.routePost("/v1/islands/chat", this::chat);
     }
 
     private void logs(HttpExchange exchange) throws IOException {
