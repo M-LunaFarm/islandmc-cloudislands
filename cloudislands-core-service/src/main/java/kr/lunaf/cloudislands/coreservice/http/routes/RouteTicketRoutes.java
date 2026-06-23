@@ -51,15 +51,15 @@ public final class RouteTicketRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/routes/session", this::publishSession);
-        registry.route("/v1/routes/session/find", this::findSession);
-        registry.route("/v1/routes/session/find-any", this::findAnySession);
-        registry.route("/v1/routes/session/consume", this::consumeSession);
-        registry.route("/v1/routes/ticket-status", this::ticketStatus);
-        registry.route("/v1/routes/consume", this::consumeTicket);
-        registry.route("/v1/admin/routes/debug", this::debug);
-        registry.route("/v1/admin/routes/ticket", this::ticket);
-        registry.route("/v1/admin/routes/clear", this::clear);
+        registry.routePost("/v1/routes/session", this::publishSession);
+        registry.routePost("/v1/routes/session/find", this::findSession);
+        registry.routePost("/v1/routes/session/find-any", this::findAnySession);
+        registry.routePost("/v1/routes/session/consume", this::consumeSession);
+        registry.routePost("/v1/routes/ticket-status", this::ticketStatus);
+        registry.routePost("/v1/routes/consume", this::consumeTicket);
+        registry.routePost("/v1/admin/routes/debug", this::debug);
+        registry.routePost("/v1/admin/routes/ticket", this::ticket);
+        registry.routePost("/v1/admin/routes/clear", this::clear);
     }
 
     private void publishSession(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
