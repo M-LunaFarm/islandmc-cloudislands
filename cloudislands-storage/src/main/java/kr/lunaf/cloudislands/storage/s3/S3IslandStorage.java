@@ -725,10 +725,16 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
             int partNumber = 1;
             long remaining = sizeBytes;
             while (remaining > 0L) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new IOException("object multipart upload cancelled");
+                }
                 Path part = Files.createTempFile("cloudislands-object-part-", ".upload");
                 long partBytes = 0L;
                 try (OutputStream output = Files.newOutputStream(part)) {
                     while (partBytes < options.multipartPartBytes() && remaining > 0L) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            throw new IOException("object multipart upload cancelled");
+                        }
                         int read = input.read(buffer, 0, (int) Math.min(buffer.length, Math.min(options.multipartPartBytes() - partBytes, remaining)));
                         if (read < 0) {
                             break;

@@ -99,6 +99,38 @@ class S3IslandStorageObjectClientTest {
     }
 
     @Test
+    void multipartCompleteFailureAbortsUploadAndLeavesNoObject() throws Exception {
+        FakeS3 fake = new FakeS3();
+        fake.failMultipartComplete = true;
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", fake::handle);
+        server.start();
+        S3IslandStorage storage = new S3IslandStorage(
+            URI.create("http://127.0.0.1:" + server.getAddress().getPort()),
+            "bucket",
+            "us-east-1",
+            "",
+            "",
+            "",
+            Duration.ofSeconds(5),
+            1,
+            4L,
+            4L
+        );
+        String key = "islands/test/snapshots/000001/bundle.tar.zst";
+        byte[] payload = "large-bundle-stream".getBytes(StandardCharsets.UTF_8);
+
+        IOException exception = assertThrows(IOException.class, () -> storage.putObject(key, new ByteArrayInputStream(payload), ObjectStoragePutOptions.defaults().withMultipart(4L, 4L)));
+
+        assertTrue(exception.getMessage().contains("multipart complete failed"));
+        assertEquals(1, fake.multipartAborts);
+        assertTrue(fake.parts.isEmpty());
+        assertTrue(!fake.objects.containsKey(key));
+        assertEquals(1L, storage.objectMetrics().putFailures());
+        assertEquals(1L, storage.objectMetrics().orphanCleanups());
+    }
+
+    @Test
     void writeSnapshotUpdatesLatestWithCreateCas() throws Exception {
         FakeS3 fake = new FakeS3();
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -240,6 +272,8 @@ class S3IslandStorageObjectClientTest {
         private String latestIfNoneMatch = "";
         private String latestIfMatch = "";
         private boolean latestCasConflict = false;
+        private boolean failMultipartComplete = false;
+        private int multipartAborts = 0;
 
         private void handle(HttpExchange exchange) throws IOException {
             String path = exchange.getRequestURI().getPath();
@@ -267,6 +301,10 @@ class S3IslandStorageObjectClientTest {
                 return;
             }
             if ("POST".equals(exchange.getRequestMethod()) && query != null && query.contains("uploadId=")) {
+                if (failMultipartComplete) {
+                    write(exchange, 500, new byte[0]);
+                    return;
+                }
                 int size = parts.values().stream().mapToInt(part -> part.length).sum();
                 byte[] combined = new byte[size];
                 int offset = 0;
@@ -281,6 +319,12 @@ class S3IslandStorageObjectClientTest {
                 }
                 objects.put(key, combined);
                 write(exchange, 200, "<CompleteMultipartUploadResult/>".getBytes(StandardCharsets.UTF_8));
+                return;
+            }
+            if ("DELETE".equals(exchange.getRequestMethod()) && query != null && query.contains("uploadId=")) {
+                multipartAborts++;
+                parts.clear();
+                write(exchange, 204, new byte[0]);
                 return;
             }
             if ("PUT".equals(exchange.getRequestMethod()) && query == null) {
