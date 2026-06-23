@@ -124,7 +124,7 @@ def complete_job(base_url: str, node_id: str, job: dict, payload: dict) -> None:
         base_url,
         "POST",
         "/v1/jobs/complete",
-        {"nodeId": node_id, "jobId": job["jobId"], "payload": payload},
+        {"nodeId": node_id, "jobId": job["jobId"], "claimLease": job.get("claimLease", {}), "payload": payload},
         admin=True,
         expect=(202,),
     )
@@ -256,13 +256,12 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             "CI_SNAPSHOT_KEEP_LATEST": "5",
         }
     )
-    processes = [
-        start_core(core_bin, work_dir / "core-1", port, env),
-        start_core(core_bin, work_dir / "core-2", secondary_port, env),
-    ]
+    processes = []
     try:
         deadline = time.monotonic() + timeout
+        processes.append(start_core(core_bin, work_dir / "core-1", port, env))
         wait_for_ready(primary_url, deadline)
+        processes.append(start_core(core_bin, work_dir / "core-2", secondary_port, env))
         wait_for_ready(secondary_url, deadline)
         for base_url in (primary_url, secondary_url):
             config = request(base_url, "POST", "/v1/admin/config", {}, admin=True, expect=(200,))
@@ -276,8 +275,12 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
 
         node_a = "island-a-" + uuid.uuid4().hex[:8]
         node_b = "island-b-" + uuid.uuid4().hex[:8]
-        heartbeat(primary_url, node_a, "Island-A")
-        heartbeat(primary_url, node_b, "Island-B")
+        node_servers = {
+            node_a: "Island-A-" + node_a.rsplit("-", 1)[-1],
+            node_b: "Island-B-" + node_b.rsplit("-", 1)[-1],
+        }
+        heartbeat(primary_url, node_a, node_servers[node_a])
+        heartbeat(primary_url, node_b, node_servers[node_b])
         nodes = request(secondary_url, "POST", "/v1/nodes", {}, expect=(200,))
         if nodes.get("routeCandidateCount", 0) < 2:
             raise RuntimeError(f"expected two route candidates from secondary core, got {nodes}")
@@ -378,8 +381,8 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         if int(where.get("fencingToken", 0)) <= 0:
             raise RuntimeError(f"expected active runtime fencing token from secondary core, got {where}")
 
-        heartbeat(secondary_url, active_node, "Island-A" if active_node == node_a else "Island-B", state="DOWN", active_islands=1)
-        heartbeat(primary_url, standby_node, "Island-B" if standby_node == node_b else "Island-A")
+        heartbeat(secondary_url, active_node, node_servers[active_node], state="DOWN", active_islands=1)
+        heartbeat(primary_url, standby_node, node_servers[standby_node])
         sweep = request(
             secondary_url,
             "POST",

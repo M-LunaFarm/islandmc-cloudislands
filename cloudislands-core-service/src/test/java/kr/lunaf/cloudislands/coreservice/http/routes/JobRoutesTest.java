@@ -39,6 +39,7 @@ import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 import org.junit.jupiter.api.Test;
 
 class JobRoutesTest {
@@ -73,7 +74,7 @@ class JobRoutesTest {
     void completeRouteCommitsCompletionBeforeAcknowledgingClaimedJob() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/JobRoutes.java"));
         int completionIndex = source.indexOf("completion.completed(claimed.get())");
-        int ackIndex = source.indexOf("jobs.complete(request.nodeId(), request.jobId())");
+        int ackIndex = source.indexOf("jobs.complete(request.nodeId(), request.jobId(), request.claimLease())");
 
         assertTrue(completionIndex > 0, "completion must be explicitly committed");
         assertTrue(ackIndex > completionIndex, "job queue ack must happen only after completion state is committed");
@@ -87,7 +88,9 @@ class JobRoutesTest {
         UUID jobId = UUID.randomUUID();
         InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
         jobs.publish(new IslandJob(jobId, IslandJobType.SAVE_ISLAND, islandId, nodeId, 0, Map.of("fencingToken", "7"), Instant.EPOCH));
-        assertEquals(1, jobs.claim(nodeId, List.of(IslandJobType.SAVE_ISLAND), 1).size());
+        List<IslandJob> claimedJobs = jobs.claim(nodeId, List.of(IslandJobType.SAVE_ISLAND), 1);
+        assertEquals(1, claimedJobs.size());
+        JobClaimLease lease = claimedJobs.getFirst().claimLease();
 
         InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
         runtimes.markActive(islandId, nodeId, "ci_shard_001", 0, 0, 7L);
@@ -100,7 +103,7 @@ class JobRoutesTest {
         Map<String, HttpHandler> handlers = new HashMap<>();
         new JobRoutes(jobs, completion, null).register(handlers::put);
 
-        TestExchange exchange = exchange("{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"payload\":{\"snapshotNo\":\"12\",\"checksum\":\"sha256:test\",\"sizeBytes\":\"64\"}}");
+        TestExchange exchange = exchange("{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"claimLease\":" + claimLeaseJson(lease) + ",\"payload\":{\"snapshotNo\":\"12\",\"checksum\":\"sha256:test\",\"sizeBytes\":\"64\"}}");
         handlers.get("/v1/jobs/complete").handle(exchange);
 
         assertEquals(500, exchange.status());
@@ -108,6 +111,41 @@ class JobRoutesTest {
         assertTrue(jobs.findClaimed(jobId).isPresent(), "claimed job must remain retryable until completion state is committed");
         assertEquals(1L, jobs.countsByState().get("CLAIMED"));
         assertEquals(0L, jobs.countsByState().get("COMPLETED"));
+    }
+
+    @Test
+    void completeRouteRejectsForgedClaimLeaseBeforeCompletion() throws Exception {
+        String nodeId = "island-node-1";
+        UUID islandId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        jobs.publish(new IslandJob(jobId, IslandJobType.SAVE_ISLAND, islandId, nodeId, 0, Map.of(), Instant.EPOCH));
+        JobClaimLease lease = jobs.claim(nodeId, List.of(IslandJobType.SAVE_ISLAND), 1).getFirst().claimLease();
+        JobClaimLease forged = new JobClaimLease(
+            lease.jobId(),
+            lease.streamId(),
+            lease.claimedByNode(),
+            lease.claimToken() + "-forged",
+            lease.claimEpoch(),
+            lease.leaseExpiresAt(),
+            lease.attempt()
+        );
+        JobCompletionService completion = new JobCompletionService(
+            new InMemoryIslandRuntimeRepository(),
+            new InMemoryGlobalEventPublisher(),
+            new FailingSnapshotRepository(),
+            new InMemoryRouteTicketStore(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC))
+        );
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new JobRoutes(jobs, completion, null).register(handlers::put);
+
+        TestExchange exchange = exchange("{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"claimLease\":" + claimLeaseJson(forged) + ",\"payload\":{\"snapshotNo\":\"12\"}}");
+        handlers.get("/v1/jobs/complete").handle(exchange);
+
+        assertEquals(409, exchange.status());
+        assertTrue(exchange.body().contains("\"code\":\"JOB_CLAIM_MISMATCH\""));
+        assertTrue(jobs.findClaimed(jobId, lease).isPresent());
+        assertEquals(1L, jobs.countsByState().get("CLAIMED"));
     }
 
     @Test
@@ -127,6 +165,18 @@ class JobRoutesTest {
 
     private TestExchange exchange(String body) {
         return new TestExchange(body);
+    }
+
+    private String claimLeaseJson(JobClaimLease lease) {
+        return "{"
+            + "\"jobId\":\"" + lease.jobId() + "\","
+            + "\"streamId\":\"" + lease.streamId() + "\","
+            + "\"claimedByNode\":\"" + lease.claimedByNode() + "\","
+            + "\"claimToken\":\"" + lease.claimToken() + "\","
+            + "\"claimEpoch\":" + lease.claimEpoch() + ","
+            + "\"leaseExpiresAt\":\"" + lease.leaseExpiresAt() + "\","
+            + "\"attempt\":" + lease.attempt()
+            + "}";
     }
 
     private static final class FailingSnapshotRepository implements IslandSnapshotRepository {

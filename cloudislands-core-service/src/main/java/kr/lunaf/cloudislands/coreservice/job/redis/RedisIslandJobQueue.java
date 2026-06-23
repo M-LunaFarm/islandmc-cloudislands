@@ -77,14 +77,36 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         return java.util.Optional.ofNullable(claimedJobs.get(jobId));
     }
 
-    
+    @Override
+    public java.util.Optional<IslandJob> findClaimed(UUID jobId, JobClaimLease claimLease) {
+        if (!storedLeaseMatches(jobId, claimLease)) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.ofNullable(claimedJobs.get(jobId));
+    }
+
+    @Override
     public boolean complete(String nodeId, UUID jobId) {
         return ackByJobId(nodeId, jobId, "completed", null);
     }
 
     @Override
+    public boolean complete(String nodeId, UUID jobId, JobClaimLease claimLease) {
+        return ackByJobId(nodeId, jobId, claimLease, "completed", null);
+    }
+
+    @Override
     public boolean fail(String nodeId, UUID jobId, String errorMessage) {
         boolean acked = ackByJobId(nodeId, jobId, "failed", errorMessage);
+        if (acked) {
+            failedJobsTotal.incrementAndGet();
+        }
+        return acked;
+    }
+
+    @Override
+    public boolean fail(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+        boolean acked = ackByJobId(nodeId, jobId, claimLease, "failed", errorMessage);
         if (acked) {
             failedJobsTotal.incrementAndGet();
         }
@@ -203,6 +225,70 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             recordRedisFailure();
             throw new IllegalStateException("failed to ack redis island job", exception);
         }
+    }
+
+    private boolean ackByJobId(String nodeId, UUID jobId, JobClaimLease claimLease, String state, String errorMessage) {
+        if (claimLease == null || !claimLease.matches(jobId, nodeId)) {
+            return false;
+        }
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            Map<String, String> storedLease = readClaimHash(redis, jobId);
+            if (!storedLeaseMatches(jobId, claimLease, storedLease)) {
+                return false;
+            }
+            claimedJobs.remove(jobId);
+            String streamId = streamIdsByJobId.remove(jobId);
+            if (streamId == null || streamId.isBlank()) {
+                streamId = storedLease.getOrDefault("streamId", "");
+            }
+            claimedNodesByJobId.remove(jobId);
+            if (!streamId.isBlank()) {
+                redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+            }
+            redis.command("DEL", RedisKeys.jobClaim(jobId));
+            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_" + state.toUpperCase(), "jobId", jobId.toString(), "streamId", streamId, "error", errorMessage == null ? "" : errorMessage);
+            return true;
+        } catch (IOException | RuntimeException exception) {
+            recordRedisFailure();
+            throw new IllegalStateException("failed to ack redis island job", exception);
+        }
+    }
+
+    private boolean storedLeaseMatches(UUID jobId, JobClaimLease claimLease) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            return storedLeaseMatches(jobId, claimLease, readClaimHash(redis, jobId));
+        } catch (IOException | RuntimeException exception) {
+            recordRedisFailure();
+            throw new IllegalStateException("failed to read redis job claim", exception);
+        }
+    }
+
+    private Map<String, String> readClaimHash(RedisRespConnection redis, UUID jobId) throws IOException {
+        String reply = redis.command("HGETALL", RedisKeys.jobClaim(jobId));
+        if (reply == null || reply.isBlank()) {
+            return Map.of();
+        }
+        String[] lines = reply.split("\\R", -1);
+        Map<String, String> values = new HashMap<>();
+        for (int i = 0; i + 1 < lines.length; i += 2) {
+            values.put(lines[i], lines[i + 1]);
+        }
+        return Map.copyOf(values);
+    }
+
+    private boolean storedLeaseMatches(UUID jobId, JobClaimLease claimLease, Map<String, String> storedLease) {
+        if (claimLease == null || !claimLease.matches(jobId, storedLease.get("claimedByNode"))) {
+            return false;
+        }
+        String streamId = storedLease.getOrDefault("streamId", "");
+        String token = storedLease.getOrDefault("claimToken", "");
+        long epoch = parseLong(storedLease.get("claimEpoch"), 0L);
+        Instant expiresAt = parseInstant(storedLease.get("leaseExpiresAt"));
+        return jobId.toString().equals(storedLease.get("jobId"))
+            && streamId.equals(claimLease.streamId())
+            && token.equals(claimLease.claimToken())
+            && epoch == claimLease.claimEpoch()
+            && expiresAt.isAfter(Instant.now());
     }
 
     private void recordRedisFailure() {

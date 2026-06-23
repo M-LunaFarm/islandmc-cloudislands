@@ -94,8 +94,46 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     }
 
     @Override
+    public Optional<IslandJob> findClaimed(UUID jobId, JobClaimLease claimLease) {
+        if (claimLease == null || !claimLease.matches(jobId, claimLease.claimedByNode())) {
+            return Optional.empty();
+        }
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM island_jobs WHERE id = ? AND state = 'CLAIMED' AND locked_by = ? AND claim_token = ? AND claim_epoch = ? AND locked_until > ?")) {
+            statement.setObject(1, jobId);
+            statement.setString(2, claimLease.claimedByNode());
+            statement.setString(3, claimLease.claimToken());
+            statement.setLong(4, claimLease.claimEpoch());
+            statement.setObject(5, java.sql.Timestamp.from(clock.instant()));
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.of(map(rs)) : Optional.empty();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read claimed jdbc island job", exception);
+        }
+    }
+
+    @Override
     public boolean complete(String nodeId, UUID jobId) {
         return updateState(nodeId, jobId, "COMPLETED", null);
+    }
+
+    @Override
+    public boolean complete(String nodeId, UUID jobId, JobClaimLease claimLease) {
+        if (claimLease == null || !claimLease.matches(jobId, nodeId)) {
+            return false;
+        }
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'COMPLETED', locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, error_message = NULL, updated_at = now() WHERE id = ? AND locked_by = ? AND claim_token = ? AND claim_epoch = ? AND locked_until > ? AND state = 'CLAIMED'")) {
+            statement.setObject(1, jobId);
+            statement.setString(2, nodeId);
+            statement.setString(3, claimLease.claimToken());
+            statement.setLong(4, claimLease.claimEpoch());
+            statement.setObject(5, java.sql.Timestamp.from(clock.instant()));
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to complete jdbc island job", exception);
+        }
     }
 
     @Override
@@ -105,6 +143,25 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
             statement.setString(1, errorMessage == null ? "unknown" : errorMessage);
             statement.setObject(2, jobId);
             statement.setString(3, nodeId);
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to fail jdbc island job", exception);
+        }
+    }
+
+    @Override
+    public boolean fail(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+        if (claimLease == null || !claimLease.matches(jobId, nodeId)) {
+            return false;
+        }
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = CASE WHEN retry_count + 1 < max_retries THEN 'PENDING' ELSE 'FAILED' END, retry_count = retry_count + 1, error_message = ?, locked_by = CASE WHEN retry_count + 1 < max_retries THEN NULL ELSE locked_by END, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, updated_at = now() WHERE id = ? AND locked_by = ? AND claim_token = ? AND claim_epoch = ? AND locked_until > ? AND state = 'CLAIMED'")) {
+            statement.setString(1, errorMessage == null ? "unknown" : errorMessage);
+            statement.setObject(2, jobId);
+            statement.setString(3, nodeId);
+            statement.setString(4, claimLease.claimToken());
+            statement.setLong(5, claimLease.claimEpoch());
+            statement.setObject(6, java.sql.Timestamp.from(clock.instant()));
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to fail jdbc island job", exception);

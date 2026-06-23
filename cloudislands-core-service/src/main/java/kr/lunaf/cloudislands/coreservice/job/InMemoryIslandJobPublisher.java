@@ -47,7 +47,15 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
             .findFirst();
     }
 
-    
+    @Override
+    public synchronized java.util.Optional<IslandJob> findClaimed(UUID jobId, JobClaimLease claimLease) {
+        return jobs.stream()
+            .filter(record -> leaseMatches(record, jobId, claimLease))
+            .map(JobRecord::claimedJob)
+            .findFirst();
+    }
+
+    @Override
     public synchronized boolean complete(String nodeId, UUID jobId) {
         final boolean[] changed = {false};
         replace(jobId, record -> {
@@ -61,10 +69,36 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
     }
 
     @Override
+    public synchronized boolean complete(String nodeId, UUID jobId, JobClaimLease claimLease) {
+        final boolean[] changed = {false};
+        replace(jobId, record -> {
+            if (leaseMatches(record, jobId, claimLease) && record.lockedBy().equals(nodeId)) {
+                changed[0] = true;
+                return record.completed();
+            }
+            return record;
+        });
+        return changed[0];
+    }
+
+    @Override
     public synchronized boolean fail(String nodeId, UUID jobId, String errorMessage) {
         final boolean[] changed = {false};
         replace(jobId, record -> {
             if (record.state() == JobState.CLAIMED && record.lockedBy() != null && record.lockedBy().equals(nodeId)) {
+                changed[0] = true;
+                return record.failed(errorMessage);
+            }
+            return record;
+        });
+        return changed[0];
+    }
+
+    @Override
+    public synchronized boolean fail(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+        final boolean[] changed = {false};
+        replace(jobId, record -> {
+            if (leaseMatches(record, jobId, claimLease) && record.lockedBy().equals(nodeId)) {
                 changed[0] = true;
                 return record.failed(errorMessage);
             }
@@ -160,6 +194,17 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
                 return;
             }
         }
+    }
+
+    private boolean leaseMatches(JobRecord record, UUID jobId, JobClaimLease claimLease) {
+        return record.state() == JobState.CLAIMED
+            && record.job().jobId().equals(jobId)
+            && claimLease != null
+            && claimLease.matches(jobId, record.lockedBy())
+            && claimLease.claimToken().equals(record.claimToken())
+            && claimLease.claimEpoch() == record.claimEpoch()
+            && record.lockedUntil() != null
+            && record.lockedUntil().isAfter(Instant.now());
     }
 
     private enum JobState {

@@ -59,7 +59,7 @@ public final class JobRoutes implements RouteGroup {
 
     private void complete(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         CompleteJobRequest request = CompleteJobRequest.read(CoreHttpResponses.readBody(exchange));
-        java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId()).map(job -> {
+        java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId(), request.claimLease()).map(job -> {
             Map<String, String> merged = new HashMap<>();
             merged.putAll(job.payload());
             merged.putAll(request.payload());
@@ -75,7 +75,7 @@ public final class JobRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 500, ApiResponses.error("JOB_COMPLETION_FAILED", "Job completion was not committed; retry the claimed job"));
             return;
         }
-        if (!jobs.complete(request.nodeId(), request.jobId())) {
+        if (!jobs.complete(request.nodeId(), request.jobId(), request.claimLease())) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
             return;
         }
@@ -84,8 +84,8 @@ public final class JobRoutes implements RouteGroup {
 
     private void fail(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         FailJobRequest request = FailJobRequest.read(CoreHttpResponses.readBody(exchange));
-        java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId());
-        if (claimed.isEmpty() || !jobs.fail(request.nodeId(), request.jobId(), request.error())) {
+        java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId(), request.claimLease());
+        if (claimed.isEmpty() || !jobs.fail(request.nodeId(), request.jobId(), request.claimLease(), request.error())) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
             return;
         }
