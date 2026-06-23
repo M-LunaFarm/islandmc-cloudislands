@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.cache.RedisCacheAdmin;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
 import kr.lunaf.cloudislands.coreservice.db.MeteredDataSource;
+import kr.lunaf.cloudislands.coreservice.event.FailFastGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
@@ -174,8 +175,11 @@ public final class CloudIslandsCoreApplication {
         kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxStore completionOutbox = config.jdbcRepositories()
             ? new kr.lunaf.cloudislands.coreservice.job.JdbcJobCompletionOutboxStore(dataSource)
             : new kr.lunaf.cloudislands.coreservice.job.InMemoryJobCompletionOutboxStore();
-        JobCompletionOutboxDispatcher completionOutboxDispatcher = new JobCompletionOutboxDispatcher(completionOutbox, events);
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts, completionOutbox);
+        GlobalEventPublisher completionEvents = redisEventPublisher == null
+            ? events
+            : new FailFastGlobalEventPublisher(List.of(redisEventPublisher.rethrowingPublisher(), inMemoryEvents));
+        JobCompletionOutboxDispatcher completionOutboxDispatcher = new JobCompletionOutboxDispatcher(completionOutbox, completionEvents);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, completionEvents, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts, completionOutbox);
         PrometheusMetricsRenderer metrics = CoreMetricsFactory.create(
             config,
             coreJdbcActive,

@@ -21,6 +21,14 @@ public final class RedisStreamEventPublisher implements GlobalEventPublisher {
 
     @Override
     public void publish(String eventType, Map<String, String> fields) {
+        publish(eventType, fields, false);
+    }
+
+    public GlobalEventPublisher rethrowingPublisher() {
+        return (eventType, fields) -> publish(eventType, fields, true);
+    }
+
+    private void publish(String eventType, Map<String, String> fields, boolean rethrowFailure) {
         String safeEventType = eventType == null ? "" : eventType;
         List<String> values = new ArrayList<>();
         values.add("type");
@@ -46,8 +54,11 @@ public final class RedisStreamEventPublisher implements GlobalEventPublisher {
         }
         try {
             writer.xadd(RedisKeys.eventsStream(), values.toArray(String[]::new));
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException exception) {
             failures.incrementAndGet();
+            if (rethrowFailure) {
+                throw exception;
+            }
         }
     }
 

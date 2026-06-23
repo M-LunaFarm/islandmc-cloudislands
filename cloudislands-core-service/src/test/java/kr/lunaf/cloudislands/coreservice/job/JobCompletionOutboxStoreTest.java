@@ -60,4 +60,28 @@ class JobCompletionOutboxStoreTest {
         assertEquals(1L, dispatcher.dispatchedTotal());
         assertEquals(0L, dispatcher.pendingCount());
     }
+
+    @Test
+    void dispatcherDoesNotMarkOutboxDispatchedWhenRedisPublisherRethrows() {
+        InMemoryJobCompletionOutboxStore store = new InMemoryJobCompletionOutboxStore();
+        UUID eventId = UUID.fromString("00000000-0000-0000-0000-000000000504");
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000505");
+        JobCompletionOutboxDispatcher dispatcher = new JobCompletionOutboxDispatcher(
+            store,
+            (_eventType, _fields) -> {
+                throw new IllegalStateException("event sink unavailable");
+            },
+            1,
+            5,
+            Duration.ofMillis(1),
+            Duration.ofMillis(1)
+        );
+        store.append(List.of(new JobCompletionEvent(eventId, islandId, 1L, "ISLAND_SNAPSHOT_CREATED", Map.of("islandId", islandId.toString()))));
+
+        dispatcher.dispatchDue();
+
+        assertEquals(1L, dispatcher.failedTotal());
+        assertEquals(0L, dispatcher.dispatchedTotal());
+        assertEquals(1L, dispatcher.pendingCount());
+    }
 }
