@@ -33,10 +33,10 @@ public final class TemplateRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/templates/list", exchange -> CoreHttpResponses.write(exchange, 200, templatesJson(templates.list())));
-        registry.route("/v1/admin/templates/upsert", this::upsert);
-        registry.route("/v1/admin/templates/enable", this::enable);
-        registry.route("/v1/admin/templates/disable", this::disable);
+        registry.routePost("/v1/admin/templates/list", exchange -> CoreHttpResponses.write(exchange, 200, templatesJson(templates.list())));
+        registry.routePost("/v1/admin/templates/upsert", this::upsert);
+        registry.routePost("/v1/admin/templates/enable", this::enable);
+        registry.routePost("/v1/admin/templates/disable", this::disable);
     }
 
     private void upsert(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
