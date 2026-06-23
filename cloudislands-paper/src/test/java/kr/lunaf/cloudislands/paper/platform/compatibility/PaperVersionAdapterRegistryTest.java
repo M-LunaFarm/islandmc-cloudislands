@@ -26,6 +26,8 @@ class PaperVersionAdapterRegistryTest {
         assertEquals("paper-1.21", registry.select("1.21.4").adapterId());
         assertEquals("paper-1.21", registry.select("1.21.11").adapterId());
         assertEquals("paper-26.1", registry.select("26.1").adapterId());
+        assertEquals(Paper261Adapter.class, registry.select("26.1").getClass());
+        assertEquals("paper-26.1", registry.select("26.1.4").adapterId());
         assertEquals("paper-26.2", registry.select("26.2").adapterId());
     }
 
