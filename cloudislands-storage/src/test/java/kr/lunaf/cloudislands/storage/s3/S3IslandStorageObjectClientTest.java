@@ -128,6 +128,42 @@ class S3IslandStorageObjectClientTest {
     }
 
     @Test
+    void promoteSnapshotRestoresCompatibilityManifestWhenLatestCasConflicts() throws Exception {
+        FakeS3 fake = new FakeS3();
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", fake::handle);
+        server.start();
+        S3IslandStorage storage = new S3IslandStorage(
+            URI.create("http://127.0.0.1:" + server.getAddress().getPort()),
+            "bucket",
+            "us-east-1",
+            "",
+            "",
+            "",
+            Duration.ofSeconds(5),
+            2,
+            1024L,
+            1024L
+        );
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000604");
+        String rootManifestKey = "islands/" + islandId + "/manifest.json";
+        byte[] oldManifest = IslandManifestJson.write(manifest(islandId).withStoredBundle("old-checksum", "SHA-256", "zstd", rootManifestKey, 12L)).getBytes(StandardCharsets.UTF_8);
+        byte[] promotedManifest = IslandManifestJson.write(manifest(islandId).withStoredBundle("new-checksum", "SHA-256", "zstd", "snapshots/000002/bundle.tar.zst", 13L)).getBytes(StandardCharsets.UTF_8);
+        fake.objects.put(rootManifestKey, oldManifest);
+        fake.objects.put("islands/" + islandId + "/latest", "000001".getBytes(StandardCharsets.UTF_8));
+        fake.objects.put("islands/" + islandId + "/snapshots/000002/manifest.json", promotedManifest);
+        fake.latestCasConflict = true;
+
+        IOException exception = assertThrows(IOException.class, () -> storage.promoteSnapshot(islandId, 2L));
+
+        assertTrue(exception.getMessage().contains("CAS conflict"));
+        assertEquals("\"6\"", fake.latestIfMatch);
+        assertArrayEquals("000001".getBytes(StandardCharsets.UTF_8), fake.objects.get("islands/" + islandId + "/latest"));
+        assertArrayEquals(oldManifest, fake.objects.get(rootManifestKey));
+        assertTrue(storage.objectMetrics().orphanCleanups() >= 1L);
+    }
+
+    @Test
     void promoteBundleStreamsSourceObjectAndRewritesManifestForNewSnapshot() throws Exception {
         FakeS3 fake = new FakeS3();
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -202,6 +238,8 @@ class S3IslandStorageObjectClientTest {
         private final Map<String, byte[]> objects = new LinkedHashMap<>();
         private final Map<Integer, byte[]> parts = new LinkedHashMap<>();
         private String latestIfNoneMatch = "";
+        private String latestIfMatch = "";
+        private boolean latestCasConflict = false;
 
         private void handle(HttpExchange exchange) throws IOException {
             String path = exchange.getRequestURI().getPath();
@@ -251,6 +289,11 @@ class S3IslandStorageObjectClientTest {
                 String ifMatch = exchange.getRequestHeaders().getFirst("If-Match");
                 if (key.endsWith("/latest")) {
                     latestIfNoneMatch = ifNoneMatch == null ? "" : ifNoneMatch;
+                    latestIfMatch = ifMatch == null ? "" : ifMatch;
+                    if (latestCasConflict) {
+                        write(exchange, 412, new byte[0]);
+                        return;
+                    }
                 }
                 if ("*".equals(ifNoneMatch) && objects.containsKey(key)) {
                     write(exchange, 412, new byte[0]);

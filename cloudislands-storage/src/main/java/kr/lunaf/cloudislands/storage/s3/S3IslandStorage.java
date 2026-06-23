@@ -175,9 +175,31 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
     @Override
     public void promoteSnapshot(UUID islandId, long snapshotNo) throws IOException {
         String snapshot = String.format("%06d", snapshotNo);
+        String manifestKey = key(islandId, "manifest.json");
+        String latestKey = key(islandId, "latest");
         byte[] manifest = requestBytes("GET", key(islandId, "snapshots/" + snapshot + "/manifest.json"), null);
-        requestBytes("PUT", key(islandId, "manifest.json"), manifest);
-        requestBytes("PUT", key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8));
+        Optional<String> expectedLatestEtag = objectEtag(latestKey);
+        Optional<byte[]> previousManifest = optionalObject(manifestKey);
+        boolean compatibilityManifestWritten = false;
+        try {
+            requestBytes("PUT", manifestKey, manifest);
+            compatibilityManifestWritten = true;
+            putLatestCas(latestKey, snapshot.getBytes(StandardCharsets.UTF_8), expectedLatestEtag);
+        } catch (IOException exception) {
+            if (compatibilityManifestWritten) {
+                try {
+                    if (previousManifest.isPresent()) {
+                        requestBytes("PUT", manifestKey, previousManifest.orElseThrow());
+                    } else {
+                        deleteKey(manifestKey);
+                    }
+                } catch (IOException restoreFailure) {
+                    exception.addSuppressed(restoreFailure);
+                }
+                metrics.recordOrphanCleanup();
+            }
+            throw exception;
+        }
     }
 
     @Override
@@ -586,6 +608,17 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
 
     private String request(String method, String key, byte[] body) throws IOException {
         return new String(requestBytes(method, key, body), StandardCharsets.UTF_8);
+    }
+
+    private Optional<byte[]> optionalObject(String key) throws IOException {
+        try {
+            return Optional.of(requestBytes("GET", key, null));
+        } catch (IOException exception) {
+            if (exception.getMessage() != null && exception.getMessage().contains("status 404")) {
+                return Optional.empty();
+            }
+            throw exception;
+        }
     }
 
     private void deleteKey(String key) throws IOException {
