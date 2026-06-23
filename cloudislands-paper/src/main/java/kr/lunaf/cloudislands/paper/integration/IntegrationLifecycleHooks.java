@@ -268,6 +268,7 @@ public final class IntegrationLifecycleHooks {
             }
             Files.createDirectories(path.getParent());
             Files.writeString(path, SimpleJson.stringify(toJson()), StandardCharsets.UTF_8);
+            writeStateArtifacts(path);
         }
 
         private Map<String, Object> toJson() {
@@ -287,6 +288,17 @@ public final class IntegrationLifecycleHooks {
                 .filter(map -> !map.isEmpty())
                 .toList());
             return root;
+        }
+
+        private void writeStateArtifacts(Path summaryPath) throws IOException {
+            Path integrationsRoot = summaryPath.getParent();
+            Path bundleRoot = integrationsRoot == null ? null : integrationsRoot.getParent();
+            if (bundleRoot == null) {
+                return;
+            }
+            for (LifecycleResult result : results) {
+                result.writeStateArtifact(bundleRoot);
+            }
         }
     }
 
@@ -317,6 +329,31 @@ public final class IntegrationLifecycleHooks {
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> root.put(entry.getKey().substring("manifest.".length()), entry.getValue()));
             return root;
+        }
+
+        private void writeStateArtifact(Path bundleRoot) throws IOException {
+            Map<String, Object> stateManifest = stateManifestJson();
+            String relativePath = details.getOrDefault("manifest.bundleRelativePath", "");
+            if (stateManifest.isEmpty() || relativePath.isBlank()) {
+                return;
+            }
+            Path artifactPath = safeBundlePath(bundleRoot, relativePath);
+            Files.createDirectories(artifactPath.getParent());
+            LinkedHashMap<String, Object> root = new LinkedHashMap<>();
+            root.put("pluginName", pluginName);
+            root.put("status", status.name());
+            root.put("message", message);
+            root.put("stateManifest", stateManifest);
+            root.put("details", details);
+            Files.writeString(artifactPath, SimpleJson.stringify(root), StandardCharsets.UTF_8);
+        }
+
+        private Path safeBundlePath(Path bundleRoot, String relativePath) throws IOException {
+            Path normalized = Path.of(relativePath.replace('\\', '/')).normalize();
+            if (normalized.isAbsolute() || normalized.startsWith("..")) {
+                throw new IOException("integration state path escapes bundle root: " + relativePath);
+            }
+            return bundleRoot.resolve(normalized);
         }
     }
 }

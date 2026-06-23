@@ -131,6 +131,49 @@ class IntegrationLifecycleHooksTest {
     }
 
     @Test
+    void lifecycleBatchWritesCustomItemAndStackerStateArtifactsIntoBundleRoot() throws IOException {
+        UUID islandId = UUID.randomUUID();
+        IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
+            new CustomItemIntegration("ItemsAdder"),
+            new StackerIntegration("RoseStacker")
+        ));
+        ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(
+            islandId,
+            "ci_shard_001",
+            1,
+            2,
+            10,
+            20,
+            100,
+            12L,
+            99L,
+            Instant.now()
+        );
+
+        IntegrationLifecycleHooks.LifecycleBatch batch = hooks.exportState(islandId, activeIsland, 777L, Path.of("777-bundle.tar.zst"));
+        batch.writeIfPresent(tempDir.resolve("integrations/export.json"));
+
+        Path customItemState = tempDir.resolve("integrations/custom-items/ItemsAdder/custom-item-export.json");
+        Path stackerState = tempDir.resolve("integrations/stacker/RoseStacker/effective-stack-export.json");
+        assertTrue(Files.isRegularFile(customItemState));
+        assertTrue(Files.isRegularFile(stackerState));
+
+        java.util.Map<?, ?> customRoot = SimpleJson.object(SimpleJson.parse(Files.readString(customItemState)));
+        java.util.Map<?, ?> customManifest = SimpleJson.object(customRoot.get("stateManifest"));
+        java.util.Map<?, ?> customDetails = SimpleJson.object(customRoot.get("details"));
+        assertEquals("ItemsAdder", SimpleJson.text(customManifest.get("plugin")));
+        assertEquals("custom-item-export", SimpleJson.text(customManifest.get("operation")));
+        assertEquals("custom-block-id-index,custom-block-state,core-block-value-mapping", SimpleJson.text(customDetails.get("external.artifacts")));
+
+        java.util.Map<?, ?> stackerRoot = SimpleJson.object(SimpleJson.parse(Files.readString(stackerState)));
+        java.util.Map<?, ?> stackerManifest = SimpleJson.object(stackerRoot.get("stateManifest"));
+        java.util.Map<?, ?> stackerDetails = SimpleJson.object(stackerRoot.get("details"));
+        assertEquals("RoseStacker", SimpleJson.text(stackerManifest.get("plugin")));
+        assertEquals("effective-stack-export", SimpleJson.text(stackerManifest.get("operation")));
+        assertEquals("stacked-entity-state,stacked-spawner-state,effective-limit-keys", SimpleJson.text(stackerDetails.get("external.artifacts")));
+    }
+
+    @Test
     void registryBackedHooksOnlyInvokeActiveAdapters() throws IOException {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationLifecycleHooks.java"));
 
