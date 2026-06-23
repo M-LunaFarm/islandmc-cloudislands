@@ -58,14 +58,14 @@ public final class IslandVisitorRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/islands/invites", this::createInvite);
-        registry.route("/v1/players/invites", this::playerInvites);
-        registry.route("/v1/islands/invites/accept", this::acceptInvite);
-        registry.route("/v1/islands/invites/decline", this::declineInvite);
-        registry.route("/v1/islands/bans/set", this::setBan);
-        registry.route("/v1/islands/bans", this::bans);
-        registry.route("/v1/islands/bans/remove", this::removeBan);
-        registry.route("/v1/islands/visitors/kick", this::kickVisitor);
+        registry.routePost("/v1/islands/invites", this::createInvite);
+        registry.routePost("/v1/players/invites", this::playerInvites);
+        registry.routePost("/v1/islands/invites/accept", this::acceptInvite);
+        registry.routePost("/v1/islands/invites/decline", this::declineInvite);
+        registry.routePost("/v1/islands/bans/set", this::setBan);
+        registry.routePost("/v1/islands/bans", this::bans);
+        registry.routePost("/v1/islands/bans/remove", this::removeBan);
+        registry.routePost("/v1/islands/visitors/kick", this::kickVisitor);
     }
 
     private void createInvite(HttpExchange exchange) throws IOException {
