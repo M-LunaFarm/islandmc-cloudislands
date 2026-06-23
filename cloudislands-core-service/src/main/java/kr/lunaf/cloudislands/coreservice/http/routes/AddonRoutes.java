@@ -33,8 +33,8 @@ public final class AddonRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/addons/state/summary", exchange -> CoreHttpResponses.write(exchange, 200, addonStateSummaryJson(addonStates.globalStateCounts(), addonStates.islandStateCounts())));
-        registry.route("/v1/addons/state", exchange -> {
+        registry.routePost("/v1/admin/addons/state/summary", exchange -> CoreHttpResponses.write(exchange, 200, addonStateSummaryJson(addonStates.globalStateCounts(), addonStates.islandStateCounts())));
+        registry.routePost("/v1/addons/state", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             if (addonId.isBlank()) {
@@ -47,7 +47,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/state/set", exchange -> {
+        registry.routePost("/v1/addons/state/set", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String key = JsonFields.text(body, "key", "");
@@ -65,7 +65,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/state/bulk", exchange -> {
+        registry.routePost("/v1/addons/state/bulk", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -87,7 +87,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/state/save", exchange -> {
+        registry.routePost("/v1/addons/state/save", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -108,7 +108,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.GLOBAL_LEGACY_ENDPOINT, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.GLOBAL_LEGACY_ENDPOINT, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -130,7 +130,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -152,7 +152,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.GLOBAL_BULK_SAVE_ALIAS, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.GLOBAL_BULK_SAVE_ALIAS, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -174,7 +174,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -196,7 +196,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/state/table/bulk", exchange -> {
+        registry.routePost("/v1/addons/state/table/bulk", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             Map<String, String> values = JsonFields.object(body, "values");
@@ -218,7 +218,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, exchange -> {
+        registry.routePost(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String table = JsonFields.text(body, "table", "");
@@ -233,7 +233,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS, exchange -> {
+        registry.routePost(AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String table = JsonFields.text(body, "table", "");
@@ -248,7 +248,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String table = JsonFields.text(body, "table", "");
@@ -272,7 +272,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/state/table/replace", exchange -> {
+        registry.routePost("/v1/addons/state/table/replace", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String table = JsonFields.text(body, "table", "");
@@ -293,7 +293,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/state/table/clear", exchange -> {
+        registry.routePost("/v1/addons/state/table/clear", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String table = JsonFields.text(body, "table", "");
@@ -312,7 +312,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/state/remove", exchange -> {
+        registry.routePost("/v1/addons/state/remove", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             String key = JsonFields.text(body, "key", "");
@@ -329,7 +329,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/state/clear", exchange -> {
+        registry.routePost("/v1/addons/state/clear", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             if (addonId.isBlank()) {
@@ -345,7 +345,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/islands/state", exchange -> {
+        registry.routePost("/v1/addons/islands/state", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -359,7 +359,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/islands/state/set", exchange -> {
+        registry.routePost("/v1/addons/islands/state/set", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -378,7 +378,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/islands/state/bulk", exchange -> {
+        registry.routePost("/v1/addons/islands/state/bulk", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -401,7 +401,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/islands/state/save", exchange -> {
+        registry.routePost("/v1/addons/islands/state/save", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -423,7 +423,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.ISLAND_LEGACY_ENDPOINT, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.ISLAND_LEGACY_ENDPOINT, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -446,7 +446,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.ISLAND_ENDPOINT, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.ISLAND_ENDPOINT, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -469,7 +469,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.ISLAND_BULK_SAVE_ALIAS, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.ISLAND_BULK_SAVE_ALIAS, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -492,7 +492,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.ISLAND_BULK_ALIAS, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.ISLAND_BULK_ALIAS, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -515,7 +515,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_SET_ENDPOINT, exchange -> {
+        registry.routePost(AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_SET_ENDPOINT, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -538,7 +538,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, exchange -> {
+        registry.routePost(AddonStateBulkLoadRequest.ISLAND_ENDPOINT, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -554,7 +554,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route(AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS, exchange -> {
+        registry.routePost(AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS, exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -570,7 +570,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/islands/state/table/bulk", exchange -> {
+        registry.routePost("/v1/addons/islands/state/table/bulk", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -595,7 +595,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/islands/state/table/replace", exchange -> {
+        registry.routePost("/v1/addons/islands/state/table/replace", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -617,7 +617,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/islands/state/table/clear", exchange -> {
+        registry.routePost("/v1/addons/islands/state/table/clear", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -637,7 +637,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/islands/state/remove", exchange -> {
+        registry.routePost("/v1/addons/islands/state/remove", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -655,7 +655,7 @@ public final class AddonRoutes implements RouteGroup {
                 CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ADDON_STATE", exception.getMessage()));
             }
         });
-        registry.route("/v1/addons/islands/state/clear", exchange -> {
+        registry.routePost("/v1/addons/islands/state/clear", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             String addonId = JsonFields.text(body, "addonId", "");
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));

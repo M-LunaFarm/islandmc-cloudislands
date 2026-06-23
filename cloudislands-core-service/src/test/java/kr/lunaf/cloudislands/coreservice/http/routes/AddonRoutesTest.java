@@ -4,13 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.sun.net.httpserver.HttpHandler;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import org.junit.jupiter.api.Test;
 
 class AddonRoutesTest {
@@ -21,16 +26,20 @@ class AddonRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(33, paths.size());
-        assertTrue(paths.contains("/v1/admin/addons/state/summary"));
-        assertTrue(paths.contains("/v1/addons/state"));
-        assertTrue(paths.contains(AddonStateBulkSaveRequest.GLOBAL_ENDPOINT));
-        assertTrue(paths.contains(AddonStateBulkLoadRequest.GLOBAL_ENDPOINT));
-        assertTrue(paths.contains("/v1/addons/state/table/replace"));
-        assertTrue(paths.contains("/v1/addons/islands/state"));
-        assertTrue(paths.contains(AddonStateBulkSaveRequest.ISLAND_ENDPOINT));
-        assertTrue(paths.contains(AddonStateBulkLoadRequest.ISLAND_ENDPOINT));
-        assertTrue(paths.contains("/v1/addons/islands/state/table/clear"));
+        List<String> expectedPaths = addonEndpointPaths();
+        assertEquals(expectedPaths.size(), paths.size());
+        expectedPaths.forEach(path -> assertTrue(paths.contains(path), path));
+    }
+
+    @Test
+    void registersAddonEndpointsAsPostOnly() {
+        RecordingRegistry registry = new RecordingRegistry();
+
+        new AddonRoutes(null, null, null).register(registry);
+
+        List<String> expectedPaths = addonEndpointPaths();
+        assertEquals(expectedPaths.size(), registry.size());
+        expectedPaths.forEach(path -> assertEquals(Set.of("POST"), registry.methods(path), path));
     }
 
     @Test
@@ -66,5 +75,69 @@ class AddonRoutesTest {
         assertEquals(2L, ((Number) second.get("globalKeys")).longValue());
         assertEquals(3L, ((Number) second.get("islandKeys")).longValue());
         assertEquals(5L, ((Number) second.get("totalKeys")).longValue());
+    }
+
+    private static List<String> addonEndpointPaths() {
+        return List.of(
+            "/v1/admin/addons/state/summary",
+            "/v1/addons/state",
+            "/v1/addons/state/set",
+            "/v1/addons/state/bulk",
+            "/v1/addons/state/save",
+            AddonStateBulkSaveRequest.GLOBAL_LEGACY_ENDPOINT,
+            AddonStateBulkSaveRequest.GLOBAL_ENDPOINT,
+            AddonStateBulkSaveRequest.GLOBAL_BULK_SAVE_ALIAS,
+            AddonStateBulkSaveRequest.GLOBAL_BULK_ALIAS,
+            "/v1/addons/state/table/bulk",
+            AddonStateBulkLoadRequest.GLOBAL_ENDPOINT,
+            AddonStateBulkLoadRequest.GLOBAL_TABLE_LOAD_ALIAS,
+            AddonStateBulkSaveRequest.GLOBAL_TABLE_BULK_SET_ENDPOINT,
+            "/v1/addons/state/table/replace",
+            "/v1/addons/state/table/clear",
+            "/v1/addons/state/remove",
+            "/v1/addons/state/clear",
+            "/v1/addons/islands/state",
+            "/v1/addons/islands/state/set",
+            "/v1/addons/islands/state/bulk",
+            "/v1/addons/islands/state/save",
+            AddonStateBulkSaveRequest.ISLAND_LEGACY_ENDPOINT,
+            AddonStateBulkSaveRequest.ISLAND_ENDPOINT,
+            AddonStateBulkSaveRequest.ISLAND_BULK_SAVE_ALIAS,
+            AddonStateBulkSaveRequest.ISLAND_BULK_ALIAS,
+            AddonStateBulkSaveRequest.ISLAND_TABLE_BULK_SET_ENDPOINT,
+            AddonStateBulkLoadRequest.ISLAND_ENDPOINT,
+            AddonStateBulkLoadRequest.ISLAND_TABLE_LOAD_ALIAS,
+            "/v1/addons/islands/state/table/bulk",
+            "/v1/addons/islands/state/table/replace",
+            "/v1/addons/islands/state/table/clear",
+            "/v1/addons/islands/state/remove",
+            "/v1/addons/islands/state/clear"
+        );
+    }
+
+    private static final class RecordingRegistry implements CoreRouteRegistry {
+        private final Map<String, Set<String>> methods = new HashMap<>();
+
+        @Override
+        public void route(String path, HttpHandler handler) {
+            methods.put(path, Set.of("GET", "POST"));
+        }
+
+        @Override
+        public void routeMethods(String path, HttpHandler handler, String... routeMethods) {
+            LinkedHashSet<String> allowed = new LinkedHashSet<>();
+            for (String method : routeMethods) {
+                allowed.add(method);
+            }
+            methods.put(path, Set.copyOf(allowed));
+        }
+
+        int size() {
+            return methods.size();
+        }
+
+        Set<String> methods(String path) {
+            return methods.getOrDefault(path, Set.of());
+        }
     }
 }
