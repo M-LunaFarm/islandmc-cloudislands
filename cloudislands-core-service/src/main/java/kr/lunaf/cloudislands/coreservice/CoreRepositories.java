@@ -1,0 +1,56 @@
+package kr.lunaf.cloudislands.coreservice;
+
+import kr.lunaf.cloudislands.common.routing.NodeAllocator;
+import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
+import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
+import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
+import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
+import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
+import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
+import kr.lunaf.cloudislands.coreservice.mission.IslandMissionRepository;
+import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.RankingRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.review.IslandReviewRepository;
+import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
+import kr.lunaf.cloudislands.coreservice.session.RouteSessionStore;
+import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
+import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
+import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
+import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.IslandWarehouseRepository;
+
+public record CoreRepositories(
+    NodeRegistry nodes,
+    NodeAllocator allocator,
+    RouteTicketStore tickets,
+    RouteSessionStore sessions,
+    IslandJobQueue jobs,
+    InMemoryGlobalEventPublisher inMemoryEvents,
+    GlobalEventPublisher events,
+    IslandRepository islandRepository,
+    IslandMetadataRepository metadataRepository,
+    PlayerProfileRepository playerProfiles,
+    IslandPermissionRuleRepository permissionRules,
+    IslandRoleRepository roleRepository,
+    IslandRuntimeRepository runtimeRepository,
+    IslandSnapshotRepository snapshotRepository,
+    RankingRepository rankingRepository,
+    IslandLevelRepository levelRepository,
+    IslandUpgradeRepository upgradeRepository,
+    IslandBankRepository bankRepository,
+    IslandMissionRepository missionRepository,
+    IslandLimitRepository limitRepository,
+    IslandTemplateRepository templateRepository,
+    AddonStateRepository addonStates,
+    IslandReviewRepository reviewRepository,
+    IslandWarehouseRepository warehouseRepository,
+    AuditLogger audit,
+    IslandLogRepository islandLogs
+) {}

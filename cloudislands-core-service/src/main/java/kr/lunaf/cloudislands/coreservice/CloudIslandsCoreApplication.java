@@ -1,7 +1,5 @@
 package kr.lunaf.cloudislands.coreservice;
 
-import static kr.lunaf.cloudislands.coreservice.config.CoreNetworkExposure.*;
-
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,39 +8,27 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
-import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
-import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
-import kr.lunaf.cloudislands.coreservice.audit.JdbcAuditLogger;
-import kr.lunaf.cloudislands.coreservice.audit.RedisAuditLogger;
-import kr.lunaf.cloudislands.coreservice.bank.CachingIslandBankRepository;
-import kr.lunaf.cloudislands.coreservice.bank.InMemoryIslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
-import kr.lunaf.cloudislands.coreservice.bank.JdbcIslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.cache.RedisCacheAdmin;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
-import kr.lunaf.cloudislands.coreservice.db.BoundedDataSource;
-import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
-import kr.lunaf.cloudislands.coreservice.db.JdbcDialectDataSource;
-import kr.lunaf.cloudislands.coreservice.db.JdbcSchemaBootstrap;
 import kr.lunaf.cloudislands.coreservice.db.MeteredDataSource;
-import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
-import kr.lunaf.cloudislands.coreservice.http.CoreHttpRouteRegistrar;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRequestExecutor;
+import kr.lunaf.cloudislands.coreservice.http.CoreHttpRouteRegistrar;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminIslandLifecycleRoutes;
-import kr.lunaf.cloudislands.coreservice.http.routes.AdminRuntimeRoutes;
-import kr.lunaf.cloudislands.coreservice.http.routes.CoreConfigRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminNodeRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.AdminRuntimeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AddonRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AuditRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.CoreConfigRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.EventRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.HealthRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.IslandBankRoutes;
@@ -69,94 +55,32 @@ import kr.lunaf.cloudislands.coreservice.http.routes.RoutePreparationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.RouteTicketRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.SuperiorSkyblock2MigrationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.TemplateRoutes;
-import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
-import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
-import kr.lunaf.cloudislands.coreservice.islandlog.JdbcIslandLogRepository;
-import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
-import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
-import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
-import kr.lunaf.cloudislands.coreservice.limit.CachingIslandLimitRepository;
-import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
-import kr.lunaf.cloudislands.coreservice.limit.JdbcIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.metrics.CoreMetricsFactory;
 import kr.lunaf.cloudislands.coreservice.metrics.PrometheusMetricsRenderer;
-import kr.lunaf.cloudislands.coreservice.mission.CachingIslandMissionRepository;
-import kr.lunaf.cloudislands.coreservice.mission.InMemoryIslandMissionRepository;
 import kr.lunaf.cloudislands.coreservice.mission.IslandMissionRepository;
-import kr.lunaf.cloudislands.coreservice.mission.JdbcIslandMissionRepository;
-import kr.lunaf.cloudislands.coreservice.permission.CachingIslandPermissionRuleRepository;
-import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
-import kr.lunaf.cloudislands.coreservice.permission.JdbcIslandPermissionRuleRepository;
-import kr.lunaf.cloudislands.coreservice.profile.CachingPlayerProfileRepository;
-import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
-import kr.lunaf.cloudislands.coreservice.profile.JdbcPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
-import kr.lunaf.cloudislands.coreservice.ranking.CachingRankingRepository;
-import kr.lunaf.cloudislands.coreservice.ranking.DirtyRankingRecalculationTask;
-import kr.lunaf.cloudislands.coreservice.ranking.CachingIslandLevelRepository;
-import kr.lunaf.cloudislands.coreservice.ranking.InMemoryIslandLevelRepository;
-import kr.lunaf.cloudislands.coreservice.ranking.InMemoryRankingRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
-import kr.lunaf.cloudislands.coreservice.ranking.JdbcIslandLevelRepository;
-import kr.lunaf.cloudislands.coreservice.ranking.JdbcRankingRepository;
+import kr.lunaf.cloudislands.coreservice.ranking.DirtyRankingRecalculationTask;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRepository;
-import kr.lunaf.cloudislands.coreservice.repository.CachingIslandRepository;
-import kr.lunaf.cloudislands.coreservice.repository.CachingIslandMetadataRepository;
-import kr.lunaf.cloudislands.coreservice.repository.CachingIslandRuntimeRepository;
-import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
-import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
-import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
-import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandMetadataRepository;
-import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRepository;
-import kr.lunaf.cloudislands.coreservice.repository.JdbcIslandRuntimeRepository;
-import kr.lunaf.cloudislands.coreservice.redis.RedisStreamWriterAdapter;
-import kr.lunaf.cloudislands.coreservice.review.InMemoryIslandReviewRepository;
 import kr.lunaf.cloudislands.coreservice.review.IslandReviewRepository;
-import kr.lunaf.cloudislands.coreservice.review.JdbcIslandReviewRepository;
-import kr.lunaf.cloudislands.coreservice.role.CachingIslandRoleRepository;
-import kr.lunaf.cloudislands.coreservice.role.InMemoryIslandRoleRepository;
 import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
-import kr.lunaf.cloudislands.coreservice.role.JdbcIslandRoleRepository;
-import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
-import kr.lunaf.cloudislands.coreservice.security.CoreApiAuthGuard;
-import kr.lunaf.cloudislands.coreservice.security.FixedWindowRateLimiter;
-import kr.lunaf.cloudislands.coreservice.security.ForwardedClientIpResolver;
-import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
-import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
-import kr.lunaf.cloudislands.coreservice.security.MtlsHeaderGuard;
-import kr.lunaf.cloudislands.coreservice.session.InMemoryRouteSessionStore;
-import kr.lunaf.cloudislands.coreservice.session.RedisRouteSessionStore;
 import kr.lunaf.cloudislands.coreservice.session.RouteSessionStore;
-import kr.lunaf.cloudislands.coreservice.snapshot.CachingIslandSnapshotRepository;
-import kr.lunaf.cloudislands.coreservice.snapshot.InMemoryIslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
-import kr.lunaf.cloudislands.coreservice.snapshot.JdbcIslandSnapshotRepository;
-import kr.lunaf.cloudislands.coreservice.template.CachingIslandTemplateRepository;
-import kr.lunaf.cloudislands.coreservice.template.InMemoryIslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
-import kr.lunaf.cloudislands.coreservice.template.JdbcIslandTemplateRepository;
-import kr.lunaf.cloudislands.coreservice.ticket.CachingRouteTicketStore;
-import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
-import kr.lunaf.cloudislands.coreservice.ticket.JdbcRouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
-import kr.lunaf.cloudislands.coreservice.upgrade.CachingIslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.ConfigUpgradePolicy;
-import kr.lunaf.cloudislands.coreservice.upgrade.InMemoryIslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService;
-import kr.lunaf.cloudislands.coreservice.upgrade.JdbcIslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
-import kr.lunaf.cloudislands.coreservice.warehouse.InMemoryIslandWarehouseRepository;
 import kr.lunaf.cloudislands.coreservice.warehouse.IslandWarehouseRepository;
-import kr.lunaf.cloudislands.coreservice.warehouse.JdbcIslandWarehouseRepository;
 import kr.lunaf.cloudislands.coreservice.workflow.CreateIslandWorkflow;
 import kr.lunaf.cloudislands.coreservice.workflow.IslandLifecycleWorkflow;
 import kr.lunaf.cloudislands.migration.rollback.CompositeRollbackTarget;
@@ -166,9 +90,6 @@ import kr.lunaf.cloudislands.migration.rollback.jdbc.JdbcMigrationRollbackTarget
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.LocalIslandStorage;
 import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
-import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
-import kr.lunaf.cloudislands.coreservice.addon.InMemoryAddonStateRepository;
-import kr.lunaf.cloudislands.coreservice.addon.JdbcAddonStateRepository;
 
 public final class CloudIslandsCoreApplication {
     private static final Logger LOGGER = Logger.getLogger(CloudIslandsCoreApplication.class.getName());
@@ -193,128 +114,51 @@ public final class CloudIslandsCoreApplication {
 
     public CloudIslandsCoreApplication(CoreServiceConfig config) throws IOException {
         Clock clock = Clock.systemUTC();
-        kr.lunaf.cloudislands.coreservice.security.CoreAuthMode authMode = config.authMode();
-        CoreApiAuthGuard authGuard = new CoreApiAuthGuard(authMode, new ApiTokenGuard(config.coreToken(), config.nodeCredentialBindings()), new MtlsHeaderGuard(authMode.acceptsMtls(), config.mtlsVerifiedHeader(), config.mtlsVerifiedValue(), config.mtlsTrustedProxies()));
-        CoreHttpRouteRegistrar routeRegistrar = new CoreHttpRouteRegistrar(
-            new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis()),
-            authGuard,
-            new ForwardedClientIpResolver(config.mtlsTrustedProxies()),
-            new IpAllowlist(config.ipAllowlist()),
-            new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), config.publicAdminApiEnabled(), config.adminPermissions())
-        );
-        CoreHttpRouteRegistrar adminRouteRegistrar = config.adminListenerActive()
-            ? new CoreHttpRouteRegistrar(
-                new FixedWindowRateLimiter(clock, config.rateLimitRequests(), config.rateLimitWindow().toMillis()),
-                authGuard,
-                new ForwardedClientIpResolver(config.mtlsTrustedProxies()),
-                new IpAllowlist(config.ipAllowlist()),
-                new AdminEndpointGuard(config.adminToken(), config.adminApiEnabled(), true, config.adminPermissions())
-            )
-            : null;
-        logSecurityPosture(LOGGER, config);
-        config.validateStartupSecurity();
+        CoreInfrastructure infrastructure = CoreBootstrap.infrastructure(config, clock, LOGGER);
+        CoreRepositories repositories = CoreBootstrap.repositories(config, clock, infrastructure);
+        CoreHttpRouteRegistrar routeRegistrar = infrastructure.routeRegistrar();
+        CoreHttpRouteRegistrar adminRouteRegistrar = infrastructure.adminRouteRegistrar();
+        DataSource dataSource = infrastructure.dataSource();
+        MeteredDataSource meteredDataSource = infrastructure.meteredDataSource();
+        boolean coreJdbcActive = infrastructure.coreJdbcActive();
+        RedisStreamEventPublisher redisEventPublisher = infrastructure.redisEventPublisher();
+        RedisCacheAdmin redisCacheAdmin = infrastructure.redisCacheAdmin();
+        RedisActivationLock activationLock = infrastructure.activationLock();
+        RedisPlayerCreationLock playerCreationLock = infrastructure.playerCreationLock();
+        NodeRegistry nodes = repositories.nodes();
+        NodeAllocator allocator = repositories.allocator();
+        RouteTicketStore tickets = repositories.tickets();
+        RouteSessionStore sessions = repositories.sessions();
+        IslandJobQueue jobs = repositories.jobs();
+        InMemoryGlobalEventPublisher inMemoryEvents = repositories.inMemoryEvents();
+        GlobalEventPublisher events = repositories.events();
+        IslandRepository islandRepository = repositories.islandRepository();
+        IslandMetadataRepository metadataRepository = repositories.metadataRepository();
+        PlayerProfileRepository playerProfiles = repositories.playerProfiles();
+        IslandPermissionRuleRepository permissionRules = repositories.permissionRules();
+        IslandRoleRepository roleRepository = repositories.roleRepository();
+        IslandRuntimeRepository runtimeRepository = repositories.runtimeRepository();
+        IslandSnapshotRepository snapshotRepository = repositories.snapshotRepository();
+        RankingRepository rankingRepository = repositories.rankingRepository();
+        IslandLevelRepository levelRepository = repositories.levelRepository();
+        IslandUpgradeRepository upgradeRepository = repositories.upgradeRepository();
+        IslandBankRepository bankRepository = repositories.bankRepository();
+        IslandMissionRepository missionRepository = repositories.missionRepository();
+        IslandLimitRepository limitRepository = repositories.limitRepository();
+        IslandTemplateRepository templateRepository = repositories.templateRepository();
+        AddonStateRepository addonStates = repositories.addonStates();
+        IslandReviewRepository reviewRepository = repositories.reviewRepository();
+        IslandWarehouseRepository warehouseRepository = repositories.warehouseRepository();
+        AuditLogger audit = repositories.audit();
+        IslandLogRepository islandLogs = repositories.islandLogs();
         IslandStorage deleteStorage = migrationRollbackStorage(config);
-        MeteredDataSource meteredDataSource = new MeteredDataSource(new BoundedDataSource(new DriverManagerDataSource(config.jdbcUrl(), config.databaseUsername(), config.databasePassword()), config.databasePoolSize()));
-        DataSource dataSource = new JdbcDialectDataSource(meteredDataSource);
-        boolean coreJdbcActive = config.jdbcRepositories() || config.jdbcJobs();
-        if (coreJdbcActive && config.setupDatabaseAutoSchema()) {
-            LOGGER.info("CloudIslands database schema bootstrap applied=" + JdbcSchemaBootstrap.apply(dataSource));
-        }
-        NodeRegistry baseNodes = config.jdbcRepositories() ? new JdbcNodeRegistry(dataSource) : new InMemoryNodeRegistry();
-        NodeRegistry nodes = config.redisEvents() || config.redisJobs()
-            ? new CachingNodeRegistry(baseNodes, config.redisUri(), config.heartbeatTimeout())
-            : baseNodes;
-        NodeAllocator allocator = new NodeAllocator(config.heartbeatTimeout(), config.softFullPolicy(), config.hardFullPolicy());
-        RouteTicketStore baseTickets = config.jdbcRepositories() ? new JdbcRouteTicketStore(dataSource, clock) : new InMemoryRouteTicketStore(clock);
-        RouteTicketStore tickets = config.redisEvents() || config.redisJobs()
-            ? new CachingRouteTicketStore(baseTickets, config.redisUri())
-            : baseTickets;
-        RouteSessionStore sessions = config.redisEvents() || config.redisJobs()
-            ? new RedisRouteSessionStore(config.redisUri())
-            : new InMemoryRouteSessionStore(clock);
-        IslandJobQueue jobs = config.jdbcJobs() ? new JdbcIslandJobQueue(dataSource, clock, config.leaseDuration()) : config.redisJobs() ? new RedisIslandJobQueue(config.redisUri(), config.leaseDuration()) : new InMemoryIslandJobPublisher();
-        InMemoryGlobalEventPublisher inMemoryEvents = new InMemoryGlobalEventPublisher();
-        RedisStreamWriterAdapter redisEventWriter = config.redisEvents() ? new RedisStreamWriterAdapter(config.redisUri()) : null;
-        RedisStreamEventPublisher redisEventPublisher = redisEventWriter == null ? null : new RedisStreamEventPublisher(redisEventWriter);
-        RedisCacheAdmin redisCacheAdmin = config.redisEvents() || config.redisJobs() ? new RedisCacheAdmin(config.redisUri()) : null;
-        RedisActivationLock activationLock = config.redisEvents() || config.redisJobs() ? new RedisActivationLock(config.redisUri(), config.routePreparingTicketTtl()) : null;
-        RedisPlayerCreationLock playerCreationLock = config.redisEvents() || config.redisJobs() ? new RedisPlayerCreationLock(config.redisUri(), config.routePreparingTicketTtl()) : null;
-        GlobalEventPublisher events = redisEventPublisher != null
-            ? new CompositeGlobalEventPublisher(java.util.List.of(inMemoryEvents, redisEventPublisher))
-            : inMemoryEvents;
-        IslandRepository baseIslandRepository = config.jdbcRepositories() ? new JdbcIslandRepository(dataSource) : new InMemoryIslandRepository();
-        IslandRepository islandRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandRepository(baseIslandRepository, config.redisUri())
-            : baseIslandRepository;
-        IslandMetadataRepository baseMetadataRepository = config.jdbcRepositories() ? new JdbcIslandMetadataRepository(dataSource) : new InMemoryIslandMetadataRepository();
-        IslandMetadataRepository metadataRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandMetadataRepository(baseMetadataRepository, config.redisUri())
-            : baseMetadataRepository;
-        PlayerProfileRepository basePlayerProfiles = config.jdbcRepositories() ? new JdbcPlayerProfileRepository(dataSource) : new InMemoryPlayerProfileRepository();
-        PlayerProfileRepository playerProfiles = config.redisEvents() || config.redisJobs()
-            ? new CachingPlayerProfileRepository(basePlayerProfiles, config.redisUri())
-            : basePlayerProfiles;
-        IslandPermissionRuleRepository basePermissionRules = config.jdbcRepositories() ? new JdbcIslandPermissionRuleRepository(dataSource) : new InMemoryIslandPermissionRuleRepository();
-        IslandPermissionRuleRepository permissionRules = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandPermissionRuleRepository(basePermissionRules, config.redisUri())
-            : basePermissionRules;
-        IslandRoleRepository baseRoleRepository = config.jdbcRepositories() ? new JdbcIslandRoleRepository(dataSource) : new InMemoryIslandRoleRepository();
-        IslandRoleRepository roleRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandRoleRepository(baseRoleRepository, config.redisUri())
-            : baseRoleRepository;
-        IslandRuntimeRepository baseRuntimeRepository = config.jdbcRepositories() ? new JdbcIslandRuntimeRepository(dataSource) : new InMemoryIslandRuntimeRepository();
-        IslandRuntimeRepository runtimeRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandRuntimeRepository(baseRuntimeRepository, config.redisUri())
-            : baseRuntimeRepository;
-        IslandSnapshotRepository baseSnapshotRepository = config.jdbcRepositories() ? new JdbcIslandSnapshotRepository(dataSource) : new InMemoryIslandSnapshotRepository();
-        IslandSnapshotRepository snapshotRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandSnapshotRepository(baseSnapshotRepository, config.redisUri())
-            : baseSnapshotRepository;
         this.snapshotKeepLatest = Math.max(1, config.snapshotKeepLatest());
         kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy = config.snapshotRetentionPolicy();
-        RankingRepository baseRankingRepository = config.jdbcRepositories() ? new JdbcRankingRepository(dataSource) : new InMemoryRankingRepository();
-        RankingRepository rankingRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingRankingRepository(baseRankingRepository, config.redisUri())
-            : baseRankingRepository;
-        IslandLevelRepository baseLevelRepository = config.jdbcRepositories() ? new JdbcIslandLevelRepository(dataSource) : new InMemoryIslandLevelRepository();
-        IslandLevelRepository levelRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandLevelRepository(baseLevelRepository, config.redisUri())
-            : baseLevelRepository;
         kr.lunaf.cloudislands.coreservice.ranking.ConfigBlockValues.load(config.blockValuesFile()).forEach(levelRepository::putBlockValue);
         RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events, config.levelFormulaExpression(), config.worthFormulaType());
         this.rankingRecalculationTask = new DirtyRankingRecalculationTask(rankingRepository, levelRepository, metadataRepository, levelRecalculation);
-        IslandUpgradeRepository baseUpgradeRepository = config.jdbcRepositories() ? new JdbcIslandUpgradeRepository(dataSource) : new InMemoryIslandUpgradeRepository();
-        IslandUpgradeRepository upgradeRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandUpgradeRepository(baseUpgradeRepository, config.redisUri())
-            : baseUpgradeRepository;
         UpgradePolicy upgradePolicy = ConfigUpgradePolicy.load(config.upgradesFile());
-        IslandBankRepository baseBankRepository = config.jdbcRepositories() ? new JdbcIslandBankRepository(dataSource) : new InMemoryIslandBankRepository();
-        IslandBankRepository bankRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandBankRepository(baseBankRepository, config.redisUri())
-            : baseBankRepository;
         IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, bankRepository, upgradePolicy);
-        IslandMissionRepository baseMissionRepository = config.jdbcRepositories() ? new JdbcIslandMissionRepository(dataSource) : new InMemoryIslandMissionRepository();
-        IslandMissionRepository missionRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandMissionRepository(baseMissionRepository, config.redisUri())
-            : baseMissionRepository;
-        IslandLimitRepository baseLimitRepository = config.jdbcRepositories() ? new JdbcIslandLimitRepository(dataSource) : new InMemoryIslandLimitRepository();
-        IslandLimitRepository limitRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandLimitRepository(baseLimitRepository, config.redisUri())
-            : baseLimitRepository;
-        IslandTemplateRepository baseTemplateRepository = config.jdbcRepositories() ? new JdbcIslandTemplateRepository(dataSource) : new InMemoryIslandTemplateRepository();
-        IslandTemplateRepository templateRepository = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandTemplateRepository(baseTemplateRepository, config.redisUri())
-            : baseTemplateRepository;
-        AddonStateRepository addonStates = config.jdbcRepositories() ? new JdbcAddonStateRepository(dataSource) : new InMemoryAddonStateRepository();
-        IslandReviewRepository reviewRepository = config.jdbcRepositories() ? new JdbcIslandReviewRepository(dataSource) : new InMemoryIslandReviewRepository();
-        IslandWarehouseRepository warehouseRepository = config.jdbcRepositories() ? new JdbcIslandWarehouseRepository(dataSource) : new InMemoryIslandWarehouseRepository();
-        AuditLogger baseAudit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
-        AuditLogger audit = redisEventWriter == null ? baseAudit : new RedisAuditLogger(baseAudit, redisEventWriter, RedisKeys.auditStream());
-        routeRegistrar.setAudit(audit);
-        IslandLogRepository baseIslandLogs = config.jdbcRepositories() ? new JdbcIslandLogRepository(dataSource) : new InMemoryIslandLogRepository();
-        IslandLogRepository islandLogs = config.redisEvents() || config.redisJobs()
-            ? new CachingIslandLogRepository(baseIslandLogs, config.redisUri())
-            : baseIslandLogs;
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events, config.islandPool(), config.routeTicketTtl(), config.routePreparingTicketTtl(), activationLock);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, templateRepository, nodes, allocator, runtimeRepository, jobs, events, tickets, config.islandPool(), config.routePreparingTicketTtl(), playerCreationLock);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, templateRepository, nodes, allocator, jobs, events, config.islandPool(), config.migrationPolicy(), activationLock);
