@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
 import kr.lunaf.cloudislands.paper.integration.analytics.PlanIntegration;
@@ -19,6 +20,7 @@ import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationSupportState;
 import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
 import org.junit.jupiter.api.Test;
 
@@ -252,6 +254,50 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
+    void registryReportsPluginDetectionApiAdapterAndOperationStatesSeparately() {
+        PaperIntegrationRegistry.IntegrationStatus missing = new PaperIntegrationRegistry.IntegrationStatus(
+            "WorldEdit",
+            "world-edit",
+            false,
+            IntegrationSupportState.NOT_INSTALLED,
+            IntegrationSupportState.NOT_INSTALLED,
+            IntegrationSupportState.NOT_INSTALLED,
+            IntegrationSupportState.ADAPTER_INACTIVE,
+            null,
+            true,
+            CloudIntegrationPolicy.requiredRuntimeClaims(),
+            Set.of(IntegrationCapability.DETECT, IntegrationCapability.RUNTIME_AUTHORITY)
+        );
+        assertFalse(missing.enabled());
+        assertEquals(IntegrationSupportState.NOT_INSTALLED, missing.discoveryState());
+        assertEquals(IntegrationSupportState.ADAPTER_INACTIVE, missing.adapterState());
+        assertEquals(IntegrationSupportState.NOT_INSTALLED, missing.state());
+
+        PaperIntegrationRegistry.IntegrationStatus active = new PaperIntegrationRegistry.IntegrationStatus(
+            "CoreProtect",
+            "audit-rollback",
+            true,
+            IntegrationSupportState.ACTIVE,
+            IntegrationSupportState.DETECTED,
+            IntegrationSupportState.API_COMPATIBLE,
+            IntegrationSupportState.ACTIVE,
+            IntegrationSupportState.OPERATION_SUCCEEDED,
+            true,
+            CloudIntegrationPolicy.requiredRuntimeClaims(),
+            Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION, IntegrationCapability.STATE_EXPORT)
+        );
+        assertTrue(active.enabled());
+        assertEquals(IntegrationSupportState.DETECTED, active.discoveryState());
+        assertEquals(IntegrationSupportState.API_COMPATIBLE, active.apiState());
+        assertEquals(IntegrationSupportState.ACTIVE, active.adapterState());
+        assertEquals(IntegrationSupportState.OPERATION_SUCCEEDED, active.lastOperationState());
+
+        assertEquals(IntegrationSupportState.OPERATION_SUCCEEDED, PaperIntegrationRegistry.operationState(IntegrationResult.success("ok")));
+        assertEquals(IntegrationSupportState.OPERATION_FAILED, PaperIntegrationRegistry.operationState(IntegrationResult.failed("bad")));
+        assertEquals(IntegrationSupportState.OPERATION_FAILED, PaperIntegrationRegistry.operationState(IntegrationResult.skipped("probe only")));
+    }
+
+    @Test
     void registryLifecycleHooksValidateDetectedPluginVersionBeforeExternalPlan() throws Exception {
         String registry = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java"));
 
@@ -261,6 +307,12 @@ class PaperIntegrationRegistryTest {
         assertTrue(registry.contains("if (version.status() == IntegrationResult.Status.FAILED)"));
         assertTrue(registry.contains("return version;"));
         assertTrue(registry.contains("return operation.apply(integration, enrichedContext);"));
+        assertTrue(registry.contains("IntegrationSupportState.API_INCOMPATIBLE"));
+        assertTrue(registry.contains("IntegrationSupportState.API_COMPATIBLE"));
+        assertTrue(registry.contains("IntegrationSupportState.UNSUPPORTED"));
+        assertTrue(registry.contains("IntegrationSupportState.ACTIVE"));
+        assertTrue(registry.contains("status.pluginName() + \"=\" + status.state()"));
+        assertFalse(registry.contains("enabled ? \"enabled\" : \"missing\""));
     }
 
     @Test

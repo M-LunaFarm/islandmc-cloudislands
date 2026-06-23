@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationSupportState;
 import kr.lunaf.cloudislands.paper.integration.spi.PolicyBackedCloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
 import org.bukkit.Server;
@@ -48,10 +49,19 @@ public final class PaperIntegrationRegistry {
     public IntegrationStatus status(String pluginName) {
         CloudIntegration integration = integrations.getOrDefault(pluginName, genericIntegration(pluginName));
         boolean enabled = pluginEnabled(pluginName);
+        Plugin plugin = plugin(integration.pluginName());
+        IntegrationSupportState discoveryState = enabled ? IntegrationSupportState.DETECTED : IntegrationSupportState.NOT_INSTALLED;
+        IntegrationSupportState apiState = apiState(integration, enabled, plugin);
+        IntegrationSupportState adapterState = adapterState(integration, enabled, apiState);
         return new IntegrationStatus(
             pluginName,
             integration.category(),
             integration.detect(enabled),
+            summarizeState(discoveryState, apiState, adapterState, null),
+            discoveryState,
+            apiState,
+            adapterState,
+            null,
             CloudIntegrationPolicy.requiresRuntimeAuthority(pluginName, false),
             CloudIntegrationPolicy.requiredRuntimeClaims(),
             integration.capabilities()
@@ -89,7 +99,7 @@ public final class PaperIntegrationRegistry {
     public String statusLine() {
         List<String> entries = new ArrayList<>();
         for (IntegrationStatus status : snapshot()) {
-            entries.add(status.pluginName() + "=" + (status.enabled() ? "enabled" : "missing") + ":" + status.category());
+            entries.add(status.pluginName() + "=" + status.state() + ":" + status.category());
         }
         return String.join(", ", entries);
     }
@@ -102,6 +112,10 @@ public final class PaperIntegrationRegistry {
         for (IntegrationStatus status : snapshot()) {
             builder.append(status.pluginName())
                 .append(":enabled=").append(status.enabled())
+                .append(",state=").append(status.state())
+                .append(",discoveryState=").append(status.discoveryState())
+                .append(",apiState=").append(status.apiState())
+                .append(",adapterState=").append(status.adapterState())
                 .append(",category=").append(status.category())
                 .append(",runtimeAuthorityRequired=").append(status.runtimeAuthorityRequired())
                 .append(",capabilities=").append(status.capabilities())
@@ -161,6 +175,63 @@ public final class PaperIntegrationRegistry {
         return operation.apply(integration, enrichedContext);
     }
 
+    private IntegrationSupportState apiState(CloudIntegration integration, boolean enabled, Plugin plugin) {
+        if (!enabled) {
+            return IntegrationSupportState.NOT_INSTALLED;
+        }
+        if (!specificAdapter(integration)) {
+            return IntegrationSupportState.UNSUPPORTED;
+        }
+        if (!integration.capabilities().contains(IntegrationCapability.VALIDATE_VERSION)) {
+            return IntegrationSupportState.API_COMPATIBLE;
+        }
+        IntegrationContext context = plugin == null
+            ? new IntegrationContext(null, "", 0L, false, "", Map.of())
+            : withPluginRuntimeMetadata(integration.pluginName(), new IntegrationContext(null, "", 0L, false, "", Map.of()), plugin);
+        IntegrationResult result = integration.validateVersion(context);
+        return result.status() == IntegrationResult.Status.FAILED
+            ? IntegrationSupportState.API_INCOMPATIBLE
+            : IntegrationSupportState.API_COMPATIBLE;
+    }
+
+    private IntegrationSupportState adapterState(CloudIntegration integration, boolean enabled, IntegrationSupportState apiState) {
+        if (!enabled || !specificAdapter(integration) || apiState != IntegrationSupportState.API_COMPATIBLE) {
+            return IntegrationSupportState.ADAPTER_INACTIVE;
+        }
+        return IntegrationSupportState.ACTIVE;
+    }
+
+    private static boolean specificAdapter(CloudIntegration integration) {
+        return integration != null && integration.getClass() != PolicyBackedCloudIntegration.class;
+    }
+
+    public static IntegrationSupportState operationState(IntegrationResult result) {
+        return IntegrationSupportState.operationState(result);
+    }
+
+    private static IntegrationSupportState summarizeState(
+            IntegrationSupportState discoveryState,
+            IntegrationSupportState apiState,
+            IntegrationSupportState adapterState,
+            IntegrationSupportState operationState) {
+        if (operationState == IntegrationSupportState.OPERATION_FAILED || operationState == IntegrationSupportState.OPERATION_SUCCEEDED) {
+            return operationState;
+        }
+        if (discoveryState == IntegrationSupportState.NOT_INSTALLED) {
+            return IntegrationSupportState.NOT_INSTALLED;
+        }
+        if (apiState == IntegrationSupportState.UNSUPPORTED || apiState == IntegrationSupportState.API_INCOMPATIBLE) {
+            return apiState;
+        }
+        if (adapterState == IntegrationSupportState.ACTIVE) {
+            return IntegrationSupportState.ACTIVE;
+        }
+        if (apiState == IntegrationSupportState.API_COMPATIBLE) {
+            return IntegrationSupportState.API_COMPATIBLE;
+        }
+        return IntegrationSupportState.DETECTED;
+    }
+
     private IntegrationContext withPluginRuntimeMetadata(String pluginName, IntegrationContext context, Plugin plugin) {
         if (context == null || plugin == null) {
             return context;
@@ -195,11 +266,20 @@ public final class PaperIntegrationRegistry {
         String pluginName,
         String category,
         boolean enabled,
+        IntegrationSupportState state,
+        IntegrationSupportState discoveryState,
+        IntegrationSupportState apiState,
+        IntegrationSupportState adapterState,
+        IntegrationSupportState lastOperationState,
         boolean runtimeAuthorityRequired,
         List<String> requiredRuntimeClaims,
         Set<IntegrationCapability> capabilities
     ) {
         public IntegrationStatus {
+            state = state == null ? IntegrationSupportState.NOT_INSTALLED : state;
+            discoveryState = discoveryState == null ? IntegrationSupportState.NOT_INSTALLED : discoveryState;
+            apiState = apiState == null ? IntegrationSupportState.NOT_INSTALLED : apiState;
+            adapterState = adapterState == null ? IntegrationSupportState.ADAPTER_INACTIVE : adapterState;
             requiredRuntimeClaims = List.copyOf(requiredRuntimeClaims);
             capabilities = capabilities == null ? Set.of() : Set.copyOf(capabilities);
         }

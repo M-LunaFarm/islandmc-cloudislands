@@ -80,3 +80,27 @@ hooks:
       enabled: true
       category: economy
       runtime-authority-required: true
+    PlaceholderAPI:
+      enabled: true
+      category: placeholder
+      runtime-authority-required: false
+    ProtocolLib:
+      enabled: true
+      category: protocol
+      runtime-authority-required: false
+    SkinsRestorer:
+      enabled: true
+      category: identity
+      runtime-authority-required: false
+    SlimeWorldManager:
+      enabled: true
+      category: world-storage
+      runtime-authority-required: false
+    Slimefun:
+      enabled: true
+      category: custom-items
+      runtime-authority-required: true
+    CMI:
+      enabled: true
+      category: server-tools
+      runtime-authority-required: false
