@@ -32,7 +32,7 @@ public final class CoreConfigRoutes implements RouteGroup {
 
     @Override
     public void register(CoreRouteRegistry registry) {
-        registry.route("/v1/admin/config", this::config);
+        registry.routePost("/v1/admin/config", this::config);
     }
 
     private void config(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
