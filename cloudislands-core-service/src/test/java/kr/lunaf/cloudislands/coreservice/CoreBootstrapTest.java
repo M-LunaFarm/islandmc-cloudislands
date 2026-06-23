@@ -26,6 +26,7 @@ class CoreBootstrapTest {
     void compositionStagesAreImmutableRecords() {
         assertImmutableRecord(CoreInfrastructure.class);
         assertImmutableRecord(CoreRepositories.class);
+        assertImmutableRecord(CoreDomainServices.class);
         assertImmutableRecord(CoreHttpRuntime.class);
         assertImmutableRecord(CoreBackgroundTasks.class);
         assertImmutableRecord(CoreLifecycle.class);

@@ -56,6 +56,7 @@ import kr.lunaf.cloudislands.coreservice.http.routes.RouteTicketRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.SuperiorSkyblock2MigrationRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.TemplateRoutes;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
+import kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxDispatcher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.metrics.CoreMetricsFactory;
@@ -93,19 +94,8 @@ import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
 
 public final class CloudIslandsCoreApplication {
     private static final Logger LOGGER = Logger.getLogger(CloudIslandsCoreApplication.class.getName());
-    private final HttpServer server;
-    private final HttpServer adminServer;
-    private final CoreHttpRequestExecutor httpExecutor;
-    private final CoreHttpRequestExecutor adminHttpExecutor;
-    private final Duration httpShutdownGrace;
-    private final CoreHttpRouteRegistrar routeRegistrar;
-    private final CoreHttpRouteRegistrar adminRouteRegistrar;
-    private final NodeFailureMonitor nodeFailureMonitor;
-    private final RouteTicketExpiryMonitor routeTicketExpiryMonitor;
-    private final JobRecoveryMonitor jobRecoveryMonitor;
-    private final kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxDispatcher completionOutboxDispatcher;
+    private final CoreLifecycle coreLifecycle;
     private final CoreIslandDeleteService islandDeleteService;
-    private final DirtyRankingRecalculationTask rankingRecalculationTask;
     private final int snapshotKeepLatest;
 
     public CloudIslandsCoreApplication(int port) throws IOException {
@@ -156,7 +146,7 @@ public final class CloudIslandsCoreApplication {
         kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy = config.snapshotRetentionPolicy();
         kr.lunaf.cloudislands.coreservice.ranking.ConfigBlockValues.load(config.blockValuesFile()).forEach(levelRepository::putBlockValue);
         RankingRecalculationService levelRecalculation = new RankingRecalculationService(rankingRepository, events, config.levelFormulaExpression(), config.worthFormulaType());
-        this.rankingRecalculationTask = new DirtyRankingRecalculationTask(rankingRepository, levelRepository, metadataRepository, levelRecalculation);
+        DirtyRankingRecalculationTask rankingRecalculationTask = new DirtyRankingRecalculationTask(rankingRepository, levelRepository, metadataRepository, levelRecalculation);
         UpgradePolicy upgradePolicy = ConfigUpgradePolicy.load(config.upgradesFile());
         IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, bankRepository, upgradePolicy);
         RoutingOrchestrator routing = new RoutingOrchestrator(nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events, config.islandPool(), config.routeTicketTtl(), config.routePreparingTicketTtl(), activationLock);
@@ -184,7 +174,7 @@ public final class CloudIslandsCoreApplication {
         kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxStore completionOutbox = config.jdbcRepositories()
             ? new kr.lunaf.cloudislands.coreservice.job.JdbcJobCompletionOutboxStore(dataSource)
             : new kr.lunaf.cloudislands.coreservice.job.InMemoryJobCompletionOutboxStore();
-        this.completionOutboxDispatcher = new kr.lunaf.cloudislands.coreservice.job.JobCompletionOutboxDispatcher(completionOutbox, events);
+        JobCompletionOutboxDispatcher completionOutboxDispatcher = new JobCompletionOutboxDispatcher(completionOutbox, events);
         kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, events, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts, completionOutbox);
         PrometheusMetricsRenderer metrics = CoreMetricsFactory.create(
             config,
@@ -223,24 +213,37 @@ public final class CloudIslandsCoreApplication {
             routeRegistrar::securityRejectsIpNotAllowed,
             routeRegistrar::securityRejectsAdminPermissionDenied
         );
-        this.nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout(), tickets, sessions, snapshotRepository, lifecycle);
-        this.routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
-        this.jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
-        this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
-        this.httpExecutor = new CoreHttpRequestExecutor(config.httpWorkerThreads(), config.httpQueueCapacity(), config.httpKeepAlive());
-        this.adminServer = adminRouteRegistrar == null ? null : HttpServer.create(new InetSocketAddress(config.adminBind(), config.adminPort()), 0);
-        this.adminHttpExecutor = adminRouteRegistrar == null ? null : new CoreHttpRequestExecutor(config.httpWorkerThreads(), config.httpQueueCapacity(), config.httpKeepAlive());
-        this.httpShutdownGrace = config.httpShutdownGrace();
-        this.server.setExecutor(httpExecutor);
+        NodeFailureMonitor nodeFailureMonitor = new NodeFailureMonitor(nodes, runtimeRepository, islandRepository, events, config.heartbeatTimeout(), tickets, sessions, snapshotRepository, lifecycle);
+        RouteTicketExpiryMonitor routeTicketExpiryMonitor = new RouteTicketExpiryMonitor(tickets, events, config.routeTicketTtl());
+        JobRecoveryMonitor jobRecoveryMonitor = new JobRecoveryMonitor(jobs, Duration.ofSeconds(60), config.leaseDuration().toMillis(), 16);
+        HttpServer server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
+        CoreHttpRequestExecutor httpExecutor = new CoreHttpRequestExecutor(config.httpWorkerThreads(), config.httpQueueCapacity(), config.httpKeepAlive());
+        HttpServer adminServer = adminRouteRegistrar == null ? null : HttpServer.create(new InetSocketAddress(config.adminBind(), config.adminPort()), 0);
+        CoreHttpRequestExecutor adminHttpExecutor = adminRouteRegistrar == null ? null : new CoreHttpRequestExecutor(config.httpWorkerThreads(), config.httpQueueCapacity(), config.httpKeepAlive());
+        server.setExecutor(httpExecutor);
         if (adminServer != null) {
             adminServer.setExecutor(adminHttpExecutor);
         }
-        this.routeRegistrar = routeRegistrar;
-        this.adminRouteRegistrar = adminRouteRegistrar;
         routeRegistrar.attach(server);
         if (adminRouteRegistrar != null) {
             adminRouteRegistrar.attach(adminServer);
         }
+        CoreHttpRuntime httpRuntime = new CoreHttpRuntime(server, adminServer, httpExecutor, adminHttpExecutor, config.httpShutdownGrace(), routeRegistrar, adminRouteRegistrar);
+        CoreBackgroundTasks backgroundTasks = new CoreBackgroundTasks(nodeFailureMonitor, routeTicketExpiryMonitor, jobRecoveryMonitor, completionOutboxDispatcher, rankingRecalculationTask);
+        this.coreLifecycle = new CoreLifecycle(httpRuntime, backgroundTasks);
+        this.islandDeleteService = new CoreIslandDeleteService(deleteStorage, islandRepository, playerProfiles, runtimeRepository, jobs, events, snapshotRepository, snapshotRetentionPolicy);
+        CoreDomainServices domainServices = new CoreDomainServices(
+            routing,
+            createIsland,
+            lifecycle,
+            migrationAdmin,
+            jobCompletion,
+            metrics,
+            levelRecalculation,
+            upgradePolicy,
+            upgradeService,
+            islandDeleteService
+        );
         CoreRouteRegistry route = (path, handler) -> {
             routeRegistrar.route(path, handler);
             if (adminRouteRegistrar != null) {
@@ -253,18 +256,18 @@ public final class CloudIslandsCoreApplication {
                 adminRouteRegistrar.routePrefix(path, handler);
             }
         };
-        new HealthRoutes(config, metrics::render).register(route);
+        new HealthRoutes(config, domainServices.metrics()::render).register(route);
         new CoreConfigRoutes(config, nodes).register(route);
         new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(route);
-        new JobRoutes(jobs, jobCompletion, audit).register(route);
+        new JobRoutes(jobs, domainServices.jobCompletion(), audit).register(route);
         new EventRoutes(inMemoryEvents).register(route);
         new AuditRoutes(audit).register(route);
         new AddonRoutes(addonStates, audit, events).register(route);
-        new ProgressionRoutes(rankingRepository, upgradePolicy, levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
+        new ProgressionRoutes(rankingRepository, domainServices.upgradePolicy(), levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
         new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(route);
         new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
-        new IslandBlockLevelRoutes(levelRepository, rankingRepository, levelRecalculation, islandRepository, metadataRepository, permissionRules, audit, events).register(route);
-        new IslandUpgradeRoutes(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
+        new IslandBlockLevelRoutes(levelRepository, rankingRepository, domainServices.levelRecalculation(), islandRepository, metadataRepository, permissionRules, audit, events).register(route);
+        new IslandUpgradeRoutes(upgradeRepository, domainServices.upgradeService(), domainServices.upgradePolicy(), bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
         new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(route);
         new IslandSnapshotRoutes(snapshotRepository, runtimeRepository, snapshotRetentionPolicy, events).register(route);
         new IslandMemberRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, playerProfiles, islandLogs, audit, events).register(route);
@@ -273,15 +276,14 @@ public final class CloudIslandsCoreApplication {
         new IslandWarpRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, islandLogs, audit, events).register(route);
         new IslandReviewRoutes(reviewRepository, islandRepository, islandLogs, audit, events).register(route);
         new IslandWarehouseRoutes(warehouseRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
-        new IslandCatalogRoutes(islandRepository, metadataRepository, createIsland, islandLogs, audit).register(route);
-        this.islandDeleteService = new CoreIslandDeleteService(deleteStorage, islandRepository, playerProfiles, runtimeRepository, jobs, events, snapshotRepository, snapshotRetentionPolicy);
-        new IslandPlayerLifecycleRoutes(islandRepository, metadataRepository, permissionRules, lifecycle, islandDeleteService::requestIslandDelete, islandLogs, audit, events).register(route);
+        new IslandCatalogRoutes(islandRepository, metadataRepository, domainServices.createIsland(), islandLogs, audit).register(route);
+        new IslandPlayerLifecycleRoutes(islandRepository, metadataRepository, permissionRules, domainServices.islandLifecycle(), domainServices.islandDeleteService()::requestIslandDelete, islandLogs, audit, events).register(route);
         new IslandQueryRoutes(
             islandRepository,
             metadataRepository,
             runtimeRepository,
             levelRepository,
-            levelRecalculation,
+            domainServices.levelRecalculation(),
             permissionRules,
             roleRepository,
             limitRepository,
@@ -292,24 +294,24 @@ public final class CloudIslandsCoreApplication {
             islandLogs,
             playerProfiles,
             audit,
-            islandDeleteService::requestIslandDelete
+            domainServices.islandDeleteService()::requestIslandDelete
         ).register(routePrefix);
-        new RoutePreparationRoutes(routing).register(route);
+        new RoutePreparationRoutes(domainServices.routing()).register(route);
         new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(route);
         new AdminRuntimeRoutes(sessions, tickets, redisCacheAdmin, audit, events).register(route);
-        new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), migrationAdmin, audit).register(route);
+        new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), domainServices.migrationAdmin(), audit).register(route);
         new PlayerProfileRoutes(playerProfiles, audit).register(route);
         new TemplateRoutes(templateRepository, audit, events).register(route);
         new ProtocolRoutes(nodes).register(route);
         new AdminNodeRoutes(nodes, nodeFailureMonitor, config.heartbeatTimeout(), audit, events).register(route, routePrefix);
         new AdminIslandLifecycleRoutes(
-            lifecycle,
+            domainServices.islandLifecycle(),
             islandRepository,
             runtimeRepository,
             snapshotRepository,
             audit,
             events,
-            islandDeleteService::requestIslandDelete
+            domainServices.islandDeleteService()::requestIslandDelete
         ).register(route, routePrefix);
     }
 
@@ -343,31 +345,11 @@ public final class CloudIslandsCoreApplication {
     }
 
     public void start() {
-        server.start();
-        if (adminServer != null) {
-            adminServer.start();
-        }
-        nodeFailureMonitor.start();
-        routeTicketExpiryMonitor.start();
-        jobRecoveryMonitor.start();
-        completionOutboxDispatcher.start();
-        rankingRecalculationTask.start();
+        coreLifecycle.start();
     }
 
     public void stop() {
-        rankingRecalculationTask.stop();
-        completionOutboxDispatcher.stop();
-        jobRecoveryMonitor.stop();
-        routeTicketExpiryMonitor.stop();
-        nodeFailureMonitor.stop();
-        if (adminServer != null) {
-            adminServer.stop((int) Math.min(Integer.MAX_VALUE, Math.max(0L, httpShutdownGrace.toSeconds())));
-        }
-        server.stop((int) Math.min(Integer.MAX_VALUE, Math.max(0L, httpShutdownGrace.toSeconds())));
-        if (adminHttpExecutor != null) {
-            adminHttpExecutor.shutdownGracefully(httpShutdownGrace);
-        }
-        httpExecutor.shutdownGracefully(httpShutdownGrace);
+        coreLifecycle.stop();
     }
 
     public static void main(String[] args) throws IOException {
