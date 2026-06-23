@@ -1,232 +1,118 @@
 package kr.lunaf.cloudislands.velocity.event;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import kr.lunaf.cloudislands.common.json.JsonCodec;
 
 public final class CoreEventJsonCodec implements CoreEventCodec {
     @Override
     public CoreEventBatch decodeBatch(String json) {
-        if (json == null || json.isBlank()) {
-            return new CoreEventBatch(0L, 0L, List.of());
-        }
-        JsonCursor cursor = new JsonCursor(json);
-        Object root = cursor.readValue();
-        if (!(root instanceof Map<?, ?> object)) {
-            return new CoreEventBatch(0L, 0L, List.of());
-        }
-        long oldestSequence = number(object.get("oldestSeq"));
-        long latestSequence = number(object.get("latestSeq"));
+        Map<String, Object> object = JsonCodec.readObject(json);
+        long oldestSequence = sequence(object, "oldestSeq");
+        long latestSequence = sequence(object, "latestSeq");
         List<CoreEventEnvelope> events = new ArrayList<>();
-        Object rawEvents = object.get("events");
-        if (rawEvents instanceof List<?> list) {
-            for (Object item : list) {
-                if (item instanceof Map<?, ?> event) {
-                    events.add(event(event));
-                }
+        List<?> rawEvents = array(object, "events");
+        for (int index = 0; index < rawEvents.size(); index++) {
+            Object item = rawEvents.get(index);
+            if (!(item instanceof Map<?, ?> event)) {
+                throw invalid("events[" + index + "] must be an object");
             }
+            events.add(event(event, index));
         }
         return new CoreEventBatch(oldestSequence, latestSequence, List.copyOf(events));
     }
 
-    private static CoreEventEnvelope event(Map<?, ?> event) {
+    private static CoreEventEnvelope event(Map<?, ?> event, int index) {
         return new CoreEventEnvelope(
-            number(event.get("seq")),
-            text(event.get("type")),
-            stringMap(event.get("fields")),
-            text(event.get("occurredAt"))
+            sequence(event, "events[" + index + "].seq", "seq"),
+            requiredText(event, "events[" + index + "].type", "type"),
+            stringMap(event, "events[" + index + "].fields", "fields"),
+            requiredText(event, "events[" + index + "].occurredAt", "occurredAt")
         );
     }
 
-    private static Map<String, String> stringMap(Object value) {
+    private static List<?> array(Map<String, Object> object, String field) {
+        Object value = object.get(field);
+        if (value instanceof List<?> list) {
+            return list;
+        }
+        throw invalid(field + " must be an array");
+    }
+
+    private static Map<String, String> stringMap(Map<?, ?> object, String path, String field) {
+        Object value = object.get(field);
         if (!(value instanceof Map<?, ?> map)) {
-            return Map.of();
+            throw invalid(path + " must be an object");
         }
         Map<String, String> result = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : map.entrySet()) {
-            result.put(text(entry.getKey()), text(entry.getValue()));
+            if (!(entry.getKey() instanceof String key) || key.isBlank()) {
+                throw invalid(path + " keys must be non-blank strings");
+            }
+            Object rawValue = entry.getValue();
+            if (rawValue == null || rawValue instanceof Map<?, ?> || rawValue instanceof List<?>) {
+                throw invalid(path + "." + key + " must be a scalar value");
+            }
+            result.put(key, rawValue.toString());
         }
         return Map.copyOf(result);
     }
 
-    private static String text(Object value) {
-        return value == null ? "" : value.toString();
+    private static String requiredText(Map<?, ?> object, String path, String field) {
+        Object value = object.get(field);
+        if (value instanceof String text && !text.isBlank()) {
+            return text;
+        }
+        throw invalid(path + " must be a non-blank string");
     }
 
-    private static long number(Object value) {
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-        if (value instanceof String text) {
-            try {
-                return Long.parseLong(text);
-            } catch (NumberFormatException ignored) {
-                return 0L;
-            }
-        }
-        return 0L;
+    private static long sequence(Map<?, ?> object, String field) {
+        return sequence(object, field, field);
     }
 
-    private static final class JsonCursor {
-        private final String json;
-        private int index;
-
-        private JsonCursor(String json) {
-            this.json = json;
-        }
-
-        private Object readValue() {
-            skipWhitespace();
-            if (index >= json.length()) {
-                return null;
-            }
-            char current = json.charAt(index);
-            if (current == '{') {
-                return readObject();
-            }
-            if (current == '[') {
-                return readArray();
-            }
-            if (current == '"') {
-                return readString();
-            }
-            if (current == 't' && consumeLiteral("true")) {
-                return Boolean.TRUE;
-            }
-            if (current == 'f' && consumeLiteral("false")) {
-                return Boolean.FALSE;
-            }
-            if (current == 'n' && consumeLiteral("null")) {
-                return null;
-            }
-            return readNumber();
-        }
-
-        private Map<String, Object> readObject() {
-            Map<String, Object> result = new LinkedHashMap<>();
-            index++;
-            skipWhitespace();
-            while (index < json.length() && json.charAt(index) != '}') {
-                String key = readString();
-                skipWhitespace();
-                if (index < json.length() && json.charAt(index) == ':') {
-                    index++;
-                }
-                Object value = readValue();
-                result.put(key, value);
-                skipWhitespace();
-                if (index < json.length() && json.charAt(index) == ',') {
-                    index++;
-                    skipWhitespace();
-                }
-            }
-            if (index < json.length() && json.charAt(index) == '}') {
-                index++;
-            }
-            return result;
-        }
-
-        private List<Object> readArray() {
-            List<Object> result = new ArrayList<>();
-            index++;
-            skipWhitespace();
-            while (index < json.length() && json.charAt(index) != ']') {
-                result.add(readValue());
-                skipWhitespace();
-                if (index < json.length() && json.charAt(index) == ',') {
-                    index++;
-                    skipWhitespace();
-                }
-            }
-            if (index < json.length() && json.charAt(index) == ']') {
-                index++;
-            }
-            return result;
-        }
-
-        private String readString() {
-            if (index >= json.length() || json.charAt(index) != '"') {
-                return "";
-            }
-            index++;
-            StringBuilder builder = new StringBuilder();
-            while (index < json.length()) {
-                char current = json.charAt(index++);
-                if (current == '"') {
-                    break;
-                }
-                if (current == '\\' && index < json.length()) {
-                    appendEscaped(builder, json.charAt(index++));
-                    continue;
-                }
-                builder.append(current);
-            }
-            return builder.toString();
-        }
-
-        private void appendEscaped(StringBuilder builder, char escaped) {
-            switch (escaped) {
-                case '"', '\\', '/' -> builder.append(escaped);
-                case 'b' -> builder.append('\b');
-                case 'f' -> builder.append('\f');
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                case 'u' -> appendUnicode(builder);
-                default -> builder.append(escaped);
-            }
-        }
-
-        private void appendUnicode(StringBuilder builder) {
-            if (index + 4 > json.length()) {
-                return;
-            }
-            String hex = json.substring(index, index + 4);
-            index += 4;
+    private static long sequence(Map<?, ?> object, String path, String field) {
+        Object value = object.get(field);
+        long sequence;
+        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
+            sequence = ((Number) value).longValue();
+        } else if (value instanceof BigInteger integer) {
             try {
-                builder.append((char) Integer.parseInt(hex, 16));
-            } catch (NumberFormatException ignored) {
-                builder.append(hex);
+                sequence = integer.longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalid(path + " must fit in a signed 64-bit integer");
             }
-        }
-
-        private Number readNumber() {
-            int start = index;
-            while (index < json.length()) {
-                char current = json.charAt(index);
-                if ((current >= '0' && current <= '9') || current == '-' || current == '+' || current == '.' || current == 'e' || current == 'E') {
-                    index++;
-                    continue;
-                }
-                break;
-            }
-            if (start == index) {
-                return 0L;
-            }
-            String token = json.substring(start, index);
+        } else if (value instanceof BigDecimal decimal) {
             try {
-                if (token.contains(".") || token.contains("e") || token.contains("E")) {
-                    return Double.parseDouble(token);
-                }
-                return Long.parseLong(token);
-            } catch (NumberFormatException ignored) {
-                return 0L;
+                sequence = decimal.toBigIntegerExact().longValueExact();
+            } catch (ArithmeticException exception) {
+                throw invalid(path + " must be an integer");
             }
+        } else if (value instanceof Number number) {
+            double decimal = number.doubleValue();
+            sequence = number.longValue();
+            if (!Double.isFinite(decimal) || decimal != sequence) {
+                throw invalid(path + " must be an integer");
+            }
+        } else if (value instanceof String text && !text.isBlank()) {
+            try {
+                sequence = Long.parseLong(text.trim());
+            } catch (NumberFormatException exception) {
+                throw invalid(path + " must be an integer");
+            }
+        } else {
+            throw invalid(path + " must be an integer");
         }
+        if (sequence < 0L) {
+            throw invalid(path + " must not be negative");
+        }
+        return sequence;
+    }
 
-        private boolean consumeLiteral(String literal) {
-            if (json.startsWith(literal, index)) {
-                index += literal.length();
-                return true;
-            }
-            return false;
-        }
-
-        private void skipWhitespace() {
-            while (index < json.length() && Character.isWhitespace(json.charAt(index))) {
-                index++;
-            }
-        }
+    private static IllegalArgumentException invalid(String message) {
+        return new IllegalArgumentException("invalid Core event JSON: " + message);
     }
 }

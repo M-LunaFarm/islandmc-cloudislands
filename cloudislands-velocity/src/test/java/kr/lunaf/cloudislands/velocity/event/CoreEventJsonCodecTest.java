@@ -1,7 +1,9 @@
 package kr.lunaf.cloudislands.velocity.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import kr.lunaf.cloudislands.common.json.JsonCodecException;
 import org.junit.jupiter.api.Test;
 
 class CoreEventJsonCodecTest {
@@ -38,5 +40,21 @@ class CoreEventJsonCodecTest {
         assertEquals("SHUTDOWN_SAFE", event.fields().get("state"));
         assertEquals("drain:완료", event.fields().get("operation"));
         assertEquals("2026-06-19T00:00:00Z", event.occurredAt());
+    }
+
+    @Test
+    void rejectsMalformedCoreEventBatchesInsteadOfReturningEmptyStreams() {
+        assertThrows(JsonCodecException.class, () -> codec.decodeBatch(""));
+        assertThrows(JsonCodecException.class, () -> codec.decodeBatch("[]"));
+        assertThrows(IllegalArgumentException.class, () -> codec.decodeBatch("{\"oldestSeq\":1,\"latestSeq\":2,\"events\":{}}"));
+        assertThrows(IllegalArgumentException.class, () -> codec.decodeBatch("{\"oldestSeq\":\"x\",\"latestSeq\":2,\"events\":[]}"));
+    }
+
+    @Test
+    void rejectsMalformedCoreEventEntriesInsteadOfSkippingOrCoercingThem() {
+        assertThrows(IllegalArgumentException.class, () -> codec.decodeBatch("{\"oldestSeq\":1,\"latestSeq\":2,\"events\":[\"bad\"]}"));
+        assertThrows(IllegalArgumentException.class, () -> codec.decodeBatch("{\"oldestSeq\":1,\"latestSeq\":2,\"events\":[{\"seq\":1.5,\"type\":\"NODE_DOWN\",\"fields\":{},\"occurredAt\":\"2026-06-19T00:00:00Z\"}]}"));
+        assertThrows(IllegalArgumentException.class, () -> codec.decodeBatch("{\"oldestSeq\":1,\"latestSeq\":2,\"events\":[{\"seq\":1,\"type\":\"\",\"fields\":{},\"occurredAt\":\"2026-06-19T00:00:00Z\"}]}"));
+        assertThrows(IllegalArgumentException.class, () -> codec.decodeBatch("{\"oldestSeq\":1,\"latestSeq\":2,\"events\":[{\"seq\":1,\"type\":\"NODE_DOWN\",\"fields\":{\"nodeId\":{}},\"occurredAt\":\"2026-06-19T00:00:00Z\"}]}"));
     }
 }
