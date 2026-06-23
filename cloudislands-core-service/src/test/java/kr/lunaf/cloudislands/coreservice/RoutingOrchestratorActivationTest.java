@@ -143,6 +143,43 @@ class RoutingOrchestratorActivationTest {
             && event.fields().getOrDefault("reason", "").equals("active_node_state_down")));
     }
 
+    @Test
+    void routeToActiveIslandWithMissingPlacementMarksRecoveryInsteadOfIssuingReadyTicket() {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC));
+        RecordingEvents events = new RecordingEvents();
+        RoutingOrchestrator orchestrator = new RoutingOrchestrator(
+            new StaticNodeRegistry(List.of(node("island-2", "Island-2", 20, 120, 20.0, 0))),
+            new NodeAllocator(Duration.ofSeconds(5)),
+            tickets,
+            islands,
+            new InMemoryIslandMetadataRepository(),
+            runtimes,
+            new InMemoryIslandTemplateRepository(),
+            jobs,
+            events,
+            "island",
+            Duration.ofSeconds(30),
+            Duration.ofSeconds(120)
+        );
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "owner-island");
+        islands.setState(ISLAND, IslandState.ACTIVE);
+        runtimes.markActive(ISLAND, "island-2", null, 7, 8, 42L);
+
+        RoutePreparationResult result = orchestrator.prepareHomeRoute(OWNER);
+
+        assertEquals(409, result.status());
+        assertTrue(result.body().contains("\"code\":\"NODE_UNAVAILABLE\""));
+        assertEquals(IslandState.RECOVERY_REQUIRED, islands.findById(ISLAND).orElseThrow().state());
+        assertEquals(IslandState.RECOVERY_REQUIRED, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(0L, tickets.countsByState().get("READY"));
+        assertTrue(jobs.snapshot().isEmpty());
+        assertTrue(events.events().stream().anyMatch(event -> event.type().equals("ISLAND_RECOVERY_REQUIRED")
+            && event.fields().getOrDefault("reason", "").equals("missing_placement")));
+    }
+
     private RoutingOrchestrator orchestrator(InMemoryIslandRepository islands, IslandRuntimeRepository runtimes, InMemoryIslandJobPublisher jobs, InMemoryRouteTicketStore tickets) {
         return new RoutingOrchestrator(
             new StaticNodeRegistry(List.of(node("island-2", "Island-2", 20, 120, 20.0, 0))),

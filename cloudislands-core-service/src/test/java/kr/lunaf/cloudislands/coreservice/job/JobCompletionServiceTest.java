@@ -241,6 +241,49 @@ class JobCompletionServiceTest {
         assertTrue(activationLock.acquire(ISLAND, "restore").isPresent());
     }
 
+    @Test
+    void activateCompletionWithoutPlacementFailsClosed() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        JobCompletionService service = service(runtimes, events, snapshots);
+        runtimes.markActivating(ISLAND, "island-1", "ci_shard_001", 1, 2);
+
+        service.completed(job(IslandJobType.ACTIVATE_ISLAND, "island-1", Map.of(
+            "fencingToken", "1"
+        )));
+
+        assertEquals(IslandState.ERROR_ACTIVATING, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(0L, events.countByType(CloudIslandEventType.ISLAND_ACTIVATED.name()));
+        assertTrue(events.toJson().contains("PLACEMENT_MISSING"));
+    }
+
+    @Test
+    void restoreCompletionWithoutPlacementFailsClosed() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        RedisActivationLock activationLock = new RedisActivationLock(URI.create("redis://127.0.0.1:1"), Duration.ofSeconds(30), true);
+        JobCompletionService service = service(runtimes, islands, events, snapshots, activationLock);
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "restore target");
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 42L);
+        runtimes.setState(ISLAND, IslandState.RESTORING);
+        RedisActivationLock.Lease lease = activationLock.acquire(ISLAND, "restore").orElseThrow();
+
+        service.completed(job(IslandJobType.RESTORE_ISLAND, "island-2", Map.of(
+            "fencingToken", "42",
+            "activationLockToken", lease.token(),
+            "snapshotNo", "9"
+        )));
+
+        assertEquals(IslandState.ERROR_ACTIVATING, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(IslandState.ERROR_ACTIVATING, islands.findById(ISLAND).orElseThrow().state());
+        assertEquals(0L, events.countByType(CloudIslandEventType.ISLAND_RESTORED.name()));
+        assertTrue(events.toJson().contains("PLACEMENT_MISSING"));
+        assertTrue(activationLock.acquire(ISLAND, "restore").isPresent());
+    }
+
     private JobCompletionService service(InMemoryIslandRuntimeRepository runtimes, GlobalEventPublisher events, InMemoryIslandSnapshotRepository snapshots) {
         return new JobCompletionService(
             runtimes,

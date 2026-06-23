@@ -116,6 +116,14 @@ public final class CreateIslandWorkflow {
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime;
         try {
             runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+            if (placementMissing(runtime)) {
+                releaseCreationLock(lease);
+                islands.setState(islandId, IslandState.ERROR_CREATING);
+                runtimes.setState(islandId, IslandState.ERROR_CREATING);
+                publishTicketFailure(ownerUuid, islandId, "PLACEMENT_UNAVAILABLE");
+                events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", IslandState.ERROR_CREATING.name(), "reason", "PLACEMENT_UNAVAILABLE", "targetNode", node.nodeId()));
+                return new CreateIslandResult(false, "PLACEMENT_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
+            }
         } catch (RuntimeException exception) {
             releaseCreationLock(lease);
             islands.setState(islandId, IslandState.ERROR_CREATING);
@@ -125,7 +133,7 @@ public final class CreateIslandWorkflow {
             return new CreateIslandResult(false, "PLACEMENT_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
         }
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate, "ownerUuid", ownerUuid.toString(), "islandSize", Integer.toString(island.size()), "worldName", runtime.activeWorld() == null ? kr.lunaf.cloudislands.coreservice.IslandPlacement.worldName(islandId) : runtime.activeWorld(), "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()), "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ()), "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate, "ownerUuid", ownerUuid.toString(), "islandSize", Integer.toString(island.size()), "worldName", runtime.activeWorld(), "cellX", Integer.toString(runtime.cellX()), "cellZ", Integer.toString(runtime.cellZ()), "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
             releaseCreationLock(lease);
             islands.setState(islandId, IslandState.ERROR_CREATING);
@@ -136,7 +144,7 @@ public final class CreateIslandWorkflow {
         }
         events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId()));
         String targetServerName = node.velocityServerName() == null || node.velocityServerName().isBlank() ? node.nodeId() : node.velocityServerName();
-        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), runtime.activeWorld() == null ? kr.lunaf.cloudislands.coreservice.IslandPlacement.worldName(islandId) : runtime.activeWorld(), RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), Map.of(
+        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), runtime.activeWorld(), RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), Map.of(
             "targetServerName", targetServerName,
             "targetType", "ISLAND_HOME",
             "homeName", "default",
@@ -171,6 +179,14 @@ public final class CreateIslandWorkflow {
 
     private static boolean isMigrationInputOnlyTemplate(String templateId) {
         return "superiorskyblock2".equalsIgnoreCase(templateId == null ? "" : templateId.trim());
+    }
+
+    private static boolean placementMissing(kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime) {
+        return runtime == null
+            || runtime.activeWorld() == null
+            || runtime.activeWorld().isBlank()
+            || runtime.cellX() == null
+            || runtime.cellZ() == null;
     }
 
     private RedisPlayerCreationLock.Lease acquireCreationLock(UUID playerUuid) {

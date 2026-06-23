@@ -90,12 +90,16 @@ public final class IslandLifecycleWorkflow {
         IslandRuntimeSnapshot runtime;
         try {
             runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+            if (placementMissing(runtime)) {
+                releaseActivationLock(lease);
+                return new Result(false, "PLACEMENT_MISSING", runtime);
+            }
             islands.setState(islandId, IslandState.ACTIVATING);
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of(
                 "fencingToken", Long.toString(runtime.fencingToken()),
-                "worldName", runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld(),
-                "cellX", runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX()),
-                "cellZ", runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ()),
+                "worldName", runtime.activeWorld(),
+                "cellX", Integer.toString(runtime.cellX()),
+                "cellZ", Integer.toString(runtime.cellZ()),
                 "activationLockToken", lockToken(lease)
             ), Instant.now()));
         } catch (RuntimeException exception) {
@@ -181,17 +185,24 @@ public final class IslandLifecycleWorkflow {
         if (node == null) {
             return new Result(false, targetNodeUnavailableCode(allocator.targetNodeBlockReason(nodeSnapshot, now, targetNode, templateId, minNodeVersion(templateId), islandPool)), null);
         }
+        if (placementMissing(current)) {
+            return new Result(false, "PLACEMENT_MISSING", current);
+        }
         RedisActivationLock.AcquireResult activationLease = acquireActivationLock(islandId, "migrate");
         if (activationLease.locked()) {
             return new Result(false, "ACTIVATION_LOCKED", current);
         }
         RedisActivationLock.Lease lease = activationLease.lease().orElse(null);
         IslandRuntimeSnapshot runtime = runtimes.markMigrating(islandId, targetNode);
+        if (placementMissing(runtime)) {
+            releaseActivationLock(lease);
+            return new Result(false, "PLACEMENT_MISSING", runtime);
+        }
         islands.setState(islandId, IslandState.DEACTIVATING);
         String sourceNode = current == null ? "" : current.activeNode();
-        String migrationWorldName = runtime.activeWorld() == null ? "ci_shard_001" : runtime.activeWorld();
-        String migrationCellX = runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX());
-        String migrationCellZ = runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ());
+        String migrationWorldName = runtime.activeWorld();
+        String migrationCellX = Integer.toString(runtime.cellX());
+        String migrationCellZ = Integer.toString(runtime.cellZ());
         try {
             if (sourceNode != null && !sourceNode.isBlank() && !sourceNode.equals(targetNode)) {
                 jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DEACTIVATE_ISLAND, islandId, sourceNode, 10, Map.of(
@@ -297,18 +308,27 @@ public final class IslandLifecycleWorkflow {
         }
         RedisActivationLock.Lease lease = activationLease.lease().orElse(null);
         try {
-            kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+            IslandRuntimeSnapshot activating = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+            if (placementMissing(activating)) {
+                releaseActivationLock(lease);
+                return new Result(false, "PLACEMENT_MISSING", activating);
+            }
         } catch (RuntimeException exception) {
+            releaseActivationLock(lease);
             if (splitBrainActivationRejected(exception)) {
                 return new Result(false, "SPLIT_BRAIN_ACTIVATION_REJECTED", runtimes.find(islandId).orElse(null));
             }
             throw exception;
         }
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.RESTORING);
+        if (placementMissing(runtime)) {
+            releaseActivationLock(lease);
+            return new Result(false, "PLACEMENT_MISSING", runtime);
+        }
         islands.setState(islandId, IslandState.RESTORING);
-        String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
-        String cellX = runtime.cellX() == null ? "0" : Integer.toString(runtime.cellX());
-        String cellZ = runtime.cellZ() == null ? "0" : Integer.toString(runtime.cellZ());
+        String worldName = runtime.activeWorld();
+        String cellX = Integer.toString(runtime.cellX());
+        String cellZ = Integer.toString(runtime.cellZ());
         String placementSource = recoveryRestore ? "recovery-restore" : "snapshot-restore";
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, restoreJobPayload(snapshotNo, storagePath, runtime.fencingToken(), recoveryRestore, worldName, cellX, cellZ, placementSource, false, lockToken(lease)), Instant.now()));
@@ -343,7 +363,12 @@ public final class IslandLifecycleWorkflow {
         IslandRuntimeSnapshot runtime;
         try {
             runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
+            if (placementMissing(runtime)) {
+                releaseActivationLock(lease);
+                return new Result(false, "PLACEMENT_MISSING", runtime);
+            }
         } catch (RuntimeException exception) {
+            releaseActivationLock(lease);
             if (splitBrainActivationRejected(exception)) {
                 return new Result(false, "SPLIT_BRAIN_ACTIVATION_REJECTED", runtimes.find(islandId).orElse(null));
             }
@@ -382,6 +407,9 @@ public final class IslandLifecycleWorkflow {
         if (!activeNode.storageAvailable()) {
             return new Result(false, StorageOutagePolicy.STORAGE_BLOCK_CODE, current);
         }
+        if (placementMissing(current)) {
+            return new Result(false, "PLACEMENT_MISSING", current);
+        }
         RedisActivationLock.AcquireResult activationLease = acquireActivationLock(islandId, "restore");
         if (activationLease.locked()) {
             return new Result(false, "ACTIVATION_LOCKED", current);
@@ -389,9 +417,9 @@ public final class IslandLifecycleWorkflow {
         RedisActivationLock.Lease lease = activationLease.lease().orElse(null);
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.RESTORING);
         islands.setState(islandId, IslandState.RESTORING);
-        String worldName = current.activeWorld() == null || current.activeWorld().isBlank() ? "ci_shard_001" : current.activeWorld();
-        String cellX = current.cellX() == null ? "0" : Integer.toString(current.cellX());
-        String cellZ = current.cellZ() == null ? "0" : Integer.toString(current.cellZ());
+        String worldName = current.activeWorld();
+        String cellX = Integer.toString(current.cellX());
+        String cellZ = Integer.toString(current.cellZ());
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, current.activeNode(), 30, restoreJobPayload(snapshotNo, storagePath, current.fencingToken(), false, worldName, cellX, cellZ, "active-snapshot-restore", true, lockToken(lease)), Instant.now()));
         } catch (RuntimeException exception) {
@@ -419,9 +447,9 @@ public final class IslandLifecycleWorkflow {
         payload.put("playerTransferTarget", activeRestore ? "lobby" : "");
         payload.put("resetRuntimeBeforeReactivate", "true");
         payload.put("reactivateAfterRestore", "true");
-        payload.put("worldName", worldName == null || worldName.isBlank() ? "ci_shard_001" : worldName);
-        payload.put("cellX", cellX == null || cellX.isBlank() ? "0" : cellX);
-        payload.put("cellZ", cellZ == null || cellZ.isBlank() ? "0" : cellZ);
+        payload.put("worldName", worldName);
+        payload.put("cellX", cellX);
+        payload.put("cellZ", cellZ);
         payload.put("placementSource", placementSource == null ? "" : placementSource);
         if (recoveryRestore) {
             payload.put("recoveryRestore", "true");
@@ -441,9 +469,9 @@ public final class IslandLifecycleWorkflow {
         payload.put("storagePath", storagePath == null ? "" : storagePath);
         payload.put("targetNode", targetNode == null ? "" : targetNode);
         payload.put("fencingToken", Long.toString(fencingToken));
-        payload.put("worldName", worldName == null || worldName.isBlank() ? "ci_shard_001" : worldName);
-        payload.put("cellX", cellX == null || cellX.isBlank() ? "0" : cellX);
-        payload.put("cellZ", cellZ == null || cellZ.isBlank() ? "0" : cellZ);
+        payload.put("worldName", worldName);
+        payload.put("cellX", cellX);
+        payload.put("cellZ", cellZ);
         payload.put("placementSource", placementSource == null ? "" : placementSource);
         payload.put("restoreManifestRequired", RESTORE_MANIFEST_REQUIRED);
         payload.put("restoreChecksumPolicy", RESTORE_CHECKSUM_POLICY);
@@ -467,6 +495,9 @@ public final class IslandLifecycleWorkflow {
         if (!activeNode.storageAvailable()) {
             return new Result(false, StorageOutagePolicy.STORAGE_BLOCK_CODE, current);
         }
+        if (placementMissing(current)) {
+            return new Result(false, "PLACEMENT_MISSING", current);
+        }
         String templateId = islands.templateId(islandId).orElse("default");
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, IslandState.ACTIVATING);
         islands.setState(islandId, IslandState.ACTIVATING);
@@ -477,9 +508,9 @@ public final class IslandLifecycleWorkflow {
                 "preMutationReason", BEFORE_RESET_REASON,
                 "preMutationSnapshotRequired", "true",
                 "fencingToken", Long.toString(current.fencingToken()),
-                "worldName", current.activeWorld() == null ? "ci_shard_001" : current.activeWorld(),
-                "cellX", current.cellX() == null ? "0" : Integer.toString(current.cellX()),
-                "cellZ", current.cellZ() == null ? "0" : Integer.toString(current.cellZ())
+                "worldName", current.activeWorld(),
+                "cellX", Integer.toString(current.cellX()),
+                "cellZ", Integer.toString(current.cellZ())
             ), Instant.now()));
         } catch (RuntimeException exception) {
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
@@ -502,6 +533,14 @@ public final class IslandLifecycleWorkflow {
             || runtime.state() == IslandState.ERROR_CREATING
             || runtime.state() == IslandState.ERROR_ACTIVATING
             || runtime.state() == IslandState.ERROR_SAVING;
+    }
+
+    private static boolean placementMissing(IslandRuntimeSnapshot runtime) {
+        return runtime == null
+            || runtime.activeWorld() == null
+            || runtime.activeWorld().isBlank()
+            || runtime.cellX() == null
+            || runtime.cellZ() == null;
     }
 
     private String readyNodeUnavailableCode(List<NodeLoad> nodeSnapshot, String templateId) {

@@ -72,8 +72,12 @@ final class JobCompletionBackend {
 
     public void completed(IslandJob job) {
         if (job.type() == IslandJobType.CREATE_ISLAND || job.type() == IslandJobType.ACTIVATE_ISLAND || job.type() == IslandJobType.RESET_ISLAND) {
-            String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
-            if (!markActiveFromJob(job, worldName)) {
+            JobPlacement placement = jobPlacement(job);
+            if (placement == null) {
+                failed(job, "PLACEMENT_MISSING");
+                return;
+            }
+            if (!markActiveFromJob(job, placement)) {
                 releaseActivationJobLock(job);
                 return;
             }
@@ -84,15 +88,15 @@ final class JobCompletionBackend {
                 recordCompletedSnapshot(job, "CREATED", true);
             }
             setIslandState(job.islandId(), IslandState.ACTIVE);
-            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of(
+            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), placement.worldName(), Instant.now().plus(routeTicketTtl), Map.of(
                 "placementSource", job.payload().getOrDefault("placementSource", "")
             ));
             publishEvent(job.type() == IslandJobType.RESET_ISLAND ? CloudIslandEventType.ISLAND_RESET.name() : CloudIslandEventType.ISLAND_ACTIVATED.name(), Map.of(
                 "islandId", job.islandId().toString(),
                 "nodeId", job.targetNode() == null ? "" : job.targetNode(),
-                "worldName", worldName,
-                "cellX", job.payload().getOrDefault("cellX", "0"),
-                "cellZ", job.payload().getOrDefault("cellZ", "0"),
+                "worldName", placement.worldName(),
+                "cellX", Integer.toString(placement.cellX()),
+                "cellZ", Integer.toString(placement.cellZ()),
                 "placementSource", job.payload().getOrDefault("placementSource", ""),
                 "readyTickets", Integer.toString(readyTickets)
             ));
@@ -150,7 +154,12 @@ final class JobCompletionBackend {
             return;
         }
         if (job.type() == IslandJobType.RESTORE_ISLAND) {
-            if (!markActiveFromJob(job, job.payload().getOrDefault("worldName", "ci_shard_001"))) {
+            JobPlacement placement = jobPlacement(job);
+            if (placement == null) {
+                failed(job, "PLACEMENT_MISSING");
+                return;
+            }
+            if (!markActiveFromJob(job, placement)) {
                 releaseRestoreLock(job);
                 return;
             }
@@ -162,9 +171,9 @@ final class JobCompletionBackend {
                 "state", "RESTORED",
                 "snapshotNo", job.payload().getOrDefault("snapshotNo", ""),
                 "targetNode", job.targetNode() == null ? "" : job.targetNode(),
-                "worldName", job.payload().getOrDefault("worldName", "ci_shard_001"),
-                "cellX", job.payload().getOrDefault("cellX", "0"),
-                "cellZ", job.payload().getOrDefault("cellZ", "0"),
+                "worldName", placement.worldName(),
+                "cellX", Integer.toString(placement.cellX()),
+                "cellZ", Integer.toString(placement.cellZ()),
                 "fencingToken", job.payload().getOrDefault("fencingToken", "0"),
                 "placementSource", job.payload().getOrDefault("placementSource", "")
             ));
@@ -172,14 +181,18 @@ final class JobCompletionBackend {
             return;
         }
         if (job.type() == IslandJobType.MIGRATE_ISLAND) {
-            String worldName = job.payload().getOrDefault("worldName", "ci_shard_001");
-            if (!markActiveFromJob(job, worldName)) {
+            JobPlacement placement = jobPlacement(job);
+            if (placement == null) {
+                failed(job, "PLACEMENT_MISSING");
+                return;
+            }
+            if (!markActiveFromJob(job, placement)) {
                 releaseMigrationLock(job);
                 return;
             }
             recordPreMutationSnapshot(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
-            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), worldName, Instant.now().plus(routeTicketTtl), Map.of(
+            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), placement.worldName(), Instant.now().plus(routeTicketTtl), Map.of(
                 "migrationReturnReady", "true",
                 "sourceNode", job.payload().getOrDefault("sourceNode", ""),
                 "placementSource", job.payload().getOrDefault("placementSource", "")
@@ -188,9 +201,9 @@ final class JobCompletionBackend {
                 "islandId", job.islandId().toString(),
                 "fromNode", job.payload().getOrDefault("sourceNode", ""),
                 "targetNode", job.targetNode() == null ? "" : job.targetNode(),
-                "worldName", worldName,
-                "cellX", job.payload().getOrDefault("cellX", "0"),
-                "cellZ", job.payload().getOrDefault("cellZ", "0"),
+                "worldName", placement.worldName(),
+                "cellX", Integer.toString(placement.cellX()),
+                "cellZ", Integer.toString(placement.cellZ()),
                 "placementSource", job.payload().getOrDefault("placementSource", ""),
                 "fencingToken", job.payload().getOrDefault("fencingToken", "0"),
                 "readyTickets", Integer.toString(readyTickets)
@@ -263,11 +276,24 @@ final class JobCompletionBackend {
             setIslandState(job.islandId(), IslandState.ERROR_SAVING);
             keptState = IslandState.ERROR_SAVING;
         } else if (migrationSource) {
-            String worldName = current.activeWorld() == null || current.activeWorld().isBlank()
-                ? job.payload().getOrDefault("worldName", "ci_shard_001")
-                : current.activeWorld();
-            int cellX = current.cellX() == null ? integer(job.payload().get("cellX")) : current.cellX();
-            int cellZ = current.cellZ() == null ? integer(job.payload().get("cellZ")) : current.cellZ();
+            JobPlacement placement = jobPlacement(job);
+            if (placement == null && placementMissing(current)) {
+                runtimes.setState(job.islandId(), IslandState.RECOVERY_REQUIRED);
+                setIslandState(job.islandId(), IslandState.RECOVERY_REQUIRED);
+                failPreparingRouteTickets(job, "PLACEMENT_MISSING");
+                releaseMigrationLock(job);
+                publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+                    "islandId", job.islandId().toString(),
+                    "state", IslandState.RECOVERY_REQUIRED.name(),
+                    "jobType", job.type().name(),
+                    "error", "PLACEMENT_MISSING",
+                    "phase", "MIGRATION_SOURCE_SAVE_FAILED"
+                ));
+                return;
+            }
+            String worldName = current.activeWorld() == null || current.activeWorld().isBlank() ? placement.worldName() : current.activeWorld();
+            int cellX = current.cellX() == null ? placement.cellX() : current.cellX();
+            int cellZ = current.cellZ() == null ? placement.cellZ() : current.cellZ();
             runtimes.markActive(job.islandId(), sourceNode, worldName, cellX, cellZ, longValue(job.payload().get("fencingToken")));
             setIslandState(job.islandId(), IslandState.ACTIVE);
         } else {
@@ -454,7 +480,7 @@ final class JobCompletionBackend {
         return islands.findById(job.islandId()).map(kr.lunaf.cloudislands.api.model.IslandSnapshot::ownerUuid).orElse(null);
     }
 
-    private boolean markActiveFromJob(IslandJob job, String worldName) {
+    private boolean markActiveFromJob(IslandJob job, JobPlacement placement) {
         long fencingToken = IslandJobCompletionPolicy.fencingToken(job.payload());
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
         String staleReason = staleCompletionReason(job, current, fencingToken);
@@ -463,7 +489,7 @@ final class JobCompletionBackend {
             publishIgnoredCompletion(job, current, fencingToken, staleReason);
             return false;
         }
-        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime = runtimes.markActive(job.islandId(), job.targetNode(), worldName, integer(job.payload().get("cellX")), integer(job.payload().get("cellZ")), fencingToken);
+        kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime = runtimes.markActive(job.islandId(), job.targetNode(), placement.worldName(), placement.cellX(), placement.cellZ(), fencingToken);
         if (runtime.fencingToken() == fencingToken) {
             return true;
         }
@@ -579,6 +605,35 @@ final class JobCompletionBackend {
         }
     }
 
+    private JobPlacement jobPlacement(IslandJob job) {
+        String worldName = job.payload().get("worldName");
+        Integer cellX = maybeInteger(job.payload().get("cellX"));
+        Integer cellZ = maybeInteger(job.payload().get("cellZ"));
+        if (worldName == null || worldName.isBlank() || cellX == null || cellZ == null) {
+            return null;
+        }
+        return new JobPlacement(worldName, cellX, cellZ);
+    }
+
+    private Integer maybeInteger(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private boolean placementMissing(kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime) {
+        return runtime == null
+            || runtime.activeWorld() == null
+            || runtime.activeWorld().isBlank()
+            || runtime.cellX() == null
+            || runtime.cellZ() == null;
+    }
+
     private void recordPreMutationSnapshot(IslandJob job) {
         long snapshotNo = longValue(job.payload().get("preMutationSnapshotNo"));
         if (snapshotNo <= 0L) {
@@ -649,9 +704,24 @@ final class JobCompletionBackend {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("fencingToken", fencingToken);
         payload.put("sourceNode", job.targetNode() == null ? "" : job.targetNode());
-        payload.put("worldName", job.payload().getOrDefault("worldName", "ci_shard_001"));
-        payload.put("cellX", job.payload().getOrDefault("cellX", "0"));
-        payload.put("cellZ", job.payload().getOrDefault("cellZ", "0"));
+        JobPlacement placement = jobPlacement(job);
+        if (placement == null) {
+            runtimes.setState(job.islandId(), IslandState.RECOVERY_REQUIRED);
+            setIslandState(job.islandId(), IslandState.RECOVERY_REQUIRED);
+            failPreparingRouteTickets(job, "PLACEMENT_MISSING");
+            releaseMigrationLock(job);
+            publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+                "islandId", job.islandId().toString(),
+                "state", IslandState.RECOVERY_REQUIRED.name(),
+                "jobType", job.type().name(),
+                "error", "PLACEMENT_MISSING",
+                "phase", "MIGRATION_SOURCE_COMPLETED"
+            ));
+            return;
+        }
+        payload.put("worldName", placement.worldName());
+        payload.put("cellX", Integer.toString(placement.cellX()));
+        payload.put("cellZ", Integer.toString(placement.cellZ()));
         payload.put("placementSource", job.payload().getOrDefault("placementSource", "runtime-migration"));
         payload.put("snapshotNo", job.payload().getOrDefault("snapshotNo", "0"));
         payload.put("sourceSnapshotReason", job.payload().getOrDefault("reason", "BEFORE_MIGRATION"));
@@ -689,5 +759,8 @@ final class JobCompletionBackend {
         } catch (RuntimeException ignored) {
             return 0L;
         }
+    }
+
+    private record JobPlacement(String worldName, int cellX, int cellZ) {
     }
 }

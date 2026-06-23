@@ -597,8 +597,11 @@ public final class RoutingOrchestrator {
             if (!visitorRoute && activeNode.state() == NodeState.SOFT_FULL && memberReservedSlotsExhausted(activeNode)) {
                 throw new IllegalStateException("ACTIVE_NODE_MEMBER_RESERVED_SLOTS_FULL");
             }
-            String worldName = runtime.activeWorld() == null || runtime.activeWorld().isBlank() ? "ci_shard_001" : runtime.activeWorld();
-            return new RouteTarget(activeNode, worldName, RouteTicketState.READY);
+            if (placementMissing(runtime)) {
+                markActiveRouteRecoveryRequired(runtime, "missing_placement");
+                throw new IllegalStateException("ACTIVE_PLACEMENT_MISSING");
+            }
+            return new RouteTarget(activeNode, runtime.activeWorld(), RouteTicketState.READY);
         }
         List<NodeLoad> nodeSnapshot = nodes.snapshot();
         Instant now = Instant.now();
@@ -619,6 +622,9 @@ public final class RoutingOrchestrator {
         IslandRuntimeSnapshot activating;
         try {
             activating = IslandPlacement.markActivating(runtime.islandId(), selected.nodeId(), runtimes);
+            if (placementMissing(activating)) {
+                throw new IllegalStateException("PLACEMENT_MISSING");
+            }
             jobs.publish(new IslandJob(
                 UUID.randomUUID(),
                 IslandJobType.ACTIVATE_ISLAND,
@@ -627,9 +633,9 @@ public final class RoutingOrchestrator {
                 0,
                 Map.of(
                     "fencingToken", Long.toString(activating.fencingToken()),
-                    "worldName", activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(),
-                    "cellX", activating.cellX() == null ? "0" : Integer.toString(activating.cellX()),
-                    "cellZ", activating.cellZ() == null ? "0" : Integer.toString(activating.cellZ()),
+                    "worldName", activating.activeWorld(),
+                    "cellX", Integer.toString(activating.cellX()),
+                    "cellZ", Integer.toString(activating.cellZ()),
                     "activationLockToken", lease == null ? "" : lease.token()
                 ),
                 Instant.now()
@@ -648,7 +654,15 @@ public final class RoutingOrchestrator {
             event.put("lockFallback", activationLease.source());
         }
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), event);
-        return new RouteTarget(selected, activating.activeWorld() == null ? "ci_shard_001" : activating.activeWorld(), RouteTicketState.PREPARING);
+        return new RouteTarget(selected, activating.activeWorld(), RouteTicketState.PREPARING);
+    }
+
+    private static boolean placementMissing(IslandRuntimeSnapshot runtime) {
+        return runtime == null
+            || runtime.activeWorld() == null
+            || runtime.activeWorld().isBlank()
+            || runtime.cellX() == null
+            || runtime.cellZ() == null;
     }
 
     private boolean memberReservedSlotsExhausted(NodeLoad node) {

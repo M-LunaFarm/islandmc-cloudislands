@@ -409,7 +409,7 @@ That matters.
 | mTLS-by-header requires trusted proxy boundaries | MITIGATED | `MtlsHeaderGuard` checks a trusted proxy allowlist |
 | production mode must reject non-durable in-memory fallback | MITIGATED | startup validation always blocks non-durable fallback in production |
 | route failure cleanup should be one idempotent path | OPEN | needs stronger cross-Core evidence |
-| coordinate fallback should fail closed when placement data is missing | OPEN | needs targeted runtime tests |
+| coordinate fallback should fail closed when placement data is missing | MITIGATED | workflows, route activation, and job completion reject missing placement before issuing jobs, tickets, or ACTIVE runtimes |
 | Gradle Wrapper, CI, release binaries, checksums | MITIGATED | wrapper, GitHub Actions, dist bundles, and SHA-256 checksums exist |
 | SBOM, provenance, vulnerability gate | OPEN | not wired as release gates |
 | real PostgreSQL, Redis, MinIO integration | MITIGATED | `ciIntegrationSmoke` runs with these services |

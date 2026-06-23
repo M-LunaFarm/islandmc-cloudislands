@@ -89,6 +89,60 @@ class IslandLifecycleWorkflowRestoreTest {
         assertEquals("8", reset.payload().get("cellZ"));
     }
 
+    @Test
+    void activeRestoreRejectsMissingPlacementWithoutQueuingJob() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "restore target");
+        runtimes.markActive(ISLAND, "island-2", null, 7, 8, 42L);
+
+        IslandLifecycleWorkflow.Result result = workflow(runtimes, islands, jobs, events).restore(ISLAND, 9L);
+
+        assertEquals(false, result.accepted());
+        assertEquals("PLACEMENT_MISSING", result.code());
+        assertEquals(IslandState.ACTIVE, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(0, jobs.snapshot().size());
+        assertEquals(0L, events.countByType(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name()));
+    }
+
+    @Test
+    void activeResetRejectsMissingPlacementWithoutQueuingJob() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "reset target");
+        runtimes.markActive(ISLAND, "island-2", null, 7, 8, 42L);
+
+        IslandLifecycleWorkflow.Result result = workflow(runtimes, islands, jobs, events).reset(ISLAND, "player-request");
+
+        assertEquals(false, result.accepted());
+        assertEquals("PLACEMENT_MISSING", result.code());
+        assertEquals(IslandState.ACTIVE, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(0, jobs.snapshot().size());
+        assertEquals(0L, events.countByType(CloudIslandEventType.ISLAND_RESET_REQUESTED.name()));
+    }
+
+    @Test
+    void activeMigrationRejectsMissingPlacementWithoutQueuingJob() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "migration target");
+        runtimes.markActive(ISLAND, "island-2", null, 7, 8, 42L);
+
+        IslandLifecycleWorkflow.Result result = workflow(runtimes, islands, jobs, events).migrate(ISLAND, "island-3");
+
+        assertEquals(false, result.accepted());
+        assertEquals("PLACEMENT_MISSING", result.code());
+        assertEquals(IslandState.ACTIVE, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(0, jobs.snapshot().size());
+        assertEquals(0L, events.countByType(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name()));
+    }
+
     private IslandLifecycleWorkflow workflow(
         InMemoryIslandRuntimeRepository runtimes,
         InMemoryIslandRepository islands,
