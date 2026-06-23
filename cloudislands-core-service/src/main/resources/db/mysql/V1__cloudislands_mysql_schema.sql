@@ -413,6 +413,41 @@ CREATE INDEX idx_island_jobs_claim ON island_jobs(target_node, state, priority D
 CREATE INDEX idx_island_jobs_island_state ON island_jobs(island_id, state, updated_at DESC);
 CREATE INDEX idx_island_jobs_pending_claim ON island_jobs(target_node, priority DESC, created_at ASC);
 
+CREATE TABLE IF NOT EXISTS job_completion_receipts (
+    job_id CHAR(36) PRIMARY KEY,
+    receipt_id CHAR(36) NOT NULL UNIQUE,
+    job_type VARCHAR(64) NOT NULL,
+    island_id CHAR(36) NOT NULL,
+    target_node VARCHAR(64),
+    claimant_node VARCHAR(64) NOT NULL,
+    claim_token VARCHAR(64) NOT NULL,
+    claim_epoch BIGINT NOT NULL,
+    request_hash CHAR(64) NOT NULL,
+    request_payload JSON NOT NULL,
+    receipt_payload JSON NOT NULL,
+    completion_status VARCHAR(32) NOT NULL,
+    aggregate_version BIGINT NOT NULL DEFAULT 0,
+    committed_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    acked_at DATETIME(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_job_completion_receipts_job FOREIGN KEY (job_id) REFERENCES island_jobs(id) ON DELETE CASCADE,
+    CONSTRAINT fk_job_completion_receipts_island FOREIGN KEY (island_id) REFERENCES islands(id),
+    CONSTRAINT chk_job_completion_receipts_type_known CHECK (job_type IN ('CREATE_ISLAND', 'ACTIVATE_ISLAND', 'DEACTIVATE_ISLAND', 'SAVE_ISLAND', 'SNAPSHOT_ISLAND', 'MIGRATE_ISLAND', 'DELETE_ISLAND', 'RESET_ISLAND', 'RESTORE_ISLAND')),
+    CONSTRAINT chk_job_completion_receipts_target_node_trimmed CHECK (target_node IS NULL OR target_node = trim(target_node)),
+    CONSTRAINT chk_job_completion_receipts_claimant_node_trimmed CHECK (claimant_node = trim(claimant_node)),
+    CONSTRAINT chk_job_completion_receipts_claimant_node_not_blank CHECK (trim(claimant_node) <> ''),
+    CONSTRAINT chk_job_completion_receipts_claim_token_trimmed CHECK (claim_token = trim(claim_token)),
+    CONSTRAINT chk_job_completion_receipts_claim_token_not_blank CHECK (trim(claim_token) <> ''),
+    CONSTRAINT chk_job_completion_receipts_claim_epoch_positive CHECK (claim_epoch > 0),
+    CONSTRAINT chk_job_completion_receipts_request_hash_hex CHECK (request_hash REGEXP '^[a-f0-9]{64}$'),
+    CONSTRAINT chk_job_completion_receipts_status_known CHECK (completion_status IN ('COMPLETED', 'FAILED')),
+    CONSTRAINT chk_job_completion_receipts_aggregate_version_non_negative CHECK (aggregate_version >= 0),
+    CONSTRAINT chk_job_completion_receipts_ack_after_commit CHECK (acked_at IS NULL OR acked_at >= committed_at)
+);
+
+CREATE INDEX idx_job_completion_receipts_island ON job_completion_receipts(island_id, committed_at DESC);
+CREATE INDEX idx_job_completion_receipts_request_hash ON job_completion_receipts(request_hash);
+
 CREATE TABLE IF NOT EXISTS server_nodes (
     id VARCHAR(64) PRIMARY KEY,
     pool VARCHAR(64) NOT NULL,

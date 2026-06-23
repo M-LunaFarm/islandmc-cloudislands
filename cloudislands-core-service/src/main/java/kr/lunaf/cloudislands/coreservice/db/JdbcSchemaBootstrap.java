@@ -81,7 +81,9 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V60__island_permission_overrides.sql",
         "/db/migration/V61__mission_provider_definitions.sql",
         "/db/migration/V62__dynamic_role_keys.sql",
-        "/db/migration/V63__dynamic_member_role_keys.sql"
+        "/db/migration/V63__dynamic_member_role_keys.sql",
+        "/db/migration/V64__job_claim_leases.sql",
+        "/db/migration/V65__job_completion_receipts.sql"
     };
 
     private enum Dialect {
