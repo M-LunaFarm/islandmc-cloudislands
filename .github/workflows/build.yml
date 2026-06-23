@@ -6,7 +6,23 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Dependency vulnerability review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -45,7 +61,7 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Build and test
-        run: ./gradlew clean build verifyMinecraftVersionMatrix compileAllMinecraftVersions verifyAdapterPackaging apiCompatibilityCheck distBundle distAddonBundle distChecksums --no-daemon
+        run: ./gradlew clean build verifyMinecraftVersionMatrix compileAllMinecraftVersions verifyAdapterPackaging apiCompatibilityCheck distBundle distAddonBundle distChecksums distSbom distProvenance verifyReleaseSecurityGate --no-daemon
 
       - name: Matrix compile
         run: ./gradlew ${{ matrix.compile-task }} --no-daemon
@@ -64,6 +80,8 @@ jobs:
           path: |
             build/dist/*.zip
             build/dist/checksums-sha256.txt
+            build/dist/cloudislands-sbom.cdx.json
+            build/dist/provenance.json
             build/dist/plugins/*.jar
             build/dist/addons/*.jar
           if-no-files-found: error

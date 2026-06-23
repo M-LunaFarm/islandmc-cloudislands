@@ -10,8 +10,17 @@ import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
 import java.util.zip.ZipFile
+
+private fun jsonEscape(value: String): String = value
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+    .replace("\n", "\\n")
+    .replace("\r", "\\r")
+
+private fun jsonString(value: String): String = "\"${jsonEscape(value)}\""
 
 private data class MinecraftVersionRange(val major: Int, val minor: Int) : Comparable<MinecraftVersionRange> {
     override fun compareTo(other: MinecraftVersionRange): Int =
@@ -835,6 +844,172 @@ tasks.register("distChecksums") {
     }
 }
 
+val distSbomFile = layout.buildDirectory.file("dist/cloudislands-sbom.cdx.json")
+val distProvenanceFile = layout.buildDirectory.file("dist/provenance.json")
+
+tasks.register("distSbom") {
+    group = "distribution"
+    description = "Writes a CycloneDX-style SBOM from locked release dependencies."
+    val lockfiles = provider {
+        subprojects
+            .filter { it.name != "cloudislands-bom" }
+            .map { it.layout.projectDirectory.file("gradle.lockfile").asFile }
+    }
+    inputs.files(lockfiles)
+    outputs.file(distSbomFile)
+    doLast {
+        val components = linkedMapOf<String, Triple<String, String, String>>()
+        subprojects
+            .filter { it.name != "cloudislands-bom" }
+            .forEach { project ->
+                val lockfile = project.layout.projectDirectory.file("gradle.lockfile").asFile
+                if (!lockfile.isFile) {
+                    throw GradleException("Missing dependency lockfile for ${project.path}: ${lockfile.relativeTo(rootProject.projectDir)}")
+                }
+                lockfile.readLines()
+                    .map(String::trim)
+                    .filter { it.isNotEmpty() && !it.startsWith("#") && !it.startsWith("empty=") }
+                    .forEach { line ->
+                        val coordinate = line.substringBefore("=")
+                        val parts = coordinate.split(":")
+                        if (parts.size != 3) {
+                            throw GradleException("Unsupported dependency lock entry in ${lockfile.relativeTo(rootProject.projectDir)}: $line")
+                        }
+                        val key = "${parts[0]}:${parts[1]}:${parts[2]}"
+                        components.putIfAbsent(key, Triple(parts[0], parts[1], parts[2]))
+                    }
+            }
+        val output = distSbomFile.get().asFile
+        output.parentFile.mkdirs()
+        val componentJson = components.values.joinToString(",\n") { (group, name, version) ->
+            val purl = "pkg:maven/${group}/${name}@${version}"
+            """    {"type":"library","group":${jsonString(group)},"name":${jsonString(name)},"version":${jsonString(version)},"purl":${jsonString(purl)}}"""
+        }
+        output.writeText(
+            """
+            |{
+            |  "bomFormat": "CycloneDX",
+            |  "specVersion": "1.5",
+            |  "version": 1,
+            |  "metadata": {
+            |    "component": {
+            |      "type": "application",
+            |      "name": "cloudislands",
+            |      "version": ${jsonString(project.version.toString())}
+            |    }
+            |  },
+            |  "components": [
+            |$componentJson
+            |  ]
+            |}
+            |
+            """.trimMargin()
+        )
+    }
+}
+
+tasks.register("distProvenance") {
+    group = "distribution"
+    description = "Writes release provenance for distribution artifacts and security manifests."
+    dependsOn(tasks.named("distChecksums"))
+    dependsOn(tasks.named("distSbom"))
+    inputs.file(layout.buildDirectory.file("dist/checksums-sha256.txt"))
+    inputs.file(distSbomFile)
+    outputs.file(distProvenanceFile)
+    doLast {
+        fun commandOutput(vararg command: String): String {
+            val output = ByteArrayOutputStream()
+            exec {
+                commandLine(*command)
+                standardOutput = output
+            }
+            return output.toString().trim()
+        }
+        fun sha256(file: File): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+            return digest.digest(file.readBytes()).joinToString("") { byte: Byte -> "%02x".format(byte) }
+        }
+        val distDir = layout.buildDirectory.dir("dist").get().asFile
+        val checksumFile = distDir.resolve("checksums-sha256.txt")
+        if (!checksumFile.isFile) {
+            throw GradleException("Missing distribution checksum file: ${checksumFile.absolutePath}")
+        }
+        val artifacts = checksumFile.readLines()
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .map { line ->
+                val parts = line.split(Regex("\\s+"), limit = 2)
+                if (parts.size != 2) {
+                    throw GradleException("Invalid checksum line: $line")
+                }
+                parts[1] to parts[0]
+            }
+            .toMutableList()
+        val sbom = distSbomFile.get().asFile
+        artifacts.add(sbom.relativeTo(distDir).path.replace('\\', '/') to sha256(sbom))
+        val artifactJson = artifacts.joinToString(",\n") { (path, checksum) ->
+            """    {"path":${jsonString(path)},"sha256":${jsonString(checksum)}}"""
+        }
+        val output = distProvenanceFile.get().asFile
+        output.parentFile.mkdirs()
+        output.writeText(
+            """
+            |{
+            |  "project": "cloudislands",
+            |  "version": ${jsonString(project.version.toString())},
+            |  "commit": ${jsonString(commandOutput("git", "rev-parse", "HEAD"))},
+            |  "dirty": ${jsonString(commandOutput("git", "status", "--porcelain"))},
+            |  "javaVersion": ${jsonString(System.getProperty("java.version"))},
+            |  "gradleVersion": ${jsonString(gradle.gradleVersion)},
+            |  "artifacts": [
+            |$artifactJson
+            |  ]
+            |}
+            |
+            """.trimMargin()
+        )
+    }
+}
+
+tasks.register("verifyReleaseSecurityGate") {
+    group = "verification"
+    description = "Verifies release SBOM, provenance, vulnerability review, and dependency-lock gates are wired."
+    inputs.file(layout.projectDirectory.file(".github/workflows/build.yml"))
+    inputs.file(layout.projectDirectory.file(".github/dependabot.yml"))
+    inputs.files(provider {
+        subprojects
+            .filter { it.name != "cloudislands-bom" }
+            .map { it.layout.projectDirectory.file("gradle.lockfile").asFile }
+    })
+    doLast {
+        val buildWorkflow = layout.projectDirectory.file(".github/workflows/build.yml").asFile.readText()
+        val dependabot = layout.projectDirectory.file(".github/dependabot.yml").asFile.readText()
+        val requiredWorkflowSignals = listOf(
+            "actions/dependency-review-action@v4",
+            "fail-on-severity: high",
+            "distSbom",
+            "distProvenance",
+            "verifyReleaseSecurityGate",
+            "cloudislands-sbom.cdx.json",
+            "provenance.json"
+        )
+        val missingWorkflowSignals = requiredWorkflowSignals.filterNot(buildWorkflow::contains)
+        if (missingWorkflowSignals.isNotEmpty()) {
+            throw GradleException("Build workflow is missing release security gate signals: ${missingWorkflowSignals.joinToString(", ")}")
+        }
+        if (!dependabot.contains("package-ecosystem: \"gradle\"") && !dependabot.contains("package-ecosystem: gradle")) {
+            throw GradleException("Dependabot must scan Gradle dependencies")
+        }
+        val missingLockfiles = subprojects
+            .filter { it.name != "cloudislands-bom" }
+            .map { it.layout.projectDirectory.file("gradle.lockfile").asFile }
+            .filterNot(File::isFile)
+        if (missingLockfiles.isNotEmpty()) {
+            throw GradleException("Missing dependency lockfiles: ${missingLockfiles.joinToString(", ") { it.relativeTo(rootProject.projectDir).path }}")
+        }
+    }
+}
+
 val apiCompatibilityReportFile = layout.buildDirectory.file("reports/api-compatibility/api-compatibility-report.json")
 
 tasks.register<JavaExec>("apiCompatibilityCheck") {
@@ -1066,7 +1241,10 @@ fun verifyMinecraftCiCoverage(workflow: String) {
         "verifyAdapterPackaging",
         "bootSmokeAllStableMinecraftVersions",
         "apiCompatibilityCheck",
-        "distChecksums"
+        "distChecksums",
+        "distSbom",
+        "distProvenance",
+        "verifyReleaseSecurityGate"
     ).filterNot(workflow::contains)
     val failures = buildList {
         if (missingCompileTasks.isNotEmpty()) {
@@ -1308,4 +1486,5 @@ tasks.register("verifyReleaseGateCoverage") {
 
 tasks.named("check") {
     dependsOn(tasks.named("verifyReleaseGateCoverage"))
+    dependsOn(tasks.named("verifyReleaseSecurityGate"))
 }
