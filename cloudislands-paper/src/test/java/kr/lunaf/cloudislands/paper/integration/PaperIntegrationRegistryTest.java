@@ -207,6 +207,29 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
+    void guardedRestoreAdaptersRequireStateEvidenceBeforeReportingSuccess() {
+        CoreProtectIntegration integration = new CoreProtectIntegration((_pluginName, _category, _operation, _context, _plan) ->
+            IntegrationResult.success("external claimed restore", Map.of("apiProbe.invoke.getAPI", "true"))
+        );
+
+        IntegrationResult result = integration.restoreState(new IntegrationContext(UUID.randomUUID(), "island-node-01", 77L, true, "coreprotect:restore:unevidenced", Map.of(
+            "world", "islands",
+            "cell", "12,-4",
+            "region", "192,64,-64..255,319,-1",
+            "rollbackSeconds", "3600",
+            "bundleKey", "bundles/island.tar.zst"
+        )));
+
+        assertEquals(IntegrationResult.Status.FAILED, result.status());
+        assertTrue(result.message().contains("without state evidence"));
+        assertEquals("rollback-restore", result.details().get("operation"));
+        assertEquals("SUCCESS", result.details().get("external.result"));
+        assertEquals("true", result.details().get("external.runtime.apiProbe.invoke.getAPI"));
+        assertEquals("state-artifact-or-round-trip", result.details().get("external.evidenceRequired"));
+        assertEquals("rollback-plan,affected-region-audit", result.details().get("external.artifactsExpected"));
+    }
+
+    @Test
     void defaultExternalRuntimeDoesNotReportProbeOnlySuccess() {
         CoreProtectIntegration integration = new CoreProtectIntegration();
 
