@@ -55,6 +55,10 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("delete")) {
+            if (!destructiveConfirmed(args)) {
+                sendDestructiveConfirmationRequired(player, "ciadmin island delete <island> confirm");
+                return;
+            }
             adminActions.adminDeleteIslandTarget(player, args[2]);
             return;
         }

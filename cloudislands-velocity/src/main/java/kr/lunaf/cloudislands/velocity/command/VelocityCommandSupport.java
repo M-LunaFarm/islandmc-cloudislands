@@ -208,17 +208,34 @@ abstract class VelocityCommandSupport {
     }
 
     protected String joinArgs(String[] args, int start) {
+        return joinArgs(args, start, args.length);
+    }
+
+    protected String joinArgs(String[] args, int start, int endExclusive) {
         if (args.length <= start) {
             return "";
         }
+        int end = Math.min(args.length, Math.max(start, endExclusive));
         StringBuilder builder = new StringBuilder();
-        for (int index = start; index < args.length; index++) {
+        for (int index = start; index < end; index++) {
             if (index > start) {
                 builder.append(' ');
             }
             builder.append(args[index]);
         }
         return builder.toString();
+    }
+
+    protected boolean destructiveConfirmed(String[] args) {
+        if (args.length == 0) {
+            return false;
+        }
+        String value = args[args.length - 1].toLowerCase(Locale.ROOT);
+        return value.equals("confirm") || value.equals("confirmed") || value.equals("확인");
+    }
+
+    protected void sendDestructiveConfirmationRequired(Player player, String command) {
+        player.sendMessage(Component.text("위험 작업입니다. 실행하려면 '" + command + "' 형식으로 마지막에 confirm 또는 확인을 붙이세요."));
     }
 
     protected List<String> permissionNames() {

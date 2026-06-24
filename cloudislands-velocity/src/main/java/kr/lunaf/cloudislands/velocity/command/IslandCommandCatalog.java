@@ -106,8 +106,8 @@ public final class IslandCommandCatalog {
             "섬 복원 <snapshotNo>",
             "섬 로그",
             "섬 위험작업",
-            "섬 리셋 [reason]",
-            "섬 삭제"
+            "섬 리셋 [reason] confirm",
+            "섬 삭제 confirm"
         );
     }
 
@@ -135,7 +135,7 @@ public final class IslandCommandCatalog {
             "ciadmin island rollback <island> <snapshot>",
             "ciadmin island quarantine <island> [reason]",
             "ciadmin island repair <island> [reason]",
-            "ciadmin island delete <island>",
+            "ciadmin island delete <island> confirm",
             "ciadmin island restore <island> <snapshot>",
             "ciadmin player info <player>",
             "ciadmin player setisland <player> <islandUuid>",

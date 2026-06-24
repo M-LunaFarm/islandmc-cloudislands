@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.velocity.command;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -62,8 +64,8 @@ class IslandCommandCatalogTest {
                 "섬 채팅 <message>",
                 "섬 팀채팅 <message>",
                 "섬 로그",
-                "섬 리셋 [reason]",
-                "섬 삭제"
+                "섬 리셋 [reason] confirm",
+                "섬 삭제 confirm"
         )) {
             assertTrue(commands.contains(command), command);
         }
@@ -87,7 +89,7 @@ class IslandCommandCatalogTest {
                 "ciadmin island rollback <island> <snapshot>",
                 "ciadmin island quarantine <island> [reason]",
                 "ciadmin island repair <island> [reason]",
-                "ciadmin island delete <island>",
+                "ciadmin island delete <island> confirm",
                 "ciadmin island restore <island> <snapshot>",
                 "ciadmin player info <player>",
                 "ciadmin player setisland <player> <islandUuid>",
@@ -110,5 +112,26 @@ class IslandCommandCatalogTest {
         )) {
             assertTrue(commands.contains(command), command);
         }
+    }
+
+    @Test
+    void destructiveVelocityCommandsRequireConfirmationBeforeCoreMutation() throws Exception {
+        String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
+        String player = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+        String admin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityAdminCommandDispatcher.java"));
+        String suggestions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSuggestions.java"));
+
+        assertTrue(support.contains("destructiveConfirmed(String[] args)"), "Velocity command support must define a shared destructive confirmation boundary");
+        assertTrue(support.contains("confirm") && support.contains("확인"), "Velocity destructive confirmation must support English and Korean confirmation tokens");
+        assertTrue(indexOf(player, "sendDestructiveConfirmationRequired(player, \"섬 리셋 [reason] confirm\")") < indexOf(player, "playerRouting.resetIsland("), "player reset must require confirmation before Core mutation");
+        assertTrue(indexOf(player, "sendDestructiveConfirmationRequired(player, \"섬 삭제 confirm\")") < indexOf(player, "playerRouting.deleteIsland("), "player delete must require confirmation before Core mutation");
+        assertTrue(indexOf(admin, "sendDestructiveConfirmationRequired(player, \"ciadmin island delete <island> confirm\")") < indexOf(admin, "adminActions.adminDeleteIslandTarget("), "admin delete must require confirmation before Core mutation");
+        assertTrue(suggestions.contains("List.of(\"confirm\", \"확인\")"), "Velocity suggestions must expose destructive confirmation tokens");
+    }
+
+    private int indexOf(String source, String needle) {
+        int index = source.indexOf(needle);
+        assertTrue(index >= 0, needle);
+        return index;
     }
 }
