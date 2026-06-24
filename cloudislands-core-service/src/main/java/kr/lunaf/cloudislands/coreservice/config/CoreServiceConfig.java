@@ -409,6 +409,9 @@ public record CoreServiceConfig(
         if ("IN_MEMORY".equals(fallbackTarget) && !setupDatabaseFallbackEnabled) {
             return "database-fallback-disabled-for-" + requested.toLowerCase(Locale.ROOT) + "-setup";
         }
+        if ("IN_MEMORY".equals(fallbackTarget) && !setupDatabaseAllowInMemoryFallback) {
+            return "in-memory-fallback-not-explicitly-enabled-for-" + requested.toLowerCase(Locale.ROOT) + "-setup";
+        }
         if ("POSTGRESQL".equals(fallbackTarget) || "MYSQL".equals(fallbackTarget) || "MARIADB".equals(fallbackTarget)) {
             return "requested-" + requested.toLowerCase(Locale.ROOT) + "-uses-" + fallbackTarget.toLowerCase(Locale.ROOT) + "-setup-fallback";
         }
@@ -539,10 +542,13 @@ public record CoreServiceConfig(
 
     private boolean setupDatabaseInMemoryFallbackBlocked() {
         return setupDatabaseInMemoryFallbackSelected()
-            && (!setupDatabaseFallbackEnabled || productionMode());
+            && (!setupDatabaseFallbackEnabled || productionMode() || !setupDatabaseAllowInMemoryFallback);
     }
 
     private boolean setupDatabaseNonDurableStorageBlocked() {
+        if (setupDatabaseInMemoryFallbackSelected()) {
+            return setupDatabaseInMemoryFallbackBlocked();
+        }
         return !setupDatabaseProductionDurable()
             && (!setupDatabaseFallbackEnabled || productionMode());
     }

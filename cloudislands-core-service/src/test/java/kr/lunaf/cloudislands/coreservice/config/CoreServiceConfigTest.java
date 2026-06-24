@@ -156,6 +156,23 @@ class CoreServiceConfigTest {
     }
 
     @Test
+    void developmentModeBlocksInMemoryFallbackWithoutExplicitOptIn() {
+        CoreServiceConfig config = config("JDBC", "jdbc:sqlserver://mssql.internal:1433/cloudislands", "UNSUPPORTED_JDBC", true, "development", false, false);
+
+        assertFalse(config.jdbcRepositories());
+        assertFalse(config.setupDatabaseProductionDurable());
+        assertTrue(config.setupDatabaseFallbackActive());
+        assertEquals("UNAVAILABLE_NON_DURABLE", config.setupDatabaseEffectiveBackend());
+        assertEquals("BLOCKED_NON_DURABLE_CORE_FALLBACK", config.setupDatabaseEffectiveAuthority());
+        assertEquals("IN_MEMORY", config.setupDatabaseFallbackTarget());
+        assertFalse(config.setupDatabaseAllowInMemoryFallback());
+        assertEquals("in-memory-fallback-not-explicitly-enabled-for-unsupported_jdbc-setup", config.setupDatabaseFallbackReason());
+        assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackReadiness());
+        assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackSafetyMode());
+        assertThrows(IllegalStateException.class, config::validateStartupStorage);
+    }
+
+    @Test
     void productionPublicPlainHttpBindRequiresExplicitInsecureOptIn() {
         CoreServiceConfig blocked = config("0.0.0.0", "production", false);
         CoreServiceConfig loopback = config("127.0.0.1", "production", false);
