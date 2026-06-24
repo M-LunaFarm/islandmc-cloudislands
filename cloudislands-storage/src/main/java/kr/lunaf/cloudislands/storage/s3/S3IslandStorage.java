@@ -214,7 +214,10 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
         String snapshotBundleKey = key(islandId, snapshotPrefix + "/" + bundleFileName);
         String snapshotManifestKey = key(islandId, snapshotPrefix + "/manifest.json");
         String snapshotChecksumsKey = key(islandId, snapshotPrefix + "/checksums.sha256");
-        Optional<String> expectedLatestEtag = objectEtag(key(islandId, "latest"));
+        String compatibilityManifestKey = key(islandId, "manifest.json");
+        String latestKey = key(islandId, "latest");
+        Optional<String> expectedLatestEtag = objectEtag(latestKey);
+        Optional<byte[]> previousCompatibilityManifest = optionalObject(compatibilityManifestKey);
         ObjectStoragePutOptions options = new ObjectStoragePutOptions(true, requestTimeout, maxAttempts, multipartThresholdBytes, multipartPartBytes);
         ObjectStoragePutResult uploaded;
         boolean bundleWritten = false;
@@ -232,9 +235,9 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
             manifestWritten = true;
             requestBytes("PUT", snapshotChecksumsKey, (uploaded.checksum() + "  " + bundleFileName + "\n").getBytes(StandardCharsets.UTF_8));
             checksumsWritten = true;
-            requestBytes("PUT", key(islandId, "manifest.json"), promotedManifest);
+            requestBytes("PUT", compatibilityManifestKey, promotedManifest);
             compatibilityManifestWritten = true;
-            putLatestCas(key(islandId, "latest"), snapshot.getBytes(StandardCharsets.UTF_8), expectedLatestEtag);
+            putLatestCas(latestKey, snapshot.getBytes(StandardCharsets.UTF_8), expectedLatestEtag);
         } catch (IOException exception) {
             if (checksumsWritten) {
                 deleteKeyQuietly(snapshotChecksumsKey);
@@ -243,7 +246,7 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
                 deleteKeyQuietly(snapshotManifestKey);
             }
             if (compatibilityManifestWritten) {
-                deleteKeyQuietly(key(islandId, "manifest.json"));
+                restoreOptionalObject(compatibilityManifestKey, previousCompatibilityManifest, exception);
             }
             if (bundleWritten) {
                 deleteKeyQuietly(snapshotBundleKey);
@@ -261,7 +264,10 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
         String storagePath = key(islandId, prefix + "/" + bundleFileName);
         String manifestKey = key(islandId, prefix + "/manifest.json");
         String checksumsKey = key(islandId, prefix + "/checksums.sha256");
-        Optional<String> expectedLatestEtag = updateLatest ? objectEtag(key(islandId, "latest")) : Optional.empty();
+        String compatibilityManifestKey = key(islandId, "manifest.json");
+        String latestKey = key(islandId, "latest");
+        Optional<String> expectedLatestEtag = updateLatest ? objectEtag(latestKey) : Optional.empty();
+        Optional<byte[]> previousCompatibilityManifest = updateLatest ? optionalObject(compatibilityManifestKey) : Optional.empty();
         ObjectStoragePutOptions options = new ObjectStoragePutOptions(true, requestTimeout, maxAttempts, multipartThresholdBytes, multipartPartBytes);
         boolean bundleWritten = false;
         boolean manifestWritten = false;
@@ -276,9 +282,9 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
             requestBytes("PUT", checksumsKey, (uploaded.checksum() + "  " + bundleFileName + "\n").getBytes(StandardCharsets.UTF_8));
             checksumsWritten = true;
             if (updateLatest) {
-                requestBytes("PUT", key(islandId, "manifest.json"), IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
+                requestBytes("PUT", compatibilityManifestKey, IslandManifestJson.write(savedManifest).getBytes(StandardCharsets.UTF_8));
                 compatibilityManifestWritten = true;
-                putLatestCas(key(islandId, "latest"), latestValue.getBytes(StandardCharsets.UTF_8), expectedLatestEtag);
+                putLatestCas(latestKey, latestValue.getBytes(StandardCharsets.UTF_8), expectedLatestEtag);
             }
             return new StoredBundle(uploaded.checksum(), uploaded.sizeBytes(), storagePath, uploaded.checksumAlgorithm(), compression);
         } catch (IOException exception) {
@@ -292,7 +298,7 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
                 cleaned = true;
             }
             if (compatibilityManifestWritten) {
-                deleteKeyQuietly(key(islandId, "manifest.json"));
+                restoreOptionalObject(compatibilityManifestKey, previousCompatibilityManifest, exception);
                 cleaned = true;
             }
             if (bundleWritten) {
@@ -303,6 +309,18 @@ public final class S3IslandStorage implements IslandStorage, ObjectStorageClient
                 metrics.recordOrphanCleanup();
             }
             throw exception;
+        }
+    }
+
+    private void restoreOptionalObject(String key, Optional<byte[]> previousValue, IOException exception) {
+        try {
+            if (previousValue.isPresent()) {
+                requestBytes("PUT", key, previousValue.orElseThrow());
+            } else {
+                deleteKey(key);
+            }
+        } catch (IOException restoreFailure) {
+            exception.addSuppressed(restoreFailure);
         }
     }
 

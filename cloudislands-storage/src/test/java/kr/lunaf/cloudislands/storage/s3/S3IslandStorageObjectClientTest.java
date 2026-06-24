@@ -160,6 +160,43 @@ class S3IslandStorageObjectClientTest {
     }
 
     @Test
+    void writeSnapshotRestoresCompatibilityManifestWhenLatestCasConflicts() throws Exception {
+        FakeS3 fake = new FakeS3();
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", fake::handle);
+        server.start();
+        S3IslandStorage storage = new S3IslandStorage(
+            URI.create("http://127.0.0.1:" + server.getAddress().getPort()),
+            "bucket",
+            "us-east-1",
+            "",
+            "",
+            "",
+            Duration.ofSeconds(5),
+            2,
+            1024L,
+            1024L
+        );
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000605");
+        String rootManifestKey = "islands/" + islandId + "/manifest.json";
+        byte[] oldManifest = IslandManifestJson.write(manifest(islandId).withStoredBundle("old-checksum", "SHA-256", "zstd", rootManifestKey, 12L)).getBytes(StandardCharsets.UTF_8);
+        fake.objects.put(rootManifestKey, oldManifest);
+        fake.objects.put("islands/" + islandId + "/latest", "000001".getBytes(StandardCharsets.UTF_8));
+        fake.latestCasConflict = true;
+
+        IOException exception = assertThrows(IOException.class, () -> storage.writeSnapshot(islandId, 2L, new ByteArrayInputStream("new-snapshot-bundle".getBytes(StandardCharsets.UTF_8)), manifest(islandId)));
+
+        assertTrue(exception.getMessage().contains("CAS conflict"));
+        assertEquals("\"6\"", fake.latestIfMatch);
+        assertArrayEquals("000001".getBytes(StandardCharsets.UTF_8), fake.objects.get("islands/" + islandId + "/latest"));
+        assertArrayEquals(oldManifest, fake.objects.get(rootManifestKey));
+        assertTrue(!fake.objects.containsKey("islands/" + islandId + "/snapshots/000002/bundle.tar.zst"));
+        assertTrue(!fake.objects.containsKey("islands/" + islandId + "/snapshots/000002/manifest.json"));
+        assertTrue(!fake.objects.containsKey("islands/" + islandId + "/snapshots/000002/checksums.sha256"));
+        assertTrue(storage.objectMetrics().orphanCleanups() >= 1L);
+    }
+
+    @Test
     void promoteSnapshotRestoresCompatibilityManifestWhenLatestCasConflicts() throws Exception {
         FakeS3 fake = new FakeS3();
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -232,6 +269,49 @@ class S3IslandStorageObjectClientTest {
         assertEquals(sourceBundle.length, storage.objectMetrics().uploadedBytes());
         assertEquals(1L, storage.objectMetrics().multipartUploads());
         assertEquals("*", fake.latestIfNoneMatch);
+    }
+
+    @Test
+    void promoteBundleRestoresCompatibilityManifestWhenLatestCasConflicts() throws Exception {
+        FakeS3 fake = new FakeS3();
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", fake::handle);
+        server.start();
+        S3IslandStorage storage = new S3IslandStorage(
+            URI.create("http://127.0.0.1:" + server.getAddress().getPort()),
+            "bucket",
+            "us-east-1",
+            "",
+            "",
+            "",
+            Duration.ofSeconds(5),
+            2,
+            4L,
+            4L
+        );
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000606");
+        String rootManifestKey = "islands/" + islandId + "/manifest.json";
+        byte[] oldManifest = IslandManifestJson.write(manifest(islandId).withStoredBundle("old-checksum", "SHA-256", "zstd", rootManifestKey, 12L)).getBytes(StandardCharsets.UTF_8);
+        String sourcePrefix = "islands/" + islandId + "/backups/delete-000001/";
+        String sourceBundleKey = sourcePrefix + "bundle.tar.zst";
+        byte[] sourceBundle = "promoted-bundle-stream".getBytes(StandardCharsets.UTF_8);
+        IslandBundleManifest sourceManifest = manifest(islandId).withStoredBundle("source-checksum", "SHA-256", "zstd", sourceBundleKey, sourceBundle.length);
+        fake.objects.put(rootManifestKey, oldManifest);
+        fake.objects.put("islands/" + islandId + "/latest", "000001".getBytes(StandardCharsets.UTF_8));
+        fake.objects.put(sourceBundleKey, sourceBundle);
+        fake.objects.put(sourcePrefix + "manifest.json", IslandManifestJson.write(sourceManifest).getBytes(StandardCharsets.UTF_8));
+        fake.latestCasConflict = true;
+
+        IOException exception = assertThrows(IOException.class, () -> storage.promoteBundle(islandId, 2L, sourceBundleKey));
+
+        assertTrue(exception.getMessage().contains("CAS conflict"));
+        assertEquals("\"6\"", fake.latestIfMatch);
+        assertArrayEquals("000001".getBytes(StandardCharsets.UTF_8), fake.objects.get("islands/" + islandId + "/latest"));
+        assertArrayEquals(oldManifest, fake.objects.get(rootManifestKey));
+        assertTrue(!fake.objects.containsKey("islands/" + islandId + "/snapshots/000002/bundle.tar.zst"));
+        assertTrue(!fake.objects.containsKey("islands/" + islandId + "/snapshots/000002/manifest.json"));
+        assertTrue(!fake.objects.containsKey("islands/" + islandId + "/snapshots/000002/checksums.sha256"));
+        assertTrue(storage.objectMetrics().orphanCleanups() >= 1L);
     }
 
     private static String sha256(byte[] bytes) throws Exception {
@@ -324,6 +404,11 @@ class S3IslandStorageObjectClientTest {
             if ("DELETE".equals(exchange.getRequestMethod()) && query != null && query.contains("uploadId=")) {
                 multipartAborts++;
                 parts.clear();
+                write(exchange, 204, new byte[0]);
+                return;
+            }
+            if ("DELETE".equals(exchange.getRequestMethod()) && query == null) {
+                objects.remove(key);
                 write(exchange, 204, new byte[0]);
                 return;
             }
