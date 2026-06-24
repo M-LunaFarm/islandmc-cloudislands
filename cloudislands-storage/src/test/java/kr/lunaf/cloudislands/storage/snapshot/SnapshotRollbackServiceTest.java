@@ -78,6 +78,22 @@ class SnapshotRollbackServiceTest {
     }
 
     @Test
+    void restoreSnapshotRejectsIncompatibleFutureBundleWithoutChangingLatest() throws Exception {
+        LocalIslandStorage storage = new LocalIslandStorage(root);
+        SnapshotRollbackService rollback = new SnapshotRollbackService(storage);
+        IslandStorage.StoredBundle current = storage.writeSnapshot(ISLAND_ID, 1L, input("current-state"), manifest("PERIODIC", 1, true));
+        storage.writeSnapshot(ISLAND_ID, 2L, input("future-state"), futureManifest("FUTURE", 2));
+        storage.promoteSnapshot(ISLAND_ID, 1L);
+        SnapshotRollbackService.RollbackPlan plan = rollback.plan(ISLAND_ID, 2L);
+
+        IOException exception = assertThrows(IOException.class, () -> rollback.restoreSnapshot(plan));
+
+        assertEquals("rollback preflight failed for " + ISLAND_ID + " #2: missing-minecraftDataVersion", exception.getMessage());
+        assertEquals(current.checksum(), storage.readManifest(ISLAND_ID).checksum());
+        assertEquals("current-state", new String(storage.openLatestBundle(ISLAND_ID).readAllBytes(), StandardCharsets.UTF_8));
+    }
+
+    @Test
     void restoreBundleRejectsNonPortableBundle() throws Exception {
         LocalIslandStorage storage = new LocalIslandStorage(root);
         SnapshotRollbackService rollback = new SnapshotRollbackService(storage);
@@ -113,6 +129,36 @@ class SnapshotRollbackServiceTest {
                 portable,
                 "node-agnostic-shard-cell-remap",
                 "verify-checksum-then-restore-to-current-active-node"
+        );
+    }
+
+    private static IslandBundleManifest futureManifest(String reason, int schemaVersion) {
+        return new IslandBundleManifest(
+                ISLAND_ID,
+                OWNER_ID,
+                IslandBundleManifest.CURRENT_FORMAT_VERSION,
+                "1.21.99",
+                schemaVersion,
+                300,
+                new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+                List.of("default"),
+                List.of("visitor"),
+                List.of("plains"),
+                CREATED_AT,
+                CREATED_AT.plusSeconds(schemaVersion),
+                "",
+                "SHA-256",
+                "zstd",
+                "",
+                0L,
+                reason,
+                true,
+                "node-agnostic-shard-cell-remap",
+                "verify-checksum-then-restore-to-current-active-node",
+                "1.0.1",
+                IslandBundleManifest.CURRENT_MINECRAFT_DATA_VERSION + 1,
+                "1.21.99",
+                "skyblock-default@future"
         );
     }
 
