@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -100,6 +101,45 @@ class ExternalTarBundleExtractorTest {
         IOException exception = assertThrows(IOException.class, () -> extractor.verifyChecksums(source, checksums));
 
         assertTrue(exception.getMessage().contains("duplicate checksum entry"));
+    }
+
+    @Test
+    void extractedTreeValidationRejectsSymlinks() throws Exception {
+        ExternalTarBundleExtractor extractor = new ExternalTarBundleExtractor();
+
+        Path symlinkRoot = root.resolve("symlink-tree");
+        Files.createDirectories(symlinkRoot.resolve("chunks"));
+        Files.createSymbolicLink(symlinkRoot.resolve("chunks/link"), Path.of("../outside"));
+        IOException symlink = assertThrows(IOException.class, () -> extractor.validateExtractedTree(symlinkRoot));
+        assertTrue(symlink.getMessage().contains("symbolic links are not allowed"));
+    }
+
+    @Test
+    void extractedTreeValidationRejectsHardlinksWhenFilesystemReportsLinkCounts() throws Exception {
+        ExternalTarBundleExtractor extractor = new ExternalTarBundleExtractor();
+
+        Path hardlinkRoot = root.resolve("hardlink-tree");
+        Files.createDirectories(hardlinkRoot.resolve("chunks"));
+        Path original = hardlinkRoot.resolve("chunks/original.mca");
+        Path hardlink = hardlinkRoot.resolve("chunks/hardlink.mca");
+        Files.writeString(original, "chunk", StandardCharsets.UTF_8);
+        try {
+            Files.createLink(hardlink, original);
+        } catch (UnsupportedOperationException | IOException exception) {
+            assumeTrue(false, "hard links are not supported by this filesystem: " + exception.getMessage());
+        }
+        IOException hardlinkFailure = assertThrows(IOException.class, () -> extractor.validateExtractedTree(hardlinkRoot));
+        assertTrue(hardlinkFailure.getMessage().contains("hard links are not allowed"));
+    }
+
+    @Test
+    void extractedTreeValidationAcceptsRegularFilesWhenSparseBlockMetadataIsUnavailable() throws Exception {
+        ExternalTarBundleExtractor extractor = new ExternalTarBundleExtractor();
+        Path regularRoot = root.resolve("regular-tree");
+        Files.createDirectories(regularRoot.resolve("chunks"));
+        Files.writeString(regularRoot.resolve("chunks/r.0.0.mca"), "chunk", StandardCharsets.UTF_8);
+
+        assertDoesNotThrow(() -> extractor.validateExtractedTree(regularRoot));
     }
 
     @Test

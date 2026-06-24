@@ -180,12 +180,14 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
         return type == '-' || type == '0' || type == 'd';
     }
 
-    private void validateExtractedTree(Path targetDirectory) throws IOException {
+    void validateExtractedTree(Path targetDirectory) throws IOException {
         Path root = targetDirectory.toAbsolutePath().normalize();
         try (java.util.stream.Stream<Path> paths = Files.walk(root)) {
             int entries = 0;
             long totalSize = 0L;
-            for (Path path : paths.toList()) {
+            Iterator<Path> iterator = paths.iterator();
+            while (iterator.hasNext()) {
+                Path path = iterator.next();
                 entries++;
                 if (entries > MAX_ARCHIVE_ENTRIES) {
                     throw new IOException("extracted bundle has too many entries");
@@ -224,7 +226,7 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
             if (links instanceof Number number && number.longValue() > 1L) {
                 throw new IOException("hard links are not allowed in island bundles: " + relativeName);
             }
-        } catch (UnsupportedOperationException ignored) {
+        } catch (UnsupportedOperationException | IllegalArgumentException ignored) {
             // Non-POSIX filesystems are still protected by archive entry type checks.
         }
         try {
@@ -236,7 +238,7 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
                     throw new IOException("sparse files are not allowed in island bundles: " + relativeName);
                 }
             }
-        } catch (UnsupportedOperationException ignored) {
+        } catch (UnsupportedOperationException | IllegalArgumentException ignored) {
             // Sparse detection is best-effort when unix attributes are unavailable.
         }
     }
@@ -326,7 +328,12 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
         }
         List<String> unlisted = new ArrayList<>();
         try (java.util.stream.Stream<Path> paths = Files.walk(root)) {
-            for (Path path : paths.filter(candidate -> Files.isRegularFile(candidate, LinkOption.NOFOLLOW_LINKS)).toList()) {
+            Iterator<Path> iterator = paths.iterator();
+            while (iterator.hasNext()) {
+                Path path = iterator.next();
+                if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
+                    continue;
+                }
                 if (Files.isSymbolicLink(path)) {
                     throw new IOException("symbolic links are not allowed in island bundles: " + root.relativize(path));
                 }
