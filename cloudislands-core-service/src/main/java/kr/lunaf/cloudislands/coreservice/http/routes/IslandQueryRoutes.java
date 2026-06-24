@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
@@ -197,9 +198,11 @@ public final class IslandQueryRoutes {
             UUID islandId = uuidPath(tail);
             Optional<IslandSnapshot> island = islandRepository.findById(islandId);
             UUID requesterUuid = queryUuid(exchange, "requesterUuid", island.map(IslandSnapshot::ownerUuid).orElse(SYSTEM_ACTOR));
-            boolean deleted = island.isPresent() && deleteRequester.request(islandId, requesterUuid, island.get().ownerUuid(), "api-delete");
-            audit.log(SYSTEM_ACTOR, "API", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
-            CoreHttpResponses.write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
+            DeleteIslandResult result = island
+                .map(value -> deleteRequester.request(islandId, value.ownerUuid(), requesterUuid, "api-delete"))
+                .orElseGet(() -> new DeleteIslandResult(false, "NOT_OWNER_OR_MISSING", islandId));
+            audit.log(SYSTEM_ACTOR, "API", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
+            CoreHttpResponses.write(exchange, IslandPlayerLifecycleRoutes.deleteStatus(result, 404), IslandPlayerLifecycleRoutes.deleteResultJson(result));
             return;
         }
         CoreHttpResponses.write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
@@ -280,6 +283,6 @@ public final class IslandQueryRoutes {
 
     @FunctionalInterface
     public interface IslandDeleteRequester {
-        boolean request(UUID islandId, UUID ownerUuid, UUID requesterUuid, String reason);
+        DeleteIslandResult request(UUID islandId, UUID ownerUuid, UUID requesterUuid, String reason);
     }
 }

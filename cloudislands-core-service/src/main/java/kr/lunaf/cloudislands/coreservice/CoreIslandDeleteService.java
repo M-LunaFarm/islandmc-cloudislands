@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -45,41 +46,55 @@ final class CoreIslandDeleteService {
         this.snapshotRetentionPolicy = snapshotRetentionPolicy;
     }
 
-    boolean requestIslandDelete(UUID islandId, UUID ownerUuid, UUID requesterUuid, String reason) {
+    DeleteIslandResult requestIslandDelete(UUID islandId, UUID ownerUuid, UUID requesterUuid, String reason) {
         java.util.Optional<IslandSnapshot> island = islandRepository.findById(islandId);
         if (island.isEmpty() || !island.get().ownerUuid().equals(ownerUuid)) {
-            return false;
+            return new DeleteIslandResult(false, "NOT_OWNER_OR_MISSING", islandId);
         }
         islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETE_REQUESTED);
-        boolean deletedImmediately = publishDeleteJobOrMarkDeleted(islandId, ownerUuid, reason);
-        if (deletedImmediately) {
+        runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETE_REQUESTED);
+        String code = publishDeleteJobOrMarkDeleted(islandId, ownerUuid, reason);
+        if ("DELETED".equals(code)) {
             playerProfiles.clearPrimaryIsland(ownerUuid);
             events.publish(CloudIslandEventType.ISLAND_DELETED.name(), Map.of("islandId", islandId.toString(), "requesterUuid", requesterUuid.toString()));
         }
-        return true;
+        return new DeleteIslandResult(deleteAccepted(code), code, islandId);
     }
 
-    private boolean publishDeleteJobOrMarkDeleted(UUID islandId, UUID ownerUuid, String reason) {
+    private boolean deleteAccepted(String code) {
+        return "DELETE_REQUESTED".equals(code) || "DELETED".equals(code);
+    }
+
+    private String publishDeleteJobOrMarkDeleted(UUID islandId, UUID ownerUuid, String reason) {
         java.util.Optional<kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot> runtime = runtimeRepository.find(islandId);
         String targetNode = runtime.map(kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot::activeNode).orElse("");
         if (targetNode != null && !targetNode.isBlank()) {
             String fencingToken = runtime.map(value -> Long.toString(value.fencingToken())).orElse("0");
             islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
             runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DELETE_ISLAND, islandId, targetNode, 50, Map.of("reason", "BEFORE_DELETE", "deleteReason", reason, "ownerUuid", ownerUuid.toString(), "fencingToken", fencingToken), java.time.Instant.now()));
-            events.publish(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason, "snapshotReason", "BEFORE_DELETE"));
-            return false;
+            try {
+                jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.DELETE_ISLAND, islandId, targetNode, 50, Map.of("reason", "BEFORE_DELETE", "deleteReason", reason, "ownerUuid", ownerUuid.toString(), "fencingToken", fencingToken), java.time.Instant.now()));
+                events.publish(CloudIslandEventType.ISLAND_DELETE_REQUESTED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", reason, "snapshotReason", "BEFORE_DELETE"));
+                return "DELETE_REQUESTED";
+            } catch (RuntimeException exception) {
+                islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
+                runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
+                events.publish(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of("islandId", islandId.toString(), "targetNode", targetNode, "reason", "delete-job-publish-failed"));
+                return "DELETE_QUEUE_FAILED";
+            }
         }
+        islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
+        runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DEACTIVATING);
         islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.BACKUP_BEFORE_DELETE);
         runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.BACKUP_BEFORE_DELETE);
         if (!backupInactiveStorageBeforeDelete(islandId, reason)) {
             islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
             runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
-            return false;
+            return "DELETE_BACKUP_FAILED";
         }
         islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETING);
         runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETING);
-        return islandRepository.markDeleted(islandId, ownerUuid);
+        return islandRepository.markDeleted(islandId, ownerUuid) ? "DELETED" : "DELETE_MARK_FAILED";
     }
 
     private boolean backupInactiveStorageBeforeDelete(UUID islandId, String reason) {

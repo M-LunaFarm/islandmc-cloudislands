@@ -22,7 +22,7 @@ class IslandPlayerLifecycleRoutesTest {
     @Test
     void registersIslandPlayerLifecycleEndpointGroup() {
         List<String> paths = new ArrayList<>();
-        IslandPlayerLifecycleRoutes routes = new IslandPlayerLifecycleRoutes(null, null, null, null, (islandId, ownerUuid, requesterUuid, reason) -> false, null, null, null);
+        IslandPlayerLifecycleRoutes routes = new IslandPlayerLifecycleRoutes(null, null, null, null, (islandId, ownerUuid, requesterUuid, reason) -> new DeleteIslandResult(false, "NOT_OWNER_OR_MISSING", islandId), null, null, null);
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
@@ -35,7 +35,7 @@ class IslandPlayerLifecycleRoutesTest {
     void registersIslandPlayerLifecycleEndpointsAsPostOnly() {
         RecordingRegistry registry = new RecordingRegistry();
 
-        new IslandPlayerLifecycleRoutes(null, null, null, null, (islandId, ownerUuid, requesterUuid, reason) -> false, null, null, null).register(registry);
+        new IslandPlayerLifecycleRoutes(null, null, null, null, (islandId, ownerUuid, requesterUuid, reason) -> new DeleteIslandResult(false, "NOT_OWNER_OR_MISSING", islandId), null, null, null).register(registry);
 
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/delete"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/reset"));
@@ -57,6 +57,10 @@ class IslandPlayerLifecycleRoutesTest {
         assertEquals(false, deleted.get("accepted"));
         assertEquals("NOT_OWNER_OR_MISSING", SimpleJson.text(deleted.get("code")));
         assertEquals(islandId.toString(), SimpleJson.text(deleted.get("islandId")));
+        assertEquals(202, IslandPlayerLifecycleRoutes.deleteStatus(new DeleteIslandResult(true, "DELETE_REQUESTED", islandId), 403));
+        assertEquals(202, IslandPlayerLifecycleRoutes.deleteStatus(new DeleteIslandResult(true, "DELETED", islandId), 403));
+        assertEquals(403, IslandPlayerLifecycleRoutes.deleteStatus(new DeleteIslandResult(false, "NOT_OWNER_OR_MISSING", islandId), 403));
+        assertEquals(409, IslandPlayerLifecycleRoutes.deleteStatus(new DeleteIslandResult(false, "DELETE_QUEUE_FAILED", islandId), 403));
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

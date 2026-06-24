@@ -63,12 +63,12 @@ public final class IslandPlayerLifecycleRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID requesterUuid = JsonFields.uuid(body, "requesterUuid", EMPTY_UUID);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        boolean deleted = deleteRequester.request(islandId, requesterUuid, requesterUuid, "player-delete");
-        if (deleted) {
+        DeleteIslandResult result = deleteRequester.request(islandId, requesterUuid, requesterUuid, "player-delete");
+        if (result.accepted()) {
             audit.log(requesterUuid, "PLAYER", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of());
             islandLogs.append(islandId, requesterUuid, "ISLAND_DELETE", Map.of());
         }
-        CoreHttpResponses.write(exchange, deleted ? 202 : 403, deleteResultJson(new DeleteIslandResult(deleted, deleted ? "DELETED" : "NOT_OWNER_OR_MISSING", islandId)));
+        CoreHttpResponses.write(exchange, deleteStatus(result, 403), deleteResultJson(result));
     }
 
     private void reset(HttpExchange exchange) throws IOException {
@@ -126,8 +126,18 @@ public final class IslandPlayerLifecycleRoutes implements RouteGroup {
         return SimpleJson.stringify(values);
     }
 
+    static int deleteStatus(DeleteIslandResult result, int notFoundOrDeniedStatus) {
+        if (result.accepted()) {
+            return 202;
+        }
+        if ("NOT_OWNER_OR_MISSING".equals(result.code())) {
+            return notFoundOrDeniedStatus;
+        }
+        return 409;
+    }
+
     @FunctionalInterface
     public interface DeleteRequester {
-        boolean request(UUID islandId, UUID ownerUuid, UUID requesterUuid, String reason);
+        DeleteIslandResult request(UUID islandId, UUID ownerUuid, UUID requesterUuid, String reason);
     }
 }

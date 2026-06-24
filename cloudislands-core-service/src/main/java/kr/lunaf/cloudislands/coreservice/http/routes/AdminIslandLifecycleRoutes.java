@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
@@ -225,9 +226,11 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
 
     private void delete(HttpExchange exchange, UUID islandId) throws IOException {
         Optional<IslandSnapshot> island = islandRepository.findById(islandId);
-        boolean deleted = island.isPresent() && deleteRequester.request(islandId, island.get().ownerUuid(), island.get().ownerUuid(), "admin-delete");
-        audit.log(SYSTEM_ACTOR, "ADMIN", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("deleted", Boolean.toString(deleted)));
-        CoreHttpResponses.write(exchange, deleted ? 202 : 404, deleted ? ApiResponses.ok(true) : ApiResponses.error("ISLAND_NOT_DELETED", "Island was not found or could not be deleted"));
+        DeleteIslandResult result = island
+            .map(value -> deleteRequester.request(islandId, value.ownerUuid(), value.ownerUuid(), "admin-delete"))
+            .orElseGet(() -> new DeleteIslandResult(false, "NOT_OWNER_OR_MISSING", islandId));
+        audit.log(SYSTEM_ACTOR, "ADMIN", "ISLAND_DELETE", "ISLAND", islandId.toString(), Map.of("accepted", Boolean.toString(result.accepted()), "code", result.code()));
+        CoreHttpResponses.write(exchange, IslandPlayerLifecycleRoutes.deleteStatus(result, 404), IslandPlayerLifecycleRoutes.deleteResultJson(result));
     }
 
     private void repair(HttpExchange exchange) throws IOException {
