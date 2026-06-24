@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpPrincipal;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
+import kr.lunaf.cloudislands.coreservice.http.NodeScopedRequestGuard;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -55,6 +56,24 @@ class CoreSecurityControlsTest {
         assertTrue(auth.allowed(global), "global token remains available for non-node Core clients");
         assertEquals("", CoreApiIdentity.authenticatedNodeId(global));
         assertTrue(CoreApiIdentity.nodeCredentialBindingConfigured(global));
+    }
+
+    @Test
+    void nodeScopedRoutesRejectGlobalTokenWhenNodeCredentialsAreConfigured() throws Exception {
+        ApiTokenGuard guard = new ApiTokenGuard("core-secret", NodeCredentialBindings.parse("node-a:token-a"));
+        CoreApiAuthGuard auth = new CoreApiAuthGuard(CoreAuthMode.TOKEN_REQUIRED, guard, new MtlsHeaderGuard(false, "", ""));
+        TestExchange global = exchange("127.0.0.1", "Authorization", "Bearer core-secret");
+        TestExchange nodeA = exchange(
+            "127.0.0.1",
+            "Authorization", "Bearer token-a",
+            CoreApiIdentity.NODE_ID_HEADER, "node-a"
+        );
+
+        assertTrue(auth.allowed(global));
+        assertFalse(NodeScopedRequestGuard.allowNode(global, "node-a"));
+        assertTrue(auth.allowed(nodeA));
+        assertTrue(NodeScopedRequestGuard.allowNode(nodeA, "node-a"));
+        assertFalse(NodeScopedRequestGuard.allowNode(nodeA, "node-b"));
     }
 
     @Test
