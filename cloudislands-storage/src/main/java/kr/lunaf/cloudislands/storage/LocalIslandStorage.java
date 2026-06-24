@@ -424,8 +424,8 @@ public final class LocalIslandStorage implements IslandStorage {
     }
 
     private void publishLiveState(Path islandRoot, String latestSnapshot, String manifestJson) throws IOException {
-        atomicWriteString(islandRoot.resolve("latest"), latestSnapshot);
         atomicWriteString(islandRoot.resolve("manifest.json"), manifestJson);
+        atomicWriteString(islandRoot.resolve("latest"), latestSnapshot);
     }
 
     private ChecksumCopy writeStreamAtomically(InputStream input, Path target) throws IOException {
@@ -491,6 +491,7 @@ public final class LocalIslandStorage implements IslandStorage {
             fsyncDirectory(parent);
             if (oldDir != null) {
                 deleteRecursively(oldDir);
+                fsyncDirectory(parent);
             }
         } catch (IOException | RuntimeException exception) {
             if (oldDir != null && !Files.exists(targetDir)) {

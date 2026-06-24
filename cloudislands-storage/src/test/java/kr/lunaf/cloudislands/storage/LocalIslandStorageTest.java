@@ -110,6 +110,27 @@ class LocalIslandStorageTest {
     }
 
     @Test
+    void startupRecoveryRevertsCompatibilityManifestWhenLatestWasNotPublished() throws Exception {
+        Path islandRoot = root.resolve("islands").resolve(ISLAND_ID.toString());
+        Path oldSnapshot = islandRoot.resolve("snapshots").resolve("000001");
+        Path newSnapshot = islandRoot.resolve("snapshots").resolve("000002");
+        String oldManifest = IslandManifestJson.write(manifest("OLD"));
+        String newManifest = IslandManifestJson.write(manifest("NEW"));
+        Files.createDirectories(oldSnapshot);
+        Files.createDirectories(newSnapshot);
+        Files.writeString(oldSnapshot.resolve("manifest.json"), oldManifest, StandardCharsets.UTF_8);
+        Files.writeString(newSnapshot.resolve("manifest.json"), newManifest, StandardCharsets.UTF_8);
+        Files.writeString(islandRoot.resolve("manifest.json"), newManifest, StandardCharsets.UTF_8);
+        Files.writeString(islandRoot.resolve("latest"), "000001", StandardCharsets.UTF_8);
+
+        LocalIslandStorage storage = new LocalIslandStorage(root);
+
+        assertTrue(storage.available());
+        assertEquals("OLD", storage.readManifest(ISLAND_ID).snapshotReason());
+        assertEquals(oldManifest, Files.readString(islandRoot.resolve("manifest.json"), StandardCharsets.UTF_8));
+    }
+
+    @Test
     void deleteBackupDoesNotReplaceLatestLiveSnapshot() throws Exception {
         LocalIslandStorage storage = new LocalIslandStorage(root);
         byte[] liveBundle = "live-state".getBytes(StandardCharsets.UTF_8);
