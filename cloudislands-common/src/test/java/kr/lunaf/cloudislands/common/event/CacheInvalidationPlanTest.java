@@ -39,6 +39,7 @@ class CacheInvalidationPlanTest {
 
         assertTrue(keys.contains("ci:island:" + ISLAND + ":runtime"));
         assertTrue(keys.contains("ci:island:" + ISLAND + ":snapshots"));
+        assertTrue(keys.contains("ci:island:" + ISLAND + ":route-tickets"));
         assertTrue(keys.contains("ci:island:" + ISLAND + ":summary"));
     }
 

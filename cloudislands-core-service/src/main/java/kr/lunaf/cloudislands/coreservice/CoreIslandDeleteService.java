@@ -90,6 +90,7 @@ final class CoreIslandDeleteService {
         if (!backupInactiveStorageBeforeDelete(islandId, reason)) {
             islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
             runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
+            events.publish(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of("islandId", islandId.toString(), "reason", "delete-backup-failed"));
             return "DELETE_BACKUP_FAILED";
         }
         islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETING);

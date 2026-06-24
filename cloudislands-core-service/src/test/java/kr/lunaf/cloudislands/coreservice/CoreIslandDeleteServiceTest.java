@@ -4,11 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandState;
+import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
@@ -19,6 +22,8 @@ import kr.lunaf.cloudislands.coreservice.snapshot.InMemoryIslandSnapshotReposito
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
+import kr.lunaf.cloudislands.storage.IslandBundleManifest;
+import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.junit.jupiter.api.Test;
 
@@ -86,6 +91,27 @@ class CoreIslandDeleteServiceTest {
         assertEquals(IslandState.RECOVERY_REQUIRED, runtimes.find(ISLAND_ID).orElseThrow().state());
     }
 
+    @Test
+    void deleteBackupFailurePublishesRecoveryRequiredForCrossNodeInvalidation() {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        CoreIslandDeleteService service = service(islands, runtimes, profiles, new InMemoryIslandJobPublisher(), events, new FailingDeleteBackupStorage());
+        islands.createOwnedIsland(ISLAND_ID, OWNER_UUID, "default", "owner-island");
+        islands.setState(ISLAND_ID, IslandState.INACTIVE_READY);
+
+        DeleteIslandResult result = service.requestIslandDelete(ISLAND_ID, OWNER_UUID, OWNER_UUID, "test-delete");
+
+        assertFalse(result.accepted());
+        assertEquals("DELETE_BACKUP_FAILED", result.code());
+        assertEquals(IslandState.RECOVERY_REQUIRED, islands.findById(ISLAND_ID).orElseThrow().state());
+        assertEquals(IslandState.RECOVERY_REQUIRED, runtimes.find(ISLAND_ID).orElseThrow().state());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_DELETE_BACKUP_FAILED.name()));
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name()));
+        assertTrue(events.countsByField(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), "reason").containsKey("delete-backup-failed"));
+    }
+
     private static CoreIslandDeleteService service(
             InMemoryIslandRepository islands,
             InMemoryIslandRuntimeRepository runtimes,
@@ -98,6 +124,25 @@ class CoreIslandDeleteServiceTest {
             runtimes,
             jobs,
             new InMemoryGlobalEventPublisher(),
+            new InMemoryIslandSnapshotRepository(),
+            SnapshotRetentionPolicy.defaultPolicy()
+        );
+    }
+
+    private static CoreIslandDeleteService service(
+            InMemoryIslandRepository islands,
+            InMemoryIslandRuntimeRepository runtimes,
+            InMemoryPlayerProfileRepository profiles,
+            IslandJobQueue jobs,
+            InMemoryGlobalEventPublisher events,
+            IslandStorage storage) {
+        return new CoreIslandDeleteService(
+            storage,
+            islands,
+            profiles,
+            runtimes,
+            jobs,
+            events,
             new InMemoryIslandSnapshotRepository(),
             SnapshotRetentionPolicy.defaultPolicy()
         );
@@ -147,6 +192,78 @@ class CoreIslandDeleteServiceTest {
         @Override
         public boolean cancel(UUID jobId) {
             return false;
+        }
+    }
+
+    private static final class FailingDeleteBackupStorage implements IslandStorage {
+        @Override
+        public boolean available() {
+            return true;
+        }
+
+        @Override
+        public IslandBundleManifest readManifest(UUID islandId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public InputStream openLatestBundle(UUID islandId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public InputStream openSnapshotBundle(UUID islandId, long snapshotNo) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public InputStream openBundle(String storagePath) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public StoredBundle writeSnapshot(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public StoredBundle writeDeleteBackup(UUID islandId, long snapshotNo, InputStream bundle, IslandBundleManifest manifest) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo) throws IOException {
+            throw new IOException("backup unavailable");
+        }
+
+        @Override
+        public StoredBundle writeDeleteBackupFromLatest(UUID islandId, long snapshotNo, String reason) throws IOException {
+            throw new IOException("backup unavailable");
+        }
+
+        @Override
+        public void promoteSnapshot(UUID islandId, long snapshotNo) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void promoteBundle(UUID islandId, long snapshotNo, String storagePath) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int pruneSnapshots(UUID islandId, int keepLatest) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void deleteLiveState(UUID islandId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void deleteIsland(UUID islandId) {
+            throw new UnsupportedOperationException();
         }
     }
 }
