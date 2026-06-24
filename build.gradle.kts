@@ -1115,6 +1115,19 @@ tasks.register("verifyConfigCoverage") {
     dependsOn(verifyPaperConfigCoverage)
 }
 
+tasks.register<Test>("verifyMetricCoverage") {
+    group = "verification"
+    description = "Verifies rendered metrics have concrete update sources and dashboard samples."
+    val coreServiceSourceSets = project(":cloudislands-core-service").extensions.getByType<SourceSetContainer>()
+    val coreServiceTest = coreServiceSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-core-service").tasks.named("testClasses"))
+    testClassesDirs = coreServiceTest.output.classesDirs
+    classpath = coreServiceTest.runtimeClasspath
+    workingDir = rootProject.projectDir
+    useJUnitPlatform()
+    include("kr/lunaf/cloudislands/coreservice/metrics/PrometheusMetricsRendererTest.class")
+}
+
 val verifyPaperCommandCoverage = tasks.register<Test>("verifyPaperCommandCoverage") {
     group = "verification"
     description = "Verifies Paper command catalog, help, and handler routing coverage."
@@ -1642,6 +1655,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyGuiActionCoverage"))
     dependsOn(tasks.named("verifyPermissionCoverage"))
     dependsOn(tasks.named("verifyConfigCoverage"))
+    dependsOn(tasks.named("verifyMetricCoverage"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))
     dependsOn(tasks.named("verifyReleaseSecurityGate"))
 }
