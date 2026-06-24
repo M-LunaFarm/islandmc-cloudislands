@@ -36,6 +36,21 @@ public final class ClusterSmokeVerifierCli {
         Map<?, ?> evidence = SimpleJson.object(root.containsKey("evidenceByGate") ? root.get("evidenceByGate") : root.get("evidence"));
         evidence.forEach((gate, values) -> builder.evidence(SimpleJson.text(gate), SimpleJson.list(values).stream().map(SimpleJson::text).toList()));
         SimpleJson.list(root.get("failureInjections")).forEach(failure -> builder.failureInjection(SimpleJson.text(failure)));
+        SimpleJson.list(root.get("assertions")).forEach(assertion -> {
+            Map<?, ?> assertionObject = SimpleJson.object(assertion);
+            if ("passed".equalsIgnoreCase(SimpleJson.text(assertionObject.get("result")))) {
+                builder.passedAssertion(SimpleJson.text(assertionObject.get("name")));
+            }
+        });
+        SimpleJson.list(root.get("artifacts")).forEach(artifact -> {
+            Map<?, ?> artifactObject = SimpleJson.object(artifact);
+            builder.artifact(
+                SimpleJson.text(artifactObject.get("path")),
+                SimpleJson.text(artifactObject.get("sha256")),
+                SimpleJson.number(artifactObject.get("lineStart")),
+                SimpleJson.number(artifactObject.get("lineEnd"))
+            );
+        });
         return builder.build();
     }
 
@@ -61,6 +76,7 @@ public final class ClusterSmokeVerifierCli {
         root.put("missingScenarioEvidenceSummary", report.missingScenarioEvidenceSummary());
         root.put("missingScenarioFailureInjections", report.missingScenarioFailureInjections());
         root.put("missingScenarioFailureInjectionSummary", report.missingScenarioFailureInjectionSummary());
+        root.put("missingEvidenceLinks", report.missingEvidenceLinks());
         root.put("failures", report.failures());
         return SimpleJson.stringify(root);
     }

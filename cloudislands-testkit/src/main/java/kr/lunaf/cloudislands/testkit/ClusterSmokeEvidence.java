@@ -10,7 +10,9 @@ import java.util.Set;
 public record ClusterSmokeEvidence(
     Set<String> components,
     Map<String, List<String>> evidenceByGate,
-    Set<String> failureInjections
+    Set<String> failureInjections,
+    Set<String> passedAssertions,
+    List<Artifact> artifacts
 ) {
     public static final Set<String> REQUIRED_COMPONENTS = Set.of(
         "core-1",
@@ -32,6 +34,8 @@ public record ClusterSmokeEvidence(
         components = copySet(components);
         evidenceByGate = copyEvidence(evidenceByGate);
         failureInjections = copySet(failureInjections);
+        passedAssertions = copySet(passedAssertions);
+        artifacts = copyArtifacts(artifacts);
     }
 
     public static Builder builder() {
@@ -58,6 +62,14 @@ public record ClusterSmokeEvidence(
 
     public boolean injected(String failureInjection) {
         return failureInjection != null && failureInjections.contains(failureInjection);
+    }
+
+    public boolean hasPassedAssertions() {
+        return !passedAssertions.isEmpty();
+    }
+
+    public boolean hasLinkedArtifact() {
+        return artifacts.stream().anyMatch(Artifact::linked);
     }
 
     private static Set<String> copySet(Set<String> values) {
@@ -95,10 +107,41 @@ public record ClusterSmokeEvidence(
         return Map.copyOf(copy);
     }
 
+    private static List<Artifact> copyArtifacts(List<Artifact> source) {
+        if (source == null || source.isEmpty()) {
+            return List.of();
+        }
+        List<Artifact> copy = new ArrayList<>();
+        for (Artifact artifact : source) {
+            if (artifact != null) {
+                copy.add(artifact);
+            }
+        }
+        return List.copyOf(copy);
+    }
+
+    public record Artifact(String path, String sha256, long lineStart, long lineEnd) {
+        public Artifact {
+            path = path == null ? "" : path.trim();
+            sha256 = sha256 == null ? "" : sha256.trim().toLowerCase();
+            lineStart = Math.max(0L, lineStart);
+            lineEnd = Math.max(0L, lineEnd);
+        }
+
+        public boolean linked() {
+            return !path.isBlank()
+                && sha256.matches("[0-9a-f]{64}")
+                && lineStart > 0L
+                && lineEnd >= lineStart;
+        }
+    }
+
     public static final class Builder {
         private final Set<String> components = new LinkedHashSet<>();
         private final Map<String, List<String>> evidenceByGate = new LinkedHashMap<>();
         private final Set<String> failureInjections = new LinkedHashSet<>();
+        private final Set<String> passedAssertions = new LinkedHashSet<>();
+        private final List<Artifact> artifacts = new ArrayList<>();
 
         private Builder() {
         }
@@ -145,8 +188,20 @@ public record ClusterSmokeEvidence(
             return this;
         }
 
+        public Builder passedAssertion(String assertion) {
+            if (assertion != null && !assertion.isBlank()) {
+                passedAssertions.add(assertion.trim());
+            }
+            return this;
+        }
+
+        public Builder artifact(String path, String sha256, long lineStart, long lineEnd) {
+            artifacts.add(new Artifact(path, sha256, lineStart, lineEnd));
+            return this;
+        }
+
         public ClusterSmokeEvidence build() {
-            return new ClusterSmokeEvidence(components, evidenceByGate, failureInjections);
+            return new ClusterSmokeEvidence(components, evidenceByGate, failureInjections, passedAssertions, artifacts);
         }
     }
 }

@@ -18,7 +18,7 @@ public final class ClusterSmokeVerifier {
     }
 
     public static ClusterSmokeReport verify(ClusterSmokeEvidence evidence) {
-        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null) : evidence;
+        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null) : evidence;
         return new ClusterSmokeReport(
             CERTIFICATION_LEVEL,
             missingComponents(safeEvidence),
@@ -26,7 +26,8 @@ public final class ClusterSmokeVerifier {
             missingFailureInjections(safeEvidence),
             missingEvidenceByGate(safeEvidence),
             missingScenarioEvidence(safeEvidence),
-            missingScenarioFailureInjections(safeEvidence)
+            missingScenarioFailureInjections(safeEvidence),
+            missingEvidenceLinks(safeEvidence)
         );
     }
 
@@ -49,7 +50,9 @@ public final class ClusterSmokeVerifier {
 
     public static ClusterSmokeEvidence completeEvidenceFixture() {
         ClusterSmokeEvidence.Builder builder = ClusterSmokeEvidence.builder()
-            .components(ClusterSmokeEvidence.REQUIRED_COMPONENTS);
+            .components(ClusterSmokeEvidence.REQUIRED_COMPONENTS)
+            .passedAssertion("fixture-production-ga-all-required-evidence-passed")
+            .artifact("fixture/cluster-smoke.log", "0000000000000000000000000000000000000000000000000000000000000000", 1, 1);
         for (ProductionGaDrill drill : ProductionGaDrillMatrix.drills()) {
             builder.evidence(drill.gate(), drill.requiredEvidence());
             for (String failureInjection : drill.failureInjections()) {
@@ -86,7 +89,7 @@ public final class ClusterSmokeVerifier {
     }
 
     public static Map<String, List<String>> missingEvidenceByGate(ClusterSmokeEvidence evidence) {
-        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null) : evidence;
+        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null) : evidence;
         LinkedHashMap<String, List<String>> missingByGate = new LinkedHashMap<>();
         for (ProductionGaDrill drill : ProductionGaDrillMatrix.drills()) {
             List<String> observed = safeEvidence.evidenceByGate().getOrDefault(drill.gate(), List.of());
@@ -101,7 +104,7 @@ public final class ClusterSmokeVerifier {
     }
 
     public static Map<String, List<String>> missingScenarioEvidence(ClusterSmokeEvidence evidence) {
-        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null) : evidence;
+        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null) : evidence;
         LinkedHashMap<String, List<String>> missingByScenario = new LinkedHashMap<>();
         for (ProductionGaScenarioRequirement scenario : ProductionGaDrillMatrix.scenarioRequirements()) {
             List<String> observed = safeEvidence.evidenceByGate().getOrDefault(scenario.gate(), List.of());
@@ -116,7 +119,7 @@ public final class ClusterSmokeVerifier {
     }
 
     public static Map<String, List<String>> missingScenarioFailureInjections(ClusterSmokeEvidence evidence) {
-        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null) : evidence;
+        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null) : evidence;
         LinkedHashMap<String, List<String>> missingByScenario = new LinkedHashMap<>();
         for (ProductionGaScenarioRequirement scenario : ProductionGaDrillMatrix.scenarioRequirements()) {
             List<String> missing = scenario.failureInjections().stream()
@@ -127,5 +130,19 @@ public final class ClusterSmokeVerifier {
             }
         }
         return Map.copyOf(missingByScenario);
+    }
+
+    private static List<String> missingEvidenceLinks(ClusterSmokeEvidence evidence) {
+        if (evidence.evidenceByGate().isEmpty()) {
+            return List.of();
+        }
+        List<String> missing = new ArrayList<>();
+        if (!evidence.hasPassedAssertions()) {
+            missing.add("passed-assertions");
+        }
+        if (!evidence.hasLinkedArtifact()) {
+            missing.add("artifact-sha256-line-range");
+        }
+        return List.copyOf(missing);
     }
 }

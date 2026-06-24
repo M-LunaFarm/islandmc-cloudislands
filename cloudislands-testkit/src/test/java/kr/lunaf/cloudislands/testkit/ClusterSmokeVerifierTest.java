@@ -22,6 +22,26 @@ class ClusterSmokeVerifierTest {
     }
 
     @Test
+    void stringOnlyEvidenceCannotCertifyWithoutAssertionsAndArtifactLinks() {
+        ClusterSmokeEvidence linked = ClusterSmokeVerifier.completeEvidenceFixture();
+        ClusterSmokeEvidence stringOnly = ClusterSmokeEvidence.builder()
+            .components(linked.components())
+            .failureInjections(linked.failureInjections())
+            .evidence("multi-core-e2e", linked.evidenceByGate().get("multi-core-e2e"))
+            .evidence("rolling-upgrade", linked.evidenceByGate().get("rolling-upgrade"))
+            .evidence("multi-paper-failover", linked.evidenceByGate().get("multi-paper-failover"))
+            .evidence("chaos-test", linked.evidenceByGate().get("chaos-test"))
+            .evidence("backup-restore-drill", linked.evidenceByGate().get("backup-restore-drill"))
+            .build();
+
+        ClusterSmokeReport report = ClusterSmokeVerifier.verify(stringOnly);
+
+        assertFalse(report.certified());
+        assertEquals(java.util.List.of("passed-assertions", "artifact-sha256-line-range"), report.missingEvidenceLinks());
+        assertTrue(report.failures().stream().anyMatch(failure -> failure.contains("missing-evidence-links:")));
+    }
+
+    @Test
     void requiresTwoCoreVelocityTwoPaperAndSharedStorageComponents() {
         ClusterSmokeReport report = ClusterSmokeVerifier.verify(
             ClusterSmokeEvidence.builder()
@@ -157,7 +177,14 @@ class ClusterSmokeVerifierTest {
                 "multi-paper-failover": ["two-island-paper-nodes", "save-interruption"],
                 "backup-restore-drill": ["restore-activation", "route-recovery"]
               },
-              "failureInjections": ["paper-save-kill", "snapshot-restore-node-failure"]
+              "failureInjections": ["paper-save-kill", "snapshot-restore-node-failure"],
+              "assertions": [{"name": "paper-failover-smoke", "result": "passed"}],
+              "artifacts": [{
+                "path": "build/smoke/core-integration/core-1.log",
+                "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                "lineStart": 1,
+                "lineEnd": 42
+              }]
             }
             """);
 
@@ -167,6 +194,8 @@ class ClusterSmokeVerifierTest {
 
         assertFalse(report.certified());
         assertTrue(parsed.hasComponent("island-paper-2"));
+        assertTrue(parsed.hasPassedAssertions());
+        assertTrue(parsed.hasLinkedArtifact());
         assertTrue(report.missingComponents().contains("core-2"));
         assertTrue(report.missingComponents().contains("player-protocol-client"));
         assertTrue(report.missingEvidenceByGate().get("multi-paper-failover").contains("node-drain"));
@@ -175,6 +204,7 @@ class ClusterSmokeVerifierTest {
         assertTrue(json.contains("missingScenarioFailureInjections"));
         assertTrue(json.contains("\"certified\":false"));
         assertTrue(json.contains("missingEvidenceByGate"));
+        assertTrue(json.contains("missingEvidenceLinks"));
     }
 
     @Test

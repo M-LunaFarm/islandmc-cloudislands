@@ -11,7 +11,8 @@ public record ClusterSmokeReport(
     List<String> missingFailureInjections,
     Map<String, List<String>> missingEvidenceByGate,
     Map<String, List<String>> missingScenarioEvidence,
-    Map<String, List<String>> missingScenarioFailureInjections
+    Map<String, List<String>> missingScenarioFailureInjections,
+    List<String> missingEvidenceLinks
 ) {
     public ClusterSmokeReport {
         certificationLevel = certificationLevel == null || certificationLevel.isBlank() ? ClusterSmokeVerifier.CERTIFICATION_LEVEL : certificationLevel;
@@ -21,6 +22,7 @@ public record ClusterSmokeReport(
         missingEvidenceByGate = missingEvidenceByGate == null ? Map.of() : Map.copyOf(missingEvidenceByGate);
         missingScenarioEvidence = missingScenarioEvidence == null ? Map.of() : Map.copyOf(missingScenarioEvidence);
         missingScenarioFailureInjections = missingScenarioFailureInjections == null ? Map.of() : Map.copyOf(missingScenarioFailureInjections);
+        missingEvidenceLinks = missingEvidenceLinks == null ? List.of() : List.copyOf(missingEvidenceLinks);
     }
 
     public boolean certified() {
@@ -29,7 +31,8 @@ public record ClusterSmokeReport(
             && missingFailureInjections.isEmpty()
             && missingEvidenceByGate.isEmpty()
             && missingScenarioEvidence.isEmpty()
-            && missingScenarioFailureInjections.isEmpty();
+            && missingScenarioFailureInjections.isEmpty()
+            && missingEvidenceLinks.isEmpty();
     }
 
     public List<String> failures() {
@@ -51,6 +54,9 @@ public record ClusterSmokeReport(
         }
         if (!missingScenarioFailureInjections.isEmpty()) {
             failures.add("missing-scenario-failure-injections:" + missingScenarioFailureInjectionSummary());
+        }
+        if (!missingEvidenceLinks.isEmpty()) {
+            failures.add("missing-evidence-links:" + String.join("+", missingEvidenceLinks));
         }
         return List.copyOf(failures);
     }
