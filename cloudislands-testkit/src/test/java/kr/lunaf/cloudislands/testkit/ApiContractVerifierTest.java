@@ -89,6 +89,20 @@ class ApiContractVerifierTest {
     }
 
     @Test
+    void previousAddonAndClientApiRequestsPassCurrentRuntimeContract() {
+        Map<String, String> previousAddonMetadata = new HashMap<>(ApiContractVerifier.addonCertificationMetadata(standardAddonMetadata(), CloudIslandsApiContract.metadata()));
+        previousAddonMetadata.put(ApiContractVerifier.REQUESTED_API_VERSION_KEY, "1.0.0");
+
+        ApiContractVerification addonVerification = ApiContractVerifier.verifyAddon("previous-addon", "1.0.0", previousAddonMetadata);
+        ApiContractVerification clientVerification = ApiContractVerifier.verifyRuntimeMetadata("previous-core-client", "1.0.0", CloudIslandsApiContract.metadata());
+
+        assertTrue(addonVerification.passed(), addonVerification.failures().toString());
+        assertEquals(ApiCompatibilityStatus.COMPATIBLE, addonVerification.apiCompatibility().status());
+        assertTrue(clientVerification.passed(), clientVerification.failures().toString());
+        assertEquals(ApiCompatibilityStatus.COMPATIBLE, clientVerification.apiCompatibility().status());
+    }
+
+    @Test
     void addonSnapshotDetectsRuntimeTooOldForRequestedApi() {
         Map<String, String> addonMetadata = new HashMap<>(ApiContractVerifier.addonCertificationMetadata(standardAddonMetadata(), CloudIslandsApiContract.metadata()));
         addonMetadata.put(ApiContractVerifier.REQUESTED_API_VERSION_KEY, "1.2.0");
