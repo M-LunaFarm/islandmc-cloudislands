@@ -45,6 +45,41 @@ class HealthRoutesTest {
         assertTrue(json.contains("\"status\":\"UP\""));
         assertTrue(json.contains("\"databaseReady\":true"));
         assertTrue(json.contains("\"databaseEffectiveBackend\""));
+        assertTrue(json.contains("\"checks\""));
+    }
+
+    @Test
+    void rendersDependencyReadinessChecksAndOverallDownStatus() {
+        CoreServiceConfig config = CoreServiceConfig.fromEnvironment();
+        List<HealthRoutes.ReadinessCheck> checks = HealthRoutes.readinessChecks(
+            config,
+            List.of(
+                new HealthRoutes.ReadinessProbe("redis", () -> HealthRoutes.ProbeResult.up("ping-pong")),
+                new HealthRoutes.ReadinessProbe("island-node-heartbeat", () -> HealthRoutes.ProbeResult.down("no-fresh-route-candidate"))
+            )
+        );
+
+        String json = HealthRoutes.readinessJson(config, false, checks);
+
+        assertTrue(json.contains("\"status\":\"DOWN\""));
+        assertTrue(json.contains("\"databaseReady\":true"));
+        assertTrue(json.contains("\"name\":\"redis\""));
+        assertTrue(json.contains("\"detail\":\"ping-pong\""));
+        assertTrue(json.contains("\"name\":\"island-node-heartbeat\""));
+        assertTrue(json.contains("\"ready\":false"));
+        assertTrue(json.contains("\"detail\":\"no-fresh-route-candidate\""));
+    }
+
+    @Test
+    void readinessProbeExceptionsBecomeFailedChecks() {
+        List<HealthRoutes.ReadinessCheck> checks = HealthRoutes.readinessChecks(
+            CoreServiceConfig.fromEnvironment(),
+            List.of(new HealthRoutes.ReadinessProbe("object-storage", () -> {
+                throw new IllegalStateException("boom");
+            }))
+        );
+
+        assertTrue(checks.stream().anyMatch(check -> check.name().equals("object-storage") && !check.ready() && check.detail().equals("IllegalStateException")));
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

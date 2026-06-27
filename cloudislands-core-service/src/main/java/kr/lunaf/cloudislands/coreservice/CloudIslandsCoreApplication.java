@@ -70,6 +70,7 @@ import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.DirtyRankingRecalculationTask;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRepository;
+import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
@@ -286,7 +287,7 @@ public final class CloudIslandsCoreApplication {
                 }
             }
         };
-        new HealthRoutes(config, domainServices.metrics()::render).register(route);
+        new HealthRoutes(config, domainServices.metrics()::render, readinessProbes(config, dataSource, deleteStorage, nodes)).register(route);
         new CoreConfigRoutes(config, nodes).register(route);
         new NodeRoutes(nodes, config.heartbeatTimeout(), runtimeRepository).register(route);
         new JobRoutes(jobs, domainServices.jobCompletion(), audit).register(route);
@@ -343,6 +344,78 @@ public final class CloudIslandsCoreApplication {
             events,
             domainServices.islandDeleteService()::requestIslandDelete
         ).register(route, routePrefix);
+    }
+
+    private static List<HealthRoutes.ReadinessProbe> readinessProbes(CoreServiceConfig config, DataSource dataSource, IslandStorage storage, NodeRegistry nodes) {
+        return List.of(
+            new HealthRoutes.ReadinessProbe("database-query", () -> databaseProbe(dataSource)),
+            new HealthRoutes.ReadinessProbe("redis", () -> redisProbe(config)),
+            new HealthRoutes.ReadinessProbe("object-storage", () -> storageProbe(storage)),
+            new HealthRoutes.ReadinessProbe("job-queue", () -> jobQueueProbe(config, dataSource)),
+            new HealthRoutes.ReadinessProbe("island-node-heartbeat", () -> nodeHeartbeatProbe(config, nodes))
+        );
+    }
+
+    private static HealthRoutes.ProbeResult databaseProbe(DataSource dataSource) {
+        try (java.sql.Connection connection = dataSource.getConnection();
+             java.sql.Statement statement = connection.createStatement()) {
+            statement.execute("SELECT 1");
+            return HealthRoutes.ProbeResult.up("select-1-ok");
+        } catch (java.sql.SQLException exception) {
+            return HealthRoutes.ProbeResult.down("database-query-failed");
+        }
+    }
+
+    private static HealthRoutes.ProbeResult redisProbe(CoreServiceConfig config) {
+        if (!config.redisEvents() && !config.redisJobs()) {
+            return HealthRoutes.ProbeResult.up("redis-not-configured");
+        }
+        try (RedisRespConnection redis = new RedisRespConnection(config.redisUri())) {
+            String response = redis.command("PING");
+            return "PONG".equalsIgnoreCase(response)
+                ? HealthRoutes.ProbeResult.up("ping-pong")
+                : HealthRoutes.ProbeResult.down("unexpected-ping-response");
+        } catch (IOException | RuntimeException exception) {
+            return HealthRoutes.ProbeResult.down("redis-unreachable");
+        }
+    }
+
+    private static HealthRoutes.ProbeResult storageProbe(IslandStorage storage) {
+        if (storage == null) {
+            return HealthRoutes.ProbeResult.down("storage-not-configured");
+        }
+        try {
+            return storage.available()
+                ? HealthRoutes.ProbeResult.up("available")
+                : HealthRoutes.ProbeResult.down("unavailable");
+        } catch (IOException | RuntimeException exception) {
+            return HealthRoutes.ProbeResult.down("storage-check-failed");
+        }
+    }
+
+    private static HealthRoutes.ProbeResult jobQueueProbe(CoreServiceConfig config, DataSource dataSource) {
+        if (config.redisJobs()) {
+            return redisProbe(config).ready()
+                ? HealthRoutes.ProbeResult.up("redis-job-queue-reachable")
+                : HealthRoutes.ProbeResult.down("redis-job-queue-unreachable");
+        }
+        if (config.jdbcJobs()) {
+            return databaseProbe(dataSource).ready()
+                ? HealthRoutes.ProbeResult.up("jdbc-job-queue-reachable")
+                : HealthRoutes.ProbeResult.down("jdbc-job-queue-unreachable");
+        }
+        return HealthRoutes.ProbeResult.down("job-queue-not-durable");
+    }
+
+    private static HealthRoutes.ProbeResult nodeHeartbeatProbe(CoreServiceConfig config, NodeRegistry nodes) {
+        java.time.Instant now = java.time.Instant.now();
+        long routeCandidates = nodes.snapshot().stream()
+            .filter(node -> node.inPool(config.islandPool()))
+            .filter(node -> node.eligible(now, config.heartbeatTimeout()))
+            .count();
+        return routeCandidates > 0L
+            ? HealthRoutes.ProbeResult.up("route-candidates=" + routeCandidates)
+            : HealthRoutes.ProbeResult.down("no-fresh-route-candidate");
     }
 
     private static RollbackTarget migrationRollbackTarget(CoreServiceConfig config, DataSource dataSource) {

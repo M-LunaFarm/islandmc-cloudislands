@@ -47,16 +47,24 @@ def request(base_url: str, method: str, path: str, payload=None, admin: bool = F
     return json.loads(text)
 
 
-def wait_for_ready(base_url: str, deadline: float) -> None:
+def wait_for_probe(base_url: str, path: str, deadline: float, label: str) -> None:
     while time.monotonic() < deadline:
         try:
-            with urllib.request.urlopen(base_url + "/ready", timeout=3) as response:
+            with urllib.request.urlopen(base_url + path, timeout=3) as response:
                 if response.status == 200:
                     return
         except OSError:
             pass
         time.sleep(0.25)
-    raise RuntimeError("Core service did not become ready before timeout")
+    raise RuntimeError(f"Core service did not become {label} before timeout")
+
+
+def wait_for_live(base_url: str, deadline: float) -> None:
+    wait_for_probe(base_url, "/live", deadline, "live")
+
+
+def wait_for_ready(base_url: str, deadline: float) -> None:
+    wait_for_probe(base_url, "/ready", deadline, "ready")
 
 
 def heartbeat(base_url: str, node_id: str, velocity_server_name: str, state: str = "READY", active_islands: int = 0) -> None:
@@ -298,8 +306,18 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
     try:
         deadline = time.monotonic() + timeout
         processes.append(start_core(core_bin, work_dir / "core-1", port, env))
-        wait_for_ready(primary_url, deadline)
+        wait_for_live(primary_url, deadline)
         processes.append(start_core(core_bin, work_dir / "core-2", secondary_port, env))
+        wait_for_live(secondary_url, deadline)
+        node_a = "island-a-" + uuid.uuid4().hex[:8]
+        node_b = "island-b-" + uuid.uuid4().hex[:8]
+        node_servers = {
+            node_a: "Island-A-" + node_a.rsplit("-", 1)[-1],
+            node_b: "Island-B-" + node_b.rsplit("-", 1)[-1],
+        }
+        heartbeat(primary_url, node_a, node_servers[node_a])
+        heartbeat(primary_url, node_b, node_servers[node_b])
+        wait_for_ready(primary_url, deadline)
         wait_for_ready(secondary_url, deadline)
         for base_url in (primary_admin_url, secondary_admin_url):
             config = request(base_url, "POST", "/v1/admin/config", {}, admin=True, expect=(200,))
@@ -311,14 +329,6 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             if not config.get("storageMultiNodeSafe"):
                 raise RuntimeError(f"expected S3 storage to be multi-node safe: {config}")
 
-        node_a = "island-a-" + uuid.uuid4().hex[:8]
-        node_b = "island-b-" + uuid.uuid4().hex[:8]
-        node_servers = {
-            node_a: "Island-A-" + node_a.rsplit("-", 1)[-1],
-            node_b: "Island-B-" + node_b.rsplit("-", 1)[-1],
-        }
-        heartbeat(primary_url, node_a, node_servers[node_a])
-        heartbeat(primary_url, node_b, node_servers[node_b])
         nodes = request(secondary_url, "POST", "/v1/nodes", {}, expect=(200,))
         if nodes.get("routeCandidateCount", 0) < 2:
             raise RuntimeError(f"expected two route candidates from secondary core, got {nodes}")

@@ -89,7 +89,7 @@ class CoreRouteDomainCoverageTest {
             entry("AuditRoutes", List.of("audit")),
             entry("CoreConfigRoutes", List.of("config", "nodes")),
             entry("EventRoutes", List.of("inMemoryEvents")),
-            entry("HealthRoutes", List.of("domainServices.metrics()::render")),
+            entry("HealthRoutes", List.of("domainServices.metrics()::render", "readinessProbes(config, dataSource, deleteStorage, nodes)")),
             entry("IslandBankRoutes", List.of("bankRepository", "permissionRules")),
             entry("IslandBlockLevelRoutes", List.of("domainServices.levelRecalculation()")),
             entry("IslandCatalogRoutes", List.of("domainServices.createIsland()")),
