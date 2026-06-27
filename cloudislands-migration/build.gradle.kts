@@ -6,6 +6,7 @@ fun embeddedOutput(projectName: String) =
 
 dependencies {
     implementation(project(":cloudislands-api"))
+    implementation(project(":cloudislands-common"))
     implementation(project(":cloudislands-storage"))
     compileOnly(libs.postgresql)
     testImplementation(libs.junit.jupiter)
@@ -19,6 +20,7 @@ tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     listOf(
         ":cloudislands-api",
+        ":cloudislands-common",
         ":cloudislands-storage"
     ).forEach { embeddedProject ->
         from(embeddedOutput(embeddedProject))

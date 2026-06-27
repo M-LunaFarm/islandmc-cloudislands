@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -137,6 +138,43 @@ class CoreServiceConfigTest {
         assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackReadiness());
         assertEquals("blocked-non-durable-fallback", config.setupDatabaseFallbackSafetyMode());
         assertThrows(IllegalStateException.class, config::validateStartupStorage);
+    }
+
+    @Test
+    void productionModeAllowsOnlyDurableSharedRuntimeBackends() {
+        CoreServiceConfig valid = config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "POSTGRESQL", true);
+        CoreServiceConfig invalid = withRuntimeBackends(valid, "IN_MEMORY", "IN_MEMORY", "IN_MEMORY", "LOCAL", true);
+
+        assertTrue(valid.productionRuntimeModeViolations().isEmpty());
+        valid.validateStartupProductionRuntimeModes();
+        assertEquals(
+            List.of(
+                "repository-mode-must-be-JDBC",
+                "job-queue-mode-must-be-JDBC-or-REDIS",
+                "event-bus-mode-must-be-REDIS",
+                "storage-type-must-be-S3",
+                "in-memory-fallback-must-be-disabled"
+            ),
+            invalid.productionRuntimeModeViolations()
+        );
+        IllegalStateException exception = assertThrows(IllegalStateException.class, invalid::validateStartupProductionRuntimeModes);
+        assertTrue(exception.getMessage().contains("Production runtime modes are restricted"));
+        assertTrue(exception.getMessage().contains("repository-mode-must-be-JDBC"));
+    }
+
+    @Test
+    void developmentModeDoesNotApplyProductionRuntimeBackendRestrictions() {
+        CoreServiceConfig development = withRuntimeBackends(
+            config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "POSTGRESQL", true, "development", true),
+            "IN_MEMORY",
+            "IN_MEMORY",
+            "IN_MEMORY",
+            "LOCAL",
+            true
+        );
+
+        assertTrue(development.productionRuntimeModeViolations().isEmpty());
+        development.validateStartupProductionRuntimeModes();
     }
 
     @Test
@@ -511,6 +549,86 @@ class CoreServiceConfigTest {
                 config.adminListenerEnabled(),
                 config.publicAdminApiEnabled(),
                 requireMtls,
+                config.mtlsVerifiedHeader(),
+                config.mtlsVerifiedValue(),
+                config.mtlsTrustedProxies(),
+                config.rateLimitRequests(),
+                config.rateLimitWindow(),
+                config.httpWorkerThreads(),
+                config.httpQueueCapacity(),
+                config.httpKeepAlive(),
+                config.httpShutdownGrace()
+        );
+    }
+
+    private CoreServiceConfig withRuntimeBackends(
+            CoreServiceConfig config,
+            String repositoryMode,
+            String jobQueueMode,
+            String eventBusMode,
+            String storageType,
+            boolean allowInMemoryFallback
+    ) {
+        return new CoreServiceConfig(
+                config.bind(),
+                config.port(),
+                config.adminBind(),
+                config.adminPort(),
+                repositoryMode,
+                jobQueueMode,
+                eventBusMode,
+                config.jdbcUrl(),
+                config.configuredDatabaseType(),
+                config.databaseUsername(),
+                config.databasePassword(),
+                config.databasePoolSize(),
+                config.setupDatabaseAutoSchema(),
+                config.setupDatabaseFallbackEnabled(),
+                config.setupDatabaseFallbackOrder(),
+                config.setupDatabaseFallbackRequireSharedBeforeLocal(),
+                config.setupDatabaseFallbackLocalLast(),
+                config.setupDatabaseFallbackProductionSafeOrder(),
+                config.runtimeMode(),
+                allowInMemoryFallback,
+                config.allowInsecurePublicHttp(),
+                config.setupDatabaseCoreApiBaseUrl(),
+                config.setupDatabaseCoreApiAuthTokenConfigured(),
+                config.setupDatabaseCoreApiAdminTokenConfigured(),
+                config.setupDatabaseCoreApiTimeoutMillis(),
+                config.redisUri(),
+                storageType,
+                config.storageEndpoint(),
+                config.storageBucket(),
+                config.storageLocalPath(),
+                config.storageRegion(),
+                config.storageAccessKey(),
+                config.storageSecretKey(),
+                config.storageBearerToken(),
+                config.coreToken(),
+                config.nodeCredentials(),
+                config.adminToken(),
+                config.adminPermissions(),
+                config.ipAllowlist(),
+                config.upgradesFile(),
+                config.blockValuesFile(),
+                config.levelFormulaType(),
+                config.levelFormulaExpression(),
+                config.worthFormulaType(),
+                config.islandPool(),
+                config.softFullPolicy(),
+                config.hardFullPolicy(),
+                config.migrationPolicy(),
+                config.superiorSkyblock2MigrationEnabled(),
+                config.routeTicketTtl(),
+                config.routePreparingTicketTtl(),
+                config.heartbeatTimeout(),
+                config.leaseDuration(),
+                config.snapshotKeepLatest(),
+                config.snapshotRetentionPolicy(),
+                config.adminApiEnabled(),
+                config.adminListenerEnabled(),
+                config.publicAdminApiEnabled(),
+                config.requireMtls(),
                 config.mtlsVerifiedHeader(),
                 config.mtlsVerifiedValue(),
                 config.mtlsTrustedProxies(),

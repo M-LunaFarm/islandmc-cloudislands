@@ -4,7 +4,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -14,11 +18,14 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import kr.lunaf.cloudislands.common.json.JsonCodec;
 
 public final class SuperiorSkyblock2MigrationScanner {
     private static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+    private final Map<String, ParsedValues> parsedValues = Collections.synchronizedMap(new IdentityHashMap<>());
 
     public ScanResult scan(Path superiorSkyblockDataPath) {
+        parsedValues.clear();
         List<MigrationManifest> manifests = new ArrayList<>();
         List<MigrationIssue> issues = new ArrayList<>();
         Path islandsDir = findIslandsDirectory(superiorSkyblockDataPath);
@@ -210,48 +217,9 @@ public final class SuperiorSkyblock2MigrationScanner {
     }
 
     private String parseString(String content, String key, String fallback) {
-        String jsonNeedle = "\"" + key + "\"";
-        int jsonStart = content.indexOf(jsonNeedle);
-        if (jsonStart >= 0) {
-            int colon = content.indexOf(':', jsonStart + jsonNeedle.length());
-            if (colon >= 0) {
-                int valueStart = colon + 1;
-                while (valueStart < content.length() && Character.isWhitespace(content.charAt(valueStart))) {
-                    valueStart++;
-                }
-                if (valueStart < content.length() && content.charAt(valueStart) == '"') {
-                    int end = content.indexOf('"', valueStart + 1);
-                    if (end > valueStart) {
-                        return content.substring(valueStart + 1, end);
-                    }
-                } else if (valueStart < content.length()) {
-                    int valueEnd = valueStart;
-                    while (valueEnd < content.length()) {
-                        char current = content.charAt(valueEnd);
-                        if (current == ',' || current == '}' || current == ']' || current == '\n' || current == '\r') {
-                            break;
-                        }
-                        valueEnd++;
-                    }
-                    String value = content.substring(valueStart, valueEnd).trim();
-                    if (!value.isBlank()) {
-                        return value;
-                    }
-                }
-            }
-        }
-        String yamlNeedle = key + ":";
-        int yamlStart = content.indexOf(yamlNeedle);
-        if (yamlStart >= 0) {
-            int valueStart = yamlStart + yamlNeedle.length();
-            int lineEnd = content.indexOf('\n', valueStart);
-            String value = content.substring(valueStart, lineEnd < 0 ? content.length() : lineEnd).trim();
-            if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
-                value = value.substring(1, value.length() - 1);
-            }
-            if (!value.isBlank()) {
-                return value;
-            }
+        String value = parsed(content).value(key);
+        if (value != null && !value.isBlank()) {
+            return value;
         }
         return fallback;
     }
@@ -367,6 +335,18 @@ public final class SuperiorSkyblock2MigrationScanner {
     private List<NamedLocationKey> namedLocationKeys(String content, String... roots) {
         LinkedHashMap<String, NamedLocationKey> keys = new LinkedHashMap<>();
         for (String root : roots) {
+            String prefix = root + ".";
+            for (String field : parsed(content).keys()) {
+                if (!field.startsWith(prefix) || !matchesAny(field.substring(field.lastIndexOf('.') + 1), "world", "x", "y", "z", "yaw", "pitch", "public", "publicAccess")) {
+                    continue;
+                }
+                String remainder = field.substring(prefix.length());
+                int dot = remainder.indexOf('.');
+                if (dot > 0) {
+                    String name = remainder.substring(0, dot);
+                    keys.putIfAbsent(root + ":" + name, new NamedLocationKey(root, name));
+                }
+            }
             Matcher matcher = Pattern.compile(Pattern.quote(root) + "\\.([A-Za-z0-9_-]+)\\.(?:world|x|y|z|yaw|pitch|public|publicAccess)").matcher(content);
             while (matcher.find()) {
                 String name = matcher.group(1);
@@ -502,6 +482,18 @@ public final class SuperiorSkyblock2MigrationScanner {
 
     private List<MigrationBlockValue> parseBlockValues(String content) {
         LinkedHashMap<String, MigrationBlockValue> values = new LinkedHashMap<>();
+        for (String field : parsed(content).keys()) {
+            String[] parts = field.split("\\.");
+            if (parts.length != 3 || !matchesAny(parts[0], "blockValues", "block-values", "block_values", "worthValues", "worth-values", "worth_values")) {
+                continue;
+            }
+            String materialKey = safeMaterialKey(parts[1]);
+            String prefix = parts[0] + "." + parts[1] + ".";
+            String worth = parseString(content, prefix + "worth", parseString(content, prefix + "value", parseString(content, prefix + "price", "0.00")));
+            long levelPoints = parseLong(content, prefix + "levelPoints", parseLong(content, prefix + "points", parseLong(content, prefix + "level", 0L)));
+            long limit = parseLong(content, prefix + "limit", parseLong(content, prefix + "max", 0L));
+            values.putIfAbsent(materialKey, new MigrationBlockValue(materialKey, worth, levelPoints, limit));
+        }
         Matcher matcher = Pattern.compile("(blockValues|block-values|block_values|worthValues|worth-values|worth_values)\\.([A-Za-z0-9:_/-]+)\\.(?:worth|value|price|level|levelPoints|points|limit|max)").matcher(content);
         while (matcher.find()) {
             String root = matcher.group(1);
@@ -519,6 +511,15 @@ public final class SuperiorSkyblock2MigrationScanner {
 
     private List<MigrationBlockCount> parseBlockCounts(String content) {
         LinkedHashMap<String, MigrationBlockCount> counts = new LinkedHashMap<>();
+        for (String field : parsed(content).keys()) {
+            String[] parts = field.split("\\.");
+            if (parts.length != 2 || !matchesAny(parts[0], "blockCounts", "block-counts", "block_counts", "blockAmounts", "block-amounts", "block_amounts", "blocks")) {
+                continue;
+            }
+            String materialKey = safeMaterialKey(parts[1]);
+            long count = Math.max(0L, parseLong(content, field, 0L));
+            counts.putIfAbsent(materialKey, new MigrationBlockCount(materialKey, count));
+        }
         Matcher matcher = Pattern.compile("(blockCounts|block-counts|block_counts|blockAmounts|block-amounts|block_amounts|blocks)\\.([A-Za-z0-9:_/-]+)").matcher(content);
         while (matcher.find()) {
             String root = matcher.group(1);
@@ -627,7 +628,7 @@ public final class SuperiorSkyblock2MigrationScanner {
         if (line.startsWith("-")) {
             line = line.substring(1).trim();
         }
-        int colon = line.indexOf(':');
+        int colon = yamlSeparator(line);
         if (colon < 0) {
             return "";
         }
@@ -643,11 +644,27 @@ public final class SuperiorSkyblock2MigrationScanner {
         if (line.startsWith("-")) {
             line = line.substring(1).trim();
         }
-        int colon = line.indexOf(':');
+        int colon = yamlSeparator(line);
         if (colon < 0) {
             return "";
         }
         return cleanScalar(line.substring(colon + 1).trim());
+    }
+
+    private int yamlSeparator(String line) {
+        boolean singleQuoted = false;
+        boolean doubleQuoted = false;
+        for (int index = 0; index < line.length(); index++) {
+            char current = line.charAt(index);
+            if (current == '\'' && !doubleQuoted) {
+                singleQuoted = !singleQuoted;
+            } else if (current == '"' && !singleQuoted) {
+                doubleQuoted = !doubleQuoted;
+            } else if (current == ':' && !singleQuoted && !doubleQuoted) {
+                return index;
+            }
+        }
+        return -1;
     }
 
     private String inlineMapValue(String text, String key, String fallback) {
@@ -740,7 +757,7 @@ public final class SuperiorSkyblock2MigrationScanner {
 
     private boolean containsAnyKey(String content, String... keys) {
         for (String key : keys) {
-            if (content.contains("\"" + key + "\"") || content.contains(key + ":")) {
+            if (parsed(content).hasKey(key)) {
                 return true;
             }
         }
@@ -767,6 +784,10 @@ public final class SuperiorSkyblock2MigrationScanner {
 
     private Set<String> parseJsonStringArray(String content, String key) {
         LinkedHashSet<String> values = new LinkedHashSet<>();
+        values.addAll(parsed(content).list(key));
+        if (!values.isEmpty()) {
+            return values;
+        }
         String needle = "\"" + key + "\"";
         int keyStart = content.indexOf(needle);
         if (keyStart < 0) {
@@ -827,6 +848,12 @@ public final class SuperiorSkyblock2MigrationScanner {
 
     private Set<UUID> parseJsonUuidArray(String content, String key) {
         LinkedHashSet<UUID> uuids = new LinkedHashSet<>();
+        for (String value : parsed(content).list(key)) {
+            collectUuids(value, uuids);
+        }
+        if (!uuids.isEmpty()) {
+            return uuids;
+        }
         String needle = "\"" + key + "\"";
         int keyStart = content.indexOf(needle);
         if (keyStart < 0) {
@@ -874,6 +901,152 @@ public final class SuperiorSkyblock2MigrationScanner {
         Matcher matcher = UUID_PATTERN.matcher(text);
         while (matcher.find()) {
             uuids.add(UUID.fromString(matcher.group()));
+        }
+    }
+
+    private ParsedValues parsed(String content) {
+        return parsedValues.computeIfAbsent(content == null ? "" : content, this::parseValues);
+    }
+
+    private ParsedValues parseValues(String content) {
+        String trimmed = content == null ? "" : content.trim();
+        if (trimmed.startsWith("{")) {
+            try {
+                LinkedHashMap<String, String> values = new LinkedHashMap<>();
+                LinkedHashMap<String, List<String>> lists = new LinkedHashMap<>();
+                flattenJson("", JsonCodec.readObject(content), values, lists);
+                return new ParsedValues(values, lists);
+            } catch (RuntimeException ignored) {
+                return parseYamlValues(content);
+            }
+        }
+        return parseYamlValues(content);
+    }
+
+    private void flattenJson(String prefix, Object value, Map<String, String> values, Map<String, List<String>> lists) {
+        if (value instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                String key = entry.getKey() == null ? "" : entry.getKey().toString();
+                if (key.isBlank()) {
+                    continue;
+                }
+                flattenJson(prefix.isBlank() ? key : prefix + "." + key, entry.getValue(), values, lists);
+            }
+            return;
+        }
+        if (value instanceof List<?> list) {
+            ArrayList<String> scalars = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> || item instanceof List<?>) {
+                    continue;
+                }
+                if (item != null) {
+                    scalars.add(item.toString());
+                }
+            }
+            if (!prefix.isBlank() && !scalars.isEmpty()) {
+                lists.put(prefix, List.copyOf(scalars));
+            }
+            return;
+        }
+        if (!prefix.isBlank() && value != null) {
+            values.put(prefix, value.toString());
+        }
+    }
+
+    private ParsedValues parseYamlValues(String content) {
+        LinkedHashMap<String, String> values = new LinkedHashMap<>();
+        LinkedHashMap<String, List<String>> lists = new LinkedHashMap<>();
+        Deque<YamlNode> stack = new ArrayDeque<>();
+        String[] lines = (content == null ? "" : content).split("\\R");
+        for (String rawLine : lines) {
+            String uncommented = stripYamlComment(rawLine);
+            String trimmed = uncommented.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            int indent = leadingSpaces(uncommented);
+            while (!stack.isEmpty() && stack.peek().indent() >= indent) {
+                stack.pop();
+            }
+            String parent = stack.isEmpty() ? "" : stack.peek().path();
+            if (trimmed.startsWith("-")) {
+                String item = cleanScalar(trimmed.substring(1).trim());
+                if (!parent.isBlank() && !item.isBlank()) {
+                    lists.computeIfAbsent(parent, ignored -> new ArrayList<>()).add(item);
+                }
+                continue;
+            }
+            String key = yamlKey(trimmed);
+            if (key.isBlank()) {
+                continue;
+            }
+            String path = parent.isBlank() ? key : parent + "." + key;
+            String value = yamlValue(trimmed);
+            if (value.isBlank()) {
+                stack.push(new YamlNode(indent, path));
+                continue;
+            }
+            if (value.startsWith("[") && value.endsWith("]")) {
+                LinkedHashSet<String> collected = new LinkedHashSet<>();
+                collectStringValues(value, collected);
+                if (!collected.isEmpty()) {
+                    lists.put(path, List.copyOf(collected));
+                }
+                continue;
+            }
+            values.put(path, value);
+        }
+        lists.replaceAll((key, value) -> List.copyOf(value));
+        return new ParsedValues(values, lists);
+    }
+
+    private String stripYamlComment(String line) {
+        if (line == null || line.isBlank()) {
+            return "";
+        }
+        boolean singleQuoted = false;
+        boolean doubleQuoted = false;
+        for (int index = 0; index < line.length(); index++) {
+            char current = line.charAt(index);
+            if (current == '\'' && !doubleQuoted) {
+                singleQuoted = !singleQuoted;
+            } else if (current == '"' && !singleQuoted) {
+                doubleQuoted = !doubleQuoted;
+            } else if (current == '#' && !singleQuoted && !doubleQuoted && (index == 0 || Character.isWhitespace(line.charAt(index - 1)))) {
+                return line.substring(0, index);
+            }
+        }
+        return line;
+    }
+
+    private int leadingSpaces(String line) {
+        int index = 0;
+        while (line != null && index < line.length() && line.charAt(index) == ' ') {
+            index++;
+        }
+        return index;
+    }
+
+    private record YamlNode(int indent, String path) {}
+
+    private record ParsedValues(Map<String, String> values, Map<String, List<String>> lists) {
+        String value(String key) {
+            return values.get(key);
+        }
+
+        boolean hasKey(String key) {
+            return values.containsKey(key) || lists.containsKey(key);
+        }
+
+        List<String> list(String key) {
+            return lists.getOrDefault(key, List.of());
+        }
+
+        Set<String> keys() {
+            LinkedHashSet<String> keys = new LinkedHashSet<>(values.keySet());
+            keys.addAll(lists.keySet());
+            return keys;
         }
     }
 

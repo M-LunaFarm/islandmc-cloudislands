@@ -11,7 +11,9 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -504,6 +506,7 @@ public record CoreServiceConfig(
         if (setupDatabaseNonDurableStorageBlocked()) {
             throw new IllegalStateException("A durable database is required in production mode or when setup.database.fallback.enabled=false");
         }
+        validateStartupProductionRuntimeModes();
     }
 
     public void validateStartupSecurity() {
@@ -522,6 +525,39 @@ public record CoreServiceConfig(
         if (productionPublicPlainHttpBlocked()) {
             throw new IllegalStateException("Production Core plain HTTP public bind is blocked; bind Core to loopback or set CI_ALLOW_INSECURE_PUBLIC_HTTP=true after terminating TLS at a trusted proxy");
         }
+    }
+
+    public void validateStartupProductionRuntimeModes() {
+        List<String> violations = productionRuntimeModeViolations();
+        if (!violations.isEmpty()) {
+            throw new IllegalStateException("Production runtime modes are restricted: " + String.join(",", violations));
+        }
+    }
+
+    public List<String> productionRuntimeModeViolations() {
+        if (!productionMode()) {
+            return List.of();
+        }
+        ArrayList<String> violations = new ArrayList<>();
+        if (!"JDBC".equalsIgnoreCase(repositoryMode)) {
+            violations.add("repository-mode-must-be-JDBC");
+        }
+        if (!"JDBC".equalsIgnoreCase(jobQueueMode) && !"REDIS".equalsIgnoreCase(jobQueueMode)) {
+            violations.add("job-queue-mode-must-be-JDBC-or-REDIS");
+        }
+        if ("JDBC".equalsIgnoreCase(jobQueueMode) && !coreJdbcSupported(jdbcUrl)) {
+            violations.add("job-queue-JDBC-requires-supported-jdbc");
+        }
+        if (!"REDIS".equalsIgnoreCase(eventBusMode)) {
+            violations.add("event-bus-mode-must-be-REDIS");
+        }
+        if (!"S3".equalsIgnoreCase(storageType)) {
+            violations.add("storage-type-must-be-S3");
+        }
+        if (setupDatabaseAllowInMemoryFallback) {
+            violations.add("in-memory-fallback-must-be-disabled");
+        }
+        return List.copyOf(violations);
     }
 
     public boolean productionPublicPlainHttpBlocked() {
