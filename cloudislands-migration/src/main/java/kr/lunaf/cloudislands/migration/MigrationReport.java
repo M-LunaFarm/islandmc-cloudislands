@@ -25,8 +25,20 @@ public record MigrationReport(
     int blockCounts,
     int blockingIssues,
     int warningIssues,
+    int ownerMissingCount,
+    int homeMissingCount,
+    int warpMissingCount,
+    int permissionConversionFailureCount,
+    int unknownFlagCount,
+    int worldBundleChecksumFailureCount,
+    int cloudIslandsPostImportDifferenceCount,
+    boolean rollbackPossible,
     List<MigrationIssue> issues
 ) {
+    public int totalIslands() {
+        return manifests;
+    }
+
     public boolean canImport() {
         return manifests > 0 && blockingIssues == 0;
     }

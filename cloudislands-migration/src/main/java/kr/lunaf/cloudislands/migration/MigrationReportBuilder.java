@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.migration;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 public final class MigrationReportBuilder {
     private MigrationReportBuilder() {}
@@ -33,6 +34,14 @@ public final class MigrationReportBuilder {
             sum(safeManifests, CountTarget.BLOCK_COUNTS),
             blocking,
             warnings,
+            issueCount(safeIssues, "OWNER_NOT_FOUND"),
+            missingCount(safeManifests, MissingTarget.HOMES),
+            missingCount(safeManifests, MissingTarget.WARPS),
+            issueCount(safeIssues, MigrationReportBuilder::permissionConversionFailure),
+            issueCount(safeIssues, MigrationReportBuilder::unknownFlag),
+            issueCount(safeIssues, MigrationReportBuilder::worldBundleChecksumFailure),
+            issueCount(safeIssues, MigrationReportBuilder::cloudIslandsPostImportDifference),
+            rollbackPossible(safeManifests, safeIssues),
             safeIssues
         );
     }
@@ -65,6 +74,66 @@ public final class MigrationReportBuilder {
         return total;
     }
 
+    private static int missingCount(List<MigrationManifest> manifests, MissingTarget target) {
+        int total = 0;
+        for (MigrationManifest manifest : manifests) {
+            boolean missing = switch (target) {
+                case HOMES -> manifest.homes().isEmpty();
+                case WARPS -> manifest.warps().isEmpty();
+            };
+            if (missing) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    private static int issueCount(List<MigrationIssue> issues, String exactCode) {
+        return issueCount(issues, code -> code.equals(exactCode));
+    }
+
+    private static int issueCount(List<MigrationIssue> issues, Predicate<String> predicate) {
+        int total = 0;
+        for (MigrationIssue issue : issues) {
+            if (issue != null && issue.code() != null && predicate.test(issue.code())) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    private static boolean permissionConversionFailure(String code) {
+        return code.contains("PERMISSION")
+            && (code.contains("CONVERSION") || code.contains("UNKNOWN") || code.contains("INVALID") || code.contains("MISMATCH"));
+    }
+
+    private static boolean unknownFlag(String code) {
+        return code.contains("FLAG") && (code.contains("UNKNOWN") || code.contains("UNSUPPORTED") || code.contains("INVALID"));
+    }
+
+    private static boolean worldBundleChecksumFailure(String code) {
+        return code.contains("CHECKSUM");
+    }
+
+    private static boolean cloudIslandsPostImportDifference(String code) {
+        return code.endsWith("_MISMATCH")
+            || code.equals("COUNT_MISMATCH")
+            || code.equals("MISSING_IMPORTED_ISLAND")
+            || code.equals("INVALID_IMPORTED_MANIFEST")
+            || code.equals("DUPLICATE_IMPORTED_ID");
+    }
+
+    private static boolean rollbackPossible(List<MigrationManifest> manifests, List<MigrationIssue> issues) {
+        return !manifests.isEmpty() && issues.stream().noneMatch(MigrationReportBuilder::rollbackBlockingIssue);
+    }
+
+    private static boolean rollbackBlockingIssue(MigrationIssue issue) {
+        return issue != null
+            && issue.blocking()
+            && issue.code() != null
+            && issue.code().startsWith("ROLLBACK_");
+    }
+
     private enum CountTarget {
         MEMBERS,
         MEMBER_ROLES,
@@ -85,5 +154,10 @@ public final class MigrationReportBuilder {
         COMPLETED_MISSIONS,
         BLOCK_VALUES,
         BLOCK_COUNTS
+    }
+
+    private enum MissingTarget {
+        HOMES,
+        WARPS
     }
 }

@@ -658,6 +658,7 @@ final class MigrationAdminBackend {
 
     private String reportFields(MigrationReport report) {
         return ",\"members\":" + report.members()
+            + ",\"totalIslands\":" + report.totalIslands()
             + ",\"memberRoles\":" + report.memberRoles()
             + ",\"bannedVisitors\":" + report.bannedVisitors()
             + ",\"homes\":" + report.homes()
@@ -681,7 +682,15 @@ final class MigrationAdminBackend {
             + ",\"conflictIssues\":" + report.conflictIssues()
             + ",\"conflictStatus\":\"" + escape(report.conflictStatus()) + "\""
             + ",\"blockingIssues\":" + report.blockingIssues()
-            + ",\"warningIssues\":" + report.warningIssues();
+            + ",\"warningIssues\":" + report.warningIssues()
+            + ",\"ownerMissingCount\":" + report.ownerMissingCount()
+            + ",\"homeMissingCount\":" + report.homeMissingCount()
+            + ",\"warpMissingCount\":" + report.warpMissingCount()
+            + ",\"permissionConversionFailureCount\":" + report.permissionConversionFailureCount()
+            + ",\"unknownFlagCount\":" + report.unknownFlagCount()
+            + ",\"worldBundleChecksumFailureCount\":" + report.worldBundleChecksumFailureCount()
+            + ",\"cloudIslandsPostImportDifferenceCount\":" + report.cloudIslandsPostImportDifferenceCount()
+            + ",\"rollbackPossible\":" + report.rollbackPossible();
     }
 
     private boolean permissionsMatch(MigrationManifest manifest) {
@@ -818,6 +827,7 @@ final class MigrationAdminBackend {
         return "{\"state\":\"" + escape(state) + "\","
             + "\"generatedAt\":\"" + Instant.now() + "\","
             + "\"manifests\":" + report.manifests() + ','
+            + "\"totalIslands\":" + report.totalIslands() + ','
             + "\"members\":" + report.members() + ','
             + "\"memberRoles\":" + report.memberRoles() + ','
             + "\"bannedVisitors\":" + report.bannedVisitors() + ','
@@ -843,6 +853,14 @@ final class MigrationAdminBackend {
             + "\"conflictStatus\":\"" + escape(report.conflictStatus()) + "\","
             + "\"blockingIssues\":" + report.blockingIssues() + ','
             + "\"warningIssues\":" + report.warningIssues() + ','
+            + "\"ownerMissingCount\":" + report.ownerMissingCount() + ','
+            + "\"homeMissingCount\":" + report.homeMissingCount() + ','
+            + "\"warpMissingCount\":" + report.warpMissingCount() + ','
+            + "\"permissionConversionFailureCount\":" + report.permissionConversionFailureCount() + ','
+            + "\"unknownFlagCount\":" + report.unknownFlagCount() + ','
+            + "\"worldBundleChecksumFailureCount\":" + report.worldBundleChecksumFailureCount() + ','
+            + "\"cloudIslandsPostImportDifferenceCount\":" + report.cloudIslandsPostImportDifferenceCount() + ','
+            + "\"rollbackPossible\":" + report.rollbackPossible() + ','
             + "\"canImport\":" + report.canImport()
             + (extraFields == null ? "" : extraFields)
             + ','
