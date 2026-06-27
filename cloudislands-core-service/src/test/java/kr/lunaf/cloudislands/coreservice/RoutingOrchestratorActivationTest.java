@@ -7,6 +7,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,17 @@ class RoutingOrchestratorActivationTest {
     private static final Instant NOW = Instant.parse("2026-06-17T00:00:00Z");
     private static final UUID OWNER = UUID.fromString("00000000-0000-0000-0000-000000000101");
     private static final UUID ISLAND = UUID.fromString("00000000-0000-0000-0000-000000000201");
+
+    @Test
+    void routingTargetFailuresUseTypedCodesInsteadOfExceptionMessageParsing() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/RoutingOrchestrator.java"));
+
+        assertTrue(source.contains("enum RouteFailureCode"));
+        assertTrue(source.contains("catch (RouteFailureException exception)"));
+        assertTrue(!source.contains("\"VISITOR_SOFT_FULL\".equals(exception.getMessage())"));
+        assertTrue(!source.contains("exception.getMessage().startsWith(\"ACTIVE_NODE_\")"));
+        assertTrue(source.contains("toLowerCase(java.util.Locale.ROOT)"));
+    }
 
     @Test
     void repeatedHomeRouteWhileIslandIsActivatingDoesNotPublishDuplicateActivation() {

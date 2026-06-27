@@ -333,19 +333,21 @@ public final class RoutingOrchestrator {
                 "state", saved.state().name()
             ));
             return RoutePreparationResult.accepted(toJson(saved));
-        } catch (IllegalStateException exception) {
-            if ("VISITOR_SOFT_FULL".equals(exception.getMessage())) {
+        } catch (RouteFailureException exception) {
+            if (exception.code() == RouteFailureCode.VISITOR_SOFT_FULL) {
                 return rejectRoute(429, "VISITOR_SOFT_FULL", "The island node is reserving slots for members", playerUuid, island.islandId(), action);
             }
-            if ("ACTIVATION_LOCKED".equals(exception.getMessage())) {
+            if (exception.code() == RouteFailureCode.ACTIVATION_LOCKED) {
                 return rejectRoute(409, "ACTIVATION_LOCKED", "Island activation is already in progress", playerUuid, island.islandId(), action);
             }
-            if (exception.getMessage() != null && exception.getMessage().startsWith("ACTIVE_NODE_")) {
-                return rejectRouteWithRoutingDetails(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action, runtime == null ? "" : runtime.activeNode(), exception.getMessage());
+            if (exception.code() == RouteFailureCode.ACTIVE_NODE_UNAVAILABLE) {
+                return rejectRouteWithRoutingDetails(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action, runtime == null ? "" : runtime.activeNode(), exception.detail());
             }
-            if ("NO_READY_NODE".equals(exception.getMessage()) || (exception.getMessage() != null && exception.getMessage().startsWith("NO_READY_NODE_"))) {
-                return rejectRouteWithRoutingDetails(409, "NODE_UNAVAILABLE", "No ready island node is available", playerUuid, island.islandId(), action, exception.getMessage());
+            if (exception.code() == RouteFailureCode.NO_READY_NODE) {
+                return rejectRouteWithRoutingDetails(409, "NODE_UNAVAILABLE", "No ready island node is available", playerUuid, island.islandId(), action, exception.detail());
             }
+            return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
+        } catch (IllegalStateException exception) {
             return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
         }
     }
@@ -574,32 +576,32 @@ public final class RoutingOrchestrator {
         if (runtime.state() == IslandState.ACTIVE) {
             if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
                 markActiveRouteRecoveryRequired(runtime, "missing_active_node");
-                throw new IllegalStateException("active node is unavailable");
+                throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_NODE_MISSING");
             }
             NodeLoad activeNode = nodes.find(runtime.activeNode()).orElse(null);
             if (activeNode == null) {
                 markActiveRouteRecoveryRequired(runtime, "active_node_not_registered");
-                throw new IllegalStateException("active node is unavailable");
+                throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_NODE_NOT_REGISTERED");
             }
             if (duplicateVelocityServerName(activeNode, nodes.snapshot())) {
-                throw new IllegalStateException("ACTIVE_NODE_DUPLICATE_VELOCITY_SERVER_NAME");
+                throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_NODE_DUPLICATE_VELOCITY_SERVER_NAME");
             }
             String blockReason = allocator.existingRouteBlockReason(activeNode, Instant.now(), templateId, minNodeVersion, islandPool);
             if (!blockReason.isBlank()) {
                 if (activeRouteRecoveryReason(blockReason)) {
                     markActiveRouteRecoveryRequired(runtime, "active_node_" + blockReason.toLowerCase(java.util.Locale.ROOT));
                 }
-                throw new IllegalStateException("ACTIVE_NODE_" + blockReason);
+                throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_NODE_" + blockReason);
             }
             if (visitorRoute && activeNode.state() == NodeState.SOFT_FULL) {
-                throw new IllegalStateException("VISITOR_SOFT_FULL");
+                throw routeFailure(RouteFailureCode.VISITOR_SOFT_FULL);
             }
             if (!visitorRoute && activeNode.state() == NodeState.SOFT_FULL && memberReservedSlotsExhausted(activeNode)) {
-                throw new IllegalStateException("ACTIVE_NODE_MEMBER_RESERVED_SLOTS_FULL");
+                throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_NODE_MEMBER_RESERVED_SLOTS_FULL");
             }
             if (placementMissing(runtime)) {
                 markActiveRouteRecoveryRequired(runtime, "missing_placement");
-                throw new IllegalStateException("ACTIVE_PLACEMENT_MISSING");
+                throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_PLACEMENT_MISSING");
             }
             return new RouteTarget(activeNode, runtime.activeWorld(), RouteTicketState.READY);
         }
@@ -608,14 +610,14 @@ public final class RoutingOrchestrator {
         NodeLoad selected = allocator.selectReadyNode(nodeSnapshot, now, templateId, minNodeVersion, islandPool).orElse(null);
         if (selected == null) {
             String blockReason = allocator.readyNodeBlockReason(nodeSnapshot, now, templateId, minNodeVersion, islandPool);
-            throw new IllegalStateException("NO_READY_NODE".equals(blockReason) ? "NO_READY_NODE" : "NO_READY_NODE_" + blockReason);
+            throw routeFailure(RouteFailureCode.NO_READY_NODE, "NO_READY_NODE".equals(blockReason) ? "NO_READY_NODE" : "NO_READY_NODE_" + blockReason);
         }
         RedisActivationLock.Lease lease = null;
         RedisActivationLock.AcquireResult activationLease = RedisActivationLock.AcquireResult.disabled();
         if (activationLock != null) {
             activationLease = activationLock.tryAcquire(runtime.islandId(), "route");
             if (activationLease.locked()) {
-                throw new IllegalStateException("ACTIVATION_LOCKED");
+                throw routeFailure(RouteFailureCode.ACTIVATION_LOCKED);
             }
             lease = activationLease.lease().orElse(null);
         }
@@ -623,7 +625,7 @@ public final class RoutingOrchestrator {
         try {
             activating = IslandPlacement.markActivating(runtime.islandId(), selected.nodeId(), runtimes);
             if (placementMissing(activating)) {
-                throw new IllegalStateException("PLACEMENT_MISSING");
+                throw routeFailure(RouteFailureCode.PLACEMENT_MISSING);
             }
             jobs.publish(new IslandJob(
                 UUID.randomUUID(),
@@ -719,7 +721,7 @@ public final class RoutingOrchestrator {
 
     private Map<String, String> homePayload(UUID islandId, String homeName) {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
-        String normalized = homeName == null || homeName.isBlank() ? "default" : homeName.toLowerCase();
+        String normalized = homeName == null || homeName.isBlank() ? "default" : homeName.toLowerCase(java.util.Locale.ROOT);
         payload.put("targetType", "ISLAND_HOME");
         payload.put("homeName", normalized);
         IslandHomeSnapshot home = metadata.home(islandId, normalized).orElse(null);
@@ -759,7 +761,42 @@ public final class RoutingOrchestrator {
     }
 
     private String normalizeName(String name) {
-        return name == null || name.isBlank() ? "default" : name.toLowerCase();
+        return name == null || name.isBlank() ? "default" : name.toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private RouteFailureException routeFailure(RouteFailureCode code) {
+        return routeFailure(code, code.name());
+    }
+
+    private RouteFailureException routeFailure(RouteFailureCode code, String detail) {
+        return new RouteFailureException(code, detail);
+    }
+
+    private enum RouteFailureCode {
+        VISITOR_SOFT_FULL,
+        ACTIVATION_LOCKED,
+        ACTIVE_NODE_UNAVAILABLE,
+        NO_READY_NODE,
+        PLACEMENT_MISSING
+    }
+
+    private static final class RouteFailureException extends RuntimeException {
+        private final RouteFailureCode code;
+        private final String detail;
+
+        private RouteFailureException(RouteFailureCode code, String detail) {
+            super(detail);
+            this.code = code == null ? RouteFailureCode.NO_READY_NODE : code;
+            this.detail = detail == null || detail.isBlank() ? this.code.name() : detail;
+        }
+
+        private RouteFailureCode code() {
+            return code;
+        }
+
+        private String detail() {
+            return detail;
+        }
     }
 
     private record RouteTarget(NodeLoad node, String worldName, RouteTicketState state) {}
