@@ -515,6 +515,7 @@ public record CoreServiceConfig(
         validateStartupAuthentication();
         validateStartupStorage();
         validateStartupNetworkExposure();
+        validateStartupMtlsTrustBoundary();
     }
 
     public void validateStartupAuthentication() {
@@ -527,6 +528,32 @@ public record CoreServiceConfig(
         if (productionPublicPlainHttpBlocked()) {
             throw new IllegalStateException("Production Core plain HTTP public bind is blocked; bind Core to loopback or set CI_ALLOW_INSECURE_PUBLIC_HTTP=true after terminating TLS at a trusted proxy");
         }
+    }
+
+    public void validateStartupMtlsTrustBoundary() {
+        List<String> violations = mtlsTrustBoundaryViolations();
+        if (!violations.isEmpty()) {
+            throw new IllegalStateException("Production mTLS trusted proxy boundary is unsafe: " + String.join(",", violations));
+        }
+    }
+
+    public List<String> mtlsTrustBoundaryViolations() {
+        if (!productionMode() || !authMode().acceptsMtls()) {
+            return List.of();
+        }
+        ArrayList<String> violations = new ArrayList<>();
+        if (mtlsVerifiedHeader == null || mtlsVerifiedHeader.isBlank()) {
+            violations.add("mtls-verified-header-required");
+        }
+        if (mtlsVerifiedValue == null || mtlsVerifiedValue.isBlank()) {
+            violations.add("mtls-verified-value-required");
+        }
+        if (mtlsTrustedProxies == null || mtlsTrustedProxies.isBlank()) {
+            violations.add("mtls-trusted-proxies-required");
+        } else if (mtlsTrustedProxiesAllowEverywhere(mtlsTrustedProxies)) {
+            violations.add("mtls-trusted-proxies-must-not-allow-everywhere");
+        }
+        return List.copyOf(violations);
     }
 
     public void validateStartupProductionRuntimeModes() {
@@ -567,6 +594,20 @@ public record CoreServiceConfig(
 
     public boolean productionPublicPlainHttpBlocked() {
         return productionMode() && CoreNetworkExposure.publicBind(bind) && !allowInsecurePublicHttp;
+    }
+
+    private static boolean mtlsTrustedProxiesAllowEverywhere(String value) {
+        for (String entry : value.split(",", -1)) {
+            String normalized = entry.trim().toLowerCase(Locale.ROOT);
+            if (normalized.equals("*")
+                || normalized.equals("0.0.0.0")
+                || normalized.equals("::")
+                || normalized.equals("0.0.0.0/0")
+                || normalized.equals("::/0")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean adminListenerActive() {

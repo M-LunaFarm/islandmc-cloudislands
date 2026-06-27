@@ -244,6 +244,38 @@ class CoreServiceConfigTest {
     }
 
     @Test
+    void productionMtlsTrustBoundaryRequiresExplicitTrustedProxySettings() {
+        CoreServiceConfig safe = withMtlsTrustBoundary(
+            withAuth(config("127.0.0.1", "production", false), "", "", true),
+            "X-SSL-Client-Verify",
+            "SUCCESS",
+            "127.0.0.1,10.0.0.0/8"
+        );
+        CoreServiceConfig unsafe = withMtlsTrustBoundary(safe, "", "", "0.0.0.0/0");
+        CoreServiceConfig developmentUnsafe = withMtlsTrustBoundary(
+            withAuth(config("127.0.0.1", "development", false), "", "", true),
+            "",
+            "",
+            "0.0.0.0/0"
+        );
+
+        assertTrue(safe.mtlsTrustBoundaryViolations().isEmpty());
+        safe.validateStartupMtlsTrustBoundary();
+        assertEquals(
+            List.of(
+                "mtls-verified-header-required",
+                "mtls-verified-value-required",
+                "mtls-trusted-proxies-must-not-allow-everywhere"
+            ),
+            unsafe.mtlsTrustBoundaryViolations()
+        );
+        IllegalStateException exception = assertThrows(IllegalStateException.class, unsafe::validateStartupMtlsTrustBoundary);
+        assertTrue(exception.getMessage().contains("Production mTLS trusted proxy boundary is unsafe"));
+        assertTrue(developmentUnsafe.mtlsTrustBoundaryViolations().isEmpty());
+        developmentUnsafe.validateStartupMtlsTrustBoundary();
+    }
+
+    @Test
     void mariadbSetupUsesNativeCoreJdbcAuthority() {
         CoreServiceConfig config = config("JDBC", "jdbc:mariadb://mariadb.internal:3306/cloudislands", "MARIADB", true);
 
@@ -558,6 +590,80 @@ class CoreServiceConfigTest {
                 config.mtlsVerifiedHeader(),
                 config.mtlsVerifiedValue(),
                 config.mtlsTrustedProxies(),
+                config.rateLimitRequests(),
+                config.rateLimitWindow(),
+                config.httpWorkerThreads(),
+                config.httpQueueCapacity(),
+                config.httpKeepAlive(),
+                config.httpShutdownGrace()
+        );
+    }
+
+    private CoreServiceConfig withMtlsTrustBoundary(CoreServiceConfig config, String mtlsVerifiedHeader, String mtlsVerifiedValue, String mtlsTrustedProxies) {
+        return new CoreServiceConfig(
+                config.bind(),
+                config.port(),
+                config.adminBind(),
+                config.adminPort(),
+                config.repositoryMode(),
+                config.jobQueueMode(),
+                config.eventBusMode(),
+                config.jdbcUrl(),
+                config.configuredDatabaseType(),
+                config.databaseUsername(),
+                config.databasePassword(),
+                config.databasePoolSize(),
+                config.setupDatabaseAutoSchema(),
+                config.setupDatabaseFallbackEnabled(),
+                config.setupDatabaseFallbackOrder(),
+                config.setupDatabaseFallbackRequireSharedBeforeLocal(),
+                config.setupDatabaseFallbackLocalLast(),
+                config.setupDatabaseFallbackProductionSafeOrder(),
+                config.runtimeMode(),
+                config.setupDatabaseAllowInMemoryFallback(),
+                config.allowInsecurePublicHttp(),
+                config.setupDatabaseCoreApiBaseUrl(),
+                config.setupDatabaseCoreApiAuthTokenConfigured(),
+                config.setupDatabaseCoreApiAdminTokenConfigured(),
+                config.setupDatabaseCoreApiTimeoutMillis(),
+                config.redisUri(),
+                config.redisLockLocalFallbackEnabled(),
+                config.storageType(),
+                config.storageEndpoint(),
+                config.storageBucket(),
+                config.storageLocalPath(),
+                config.storageRegion(),
+                config.storageAccessKey(),
+                config.storageSecretKey(),
+                config.storageBearerToken(),
+                config.coreToken(),
+                config.nodeCredentials(),
+                config.adminToken(),
+                config.adminPermissions(),
+                config.ipAllowlist(),
+                config.upgradesFile(),
+                config.blockValuesFile(),
+                config.levelFormulaType(),
+                config.levelFormulaExpression(),
+                config.worthFormulaType(),
+                config.islandPool(),
+                config.softFullPolicy(),
+                config.hardFullPolicy(),
+                config.migrationPolicy(),
+                config.superiorSkyblock2MigrationEnabled(),
+                config.routeTicketTtl(),
+                config.routePreparingTicketTtl(),
+                config.heartbeatTimeout(),
+                config.leaseDuration(),
+                config.snapshotKeepLatest(),
+                config.snapshotRetentionPolicy(),
+                config.adminApiEnabled(),
+                config.adminListenerEnabled(),
+                config.publicAdminApiEnabled(),
+                config.requireMtls(),
+                mtlsVerifiedHeader,
+                mtlsVerifiedValue,
+                mtlsTrustedProxies,
                 config.rateLimitRequests(),
                 config.rateLimitWindow(),
                 config.httpWorkerThreads(),
