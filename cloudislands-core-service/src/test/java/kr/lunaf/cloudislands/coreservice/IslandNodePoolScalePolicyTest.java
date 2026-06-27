@@ -65,6 +65,7 @@ class IslandNodePoolScalePolicyTest {
                 true,
                 3000,
                 URI.create("redis://127.0.0.1:6379"),
+                false,
                 "S3",
                 URI.create("http://127.0.0.1:9000"),
                 "cloudislands",

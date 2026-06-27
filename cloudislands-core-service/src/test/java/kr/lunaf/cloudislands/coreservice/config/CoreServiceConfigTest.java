@@ -143,7 +143,7 @@ class CoreServiceConfigTest {
     @Test
     void productionModeAllowsOnlyDurableSharedRuntimeBackends() {
         CoreServiceConfig valid = config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "POSTGRESQL", true);
-        CoreServiceConfig invalid = withRuntimeBackends(valid, "IN_MEMORY", "IN_MEMORY", "IN_MEMORY", "LOCAL", true);
+        CoreServiceConfig invalid = withRuntimeBackends(valid, "IN_MEMORY", "IN_MEMORY", "IN_MEMORY", "LOCAL", true, true);
 
         assertTrue(valid.productionRuntimeModeViolations().isEmpty());
         valid.validateStartupProductionRuntimeModes();
@@ -153,7 +153,8 @@ class CoreServiceConfigTest {
                 "job-queue-mode-must-be-JDBC-or-REDIS",
                 "event-bus-mode-must-be-REDIS",
                 "storage-type-must-be-S3",
-                "in-memory-fallback-must-be-disabled"
+                "in-memory-fallback-must-be-disabled",
+                "redis-lock-local-fallback-must-be-disabled"
             ),
             invalid.productionRuntimeModeViolations()
         );
@@ -170,6 +171,7 @@ class CoreServiceConfigTest {
             "IN_MEMORY",
             "IN_MEMORY",
             "LOCAL",
+            true,
             true
         );
 
@@ -291,6 +293,7 @@ class CoreServiceConfigTest {
                 config.setupDatabaseCoreApiAdminTokenConfigured(),
                 config.setupDatabaseCoreApiTimeoutMillis(),
                 config.redisUri(),
+                config.redisLockLocalFallbackEnabled(),
                 config.storageType(),
                 config.storageEndpoint(),
                 config.storageBucket(),
@@ -378,6 +381,7 @@ class CoreServiceConfigTest {
         assertEquals(URI.create("redis://127.0.0.1:6379"), sections.redis().uri());
         assertEquals("REDIS", sections.redis().jobQueueMode());
         assertEquals("REDIS", sections.redis().eventBusMode());
+        assertFalse(sections.redis().lockLocalFallbackEnabled());
 
         assertEquals("S3", sections.storage().type());
         assertEquals(URI.create("http://127.0.0.1:9000"), sections.storage().endpoint());
@@ -443,6 +447,7 @@ class CoreServiceConfigTest {
                 coreApiReady,
                 3000,
                 URI.create("redis://127.0.0.1:6379"),
+                false,
                 "S3",
                 URI.create("http://127.0.0.1:9000"),
                 "cloudislands",
@@ -516,6 +521,7 @@ class CoreServiceConfigTest {
                 config.setupDatabaseCoreApiAdminTokenConfigured(),
                 config.setupDatabaseCoreApiTimeoutMillis(),
                 config.redisUri(),
+                config.redisLockLocalFallbackEnabled(),
                 config.storageType(),
                 config.storageEndpoint(),
                 config.storageBucket(),
@@ -567,7 +573,8 @@ class CoreServiceConfigTest {
             String jobQueueMode,
             String eventBusMode,
             String storageType,
-            boolean allowInMemoryFallback
+            boolean allowInMemoryFallback,
+            boolean redisLockLocalFallbackEnabled
     ) {
         return new CoreServiceConfig(
                 config.bind(),
@@ -596,6 +603,7 @@ class CoreServiceConfigTest {
                 config.setupDatabaseCoreApiAdminTokenConfigured(),
                 config.setupDatabaseCoreApiTimeoutMillis(),
                 config.redisUri(),
+                redisLockLocalFallbackEnabled,
                 storageType,
                 config.storageEndpoint(),
                 config.storageBucket(),

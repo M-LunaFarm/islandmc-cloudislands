@@ -5,5 +5,6 @@ import java.net.URI;
 public record RedisConfig(
     URI uri,
     String jobQueueMode,
-    String eventBusMode
+    String eventBusMode,
+    boolean lockLocalFallbackEnabled
 ) {}

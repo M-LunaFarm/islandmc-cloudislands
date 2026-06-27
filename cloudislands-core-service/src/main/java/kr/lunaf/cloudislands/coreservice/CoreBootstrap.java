@@ -146,10 +146,10 @@ final class CoreBootstrap {
         RedisStreamEventPublisher redisEventPublisher = redisEventWriter == null ? null : new RedisStreamEventPublisher(redisEventWriter);
         RedisCacheAdmin redisCacheAdmin = config.redisEvents() || config.redisJobs() ? new RedisCacheAdmin(config.redisUri()) : null;
         RedisActivationLock activationLock = config.redisEvents() || config.redisJobs()
-            ? new RedisActivationLock(config.redisUri(), config.routePreparingTicketTtl())
+            ? new RedisActivationLock(config.redisUri(), config.routePreparingTicketTtl(), config.redisLockLocalFallbackEnabled())
             : null;
         RedisPlayerCreationLock playerCreationLock = config.redisEvents() || config.redisJobs()
-            ? new RedisPlayerCreationLock(config.redisUri(), config.routePreparingTicketTtl())
+            ? new RedisPlayerCreationLock(config.redisUri(), config.routePreparingTicketTtl(), config.redisLockLocalFallbackEnabled())
             : null;
         return new CoreInfrastructure(
             authGuard,

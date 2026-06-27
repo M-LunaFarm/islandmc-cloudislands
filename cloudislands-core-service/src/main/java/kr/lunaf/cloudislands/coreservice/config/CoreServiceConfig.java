@@ -44,6 +44,7 @@ public record CoreServiceConfig(
     boolean setupDatabaseCoreApiAdminTokenConfigured,
     int setupDatabaseCoreApiTimeoutMillis,
     URI redisUri,
+    boolean redisLockLocalFallbackEnabled,
     String storageType,
     URI storageEndpoint,
     String storageBucket,
@@ -121,6 +122,7 @@ public record CoreServiceConfig(
             !env("CI_SETUP_CORE_API_ADMIN_TOKEN", setupDatabaseCoreApiSetting(config, "admin-token", setting(config, "core-api.admin-token", env("CI_ADMIN_TOKEN", "")))).isBlank(),
             integer("CI_SETUP_CORE_API_TIMEOUT_MS", setupDatabaseCoreApiInteger(config, "timeout-ms", configInteger(config, "core-api.timeout-ms", 3000))),
             URI.create(env("CI_REDIS_URI", setupSetting(config, "redis-uri", setting(config, "redis.uri", "redis://redis.internal:6379")))),
+            bool("CI_REDIS_LOCK_LOCAL_FALLBACK_ENABLED", configBoolean(config, "routing.redis-lock-local-fallback-enabled", configBoolean(config, "redis.lock-local-fallback-enabled", false))),
             env("CI_STORAGE_TYPE", setupSetting(config, "storage-type", setting(config, "storage.type", "S3"))),
             URI.create(env("CI_STORAGE_ENDPOINT", setupSetting(config, "storage-endpoint", setting(config, "storage.endpoint", "http://minio.internal:9000")))),
             env("CI_STORAGE_BUCKET", setupSetting(config, "storage-bucket", setting(config, "storage.bucket", "cloudislands"))),
@@ -243,7 +245,7 @@ public record CoreServiceConfig(
     }
 
     public RedisConfig redisConfig() {
-        return new RedisConfig(redisUri, jobQueueMode, eventBusMode);
+        return new RedisConfig(redisUri, jobQueueMode, eventBusMode, redisLockLocalFallbackEnabled);
     }
 
     public StorageConfig storageConfig() {
@@ -557,6 +559,9 @@ public record CoreServiceConfig(
         if (setupDatabaseAllowInMemoryFallback) {
             violations.add("in-memory-fallback-must-be-disabled");
         }
+        if (redisLockLocalFallbackEnabled) {
+            violations.add("redis-lock-local-fallback-must-be-disabled");
+        }
         return List.copyOf(violations);
     }
 
@@ -614,7 +619,7 @@ public record CoreServiceConfig(
     }
 
     public CoreServiceConfig withPort(int overridePort) {
-        return new CoreServiceConfig(bind, overridePort, adminBind, adminPort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, allowInsecurePublicHttp, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, nodeCredentials, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, adminListenerEnabled, publicAdminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow, httpWorkerThreads, httpQueueCapacity, httpKeepAlive, httpShutdownGrace);
+        return new CoreServiceConfig(bind, overridePort, adminBind, adminPort, repositoryMode, jobQueueMode, eventBusMode, jdbcUrl, configuredDatabaseType, databaseUsername, databasePassword, databasePoolSize, setupDatabaseAutoSchema, setupDatabaseFallbackEnabled, setupDatabaseFallbackOrder, setupDatabaseFallbackRequireSharedBeforeLocal, setupDatabaseFallbackLocalLast, setupDatabaseFallbackProductionSafeOrder, runtimeMode, setupDatabaseAllowInMemoryFallback, allowInsecurePublicHttp, setupDatabaseCoreApiBaseUrl, setupDatabaseCoreApiAuthTokenConfigured, setupDatabaseCoreApiAdminTokenConfigured, setupDatabaseCoreApiTimeoutMillis, redisUri, redisLockLocalFallbackEnabled, storageType, storageEndpoint, storageBucket, storageLocalPath, storageRegion, storageAccessKey, storageSecretKey, storageBearerToken, coreToken, nodeCredentials, adminToken, adminPermissions, ipAllowlist, upgradesFile, blockValuesFile, levelFormulaType, levelFormulaExpression, worthFormulaType, islandPool, softFullPolicy, hardFullPolicy, migrationPolicy, superiorSkyblock2MigrationEnabled, routeTicketTtl, routePreparingTicketTtl, heartbeatTimeout, leaseDuration, snapshotKeepLatest, snapshotRetentionPolicy, adminApiEnabled, adminListenerEnabled, publicAdminApiEnabled, requireMtls, mtlsVerifiedHeader, mtlsVerifiedValue, mtlsTrustedProxies, rateLimitRequests, rateLimitWindow, httpWorkerThreads, httpQueueCapacity, httpKeepAlive, httpShutdownGrace);
     }
 
     private static int defaultHttpWorkerThreads() {
