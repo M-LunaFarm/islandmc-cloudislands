@@ -85,6 +85,7 @@ class IslandCommandControllerPolicyTest {
         assertFalse(bankUseCase.contains("coreApiClient.withdrawIslandBank"));
         assertTrue(vaultBridge.contains("EconomyProviderState providerState()"));
         assertTrue(vaultBridge.contains("EconomyProviderState.NOT_INSTALLED"));
+        assertTrue(vaultBridge.contains("EconomyProviderState.API_COMPATIBLE"));
         assertTrue(vaultBridge.contains("EconomyProviderState.OPERATION_FAILED"));
     }
 

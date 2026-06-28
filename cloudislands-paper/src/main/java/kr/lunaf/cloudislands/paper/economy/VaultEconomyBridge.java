@@ -24,9 +24,12 @@ public final class VaultEconomyBridge implements EconomyBridge {
         if (economyClass == null) {
             return EconomyProviderState.NOT_INSTALLED;
         }
+        if (!apiCompatible(economyClass)) {
+            return EconomyProviderState.DETECTED;
+        }
         Object economy = economy(economyClass);
         if (economy == null) {
-            return EconomyProviderState.DETECTED;
+            return EconomyProviderState.API_COMPATIBLE;
         }
         if (!apiCompatible(economy)) {
             return EconomyProviderState.DETECTED;
@@ -128,6 +131,17 @@ public final class VaultEconomyBridge implements EconomyBridge {
             economy.getClass().getMethod("withdrawPlayer", OfflinePlayer.class, double.class);
             economy.getClass().getMethod("depositPlayer", OfflinePlayer.class, double.class);
             economy.getClass().getMethod("getBalance", OfflinePlayer.class);
+            return true;
+        } catch (ReflectiveOperationException exception) {
+            return false;
+        }
+    }
+
+    private boolean apiCompatible(Class<?> economyClass) {
+        try {
+            economyClass.getMethod("withdrawPlayer", OfflinePlayer.class, double.class);
+            economyClass.getMethod("depositPlayer", OfflinePlayer.class, double.class);
+            economyClass.getMethod("getBalance", OfflinePlayer.class);
             return true;
         } catch (ReflectiveOperationException exception) {
             return false;
