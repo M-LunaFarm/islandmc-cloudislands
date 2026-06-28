@@ -22,6 +22,10 @@ import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandMissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRankingMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandUpgradeMenu;
+import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
+import kr.lunaf.cloudislands.paper.generator.GeneratorInfoUseCase;
+import kr.lunaf.cloudislands.paper.generator.GeneratorInfoUseCase.GeneratorInfoView;
+import kr.lunaf.cloudislands.paper.generator.GeneratorInfoUseCase.GeneratorMaterialView;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import net.kyori.adventure.text.Component;
@@ -32,6 +36,7 @@ final class IslandProgressionCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final IslandProgressionUseCase progressionUseCase;
+    private final GeneratorInfoUseCase generatorInfoUseCase;
     private final IslandLevelScanService levelScanService;
     private final Runtime runtime;
 
@@ -39,6 +44,7 @@ final class IslandProgressionCommandHandler {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.progressionUseCase = new IslandProgressionUseCase(coreApiClient);
+        this.generatorInfoUseCase = new GeneratorInfoUseCase(coreApiClient, ConfigGeneratorRules.load(plugin));
         this.levelScanService = levelScanService;
         this.runtime = runtime;
     }
@@ -299,8 +305,8 @@ final class IslandProgressionCommandHandler {
 
     private void showGenerator(Player player) {
         runtime.currentIsland(player, "섬 안에서만 생성기를 확인할 수 있습니다.").ifPresent(islandId -> {
-            progressionUseCase.upgradeViews(islandId)
-                .thenAccept(upgrades -> runtime.message(player, generatorInfoMessage(upgrades)))
+            generatorInfoUseCase.view(islandId)
+                .thenAccept(view -> runtime.message(player, generatorInfoMessage(view)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 생성기를 불러오지 못했습니다.");
                     return null;
@@ -425,27 +431,20 @@ final class IslandProgressionCommandHandler {
             : "섬 블록상세: 총가치=" + details.totalWorth() + " 총점수=" + details.totalLevelPoints() + " | " + String.join(" | ", entries);
     }
 
-    private static String generatorInfoMessage(List<UpgradeView> upgrades) {
-        String generatorKey = "default";
-        long level = 1L;
-        for (UpgradeView upgrade : upgrades == null ? List.<UpgradeView>of() : upgrades) {
-            String upgradeKey = upgrade.key();
-            String normalized = upgradeKey.toLowerCase(Locale.ROOT);
-            if (normalized.equals("generator") || normalized.startsWith("generator:")) {
-                long currentLevel = Math.max(1L, upgrade.level());
-                String currentKey = generatorKey(upgradeKey);
-                if (currentLevel > level || (currentLevel == level && generatorKey.equals("default") && !currentKey.equalsIgnoreCase("default"))) {
-                    level = currentLevel;
-                    generatorKey = currentKey;
-                }
-            }
+    private static String generatorInfoMessage(GeneratorInfoView view) {
+        if (view == null || view.materials().isEmpty()) {
+            return "섬 생성기: 규칙이 없습니다. / 업그레이드: /섬 업그레이드구매 generator";
         }
-        return "섬 생성기: key=" + generatorKey + " level=" + level + " / 업그레이드: /섬 업그레이드구매 generator";
-    }
-
-    private static String generatorKey(String upgradeKey) {
-        String[] parts = upgradeKey.split(":", 2);
-        return parts.length < 2 || parts[1].isBlank() ? "default" : parts[1];
+        List<String> entries = new java.util.ArrayList<>();
+        int total = Math.max(1, view.totalWeight());
+        for (GeneratorMaterialView material : view.materials()) {
+            if (entries.size() >= 8) {
+                break;
+            }
+            long percent = Math.round((material.weight() * 100.0D) / total);
+            entries.add(material.materialKey() + "=" + percent + "%");
+        }
+        return "섬 생성기: key=" + view.generatorKey() + " level=" + view.level() + " | " + String.join(", ", entries) + " / 업그레이드: /섬 업그레이드구매 generator";
     }
 
     private static String upgradeListMessage(List<UpgradeView> upgrades) {

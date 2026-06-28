@@ -34,7 +34,7 @@ public final class GeneratorLevelCache {
         GeneratorProfile fallback = cached == null ? new GeneratorProfile(defaultGeneratorKey, 1) : cached.profile();
         cache.put(islandId, new CachedLevel(fallback, now + 5_000L));
         client.progression().upgrades(islandId)
-            .thenAccept(upgrades -> cache.put(islandId, new CachedLevel(generatorProfile(upgrades), System.currentTimeMillis() + TTL_MILLIS)))
+            .thenAccept(upgrades -> cache.put(islandId, new CachedLevel(resolveProfile(upgrades, defaultGeneratorKey), System.currentTimeMillis() + TTL_MILLIS)))
             .exceptionally(exception -> {
                 cache.put(islandId, new CachedLevel(fallback, System.currentTimeMillis() + TTL_MILLIS));
                 return null;
@@ -54,41 +54,46 @@ public final class GeneratorLevelCache {
         return TTL_MILLIS / 1000L;
     }
 
-    private GeneratorProfile generatorProfile(java.util.List<CoreGuiViews.UpgradeView> upgrades) {
+    public static GeneratorProfile resolveProfile(java.util.List<CoreGuiViews.UpgradeView> upgrades, String defaultGeneratorKey) {
+        String fallbackGeneratorKey = normalizeProfileKey(defaultGeneratorKey);
         if (upgrades == null || upgrades.isEmpty()) {
-            return new GeneratorProfile(defaultGeneratorKey, 1);
+            return new GeneratorProfile(fallbackGeneratorKey, 1);
         }
-        GeneratorProfile selected = new GeneratorProfile(defaultGeneratorKey, 1);
+        GeneratorProfile selected = new GeneratorProfile(fallbackGeneratorKey, 1);
         for (CoreGuiViews.UpgradeView upgrade : upgrades) {
             if (upgrade == null) {
                 continue;
             }
-            String upgradeKey = normalizeKey(upgrade.key());
+            String upgradeKey = normalizeProfileKey(upgrade.key());
             if (!isGeneratorUpgrade(upgradeKey)) {
                 continue;
             }
             int level = Math.max(1, upgrade.level());
-            String generatorKey = normalizeKey(upgrade.generatorKey());
+            String generatorKey = normalizeProfileKey(upgrade.generatorKey());
             if (generatorKey.equals("default")) {
-                generatorKey = generatorKey(upgradeKey);
+                generatorKey = generatorKey(upgradeKey, fallbackGeneratorKey);
             }
-            if (level > selected.level() || (level == selected.level() && selected.generatorKey().equals(defaultGeneratorKey) && !generatorKey.equals(defaultGeneratorKey))) {
+            if (level > selected.level() || (level == selected.level() && selected.generatorKey().equals(fallbackGeneratorKey) && !generatorKey.equals(fallbackGeneratorKey))) {
                 selected = new GeneratorProfile(generatorKey, level);
             }
         }
         return selected;
     }
 
-    private boolean isGeneratorUpgrade(String upgradeKey) {
+    private static boolean isGeneratorUpgrade(String upgradeKey) {
         return upgradeKey.equalsIgnoreCase("generator") || upgradeKey.toLowerCase(java.util.Locale.ROOT).startsWith("generator:");
     }
 
-    private String generatorKey(String upgradeKey) {
+    private static String generatorKey(String upgradeKey, String fallbackGeneratorKey) {
         int separator = upgradeKey.indexOf(':');
-        return separator < 0 ? defaultGeneratorKey : normalizeKey(upgradeKey.substring(separator + 1));
+        return separator < 0 ? fallbackGeneratorKey : normalizeProfileKey(upgradeKey.substring(separator + 1));
     }
 
     private String normalizeKey(String value) {
+        return normalizeProfileKey(value);
+    }
+
+    private static String normalizeProfileKey(String value) {
         return value == null || value.isBlank() ? "default" : value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
