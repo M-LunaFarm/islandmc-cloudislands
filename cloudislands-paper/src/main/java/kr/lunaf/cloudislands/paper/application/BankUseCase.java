@@ -70,7 +70,8 @@ public final class BankUseCase {
                     .thenCompose(mutation -> {
                         if (!mutation.accepted()) {
                             return refundPlayer(actorUuid, amount)
-                                .thenApply(_ignored -> BankOperationResult.coreRejected(mutation.balance(), mutation.code()));
+                                .thenApply(_ignored -> BankOperationResult.coreRejected(mutation.balance(), mutation.code()))
+                                .exceptionally(_refundError -> BankOperationResult.refundFailedAfterCoreRejection(mutation.balance(), mutation.code()));
                         }
                         return CompletableFuture.completedFuture(BankOperationResult.success(mutation.balance()));
                     })
@@ -114,8 +115,7 @@ public final class BankUseCase {
     }
 
     private CompletableFuture<Void> refundPlayer(UUID actorUuid, BigDecimal amount) {
-        return economyBridge.deposit(actorUuid, amount, "CloudIslands island bank deposit rollback")
-            .exceptionally(error -> null);
+        return economyBridge.deposit(actorUuid, amount, "CloudIslands island bank deposit rollback");
     }
 
     private static void requireIsland(UUID islandId) {
@@ -156,6 +156,7 @@ public final class BankUseCase {
         ECONOMY_UNAVAILABLE,
         ECONOMY_WITHDRAW_DENIED,
         CORE_REJECTED,
+        REFUND_FAILED_AFTER_CORE_REJECTION,
         ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE,
         ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE
     }
@@ -175,6 +176,10 @@ public final class BankUseCase {
 
         private static BankOperationResult coreRejected(String balance, String code) {
             return new BankOperationResult(Status.CORE_REJECTED, balance, code == null ? "" : code);
+        }
+
+        private static BankOperationResult refundFailedAfterCoreRejection(String balance, String code) {
+            return new BankOperationResult(Status.REFUND_FAILED_AFTER_CORE_REJECTION, balance, code == null ? "" : code);
         }
 
         private static BankOperationResult rolledBackAfterEconomyDepositFailure(String balance) {

@@ -135,6 +135,7 @@ final class IslandBankCommandHandler {
             case ECONOMY_UNAVAILABLE -> runtime.message(player, runtime.routeMessage("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
             case ECONOMY_WITHDRAW_DENIED -> runtime.message(player, runtime.playerCodeMessage(result.code(), "잔액이 부족합니다."));
             case CORE_REJECTED -> runtime.message(player, runtime.playerCodeMessage(result.code(), "섬 은행에 입금하지 못했습니다."));
+            case REFUND_FAILED_AFTER_CORE_REJECTION -> runtime.message(player, "섬 은행 입금이 거부되었고 경제 환불도 실패했습니다. 관리자에게 문의해주세요.");
             case ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE, ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE ->
                 runtime.message(player, "섬 은행에 입금하지 못했습니다.");
         }
@@ -148,6 +149,7 @@ final class IslandBankCommandHandler {
             case ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE -> runtime.message(player, "경제 지급에 실패해 출금을 되돌렸습니다.");
             case ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE -> runtime.message(player, "경제 지급에 실패했고 은행 되돌림도 실패했습니다. 관리자에게 문의해주세요.");
             case ECONOMY_WITHDRAW_DENIED -> runtime.message(player, runtime.playerCodeMessage(result.code(), "잔액이 부족합니다."));
+            case REFUND_FAILED_AFTER_CORE_REJECTION -> runtime.message(player, "섬 은행 작업이 거부되었고 경제 환불도 실패했습니다. 관리자에게 문의해주세요.");
         }
     }
 

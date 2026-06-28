@@ -47,6 +47,25 @@ class BankUseCaseTest {
     }
 
     @Test
+    void depositCoreRejectionReportsRefundFailure() {
+        FakeEconomy economy = new FakeEconomy(true);
+        economy.failDepositRollback = true;
+        CoreApiClient client = coreApiClient(new ScriptedCoreBank());
+        BankUseCase useCase = new BankUseCase(client, economy);
+
+        BankUseCase.BankOperationResult result = useCase.deposit(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            new BigDecimal("12.50"),
+            (_auditAction, operation) -> operation.get()
+        ).join();
+
+        assertEquals(BankUseCase.Status.REFUND_FAILED_AFTER_CORE_REJECTION, result.status());
+        assertEquals("BANK_LIMIT_REACHED", result.code());
+        assertEquals(List.of("withdraw:12.50:CloudIslands island bank deposit", "deposit:12.50:CloudIslands island bank deposit rollback"), economy.calls);
+    }
+
+    @Test
     void depositCoreFailureRefundsPlayerAndPropagatesFailure() {
         FakeEconomy economy = new FakeEconomy(true);
         ScriptedCoreBank core = new ScriptedCoreBank();
@@ -211,6 +230,7 @@ class BankUseCaseTest {
         final List<String> calls = new ArrayList<>();
         final boolean withdrawResult;
         boolean failWithdrawPayout;
+        boolean failDepositRollback;
 
         FakeEconomy(boolean withdrawResult) {
             this.withdrawResult = withdrawResult;
@@ -225,6 +245,9 @@ class BankUseCaseTest {
         @Override
         public CompletableFuture<Void> deposit(UUID playerUuid, BigDecimal amount, String reason) {
             calls.add("deposit:" + amount.toPlainString() + ":" + reason);
+            if (failDepositRollback && reason.equals("CloudIslands island bank deposit rollback")) {
+                return CompletableFuture.failedFuture(new IllegalStateException("refund failed"));
+            }
             if (failWithdrawPayout && reason.equals("CloudIslands island bank withdraw")) {
                 return CompletableFuture.failedFuture(new IllegalStateException("payout failed"));
             }
