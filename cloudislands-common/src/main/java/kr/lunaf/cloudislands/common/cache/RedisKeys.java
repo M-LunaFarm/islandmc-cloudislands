@@ -32,6 +32,8 @@ public final class RedisKeys {
     public static String islandLimits(UUID islandId) { return "ci:island:" + islandId + ":limits"; }
     public static String islandMissions(UUID islandId, String kind) { return "ci:island:" + islandId + ":missions:" + kind; }
     public static String islandUpgrades(UUID islandId) { return "ci:island:" + islandId + ":upgrades"; }
+    public static String islandGeneratorProfile(UUID islandId) { return "ci:island:" + islandId + ":generator-profile"; }
+    public static String generatorRules(String generatorKey) { return "ci:generator:" + generatorKey.toLowerCase() + ":rules"; }
     public static String islandSnapshots(UUID islandId) { return "ci:island:" + islandId + ":snapshots"; }
     public static String islandLogs(UUID islandId) { return "ci:island:" + islandId + ":logs"; }
     public static String islandAddonState(UUID islandId) { return "ci:island:" + islandId + ":addon-state"; }

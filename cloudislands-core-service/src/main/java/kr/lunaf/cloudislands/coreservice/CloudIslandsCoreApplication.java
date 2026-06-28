@@ -26,6 +26,7 @@ import kr.lunaf.cloudislands.coreservice.http.CoreHttpRequestExecutor;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRouteRegistrar;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminIslandLifecycleRoutes;
+import kr.lunaf.cloudislands.coreservice.http.routes.AdminGeneratorRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminNodeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminRuntimeRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AddonRoutes;
@@ -333,6 +334,7 @@ public final class CloudIslandsCoreApplication {
         ).register(routePrefix);
         new RoutePreparationRoutes(domainServices.routing()).register(route);
         new RouteTicketRoutes(routing, tickets, sessions, audit, events).register(route);
+        new AdminGeneratorRoutes(generatorRepository, audit, events).register(route);
         new AdminRuntimeRoutes(sessions, tickets, redisCacheAdmin, audit, events).register(route);
         new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), domainServices.migrationAdmin(), audit).register(route);
         new PlayerProfileRoutes(playerProfiles, audit).register(route);
