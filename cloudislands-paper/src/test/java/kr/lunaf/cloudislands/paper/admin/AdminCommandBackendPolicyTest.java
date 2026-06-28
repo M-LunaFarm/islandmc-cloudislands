@@ -177,9 +177,15 @@ class AdminCommandBackendPolicyTest {
     @Test
     void adminIslandInfoAndRuntimeUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String adminSurface = source + "\n" + catalog;
 
+        assertTrue(adminSurface.contains("ciadmin island where <player|island>"), "Island where command must document player and island targets");
         assertTrue(source.contains("coreApiClient.adminIslands().info"), "Island info command must use the typed Core admin island API");
         assertTrue(source.contains("coreApiClient.adminIslands().runtime"), "Island runtime command must use the typed Core admin island API");
+        assertTrue(source.contains("islandWhereMessage"), "Island where must route through a player-aware resolver");
+        assertTrue(source.contains("coreApiClient.playerProfiles().profile"), "Island where must resolve player primary islands through the typed player profile API");
+        assertTrue(source.contains("profile.primaryIslandId()"), "Island where must use the player's primary island as the runtime target");
         assertTrue(source.contains("runtimeInfoMessage(AdminIslandRuntimeView"), "Island runtime command must render a typed runtime view");
     }
 

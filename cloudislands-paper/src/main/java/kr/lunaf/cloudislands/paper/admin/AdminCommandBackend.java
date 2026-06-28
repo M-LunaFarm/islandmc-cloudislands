@@ -647,6 +647,43 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private CompletableFuture<CharSequence> islandWhereMessage(String target) {
+        UUID parsed = uuidOrNull(target);
+        if (parsed != null) {
+            return coreApiClient.adminIslands().runtime(parsed)
+                .thenCompose(runtime -> runtime.code().isBlank()
+                    ? CompletableFuture.completedFuture(runtimeInfoMessage(runtime))
+                    : playerPrimaryIslandRuntime(parsed, target, runtimeInfoMessage(runtime)));
+        }
+        return coreApiClient.adminIslands().infoByName(target)
+            .thenCompose(island -> {
+                UUID islandId = uuidOrNull(island.islandId());
+                if (islandId != null) {
+                    return coreApiClient.adminIslands().runtime(islandId).thenApply(this::runtimeInfoMessage);
+                }
+                return findPlayerUuid(target).thenCompose(playerUuid -> {
+                    if (playerUuid == null) {
+                        return CompletableFuture.completedFuture(adminText("admin-command-island-where-target-not-found", "섬 또는 플레이어를 찾지 못했습니다: ") + target);
+                    }
+                    return playerPrimaryIslandRuntime(playerUuid, target, adminText("admin-command-island-where-target-not-found", "섬 또는 플레이어를 찾지 못했습니다: ") + target);
+                });
+            });
+    }
+
+    private CompletableFuture<CharSequence> playerPrimaryIslandRuntime(UUID playerUuid, String target, String fallback) {
+        return coreApiClient.playerProfiles().profile(playerUuid)
+            .thenCompose(profile -> {
+                UUID islandId = uuidOrNull(profile.primaryIslandId());
+                if (islandId == null) {
+                    return CompletableFuture.completedFuture((CharSequence) (adminText("admin-command-player-primary-island-missing", "플레이어의 대표 섬이 없습니다: ") + target));
+                }
+                String playerLabel = profile.lastName().isBlank() ? shortId(profile.playerUuid()) : profile.lastName();
+                return coreApiClient.adminIslands().runtime(islandId)
+                    .thenApply(runtime -> (CharSequence) (adminText("admin-command-island-where-player-prefix", "Player island where: player=") + playerLabel + " " + runtimeInfoMessage(runtime)));
+            })
+            .exceptionally(_error -> fallback);
+    }
+
     private MessageRenderer messagesFor(Player player) {
         return messages == null || player == null ? messages : messages.forLocale(player.getLocale());
     }
@@ -665,6 +702,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
             return true;
         }
+        if (args[1].equalsIgnoreCase("where")) {
+            run(sender, "Island where", islandWhereMessage(args[2]));
+            return true;
+        }
         UUID islandId = uuidOrNull(args[2]);
         if (islandId == null) {
             resolveIslandUuid(sender, args[2]).thenAccept(resolvedIslandId -> {
@@ -678,10 +719,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[2]);
                 return null;
             });
-            return true;
-        }
-        if (args[1].equalsIgnoreCase("where")) {
-            run(sender, "Island where", coreApiClient.adminIslands().runtime(islandId).thenApply(this::runtimeInfoMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("visitor-stats") || args[1].equalsIgnoreCase("visitors")) {
@@ -991,7 +1028,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private void sendIslandCommandUsage(CommandSender sender) {
         sendCommandUsage(sender, List.of(
             "/ciadmin island info <islandUuid|islandName>",
-            "/ciadmin island where <islandUuid|islandName>",
+            "/ciadmin island where <playerUuid|playerName|islandUuid|islandName>",
             "/ciadmin island visitor-stats <islandUuid|islandName>",
             "/ciadmin island tp <islandUuid|islandName>",
             "/ciadmin island activate <islandUuid|islandName>",
@@ -2175,6 +2212,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private CompletableFuture<UUID> resolvePlayerUuid(CommandSender sender, String value) {
+        return findPlayerUuid(value).thenApply(playerUuid -> {
+            if (playerUuid == null) {
+                sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + value);
+            }
+            return playerUuid;
+        });
+    }
+
+    private CompletableFuture<UUID> findPlayerUuid(String value) {
         Player online = agent.plugin().getServer().getPlayerExact(value);
         if (online != null) {
             return CompletableFuture.completedFuture(online.getUniqueId());
@@ -2182,13 +2228,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         try {
             return CompletableFuture.completedFuture(UUID.fromString(value));
         } catch (IllegalArgumentException ignored) {
-            return coreApiClient.playerProfiles().findByName(value).thenApply(profile -> {
-                UUID playerUuid = uuidOrNull(profile.playerUuid());
-                if (playerUuid == null) {
-                    sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + value);
-                }
-                return playerUuid;
-            });
+            return coreApiClient.playerProfiles().findByName(value).thenApply(profile -> uuidOrNull(profile.playerUuid()));
         }
     }
 

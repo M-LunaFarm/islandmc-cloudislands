@@ -55,7 +55,7 @@ final class AdminCommandCatalog {
         "ciadmin node kickall <node> [reason]",
         "ciadmin node shutdown-safe <node> [reason]",
         "ciadmin island info <island>",
-        "ciadmin island where <island>",
+        "ciadmin island where <player|island>",
         "ciadmin island visitor-stats <island>",
         "ciadmin island tp <island>",
         "ciadmin island activate <island>",
