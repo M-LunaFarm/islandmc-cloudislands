@@ -163,12 +163,16 @@ class ProductionReadinessPolicyTest {
         assertTrue(compose.contains("velocity:"));
         assertTrue(compose.contains("lobby-paper:"));
         assertTrue(compose.contains("island-paper-1:"));
+        assertTrue(compose.contains("island-paper-2:"));
         assertTrue(compose.contains("_FILE"));
 
         assertTrue(Files.exists(root.resolve("deploy/helm/cloudislands/Chart.yaml")));
         String values = Files.readString(root.resolve("deploy/helm/cloudislands/values.yaml"));
         String workloads = Files.readString(root.resolve("deploy/helm/cloudislands/templates/workloads.yaml"));
         assertTrue(values.contains("existingSecret"));
+        assertTrue(values.contains("islandPaper:"));
+        assertTrue(values.contains("replicas: 2"));
+        assertTrue(values.contains("storage: 20Gi"));
         assertTrue(workloads.contains("name: cloudislands-core"));
         assertTrue(workloads.contains("name: cloudislands-velocity"));
         assertTrue(workloads.contains("name: cloudislands-lobby-paper"));
@@ -177,6 +181,11 @@ class ProductionReadinessPolicyTest {
         assertTrue(workloads.contains("name: cloudislands-redis"));
         assertTrue(workloads.contains("name: cloudislands-object-storage"));
         assertTrue(workloads.contains("secretKeyRef"));
+        assertTrue(workloads.contains("volumeClaimTemplates"));
+        assertTrue(workloads.contains("name: island-paper-data"));
+        assertTrue(workloads.contains("name: postgres-data"));
+        assertTrue(workloads.contains("name: redis-data"));
+        assertTrue(workloads.contains("name: object-storage-data"));
     }
 
     private static Path repositoryRoot() {

@@ -139,6 +139,24 @@ services:
       - cloudislands_core_token
       - cloudislands_forwarding_secret
 
+  island-paper-2:
+    image: ${CLOUDISLANDS_PAPER_IMAGE:?set CLOUDISLANDS_PAPER_IMAGE}
+    depends_on:
+      velocity:
+        condition: service_started
+      core:
+        condition: service_started
+    environment:
+      CLOUDISLANDS_NODE_ID: island-02
+      CLOUDISLANDS_NODE_ROLE: ISLAND
+      CLOUDISLANDS_VELOCITY_SERVER_NAME: island-2
+      CLOUDISLANDS_CORE_API_BASE_URL: http://core:8443
+      CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
+      CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
+    secrets:
+      - cloudislands_core_token
+      - cloudislands_forwarding_secret
+
 secrets:
   cloudislands_database_password:
     file: ${CLOUDISLANDS_DATABASE_PASSWORD_FILE:?set CLOUDISLANDS_DATABASE_PASSWORD_FILE}

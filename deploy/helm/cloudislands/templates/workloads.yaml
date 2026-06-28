@@ -142,6 +142,17 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.coreTokenKey }}
+          volumeMounts:
+            - name: lobby-paper-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: lobby-paper-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.lobby.storage | quote }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -179,6 +190,17 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.coreTokenKey }}
+          volumeMounts:
+            - name: island-paper-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: island-paper-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.islandPaper.storage | quote }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -211,6 +233,17 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.databasePasswordKey }}
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.postgres.storage | quote }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -240,6 +273,17 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.redisPasswordKey }}
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.redis.storage | quote }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -274,3 +318,14 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret }}
                   key: {{ .Values.secrets.storageSecretKeyKey }}
+          volumeMounts:
+            - name: object-storage-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: object-storage-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.objectStorage.storage | quote }}

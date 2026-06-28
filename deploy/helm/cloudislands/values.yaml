@@ -45,11 +45,13 @@ lobby:
   replicas: 1
   nodeId: lobby-01
   serverName: lobby
+  storage: 10Gi
 
 islandPaper:
   replicas: 2
   pool: island
   serverNamePrefix: island
+  storage: 20Gi
 
 postgres:
   database: cloudislands
