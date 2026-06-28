@@ -299,7 +299,7 @@ public final class CloudIslandsCoreApplication {
         new AuditRoutes(audit).register(route);
         new AddonRoutes(addonStates, audit, events).register(route);
         new ProgressionRoutes(rankingRepository, domainServices.upgradePolicy(), levelRepository, missionRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
-        new GeneratorRoutes(generatorRepository, upgradeRepository).register(route);
+        new GeneratorRoutes(generatorRepository, upgradeRepository, islandRepository).register(route);
         new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(route);
         new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
         new IslandBlockLevelRoutes(levelRepository, rankingRepository, domainServices.levelRecalculation(), islandRepository, metadataRepository, permissionRules, audit, events).register(route);

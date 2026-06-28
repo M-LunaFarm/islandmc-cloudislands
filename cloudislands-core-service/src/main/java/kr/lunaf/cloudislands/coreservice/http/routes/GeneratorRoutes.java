@@ -17,15 +17,18 @@ import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 
 public final class GeneratorRoutes implements RouteGroup {
     private final IslandGeneratorRepository generators;
     private final IslandUpgradeRepository upgrades;
+    private final IslandRepository islands;
 
-    public GeneratorRoutes(IslandGeneratorRepository generators, IslandUpgradeRepository upgrades) {
+    public GeneratorRoutes(IslandGeneratorRepository generators, IslandUpgradeRepository upgrades, IslandRepository islands) {
         this.generators = generators;
         this.upgrades = upgrades;
+        this.islands = islands;
     }
 
     @Override
@@ -49,9 +52,11 @@ public final class GeneratorRoutes implements RouteGroup {
             : resolveProfile(islandId);
         String generatorKey = requestedKey.isBlank() ? profile.generatorKey() : requestedKey;
         int level = islandId == null ? profile.level() : Math.max(profile.level(), JsonFields.integer(body, "level", profile.level()));
+        long islandLevel = islandId == null ? Long.MAX_VALUE : islandLevel(islandId);
         List<GeneratorRuleSnapshot> rules = generators.rules(generatorKey).stream()
             .filter(GeneratorRuleSnapshot::enabled)
             .filter(rule -> rule.minUpgradeLevel() <= level)
+            .filter(rule -> rule.minIslandLevel() <= islandLevel)
             .toList();
         CoreHttpResponses.write(exchange, 200, generatorRulesJson(generatorKey, level, rules));
     }
@@ -71,6 +76,10 @@ public final class GeneratorRoutes implements RouteGroup {
             return base;
         }
         return new IslandGeneratorSnapshot(islandId, generatorKey(base.generatorKey(), selected.upgradeKey()), selected.level(), selected.updatedAt());
+    }
+
+    private long islandLevel(UUID islandId) {
+        return islands == null ? 0L : islands.findById(islandId).map(snapshot -> Math.max(0L, snapshot.level())).orElse(0L);
     }
 
     private static String generatorKey(String fallback, String upgradeKey) {

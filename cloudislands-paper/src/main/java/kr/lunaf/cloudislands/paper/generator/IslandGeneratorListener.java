@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.paper.generator;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import org.bukkit.Material;
@@ -48,7 +50,7 @@ public final class IslandGeneratorListener implements Listener {
             islandMisses.incrementAndGet();
             return;
         }
-        Material material = generatedMaterial(levels.profile(islandId));
+        Material material = generatedMaterial(levels.selection(islandId), biomeKey(block));
         if (validGeneratedMaterial(material)) {
             event.getNewState().setType(material);
             formReplacements.incrementAndGet();
@@ -73,7 +75,7 @@ public final class IslandGeneratorListener implements Listener {
             islandMisses.incrementAndGet();
             return;
         }
-        Material material = generatedMaterial(levels.profile(islandId));
+        Material material = generatedMaterial(levels.selection(islandId), biomeKey(target));
         if (validGeneratedMaterial(material)) {
             event.setCancelled(true);
             target.setType(material);
@@ -97,8 +99,42 @@ public final class IslandGeneratorListener implements Listener {
         blockDeltas.placed(islandId, material);
     }
 
-    private Material generatedMaterial(GeneratorLevelCache.GeneratorProfile profile) {
-        return material(registry.rule(profile.generatorKey(), profile.level()).select(random));
+    private Material generatedMaterial(GeneratorLevelCache.GeneratorSelection selection, String biomeKey) {
+        String materialKey = selectCoreRule(selection, biomeKey);
+        if (materialKey.isBlank()) {
+            GeneratorLevelCache.GeneratorProfile profile = selection.profile();
+            materialKey = registry.rule(profile.generatorKey(), profile.level()).select(random);
+        }
+        return material(materialKey);
+    }
+
+    private String selectCoreRule(GeneratorLevelCache.GeneratorSelection selection, String biomeKey) {
+        List<GeneratorRuleSnapshot> eligible = selection.rules().stream()
+            .filter(GeneratorRuleSnapshot::enabled)
+            .filter(rule -> rule.minUpgradeLevel() <= selection.profile().level())
+            .filter(rule -> GeneratorBiomeFilter.accepts(rule.biomeKey(), biomeKey))
+            .toList();
+        double total = eligible.stream().mapToDouble(GeneratorRuleSnapshot::chance).sum();
+        if (total <= 0.0D) {
+            return "";
+        }
+        double value = random.nextDouble() * total;
+        double cursor = 0.0D;
+        for (GeneratorRuleSnapshot rule : eligible) {
+            cursor += rule.chance();
+            if (value <= cursor) {
+                return rule.materialKey();
+            }
+        }
+        return eligible.get(eligible.size() - 1).materialKey();
+    }
+
+    private String biomeKey(Block block) {
+        try {
+            return block.getBiome().getKey().toString();
+        } catch (RuntimeException ignored) {
+            return "*";
+        }
     }
 
     private boolean touchesOppositeFluid(Block block, Material source) {

@@ -1,8 +1,11 @@
 package kr.lunaf.cloudislands.paper.generator;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
+import kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 
@@ -10,7 +13,7 @@ public final class GeneratorLevelCache {
     private static final long TTL_MILLIS = 30_000L;
     private final CoreApiClient client;
     private final String defaultGeneratorKey;
-    private final Map<UUID, CachedLevel> cache = new ConcurrentHashMap<>();
+    private final Map<UUID, CachedSelection> cache = new ConcurrentHashMap<>();
 
     public GeneratorLevelCache(CoreApiClient client) {
         this(client, "default");
@@ -26,17 +29,25 @@ public final class GeneratorLevelCache {
     }
 
     public GeneratorProfile profile(UUID islandId) {
-        CachedLevel cached = cache.get(islandId);
+        return selection(islandId).profile();
+    }
+
+    public GeneratorSelection selection(UUID islandId) {
+        CachedSelection cached = cache.get(islandId);
         long now = System.currentTimeMillis();
         if (cached != null && cached.expiresAtMillis() > now) {
-            return cached.profile();
+            return cached.selection();
         }
-        GeneratorProfile fallback = cached == null ? new GeneratorProfile(defaultGeneratorKey, 1) : cached.profile();
-        cache.put(islandId, new CachedLevel(fallback, now + 5_000L));
-        client.progression().upgrades(islandId)
-            .thenAccept(upgrades -> cache.put(islandId, new CachedLevel(resolveProfile(upgrades, defaultGeneratorKey), System.currentTimeMillis() + TTL_MILLIS)))
+        GeneratorSelection fallback = cached == null
+            ? new GeneratorSelection(new GeneratorProfile(defaultGeneratorKey, 1), List.of())
+            : cached.selection();
+        cache.put(islandId, new CachedSelection(fallback, now + 5_000L));
+        client.generators().generator(islandId)
+            .thenCompose(profile -> client.generators().generatorRules(islandId)
+                .thenApply(rules -> new GeneratorSelection(profile(profile), rules == null ? List.of() : rules)))
+            .thenAccept(selection -> cache.put(islandId, new CachedSelection(selection, System.currentTimeMillis() + TTL_MILLIS)))
             .exceptionally(exception -> {
-                cache.put(islandId, new CachedLevel(fallback, System.currentTimeMillis() + TTL_MILLIS));
+                cache.put(islandId, new CachedSelection(fallback, System.currentTimeMillis() + TTL_MILLIS));
                 return null;
             });
         return fallback;
@@ -97,7 +108,25 @@ public final class GeneratorLevelCache {
         return value == null || value.isBlank() ? "default" : value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
-    public record GeneratorProfile(String generatorKey, int level) {}
+    private static GeneratorProfile profile(IslandGeneratorSnapshot snapshot) {
+        return snapshot == null
+            ? new GeneratorProfile("default", 1)
+            : new GeneratorProfile(normalizeProfileKey(snapshot.generatorKey()), Math.max(1, snapshot.level()));
+    }
 
-    private record CachedLevel(GeneratorProfile profile, long expiresAtMillis) {}
+    public record GeneratorProfile(String generatorKey, int level) {
+        public GeneratorProfile {
+            generatorKey = normalizeProfileKey(generatorKey);
+            level = Math.max(1, level);
+        }
+    }
+
+    public record GeneratorSelection(GeneratorProfile profile, List<GeneratorRuleSnapshot> rules) {
+        public GeneratorSelection {
+            profile = profile == null ? new GeneratorProfile("default", 1) : profile;
+            rules = rules == null ? List.of() : List.copyOf(rules);
+        }
+    }
+
+    private record CachedSelection(GeneratorSelection selection, long expiresAtMillis) {}
 }

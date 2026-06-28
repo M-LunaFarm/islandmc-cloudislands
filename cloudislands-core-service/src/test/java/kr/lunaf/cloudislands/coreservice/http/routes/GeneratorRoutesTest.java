@@ -23,7 +23,7 @@ class GeneratorRoutesTest {
     void registersGeneratorEndpointsAsPostOnly() {
         RecordingRegistry registry = new RecordingRegistry();
 
-        assertDoesNotThrow(() -> new GeneratorRoutes(null, null).register(registry));
+        assertDoesNotThrow(() -> new GeneratorRoutes(null, null, null).register(registry));
 
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/generator"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/generator/rules"));

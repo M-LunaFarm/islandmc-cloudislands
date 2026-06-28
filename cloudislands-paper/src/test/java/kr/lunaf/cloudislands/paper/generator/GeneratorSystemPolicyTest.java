@@ -13,7 +13,7 @@ class GeneratorSystemPolicyTest {
     void pinsGeneratorConfigAndEventPolicies() {
         assertEquals("generator-rules-load-from-rules-generators-yaml-with-data-folder-override", GeneratorSystemPolicy.CONFIG_SOURCE_POLICY);
         assertEquals("paper-listener-replaces-generated-blocks-on-block-form-and-fluid-collision-events", GeneratorSystemPolicy.APPLICATION_POLICY);
-        assertEquals("island-generator-level-is-read-from-core-upgrades-and-cached-for-event-hot-path", GeneratorSystemPolicy.LEVEL_CACHE_POLICY);
+        assertEquals("island-generator-profile-and-rules-are-read-from-core-generator-api-and-cached-for-event-hot-path", GeneratorSystemPolicy.LEVEL_CACHE_POLICY);
         assertTrue(GeneratorSystemPolicy.handledEvent("BlockFormEvent"));
         assertTrue(GeneratorSystemPolicy.handledEvent("BlockFromToEvent"));
         assertTrue(GeneratorSystemPolicy.handledEvent("fluid-collision-detection"));
@@ -57,6 +57,13 @@ class GeneratorSystemPolicyTest {
         assertEquals(2, rule.materialWeights().size());
         assertTrue(rule.materialWeights().containsKey("minecraft:cobblestone"));
         assertTrue(rule.materialWeights().containsKey("minecraft:coal_ore"));
+    }
+
+    @Test
+    void generatorBiomeRulesMatchWildcardNamespacedAndPlainBiomeKeys() {
+        assertTrue(GeneratorBiomeFilter.accepts("*", "minecraft:plains"));
+        assertTrue(GeneratorBiomeFilter.accepts("nether_wastes", "minecraft:nether_wastes"));
+        assertTrue(GeneratorBiomeFilter.accepts("minecraft:nether_wastes", "nether_wastes"));
     }
 
     private void assertWeights(Map<String, Integer> actual, Map<String, Integer> expected) {

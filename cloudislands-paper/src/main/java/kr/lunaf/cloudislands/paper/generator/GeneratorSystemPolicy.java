@@ -8,7 +8,7 @@ public final class GeneratorSystemPolicy {
     public static final String APPLICATION_POLICY =
             "paper-listener-replaces-generated-blocks-on-block-form-and-fluid-collision-events";
     public static final String LEVEL_CACHE_POLICY =
-            "island-generator-level-is-read-from-core-upgrades-and-cached-for-event-hot-path";
+            "island-generator-profile-and-rules-are-read-from-core-generator-api-and-cached-for-event-hot-path";
     public static final String DEFAULT_GENERATOR_KEY = "default";
 
     private static final List<String> EVENT_SURFACE = List.of(
