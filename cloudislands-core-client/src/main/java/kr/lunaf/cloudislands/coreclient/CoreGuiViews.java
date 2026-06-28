@@ -304,7 +304,23 @@ public final class CoreGuiViews {
         }
     }
 
-    public record MissionView(String key, String title, long progress, long goal, boolean completed, String reward) {
+    public record MissionView(String key, String title, long progress, long goal, boolean completed, String reward, String category, String description, String triggerType, String targetKey, String rewardType, boolean repeatable, boolean dailyReset) {
+        public MissionView(String key, String title, long progress, long goal, boolean completed, String reward) {
+            this(key, title, progress, goal, completed, reward, "", "", "", "", "", false, false);
+        }
+
+        public MissionView {
+            key = key == null ? "" : key;
+            title = title == null ? "" : title;
+            reward = reward == null ? "" : reward;
+            category = category == null ? "" : category;
+            description = description == null ? "" : description;
+            triggerType = triggerType == null ? "" : triggerType;
+            targetKey = targetKey == null ? "" : targetKey;
+            rewardType = rewardType == null ? "" : rewardType;
+            progress = Math.max(0L, progress);
+            goal = Math.max(1L, goal);
+        }
     }
 
     public record LimitView(String key, long value, String updatedAt) {

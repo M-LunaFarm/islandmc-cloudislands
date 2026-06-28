@@ -32,7 +32,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind))) {
             return Optional.empty();
         }
-        IslandMissionSnapshot completed = new IslandMissionSnapshot(islandId, current.missionKey(), current.kind(), current.title(), current.goal(), current.goal(), true, current.reward(), Instant.now());
+        IslandMissionSnapshot completed = updated(current, current.goal(), true);
         islandMissions.put(current.missionKey(), completed);
         return Optional.of(completed);
     }
@@ -46,9 +46,9 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
             return Optional.empty();
         }
         long nextProgress = Math.min(current.goal(), current.progress() + Math.max(0L, amount));
-        IslandMissionSnapshot updated = new IslandMissionSnapshot(islandId, current.missionKey(), current.kind(), current.title(), nextProgress, current.goal(), nextProgress >= current.goal(), current.reward(), Instant.now());
-        islandMissions.put(current.missionKey(), updated);
-        return Optional.of(updated);
+        IslandMissionSnapshot next = updated(current, nextProgress, nextProgress >= current.goal());
+        islandMissions.put(current.missionKey(), next);
+        return Optional.of(next);
     }
 
     @Override
@@ -59,7 +59,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         IslandMissionSnapshot current = islandMissions.get(key);
         IslandMissionSnapshot completed = current == null
             ? new IslandMissionSnapshot(islandId, key, MissionCatalog.normalizeKind(kind), key, 1L, 1L, true, "", Instant.now())
-            : new IslandMissionSnapshot(islandId, current.missionKey(), current.kind(), current.title(), current.goal(), current.goal(), true, current.reward(), Instant.now());
+            : updated(current, current.goal(), true);
         islandMissions.put(key, completed);
         return completed;
     }
@@ -77,7 +77,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
     public List<MissionProviderDefinitionSnapshot> registerProviderDefinitions(String providerId, List<MissionProviderDefinitionSnapshot> definitions) {
         String provider = providerId == null || providerId.isBlank() ? "unknown-provider" : providerId.trim();
         for (MissionProviderDefinitionSnapshot definition : definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions) {
-            MissionProviderDefinitionSnapshot normalized = new MissionProviderDefinitionSnapshot(provider, definition.missionKey(), definition.kind(), definition.title(), definition.goal(), definition.reward(), definition.enabled(), Instant.now());
+            MissionProviderDefinitionSnapshot normalized = new MissionProviderDefinitionSnapshot(provider, definition.missionKey(), definition.kind(), definition.category(), definition.title(), definition.description(), definition.triggerType(), definition.targetKey(), definition.goal(), definition.rewardType(), definition.reward(), definition.repeatable(), definition.dailyReset(), definition.enabled(), Instant.now());
             if (!normalized.missionKey().isBlank()) {
                 providerDefinitions.put(normalized.missionKey(), normalized);
             }
@@ -91,7 +91,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
             if (!definition.enabled()) {
                 continue;
             }
-            islandMissions.putIfAbsent(definition.missionKey(), new IslandMissionSnapshot(islandId, definition.missionKey(), definition.kind(), definition.title(), 0L, definition.goal(), false, definition.reward(), Instant.EPOCH));
+            islandMissions.putIfAbsent(definition.missionKey(), definition.snapshot(islandId, 0L, false, Instant.EPOCH));
         }
     }
 
@@ -101,5 +101,26 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
             .map(MissionDefinition::new)
             .forEach(definitions::add);
         return List.copyOf(definitions);
+    }
+
+    private static IslandMissionSnapshot updated(IslandMissionSnapshot current, long progress, boolean completed) {
+        return new IslandMissionSnapshot(
+            current.islandId(),
+            current.missionKey(),
+            current.kind(),
+            current.category(),
+            current.title(),
+            current.description(),
+            current.triggerType(),
+            current.targetKey(),
+            progress,
+            current.goal(),
+            completed,
+            current.rewardType(),
+            current.reward(),
+            current.repeatable(),
+            current.dailyReset(),
+            Instant.now()
+        );
     }
 }

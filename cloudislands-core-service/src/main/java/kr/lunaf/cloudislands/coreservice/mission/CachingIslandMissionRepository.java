@@ -134,11 +134,18 @@ public final class CachingIslandMissionRepository implements IslandMissionReposi
             out.append(mission.islandId()).append('|')
                 .append(encodeText(mission.missionKey())).append('|')
                 .append(encodeText(mission.kind())).append('|')
+                .append(encodeText(mission.category())).append('|')
                 .append(encodeText(mission.title())).append('|')
+                .append(encodeText(mission.description())).append('|')
+                .append(encodeText(mission.triggerType())).append('|')
+                .append(encodeText(mission.targetKey())).append('|')
                 .append(mission.progress()).append('|')
                 .append(mission.goal()).append('|')
                 .append(mission.completed()).append('|')
+                .append(encodeText(mission.rewardType())).append('|')
                 .append(encodeText(mission.reward())).append('|')
+                .append(mission.repeatable()).append('|')
+                .append(mission.dailyReset()).append('|')
                 .append(mission.updatedAt())
                 .append('\n');
         }
@@ -152,20 +159,41 @@ public final class CachingIslandMissionRepository implements IslandMissionReposi
                 continue;
             }
             String[] parts = line.split("\\|", -1);
-            if (parts.length != 9) {
+            if (parts.length != 9 && parts.length != 16) {
                 continue;
             }
             try {
+                if (parts.length == 9) {
+                    missions.add(new IslandMissionSnapshot(
+                        UUID.fromString(parts[0]),
+                        decodeText(parts[1]),
+                        decodeText(parts[2]),
+                        decodeText(parts[3]),
+                        Long.parseLong(parts[4]),
+                        Long.parseLong(parts[5]),
+                        Boolean.parseBoolean(parts[6]),
+                        decodeText(parts[7]),
+                        instant(parts[8])
+                    ));
+                    continue;
+                }
                 missions.add(new IslandMissionSnapshot(
                     UUID.fromString(parts[0]),
                     decodeText(parts[1]),
                     decodeText(parts[2]),
                     decodeText(parts[3]),
-                    Long.parseLong(parts[4]),
-                    Long.parseLong(parts[5]),
-                    Boolean.parseBoolean(parts[6]),
+                    decodeText(parts[4]),
+                    decodeText(parts[5]),
+                    decodeText(parts[6]),
                     decodeText(parts[7]),
-                    instant(parts[8])
+                    Long.parseLong(parts[8]),
+                    Long.parseLong(parts[9]),
+                    Boolean.parseBoolean(parts[10]),
+                    decodeText(parts[11]),
+                    decodeText(parts[12]),
+                    Boolean.parseBoolean(parts[13]),
+                    Boolean.parseBoolean(parts[14]),
+                    instant(parts[15])
                 ));
             } catch (RuntimeException ignored) {
                 // Skip corrupt Redis cache rows without discarding every cached island mission.

@@ -278,9 +278,16 @@ public final class ProgressionRoutes implements RouteGroup {
                 providerId,
                 JsonFields.text(object, "missionKey", ""),
                 JsonFields.text(object, "kind", "MISSION"),
+                JsonFields.text(object, "category", ""),
                 JsonFields.text(object, "title", ""),
+                JsonFields.text(object, "description", ""),
+                JsonFields.text(object, "triggerType", ""),
+                JsonFields.text(object, "targetKey", ""),
                 JsonFields.longValue(object, "goal", 1L),
+                JsonFields.text(object, "rewardType", ""),
                 JsonFields.text(object, "reward", ""),
+                JsonFields.bool(object, "repeatable", false),
+                JsonFields.bool(object, "dailyReset", false),
                 JsonFields.bool(object, "enabled", true),
                 java.time.Instant.EPOCH
             );
@@ -325,11 +332,18 @@ public final class ProgressionRoutes implements RouteGroup {
         values.put("islandId", mission.islandId());
         values.put("missionKey", mission.missionKey());
         values.put("kind", mission.kind());
+        values.put("category", mission.category());
         values.put("title", mission.title());
+        values.put("description", mission.description());
+        values.put("triggerType", mission.triggerType());
+        values.put("targetKey", mission.targetKey());
         values.put("progress", mission.progress());
         values.put("goal", mission.goal());
         values.put("completed", mission.completed());
+        values.put("rewardType", mission.rewardType());
         values.put("reward", mission.reward());
+        values.put("repeatable", mission.repeatable());
+        values.put("dailyReset", mission.dailyReset());
         values.put("updatedAt", mission.updatedAt());
         return values;
     }
@@ -339,9 +353,16 @@ public final class ProgressionRoutes implements RouteGroup {
         values.put("providerId", definition.providerId());
         values.put("missionKey", definition.missionKey());
         values.put("kind", definition.kind());
+        values.put("category", definition.category());
         values.put("title", definition.title());
+        values.put("description", definition.description());
+        values.put("triggerType", definition.triggerType());
+        values.put("targetKey", definition.targetKey());
         values.put("goal", definition.goal());
+        values.put("rewardType", definition.rewardType());
         values.put("reward", definition.reward());
+        values.put("repeatable", definition.repeatable());
+        values.put("dailyReset", definition.dailyReset());
         values.put("enabled", definition.enabled());
         values.put("updatedAt", definition.updatedAt());
         return values;

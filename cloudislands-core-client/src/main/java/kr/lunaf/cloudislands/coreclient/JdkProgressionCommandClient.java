@@ -142,9 +142,16 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
             CoreJson.text(object, "providerId"),
             CoreJson.text(object, "missionKey"),
             kind.isBlank() ? "MISSION" : kind,
+            CoreJson.text(object, "category"),
             CoreJson.text(object, "title"),
+            CoreJson.text(object, "description"),
+            CoreJson.text(object, "triggerType"),
+            CoreJson.text(object, "targetKey"),
             CoreJson.number(object, "goal"),
+            CoreJson.text(object, "rewardType"),
             CoreJson.text(object, "reward"),
+            CoreJson.bool(object, "repeatable"),
+            CoreJson.bool(object, "dailyReset"),
             CoreJson.bool(object, "enabled", true),
             instant(CoreJson.text(object, "updatedAt"))
         );
@@ -164,9 +171,16 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("missionKey", definition.missionKey());
         values.put("kind", definition.kind());
+        values.put("category", definition.category());
         values.put("title", definition.title());
+        values.put("description", definition.description());
+        values.put("triggerType", definition.triggerType());
+        values.put("targetKey", definition.targetKey());
         values.put("goal", Math.max(1L, definition.goal()));
+        values.put("rewardType", definition.rewardType());
         values.put("reward", definition.reward());
+        values.put("repeatable", definition.repeatable());
+        values.put("dailyReset", definition.dailyReset());
         values.put("enabled", definition.enabled());
         return values;
     }

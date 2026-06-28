@@ -118,8 +118,12 @@ public final class IslandMissionMenu implements Listener {
         String title = mission.title().isBlank() ? mission.key() : mission.title();
         return GuiItems.action(material, title, "island.mission.complete",
             Map.of("missionKey", mission.key()),
+            message(messages, "mission-menu-category", "분류: ") + (mission.category().isBlank() ? message(messages, "mission-menu-category-general", "general") : mission.category()),
+            mission.triggerType().isBlank() ? message(messages, "mission-menu-trigger-unknown", "진행 조건: 자동 진행") : message(messages, "mission-menu-trigger", "진행 조건: ") + mission.triggerType() + (mission.targetKey().isBlank() ? "" : " " + mission.targetKey()),
             message(messages, "mission-menu-progress", "진행도: ") + mission.progress() + "/" + mission.goal(),
             message(messages, "mission-menu-reward", "보상: ") + (mission.reward().isBlank() ? message(messages, "mission-menu-no-reward", "없음") : mission.reward()),
+            mission.repeatable() ? message(messages, "mission-menu-repeatable", "반복 가능") : message(messages, "mission-menu-once", "1회 완료"),
+            mission.dailyReset() ? message(messages, "mission-menu-daily-reset", "매일 초기화") : message(messages, "mission-menu-no-daily-reset", "일일 초기화 없음"),
             mission.completed() ? message(messages, "mission-menu-completed", "완료됨") : message(messages, "mission-menu-click-to-complete", "클릭하면 완료를 요청합니다."));
     }
 

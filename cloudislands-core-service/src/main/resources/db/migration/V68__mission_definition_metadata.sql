@@ -1,0 +1,17 @@
+ALTER TABLE island_mission_definitions
+    ADD COLUMN category VARCHAR(64) NOT NULL DEFAULT 'general',
+    ADD COLUMN description VARCHAR(512) NOT NULL DEFAULT '',
+    ADD COLUMN trigger_type VARCHAR(64) NOT NULL DEFAULT '',
+    ADD COLUMN target_key VARCHAR(128) NOT NULL DEFAULT '',
+    ADD COLUMN reward_type VARCHAR(64) NOT NULL DEFAULT '',
+    ADD COLUMN repeatable BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN daily_reset BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE island_missions
+    ADD COLUMN category VARCHAR(64) NOT NULL DEFAULT 'general',
+    ADD COLUMN description VARCHAR(512) NOT NULL DEFAULT '',
+    ADD COLUMN trigger_type VARCHAR(64) NOT NULL DEFAULT '',
+    ADD COLUMN target_key VARCHAR(128) NOT NULL DEFAULT '',
+    ADD COLUMN reward_type VARCHAR(64) NOT NULL DEFAULT '',
+    ADD COLUMN repeatable BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN daily_reset BOOLEAN NOT NULL DEFAULT false;

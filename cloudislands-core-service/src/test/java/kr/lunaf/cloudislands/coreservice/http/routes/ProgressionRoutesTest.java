@@ -62,20 +62,34 @@ class ProgressionRoutesTest {
             islandId,
             "break_stone",
             "MISSION",
+            "mining",
             "Break \"Stone\"",
+            "Break stone blocks",
+            "BLOCK_BREAK",
+            "minecraft:stone",
             3L,
             10L,
             false,
+            "BANK_DEPOSIT",
             "100 coins",
+            false,
+            false,
             Instant.parse("2026-01-02T03:04:05Z")
         );
         MissionProviderDefinitionSnapshot definition = new MissionProviderDefinitionSnapshot(
             "provider",
             "Break_Stone",
             "mission",
+            "mining",
             "Break Stone",
+            "Break stone blocks",
+            "BLOCK_BREAK",
+            "minecraft:stone",
             10L,
+            "BANK_DEPOSIT",
             "100 coins",
+            false,
+            false,
             true,
             Instant.parse("2026-01-02T03:04:05Z")
         );
@@ -95,7 +109,14 @@ class ProgressionRoutesTest {
         assertEquals("provider", SimpleJson.text(renderedDefinition.get("providerId")));
         assertEquals("break_stone", SimpleJson.text(renderedDefinition.get("missionKey")));
         assertEquals("MISSION", SimpleJson.text(renderedDefinition.get("kind")));
+        assertEquals("mining", SimpleJson.text(renderedDefinition.get("category")));
+        assertEquals("Break stone blocks", SimpleJson.text(renderedDefinition.get("description")));
+        assertEquals("BLOCK_BREAK", SimpleJson.text(renderedDefinition.get("triggerType")));
+        assertEquals("minecraft:stone", SimpleJson.text(renderedDefinition.get("targetKey")));
         assertEquals(10L, ((Number) renderedDefinition.get("goal")).longValue());
+        assertEquals("BANK_DEPOSIT", SimpleJson.text(renderedDefinition.get("rewardType")));
+        assertEquals(false, renderedDefinition.get("repeatable"));
+        assertEquals(false, renderedDefinition.get("dailyReset"));
         assertEquals(true, renderedDefinition.get("enabled"));
         assertLimit(islandId, actorUuid, renderedLimit);
         assertLimit(islandId, actorUuid, singleLimit);
@@ -105,11 +126,18 @@ class ProgressionRoutesTest {
         assertEquals(islandId.toString(), SimpleJson.text(mission.get("islandId")));
         assertEquals("break_stone", SimpleJson.text(mission.get("missionKey")));
         assertEquals("MISSION", SimpleJson.text(mission.get("kind")));
+        assertEquals("mining", SimpleJson.text(mission.get("category")));
         assertEquals("Break \"Stone\"", SimpleJson.text(mission.get("title")));
+        assertEquals("Break stone blocks", SimpleJson.text(mission.get("description")));
+        assertEquals("BLOCK_BREAK", SimpleJson.text(mission.get("triggerType")));
+        assertEquals("minecraft:stone", SimpleJson.text(mission.get("targetKey")));
         assertEquals(3L, ((Number) mission.get("progress")).longValue());
         assertEquals(10L, ((Number) mission.get("goal")).longValue());
         assertEquals(false, mission.get("completed"));
+        assertEquals("BANK_DEPOSIT", SimpleJson.text(mission.get("rewardType")));
         assertEquals("100 coins", SimpleJson.text(mission.get("reward")));
+        assertEquals(false, mission.get("repeatable"));
+        assertEquals(false, mission.get("dailyReset"));
         assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(mission.get("updatedAt")));
     }
 

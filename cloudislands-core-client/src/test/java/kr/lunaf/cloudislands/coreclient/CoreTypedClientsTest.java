@@ -1626,7 +1626,7 @@ class CoreTypedClientsTest {
                 case "missions" -> {
                     calls.add("missions:" + args[1]);
                     yield CompletableFuture.completedFuture(JdkProgressionQueryClient.missionViews("""
-                        {"missions":[{"missionKey":"starter","title":"Starter","progress":1,"goal":2,"completed":false,"reward":"10"}]}
+                        {"missions":[{"missionKey":"starter","category":"building","title":"Starter","description":"Place starter blocks","triggerType":"BLOCK_PLACE","targetKey":"minecraft:oak_planks","progress":1,"goal":2,"completed":false,"rewardType":"BANK_DEPOSIT","reward":"10","repeatable":false,"dailyReset":false}]}
                         """));
                 }
                 case "rankings" -> {
@@ -1662,7 +1662,15 @@ class CoreTypedClientsTest {
         assertEquals("generator", upgrade.key());
         assertEquals("ore", upgrade.generatorKey());
         assertEquals("MAX_MEMBERS", client.upgradeRules().join().get(0).type());
-        assertEquals("starter", client.missions(islandId, null).join().get(0).key());
+        CoreGuiViews.MissionView missionView = client.missions(islandId, null).join().get(0);
+        assertEquals("starter", missionView.key());
+        assertEquals("building", missionView.category());
+        assertEquals("Place starter blocks", missionView.description());
+        assertEquals("BLOCK_PLACE", missionView.triggerType());
+        assertEquals("minecraft:oak_planks", missionView.targetKey());
+        assertEquals("BANK_DEPOSIT", missionView.rewardType());
+        assertFalse(missionView.repeatable());
+        assertFalse(missionView.dailyReset());
         assertFalse(source.contains("private static String text("), "progression query parser must use shared CoreJson text helpers");
         assertFalse(source.contains("private static boolean bool("), "progression query parser must use shared CoreJson bool helpers");
         assertFalse(source.contains("private static double doubleValue("), "progression query parser must use shared CoreJson decimal helpers");
@@ -1722,7 +1730,7 @@ class CoreTypedClientsTest {
                 case "registerMissionProvider" -> {
                     calls.add("register:" + args[0] + ":" + JdkProgressionCommandClient.missionDefinitionsJson((List<MissionProviderDefinitionSnapshot>) args[1]));
                     yield CompletableFuture.completedFuture(JdkProgressionCommandClient.missionDefinitions("""
-                        {"missions":[{"providerId":"addon-one","missionKey":"starter","kind":"MISSION","title":"Starter","goal":3,"reward":"money:5","enabled":true,"updatedAt":"2026-01-02T03:04:05Z"}]}
+                        {"missions":[{"providerId":"addon-one","missionKey":"starter","kind":"MISSION","category":"building","title":"Starter","description":"Place starter blocks","triggerType":"BLOCK_PLACE","targetKey":"minecraft:oak_planks","goal":3,"rewardType":"BANK_DEPOSIT","reward":"money:5","repeatable":false,"dailyReset":false,"enabled":true,"updatedAt":"2026-01-02T03:04:05Z"}]}
                         """));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
@@ -1733,9 +1741,18 @@ class CoreTypedClientsTest {
             "addon-one",
             "Starter",
             "MISSION",
+            "building",
             "Starter \"Mission\"",
+            "Place starter blocks",
+            "BLOCK_PLACE",
+            "minecraft:oak_planks",
             3L,
-            "money:5"
+            "BANK_DEPOSIT",
+            "money:5",
+            false,
+            false,
+            true,
+            null
         ));
 
         LevelView level = client.recalculateLevel(islandId, actorUuid).join();
@@ -1761,7 +1778,14 @@ class CoreTypedClientsTest {
         assertEquals("Starter", mission.title());
         assertEquals("addon-one", registered.getFirst().providerId());
         assertEquals("starter", registered.getFirst().missionKey());
+        assertEquals("building", registered.getFirst().category());
+        assertEquals("Place starter blocks", registered.getFirst().description());
+        assertEquals("BLOCK_PLACE", registered.getFirst().triggerType());
+        assertEquals("minecraft:oak_planks", registered.getFirst().targetKey());
         assertEquals(3L, registered.getFirst().goal());
+        assertEquals("BANK_DEPOSIT", registered.getFirst().rewardType());
+        assertFalse(registered.getFirst().repeatable());
+        assertFalse(registered.getFirst().dailyReset());
         assertFalse(source.contains("private static String text("), "progression command parser must use shared CoreJson text helpers");
         assertFalse(source.contains("private static boolean bool("), "progression command parser must use shared CoreJson bool helpers");
         assertFalse(source.contains("SimpleJson.object(root.get(\"upgrade\"))"), "progression upgrade parser must use shared CoreJson object helpers");
@@ -1772,7 +1796,7 @@ class CoreTypedClientsTest {
             "purchase:generator",
             "progress:starter:CHALLENGE:1",
             "mission:starter:CHALLENGE",
-            "register:addon-one:[{\"missionKey\":\"starter\",\"kind\":\"MISSION\",\"title\":\"Starter \\\"Mission\\\"\",\"goal\":3,\"reward\":\"money:5\",\"enabled\":true}]"
+            "register:addon-one:[{\"missionKey\":\"starter\",\"kind\":\"MISSION\",\"category\":\"building\",\"title\":\"Starter \\\"Mission\\\"\",\"description\":\"Place starter blocks\",\"triggerType\":\"BLOCK_PLACE\",\"targetKey\":\"minecraft:oak_planks\",\"goal\":3,\"rewardType\":\"BANK_DEPOSIT\",\"reward\":\"money:5\",\"repeatable\":false,\"dailyReset\":false,\"enabled\":true}]"
         ), calls);
     }
 

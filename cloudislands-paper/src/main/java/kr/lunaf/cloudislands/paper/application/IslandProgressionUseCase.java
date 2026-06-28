@@ -140,7 +140,21 @@ public final class IslandProgressionUseCase {
     }
 
     private static MissionView missionView(CoreGuiViews.MissionView view) {
-        return new MissionView(view.key(), view.title(), view.progress(), view.goal(), view.completed(), view.reward());
+        return new MissionView(
+            view.key(),
+            view.title(),
+            view.progress(),
+            view.goal(),
+            view.completed(),
+            view.reward(),
+            view.category(),
+            view.description(),
+            view.triggerType(),
+            view.targetKey(),
+            view.rewardType(),
+            view.repeatable(),
+            view.dailyReset()
+        );
     }
 
     private static String normalizeKind(String kind) {

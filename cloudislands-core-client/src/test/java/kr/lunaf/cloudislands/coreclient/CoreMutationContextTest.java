@@ -314,7 +314,7 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"kind\":\"MISSION\\\"DAILY\"}", requestBodies.get("missions"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\"}", requestBodies.get("missionComplete"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\",\"amount\":0}", requestBodies.get("missionProgress"));
-            assertEquals("{\"providerId\":\"provider\\\"one\",\"missions\":[{\"missionKey\":\"starter\",\"kind\":\"MISSION\",\"title\":\"starter\",\"goal\":1,\"reward\":\"\",\"enabled\":true}]}", requestBodies.get("missionRegister"));
+            assertEquals("{\"providerId\":\"provider\\\"one\",\"missions\":[{\"missionKey\":\"starter\",\"kind\":\"MISSION\",\"category\":\"general\",\"title\":\"starter\",\"description\":\"\",\"triggerType\":\"\",\"targetKey\":\"\",\"goal\":1,\"rewardType\":\"\",\"reward\":\"\",\"repeatable\":false,\"dailyReset\":false,\"enabled\":true}]}", requestBodies.get("missionRegister"));
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("limits"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"limitKey\":\"HOPPER\\\"LIMIT\",\"value\":64}", requestBodies.get("limitSet"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"channel\":\"TEAM\\\"CHAT\",\"message\":\"hello \\\"team\\\"\"}", requestBodies.get("chat"));

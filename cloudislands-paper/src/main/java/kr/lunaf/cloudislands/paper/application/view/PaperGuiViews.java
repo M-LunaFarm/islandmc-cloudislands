@@ -179,7 +179,7 @@ public final class PaperGuiViews {
     }
 
     private static MissionView mission(CoreGuiViews.MissionView view) {
-        return new MissionView(view.key(), view.title(), view.progress(), view.goal(), view.completed(), view.reward());
+        return new MissionView(view.key(), view.title(), view.progress(), view.goal(), view.completed(), view.reward(), view.category(), view.description(), view.triggerType(), view.targetKey(), view.rewardType(), view.repeatable(), view.dailyReset());
     }
 
     private static LimitView limit(CoreGuiViews.LimitView view) {
@@ -256,7 +256,23 @@ public final class PaperGuiViews {
     public record UpgradeView(String key, String type, int level) {
     }
 
-    public record MissionView(String key, String title, long progress, long goal, boolean completed, String reward) {
+    public record MissionView(String key, String title, long progress, long goal, boolean completed, String reward, String category, String description, String triggerType, String targetKey, String rewardType, boolean repeatable, boolean dailyReset) {
+        public MissionView(String key, String title, long progress, long goal, boolean completed, String reward) {
+            this(key, title, progress, goal, completed, reward, "", "", "", "", "", false, false);
+        }
+
+        public MissionView {
+            key = key == null ? "" : key;
+            title = title == null ? "" : title;
+            reward = reward == null ? "" : reward;
+            category = category == null ? "" : category;
+            description = description == null ? "" : description;
+            triggerType = triggerType == null ? "" : triggerType;
+            targetKey = targetKey == null ? "" : targetKey;
+            rewardType = rewardType == null ? "" : rewardType;
+            progress = Math.max(0L, progress);
+            goal = Math.max(1L, goal);
+        }
     }
 
     public record LimitView(String key, long value, String updatedAt) {

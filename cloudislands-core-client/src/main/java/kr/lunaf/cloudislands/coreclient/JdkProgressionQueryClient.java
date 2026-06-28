@@ -181,7 +181,14 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
                     CoreJson.number(object, "progress"),
                     CoreJson.number(object, "goal"),
                     CoreJson.bool(object, "completed"),
-                    CoreJson.text(object, "reward")
+                    CoreJson.text(object, "reward"),
+                    CoreJson.text(object, "category"),
+                    CoreJson.text(object, "description"),
+                    CoreJson.text(object, "triggerType"),
+                    CoreJson.text(object, "targetKey"),
+                    CoreJson.text(object, "rewardType"),
+                    CoreJson.bool(object, "repeatable"),
+                    CoreJson.bool(object, "dailyReset")
                 );
             })
             .filter(view -> !view.key().isBlank())

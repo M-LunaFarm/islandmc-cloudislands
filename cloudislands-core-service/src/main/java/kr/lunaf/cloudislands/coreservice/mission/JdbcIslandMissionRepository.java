@@ -24,7 +24,7 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
     public List<IslandMissionSnapshot> list(UUID islandId, String kind) {
         ensureDefaults(islandId);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at FROM island_missions WHERE island_id = ? AND kind = ? ORDER BY mission_key")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, mission_key, kind, category, title, description, trigger_type, target_key, progress, goal, completed, reward_type, reward, repeatable, daily_reset, updated_at FROM island_missions WHERE island_id = ? AND kind = ? ORDER BY mission_key")) {
             statement.setObject(1, islandId);
             statement.setString(2, MissionCatalog.normalizeKind(kind));
             try (ResultSet rs = statement.executeQuery()) {
@@ -110,7 +110,7 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(registerProviderDefinitionSql(connection))) {
             for (MissionProviderDefinitionSnapshot definition : definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions) {
-                MissionProviderDefinitionSnapshot normalized = new MissionProviderDefinitionSnapshot(provider, definition.missionKey(), definition.kind(), definition.title(), definition.goal(), definition.reward(), definition.enabled(), Instant.now());
+                MissionProviderDefinitionSnapshot normalized = new MissionProviderDefinitionSnapshot(provider, definition.missionKey(), definition.kind(), definition.category(), definition.title(), definition.description(), definition.triggerType(), definition.targetKey(), definition.goal(), definition.rewardType(), definition.reward(), definition.repeatable(), definition.dailyReset(), definition.enabled(), Instant.now());
                 if (normalized.missionKey().isBlank()) {
                     continue;
                 }
@@ -121,6 +121,13 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
                 statement.setLong(5, normalized.goal());
                 statement.setString(6, normalized.reward());
                 statement.setBoolean(7, normalized.enabled());
+                statement.setString(8, normalized.category());
+                statement.setString(9, normalized.description());
+                statement.setString(10, normalized.triggerType());
+                statement.setString(11, normalized.targetKey());
+                statement.setString(12, normalized.rewardType());
+                statement.setBoolean(13, normalized.repeatable());
+                statement.setBoolean(14, normalized.dailyReset());
                 statement.addBatch();
             }
             statement.executeBatch();
@@ -143,6 +150,13 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
                 statement.setString(4, definition.title());
                 statement.setLong(5, definition.goal());
                 statement.setString(6, definition.reward());
+                statement.setString(7, definition.category());
+                statement.setString(8, definition.description());
+                statement.setString(9, definition.triggerType());
+                statement.setString(10, definition.targetKey());
+                statement.setString(11, definition.rewardType());
+                statement.setBoolean(12, definition.repeatable());
+                statement.setBoolean(13, definition.dailyReset());
                 statement.addBatch();
             }
             statement.executeBatch();
@@ -162,8 +176,8 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
     private List<MissionProviderDefinitionSnapshot> listProviderDefinitions(Connection connection, String providerId) throws SQLException {
         String provider = providerId == null || providerId.isBlank() ? "" : providerId.trim();
         String sql = provider.isBlank()
-            ? "SELECT provider_id, mission_key, kind, title, goal, reward, enabled, updated_at FROM island_mission_definitions ORDER BY provider_id, mission_key"
-            : "SELECT provider_id, mission_key, kind, title, goal, reward, enabled, updated_at FROM island_mission_definitions WHERE provider_id = ? ORDER BY mission_key";
+            ? "SELECT provider_id, mission_key, kind, category, title, description, trigger_type, target_key, goal, reward_type, reward, repeatable, daily_reset, enabled, updated_at FROM island_mission_definitions ORDER BY provider_id, mission_key"
+            : "SELECT provider_id, mission_key, kind, category, title, description, trigger_type, target_key, goal, reward_type, reward, repeatable, daily_reset, enabled, updated_at FROM island_mission_definitions WHERE provider_id = ? ORDER BY mission_key";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             if (!provider.isBlank()) {
                 statement.setString(1, provider);
@@ -175,9 +189,16 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
                         rs.getString("provider_id"),
                         rs.getString("mission_key"),
                         rs.getString("kind"),
+                        rs.getString("category"),
                         rs.getString("title"),
+                        rs.getString("description"),
+                        rs.getString("trigger_type"),
+                        rs.getString("target_key"),
                         rs.getLong("goal"),
+                        rs.getString("reward_type"),
                         rs.getString("reward"),
+                        rs.getBoolean("repeatable"),
+                        rs.getBoolean("daily_reset"),
                         rs.getBoolean("enabled"),
                         rs.getTimestamp("updated_at").toInstant()
                     ));
@@ -189,7 +210,7 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
 
     private Optional<IslandMissionSnapshot> find(UUID islandId, String missionKey, String kind) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT island_id, mission_key, kind, title, progress, goal, completed, reward, updated_at FROM island_missions WHERE island_id = ? AND mission_key = ? AND kind = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, mission_key, kind, category, title, description, trigger_type, target_key, progress, goal, completed, reward_type, reward, repeatable, daily_reset, updated_at FROM island_missions WHERE island_id = ? AND mission_key = ? AND kind = ?")) {
             statement.setObject(1, islandId);
             statement.setString(2, missionKey);
             statement.setString(3, kind);
@@ -210,16 +231,16 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
 
     private String ensureDefaultSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
-            return "INSERT IGNORE INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward) VALUES (?, ?, ?, ?, 0, ?, false, ?)";
+            return "INSERT IGNORE INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward, category, description, trigger_type, target_key, reward_type, repeatable, daily_reset) VALUES (?, ?, ?, ?, 0, ?, false, ?, ?, ?, ?, ?, ?, ?, ?)";
         }
-        return "INSERT INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward) VALUES (?, ?, ?, ?, 0, ?, false, ?) ON CONFLICT (island_id, mission_key) DO NOTHING";
+        return "INSERT INTO island_missions(island_id, mission_key, kind, title, progress, goal, completed, reward, category, description, trigger_type, target_key, reward_type, repeatable, daily_reset) VALUES (?, ?, ?, ?, 0, ?, false, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, mission_key) DO NOTHING";
     }
 
     private String registerProviderDefinitionSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
-            return "INSERT INTO island_mission_definitions(provider_id, mission_key, kind, title, goal, reward, enabled) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE provider_id = VALUES(provider_id), kind = VALUES(kind), title = VALUES(title), goal = VALUES(goal), reward = VALUES(reward), enabled = VALUES(enabled), updated_at = now()";
+            return "INSERT INTO island_mission_definitions(provider_id, mission_key, kind, title, goal, reward, enabled, category, description, trigger_type, target_key, reward_type, repeatable, daily_reset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE provider_id = VALUES(provider_id), kind = VALUES(kind), title = VALUES(title), goal = VALUES(goal), reward = VALUES(reward), enabled = VALUES(enabled), category = VALUES(category), description = VALUES(description), trigger_type = VALUES(trigger_type), target_key = VALUES(target_key), reward_type = VALUES(reward_type), repeatable = VALUES(repeatable), daily_reset = VALUES(daily_reset), updated_at = now()";
         }
-        return "INSERT INTO island_mission_definitions(provider_id, mission_key, kind, title, goal, reward, enabled) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (mission_key) DO UPDATE SET provider_id = EXCLUDED.provider_id, kind = EXCLUDED.kind, title = EXCLUDED.title, goal = EXCLUDED.goal, reward = EXCLUDED.reward, enabled = EXCLUDED.enabled, updated_at = now()";
+        return "INSERT INTO island_mission_definitions(provider_id, mission_key, kind, title, goal, reward, enabled, category, description, trigger_type, target_key, reward_type, repeatable, daily_reset) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (mission_key) DO UPDATE SET provider_id = EXCLUDED.provider_id, kind = EXCLUDED.kind, title = EXCLUDED.title, goal = EXCLUDED.goal, reward = EXCLUDED.reward, enabled = EXCLUDED.enabled, category = EXCLUDED.category, description = EXCLUDED.description, trigger_type = EXCLUDED.trigger_type, target_key = EXCLUDED.target_key, reward_type = EXCLUDED.reward_type, repeatable = EXCLUDED.repeatable, daily_reset = EXCLUDED.daily_reset, updated_at = now()";
     }
 
     private boolean mysqlLike(Connection connection) throws SQLException {
@@ -233,11 +254,18 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
             (UUID) rs.getObject("island_id"),
             rs.getString("mission_key"),
             rs.getString("kind"),
+            rs.getString("category"),
             rs.getString("title"),
+            rs.getString("description"),
+            rs.getString("trigger_type"),
+            rs.getString("target_key"),
             rs.getLong("progress"),
             rs.getLong("goal"),
             rs.getBoolean("completed"),
+            rs.getString("reward_type"),
             rs.getString("reward"),
+            rs.getBoolean("repeatable"),
+            rs.getBoolean("daily_reset"),
             rs.getTimestamp("updated_at").toInstant()
         );
     }

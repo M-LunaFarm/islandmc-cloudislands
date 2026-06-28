@@ -16,7 +16,23 @@ class InMemoryIslandMissionRepositoryTest {
         UUID actorUuid = UUID.randomUUID();
 
         repository.registerProviderDefinitions("addon.test", List.of(
-            new MissionProviderDefinitionSnapshot("addon.test", "catch_fish", "CHALLENGE", "Catch Fish", 5L, "bait")
+            new MissionProviderDefinitionSnapshot(
+                "addon.test",
+                "catch_fish",
+                "CHALLENGE",
+                "fishing",
+                "Catch Fish",
+                "Catch fish around the island",
+                "FISH_CAUGHT",
+                "minecraft:cod",
+                5L,
+                "ITEM",
+                "bait",
+                true,
+                true,
+                true,
+                null
+            )
         ));
 
         var missions = repository.list(islandId, "CHALLENGE");
@@ -25,6 +41,13 @@ class InMemoryIslandMissionRepositoryTest {
         var progressed = repository.progress(islandId, actorUuid, "catch_fish", "CHALLENGE", 3L);
         assertTrue(progressed.isPresent());
         assertEquals(3L, progressed.get().progress());
+        assertEquals("fishing", progressed.get().category());
+        assertEquals("Catch fish around the island", progressed.get().description());
+        assertEquals("FISH_CAUGHT", progressed.get().triggerType());
+        assertEquals("minecraft:cod", progressed.get().targetKey());
+        assertEquals("ITEM", progressed.get().rewardType());
         assertEquals("bait", progressed.get().reward());
+        assertTrue(progressed.get().repeatable());
+        assertTrue(progressed.get().dailyReset());
     }
 }
