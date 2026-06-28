@@ -1,0 +1,5 @@
+blockValues:
+  "minecraft:diamond_block":
+    worth: "1500.00"
+    levelPoints: 12
+    limit: 64

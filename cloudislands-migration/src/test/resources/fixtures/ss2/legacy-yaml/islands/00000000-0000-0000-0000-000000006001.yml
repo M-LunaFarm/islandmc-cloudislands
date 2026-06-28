@@ -1,0 +1,29 @@
+island:
+  uuid: "00000000-0000-0000-0000-000000006001"
+  size: 512
+  level: 14
+  worth: "12345.67"
+  biome: savanna
+owner:
+  uuid: "00000000-0000-0000-0000-000000006002"
+members:
+  - "00000000-0000-0000-0000-000000006003"
+homes:
+  default:
+    world: legacy
+    x: 10
+    y: 90
+    z: -10
+warps:
+  market:
+    world: legacy
+    x: 20
+    y: 91
+    z: -20
+bank:
+  balance: "321.09"
+settings:
+  public: true
+  locked: false
+world:
+  path: legacy-world

@@ -1,0 +1,16 @@
+islandId: "00000000-0000-0000-0000-000000900582"
+ownerUuid: "00000000-0000-0000-0000-000000910582"
+homeName: "home-0582"
+homeWorld: large
+homeX: 82
+homeY: 80
+homeZ: 246
+warpName: "warp-0582"
+warpWorld: large
+warpX: 83
+warpY: 81
+warpZ: 247
+bankBalance: "582.00"
+biome: forest
+blockCounts:
+  "minecraft:diamond_block": 7

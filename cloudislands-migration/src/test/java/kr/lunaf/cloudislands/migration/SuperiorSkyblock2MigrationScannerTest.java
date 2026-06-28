@@ -103,7 +103,7 @@ class SuperiorSkyblock2MigrationScannerTest {
 
     @Test
     void scannerReadsYamlFixtureFromResources() throws Exception {
-        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("yaml-basic"));
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("basic-yaml"));
 
         assertTrue(result.issues().isEmpty(), result.issues().toString());
         MigrationManifest manifest = result.manifests().get(0);
@@ -126,7 +126,7 @@ class SuperiorSkyblock2MigrationScannerTest {
 
     @Test
     void scannerReadsJsonFixtureFromResources() throws Exception {
-        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("json-basic"));
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("basic-json"));
 
         assertTrue(result.issues().isEmpty(), result.issues().toString());
         MigrationManifest manifest = result.manifests().get(0);
@@ -143,7 +143,7 @@ class SuperiorSkyblock2MigrationScannerTest {
 
     @Test
     void scannerReportsBrokenFixtureAsFatalIssue() throws Exception {
-        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("broken-files"));
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("broken-owner"));
 
         assertEquals(0, result.manifests().size());
         assertEquals("OWNER_NOT_FOUND", result.issues().get(0).code());
@@ -152,7 +152,7 @@ class SuperiorSkyblock2MigrationScannerTest {
 
     @Test
     void scannerReadsLegacyNestedOwnerAndBankFields() throws Exception {
-        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("legacy-format"));
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("legacy-yaml"));
 
         assertTrue(result.issues().isEmpty(), result.issues().toString());
         MigrationManifest manifest = result.manifests().get(0);
@@ -178,16 +178,33 @@ class SuperiorSkyblock2MigrationScannerTest {
     }
 
     @Test
-    void scannerReportsLargeFixtureImportCountsAndGlobalBlockValues() throws Exception {
-        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("large-sample"));
+    void scannerReportsMissingWorldPathInDryRunReport() throws Exception {
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("missing-world"));
 
         assertTrue(result.issues().isEmpty(), result.issues().toString());
         MigrationReport report = MigrationReportBuilder.build(result.manifests(), result.issues());
-        assertEquals(3, report.totalIslands());
-        assertEquals(3, report.importableIslandCount());
-        assertEquals(3, report.homes());
-        assertEquals(3, report.warps());
-        assertEquals(3, report.blockValues());
+        assertEquals(1, report.totalIslands());
+        assertEquals(1, report.importableIslandCount());
+        assertEquals(1, report.worldPathMissingCount());
+        assertTrue(report.rollbackPossible());
+    }
+
+    @Test
+    void scannerReportsLargeThousandFixtureImportCountsAndGlobalBlockValues() throws Exception {
+        long started = System.nanoTime();
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("large-1000-islands"));
+        long elapsedNanos = System.nanoTime() - started;
+
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+        MigrationReport report = MigrationReportBuilder.build(result.manifests(), result.issues());
+        assertTrue(elapsedNanos > 0L);
+        assertEquals(1000, report.totalIslands());
+        assertEquals(1000, report.importableIslandCount());
+        assertEquals(1000, report.homes());
+        assertEquals(1000, report.warps());
+        assertEquals(1000, report.blockValues());
+        assertEquals(1000, report.bankBalances());
+        assertEquals(1000, report.blockCounts());
         assertTrue(report.rollbackPossible());
     }
 

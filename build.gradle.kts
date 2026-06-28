@@ -1384,15 +1384,21 @@ tasks.register("verifyIntegrationMatrix") {
 
 tasks.register("verifyMigrationFixtures") {
     group = "verification"
-    description = "Verifies SuperiorSkyblock2 migration fixtures cover YAML, JSON, legacy, Korean, broken, and large samples."
+    description = "Verifies SuperiorSkyblock2 migration fixtures cover the edit.md YAML, JSON, legacy, Korean, broken owner, missing world, and 1000-island samples."
     dependsOn(project(":cloudislands-migration").tasks.named("test"))
     val fixtureRoot = layout.projectDirectory.dir("cloudislands-migration/src/test/resources/fixtures/ss2")
     inputs.dir(fixtureRoot)
     doLast {
-        val requiredFixtures = listOf("yaml-basic", "json-basic", "legacy-format", "korean-names", "broken-files", "large-sample")
+        val requiredFixtures = listOf("basic-yaml", "basic-json", "legacy-yaml", "korean-names", "broken-owner", "missing-world", "large-1000-islands")
         val missing = requiredFixtures.filterNot { fixtureRoot.dir(it).asFile.isDirectory }
         if (missing.isNotEmpty()) {
             throw GradleException("SS2 migration fixtures missing: ${missing.joinToString(", ")}")
+        }
+        val largeFixtureCount = fixtureRoot.dir("large-1000-islands").dir("islands").asFile
+            .walkTopDown()
+            .count { it.isFile && (it.extension == "yml" || it.extension == "yaml" || it.extension == "json") }
+        if (largeFixtureCount != 1000) {
+            throw GradleException("SS2 large-1000-islands fixture must contain 1000 island files, found $largeFixtureCount")
         }
     }
 }

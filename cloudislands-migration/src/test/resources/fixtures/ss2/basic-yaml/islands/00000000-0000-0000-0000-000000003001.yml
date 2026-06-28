@@ -1,0 +1,39 @@
+islandId: "00000000-0000-0000-0000-000000003001"
+ownerUuid: "00000000-0000-0000-0000-000000003002"
+members:
+  - "00000000-0000-0000-0000-000000003003"
+bannedVisitors:
+  - "00000000-0000-0000-0000-000000003004"
+homes:
+  main:
+    world: islands
+    x: 12.5
+    y: 90
+    z: -4.5
+    yaw: 45
+    pitch: 5
+warps:
+  shop:
+    world: islands
+    x: 20
+    y: 91
+    z: -9
+    public: true
+blockValues:
+  "minecraft:diamond_block":
+    worth: "1500.50"
+    levelPoints: 12
+    limit: 64
+blockCounts:
+  "minecraft:diamond_block": 7
+completedMissions:
+  - farm_master
+completedChallenges:
+  - cobble_one
+biome: plains
+bankBalance: "250.75"
+public: true
+locked: false
+size: 300
+level: 42
+worth: "9999.99"
