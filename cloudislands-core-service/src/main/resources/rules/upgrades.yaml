@@ -75,3 +75,42 @@ upgrades:
     max-level: 5
     base-cost: 10000
     multiplier: 2
+  border:
+    type: "BORDER_SIZE"
+    levels:
+      1:
+        cost: 0
+        border-size: 100
+      2:
+        cost: 15000
+        border-size: 150
+      3:
+        cost: 45000
+        border-size: 200
+  homes:
+    type: "HOME_LIMIT"
+    levels:
+      1:
+        cost: 0
+        max-homes: 1
+      2:
+        cost: 5000
+        max-homes: 2
+      3:
+        cost: 15000
+        max-homes: 3
+  biome:
+    type: "BIOME_UNLOCK"
+    max-level: 1
+    base-cost: 25000
+    multiplier: 1
+  keep-inventory:
+    type: "KEEP_INVENTORY_ENABLE"
+    max-level: 1
+    base-cost: 75000
+    multiplier: 1
+  border-color:
+    type: "BORDER_COLOR_UNLOCK"
+    max-level: 1
+    base-cost: 10000
+    multiplier: 1

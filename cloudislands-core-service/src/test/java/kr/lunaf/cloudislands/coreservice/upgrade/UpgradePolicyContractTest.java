@@ -31,8 +31,20 @@ class UpgradePolicyContractTest {
         assertEquals(UpgradeType.HOPPER_LIMIT, policy.rule("hoppers").type());
         assertEquals(UpgradeType.GENERATOR_LEVEL, policy.rule("generator").type());
         assertEquals(UpgradeType.BANK_LIMIT, policy.rule("bank").type());
+        assertEquals(UpgradeType.BORDER_SIZE, policy.rule("border").type());
+        assertEquals(UpgradeType.HOME_LIMIT, policy.rule("homes").type());
+        assertEquals(UpgradeType.BIOME_UNLOCK, policy.rule("biome").type());
+        assertEquals(UpgradeType.KEEP_INVENTORY_ENABLE, policy.rule("keep-inventory").type());
+        assertEquals(UpgradeType.BORDER_COLOR_UNLOCK, policy.rule("border-color").type());
         assertNotNull(policy.rule("fly"));
         assertEquals(UpgradeType.GENERATOR_LEVEL, UpgradePolicy.typeFor("generator:default"));
+        assertEquals(UpgradeType.MEMBER_LIMIT, UpgradePolicy.typeFor("member-limit"));
+        assertEquals(UpgradeType.WARP_LIMIT, UpgradePolicy.typeFor("warp-limit"));
+        assertEquals(UpgradeType.HOME_LIMIT, UpgradePolicy.typeFor("home-limit"));
+        assertEquals(UpgradeType.BORDER_SIZE, UpgradePolicy.typeFor("border-size"));
+        assertEquals(UpgradeType.BORDER_COLOR_UNLOCK, UpgradePolicy.typeFor("border-color-unlock"));
+        assertEquals(UpgradeType.BIOME_UNLOCK, UpgradePolicy.typeFor("biome-unlock"));
+        assertEquals(UpgradeType.KEEP_INVENTORY_ENABLE, UpgradePolicy.typeFor("keep-inventory"));
     }
 
     @Test
@@ -59,6 +71,15 @@ class UpgradePolicyContractTest {
         assertEquals(new BigDecimal("30000"), policy.rule("hoppers").costForNextLevel(1));
         assertEquals(50L, policy.rule("hoppers").limitValueForLevel(1).orElseThrow());
         assertEquals(100L, policy.rule("hoppers").limitValueForLevel(2).orElseThrow());
+
+        assertEquals(UpgradeType.BORDER_SIZE, policy.rule("border").type());
+        assertEquals(new BigDecimal("15000"), policy.rule("border").costForNextLevel(1));
+        assertEquals(150L, policy.rule("border").limitValueForLevel(2).orElseThrow());
+        assertEquals(UpgradeType.HOME_LIMIT, policy.rule("homes").type());
+        assertEquals(2L, policy.rule("homes").limitValueForLevel(2).orElseThrow());
+        assertEquals(UpgradeType.BIOME_UNLOCK, policy.rule("biome").type());
+        assertEquals(UpgradeType.KEEP_INVENTORY_ENABLE, policy.rule("keep-inventory").type());
+        assertEquals(UpgradeType.BORDER_COLOR_UNLOCK, policy.rule("border-color").type());
     }
 
     @Test

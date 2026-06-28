@@ -65,4 +65,40 @@ class UpgradeEffectApplierTest {
         assertEquals(4, generators.profile(ISLAND_ID).level());
         assertTrue(logs.list(ISLAND_ID, 10).stream().anyMatch(record -> record.action().equals("ISLAND_UPGRADE_EFFECT") && record.payload().get("effect").equals("GENERATOR_LEVEL")));
     }
+
+    @Test
+    void borderHomeAndBiomeUpgradesUpdateAuthoritativeLimits() {
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+
+        UpgradeEffectApplier applier = new UpgradeEffectApplier(limits, new InMemoryIslandRepository(), new InMemoryIslandMetadataRepository(), new InMemoryIslandLogRepository(), new InMemoryGlobalEventPublisher());
+        applier.apply(ISLAND_ID, OWNER_ID, new UpgradeRule("border", UpgradeType.BORDER_SIZE, 3, BigDecimal.ZERO, BigDecimal.ONE, Map.of(2, 150L)), UpgradeType.BORDER_SIZE, 2);
+        applier.apply(ISLAND_ID, OWNER_ID, new UpgradeRule("homes", UpgradeType.HOME_LIMIT, 3, BigDecimal.ZERO, BigDecimal.ONE, Map.of(2, 2L)), UpgradeType.HOME_LIMIT, 2);
+        applier.apply(ISLAND_ID, OWNER_ID, new UpgradeRule("biome", UpgradeType.BIOME_UNLOCK, 1, BigDecimal.ZERO, BigDecimal.ONE), UpgradeType.BIOME_UNLOCK, 1);
+
+        assertEquals(150L, limitValue(limits, "BORDER"));
+        assertEquals(2L, limitValue(limits, "HOMES"));
+        assertEquals(1L, limitValue(limits, "BIOME_UNLOCK"));
+    }
+
+    @Test
+    void keepInventoryAndBorderColorUpgradesApplyFlags() {
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+
+        UpgradeEffectApplier applier = new UpgradeEffectApplier(new InMemoryIslandLimitRepository(), new InMemoryIslandRepository(), metadata, new InMemoryIslandLogRepository(), events);
+        applier.apply(ISLAND_ID, OWNER_ID, new UpgradeRule("keep-inventory", UpgradeType.KEEP_INVENTORY_ENABLE, 1, BigDecimal.ZERO, BigDecimal.ONE), UpgradeType.KEEP_INVENTORY_ENABLE, 1);
+        applier.apply(ISLAND_ID, OWNER_ID, new UpgradeRule("border-color", UpgradeType.BORDER_COLOR_UNLOCK, 1, BigDecimal.ZERO, BigDecimal.ONE), UpgradeType.BORDER_COLOR_UNLOCK, 1);
+
+        assertEquals("true", metadata.flags(ISLAND_ID).values().get(IslandFlag.KEEP_INVENTORY));
+        assertEquals("blue", metadata.flags(ISLAND_ID).values().get(IslandFlag.BORDER_COLOR));
+        assertEquals(2L, events.countByType(CloudIslandEventType.ISLAND_FLAG_CHANGED.name()));
+    }
+
+    private static long limitValue(InMemoryIslandLimitRepository limits, String limitKey) {
+        return limits.list(ISLAND_ID).stream()
+            .filter(limit -> limit.limitKey().equals(limitKey))
+            .findFirst()
+            .orElseThrow()
+            .value();
+    }
 }

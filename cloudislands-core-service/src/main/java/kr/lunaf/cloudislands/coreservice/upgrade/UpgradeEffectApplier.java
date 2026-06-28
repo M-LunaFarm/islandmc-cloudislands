@@ -56,14 +56,18 @@ public final class UpgradeEffectApplier {
         java.util.OptionalLong configuredValue = rule == null ? java.util.OptionalLong.empty() : rule.limitValueForLevel(level);
         IslandLimitSnapshot snapshot = switch (type) {
             case ISLAND_SIZE -> limits.set(islandId, "SIZE", configuredValue.orElse(100L + Math.max(0L, level - 1L) * 50L), actorUuid);
-            case MAX_MEMBERS -> limits.set(islandId, "MEMBERS", configuredValue.orElse(3L + Math.max(0L, level - 1L) * 2L), actorUuid);
-            case MAX_WARPS -> limits.set(islandId, "WARPS", configuredValue.orElse(Math.max(1L, level)), actorUuid);
+            case MAX_MEMBERS, MEMBER_LIMIT -> limits.set(islandId, "MEMBERS", configuredValue.orElse(3L + Math.max(0L, level - 1L) * 2L), actorUuid);
+            case MAX_WARPS, WARP_LIMIT -> limits.set(islandId, "WARPS", configuredValue.orElse(Math.max(1L, level)), actorUuid);
+            case HOME_LIMIT -> limits.set(islandId, "HOMES", configuredValue.orElse(Math.max(1L, level)), actorUuid);
+            case BORDER_SIZE -> limits.set(islandId, "BORDER", configuredValue.orElse(100L + Math.max(0L, level - 1L) * 50L), actorUuid);
+            case BIOME_UNLOCK -> limits.set(islandId, "BIOME_UNLOCK", configuredValue.orElse(Math.max(1L, level)), actorUuid);
             case HOPPER_LIMIT -> limits.set(islandId, "HOPPER", configuredValue.orElse(Math.max(1L, level) * 50L), actorUuid);
             case SPAWNER_LIMIT -> limits.set(islandId, "SPAWNER", configuredValue.orElse(Math.max(1L, level) * 25L), actorUuid);
             case MOB_LIMIT -> limits.set(islandId, "ENTITY", configuredValue.orElse(Math.max(1L, level) * 200L), actorUuid);
             case REDSTONE_LIMIT -> limits.set(islandId, "REDSTONE", configuredValue.orElse(Math.max(1L, level) * 512L), actorUuid);
             case BANK_LIMIT -> limits.set(islandId, "BANK", configuredValue.orElse(Math.max(1L, level) * 100000L), actorUuid);
-            case GENERATOR_LEVEL, CROP_GROWTH, FLY_ACCESS -> null;
+            case CROP_GROWTH -> limits.set(islandId, "CROP_GROWTH", configuredValue.orElse(Math.max(1L, level)), actorUuid);
+            case GENERATOR_LEVEL, FLY_ACCESS, BORDER_COLOR_UNLOCK, KEEP_INVENTORY_ENABLE -> null;
         };
         if (snapshot == null) {
             return;
@@ -116,11 +120,18 @@ public final class UpgradeEffectApplier {
     }
 
     private void applyFlagEffect(UUID islandId, UUID actorUuid, UpgradeType type) {
-        if (type != UpgradeType.FLY_ACCESS) {
+        IslandFlag flag = switch (type) {
+            case FLY_ACCESS -> IslandFlag.FLY;
+            case KEEP_INVENTORY_ENABLE -> IslandFlag.KEEP_INVENTORY;
+            case BORDER_COLOR_UNLOCK -> IslandFlag.BORDER_COLOR;
+            default -> null;
+        };
+        if (flag == null) {
             return;
         }
-        metadata.setFlag(islandId, IslandFlag.FLY, "true");
-        events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", IslandFlag.FLY.name(), "value", "true"));
-        islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_EFFECT", Map.of("effect", type.name(), "flag", IslandFlag.FLY.name(), "value", "true"));
+        String value = type == UpgradeType.BORDER_COLOR_UNLOCK ? "blue" : "true";
+        metadata.setFlag(islandId, flag, value);
+        events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
+        islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_EFFECT", Map.of("effect", type.name(), "flag", flag.name(), "value", value));
     }
 }

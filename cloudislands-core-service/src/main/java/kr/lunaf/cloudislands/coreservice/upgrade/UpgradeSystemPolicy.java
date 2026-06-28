@@ -21,7 +21,12 @@ public final class UpgradeSystemPolicy {
             UpgradeType.MOB_LIMIT,
             UpgradeType.CROP_GROWTH,
             UpgradeType.FLY_ACCESS,
-            UpgradeType.BANK_LIMIT
+            UpgradeType.BANK_LIMIT,
+            UpgradeType.BORDER_SIZE,
+            UpgradeType.BORDER_COLOR_UNLOCK,
+            UpgradeType.HOME_LIMIT,
+            UpgradeType.BIOME_UNLOCK,
+            UpgradeType.KEEP_INVENTORY_ENABLE
     );
 
     private static final List<String> GOAL_CONFIG_EXAMPLES = List.of(
@@ -32,7 +37,9 @@ public final class UpgradeSystemPolicy {
             "members:2:max-members=5:cost=25000",
             "members:3:max-members=8:cost=75000",
             "hoppers:1:max-hoppers=50:cost=0",
-            "hoppers:2:max-hoppers=100:cost=30000"
+            "hoppers:2:max-hoppers=100:cost=30000",
+            "border:2:border-size=150:cost=15000",
+            "homes:2:max-homes=2:cost=5000"
     );
 
     private UpgradeSystemPolicy() {

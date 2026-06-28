@@ -1443,8 +1443,12 @@ tasks.register("verifyUpgradeEffectCoverage") {
         val environmentSource = environmentHandler.asFile.readText()
         val failures = buildList {
             if (!applierSource.contains("generators.setProfile")) add("UpgradeEffectApplier must update generator profiles for generator upgrades")
+            if (!applierSource.contains("case HOME_LIMIT") || !applierSource.contains("case BORDER_SIZE") || !applierSource.contains("case BIOME_UNLOCK")) add("UpgradeEffectApplier must apply home, border, and biome unlock limit effects")
+            if (!applierSource.contains("KEEP_INVENTORY_ENABLE") || !applierSource.contains("BORDER_COLOR_UNLOCK")) add("UpgradeEffectApplier must apply keep inventory and border color flag effects")
             if (!routeSource.contains("generatorRepository")) add("IslandUpgradeRoutes must pass generatorRepository into upgrade effects")
             if (!tests.contains("generatorUpgradeUpdatesAuthoritativeGeneratorProfile")) add("UpgradeEffectApplierTest must cover generator profile effects")
+            if (!tests.contains("borderHomeAndBiomeUpgradesUpdateAuthoritativeLimits")) add("UpgradeEffectApplierTest must cover border, home, and biome limit effects")
+            if (!tests.contains("keepInventoryAndBorderColorUpgradesApplyFlags")) add("UpgradeEffectApplierTest must cover keep inventory and border color flag effects")
             if (!settingsTests.contains("setBiomeNormalizesSupportedKeysAndRejectsUnsupportedKeys")) add("IslandSettingsRoutesTest must cover biome normalization and rejection")
             if (!borderPolicySource.contains("BorderSettings") || !borderPolicySource.contains("region.originX()") || !borderPolicySource.contains("Math.max(1.0D, borderSize)")) add("IslandBorderRuntimePolicy must compute player world border center and size")
             if (!borderTests.contains("appliesWorldBorderFromIslandRegionAndCoreSize") || !borderTests.contains("hiddenPolicySuppressesPlayerWorldBorder")) add("IslandBorderRuntimePolicyTest must cover visible and hidden border behavior")
