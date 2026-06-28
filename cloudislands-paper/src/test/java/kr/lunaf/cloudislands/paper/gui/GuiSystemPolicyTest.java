@@ -293,6 +293,22 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void guiButtonsUseSharedStateModel() throws Exception {
+        String buttonState = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiButtonState.java"));
+        String upgrades = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandUpgradeMenu.java"));
+        String missions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMissionMenu.java"));
+
+        assertEquals(List.of("ENABLED", "DISABLED_NO_PERMISSION", "DISABLED_REQUIREMENT_NOT_MET", "LOADING_OR_ERROR"), GuiSystemPolicy.buttonStates());
+        for (String state : GuiSystemPolicy.buttonStates()) {
+            assertTrue(buttonState.contains(state), "shared GUI button state must define " + state);
+        }
+        assertTrue(buttonState.contains("boolean clickable()"), "button state must define clickability");
+        assertTrue(upgrades.contains("GuiButtonState.ENABLED"), "upgrade purchases must render an explicit button state");
+        assertTrue(missions.contains("GuiButtonState.DISABLED_REQUIREMENT_NOT_MET"), "completed non-repeatable missions must render disabled requirement state");
+        assertTrue(missions.contains("state.clickable() ? \"island.mission.complete\" : \"\""), "disabled mission buttons must not keep the completion action");
+    }
+
+    @Test
     void emptyListPlaceholdersRenderFromMenuDefinitions() throws Exception {
         String renderer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiMenuRenderer.java"));
         assertTrue(renderer.contains("setSymbolItem(Inventory inventory"), "shared renderer must expose symbol-based empty placeholder rendering");

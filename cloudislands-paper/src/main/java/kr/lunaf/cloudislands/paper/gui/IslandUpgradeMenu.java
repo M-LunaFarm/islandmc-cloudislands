@@ -104,8 +104,10 @@ public final class IslandUpgradeMenu implements Listener {
     }
 
     private static ItemStack upgradeItem(UpgradeView upgrade, MessageRenderer messages) {
+        GuiButtonState state = GuiButtonState.ENABLED;
         return GuiItems.action(GuiMenuRenderer.material(MENU, upgrade.type(), "_", "BEACON"), upgrade.key(), "island.upgrade.purchase",
             Map.of("upgradeKey", upgrade.key()),
+            state.lore(messages),
             message(messages, "upgrade-menu-type", "유형: ") + upgrade.type(),
             message(messages, "upgrade-menu-current-level", "현재 레벨: ") + upgrade.level(),
             message(messages, "upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다."));

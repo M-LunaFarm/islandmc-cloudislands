@@ -12,6 +12,8 @@ public final class GuiSystemPolicy {
             "permission-gui-renders-core-role-catalog-by-full-api-permission-matrix";
     public static final String NODE_ADMIN_POLICY =
             "node-admin-gui-shows-node-load-and-safe-operation-buttons";
+    public static final String BUTTON_STATE_POLICY =
+            "gui-buttons-render-enabled-disabled-permission-disabled-requirement-and-loading-or-error-states";
 
     private static final List<String> MAIN_MENU_BUTTONS = List.of(
             "my-island-home",
@@ -69,6 +71,13 @@ public final class GuiSystemPolicy {
             "Shutdown Safe"
     );
 
+    private static final List<String> BUTTON_STATES = List.of(
+            "ENABLED",
+            "DISABLED_NO_PERMISSION",
+            "DISABLED_REQUIREMENT_NOT_MET",
+            "LOADING_OR_ERROR"
+    );
+
     private GuiSystemPolicy() {
     }
 
@@ -98,6 +107,10 @@ public final class GuiSystemPolicy {
 
     public static List<String> nodeAdminActions() {
         return NODE_ADMIN_ACTIONS;
+    }
+
+    public static List<String> buttonStates() {
+        return BUTTON_STATES;
     }
 
     public static boolean mainMenuButton(String key) {

@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -116,15 +117,19 @@ public final class IslandMissionMenu implements Listener {
     private static ItemStack missionItem(MissionView mission, MessageRenderer messages) {
         org.bukkit.Material material = GuiMenuRenderer.material(MENU, mission.completed() ? "COMPLETED" : "_", "_", "BOOK");
         String title = mission.title().isBlank() ? mission.key() : mission.title();
-        return GuiItems.action(material, title, "island.mission.complete",
+        GuiButtonState state = mission.completed() && !mission.repeatable() ? GuiButtonState.DISABLED_REQUIREMENT_NOT_MET : GuiButtonState.ENABLED;
+        List<String> lore = new ArrayList<>();
+        lore.add(state.lore(messages));
+        lore.add(message(messages, "mission-menu-category", "분류: ") + (mission.category().isBlank() ? message(messages, "mission-menu-category-general", "general") : mission.category()));
+        lore.add(mission.triggerType().isBlank() ? message(messages, "mission-menu-trigger-unknown", "진행 조건: 자동 진행") : message(messages, "mission-menu-trigger", "진행 조건: ") + mission.triggerType() + (mission.targetKey().isBlank() ? "" : " " + mission.targetKey()));
+        lore.add(message(messages, "mission-menu-progress", "진행도: ") + mission.progress() + "/" + mission.goal());
+        lore.add(message(messages, "mission-menu-reward", "보상: ") + (mission.reward().isBlank() ? message(messages, "mission-menu-no-reward", "없음") : mission.reward()));
+        lore.add(mission.repeatable() ? message(messages, "mission-menu-repeatable", "반복 가능") : message(messages, "mission-menu-once", "1회 완료"));
+        lore.add(mission.dailyReset() ? message(messages, "mission-menu-daily-reset", "매일 초기화") : message(messages, "mission-menu-no-daily-reset", "일일 초기화 없음"));
+        lore.add(mission.completed() ? message(messages, "mission-menu-completed", "완료됨") : message(messages, "mission-menu-click-to-complete", "클릭하면 완료를 요청합니다."));
+        return GuiItems.action(material, title, state.clickable() ? "island.mission.complete" : "",
             Map.of("missionKey", mission.key()),
-            message(messages, "mission-menu-category", "분류: ") + (mission.category().isBlank() ? message(messages, "mission-menu-category-general", "general") : mission.category()),
-            mission.triggerType().isBlank() ? message(messages, "mission-menu-trigger-unknown", "진행 조건: 자동 진행") : message(messages, "mission-menu-trigger", "진행 조건: ") + mission.triggerType() + (mission.targetKey().isBlank() ? "" : " " + mission.targetKey()),
-            message(messages, "mission-menu-progress", "진행도: ") + mission.progress() + "/" + mission.goal(),
-            message(messages, "mission-menu-reward", "보상: ") + (mission.reward().isBlank() ? message(messages, "mission-menu-no-reward", "없음") : mission.reward()),
-            mission.repeatable() ? message(messages, "mission-menu-repeatable", "반복 가능") : message(messages, "mission-menu-once", "1회 완료"),
-            mission.dailyReset() ? message(messages, "mission-menu-daily-reset", "매일 초기화") : message(messages, "mission-menu-no-daily-reset", "일일 초기화 없음"),
-            mission.completed() ? message(messages, "mission-menu-completed", "완료됨") : message(messages, "mission-menu-click-to-complete", "클릭하면 완료를 요청합니다."));
+            lore.toArray(String[]::new));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {
