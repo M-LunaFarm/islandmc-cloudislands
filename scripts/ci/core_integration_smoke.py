@@ -382,6 +382,37 @@ def config_migration_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     return {"config-migration": list(required_signals.keys())}, [file_artifact(path, root) for path in required_files]
 
 
+def rolling_upgrade_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
+    root = Path(__file__).resolve().parents[2]
+    version_policy = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/observability/VersionCompatibilityPolicy.java"
+    runbook = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/observability/ProductionGaRunbook.java"
+    admin_nodes = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/AdminNodeRoutes.java"
+    admin_security = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/security/AdminEndpointGuard.java"
+    protocol_policy = root / "cloudislands-protocol/src/main/java/kr/lunaf/cloudislands/protocol/InternalApiProtocolPolicy.java"
+    test = root / "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/observability/ProductionReadinessPolicyTest.java"
+    required_files = [version_policy, runbook, admin_nodes, admin_security, protocol_policy, test]
+    missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
+    if missing:
+        raise RuntimeError(f"rolling upgrade evidence files are missing: {missing}")
+    version_text = version_policy.read_text(encoding="utf-8")
+    runbook_text = runbook.read_text(encoding="utf-8")
+    admin_node_text = admin_nodes.read_text(encoding="utf-8")
+    security_text = admin_security.read_text(encoding="utf-8")
+    protocol_text = protocol_policy.read_text(encoding="utf-8")
+    test_text = test.read_text(encoding="utf-8")
+    required_signals = {
+        "compatibility-matrix": "VersionCompatibilityRow" in version_text and "matrixSummary" in version_text,
+        "drain-plan": '"/v1/admin/nodes/drain"' in admin_node_text and '"/v1/admin/nodes/undrain"' in admin_node_text and "ciadmin node drain" in runbook_text,
+        "protocol-n-minus-one": "protocol-schema-n-to-n-minus-one" in version_text and "version-negotiation" in protocol_text,
+        "rollback-step": "rollback binary on drained node" in runbook_text and "ciadmin node undrain" in runbook_text and "NODE_UNDRAIN" in security_text,
+        "post-upgrade-smoke": "post-upgrade-multi-node-smoke" in version_text and "core_integration_smoke.py" in runbook_text,
+    }
+    failures = [name for name, present in required_signals.items() if not present]
+    if failures:
+        raise RuntimeError(f"rolling upgrade evidence signals are missing: {failures}")
+    return {"rolling-upgrade": list(required_signals.keys())}, [file_artifact(path, root) for path in required_files]
+
+
 def support_bundle_evidence(support_bundle: dict | None) -> dict[str, list[str]]:
     if not support_bundle:
         return {}
@@ -418,6 +449,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
     path.parent.mkdir(parents=True, exist_ok=True)
     deployment_evidence, deployment_artifacts = deployment_template_artifacts()
     config_evidence, config_artifacts = config_migration_artifacts()
+    rolling_evidence, rolling_artifacts = rolling_upgrade_artifacts()
     idempotency_evidence, idempotency_artifacts = idempotency_evidence_artifacts()
     runbook_evidence, runbook_artifacts = operator_runbook_artifacts()
     runtime_evidence = support_bundle_evidence(support_bundle)
@@ -444,6 +476,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             ],
             **deployment_evidence,
             **config_evidence,
+            **rolling_evidence,
             **runbook_evidence,
             **runtime_evidence,
         },
@@ -455,6 +488,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             {"name": "shared-redis-job-and-event-mode", "result": "passed"},
             {"name": "shared-s3-storage-mode", "result": "passed"},
             {"name": "config-migration-evidence-present", "result": "passed"},
+            {"name": "rolling-upgrade-evidence-present", "result": "passed"},
             {"name": "cross-core-create-job-complete", "result": "passed"},
             {"name": "route-session-consume-round-trip", "result": "passed"},
             {"name": "fencing-token-positive", "result": "passed"},
@@ -465,7 +499,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             {"name": "operator-runbook-covers-ga-actions", "result": "passed"},
             {"name": "support-bundle-redacted", "result": "passed" if runtime_evidence else "not-run"},
         ],
-        "artifacts": artifacts + deployment_artifacts + config_artifacts + idempotency_artifacts + runbook_artifacts,
+        "artifacts": artifacts + deployment_artifacts + config_artifacts + rolling_artifacts + idempotency_artifacts + runbook_artifacts,
         "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "player-protocol-client"],
         "uncertifiedFailureInjections": [
             "paper-save-kill",
