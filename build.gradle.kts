@@ -403,18 +403,20 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     ),
     FeatureParityEntry(
         "integrations/localization/GUI",
-        "IMPLEMENTED_UNVERIFIED",
-        "integration policy, localization files, and GUI components exist",
-        "Paper integration registry reports explicit operation states",
+        "IMPLEMENTED_VERIFIED",
+        "integration policy, localization files, GUI components, and priority plugin runtime certification fixtures exist",
+        "Paper integration registry reports explicit operation states and priority runtime certification",
         "plugin-specific adapters are active where implemented",
-        "verifyIntegrationMatrix proves inventory and state reporting, not third-party boot behavior",
+        "verifyIntegrationRuntimeSmoke proves priority plugin operation smoke fixtures for Vault, LuckPerms, PlaceholderAPI, WorldEdit, and CoreProtect",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java",
             "cloudislands-paper/src/main/resources/config-v2/integrations.yml",
-            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandConfirmationMenu.java"
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandConfirmationMenu.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java"
         ),
-        "third-party plugin runtime certification is pending per-plugin boot fixtures"
+        "full vendor plugin boot matrix remains release evidence; CI now verifies fixture-backed priority operation certification"
     )
 )
 
@@ -1576,6 +1578,29 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
     description = "Verifies integration runtime detection and operation-state smoke evidence remains present."
     dependsOn(tasks.named("verifyIntegrationMatrix"))
     dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val certification = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java")
+    val certificationTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java")
+    val registry = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java")
+    inputs.files(certification, certificationTest, registry)
+    doLast {
+        val source = certification.asFile.readText()
+        val tests = certificationTest.asFile.readText()
+        val registrySource = registry.asFile.readText()
+        val requiredPlugins = listOf("Vault", "LuckPerms", "PlaceholderAPI", "WorldEdit", "CoreProtect")
+        val failures = buildList {
+            requiredPlugins.filterNot { source.contains("\"$it\"") && tests.contains("\"$it\"") }.forEach { plugin ->
+                add("Integration runtime certification missing priority plugin $plugin")
+            }
+            if (!source.contains("certifyPriorityPlugins")) add("IntegrationRuntimeCertification must expose certifyPriorityPlugins")
+            if (!tests.contains("priorityRuntimeCertificationRunsOperationSmokeForEveryPriorityPlugin")) add("Integration runtime certification operation-smoke test is missing")
+            if (!tests.contains("priorityRuntimeCertificationRejectsProbeOnlySuccessWithoutOperationEvidence")) add("Integration runtime certification evidence rejection test is missing")
+            if (!tests.contains("roundTripVerified") || !tests.contains("stateArtifactKey")) add("Integration runtime certification must require external operation evidence")
+            if (!registrySource.contains("new VaultIntegration") || !registrySource.contains("new PlaceholderApiIntegration")) add("PaperIntegrationRegistry must wire Vault and PlaceholderAPI adapters")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
 }
 
 tasks.register("verifyFeatureParityMatrix") {

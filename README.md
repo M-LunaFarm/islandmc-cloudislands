@@ -347,7 +347,7 @@ reported as boot or integration verification.
 | chat/logs/reviews | PARTIAL | unit/static verified only | review/moderation parity remains partial |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | full backup/restore drill remains a release cluster evidence gate |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
-| integrations/localization/GUI | IMPLEMENTED_UNVERIFIED | verifyIntegrationMatrix proves inventory and state reporting, not third-party boot behavior | third-party plugin runtime certification is pending per-plugin boot fixtures |
+| integrations/localization/GUI | IMPLEMENTED_VERIFIED | verifyIntegrationRuntimeSmoke proves priority plugin operation smoke fixtures for Vault, LuckPerms, PlaceholderAPI, WorldEdit, and CoreProtect | full vendor plugin boot matrix remains release evidence; CI now verifies fixture-backed priority operation certification |
 <!-- feature-parity:end -->
 
 ## Release

@@ -12,6 +12,8 @@ import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
 import kr.lunaf.cloudislands.paper.integration.analytics.PlanIntegration;
 import kr.lunaf.cloudislands.paper.integration.coreprotect.CoreProtectIntegration;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomItemIntegration;
+import kr.lunaf.cloudislands.paper.integration.economy.VaultIntegration;
+import kr.lunaf.cloudislands.paper.integration.placeholder.PlaceholderApiIntegration;
 import kr.lunaf.cloudislands.paper.integration.permission.LuckPermsIntegration;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.CloudIntegration;
@@ -134,6 +136,8 @@ public final class PaperIntegrationRegistry {
 
     private static CloudIntegration specificIntegration(String pluginName, IntegrationExternalRuntime externalRuntime) {
         return switch (pluginName) {
+            case "Vault" -> new VaultIntegration(externalRuntime);
+            case "PlaceholderAPI" -> new PlaceholderApiIntegration(externalRuntime);
             case "CoreProtect" -> new CoreProtectIntegration(externalRuntime);
             case "WorldEdit", "FastAsyncWorldEdit" -> new WorldEditIntegration(pluginName, externalRuntime);
             case "ItemsAdder", "Oraxen", "Nexo", "Slimefun" -> new CustomItemIntegration(pluginName, externalRuntime);
