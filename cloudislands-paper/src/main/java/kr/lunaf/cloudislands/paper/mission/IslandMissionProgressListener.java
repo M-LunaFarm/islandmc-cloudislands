@@ -1,10 +1,15 @@
 package kr.lunaf.cloudislands.paper.mission;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
+import kr.lunaf.cloudislands.coreclient.ProgressionQueryClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.event.IslandMissionCompleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandMissionProgressEvent;
@@ -25,12 +30,17 @@ import org.bukkit.inventory.ItemStack;
 public final class IslandMissionProgressListener implements Listener {
     private final ProtectionController protection;
     private final ProgressionCommandClient progressionCommands;
+    private final ProgressionQueryClient progressionQueries;
     private final AtomicLong attempts = new AtomicLong();
     private final AtomicLong accepted = new AtomicLong();
     private final AtomicLong ignored = new AtomicLong();
     private final AtomicLong failures = new AtomicLong();
 
     public IslandMissionProgressListener(ProtectionController protection, ProgressionCommandClient progressionCommands) {
+        this(protection, progressionCommands, null);
+    }
+
+    public IslandMissionProgressListener(ProtectionController protection, ProgressionCommandClient progressionCommands, ProgressionQueryClient progressionQueries) {
         if (protection == null) {
             throw new IllegalArgumentException("protection is required");
         }
@@ -39,21 +49,22 @@ public final class IslandMissionProgressListener implements Listener {
         }
         this.protection = protection;
         this.progressionCommands = progressionCommands;
+        this.progressionQueries = progressionQueries;
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
-        progressAt(player, block, MissionProgressTriggers.blockBreak(materialKey(block.getType())));
+        progressAt(player, block, "BLOCK_BREAK", materialKey(block.getType()), 1L, MissionProgressTriggers.blockBreak(materialKey(block.getType())));
         if (block.getBlockData() instanceof Ageable ageable && ageable.getAge() >= ageable.getMaximumAge()) {
-            progressAt(player, block, MissionProgressTriggers.farmHarvest(materialKey(block.getType())));
+            progressAt(player, block, "FARM_HARVEST", materialKey(block.getType()), 1L, MissionProgressTriggers.farmHarvest(materialKey(block.getType())));
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
-        progressAt(event.getPlayer(), event.getBlockPlaced(), MissionProgressTriggers.blockPlace(materialKey(event.getBlockPlaced().getType())));
+        progressAt(event.getPlayer(), event.getBlockPlaced(), "BLOCK_PLACE", materialKey(event.getBlockPlaced().getType()), 1L, MissionProgressTriggers.blockPlace(materialKey(event.getBlockPlaced().getType())));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -64,7 +75,7 @@ public final class IslandMissionProgressListener implements Listener {
             return;
         }
         Block block = event.getEntity().getLocation().getBlock();
-        progressAt(killer, block, MissionProgressTriggers.mobKill(event.getEntityType().getKey().toString()));
+        progressAt(killer, block, "MOB_KILL", event.getEntityType().getKey().toString(), 1L, MissionProgressTriggers.mobKill(event.getEntityType().getKey().toString()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -72,7 +83,7 @@ public final class IslandMissionProgressListener implements Listener {
         if (event.getState() != PlayerFishEvent.State.CAUGHT_FISH) {
             return;
         }
-        progressAt(event.getPlayer(), event.getPlayer().getLocation().getBlock(), MissionProgressTriggers.fishingCatch());
+        progressAt(event.getPlayer(), event.getPlayer().getLocation().getBlock(), "FISHING", "catch", 1L, MissionProgressTriggers.fishingCatch());
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -82,18 +93,37 @@ public final class IslandMissionProgressListener implements Listener {
             return;
         }
         ItemStack result = event.getRecipe().getResult();
-        progressAt(player, player.getLocation().getBlock(), MissionProgressTriggers.crafting(materialKey(result.getType()), result.getAmount()));
+        progressAt(player, player.getLocation().getBlock(), "CRAFTING", materialKey(result.getType()), result.getAmount(), MissionProgressTriggers.crafting(materialKey(result.getType()), result.getAmount()));
     }
 
-    private void progressAt(Player player, Block block, java.util.List<MissionProgressTriggers.Trigger> triggers) {
+    private void progressAt(Player player, Block block, String triggerType, String targetKey, long amount, List<MissionProgressTriggers.Trigger> fallbackTriggers) {
         UUID islandId = protection.islandAt(block).orElse(null);
         if (islandId == null || !protection.memberOrTrusted(islandId, player.getUniqueId())) {
             ignored.incrementAndGet();
             return;
         }
-        for (MissionProgressTriggers.Trigger trigger : triggers) {
-            progress(islandId, player.getUniqueId(), trigger);
+        matchingDefinitionTriggers(islandId, triggerType, targetKey, amount)
+            .thenApply(definitionTriggers -> MissionProgressTriggers.merge(fallbackTriggers, definitionTriggers))
+            .thenAccept(triggers -> triggers.forEach(trigger -> progress(islandId, player.getUniqueId(), trigger)))
+            .exceptionally(exception -> {
+                failures.incrementAndGet();
+                fallbackTriggers.forEach(trigger -> progress(islandId, player.getUniqueId(), trigger));
+                return null;
+            });
+    }
+
+    private CompletableFuture<List<MissionProgressTriggers.Trigger>> matchingDefinitionTriggers(UUID islandId, String triggerType, String targetKey, long amount) {
+        if (progressionQueries == null) {
+            return CompletableFuture.completedFuture(List.of());
         }
+        CompletableFuture<List<CoreGuiViews.MissionView>> missions = progressionQueries.missions(islandId, "MISSION").exceptionally(exception -> List.of());
+        CompletableFuture<List<CoreGuiViews.MissionView>> challenges = progressionQueries.missions(islandId, "CHALLENGE").exceptionally(exception -> List.of());
+        return missions.thenCombine(challenges, (missionViews, challengeViews) -> {
+            List<MissionProgressTriggers.Trigger> triggers = new ArrayList<>();
+            triggers.addAll(MissionProgressTriggers.matchingDefinitions("MISSION", missionViews, triggerType, targetKey, amount));
+            triggers.addAll(MissionProgressTriggers.matchingDefinitions("CHALLENGE", challengeViews, triggerType, targetKey, amount));
+            return List.copyOf(triggers);
+        });
     }
 
     private void progress(UUID islandId, UUID actorUuid, MissionProgressTriggers.Trigger trigger) {
@@ -156,6 +186,6 @@ public final class IslandMissionProgressListener implements Listener {
     }
 
     public String eventPolicy() {
-        return "BlockBreakEvent,BlockPlaceEvent,EntityDeathEvent,PlayerFishEvent,CraftItemEvent";
+        return "BlockBreakEvent,BlockPlaceEvent,EntityDeathEvent,PlayerFishEvent,CraftItemEvent:definition-aware";
     }
 }

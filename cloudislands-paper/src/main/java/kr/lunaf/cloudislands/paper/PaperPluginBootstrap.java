@@ -109,7 +109,7 @@ final class PaperPluginBootstrap {
             plugin.generatorListener = new IslandGeneratorListener(plugin.agent.protection(), ConfigGeneratorRules.load(plugin), plugin.generatorLevels, blockDeltas);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.generatorListener);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandCropGrowthListener(plugin.agent.protection(), cropGrowthLevels));
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandMissionProgressListener(plugin.agent.protection(), client.progressionCommands()));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandMissionProgressListener(plugin.agent.protection(), client.progressionCommands(), client.progression()));
         }
         String fallbackServerName = config.routing().fallbackServerName();
         PaperRouteSessionRuntimeFactory.Runtime routeSessionRuntime = PaperRouteSessionRuntimeFactory.create(plugin, client, plugin.agent.routeTickets(), config, plugin.messages, plugin.playerLocales);
