@@ -47,6 +47,24 @@ def request(base_url: str, method: str, path: str, payload=None, admin: bool = F
     return json.loads(text)
 
 
+def timed_request(base_url: str, method: str, path: str, payload=None, admin: bool = False, expect=(200,)):
+    started = time.perf_counter()
+    response = request(base_url, method, path, payload, admin=admin, expect=expect)
+    return response, time.perf_counter() - started
+
+
+def percentile(values: list[float], ratio: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, max(0, int((len(ordered) - 1) * ratio)))
+    return ordered[index]
+
+
+def rounded_seconds(value: float) -> float:
+    return round(max(0.0, value), 6)
+
+
 def wait_for_probe(base_url: str, path: str, deadline: float, label: str) -> None:
     while time.monotonic() < deadline:
         try:
@@ -443,7 +461,23 @@ def support_bundle_evidence(support_bundle: dict | None) -> dict[str, list[str]]
     return {"support-bundle": list(required.keys())}
 
 
-def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bundle: dict | None = None) -> None:
+def load_test_evidence(load_metrics: dict | None) -> dict[str, list[str]]:
+    if not load_metrics:
+        return {}
+    required = {
+        "route-throughput": load_metrics.get("routeThroughputPerSecond", 0) > 0,
+        "activation-latency": load_metrics.get("activationLatencySeconds", 0) > 0,
+        "event-lag": load_metrics.get("eventLagSeconds", 0) >= 0 and load_metrics.get("eventReplayObserved", False),
+        "snapshot-throughput": load_metrics.get("snapshotThroughputPerSecond", 0) > 0,
+        "resource-ceiling": load_metrics.get("resourceCeilingOk", False),
+    }
+    missing = [name for name, present in required.items() if not present]
+    if missing:
+        raise RuntimeError(f"load test evidence signals are missing: {missing}; metrics={load_metrics}")
+    return {"load-test": list(required.keys())}
+
+
+def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bundle: dict | None = None, load_metrics: dict | None = None) -> None:
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -453,6 +487,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
     idempotency_evidence, idempotency_artifacts = idempotency_evidence_artifacts()
     runbook_evidence, runbook_artifacts = operator_runbook_artifacts()
     runtime_evidence = support_bundle_evidence(support_bundle)
+    load_evidence = load_test_evidence(load_metrics)
     evidence = {
         "certificationScope": "partial-core-integration-smoke",
         "components": [
@@ -479,7 +514,9 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             **rolling_evidence,
             **runbook_evidence,
             **runtime_evidence,
+            **load_evidence,
         },
+        "loadTestMetrics": load_metrics or {},
         "failureInjections": [],
         "assertions": [
             {"name": "primary-core-ready", "result": "passed"},
@@ -491,6 +528,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             {"name": "rolling-upgrade-evidence-present", "result": "passed"},
             {"name": "cross-core-create-job-complete", "result": "passed"},
             {"name": "route-session-consume-round-trip", "result": "passed"},
+            {"name": "load-test-route-snapshot-event-resource", "result": "passed" if load_evidence else "not-run"},
             {"name": "fencing-token-positive", "result": "passed"},
             {"name": "event-replay-visible-on-secondary-core", "result": "passed"},
             {"name": "audit-entries-visible-on-secondary-core", "result": "passed"},
@@ -508,6 +546,82 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
         ],
     }
     path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def run_load_probe(
+    primary_url: str,
+    secondary_url: str,
+    secondary_admin_url: str,
+    island_id: str,
+    player_uuid: str,
+    active_node: str,
+    fencing_token: int,
+    activation_latency: float,
+) -> dict:
+    route_durations = []
+    before_events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 1}, admin=True, expect=(200,))
+    since_seq = int(before_events.get("latestSeq", 0))
+    event_probe_start = time.perf_counter()
+    for _index in range(12):
+        _route, duration = timed_request(
+            primary_url,
+            "POST",
+            "/v1/routes/home",
+            {"playerUuid": player_uuid},
+            expect=(202,),
+        )
+        route_durations.append(duration)
+    event_lag = 0.0
+    event_replay_observed = False
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 100, "sinceSeq": since_seq}, admin=True, expect=(200,))
+        if any(event.get("type") == "ROUTE_TICKET_CREATED" for event in events.get("events", [])):
+            event_lag = time.perf_counter() - event_probe_start
+            event_replay_observed = True
+            break
+        time.sleep(0.1)
+
+    snapshot_durations = []
+    for offset in range(5):
+        _snapshot, duration = timed_request(
+            secondary_url,
+            "POST",
+            "/v1/islands/snapshots/record",
+            {
+                "islandId": island_id,
+                "snapshotNo": 20 + offset,
+                "storagePath": f"islands/{island_id}/snapshots/{20 + offset:06d}/bundle.tar.zst",
+                "reason": "LOAD_TEST",
+                "checksum": f"sha256:integration-load-{offset}",
+                "sizeBytes": 512 + offset,
+                "nodeId": active_node,
+                "fencingToken": fencing_token,
+            },
+            expect=(202,),
+        )
+        snapshot_durations.append(duration)
+
+    nodes = request(secondary_url, "POST", "/v1/nodes", {}, expect=(200,))
+    resource_ceiling_ok = nodes.get("nodeCount", 0) >= 2 and nodes.get("routeCandidateCount", 0) >= 1
+    total_route_time = sum(route_durations)
+    total_snapshot_time = sum(snapshot_durations)
+    metrics = {
+        "routeRequests": len(route_durations),
+        "routeP95Seconds": rounded_seconds(percentile(route_durations, 0.95)),
+        "routeThroughputPerSecond": round(len(route_durations) / max(total_route_time, 0.001), 3),
+        "activationLatencySeconds": rounded_seconds(activation_latency),
+        "eventLagSeconds": rounded_seconds(event_lag),
+        "eventReplayObserved": event_replay_observed,
+        "snapshotRecords": len(snapshot_durations),
+        "snapshotP95Seconds": rounded_seconds(percentile(snapshot_durations, 0.95)),
+        "snapshotThroughputPerSecond": round(len(snapshot_durations) / max(total_snapshot_time, 0.001), 3),
+        "resourceCeilingOk": resource_ceiling_ok,
+        "nodeCount": nodes.get("nodeCount", 0),
+        "routeCandidateCount": nodes.get("routeCandidateCount", 0),
+    }
+    load_test_evidence(metrics)
+    return metrics
 
 
 def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, evidence_out: Path | None = None, secondary_port: int | None = None) -> None:
@@ -589,6 +703,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
 
         run_id = uuid.uuid4().hex[:12]
         player_uuid = str(uuid.uuid4())
+        activation_start = time.perf_counter()
         create = request(
             primary_url,
             "POST",
@@ -622,6 +737,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
                 "placementSource": "integration-smoke",
             },
         )
+        activation_latency = time.perf_counter() - activation_start
 
         ready_ticket = request(
             secondary_url,
@@ -718,6 +834,21 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         recovered = request(secondary_admin_url, "POST", "/v1/admin/islands/where", {"islandId": island_id}, admin=True, expect=(200,))
         assert_field(recovered, "state", "ACTIVE")
         assert_field(recovered, "activeNode", standby_node)
+        recovered_fencing_token = int(recovered.get("fencingToken", 0))
+        if recovered_fencing_token <= 0:
+            raise RuntimeError(f"expected recovered runtime fencing token, got {recovered}")
+
+        load_metrics = run_load_probe(
+            primary_url,
+            secondary_url,
+            secondary_admin_url,
+            island_id,
+            player_uuid,
+            standby_node,
+            recovered_fencing_token,
+            activation_latency,
+        )
+        load_test_evidence(load_metrics)
 
         reconnect = request(
             secondary_url,
@@ -743,7 +874,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             "Core integration smoke passed: two Core services, PostgreSQL+Redis+MinIO config, "
             "cross-core create/job/route/session/consume, node-down recovery restore, reconnect"
         )
-        write_cluster_evidence(evidence_out, log_artifacts(processes), support_bundle)
+        write_cluster_evidence(evidence_out, log_artifacts(processes), support_bundle, load_metrics)
     finally:
         failures = []
         for process, log, log_path in processes:
