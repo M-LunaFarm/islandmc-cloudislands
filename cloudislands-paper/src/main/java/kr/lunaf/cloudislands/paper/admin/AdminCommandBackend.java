@@ -820,8 +820,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island quarantine", coreApiClient.lifecycle().quarantineIsland(islandId, args.length > 3 ? joined(args, 3) : "admin").thenApply(action -> islandLifecycleActionMessage("Island quarantine", islandId, action)));
             return true;
         }
-        if (args[1].equalsIgnoreCase("repair")) {
-            run(sender, "Island repair", coreApiClient.lifecycle().repairIsland(islandId, args.length > 3 ? joined(args, 3) : "admin").thenApply(action -> islandLifecycleActionMessage("Island repair", islandId, action)));
+        if (args[1].equalsIgnoreCase("recover") || args[1].equalsIgnoreCase("repair")) {
+            String actionLabel = args[1].equalsIgnoreCase("recover") ? "Island recover" : "Island repair";
+            run(sender, actionLabel, coreApiClient.lifecycle().repairIsland(islandId, args.length > 3 ? joined(args, 3) : "admin").thenApply(action -> islandLifecycleActionMessage(actionLabel, islandId, action)));
             return true;
         }
         if (args[1].equalsIgnoreCase("delete")) {
@@ -1075,6 +1076,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island restore <islandUuid|islandName> <snapshotNo>",
             "/ciadmin island rollback <islandUuid|islandName> <snapshotNo>",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
+            "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
             "/ciadmin island delete <islandUuid|islandName>"
         ));

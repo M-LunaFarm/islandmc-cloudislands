@@ -188,8 +188,11 @@ class AdminCommandBackendPolicyTest {
         String adminSurface = source + "\n" + catalog;
 
         assertTrue(adminSurface.contains("ciadmin island where <player|island>"), "Island where command must document player and island targets");
+        assertTrue(adminSurface.contains("ciadmin island recover <island>"), "Island recover command must be listed for operators");
         assertTrue(source.contains("coreApiClient.adminIslands().info"), "Island info command must use the typed Core admin island API");
         assertTrue(source.contains("coreApiClient.adminIslands().runtime"), "Island runtime command must use the typed Core admin island API");
+        assertTrue(source.contains("args[1].equalsIgnoreCase(\"recover\") || args[1].equalsIgnoreCase(\"repair\")"), "Island recover must be an explicit repair alias");
+        assertTrue(source.contains("coreApiClient.lifecycle().repairIsland"), "Island recover must use the typed lifecycle repair API");
         assertTrue(source.contains("islandWhereMessage"), "Island where must route through a player-aware resolver");
         assertTrue(source.contains("coreApiClient.playerProfiles().profile"), "Island where must resolve player primary islands through the typed player profile API");
         assertTrue(source.contains("profile.primaryIslandId()"), "Island where must use the player's primary island as the runtime target");
