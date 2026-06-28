@@ -343,33 +343,37 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     ),
     FeatureParityEntry(
         "bank/economy/missions/challenges/generators/limits",
-        "PARTIAL",
-        "bank, economy hooks, missions, and Satis generator policies exist",
-        "optional Satis feature pack has targeted tests",
+        "IMPLEMENTED_VERIFIED",
+        "bank safety, economy hooks, mission triggers/rewards, challenges, generator rules, and limits have verification gates",
+        "Paper mission listeners, bank rollback UX, and generator listeners have targeted tests",
         "version-neutral plus Paper/Satis runtime boundaries",
-        "unit verified; external economy/provider runtime coverage is integration-status only",
+        "verifyMissionEventProgress, verifyMissionRewardCoverage, verifyGeneratorRules, verifyEconomyTransactionSafety, and verifyIntegrationRuntimeSmoke cover the current scope",
         "not recovery-specific",
         listOf(
-            "cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/config/SatisFeatureGateResolverTest.java",
-            "cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeComponentPlanTest.java",
-            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java"
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java",
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/mission/MissionRewardServiceTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/BankUseCaseTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/IslandGeneratorListener.java",
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/GeneratorRoutesTest.java"
         ),
-        "provider-backed economy and mission parity are not fully production-certified"
+        "full live server economy/provider certification remains release evidence; fixture-backed priority Vault certification is now enforced"
     ),
     FeatureParityEntry(
         "chat/logs/reviews",
-        "PARTIAL",
-        "chat listener and audit/log surfaces exist",
-        "Paper chat listener compiles under matrix",
+        "IMPLEMENTED_VERIFIED",
+        "chat listener, audit/log routes, visitor stats, and review moderation have verification gates",
+        "Paper chat listener compiles under matrix and Core review moderation has route/repository/schema tests",
         "version-neutral where possible",
-        "unit/static verified only",
-        "audit log replay is covered in Core tests, review workflow is not complete",
+        "verifyReviewModerationCoverage plus Core audit/visitor route tests cover current workflow",
+        "audit log replay is covered in Core tests",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/AuditRoutesTest.java",
-            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutesTest.java"
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutesTest.java",
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/review/InMemoryIslandReviewRepositoryTest.java",
+            "cloudislands-core-service/src/main/resources/db/migration/V70__review_moderation.sql"
         ),
-        "review/moderation parity remains partial"
+        "live multi-player chat moderation smoke remains release evidence outside unit CI"
     ),
     FeatureParityEntry(
         "snapshots/rollback/migration/recovery",
