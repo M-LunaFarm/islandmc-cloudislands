@@ -202,7 +202,14 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
             CoreJson.number(root, "maxActiveIslands"),
             CoreJson.number(root, "activationQueue"),
             CoreJson.number(root, "maxActivationQueue"),
-            CoreJson.text(root, "mspt")
+            CoreJson.text(root, "mspt"),
+            CoreJson.bool(root, "storageAvailable", true),
+            CoreJson.bool(CoreJson.objectValue(root, "storage"), "primaryDegraded"),
+            CoreJson.number(CoreJson.objectValue(root, "storage"), "saveRetryQueueTotal"),
+            CoreJson.number(root, "secondsSinceHeartbeat"),
+            CoreJson.bool(root, "stale"),
+            CoreJson.bool(root, "routeCandidate", true),
+            CoreJson.text(root, "allocationBlockReason")
         );
     }
 

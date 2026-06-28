@@ -96,6 +96,10 @@ public final class AdminNodeMenu implements Listener {
             message(messages, "admin-node-menu-summary-mspt", "mspt: ") + fallback(summary.mspt(), "0"),
             message(messages, "admin-node-menu-summary-active-islands", "active islands: ") + summary.activeIslands() + "/" + summary.maxActiveIslands(),
             message(messages, "admin-node-menu-summary-queue", "queue: ") + summary.activationQueue() + "/" + summary.maxActivationQueue(),
+            message(messages, "admin-node-menu-summary-heartbeat", "heartbeat age: ") + heartbeatAge(summary.secondsSinceHeartbeat()) + (summary.stale() ? " stale" : ""),
+            message(messages, "admin-node-menu-summary-storage", "storage: ") + (summary.storageAvailable() ? "ok" : "down") + (summary.storagePrimaryDegraded() ? " degraded" : "") + " retry=" + summary.storageSaveRetryQueueTotal(),
+            message(messages, "admin-node-menu-summary-drain", "drain progress: ") + summary.activeIslands() + " active, queue " + summary.activationQueue(),
+            message(messages, "admin-node-menu-summary-shutdown", "shutdown safe: ") + yesNo(summary.shutdownSafe()) + (summary.allocationBlockReason().isBlank() ? "" : " block=" + summary.allocationBlockReason()),
             message(messages, "admin-node-menu-summary-policy", "작업 순서: Drain -> View Islands -> Move Load -> Shutdown Safe")
         );
     }
@@ -167,6 +171,14 @@ public final class AdminNodeMenu implements Listener {
 
     private static String fallback(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String heartbeatAge(long seconds) {
+        return seconds < 0L ? "unknown" : seconds + "s";
+    }
+
+    private static String yesNo(boolean value) {
+        return value ? "yes" : "no";
     }
 
 }

@@ -1956,7 +1956,7 @@ class CoreTypedClientsTest {
             ]}
             """;
         String nodeInfoBody = """
-            {"state":"READY","pool":"default","players":5,"softPlayerCap":50,"hardPlayerCap":80,"activeIslands":2,"maxActiveIslands":10,"activationQueue":1,"maxActivationQueue":5,"mspt":"12.5","lastHeartbeat":"2026-06-21T00:00:00Z"}
+            {"state":"DRAINING","pool":"default","players":5,"softPlayerCap":50,"hardPlayerCap":80,"activeIslands":2,"maxActiveIslands":10,"activationQueue":1,"maxActivationQueue":5,"mspt":"12.5","storageAvailable":false,"secondsSinceHeartbeat":42,"stale":true,"routeCandidate":false,"allocationBlockReason":"NODE_DRAINING","storage":{"primaryDegraded":true,"saveRetryQueueTotal":3},"lastHeartbeat":"2026-06-21T00:00:00Z"}
             """;
         String nodeIslandsBody = """
             {"nodeId":"node-a","count":2,"islands":[{"islandId":"%s","state":"ACTIVE","activeNode":"node-a","activeWorld":"world-a","cellX":1,"cellZ":2,"fencingToken":9,"activatedAt":"2026-06-21T00:00:00Z"}]}
@@ -1972,7 +1972,15 @@ class CoreTypedClientsTest {
         assertEquals(Map.of("load", 1.5D), nodes.get(0).scoreBreakdown());
         assertTrue(nodes.get(0).levelScan().running());
         assertTrue(nodes.get(0).storage().primaryDegraded());
-        assertEquals("READY", JdkAdminNodeQueryClient.nodeSummary("node-a", nodeInfoBody).state());
+        CoreGuiViews.NodeSummaryView nodeSummary = JdkAdminNodeQueryClient.nodeSummary("node-a", nodeInfoBody);
+        assertEquals("DRAINING", nodeSummary.state());
+        assertFalse(nodeSummary.storageAvailable());
+        assertTrue(nodeSummary.storagePrimaryDegraded());
+        assertEquals(3L, nodeSummary.storageSaveRetryQueueTotal());
+        assertEquals(42L, nodeSummary.secondsSinceHeartbeat());
+        assertTrue(nodeSummary.stale());
+        assertFalse(nodeSummary.routeCandidate());
+        assertEquals("NODE_DRAINING", nodeSummary.allocationBlockReason());
         assertEquals("node-a", JdkAdminNodeQueryClient.node("node-a", nodeInfoBody).orElseThrow().nodeId());
         assertTrue(JdkAdminNodeQueryClient.node("node-a", "{}").isEmpty());
         assertThrows(CoreApiException.class, () -> JdkAdminNodeQueryClient.node("node-a", "[]"));

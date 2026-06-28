@@ -511,6 +511,10 @@ class GuiSystemPolicyTest {
         assertTrue(definition.contains("\".LIADUSWM\""), "admin node action row must live in config-v2 layout");
         assertTrue(definition.contains("\"KQ..H.T.C\""), "admin node danger/help row must live in config-v2 layout");
         assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, symbol)"), "admin node actions must use menu definition slots");
+        assertTrue(menu.contains("heartbeat age"), "admin node GUI must show heartbeat age");
+        assertTrue(menu.contains("storage: "), "admin node GUI must show storage health");
+        assertTrue(menu.contains("drain progress"), "admin node GUI must show drain progress");
+        assertTrue(menu.contains("shutdown safe"), "admin node GUI must show safe shutdown readiness");
         assertFalse(menu.contains("slot <= 19"), "admin node actions must not use a Java hard-coded slot range");
     }
 

@@ -2143,7 +2143,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + adminText("admin-command-node-players-prefix", " players=") + node.players() + "/" + node.softPlayerCap() + "/" + node.hardPlayerCap()
             + adminText("admin-command-node-islands-prefix", " islands=") + node.activeIslands() + "/" + node.maxActiveIslands()
             + adminText("admin-command-node-queue-prefix", " queue=") + node.activationQueue() + "/" + node.maxActivationQueue()
-            + (node.mspt().isBlank() ? "" : adminText("admin-command-node-mspt-prefix", " mspt=") + node.mspt());
+            + (node.mspt().isBlank() ? "" : adminText("admin-command-node-mspt-prefix", " mspt=") + node.mspt())
+            + adminText("admin-command-node-heartbeat-prefix", " heartbeatAge=") + heartbeatAge(node.secondsSinceHeartbeat()) + (node.stale() ? " stale=true" : "")
+            + adminText("admin-command-node-storage-prefix", " storage=") + (node.storageAvailable() ? "OK" : "DOWN")
+            + (node.storagePrimaryDegraded() ? " degraded=true" : "")
+            + adminText("admin-command-node-storage-retry-prefix", " retry=") + node.storageSaveRetryQueueTotal()
+            + adminText("admin-command-node-shutdown-safe-prefix", " shutdownSafe=") + node.shutdownSafe()
+            + (node.allocationBlockReason().isBlank() ? "" : adminText("admin-command-node-block-prefix", " block=") + node.allocationBlockReason());
     }
 
     private String nodeActionSummaryMessage(String label, String requestedNodeId, AdminNodeActionView result) {
@@ -2164,6 +2170,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private String seconds(double value) {
         return String.format(java.util.Locale.ROOT, "%.3f", value);
+    }
+
+    private String heartbeatAge(long seconds) {
+        return seconds < 0L ? "unknown" : seconds + "s";
     }
 
     private void message(CommandSender sender, String text) {

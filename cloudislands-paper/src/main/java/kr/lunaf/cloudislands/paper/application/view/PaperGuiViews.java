@@ -195,11 +195,11 @@ public final class PaperGuiViews {
     }
 
     public static NodeSummaryView nodeSummary(CoreGuiViews.NodeSummaryView view) {
-        return new NodeSummaryView(view.nodeId(), view.state(), view.pool(), view.players(), view.softPlayerCap(), view.hardPlayerCap(), view.activeIslands(), view.maxActiveIslands(), view.activationQueue(), view.maxActivationQueue(), view.mspt());
+        return new NodeSummaryView(view.nodeId(), view.state(), view.pool(), view.players(), view.softPlayerCap(), view.hardPlayerCap(), view.activeIslands(), view.maxActiveIslands(), view.activationQueue(), view.maxActivationQueue(), view.mspt(), view.storageAvailable(), view.storagePrimaryDegraded(), view.storageSaveRetryQueueTotal(), view.secondsSinceHeartbeat(), view.stale(), view.routeCandidate(), view.allocationBlockReason());
     }
 
     public static NodeSummaryView emptyNodeSummary(String nodeId) {
-        return new NodeSummaryView(nodeId == null ? "" : nodeId, "UNKNOWN", "island", 0L, 0L, 0L, 0L, 0L, 0L, 0L, "0");
+        return new NodeSummaryView(nodeId == null ? "" : nodeId, "UNKNOWN", "island", 0L, 0L, 0L, 0L, 0L, 0L, 0L, "0", true, false, 0L, -1L, false, true, "");
     }
 
     public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid) {
@@ -284,6 +284,32 @@ public final class PaperGuiViews {
     public record LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt) {
     }
 
-    public record NodeSummaryView(String nodeId, String state, String pool, long players, long softPlayerCap, long hardPlayerCap, long activeIslands, long maxActiveIslands, long activationQueue, long maxActivationQueue, String mspt) {
+    public record NodeSummaryView(
+        String nodeId,
+        String state,
+        String pool,
+        long players,
+        long softPlayerCap,
+        long hardPlayerCap,
+        long activeIslands,
+        long maxActiveIslands,
+        long activationQueue,
+        long maxActivationQueue,
+        String mspt,
+        boolean storageAvailable,
+        boolean storagePrimaryDegraded,
+        long storageSaveRetryQueueTotal,
+        long secondsSinceHeartbeat,
+        boolean stale,
+        boolean routeCandidate,
+        String allocationBlockReason
+    ) {
+        public NodeSummaryView(String nodeId, String state, String pool, long players, long softPlayerCap, long hardPlayerCap, long activeIslands, long maxActiveIslands, long activationQueue, long maxActivationQueue, String mspt) {
+            this(nodeId, state, pool, players, softPlayerCap, hardPlayerCap, activeIslands, maxActiveIslands, activationQueue, maxActivationQueue, mspt, true, false, 0L, -1L, false, true, "");
+        }
+
+        public boolean shutdownSafe() {
+            return activeIslands <= 0L && activationQueue <= 0L && !stale;
+        }
     }
 }

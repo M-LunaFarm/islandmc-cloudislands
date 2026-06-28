@@ -346,6 +346,40 @@ public final class CoreGuiViews {
     public record LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt) {
     }
 
-    public record NodeSummaryView(String nodeId, String state, String pool, long players, long softPlayerCap, long hardPlayerCap, long activeIslands, long maxActiveIslands, long activationQueue, long maxActivationQueue, String mspt) {
+    public record NodeSummaryView(
+        String nodeId,
+        String state,
+        String pool,
+        long players,
+        long softPlayerCap,
+        long hardPlayerCap,
+        long activeIslands,
+        long maxActiveIslands,
+        long activationQueue,
+        long maxActivationQueue,
+        String mspt,
+        boolean storageAvailable,
+        boolean storagePrimaryDegraded,
+        long storageSaveRetryQueueTotal,
+        long secondsSinceHeartbeat,
+        boolean stale,
+        boolean routeCandidate,
+        String allocationBlockReason
+    ) {
+        public NodeSummaryView(String nodeId, String state, String pool, long players, long softPlayerCap, long hardPlayerCap, long activeIslands, long maxActiveIslands, long activationQueue, long maxActivationQueue, String mspt) {
+            this(nodeId, state, pool, players, softPlayerCap, hardPlayerCap, activeIslands, maxActiveIslands, activationQueue, maxActivationQueue, mspt, true, false, 0L, -1L, false, true, "");
+        }
+
+        public NodeSummaryView {
+            nodeId = nodeId == null ? "" : nodeId;
+            state = state == null ? "" : state;
+            pool = pool == null ? "" : pool;
+            mspt = mspt == null ? "" : mspt;
+            allocationBlockReason = allocationBlockReason == null ? "" : allocationBlockReason;
+        }
+
+        public boolean shutdownSafe() {
+            return activeIslands <= 0L && activationQueue <= 0L && !stale;
+        }
     }
 }

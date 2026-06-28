@@ -240,6 +240,9 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.adminMetrics().summary"), "Metrics command must use the typed Core metrics API");
         assertTrue(source.contains("metricsMessage(AdminMetricsSummaryView"), "Metrics command must render a typed metrics view");
         assertTrue(source.contains("coreApiClient.adminNodes().nodeInfo(nodeId)"), "Node menu must use the typed Core node API");
+        assertTrue(source.contains("heartbeatAge(node.secondsSinceHeartbeat())"), "Node info must expose heartbeat age");
+        assertTrue(source.contains("node.storagePrimaryDegraded()"), "Node info must expose storage degraded state");
+        assertTrue(source.contains("node.shutdownSafe()"), "Node info must expose safe shutdown readiness");
     }
 
     @Test

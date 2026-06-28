@@ -118,7 +118,14 @@ public final class IslandAdminNodeUseCase {
             view.maxActiveIslands(),
             view.activationQueue(),
             view.maxActivationQueue(),
-            view.mspt()
+            view.mspt(),
+            view.storageAvailable(),
+            view.storagePrimaryDegraded(),
+            view.storageSaveRetryQueueTotal(),
+            view.secondsSinceHeartbeat(),
+            view.stale(),
+            view.routeCandidate(),
+            view.allocationBlockReason()
         );
     }
 
