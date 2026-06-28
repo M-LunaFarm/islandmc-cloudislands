@@ -1411,6 +1411,29 @@ tasks.register("verifyGeneratorRules") {
     }
 }
 
+tasks.register("verifyUpgradeEffectCoverage") {
+    group = "verification"
+    description = "Verifies upgrade effects apply island limits, fly flags, and generator tier state."
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    val applier = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/upgrade/UpgradeEffectApplier.java")
+    val routes = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandUpgradeRoutes.java")
+    val test = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/upgrade/UpgradeEffectApplierTest.java")
+    inputs.files(applier, routes, test)
+    doLast {
+        val applierSource = applier.asFile.readText()
+        val routeSource = routes.asFile.readText()
+        val tests = test.asFile.readText()
+        val failures = buildList {
+            if (!applierSource.contains("generators.setProfile")) add("UpgradeEffectApplier must update generator profiles for generator upgrades")
+            if (!routeSource.contains("generatorRepository")) add("IslandUpgradeRoutes must pass generatorRepository into upgrade effects")
+            if (!tests.contains("generatorUpgradeUpdatesAuthoritativeGeneratorProfile")) add("UpgradeEffectApplierTest must cover generator profile effects")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifyMissionEventProgress") {
     group = "verification"
     description = "Verifies Paper mission event progress listeners and tests remain present."
@@ -1427,6 +1450,29 @@ tasks.register("verifyMissionEventProgress") {
         }
         if (!test.asFile.isFile) {
             throw GradleException("Mission progress trigger test is missing")
+        }
+    }
+}
+
+tasks.register("verifyMissionRewardCoverage") {
+    group = "verification"
+    description = "Verifies mission reward types cover bank, command, item, upgrade discount, permission, limits, and generator tier."
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    val service = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/mission/MissionRewardService.java")
+    val test = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/mission/MissionRewardServiceTest.java")
+    inputs.files(service, test)
+    doLast {
+        val source = service.asFile.readText()
+        val tests = test.asFile.readText()
+        val requiredTypes = listOf("BANK_DEPOSIT", "COMMAND", "ITEM", "UPGRADE_DISCOUNT", "PERMISSION_TEMPORARY", "LIMIT_INCREASE", "GENERATOR_TIER")
+        val missingTypes = requiredTypes.filterNot(source::contains)
+        val missingTests = listOf("appliesCoreBackedMissionRewards", "queuesPaperDeliveredMissionRewards").filterNot(tests::contains)
+        val failures = buildList {
+            if (missingTypes.isNotEmpty()) add("MissionRewardService missing reward types: ${missingTypes.joinToString(", ")}")
+            if (missingTests.isNotEmpty()) add("MissionRewardServiceTest missing coverage: ${missingTests.joinToString(", ")}")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
         }
     }
 }
@@ -1790,6 +1836,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyRouteDomainCoverage"))
     dependsOn(tasks.named("verifyEventCoverage"))
     dependsOn(tasks.named("verifyMissionEventProgress"))
+    dependsOn(tasks.named("verifyMissionRewardCoverage"))
     dependsOn(tasks.named("verifyGuiActionCoverage"))
     dependsOn(tasks.named("verifyGuiButtonCoverage"))
     dependsOn(tasks.named("verifyPermissionCoverage"))
@@ -1797,6 +1844,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyMetricCoverage"))
     dependsOn(tasks.named("verifyMigrationFixtures"))
     dependsOn(tasks.named("verifyGeneratorRules"))
+    dependsOn(tasks.named("verifyUpgradeEffectCoverage"))
     dependsOn(tasks.named("verifyEconomyTransactionSafety"))
     dependsOn(tasks.named("verifyIntegrationRuntimeSmoke"))
     dependsOn(tasks.named("verifyFeatureParityMatrix"))

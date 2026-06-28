@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.generator.IslandGeneratorRepository;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
@@ -58,6 +59,22 @@ public final class IslandUpgradeRoutes implements RouteGroup {
             IslandLogRepository islandLogs,
             AuditLogger audit,
             GlobalEventPublisher events) {
+        this(upgradeRepository, upgradeService, upgradePolicy, bankRepository, limitRepository, null, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events);
+    }
+
+    public IslandUpgradeRoutes(
+            IslandUpgradeRepository upgradeRepository,
+            IslandUpgradeService upgradeService,
+            UpgradePolicy upgradePolicy,
+            IslandBankRepository bankRepository,
+            IslandLimitRepository limitRepository,
+            IslandGeneratorRepository generatorRepository,
+            IslandRepository islandRepository,
+            IslandMetadataRepository metadataRepository,
+            IslandPermissionRuleRepository permissionRules,
+            IslandLogRepository islandLogs,
+            AuditLogger audit,
+            GlobalEventPublisher events) {
         this.upgradeRepository = upgradeRepository;
         this.upgradeService = upgradeService;
         this.upgradePolicy = upgradePolicy;
@@ -69,7 +86,7 @@ public final class IslandUpgradeRoutes implements RouteGroup {
         this.islandLogs = islandLogs;
         this.audit = audit;
         this.events = events;
-        this.effectApplier = new UpgradeEffectApplier(limitRepository, islandRepository, metadataRepository, islandLogs, events);
+        this.effectApplier = new UpgradeEffectApplier(limitRepository, islandRepository, metadataRepository, generatorRepository, islandLogs, events);
     }
 
     @Override

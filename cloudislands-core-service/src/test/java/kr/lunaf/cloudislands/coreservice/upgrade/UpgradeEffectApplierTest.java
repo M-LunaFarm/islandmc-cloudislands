@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.generator.InMemoryIslandGeneratorRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
@@ -49,5 +50,19 @@ class UpgradeEffectApplierTest {
         assertEquals("true", metadata.flags(ISLAND_ID).values().get(IslandFlag.FLY));
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_FLAG_CHANGED.name()));
         assertTrue(logs.list(ISLAND_ID, 10).stream().anyMatch(record -> record.action().equals("ISLAND_UPGRADE_EFFECT") && record.payload().get("effect").equals("FLY_ACCESS")));
+    }
+
+    @Test
+    void generatorUpgradeUpdatesAuthoritativeGeneratorProfile() {
+        InMemoryIslandGeneratorRepository generators = new InMemoryIslandGeneratorRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+
+        new UpgradeEffectApplier(new InMemoryIslandLimitRepository(), new InMemoryIslandRepository(), new InMemoryIslandMetadataRepository(), generators, logs, events)
+            .apply(ISLAND_ID, OWNER_ID, new UpgradeRule("generator", UpgradeType.GENERATOR_LEVEL, 5, BigDecimal.ZERO, BigDecimal.ONE, Map.of(3, 4L)), UpgradeType.GENERATOR_LEVEL, 3);
+
+        assertEquals("default", generators.profile(ISLAND_ID).generatorKey());
+        assertEquals(4, generators.profile(ISLAND_ID).level());
+        assertTrue(logs.list(ISLAND_ID, 10).stream().anyMatch(record -> record.action().equals("ISLAND_UPGRADE_EFFECT") && record.payload().get("effect").equals("GENERATOR_LEVEL")));
     }
 }

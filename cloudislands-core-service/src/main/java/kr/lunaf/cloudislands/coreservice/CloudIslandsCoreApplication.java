@@ -298,12 +298,12 @@ public final class CloudIslandsCoreApplication {
         new EventRoutes(inMemoryEvents).register(route);
         new AuditRoutes(audit).register(route);
         new AddonRoutes(addonStates, audit, events).register(route);
-        new ProgressionRoutes(rankingRepository, domainServices.upgradePolicy(), levelRepository, missionRepository, bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
+        new ProgressionRoutes(rankingRepository, domainServices.upgradePolicy(), levelRepository, missionRepository, bankRepository, limitRepository, generatorRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
         new GeneratorRoutes(generatorRepository, upgradeRepository, islandRepository).register(route);
         new PermissionRoleRoutes(islandRepository, metadataRepository, permissionRules, roleRepository, islandLogs, audit, events).register(route);
         new IslandBankRoutes(bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
         new IslandBlockLevelRoutes(levelRepository, rankingRepository, domainServices.levelRecalculation(), islandRepository, metadataRepository, permissionRules, audit, events).register(route);
-        new IslandUpgradeRoutes(upgradeRepository, domainServices.upgradeService(), domainServices.upgradePolicy(), bankRepository, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
+        new IslandUpgradeRoutes(upgradeRepository, domainServices.upgradeService(), domainServices.upgradePolicy(), bankRepository, limitRepository, generatorRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events).register(route);
         new IslandCommunicationRoutes(islandLogs, islandRepository, metadataRepository, playerProfiles, events).register(route);
         new IslandSnapshotRoutes(snapshotRepository, runtimeRepository, snapshotRetentionPolicy, events).register(route);
         new IslandMemberRoutes(islandRepository, metadataRepository, limitRepository, permissionRules, playerProfiles, islandLogs, audit, events).register(route);

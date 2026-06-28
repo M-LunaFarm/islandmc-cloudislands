@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.generator.IslandGeneratorRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
@@ -17,6 +18,7 @@ public final class UpgradeEffectApplier {
     private final IslandLimitRepository limits;
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
+    private final IslandGeneratorRepository generators;
     private final IslandLogRepository islandLogs;
     private final GlobalEventPublisher events;
 
@@ -26,15 +28,27 @@ public final class UpgradeEffectApplier {
             IslandMetadataRepository metadata,
             IslandLogRepository islandLogs,
             GlobalEventPublisher events) {
+        this(limits, islands, metadata, null, islandLogs, events);
+    }
+
+    public UpgradeEffectApplier(
+            IslandLimitRepository limits,
+            IslandRepository islands,
+            IslandMetadataRepository metadata,
+            IslandGeneratorRepository generators,
+            IslandLogRepository islandLogs,
+            GlobalEventPublisher events) {
         this.limits = limits;
         this.islands = islands;
         this.metadata = metadata;
+        this.generators = generators;
         this.islandLogs = islandLogs;
         this.events = events;
     }
 
     public void apply(UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {
         applyLimitEffect(islandId, actorUuid, rule, type, level);
+        applyGeneratorEffect(islandId, actorUuid, rule, type, level);
         applyFlagEffect(islandId, actorUuid, type);
     }
 
@@ -59,6 +73,37 @@ public final class UpgradeEffectApplier {
         }
         events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of("islandId", islandId.toString(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
         islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_EFFECT", Map.of("effect", type.name(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
+    }
+
+    private void applyGeneratorEffect(UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {
+        if (type != UpgradeType.GENERATOR_LEVEL || generators == null) {
+            return;
+        }
+        String generatorKey = generatorKey(rule);
+        int effectiveLevel = (int) Math.max(1L, Math.min(Integer.MAX_VALUE, rule == null ? level : rule.limitValueForLevel(level).orElse(level)));
+        var snapshot = generators.setProfile(islandId, generatorKey, effectiveLevel);
+        events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of(
+            "islandId", islandId.toString(),
+            "upgradeType", type.name(),
+            "generatorKey", snapshot.generatorKey(),
+            "level", Integer.toString(snapshot.level())
+        ));
+        islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_EFFECT", Map.of(
+            "effect", type.name(),
+            "generatorKey", snapshot.generatorKey(),
+            "level", Integer.toString(snapshot.level())
+        ));
+    }
+
+    private static String generatorKey(UpgradeRule rule) {
+        String key = rule == null ? "" : rule.upgradeKey();
+        if (key == null || key.isBlank() || key.equals("generator")) {
+            return "default";
+        }
+        if (key.startsWith("generator:")) {
+            return key.substring("generator:".length()).trim().toLowerCase();
+        }
+        return key.trim().toLowerCase();
     }
 
     private void applyIslandSize(UUID islandId, long size) {

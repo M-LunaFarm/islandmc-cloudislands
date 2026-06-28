@@ -127,7 +127,7 @@ class ProgressionRoutesTest {
     void appliesBankDepositMissionReward() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000091");
         InMemoryIslandBankRepository bank = new InMemoryIslandBankRepository();
-        ProgressionRoutes routes = new ProgressionRoutes(null, null, null, null, bank, null, null, null, null, null, null, null);
+        ProgressionRoutes routes = new ProgressionRoutes(null, null, null, null, bank, null, null, null, null, null, null, null, null);
         IslandMissionSnapshot mission = new IslandMissionSnapshot(
             islandId,
             "reward_bank",

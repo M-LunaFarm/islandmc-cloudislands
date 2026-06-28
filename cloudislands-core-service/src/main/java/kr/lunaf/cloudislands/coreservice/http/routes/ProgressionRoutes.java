@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,6 +17,7 @@ import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.generator.IslandGeneratorRepository;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
@@ -26,6 +26,7 @@ import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.mission.IslandMissionRepository;
+import kr.lunaf.cloudislands.coreservice.mission.MissionRewardService;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
@@ -48,6 +49,7 @@ public final class ProgressionRoutes implements RouteGroup {
     private final IslandLogRepository islandLogs;
     private final AuditLogger audit;
     private final GlobalEventPublisher events;
+    private final MissionRewardService missionRewards;
 
     public ProgressionRoutes(
             RankingRepository rankingRepository,
@@ -61,7 +63,7 @@ public final class ProgressionRoutes implements RouteGroup {
             IslandLogRepository islandLogs,
             AuditLogger audit,
             GlobalEventPublisher events) {
-        this(rankingRepository, upgradePolicy, levelRepository, missionRepository, null, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events);
+        this(rankingRepository, upgradePolicy, levelRepository, missionRepository, null, limitRepository, null, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events);
     }
 
     public ProgressionRoutes(
@@ -71,6 +73,7 @@ public final class ProgressionRoutes implements RouteGroup {
             IslandMissionRepository missionRepository,
             IslandBankRepository bankRepository,
             IslandLimitRepository limitRepository,
+            IslandGeneratorRepository generatorRepository,
             IslandRepository islandRepository,
             IslandMetadataRepository metadataRepository,
             IslandPermissionRuleRepository permissionRules,
@@ -89,6 +92,7 @@ public final class ProgressionRoutes implements RouteGroup {
         this.islandLogs = islandLogs;
         this.audit = audit;
         this.events = events;
+        this.missionRewards = new MissionRewardService(bankRepository, limitRepository, generatorRepository, permissionRules);
     }
 
     @Override
@@ -130,7 +134,7 @@ public final class ProgressionRoutes implements RouteGroup {
             }
             java.util.Optional<IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey, kind);
             completed.ifPresent(snapshot -> {
-                MissionRewardApplication reward = applyMissionReward(snapshot);
+                MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
                 audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward));
                 islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward));
                 events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward));
@@ -158,7 +162,7 @@ public final class ProgressionRoutes implements RouteGroup {
                 "completed", Boolean.toString(snapshot.completed())
             )));
             progressed.filter(IslandMissionSnapshot::completed).ifPresent(snapshot -> {
-                MissionRewardApplication reward = applyMissionReward(snapshot);
+                MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
                 audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward));
                 islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward));
                 events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward));
@@ -206,51 +210,16 @@ public final class ProgressionRoutes implements RouteGroup {
     }
 
     MissionRewardApplication applyMissionReward(IslandMissionSnapshot snapshot) {
-        if (snapshot == null || !snapshot.completed()) {
-            return MissionRewardApplication.skipped("MISSION_NOT_COMPLETED");
-        }
-        if (!snapshot.rewardType().equalsIgnoreCase("BANK_DEPOSIT")) {
-            return MissionRewardApplication.skipped(snapshot.rewardType().isBlank() ? "NO_REWARD" : "UNSUPPORTED_REWARD_" + snapshot.rewardType());
-        }
-        if (bankRepository == null) {
-            return MissionRewardApplication.skipped("BANK_REPOSITORY_UNAVAILABLE");
-        }
-        Optional<BigDecimal> amount = bankDepositRewardAmount(snapshot);
-        if (amount.isEmpty()) {
-            return MissionRewardApplication.skipped("INVALID_BANK_REWARD");
-        }
-        try {
-            var deposited = bankRepository.deposit(snapshot.islandId(), amount.get());
-            return new MissionRewardApplication(true, "BANK_DEPOSITED", deposited.balance());
-        } catch (RuntimeException exception) {
-            return MissionRewardApplication.skipped("BANK_REWARD_FAILED");
-        }
+        return applyMissionReward(snapshot, new UUID(0L, 0L));
     }
 
-    static Optional<BigDecimal> bankDepositRewardAmount(IslandMissionSnapshot snapshot) {
-        String reward = snapshot == null ? "" : snapshot.reward();
-        StringBuilder amount = new StringBuilder();
-        boolean started = false;
-        for (int index = 0; index < reward.length(); index++) {
-            char current = reward.charAt(index);
-            if (Character.isDigit(current) || current == '.' || current == ',') {
-                started = true;
-                if (current != ',') {
-                    amount.append(current);
-                }
-            } else if (started) {
-                break;
-            }
-        }
-        if (amount.isEmpty()) {
-            return Optional.empty();
-        }
-        try {
-            BigDecimal parsed = new BigDecimal(amount.toString());
-            return parsed.signum() > 0 ? Optional.of(parsed) : Optional.empty();
-        } catch (NumberFormatException exception) {
-            return Optional.empty();
-        }
+    MissionRewardApplication applyMissionReward(IslandMissionSnapshot snapshot, UUID actorUuid) {
+        MissionRewardService.MissionRewardResult result = missionRewards.apply(snapshot, actorUuid);
+        return new MissionRewardApplication(result.applied(), result.code(), result.balance(), result.details());
+    }
+
+    static Optional<java.math.BigDecimal> bankDepositRewardAmount(IslandMissionSnapshot snapshot) {
+        return MissionRewardService.bankDepositRewardAmount(snapshot);
     }
 
     private static Map<String, String> missionCompleteFields(IslandMissionSnapshot snapshot, MissionRewardApplication reward) {
@@ -264,6 +233,7 @@ public final class ProgressionRoutes implements RouteGroup {
         if (!reward.balance().isBlank()) {
             fields.put("bankBalance", reward.balance());
         }
+        fields.putAll(reward.details());
         return fields;
     }
 
@@ -273,14 +243,15 @@ public final class ProgressionRoutes implements RouteGroup {
         return fields;
     }
 
-    record MissionRewardApplication(boolean applied, String code, String balance) {
+    record MissionRewardApplication(boolean applied, String code, String balance, Map<String, String> details) {
         MissionRewardApplication {
             code = code == null ? "" : code;
             balance = balance == null ? "" : balance;
+            details = details == null ? Map.of() : Map.copyOf(details);
         }
 
         static MissionRewardApplication skipped(String code) {
-            return new MissionRewardApplication(false, code, "");
+            return new MissionRewardApplication(false, code, "", Map.of());
         }
     }
 
