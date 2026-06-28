@@ -41,10 +41,14 @@ final class IslandProgressionCommandHandler {
     private final Runtime runtime;
 
     IslandProgressionCommandHandler(Plugin plugin, CoreApiClient coreApiClient, IslandLevelScanService levelScanService, Runtime runtime) {
+        this(plugin, coreApiClient, levelScanService, runtime, "default");
+    }
+
+    IslandProgressionCommandHandler(Plugin plugin, CoreApiClient coreApiClient, IslandLevelScanService levelScanService, Runtime runtime, String defaultGeneratorKey) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.progressionUseCase = new IslandProgressionUseCase(coreApiClient);
-        this.generatorInfoUseCase = new GeneratorInfoUseCase(coreApiClient, ConfigGeneratorRules.load(plugin));
+        this.generatorInfoUseCase = new GeneratorInfoUseCase(coreApiClient, ConfigGeneratorRules.load(plugin), defaultGeneratorKey);
         this.levelScanService = levelScanService;
         this.runtime = runtime;
     }

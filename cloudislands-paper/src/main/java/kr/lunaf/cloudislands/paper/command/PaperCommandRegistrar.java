@@ -42,7 +42,7 @@ public final class PaperCommandRegistrar {
         PluginCommand island = plugin.getCommand("island");
         if (island != null) {
             IslandLevelScanService levelScanService = new IslandLevelScanService(plugin, activeIslands, client);
-            IslandCommandController islandController = new IslandCommandController(plugin, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, nodeId);
+            IslandCommandController islandController = new IslandCommandController(plugin, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, nodeId, plugin.runtimeConfig().generator().defaultKey());
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, islandController);
