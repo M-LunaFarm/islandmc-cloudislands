@@ -1494,8 +1494,11 @@ tasks.register("verifyMissionEventProgress") {
     inputs.files(listener, test)
     doLast {
         val listenerSource = listener.asFile.readText()
+        val triggerSource = test.asFile.readText()
         val missingSignals = listOf("BlockBreakEvent", "BlockPlaceEvent", "EntityDeathEvent", "PlayerFishEvent", "CraftItemEvent", "Ageable")
-            .filterNot(listenerSource::contains)
+            .filterNot(listenerSource::contains) +
+            listOf("BANK_BALANCE", "GENERATOR_COLLECT", "bankBalance", "generatorCollect")
+                .filterNot { triggerSource.contains(it) || listenerSource.contains(it) }
         if (missingSignals.isNotEmpty()) {
             throw GradleException("Mission event progress listener missing triggers: ${missingSignals.joinToString(", ")}")
         }
@@ -1555,7 +1558,7 @@ tasks.register("verifyGuiButtonCoverage") {
     inputs.files(buttonState, policyTest)
     doLast {
         val source = buttonState.asFile.readText()
-        val requiredStates = listOf("ENABLED", "DISABLED_NO_PERMISSION", "DISABLED_REQUIREMENT_NOT_MET", "LOADING_OR_ERROR")
+        val requiredStates = listOf("ENABLED", "DISABLED_NO_PERMISSION", "DISABLED_REQUIREMENT_NOT_MET", "DISABLED_NOT_ENOUGH_MONEY", "LOADING", "ERROR_RETRYABLE", "ERROR_FATAL")
         val missing = requiredStates.filterNot(source::contains)
         if (missing.isNotEmpty()) {
             throw GradleException("GUI button states missing: ${missing.joinToString(", ")}")

@@ -56,6 +56,22 @@ public final class MissionProgressTriggers {
         return List.copyOf(triggers);
     }
 
+    public static List<Trigger> bankBalance(long balance) {
+        long safeBalance = Math.max(1L, balance);
+        return List.of(new Trigger("bank_balance", "MISSION", safeBalance));
+    }
+
+    public static List<Trigger> generatorCollect(String materialKey, long amount) {
+        long safeAmount = Math.max(1L, amount);
+        List<Trigger> triggers = new ArrayList<>();
+        triggers.add(new Trigger("generator_collect", "MISSION", safeAmount));
+        String normalized = normalizeKey(materialKey);
+        if (!normalized.isBlank()) {
+            triggers.add(new Trigger("generator_collect:" + normalized, "MISSION", safeAmount));
+        }
+        return List.copyOf(triggers);
+    }
+
     public static List<Trigger> merge(List<Trigger> fallback, List<Trigger> definitions) {
         Map<String, Trigger> merged = new LinkedHashMap<>();
         for (Trigger trigger : fallback == null ? List.<Trigger>of() : fallback) {

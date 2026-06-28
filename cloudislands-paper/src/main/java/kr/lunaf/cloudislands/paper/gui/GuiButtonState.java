@@ -7,7 +7,10 @@ public enum GuiButtonState {
     ENABLED("gui-button-state-enabled", "상태: 사용 가능", true),
     DISABLED_NO_PERMISSION("gui-button-state-disabled-no-permission", "상태: 권한 없음", false),
     DISABLED_REQUIREMENT_NOT_MET("gui-button-state-disabled-requirement-not-met", "상태: 조건 미충족", false),
-    LOADING_OR_ERROR("gui-button-state-loading-or-error", "상태: 로딩 또는 오류", false);
+    DISABLED_NOT_ENOUGH_MONEY("gui-button-state-disabled-not-enough-money", "상태: 잔액 부족", false),
+    LOADING("gui-button-state-loading", "상태: 처리 중", false),
+    ERROR_RETRYABLE("gui-button-state-error-retryable", "상태: 재시도 가능 오류", false),
+    ERROR_FATAL("gui-button-state-error-fatal", "상태: 처리 불가 오류", false);
 
     private final String messageKey;
     private final String fallback;

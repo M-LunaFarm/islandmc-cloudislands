@@ -298,7 +298,15 @@ class GuiSystemPolicyTest {
         String upgrades = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandUpgradeMenu.java"));
         String missions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMissionMenu.java"));
 
-        assertEquals(List.of("ENABLED", "DISABLED_NO_PERMISSION", "DISABLED_REQUIREMENT_NOT_MET", "LOADING_OR_ERROR"), GuiSystemPolicy.buttonStates());
+        assertEquals(List.of(
+            "ENABLED",
+            "DISABLED_NO_PERMISSION",
+            "DISABLED_REQUIREMENT_NOT_MET",
+            "DISABLED_NOT_ENOUGH_MONEY",
+            "LOADING",
+            "ERROR_RETRYABLE",
+            "ERROR_FATAL"
+        ), GuiSystemPolicy.buttonStates());
         for (String state : GuiSystemPolicy.buttonStates()) {
             assertTrue(buttonState.contains(state), "shared GUI button state must define " + state);
         }

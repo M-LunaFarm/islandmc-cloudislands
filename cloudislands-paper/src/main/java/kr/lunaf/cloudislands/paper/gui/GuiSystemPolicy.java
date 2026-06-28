@@ -13,7 +13,7 @@ public final class GuiSystemPolicy {
     public static final String NODE_ADMIN_POLICY =
             "node-admin-gui-shows-node-load-and-safe-operation-buttons";
     public static final String BUTTON_STATE_POLICY =
-            "gui-buttons-render-enabled-disabled-permission-disabled-requirement-and-loading-or-error-states";
+            "gui-buttons-render-enabled-permission-requirement-money-loading-retryable-error-and-fatal-error-states";
 
     private static final List<String> MAIN_MENU_BUTTONS = List.of(
             "my-island-home",
@@ -75,7 +75,10 @@ public final class GuiSystemPolicy {
             "ENABLED",
             "DISABLED_NO_PERMISSION",
             "DISABLED_REQUIREMENT_NOT_MET",
-            "LOADING_OR_ERROR"
+            "DISABLED_NOT_ENOUGH_MONEY",
+            "LOADING",
+            "ERROR_RETRYABLE",
+            "ERROR_FATAL"
     );
 
     private GuiSystemPolicy() {
