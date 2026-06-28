@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.environment.IslandBiomePolicy;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
@@ -118,15 +119,19 @@ public final class IslandSettingsRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
-        String biomeKey = JsonFields.text(body, "biomeKey", "minecraft:plains").toLowerCase();
+        Optional<String> biomeKey = IslandBiomePolicy.normalize(JsonFields.text(body, "biomeKey", "minecraft:plains"));
+        if (biomeKey.isEmpty()) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_BIOME_KEY", "Unsupported island biome"));
+            return;
+        }
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.SET_BIOME)) {
             return;
         }
-        metadataRepository.setBiome(islandId, biomeKey, actorUuid);
-        audit.log(actorUuid, "PLAYER", "ISLAND_BIOME_SET", "ISLAND", islandId.toString(), Map.of("biomeKey", biomeKey));
-        islandLogs.append(islandId, actorUuid, "ISLAND_BIOME_SET", Map.of("biomeKey", biomeKey));
-        events.publish(CloudIslandEventType.ISLAND_BIOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "biomeKey", biomeKey));
-        CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+        metadataRepository.setBiome(islandId, biomeKey.get(), actorUuid);
+        audit.log(actorUuid, "PLAYER", "ISLAND_BIOME_SET", "ISLAND", islandId.toString(), Map.of("biomeKey", biomeKey.get()));
+        islandLogs.append(islandId, actorUuid, "ISLAND_BIOME_SET", Map.of("biomeKey", biomeKey.get()));
+        events.publish(CloudIslandEventType.ISLAND_BIOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "biomeKey", biomeKey.get()));
+        CoreHttpResponses.write(exchange, 202, biomeSetJson(islandId, actorUuid, biomeKey.get()));
     }
 
     private void setFlag(HttpExchange exchange) throws IOException {
@@ -205,6 +210,15 @@ public final class IslandSettingsRoutes implements RouteGroup {
         values.put("biomeKey", biome.biomeKey());
         values.put("updatedBy", biome.updatedBy());
         values.put("updatedAt", biome.updatedAt());
+        return SimpleJson.stringify(values);
+    }
+
+    static String biomeSetJson(UUID islandId, UUID actorUuid, String biomeKey) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("islandId", islandId);
+        values.put("biomeKey", biomeKey);
+        values.put("updatedBy", actorUuid);
         return SimpleJson.stringify(values);
     }
 }

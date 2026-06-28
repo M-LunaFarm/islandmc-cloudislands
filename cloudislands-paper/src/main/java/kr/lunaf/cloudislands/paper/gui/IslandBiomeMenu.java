@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.environment.IslandBiomePolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -29,18 +30,7 @@ public final class IslandBiomeMenu implements Listener {
     private static final String MENU_ID = MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
-    private static final List<String> BIOMES = List.of(
-        "minecraft:plains",
-        "minecraft:forest",
-        "minecraft:cherry_grove",
-        "minecraft:desert",
-        "minecraft:snowy_plains",
-        "minecraft:jungle",
-        "minecraft:swamp",
-        "minecraft:badlands",
-        "minecraft:taiga",
-        "minecraft:mushroom_fields"
-    );
+    private static final List<String> BIOMES = IslandBiomePolicy.supportedBiomes();
 
     public IslandBiomeMenu() {
         this(null);
