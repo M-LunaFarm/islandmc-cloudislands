@@ -34,11 +34,17 @@ public final class MigrationReportBuilder {
             sum(safeManifests, CountTarget.BLOCK_COUNTS),
             blocking,
             warnings,
+            importableIslandCount(safeManifests, blocking),
             issueCount(safeIssues, "OWNER_NOT_FOUND"),
+            worldPathMissingCount(safeManifests, safeIssues),
             missingCount(safeManifests, MissingTarget.HOMES),
             missingCount(safeManifests, MissingTarget.WARPS),
+            issueCount(safeIssues, MigrationReportBuilder::homeConversionFailure),
+            issueCount(safeIssues, MigrationReportBuilder::warpConversionFailure),
             issueCount(safeIssues, MigrationReportBuilder::permissionConversionFailure),
             issueCount(safeIssues, MigrationReportBuilder::unknownFlag),
+            issueCount(safeIssues, MigrationReportBuilder::blockValueConversionFailure),
+            issueCount(safeIssues, MigrationReportBuilder::bankEconomyConversionFailure),
             issueCount(safeIssues, MigrationReportBuilder::worldBundleChecksumFailure),
             issueCount(safeIssues, MigrationReportBuilder::cloudIslandsPostImportDifference),
             rollbackPossible(safeManifests, safeIssues),
@@ -74,12 +80,23 @@ public final class MigrationReportBuilder {
         return total;
     }
 
+    private static int importableIslandCount(List<MigrationManifest> manifests, int blockingIssues) {
+        return blockingIssues == 0 ? manifests.size() : 0;
+    }
+
+    private static int worldPathMissingCount(List<MigrationManifest> manifests, List<MigrationIssue> issues) {
+        int missingManifests = missingCount(manifests, MissingTarget.SOURCE_WORLDS);
+        int sourceIssues = issueCount(issues, code -> code.equals("WORLD_SOURCE_NOT_FOUND"));
+        return Math.max(missingManifests, sourceIssues);
+    }
+
     private static int missingCount(List<MigrationManifest> manifests, MissingTarget target) {
         int total = 0;
         for (MigrationManifest manifest : manifests) {
             boolean missing = switch (target) {
                 case HOMES -> manifest.homes().isEmpty();
                 case WARPS -> manifest.warps().isEmpty();
+                case SOURCE_WORLDS -> manifest.sourceWorldPath() == null || manifest.sourceWorldPath().isBlank();
             };
             if (missing) {
                 total++;
@@ -103,12 +120,36 @@ public final class MigrationReportBuilder {
     }
 
     private static boolean permissionConversionFailure(String code) {
-        return code.contains("PERMISSION")
+        return (code.contains("PERMISSION") || code.contains("ROLE"))
             && (code.contains("CONVERSION") || code.contains("UNKNOWN") || code.contains("INVALID") || code.contains("MISMATCH"));
+    }
+
+    private static boolean homeConversionFailure(String code) {
+        return code.contains("HOME") && conversionFailureCode(code);
+    }
+
+    private static boolean warpConversionFailure(String code) {
+        return code.contains("WARP") && conversionFailureCode(code);
     }
 
     private static boolean unknownFlag(String code) {
         return code.contains("FLAG") && (code.contains("UNKNOWN") || code.contains("UNSUPPORTED") || code.contains("INVALID"));
+    }
+
+    private static boolean blockValueConversionFailure(String code) {
+        return code.contains("BLOCK_VALUE") && conversionFailureCode(code);
+    }
+
+    private static boolean bankEconomyConversionFailure(String code) {
+        return (code.contains("BANK") || code.contains("ECONOMY")) && conversionFailureCode(code);
+    }
+
+    private static boolean conversionFailureCode(String code) {
+        return code.contains("CONVERSION")
+            || code.contains("UNKNOWN")
+            || code.contains("UNSUPPORTED")
+            || code.contains("INVALID")
+            || code.contains("MISMATCH");
     }
 
     private static boolean worldBundleChecksumFailure(String code) {
@@ -158,6 +199,7 @@ public final class MigrationReportBuilder {
 
     private enum MissingTarget {
         HOMES,
-        WARPS
+        WARPS,
+        SOURCE_WORLDS
     }
 }

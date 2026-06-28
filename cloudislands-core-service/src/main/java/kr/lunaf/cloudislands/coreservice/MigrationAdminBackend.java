@@ -683,11 +683,17 @@ final class MigrationAdminBackend {
             + ",\"conflictStatus\":\"" + escape(report.conflictStatus()) + "\""
             + ",\"blockingIssues\":" + report.blockingIssues()
             + ",\"warningIssues\":" + report.warningIssues()
+            + ",\"importableIslandCount\":" + report.importableIslandCount()
             + ",\"ownerMissingCount\":" + report.ownerMissingCount()
+            + ",\"worldPathMissingCount\":" + report.worldPathMissingCount()
             + ",\"homeMissingCount\":" + report.homeMissingCount()
             + ",\"warpMissingCount\":" + report.warpMissingCount()
+            + ",\"homeConversionFailureCount\":" + report.homeConversionFailureCount()
+            + ",\"warpConversionFailureCount\":" + report.warpConversionFailureCount()
             + ",\"permissionConversionFailureCount\":" + report.permissionConversionFailureCount()
             + ",\"unknownFlagCount\":" + report.unknownFlagCount()
+            + ",\"blockValueConversionFailureCount\":" + report.blockValueConversionFailureCount()
+            + ",\"bankEconomyConversionFailureCount\":" + report.bankEconomyConversionFailureCount()
             + ",\"worldBundleChecksumFailureCount\":" + report.worldBundleChecksumFailureCount()
             + ",\"cloudIslandsPostImportDifferenceCount\":" + report.cloudIslandsPostImportDifferenceCount()
             + ",\"rollbackPossible\":" + report.rollbackPossible();
@@ -853,11 +859,17 @@ final class MigrationAdminBackend {
             + "\"conflictStatus\":\"" + escape(report.conflictStatus()) + "\","
             + "\"blockingIssues\":" + report.blockingIssues() + ','
             + "\"warningIssues\":" + report.warningIssues() + ','
+            + "\"importableIslandCount\":" + report.importableIslandCount() + ','
             + "\"ownerMissingCount\":" + report.ownerMissingCount() + ','
+            + "\"worldPathMissingCount\":" + report.worldPathMissingCount() + ','
             + "\"homeMissingCount\":" + report.homeMissingCount() + ','
             + "\"warpMissingCount\":" + report.warpMissingCount() + ','
+            + "\"homeConversionFailureCount\":" + report.homeConversionFailureCount() + ','
+            + "\"warpConversionFailureCount\":" + report.warpConversionFailureCount() + ','
             + "\"permissionConversionFailureCount\":" + report.permissionConversionFailureCount() + ','
             + "\"unknownFlagCount\":" + report.unknownFlagCount() + ','
+            + "\"blockValueConversionFailureCount\":" + report.blockValueConversionFailureCount() + ','
+            + "\"bankEconomyConversionFailureCount\":" + report.bankEconomyConversionFailureCount() + ','
             + "\"worldBundleChecksumFailureCount\":" + report.worldBundleChecksumFailureCount() + ','
             + "\"cloudIslandsPostImportDifferenceCount\":" + report.cloudIslandsPostImportDifferenceCount() + ','
             + "\"rollbackPossible\":" + report.rollbackPossible() + ','

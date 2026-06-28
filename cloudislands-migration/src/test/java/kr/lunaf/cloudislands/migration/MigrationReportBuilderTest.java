@@ -18,22 +18,39 @@ class MigrationReportBuilderTest {
             List.of(manifestWithoutHomeOrWarp()),
             List.of(
                 new MigrationIssue("OWNER_NOT_FOUND", "missing owner", true),
+                new MigrationIssue("WORLD_SOURCE_NOT_FOUND", "missing source world", true),
                 new MigrationIssue("PERMISSIONS_MISMATCH", "permissions differ after import", true),
                 new MigrationIssue("UNKNOWN_FLAG", "unknown flag", false),
+                new MigrationIssue("INVALID_BLOCK_VALUE", "invalid block value", true),
+                new MigrationIssue("INVALID_BANK_BALANCE", "invalid bank", true),
                 new MigrationIssue("WORLD_CHECKSUM_FAILED", "world checksum failed", true),
-                new MigrationIssue("HOMES_MISMATCH", "homes differ after import", true)
+                new MigrationIssue("HOMES_MISMATCH", "homes differ after import", true),
+                new MigrationIssue("WARPS_MISMATCH", "warps differ after import", true)
             )
         );
 
         assertEquals(1, report.totalIslands());
+        assertEquals(0, report.importableIslandCount());
         assertEquals(1, report.ownerMissingCount());
+        assertEquals(1, report.worldPathMissingCount());
         assertEquals(1, report.homeMissingCount());
         assertEquals(1, report.warpMissingCount());
+        assertEquals(1, report.homeConversionFailureCount());
+        assertEquals(1, report.warpConversionFailureCount());
         assertEquals(1, report.permissionConversionFailureCount());
         assertEquals(1, report.unknownFlagCount());
+        assertEquals(1, report.blockValueConversionFailureCount());
+        assertEquals(1, report.bankEconomyConversionFailureCount());
         assertEquals(1, report.worldBundleChecksumFailureCount());
-        assertEquals(2, report.cloudIslandsPostImportDifferenceCount());
+        assertEquals(3, report.cloudIslandsPostImportDifferenceCount());
         assertTrue(report.rollbackPossible());
+    }
+
+    @Test
+    void reportCountsImportableIslandsOnlyWhenDryRunHasNoBlockingIssues() {
+        MigrationReport report = MigrationReportBuilder.build(List.of(manifestWithoutHomeOrWarp()), List.of());
+
+        assertEquals(1, report.importableIslandCount());
     }
 
     @Test
