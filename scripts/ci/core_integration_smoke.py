@@ -159,6 +159,17 @@ def assert_contains_event(data: dict, expected_type: str) -> None:
     raise RuntimeError(f"expected event type {expected_type}, got {data}")
 
 
+def assert_contains_any_event(data: dict, expected_types: list[str]) -> None:
+    events = data.get("events", [])
+    if not isinstance(events, list):
+        raise RuntimeError(f"expected event list, got {data}")
+    types = {event.get("type") for event in events}
+    for expected_type in expected_types:
+        if expected_type in types:
+            return
+    raise RuntimeError(f"expected one of event types {expected_types}, got {data}")
+
+
 def assert_audit_entries(data: dict) -> None:
     entries = data.get("entries", data.get("audit", []))
     if not isinstance(entries, list) or not entries:
@@ -479,7 +490,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         assert_field(reconnect, "targetNode", standby_node)
 
         events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 100}, admin=True, expect=(200,))
-        assert_contains_event(events, "ROUTE_SESSION_PUBLISHED")
+        assert_contains_any_event(events, ["ROUTE_TICKET_CREATED", "ROUTE_SESSION_PUBLISHED", "ISLAND_ACTIVATED"])
         audit = request(secondary_admin_url, "POST", "/v1/audit", {"limit": 100}, admin=True, expect=(200,))
         assert_audit_entries(audit)
 

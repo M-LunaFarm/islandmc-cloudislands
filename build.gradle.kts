@@ -328,18 +328,21 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     ),
     FeatureParityEntry(
         "upgrades/size/border/biome",
-        "PARTIAL",
-        "border and biome command paths exist",
-        "Paper commands compile and unit tests cover command policy",
+        "IMPLEMENTED_VERIFIED",
+        "upgrade effects apply size, limits, fly, generator tier, biome validation, and player border policy",
+        "Paper commands compile and tests cover command policy plus border runtime calculation",
         "Paper adapter isolates version-sensitive runtime access",
-        "not covered by multi-service smoke",
+        "verifyUpgradeEffectCoverage covers Core upgrade effects, biome normalization, and Paper world-border policy",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.java",
-            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/compatibility/PaperPlatformBoundaryTest.java"
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/compatibility/PaperPlatformBoundaryTest.java",
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/upgrade/UpgradeEffectApplierTest.java",
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutesTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/IslandBorderRuntimePolicyTest.java"
         ),
-        "full upgrade economy and live biome/border interaction tests are still needed"
+        "full manual live-server biome painting remains release evidence; CI verifies the Core mutation and Paper border application policy"
     ),
     FeatureParityEntry(
         "bank/economy/missions/challenges/generators/limits",
@@ -1419,20 +1422,33 @@ tasks.register("verifyGeneratorRules") {
 
 tasks.register("verifyUpgradeEffectCoverage") {
     group = "verification"
-    description = "Verifies upgrade effects apply island limits, fly flags, and generator tier state."
+    description = "Verifies upgrade effects apply island limits, fly flags, generator tier state, and border/biome runtime policy coverage."
     dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
     val applier = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/upgrade/UpgradeEffectApplier.java")
     val routes = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandUpgradeRoutes.java")
     val test = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/upgrade/UpgradeEffectApplierTest.java")
-    inputs.files(applier, routes, test)
+    val settingsTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutesTest.java")
+    val borderPolicy = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/IslandBorderRuntimePolicy.java")
+    val borderPolicyTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/IslandBorderRuntimePolicyTest.java")
+    val environmentHandler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java")
+    inputs.files(applier, routes, test, settingsTest, borderPolicy, borderPolicyTest, environmentHandler)
     doLast {
         val applierSource = applier.asFile.readText()
         val routeSource = routes.asFile.readText()
         val tests = test.asFile.readText()
+        val settingsTests = settingsTest.asFile.readText()
+        val borderPolicySource = borderPolicy.asFile.readText()
+        val borderTests = borderPolicyTest.asFile.readText()
+        val environmentSource = environmentHandler.asFile.readText()
         val failures = buildList {
             if (!applierSource.contains("generators.setProfile")) add("UpgradeEffectApplier must update generator profiles for generator upgrades")
             if (!routeSource.contains("generatorRepository")) add("IslandUpgradeRoutes must pass generatorRepository into upgrade effects")
             if (!tests.contains("generatorUpgradeUpdatesAuthoritativeGeneratorProfile")) add("UpgradeEffectApplierTest must cover generator profile effects")
+            if (!settingsTests.contains("setBiomeNormalizesSupportedKeysAndRejectsUnsupportedKeys")) add("IslandSettingsRoutesTest must cover biome normalization and rejection")
+            if (!borderPolicySource.contains("BorderSettings") || !borderPolicySource.contains("region.originX()") || !borderPolicySource.contains("Math.max(1.0D, borderSize)")) add("IslandBorderRuntimePolicy must compute player world border center and size")
+            if (!borderTests.contains("appliesWorldBorderFromIslandRegionAndCoreSize") || !borderTests.contains("hiddenPolicySuppressesPlayerWorldBorder")) add("IslandBorderRuntimePolicyTest must cover visible and hidden border behavior")
+            if (!environmentSource.contains("IslandBorderRuntimePolicy.settings") || !environmentSource.contains("player.setWorldBorder(border)") || !environmentSource.contains("player.setWorldBorder(null)")) add("IslandEnvironmentCommandHandler must apply border runtime policy to the player world border")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))
