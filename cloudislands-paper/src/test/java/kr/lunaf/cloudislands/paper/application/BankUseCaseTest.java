@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
+import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.coreclient.BankCommandClient;
@@ -79,6 +80,53 @@ class BankUseCaseTest {
             (_auditAction, operation) -> operation.get()
         ).join());
         assertEquals(List.of("withdraw:1:CloudIslands island bank deposit", "deposit:1:CloudIslands island bank deposit rollback"), economy.calls);
+    }
+
+    @Test
+    void depositReportsUnavailableProviderBeforeEconomyWithdraw() {
+        FakeEconomy economy = new FakeEconomy(true);
+        economy.providerState = EconomyProviderState.NOT_INSTALLED;
+        BankUseCase useCase = new BankUseCase(coreApiClient(new ScriptedCoreBank()), economy);
+        List<String> auditActions = new ArrayList<>();
+
+        BankUseCase.BankOperationResult result = useCase.deposit(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            BigDecimal.ONE,
+            (auditAction, operation) -> {
+                auditActions.add(auditAction);
+                return operation.get();
+            }
+        ).join();
+
+        assertEquals(BankUseCase.Status.ECONOMY_UNAVAILABLE, result.status());
+        assertEquals(List.of(), economy.calls);
+        assertEquals(List.of(), auditActions);
+    }
+
+    @Test
+    void withdrawReportsFailedProviderBeforeCoreMutation() {
+        FakeEconomy economy = new FakeEconomy(true);
+        economy.providerState = EconomyProviderState.OPERATION_FAILED;
+        ScriptedCoreBank core = new ScriptedCoreBank();
+        BankUseCase useCase = new BankUseCase(coreApiClient(core), economy);
+        List<String> auditActions = new ArrayList<>();
+
+        BankUseCase.BankOperationResult result = useCase.withdraw(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            BigDecimal.ONE,
+            (auditAction, operation) -> {
+                auditActions.add(auditAction);
+                return operation.get();
+            }
+        ).join();
+
+        assertEquals(BankUseCase.Status.ECONOMY_OPERATION_FAILED, result.status());
+        assertEquals("ECONOMY_OPERATION_FAILED", result.code());
+        assertEquals(List.of(), core.calls);
+        assertEquals(List.of(), economy.calls);
+        assertEquals(List.of(), auditActions);
     }
 
     @Test
@@ -229,11 +277,17 @@ class BankUseCaseTest {
     private static final class FakeEconomy implements EconomyBridge {
         final List<String> calls = new ArrayList<>();
         final boolean withdrawResult;
+        EconomyProviderState providerState = EconomyProviderState.ACTIVE;
         boolean failWithdrawPayout;
         boolean failDepositRollback;
 
         FakeEconomy(boolean withdrawResult) {
             this.withdrawResult = withdrawResult;
+        }
+
+        @Override
+        public EconomyProviderState providerState() {
+            return providerState;
         }
 
         @Override

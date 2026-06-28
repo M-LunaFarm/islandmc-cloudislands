@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
+import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
 import kr.lunaf.cloudislands.coreclient.BankCommandClient;
 import kr.lunaf.cloudislands.coreclient.BankMutationView;
 import kr.lunaf.cloudislands.coreclient.BankQueryClient;
@@ -57,8 +58,9 @@ public final class BankUseCase {
         requireActor(actorUuid);
         requireAmount(amount);
         requireRunner(runner);
-        if (economyBridge == null) {
-            return CompletableFuture.completedFuture(BankOperationResult.economyUnavailable());
+        BankOperationResult unavailable = unavailableEconomyResult();
+        if (unavailable != null) {
+            return CompletableFuture.completedFuture(unavailable);
         }
         String normalizedAmount = amount.toPlainString();
         return economyBridge.withdraw(actorUuid, amount, "CloudIslands island bank deposit")
@@ -84,8 +86,9 @@ public final class BankUseCase {
         requireActor(actorUuid);
         requireAmount(amount);
         requireRunner(runner);
-        if (economyBridge == null) {
-            return CompletableFuture.completedFuture(BankOperationResult.economyUnavailable());
+        BankOperationResult unavailable = unavailableEconomyResult();
+        if (unavailable != null) {
+            return CompletableFuture.completedFuture(unavailable);
         }
         String normalizedAmount = amount.toPlainString();
         return runner.mutateIdempotent("island.bank.withdraw", () -> bankCommands.withdraw(islandId, actorUuid, normalizedAmount))
@@ -116,6 +119,21 @@ public final class BankUseCase {
 
     private CompletableFuture<Void> refundPlayer(UUID actorUuid, BigDecimal amount) {
         return economyBridge.deposit(actorUuid, amount, "CloudIslands island bank deposit rollback");
+    }
+
+    private BankOperationResult unavailableEconomyResult() {
+        if (economyBridge == null) {
+            return BankOperationResult.economyUnavailable();
+        }
+        EconomyProviderState state = economyBridge.providerState();
+        if (state == null) {
+            return BankOperationResult.economyUnavailable();
+        }
+        return switch (state) {
+            case NOT_INSTALLED, DETECTED -> BankOperationResult.economyUnavailable();
+            case OPERATION_FAILED -> BankOperationResult.economyOperationFailed();
+            case API_COMPATIBLE, ACTIVE -> null;
+        };
     }
 
     private static void requireIsland(UUID islandId) {
@@ -154,6 +172,7 @@ public final class BankUseCase {
     public enum Status {
         SUCCESS,
         ECONOMY_UNAVAILABLE,
+        ECONOMY_OPERATION_FAILED,
         ECONOMY_WITHDRAW_DENIED,
         CORE_REJECTED,
         REFUND_FAILED_AFTER_CORE_REJECTION,
@@ -168,6 +187,10 @@ public final class BankUseCase {
 
         private static BankOperationResult economyUnavailable() {
             return new BankOperationResult(Status.ECONOMY_UNAVAILABLE, "", "");
+        }
+
+        private static BankOperationResult economyOperationFailed() {
+            return new BankOperationResult(Status.ECONOMY_OPERATION_FAILED, "", "ECONOMY_OPERATION_FAILED");
         }
 
         private static BankOperationResult economyWithdrawDenied() {
