@@ -2,17 +2,21 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
+import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
@@ -36,6 +40,7 @@ public final class ProgressionRoutes implements RouteGroup {
     private final UpgradePolicy upgradePolicy;
     private final IslandLevelRepository levelRepository;
     private final IslandMissionRepository missionRepository;
+    private final IslandBankRepository bankRepository;
     private final IslandLimitRepository limitRepository;
     private final IslandRepository islandRepository;
     private final IslandMetadataRepository metadataRepository;
@@ -56,10 +61,27 @@ public final class ProgressionRoutes implements RouteGroup {
             IslandLogRepository islandLogs,
             AuditLogger audit,
             GlobalEventPublisher events) {
+        this(rankingRepository, upgradePolicy, levelRepository, missionRepository, null, limitRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events);
+    }
+
+    public ProgressionRoutes(
+            RankingRepository rankingRepository,
+            UpgradePolicy upgradePolicy,
+            IslandLevelRepository levelRepository,
+            IslandMissionRepository missionRepository,
+            IslandBankRepository bankRepository,
+            IslandLimitRepository limitRepository,
+            IslandRepository islandRepository,
+            IslandMetadataRepository metadataRepository,
+            IslandPermissionRuleRepository permissionRules,
+            IslandLogRepository islandLogs,
+            AuditLogger audit,
+            GlobalEventPublisher events) {
         this.rankingRepository = rankingRepository;
         this.upgradePolicy = upgradePolicy;
         this.levelRepository = levelRepository;
         this.missionRepository = missionRepository;
+        this.bankRepository = bankRepository;
         this.limitRepository = limitRepository;
         this.islandRepository = islandRepository;
         this.metadataRepository = metadataRepository;
@@ -106,11 +128,12 @@ public final class ProgressionRoutes implements RouteGroup {
             if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
                 return;
             }
-            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey, kind);
+            java.util.Optional<IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey, kind);
             completed.ifPresent(snapshot -> {
-                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind(), "reward", snapshot.reward()));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), Map.of("islandId", islandId.toString(), "missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
+                MissionRewardApplication reward = applyMissionReward(snapshot);
+                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward));
+                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward));
+                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward));
             });
             CoreHttpResponses.write(exchange, completed.isPresent() ? 202 : 404, completed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
@@ -124,7 +147,7 @@ public final class ProgressionRoutes implements RouteGroup {
             if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
                 return;
             }
-            java.util.Optional<kr.lunaf.cloudislands.api.model.IslandMissionSnapshot> progressed = missionRepository.progress(islandId, actorUuid, missionKey, kind, amount);
+            java.util.Optional<IslandMissionSnapshot> progressed = missionRepository.progress(islandId, actorUuid, missionKey, kind, amount);
             progressed.ifPresent(snapshot -> events.publish(CloudIslandEventType.ISLAND_MISSION_PROGRESS.name(), Map.of(
                 "islandId", islandId.toString(),
                 "missionKey", snapshot.missionKey(),
@@ -134,10 +157,11 @@ public final class ProgressionRoutes implements RouteGroup {
                 "amount", Long.toString(amount),
                 "completed", Boolean.toString(snapshot.completed())
             )));
-            progressed.filter(kr.lunaf.cloudislands.api.model.IslandMissionSnapshot::completed).ifPresent(snapshot -> {
-                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", Map.of("missionKey", snapshot.missionKey(), "kind", snapshot.kind(), "reward", snapshot.reward()));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), Map.of("islandId", islandId.toString(), "missionKey", snapshot.missionKey(), "kind", snapshot.kind()));
+            progressed.filter(IslandMissionSnapshot::completed).ifPresent(snapshot -> {
+                MissionRewardApplication reward = applyMissionReward(snapshot);
+                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward));
+                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward));
+                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward));
             });
             CoreHttpResponses.write(exchange, progressed.isPresent() ? 202 : 404, progressed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
@@ -179,6 +203,85 @@ public final class ProgressionRoutes implements RouteGroup {
             }
         }
         return Math.max(min, Math.min(fallback, max));
+    }
+
+    MissionRewardApplication applyMissionReward(IslandMissionSnapshot snapshot) {
+        if (snapshot == null || !snapshot.completed()) {
+            return MissionRewardApplication.skipped("MISSION_NOT_COMPLETED");
+        }
+        if (!snapshot.rewardType().equalsIgnoreCase("BANK_DEPOSIT")) {
+            return MissionRewardApplication.skipped(snapshot.rewardType().isBlank() ? "NO_REWARD" : "UNSUPPORTED_REWARD_" + snapshot.rewardType());
+        }
+        if (bankRepository == null) {
+            return MissionRewardApplication.skipped("BANK_REPOSITORY_UNAVAILABLE");
+        }
+        Optional<BigDecimal> amount = bankDepositRewardAmount(snapshot);
+        if (amount.isEmpty()) {
+            return MissionRewardApplication.skipped("INVALID_BANK_REWARD");
+        }
+        try {
+            var deposited = bankRepository.deposit(snapshot.islandId(), amount.get());
+            return new MissionRewardApplication(true, "BANK_DEPOSITED", deposited.balance());
+        } catch (RuntimeException exception) {
+            return MissionRewardApplication.skipped("BANK_REWARD_FAILED");
+        }
+    }
+
+    static Optional<BigDecimal> bankDepositRewardAmount(IslandMissionSnapshot snapshot) {
+        String reward = snapshot == null ? "" : snapshot.reward();
+        StringBuilder amount = new StringBuilder();
+        boolean started = false;
+        for (int index = 0; index < reward.length(); index++) {
+            char current = reward.charAt(index);
+            if (Character.isDigit(current) || current == '.' || current == ',') {
+                started = true;
+                if (current != ',') {
+                    amount.append(current);
+                }
+            } else if (started) {
+                break;
+            }
+        }
+        if (amount.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            BigDecimal parsed = new BigDecimal(amount.toString());
+            return parsed.signum() > 0 ? Optional.of(parsed) : Optional.empty();
+        } catch (NumberFormatException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private static Map<String, String> missionCompleteFields(IslandMissionSnapshot snapshot, MissionRewardApplication reward) {
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+        fields.put("missionKey", snapshot.missionKey());
+        fields.put("kind", snapshot.kind());
+        fields.put("rewardType", snapshot.rewardType());
+        fields.put("reward", snapshot.reward());
+        fields.put("rewardApplied", Boolean.toString(reward.applied()));
+        fields.put("rewardCode", reward.code());
+        if (!reward.balance().isBlank()) {
+            fields.put("bankBalance", reward.balance());
+        }
+        return fields;
+    }
+
+    private static Map<String, String> missionCompleteEventFields(IslandMissionSnapshot snapshot, MissionRewardApplication reward) {
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>(missionCompleteFields(snapshot, reward));
+        fields.put("islandId", snapshot.islandId().toString());
+        return fields;
+    }
+
+    record MissionRewardApplication(boolean applied, String code, String balance) {
+        MissionRewardApplication {
+            code = code == null ? "" : code;
+            balance = balance == null ? "" : balance;
+        }
+
+        static MissionRewardApplication skipped(String code) {
+            return new MissionRewardApplication(false, code, "");
+        }
     }
 
     private static boolean requireIslandPermission(HttpExchange exchange, IslandRepository islandRepository, IslandMetadataRepository metadataRepository, IslandPermissionRuleRepository permissionRules, GlobalEventPublisher events, UUID islandId, UUID actorUuid, IslandPermission permission) throws IOException {

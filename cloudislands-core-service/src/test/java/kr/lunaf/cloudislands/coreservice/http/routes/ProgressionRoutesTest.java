@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreservice.bank.InMemoryIslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -120,6 +121,39 @@ class ProgressionRoutesTest {
         assertEquals(true, renderedDefinition.get("enabled"));
         assertLimit(islandId, actorUuid, renderedLimit);
         assertLimit(islandId, actorUuid, singleLimit);
+    }
+
+    @Test
+    void appliesBankDepositMissionReward() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000091");
+        InMemoryIslandBankRepository bank = new InMemoryIslandBankRepository();
+        ProgressionRoutes routes = new ProgressionRoutes(null, null, null, null, bank, null, null, null, null, null, null, null);
+        IslandMissionSnapshot mission = new IslandMissionSnapshot(
+            islandId,
+            "reward_bank",
+            "MISSION",
+            "economy",
+            "Reward Bank",
+            "Reward deposits into the island bank",
+            "BLOCK_PLACE",
+            "*",
+            1L,
+            1L,
+            true,
+            "BANK_DEPOSIT",
+            "1,250.50 coins",
+            false,
+            false,
+            Instant.parse("2026-01-02T03:04:05Z")
+        );
+
+        ProgressionRoutes.MissionRewardApplication applied = routes.applyMissionReward(mission);
+
+        assertTrue(applied.applied());
+        assertEquals("BANK_DEPOSITED", applied.code());
+        assertEquals("1250.50", bank.balance(islandId).balance());
+        assertEquals("1250.50", ProgressionRoutes.bankDepositRewardAmount(mission).orElseThrow().toPlainString());
+        assertTrue(ProgressionRoutes.bankDepositRewardAmount(new IslandMissionSnapshot(islandId, "bad_reward", "MISSION", "Bad", 1L, 1L, true, "coins", Instant.EPOCH)).isEmpty());
     }
 
     private static void assertMission(UUID islandId, Map<?, ?> mission) {
