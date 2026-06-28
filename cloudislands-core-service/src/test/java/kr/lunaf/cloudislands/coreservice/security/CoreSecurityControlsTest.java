@@ -265,6 +265,25 @@ class CoreSecurityControlsTest {
     }
 
     @Test
+    void reviewModerationRequiresModerationPermission() {
+        AdminEndpointGuard moderation = new AdminEndpointGuard("admin-secret", true, "moderation-manage");
+        AdminEndpointGuard auditOnly = new AdminEndpointGuard("admin-secret", true, "audit-read");
+
+        assertFalse(auditOnly.allowed("/v1/admin/reviews/moderate", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret"
+        )));
+        assertTrue(moderation.allowed("/v1/admin/reviews/moderate", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret"
+        )));
+        assertTrue(moderation.allowed("/v1/admin/reviews/moderation", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret"
+        )));
+    }
+
+    @Test
     void adminPermissionDefaultsDoNotGrantWildcard() {
         AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true);
 

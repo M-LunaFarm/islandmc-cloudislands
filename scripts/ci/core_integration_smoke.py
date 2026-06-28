@@ -479,7 +479,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         assert_field(reconnect, "targetNode", standby_node)
 
         events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 100}, admin=True, expect=(200,))
-        assert_contains_event(events, "ROUTE_TICKET_CREATED")
+        assert_contains_event(events, "ROUTE_SESSION_PUBLISHED")
         audit = request(secondary_admin_url, "POST", "/v1/audit", {"limit": 100}, admin=True, expect=(200,))
         assert_audit_entries(audit)
 

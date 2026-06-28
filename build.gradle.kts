@@ -1434,6 +1434,35 @@ tasks.register("verifyUpgradeEffectCoverage") {
     }
 }
 
+tasks.register("verifyReviewModerationCoverage") {
+    group = "verification"
+    description = "Verifies review report/moderation routes, repository filtering, admin permission, and schema migration remain present."
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    val route = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandReviewRoutes.java")
+    val repository = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/review/IslandReviewRepository.java")
+    val guard = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/security/AdminEndpointGuard.java")
+    val migration = layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/migration/V70__review_moderation.sql")
+    val test = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/review/InMemoryIslandReviewRepositoryTest.java")
+    inputs.files(route, repository, guard, migration, test)
+    doLast {
+        val routeSource = route.asFile.readText()
+        val repositorySource = repository.asFile.readText()
+        val guardSource = guard.asFile.readText()
+        val migrationSource = migration.asFile.readText()
+        val testSource = test.asFile.readText()
+        val failures = buildList {
+            if (!routeSource.contains("/v1/islands/reviews/report") || !routeSource.contains("/v1/admin/reviews/moderate")) add("IslandReviewRoutes missing report/moderate endpoints")
+            if (!repositorySource.contains("moderationQueue") || !repositorySource.contains("report(")) add("IslandReviewRepository missing moderation operations")
+            if (!guardSource.contains("MODERATION_MANAGE")) add("AdminEndpointGuard missing moderation permission mapping")
+            if (!migrationSource.contains("moderation_state") || !migrationSource.contains("report_count")) add("review moderation migration missing required fields")
+            if (!testSource.contains("reportsAndHidesReviewsFromPublicListsAndRankings")) add("review moderation repository test missing")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifyMissionEventProgress") {
     group = "verification"
     description = "Verifies Paper mission event progress listeners and tests remain present."
@@ -1845,6 +1874,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyMigrationFixtures"))
     dependsOn(tasks.named("verifyGeneratorRules"))
     dependsOn(tasks.named("verifyUpgradeEffectCoverage"))
+    dependsOn(tasks.named("verifyReviewModerationCoverage"))
     dependsOn(tasks.named("verifyEconomyTransactionSafety"))
     dependsOn(tasks.named("verifyIntegrationRuntimeSmoke"))
     dependsOn(tasks.named("verifyFeatureParityMatrix"))

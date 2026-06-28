@@ -85,7 +85,10 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V64__job_claim_leases.sql",
         "/db/migration/V65__job_completion_receipts.sql",
         "/db/migration/V66__job_completion_receipt_queue_mode.sql",
-        "/db/migration/V67__completion_event_outbox.sql"
+        "/db/migration/V67__completion_event_outbox.sql",
+        "/db/migration/V68__mission_definition_metadata.sql",
+        "/db/migration/V69__generator_profiles_and_rules.sql",
+        "/db/migration/V70__review_moderation.sql"
     };
 
     private enum Dialect {

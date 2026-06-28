@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandReviewModerationSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
@@ -44,7 +45,10 @@ public final class IslandReviewRoutes implements RouteGroup {
     public void register(CoreRouteRegistry registry) {
         registry.routePost("/v1/islands/reviews", this::listReviews);
         registry.routePost("/v1/islands/reviews/set", this::setReview);
+        registry.routePost("/v1/islands/reviews/report", this::reportReview);
         registry.routePost("/v1/islands/reviews/delete", this::deleteReview);
+        registry.routePost("/v1/admin/reviews/moderation", this::reviewModeration);
+        registry.routePost("/v1/admin/reviews/moderate", this::moderateReview);
         registry.routePost("/v1/rankings/reviews", this::reviewRankings);
     }
 
@@ -117,6 +121,61 @@ public final class IslandReviewRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, removed ? 202 : 404, removed ? ApiResponses.ok(true) : ApiResponses.error("REVIEW_NOT_FOUND", "Island review was not found"));
     }
 
+    private void reportReview(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        UUID reviewerUuid = JsonFields.uuid(body, "reviewerUuid", EMPTY_UUID);
+        UUID reporterUuid = JsonFields.uuid(body, "reporterUuid", EMPTY_UUID);
+        String reason = JsonFields.text(body, "reason", "");
+        if (reporterUuid.equals(EMPTY_UUID)) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("REPORTER_REQUIRED", "Reporter UUID is required"));
+            return;
+        }
+        var moderation = reviews.report(islandId, reviewerUuid, reporterUuid, reason);
+        if (moderation.isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("REVIEW_NOT_FOUND", "Island review was not found"));
+            return;
+        }
+        audit.log(reporterUuid, "PLAYER", "ISLAND_REVIEW_REPORT", "ISLAND", islandId.toString(), Map.of("reviewerUuid", reviewerUuid.toString(), "reportCount", Integer.toString(moderation.get().reportCount())));
+        islandLogs.append(islandId, reporterUuid, "ISLAND_REVIEW_REPORT", Map.of("reviewerUuid", reviewerUuid.toString(), "reportCount", Integer.toString(moderation.get().reportCount())));
+        events.publish(CloudIslandEventType.ISLAND_REVIEW_CHANGED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "reviewerUuid", reviewerUuid.toString(),
+            "operation", "REVIEW_REPORT",
+            "moderationState", moderation.get().moderationState()
+        ));
+        CoreHttpResponses.write(exchange, 202, reviewModerationAcceptedJson(moderation.get()));
+    }
+
+    private void reviewModeration(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 10), 100));
+        CoreHttpResponses.write(exchange, 200, reviewModerationQueueJson(reviews.moderationQueue(limit)));
+    }
+
+    private void moderateReview(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        UUID reviewerUuid = JsonFields.uuid(body, "reviewerUuid", EMPTY_UUID);
+        UUID moderatorUuid = JsonFields.uuid(body, "moderatorUuid", EMPTY_UUID);
+        String state = IslandReviewModerationSnapshot.normalizeState(JsonFields.text(body, "moderationState", "VISIBLE"));
+        String note = JsonFields.text(body, "note", "");
+        var moderation = reviews.moderate(islandId, reviewerUuid, state, moderatorUuid, note);
+        if (moderation.isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("REVIEW_NOT_FOUND", "Island review was not found"));
+            return;
+        }
+        audit.log(moderatorUuid, "ADMIN", "ISLAND_REVIEW_MODERATE", "ISLAND", islandId.toString(), Map.of("reviewerUuid", reviewerUuid.toString(), "moderationState", moderation.get().moderationState()));
+        islandLogs.append(islandId, moderatorUuid, "ISLAND_REVIEW_MODERATE", Map.of("reviewerUuid", reviewerUuid.toString(), "moderationState", moderation.get().moderationState()));
+        events.publish(CloudIslandEventType.ISLAND_REVIEW_CHANGED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "reviewerUuid", reviewerUuid.toString(),
+            "operation", "REVIEW_MODERATE",
+            "moderationState", moderation.get().moderationState()
+        ));
+        CoreHttpResponses.write(exchange, 202, reviewModerationAcceptedJson(moderation.get()));
+    }
+
     static String reviewsJson(List<IslandReviewSnapshot> reviews) {
         int count = reviews.size();
         double average = reviews.stream().mapToInt(IslandReviewSnapshot::rating).average().orElse(0.0D);
@@ -157,6 +216,21 @@ public final class IslandReviewRoutes implements RouteGroup {
         return SimpleJson.stringify(Map.of("rankings", renderedRankings));
     }
 
+    static String reviewModerationAcceptedJson(IslandReviewModerationSnapshot moderation) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("moderation", reviewModerationMap(moderation));
+        return SimpleJson.stringify(values);
+    }
+
+    static String reviewModerationQueueJson(List<IslandReviewModerationSnapshot> queue) {
+        List<Object> rendered = new ArrayList<>();
+        for (IslandReviewModerationSnapshot moderation : queue) {
+            rendered.add(reviewModerationMap(moderation));
+        }
+        return SimpleJson.stringify(Map.of("reviews", rendered, "count", rendered.size()));
+    }
+
     private static Map<String, Object> reviewMap(IslandReviewSnapshot review) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("islandId", review.islandId());
@@ -165,6 +239,20 @@ public final class IslandReviewRoutes implements RouteGroup {
         values.put("comment", review.comment());
         values.put("createdAt", review.createdAt());
         values.put("updatedAt", review.updatedAt());
+        return values;
+    }
+
+    private static Map<String, Object> reviewModerationMap(IslandReviewModerationSnapshot moderation) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("islandId", moderation.islandId());
+        values.put("reviewerUuid", moderation.reviewerUuid());
+        values.put("moderationState", moderation.moderationState());
+        values.put("reportCount", moderation.reportCount());
+        values.put("reportReason", moderation.reportReason());
+        values.put("moderatedBy", moderation.moderatedBy());
+        values.put("moderatedAt", moderation.moderatedAt());
+        values.put("moderationNote", moderation.moderationNote());
+        values.put("updatedAt", moderation.updatedAt());
         return values;
     }
 }

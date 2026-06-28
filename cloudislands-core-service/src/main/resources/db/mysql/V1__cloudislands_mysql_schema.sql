@@ -250,6 +250,12 @@ CREATE TABLE IF NOT EXISTS island_reviews (
     reviewer_uuid CHAR(36) NOT NULL,
     rating INTEGER NOT NULL,
     comment VARCHAR(280) NOT NULL DEFAULT '',
+    moderation_state VARCHAR(32) NOT NULL DEFAULT 'VISIBLE',
+    report_count INTEGER NOT NULL DEFAULT 0,
+    report_reason VARCHAR(180) NOT NULL DEFAULT '',
+    moderated_by CHAR(36),
+    moderated_at DATETIME(6),
+    moderation_note VARCHAR(180) NOT NULL DEFAULT '',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (island_id, reviewer_uuid),
@@ -260,6 +266,7 @@ CREATE TABLE IF NOT EXISTS island_reviews (
 
 CREATE INDEX idx_island_reviews_recent ON island_reviews(island_id, updated_at DESC);
 CREATE INDEX idx_island_reviews_rating_recent ON island_reviews(island_id, rating DESC, updated_at DESC);
+CREATE INDEX idx_island_reviews_moderation_queue ON island_reviews(moderation_state, report_count DESC, updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS island_warehouse (
     island_id CHAR(36) NOT NULL,
